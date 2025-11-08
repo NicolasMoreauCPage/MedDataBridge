@@ -229,6 +229,44 @@ Bonnes pratiques :
 2. Désactiver ponctuellement côté EJ pour tester les cas legacy A08.
 3. Ne pas mélanger A08 avec Z99 pour les corrections partielles en mode strict.
 
+### Milestone v0.2.0 (HL7v2 + FHIR Roundtrip)
+
+Cette version marque un cap fonctionnel : le moteur est capable de simuler un logiciel d'interopérabilité hospitalier avec ingestion et émission HL7v2 (ADT PAM France, MFN^M05 structure) et génération/mapping FHIR.
+
+Principales capacités prouvées dans la branche :
+
+1. Import réel MFN^M05 avec hiérarchie partielle et auto-création contrôlée de pôles/services virtuels (`MFN_AUTO_VIRTUAL_POLE`).
+2. Ingestion lotie de ~1k messages PAM avec validation de transitions IHE (table de passage explicitée dans `app/state_transitions.py`).
+3. Génération de messages ADT (A01/A03/A06/A07/A11/A13/A04/A05, annulations incluses) avec adaptation stricte (A08 désactivé) selon flags EJ / global.
+4. Roundtrip identifiants (PID-3 IPP, PID-18 AN, PV1-19 VN, ZBE-1 MVT) consolidé dans test d'intégration `tests/test_production_integration.py`.
+5. Validation centralisée des transitions + rejet explicite avec ACK `MSA|AE` détaillé.
+6. Fallback d'encodage latin-1 pour ingestion legacy (évite les erreurs Unicode sur des dumps historiques).
+7. Champs `uf_responsabilite` rendus optionnels sur `Dossier` et `Venue` pour compatibilité scénarios partiels/pré-admission; résolution automatique ou marquage `UNKNOWN` ensuite.
+
+Notes de migration / schéma :
+
+La colonne `uf_responsabilite` (tables `dossier`, `venue`) est désormais nullable. Sur une base déjà créée avant v0.2.0 (SQLite), exécuter soit :
+
+```bash
+# Option rapide (recréation)
+cp poc.db poc.db.bak
+rm poc.db
+PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset
+
+# Option Alembic (à créer si non existante)
+alembic revision -m "make uf_responsabilite nullable" --autogenerate
+alembic upgrade head
+```
+
+Limites connues (non bloquantes pour le milestone) :
+
+- Quelques tests UI/forme peuvent rester sensibles au timing (flaky) → à stabiliser via waits explicites.
+- Import MFN ne gère pas encore les mises à jour différentielles (replay complet recommandé).
+- Pas de moteur de segmentation HL7 générique (parsing ciblé sur segments clés PID/PV1/ZBE/MRG).
+
+Tag proposé : `v0.2.0`.
+
+
 ### Migrations structurées (Alembic)
 
 Alembic est configuré (fichier `alembic.ini`, dossier `alembic/`). Pour générer la migration réelle initiale :

@@ -100,7 +100,9 @@ class Dossier(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_seq: int = Field(index=True, unique=True)       # identifiant métier unique
     patient_id: int = Field(foreign_key="patient.id")
-    uf_responsabilite: str
+    # Rendu optionnel pour compatibilité avec anciens tests/scénarios de création simplifiée.
+    # Si absent lors d'un flux PAM, sera dérivé d'un service hospital_service/PV1 ou marqué UNKNOWN.
+    uf_responsabilite: Optional[str] = None
     uf_medicale: Optional[str] = None
     uf_hebergement: Optional[str] = None
     uf_soins: Optional[str] = None
@@ -154,7 +156,8 @@ class Venue(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     venue_seq: int = Field(index=True, unique=True)         # identifiant métier unique
     dossier_id: int = Field(foreign_key="dossier.id")
-    uf_responsabilite: str
+    # Optionnel pour permettre création avant résolution de l'UF réelle (ex: préadmission partielle).
+    uf_responsabilite: Optional[str] = None
     start_time: datetime
     code: Optional[str] = None
     label: Optional[str] = None

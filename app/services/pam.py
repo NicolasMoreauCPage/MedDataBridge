@@ -71,12 +71,12 @@ def _parse_zbe_segment(message: str) -> Optional[Dict]:
     - ZBE-4: Type d'action (INSERT / UPDATE / CANCEL)
     - ZBE-5: Indicateur annulation (Y/N)
     - ZBE-6: Événement d'origine (ex: "A01" pour un A11 qui annule un A01)
-    - ZBE-7: UF médical responsable (format complexe: ^^^^^^UF^^^CODE_UF, code en position 10)
-    - ZBE-8: Vide
-    - ZBE-9: Mode de traitement (HMS, etc.)
+    - ZBE-7: UF médicale responsable (format: ^^^^^^TYPE^CODE^^^COMP^CP, code en position 10)
+    - ZBE-8: UF de soins (format: ^^^^^^TYPE^CODE^^^COMP^CP, code en position 10)
+    - ZBE-9: Nature du mouvement (M=Médical, H=Hébergement, S=Soins, L=Localisation, D=Date)
     
     Returns:
-        Dict with movement_id, movement_datetime, action_type, cancel_flag, origin_event, uf_responsable
+        Dict with movement_id, movement_datetime, action_type, cancel_flag, origin_event, uf_medicale, uf_soins, nature
     """
     out = {
         "movement_id": None,
@@ -120,19 +120,26 @@ def _parse_zbe_segment(message: str) -> Optional[Dict]:
         if len(parts) > 6 and parts[6]:
             out["origin_event"] = parts[6].strip()
         
-        # ZBE-7: UF responsable (format: ^^^^^^UF^^^CODE_UF)
+        # ZBE-7: UF médicale responsable (format: ^^^^^^TYPE^CODE^^^COMP^CP)
         # Le code UF est en position 10 (composant 10 du champ composite)
         if len(parts) > 7 and parts[7]:
             uf_field = parts[7].strip()
             uf_components = uf_field.split("^")
             if len(uf_components) >= 10 and uf_components[9]:
+                out["uf_medicale"] = uf_components[9]
+                # Rétrocompatibilité : garder aussi "uf_responsable"
                 out["uf_responsable"] = uf_components[9]
         
-        # ZBE-8: Vide (on skip)
+        # ZBE-8: UF de soins (format: ^^^^^^TYPE^CODE^^^COMP^CP)
+        if len(parts) > 8 and parts[8]:
+            uf_soins_field = parts[8].strip()
+            uf_soins_components = uf_soins_field.split("^")
+            if len(uf_soins_components) >= 10 and uf_soins_components[9]:
+                out["uf_soins"] = uf_soins_components[9]
         
-        # ZBE-9: Mode de traitement
+        # ZBE-9: Nature du mouvement (M/H/S/L/D)
         if len(parts) > 9 and parts[9]:
-            out["mode_traitement"] = parts[9].strip()
+            out["nature"] = parts[9].strip()
         
         return out if out["movement_id"] else None
         
@@ -825,11 +832,16 @@ async def handle_admission_message(
         elif pv1_data.get("admit_time"):
             movement_datetime = pv1_data["admit_time"]
         
-        # Déterminer l'UF responsabilité : priorité ZBE-7, puis PV1-10
+        # Déterminer les UF selon ZBE et PV1
+        # - UF hébergement : PV1-3-1 (location)
+        # - UF médicale : ZBE-7-10
+        # - UF soins : ZBE-8-10
         uf_resp = dossier.uf_responsabilite
         uf_code_from_zbe = None
-        if zbe_data and zbe_data.get("uf_responsable"):
-            uf_code_from_zbe = zbe_data["uf_responsable"]
+        
+        # UF médicale depuis ZBE-7
+        if zbe_data and zbe_data.get("uf_medicale"):
+            uf_code_from_zbe = zbe_data["uf_medicale"]
             uf_resp = uf_code_from_zbe
             
             # Vérifier que l'UF existe dans la structure associée à l'EJ

@@ -101,6 +101,9 @@ class Dossier(SQLModel, table=True):
     dossier_seq: int = Field(index=True, unique=True)       # identifiant métier unique
     patient_id: int = Field(foreign_key="patient.id")
     uf_responsabilite: str
+    uf_medicale: Optional[str] = None
+    uf_hebergement: Optional[str] = None
+    uf_soins: Optional[str] = None
     admit_time: datetime
     discharge_time: Optional[datetime] = None
     dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")

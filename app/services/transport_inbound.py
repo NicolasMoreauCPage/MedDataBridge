@@ -858,54 +858,90 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             is_historic = zbe_data.get("is_historic")
             nature = derive_nature(trigger, zbe_data.get("nature"))
 
+            modification_processed = False
             if action in {"UPDATE", "CANCEL"}:
-                # Vérifier présence identifiant mouvement originel (ZBE-1) et original_trigger
-                if not zbe_data.get("movement_id"):
-                    log.status = "rejected"
-                    ack = build_ack(msg, ack_code="AE", text="ZBE-1 identifiant mouvement requis pour action UPDATE/CANCEL")
-                    log.ack_payload = ack
-                    return ack
-                if not original_trigger:
-                    log.status = "rejected"
-                    ack = build_ack(msg, ack_code="AE", text=f"ZBE-6 trigger original requis pour action {action}")
-                    log.ack_payload = ack
-                    return ack
-                # Rechercher mouvement existant par sequence (si numérique) ou fallback id brut
-                target_seq = None
-                raw_id = zbe_data.get("movement_id")
-                try:
-                    target_seq = int(raw_id.split("^")[0]) if "^" in raw_id else int(raw_id)
-                except Exception:
+                movement_id = zbe_data.get("movement_id")
+                admission_triggers = {"A01", "A04", "A05", "A06", "A07"}
+                # Fallback neutralisation si aucun mouvement_id pour admission initiale
+                if not movement_id and trigger in admission_triggers:
+                    # Vérifier absence de mouvements antérieurs
+                    has_prior = False
+                    try:
+                        first_ident = pid_data.get("identifiers")[0][0].split("^^^")[0] if pid_data.get("identifiers") else None
+                        if first_ident:
+                            patient_obj = session.exec(select(Patient).where(Patient.identifier == first_ident)).first()
+                            if patient_obj:
+                                prior_mvt = session.exec(
+                                    select(Mouvement)
+                                    .join(Venue)
+                                    .join(Dossier)
+                                    .where(Dossier.patient_id == patient_obj.id)
+                                    .order_by(Mouvement.mouvement_seq.desc())
+                                ).first()
+                                has_prior = prior_mvt is not None
+                    except Exception:
+                        pass
+                    if not has_prior:
+                        logger.warning(
+                            "UPDATE/CANCEL sans ZBE-1 sur trigger d'admission initiale: traité en INSERT (création mouvement)",
+                            extra={"trigger": trigger}
+                        )
+                        action = None
+                        zbe_data["action"] = None
+                # Si après fallback on n'est plus en UPDATE/CANCEL -> sortir
+                if action not in {"UPDATE", "CANCEL"}:
+                    logger.debug("Neutralisation réussie; on saute la logique modification")
+                else:
+                    # Règles de validation restantes
+                    if not movement_id:
+                        log.status = "rejected"
+                        ack = build_ack(msg, ack_code="AE", text="ZBE-1 identifiant mouvement requis pour action UPDATE/CANCEL")
+                        log.ack_payload = ack
+                        return ack
+                    if not original_trigger:
+                        log.status = "rejected"
+                        ack = build_ack(msg, ack_code="AE", text=f"ZBE-6 trigger original requis pour action {action}")
+                        log.ack_payload = ack
+                        return ack
+                    # Recherche movement cible
                     target_seq = None
-                existing_mvt = None
-                if target_seq is not None:
-                    existing_mvt = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == target_seq)).first()
-                if not existing_mvt:
-                    existing_mvt = session.exec(select(Mouvement).where(Mouvement.type == raw_id)).first()
-                if not existing_mvt:
-                    log.status = "rejected"
-                    ack = build_ack(msg, ack_code="AE", text=f"Mouvement original '{raw_id}' introuvable pour {action}")
-                    log.ack_payload = ack
-                    return ack
-                # Appliquer annulation ou mise à jour
-                if action == "CANCEL":
-                    existing_mvt.status = "cancelled"
-                elif action == "UPDATE":
-                    # Mettre à jour UF codes/labels/nature si présents dans zbe_data
-                    if zbe_data.get("uf_medicale_code"):
-                        existing_mvt.uf_medicale_code = zbe_data.get("uf_medicale_code")
-                        existing_mvt.uf_medicale_label = zbe_data.get("uf_medicale_label") or existing_mvt.uf_medicale_code
-                    if zbe_data.get("uf_soins_code"):
-                        existing_mvt.uf_soins_code = zbe_data.get("uf_soins_code")
-                        existing_mvt.uf_soins_label = zbe_data.get("uf_soins_label") or existing_mvt.uf_soins_code
-                    if nature:
-                        existing_mvt.nature = nature
-                    existing_mvt.original_trigger = original_trigger
-                    existing_mvt.action = action
-                    existing_mvt.is_historic = bool(is_historic)
-                session.add(existing_mvt)
-                session.flush()
-                logger.info("Applied inbound movement modification", extra={"action": action, "movement_seq": existing_mvt.mouvement_seq})
+                    try:
+                        target_seq = int(movement_id.split("^")[0]) if movement_id and "^" in movement_id else int(movement_id)
+                    except Exception:
+                        target_seq = None
+                    existing_mvt = None
+                    if target_seq is not None:
+                        existing_mvt = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == target_seq)).first()
+                    if not existing_mvt and movement_id:
+                        existing_mvt = session.exec(select(Mouvement).where(Mouvement.type == movement_id)).first()
+                    if not existing_mvt:
+                        if action == "UPDATE" and trigger in admission_triggers:
+                            logger.info("UPDATE sans mouvement existant sur trigger admission: traité comme INSERT")
+                            action = None
+                            zbe_data["action"] = None
+                        else:
+                            log.status = "rejected"
+                            ack = build_ack(msg, ack_code="AE", text=f"Mouvement original '{movement_id}' introuvable pour {action}")
+                            log.ack_payload = ack
+                            return ack
+                    if action == "CANCEL" and existing_mvt:
+                        existing_mvt.status = "cancelled"
+                        session.add(existing_mvt); session.flush()
+                        logger.info("Mouvement annulé", extra={"movement_seq": existing_mvt.mouvement_seq})
+                    elif action == "UPDATE" and existing_mvt:
+                        if zbe_data.get("uf_medicale_code"):
+                            existing_mvt.uf_medicale_code = zbe_data.get("uf_medicale_code")
+                            existing_mvt.uf_medicale_label = zbe_data.get("uf_medicale_label") or existing_mvt.uf_medicale_code
+                        if zbe_data.get("uf_soins_code"):
+                            existing_mvt.uf_soins_code = zbe_data.get("uf_soins_code")
+                            existing_mvt.uf_soins_label = zbe_data.get("uf_soins_label") or existing_mvt.uf_soins_code
+                        if nature:
+                            existing_mvt.nature = nature
+                        existing_mvt.original_trigger = original_trigger
+                        existing_mvt.action = action
+                        existing_mvt.is_historic = bool(is_historic)
+                        session.add(existing_mvt); session.flush()
+                        logger.info("Mouvement mis à jour", extra={"movement_seq": existing_mvt.mouvement_seq})
 
             # Historique: si is_historic et timestamp passé, aucune restriction additionnelle ici (déjà validé format) mais log info
             if is_historic:

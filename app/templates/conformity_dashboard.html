@@ -1,158 +1,84 @@
 {% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <!-- Navigation -->
-  <nav class="mb-6">
-    <a href="/conformity" class="text-blue-600 hover:text-blue-700">
-      ← Retour à la liste des EJ
-    </a>
-  </nav>
-
-  <!-- En-tête EJ -->
-  <div class="bg-white rounded-lg shadow p-6 mb-8">
-    <div class="flex items-start justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-slate-900">{{ summary.ej.name }}</h1>
-        <p class="mt-1 text-slate-600">FINESS: {{ summary.ej.finess_ej or 'N/A' }}</p>
-        {% if summary.ej.strict_pam_fr %}
+<div class="max-w-content mx-auto px-4 py-8">
+  <!-- Dashboard Header -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-primary mb-1">{{ summary.ej.name }}</h1>
+      <p class="text-slate-600">FINESS : <span class="font-mono">{{ summary.ej.finess_ej or 'N/A' }}</span></p>
+      {% if summary.ej.strict_pam_fr %}
         <span class="inline-flex items-center px-3 py-1 mt-2 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
           🔒 Mode strict IHE PAM France
         </span>
-        {% endif %}
-      </div>
-      <a href="/conformity/ej/{{ summary.ej.id }}/messages" 
-         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-        Voir tous les messages
-      </a>
+      {% endif %}
+    </div>
+    <div class="flex gap-2">
+      <a href="/conformity" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">← Liste des EJ</a>
+      <a href="/conformity/ej/{{ summary.ej.id }}/messages" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-700 transition">Voir tous les messages</a>
     </div>
   </div>
 
-  <!-- Métriques principales (7 jours) -->
+  <!-- Metrics Cards -->
   <div class="grid gap-6 md:grid-cols-3 mb-8">
-    <!-- Tous messages -->
-    <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-sm font-medium text-slate-600 mb-2">Tous messages (7j)</h3>
-      <div class="flex items-baseline space-x-2">
-        <span class="text-3xl font-bold text-slate-900">{{ summary.conformity_7d.total }}</span>
-        <span class="text-sm text-slate-500">total</span>
-      </div>
-      <div class="mt-4">
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-sm text-slate-600">Conformité</span>
-          <span class="text-lg font-semibold {% if summary.conformity_7d.rate >= 95 %}text-green-600{% elif summary.conformity_7d.rate >= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
-            {{ summary.conformity_7d.rate }}%
-          </span>
-        </div>
-        <div class="w-full bg-slate-200 rounded-full h-2">
-          <div class="{% if summary.conformity_7d.rate >= 95 %}bg-green-500{% elif summary.conformity_7d.rate >= 80 %}bg-yellow-500{% else %}bg-red-500{% endif %} h-2 rounded-full" 
-               style="width: {{ summary.conformity_7d.rate }}%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Messages entrants -->
-    <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-sm font-medium text-slate-600 mb-2">Messages entrants (7j)</h3>
-      <div class="flex items-baseline space-x-2">
-        <span class="text-3xl font-bold text-blue-900">{{ summary.conformity_inbound_7d.total }}</span>
-        <span class="text-sm text-slate-500">total</span>
-      </div>
-      <div class="mt-4">
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-sm text-slate-600">Conformité</span>
-          <span class="text-lg font-semibold {% if summary.conformity_inbound_7d.rate >= 95 %}text-green-600{% elif summary.conformity_inbound_7d.rate >= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
-            {{ summary.conformity_inbound_7d.rate }}%
-          </span>
-        </div>
-        <div class="w-full bg-slate-200 rounded-full h-2">
-          <div class="{% if summary.conformity_inbound_7d.rate >= 95 %}bg-green-500{% elif summary.conformity_inbound_7d.rate >= 80 %}bg-yellow-500{% else %}bg-red-500{% endif %} h-2 rounded-full" 
-               style="width: {{ summary.conformity_inbound_7d.rate }}%"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Messages sortants -->
-    <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-sm font-medium text-slate-600 mb-2">Messages sortants (7j)</h3>
-      <div class="flex items-baseline space-x-2">
-        <span class="text-3xl font-bold text-green-900">{{ summary.conformity_outbound_7d.total }}</span>
-        <span class="text-sm text-slate-500">total</span>
-      </div>
-      <div class="mt-4">
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-sm text-slate-600">Conformité</span>
-          <span class="text-lg font-semibold {% if summary.conformity_outbound_7d.rate >= 95 %}text-green-600{% elif summary.conformity_outbound_7d.rate >= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
-            {{ summary.conformity_outbound_7d.rate }}%
-          </span>
-        </div>
-        <div class="w-full bg-slate-200 rounded-full h-2">
-          <div class="{% if summary.conformity_outbound_7d.rate >= 95 %}bg-green-500{% elif summary.conformity_outbound_7d.rate >= 80 %}bg-yellow-500{% else %}bg-red-500{% endif %} h-2 rounded-full" 
-               style="width: {{ summary.conformity_outbound_7d.rate }}%"></div>
-        </div>
-      </div>
-    </div>
+    {{ ui.metric_card('Tous messages (7j)', summary.conformity_7d.total, 'total', summary.conformity_7d.rate) }}
+    {{ ui.metric_card('Messages entrants (7j)', summary.conformity_inbound_7d.total, 'total', summary.conformity_inbound_7d.rate) }}
+    {{ ui.metric_card('Messages sortants (7j)', summary.conformity_outbound_7d.total, 'total', summary.conformity_outbound_7d.rate) }}
   </div>
 
   <!-- Issues récurrentes -->
   {% if summary.recurring_issues %}
-  <div class="bg-white rounded-lg shadow mb-8">
+  <section class="bg-white rounded-lg shadow mb-8" aria-labelledby="issues-heading">
     <div class="px-6 py-4 border-b border-slate-200">
-      <h2 class="text-xl font-semibold text-slate-900">⚠️ Issues récurrentes (7 derniers jours)</h2>
+      <h2 id="issues-heading" class="text-xl font-semibold text-slate-900">⚠️ Issues récurrentes (7 derniers jours)</h2>
       <p class="text-sm text-slate-600 mt-1">Problèmes de validation les plus fréquents à corriger</p>
     </div>
-    <div class="divide-y divide-slate-200">
+    <ul class="divide-y divide-slate-200" role="list">
       {% for issue in summary.recurring_issues %}
-      <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50">
+      <li class="px-6 py-4 flex items-center justify-between hover:bg-slate-50" role="listitem">
         <div class="flex-1">
           <div class="flex items-center space-x-2">
-            <span class="px-2 py-1 rounded text-xs font-medium
-                         {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                         {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
-                         {% else %}bg-blue-100 text-blue-800{% endif %}">
-              {{ issue.severity|upper }}
-            </span>
-            <code class="text-sm font-mono text-slate-700">{{ issue.code }}</code>
+            {% set sev = issue.severity %}
+            {% set sev_color = 'blue' %}
+            {% if sev == 'error' %}{% set sev_color='red' %}{% elif sev in ['warn','warning'] %}{% set sev_color='yellow' %}{% endif %}
+            <span class="px-2 py-1 rounded text-xs font-semibold bg-{{ sev_color }}-100 text-{{ sev_color }}-800" aria-label="Sévérité {{ sev }}">{{ sev|upper }}</span>
+            <code class="text-sm font-mono text-slate-700" aria-label="Code validation">{{ issue.code }}</code>
           </div>
-          <p class="mt-1 text-sm text-slate-600">{{ issue.message }}</p>
+          <p class="mt-1 text-sm text-slate-600" aria-label="Description de l'erreur">{{ issue.message }}</p>
         </div>
         <div class="ml-4 flex-shrink-0">
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-800">
-            {{ issue.count }} occurrences
-          </span>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-800" aria-label="Occurrences">{{ issue.count }} occurrence{% if issue.count>1 %}s{% endif %}</span>
         </div>
-      </div>
+      </li>
       {% endfor %}
-    </div>
-  </div>
+    </ul>
+  </section>
   {% endif %}
 
   <!-- Timeline 30 jours -->
   {% if summary.timeline_30d %}
-  <div class="bg-white rounded-lg shadow">
+  <section class="bg-white rounded-lg shadow" aria-labelledby="evolution-heading">
     <div class="px-6 py-4 border-b border-slate-200">
-      <h2 class="text-xl font-semibold text-slate-900">📈 Évolution (30 derniers jours)</h2>
+      <h2 id="evolution-heading" class="text-xl font-semibold text-slate-900">📈 Évolution (30 derniers jours)</h2>
     </div>
     <div class="p-6">
-      <div class="space-y-2">
+      <div class="space-y-2" role="list">
         {% for day in summary.timeline_30d %}
-        <div class="flex items-center space-x-4">
-          <span class="text-xs text-slate-500 w-20">{{ day.date }}</span>
-          <div class="flex-1">
+        <div class="flex items-center space-x-4" role="listitem" aria-label="Jour {{ day.date }}">
+          <span class="text-xs text-slate-500 w-20" aria-label="Date">{{ day.date }}</span>
+          <div class="flex-1" aria-label="Barre de conformité">
             <div class="flex items-center space-x-2">
-              <div class="w-full bg-slate-200 rounded-full h-2">
-                <div class="{% if day.rate >= 95 %}bg-green-500{% elif day.rate >= 80 %}bg-yellow-500{% else %}bg-red-500{% endif %} h-2 rounded-full" 
-                     style="width: {{ day.rate }}%"></div>
-              </div>
-              <span class="text-xs font-medium text-slate-700 w-12 text-right">{{ day.rate }}%</span>
+              {{ ui.progress_bar(day.rate) }}
+              <span class="text-xs font-medium text-slate-700 w-12 text-right" aria-label="Taux">{{ day.rate }}%</span>
             </div>
           </div>
-          <span class="text-xs text-slate-500 w-16 text-right">{{ day.total }} msg</span>
+          <span class="text-xs text-slate-500 w-16 text-right" aria-label="Total messages">{{ day.total }} msg</span>
         </div>
         {% endfor %}
       </div>
     </div>
-  </div>
+  </section>
   {% endif %}
 </div>
 {% endblock %}

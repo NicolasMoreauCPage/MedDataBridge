@@ -947,6 +947,9 @@ async def handle_admission_message(
         session.add(venue)
         
         m_seq = get_next_sequence(session, "mouvement")
+        # Inject UF codes from ZBE if available (ZBE-7 / ZBE-8)
+        uf_medicale_code = zbe_data.get("uf_medicale") if zbe_data else None
+        uf_soins_code = zbe_data.get("uf_soins") if zbe_data else None
         mouvement = Mouvement(
             mouvement_seq=m_seq,
             venue_id=venue.id,
@@ -958,6 +961,10 @@ async def handle_admission_message(
             from_location=previous_location,
             to_location=location_value,
             location=location_value,  # PV1-3: Localisation actuelle
+            uf_medicale_code=uf_medicale_code,
+            uf_medicale_label=uf_medicale_code,
+            uf_soins_code=uf_soins_code,
+            uf_soins_label=uf_soins_code,
         )
         session.add(mouvement)
         session.flush()

@@ -1,19 +1,18 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="font-sans" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title|default('MedData Bridge') }}</title>
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Styles -->
   <link rel="stylesheet" href="{{ url_for('static', path='css/forms.css') }}">
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          maxWidth: { 'content': '1100px' },
+          fontFamily: { 'sans': ['Inter', 'sans-serif'] },
+          maxWidth: { 'content': '1200px' },
+          colors: { 'primary': '#2563eb', 'accent': '#0ea5e9' },
           animation: {
             'fadeIn': 'fadeIn 200ms ease-in',
             'slideIn': 'slideIn 200ms ease-out',
@@ -23,29 +22,68 @@
       darkMode: 'media'
     }
   </script>
-  
-  <!-- Meta tags -->
   <meta name="description" content="Interface de gestion des données médicales et interopérabilité FHIR/HL7">
   <meta name="theme-color" content="#2563eb">
-  
-  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
-  
-  <!-- Polices -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #f8fafc; /* slate-50 */
+      --color-surface: #ffffff;
+      --color-border: #e2e8f0; /* slate-200 */
+      --color-text: #1f2937; /* slate-800 */
+      --color-muted: #64748b; /* slate-500 */
+      --color-accent: #2563eb; /* primary */
+      --color-accent-alt: #0ea5e9; /* accent */
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f172a; /* slate-900 */
+        --color-surface: #1e293b; /* slate-800 */
+        --color-border: #334155; /* slate-700 */
+        --color-text: #f1f5f9; /* slate-100 */
+        --color-muted: #94a3b8; /* slate-400 */
+        --color-accent: #3b82f6; /* blue-500 */
+        --color-accent-alt: #06b6d4; /* cyan-500 */
+      }
+    }
+    [data-theme="dark"] {
+      --color-bg: #0f172a;
+      --color-surface: #1e293b;
+      --color-border: #334155;
+      --color-text: #f1f5f9;
+      --color-muted: #94a3b8;
+      --color-accent: #3b82f6;
+      --color-accent-alt: #06b6d4;
+    }
+    body { background: var(--color-bg); color: var(--color-text); }
+    .surface { background: var(--color-surface); }
+    .border-theme { border-color: var(--color-border); }
+    .text-muted { color: var(--color-muted); }
+    .text-accent { color: var(--color-accent); }
+    .bg-accent { background: var(--color-accent); }
+    .bg-surface { background: var(--color-surface); }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
-  <!-- Skip link for keyboard users -->
+<body class="font-sans" role="document">
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-3 focus:py-2 focus:rounded-md">Aller au contenu</a>
-  <header class="bg-white border-b border-slate-200">
-    <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-4">
-        <a href="/" class="flex items-center gap-3 text-lg font-semibold text-slate-800">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">MD</span>
-          <span>MedData Bridge</span>
-        </a>
+  <header class="surface border-b border-theme shadow-sm" role="banner">
+    <div class="mx-auto max-w-content px-4 py-2 flex items-center justify-between gap-4">
+      <a href="/" class="flex items-center gap-3 text-lg font-semibold text-primary">
+        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">MD</span>
+        <span>MedData Bridge</span>
+      </a>
+  <nav class="hidden md:flex gap-6 text-sm font-medium" role="navigation" aria-label="Liens principaux">
+        <a href="/dashboard" class="hover:text-primary">Dashboard</a>
+        <a href="/validate" class="hover:text-primary">Validation HL7/FHIR</a>
+        <a href="/send" class="hover:text-primary">Envoi de message</a>
+        <a href="/endpoints" class="hover:text-primary">Endpoints</a>
+        <a href="/logs" class="hover:text-primary">Logs</a>
+        <a href="/docs" class="hover:text-primary">Documentation</a>
+      </nav>
+      <div class="flex items-center gap-2">
         {% if request and request.state and request.state.ght_context %}
           <div class="hidden md:flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700" title="Contexte GHT actif">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -115,10 +153,10 @@
       </div>
     </div>
     {% endif %}
-  <nav class="hidden md:block border-t border-slate-200 bg-white" aria-label="Navigation principale">
-      <ul class="mx-auto max-w-content px-4 py-2 flex items-center gap-6 text-sm text-slate-600">
-        <li><a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">Tableau de bord</a></li>
-        <li><a href="/validation" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition">
+  <nav class="hidden md:block border-t border-theme surface" aria-label="Navigation principale" role="navigation">
+  <ul class="mx-auto max-w-content px-4 py-2 flex items-center gap-6 text-sm text-slate-600" role="menubar">
+  <li role="none"><a role="menuitem" href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">Tableau de bord</a></li>
+  <li role="none"><a role="menuitem" href="/validation" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>

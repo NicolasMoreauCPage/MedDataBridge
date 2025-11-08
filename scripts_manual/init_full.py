@@ -449,6 +449,20 @@ def seed_demo_scenarios() -> None:
         print("✓ Scénarios démo insérés")
 
 
+def _load_vocabularies(tag: str = "") -> bool:
+    """Charge les vocabulaires; retourne True si succès."""
+    try:
+        import sys
+        run([sys.executable, "tools/init_vocabularies.py"], check=True)
+        print(f"✓ Vocabulaires initialisés{f' ({tag})' if tag else ''}")
+        return True
+    except CalledProcessError as e:
+        print(f"✗ Échec init vocabulaires{f' ({tag})' if tag else ''}: {e}")
+    except FileNotFoundError as e:
+        print(f"✗ Script vocab introuvable{f' ({tag})' if tag else ''}: {e}")
+    return False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Initialisation complète locale")
     parser.add_argument("--force-reset", action="store_true", help="Supprime poc.db avant recréation")
@@ -472,17 +486,8 @@ def main() -> None:
         print("→ Structure étendue…")
         ensure_extended_structure()
         if not args.with_vocab:
-            # Auto-charge des vocabulaires pour profiter immédiatement des mappings
             print("→ Vocabulaires (auto car structure étendue)…")
-            try:
-                import sys
-                run([sys.executable, "tools/init_vocabularies.py"], check=True)
-                print("✓ Vocabulaires initialisés (auto)")
-                auto_vocab_requested = True
-            except CalledProcessError as e:
-                print(f"✗ Échec init vocabulaires auto: {e}")
-            except FileNotFoundError as e:
-                print(f"✗ Script vocab introuvable (auto): {e}")
+            auto_vocab_requested = _load_vocabularies("auto")
 
     if args.rich_seed:
         seed_rich()
@@ -494,14 +499,7 @@ def main() -> None:
 
     if args.with_vocab and not auto_vocab_requested:
         print("→ Vocabulaires…")
-        try:
-            import sys
-            run([sys.executable, "tools/init_vocabularies.py"], check=True)
-            print("✓ Vocabulaires initialisés")
-        except CalledProcessError as e:
-            print(f"✗ Échec init vocabulaires: {e}")
-        except FileNotFoundError as e:
-            print(f"✗ Script vocab introuvable: {e}")
+        _load_vocabularies()
 
     print("\n✅ Initialisation terminée")
 

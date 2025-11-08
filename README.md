@@ -77,10 +77,12 @@ PYTHONPATH=. .venv/bin/python -m uvicorn app.app:app --reload
 Flags supplémentaires disponibles :
 
 ```text
---with-vocab   Initialise les vocabulaires (équivalent tools/init_vocabularies.py)
---rich-seed    Insère un jeu multi-patients (~100 patients, ~150 dossiers, ~300 venues, ~1000 mouvements)
---demo-scenarios  Ajoute un contexte GHT DEMO avec 2 Entités Juridiques (Nord/Sud), une structure minimale (site, pôle, service MCO, 2 UF) et 3 patients scénarisés (transferts, annulations, multi-transferts)
---force-reset  Supprime poc.db avant recréation
+--with-vocab          Initialise les vocabulaires (équivalent tools/init_vocabularies.py)
+--force-reset         Supprime poc.db avant recréation
+--extended-structure  Crée une structure étendue (GHT + 2 EJ + hiérarchie complète: site, pôle, services, UF, UH, chambres, lits + namespaces identifiants IPP/NDA/VN/MVT)
+--rich-seed           Insère un jeu multi-patients (~100 patients, ~150 dossiers, ~300 venues, ~1000 mouvements) réutilisant les UF réelles si présentes
+--demo-scenarios      Ajoute un contexte GHT DEMO avec 2 EJ minimal + scénarios mouvements (transferts, annulations, multi-transferts) liés aux UF réelles
+(*auto-vocab*)        Les vocabulaires sont chargés automatiquement si --extended-structure est utilisé sans --with-vocab
 ```
 
 Exemples :
@@ -89,11 +91,12 @@ Exemples :
 # Init + vocabulaires
 PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --with-vocab
 
-# Init complète + seed riche + vocabulaires
-PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset --rich-seed --with-vocab
+# Structure étendue + seed riche + scénarios démo + vocabulaires
+PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset --extended-structure --rich-seed --demo-scenarios --with-vocab
 ```
 
-Le seed est ignoré si des patients existent déjà (idempotent).
+Le seed est ignoré si des patients existent déjà (idempotent). Pour que le seed riche s'appuie sur la structure,
+créez d'abord la structure étendue (flag --extended-structure) avant d'exécuter --rich-seed.
 
 ### Identifiants IHE PAM France
 

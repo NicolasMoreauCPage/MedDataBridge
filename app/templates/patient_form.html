@@ -123,10 +123,11 @@
             </label>
             <select name="gender" class="input-field">
               <option value="">-- Choisir --</option>
-              <option value="M" {% if (patient and patient.gender == 'M') or (sample_data and sample_data.get('gender') == 'M') %}selected{% endif %}>Masculin</option>
-              <option value="F" {% if (patient and patient.gender == 'F') or (sample_data and sample_data.get('gender') == 'F') %}selected{% endif %}>Féminin</option>
-              <option value="U" {% if (patient and patient.gender == 'U') or (sample_data and sample_data.get('gender') == 'U') %}selected{% endif %}>Indéterminé</option>
-              <option value="O" {% if (patient and patient.gender == 'O') or (sample_data and sample_data.get('gender') == 'O') %}selected{% endif %}>Autre</option>
+              {% for opt in gender_options %}
+              <option value="{{ opt.value }}" {% if (patient and patient.gender == opt.value) or (sample_data and sample_data.get('gender') == opt.value) %}selected{% endif %}>
+                {{ opt.label }}
+              </option>
+              {% endfor %}
             </select>
           </div>
         </div>

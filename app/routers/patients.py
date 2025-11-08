@@ -260,6 +260,11 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
     ins_type_opts = get_vocabulary_options("ins-type") or [
         {"value": v, "label": v} for v in ["NIR", "INS-C"]
     ]
+    gender_opts = get_vocabulary_options("administrative-gender-v2") or [
+        {"value": c, "label": l} for c, l in [
+            ("M", "Masculin"), ("F", "Féminin"), ("O", "Autre"), ("U", "Indéterminé")
+        ]
+    ]
     return templates.TemplateResponse(request, "patient_form.html", {
         "request": request,
         "title": "Modifier patient",
@@ -268,6 +273,7 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
         "identity_reliability_options": identity_opts,
         "marital_status_options": marital_opts,
         "ins_type_options": ins_type_opts,
+        "gender_options": gender_opts,
     })
 
 
@@ -395,6 +401,11 @@ def new_patient_form(request: Request, session=Depends(get_session)):
     ins_type_opts = get_vocabulary_options("ins-type") or [
         {"value": v, "label": v} for v in ["NIR", "INS-C"]
     ]
+    gender_opts = get_vocabulary_options("administrative-gender-v2") or [
+        {"value": c, "label": l} for c, l in [
+            ("M", "Masculin"), ("F", "Féminin"), ("O", "Autre"), ("U", "Indéterminé")
+        ]
+    ]
     return templates.TemplateResponse(request, "patient_form.html", {
         "request": request,
         "title": "Nouveau patient",
@@ -405,6 +416,7 @@ def new_patient_form(request: Request, session=Depends(get_session)):
         "identity_reliability_options": identity_opts,
         "marital_status_options": marital_opts,
         "ins_type_options": ins_type_opts,
+        "gender_options": gender_opts,
     })
 
 @router.post("/new")

@@ -5,6 +5,27 @@ from sqlmodel import SQLModel, Field, Relationship, Session
 
 from app.models_identifiers import Identifier, IdentifierType
 
+
+class IdentityReliabilityCode(str, Enum):
+    """
+    Codes de fiabilité d'identité selon RNIV (Référentiel National d'Identification)
+    Compatible avec HL7 Table 0445 étendue pour la France
+    """
+    VALI = "VALI"  # Identité validée (présence INS-A dans annuaire national)
+    QUAL = "QUAL"  # Identité qualifiée (5 traits stricts vérifiés)
+    PROV = "PROV"  # Identité provisoire (en cours de qualification)
+    VIDE = "VIDE"  # Identité fictive (patient non identifiable)
+    DOUTE = "DOUTE"  # Identité douteuse (incohérences détectées)
+    DOUB = "DOUB"  # Doublon détecté (fusion requise)
+    FICTI = "FICTI"  # Fictive (alias HL7 de VIDE, compatibilité)
+
+
+class INSType(str, Enum):
+    """Type d'Identifiant National de Santé selon RNIV"""
+    NIR = "NIR"  # Numéro d'Inscription au Répertoire (Sécurité Sociale)
+    INS_C = "INS-C"  # INS Calculé (pour personnes sans NIR)
+
+
 class DossierType(str, Enum):
     """Type de dossier patient"""
     HOSPITALISE = "hospitalise"  # Hospitalisation complète
@@ -62,12 +83,24 @@ class Patient(SQLModel, table=True):
     birth_country: Optional[str] = None  # Pays de naissance (code ISO: FR, etc.)
     
     # Statut de l'identité (PID-32) - OBLIGATOIRE IHE PAM France pour INS
-    identity_reliability_code: Optional[str] = None  # HL7 Table 0445: VIDE/PROV/VALI/DOUTE/FICTI
+    identity_reliability_code: Optional[str] = None  # HL7 Table 0445/RNIV: VIDE/PROV/VALI/DOUTE/FICTI/QUAL/DOUB
     identity_reliability_date: Optional[str] = None  # Date de validation de l'identité (AAAA-MM-JJ)
     identity_reliability_source: Optional[str] = None  # Source de validation (CNI, Passeport, Acte naissance, etc.)
+    identity_matrix_code: Optional[str] = None  # Code Matrice de Gestion d'Identité (MGI) utilisée - RNIV
+    
+    # INS - Identifiant National de Santé (RNIV)
+    nir: Optional[str] = None  # Numéro d'Inscription au Répertoire (NIR) - Numéro de sécurité sociale français (PID-3 NH)
+    ins_c: Optional[str] = None  # INS Calculé - Pour personnes sans NIR (RNIV)
+    ins_type: Optional[str] = None  # Type d'INS: "NIR" ou "INS-C" (RNIV)
+    ins_in_annuaire: Optional[bool] = None  # INS-A: INS présent dans annuaire national INSI (TéléSanté) - RNIV
+    ins_last_query_date: Optional[str] = None  # Date dernier appel service INSI (AAAA-MM-JJ) - RNIV
+    
+    # Prénoms structurés (RNIV - Traits Stricts)
+    birth_given_names: Optional[str] = None  # Liste complète prénoms état civil (ordre officiel, séparés par espace) - RNIV
+    used_given_name: Optional[str] = None  # Prénom d'usage/usuel (peut différer du 1er prénom) - RNIV
+    birth_insee_code: Optional[str] = None  # Code INSEE lieu naissance (5 chars: 75056=Paris, 2A004=Ajaccio) - RNIV Trait Strict
     
     # Informations administratives
-    nir: Optional[str] = None  # Numéro d'Inscription au Répertoire (NIR) - Numéro de sécurité sociale français (PID-3 NH)
     marital_status: Optional[str] = None  # Statut marital (codes HL7: S/M/D/W/P/A/U)
     mothers_maiden_name: Optional[str] = None  # Nom de jeune fille de la mère (vérification identité)
     nationality: Optional[str] = None  # Nationalité (code pays ISO, ex: FR)

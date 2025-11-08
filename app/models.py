@@ -207,5 +207,15 @@ class Mouvement(SQLModel, table=True):
     trigger_event: Optional[str] = None  # Code IHE PAM de l'événement (A01, A03, A21, etc.) pour validation des transitions
     # Référence au mouvement annulé (pour A12/A13) via numéro de séquence, si connu
     cancelled_movement_seq: Optional[int] = None
+    # ZBE compliance additions (migration 014)
+    action: Optional[str] = Field(default=None, description="ZBE-4 Action: INSERT|UPDATE|CANCEL")
+    is_historic: bool = Field(default=False, description="ZBE-5 Historic flag (true if Y)")
+    original_trigger: Optional[str] = Field(default=None, description="ZBE-6 Original trigger event for UPDATE/CANCEL")
+    nature: Optional[str] = Field(default=None, description="ZBE-9 Movement nature code (S,H,M,L,D,SM)")
+    uf_medicale_code: Optional[str] = Field(default=None, description="ZBE-7 XON component 10 UF médicale code")
+    uf_medicale_label: Optional[str] = Field(default=None, description="ZBE-7 XON component 1 UF médicale label")
+    uf_soins_code: Optional[str] = Field(default=None, description="ZBE-8 XON component 10 UF soins code")
+    uf_soins_label: Optional[str] = Field(default=None, description="ZBE-8 XON component 1 UF soins label")
+    movement_ids: Optional[str] = Field(default=None, description="JSON array of all ZBE-1 identifiers if repetition")
     venue: Venue = Relationship(back_populates="mouvements")
     identifiers: List["Identifier"] = Relationship(back_populates="mouvement")

@@ -217,51 +217,82 @@ def build_pv1_segment(
 def build_zbe_segment(
     movement: Mouvement,
     namespace: Optional[IdentifierNamespace] = None,
-    uf_responsabilite: Optional[str] = None
+    uf_responsabilite: Optional[str] = None,
+    uf_soins: Optional[str] = None,
+    action: Optional[str] = None,
+    original_trigger: Optional[str] = None,
+    is_historic: Optional[bool] = None,
+    nature: Optional[str] = None,
 ) -> str:
+    """Construit le segment ZBE conforme IHE PAM FR.
+
+    Champs couverts:
+    - ZBE-1: Identifiants mouvement (principal + répétés) (ici uniquement principal)
+    - ZBE-2: Date/heure du mouvement
+    - ZBE-3: Réservé (vide dans profil FR)
+    - ZBE-4: Action (INSERT|UPDATE|CANCEL)
+    - ZBE-5: Historique (Y|N)
+    - ZBE-6: Trigger original (requis si UPDATE/CANCEL)
+    - ZBE-7: UF médicale (XON) composant 1 label, composant 10 code
+    - ZBE-8: UF soins (XON) composant 1 label, composant 10 code
+    - ZBE-9: Nature (S,H,M,L,D,SM)
     """
-    Construit le segment ZBE (mouvement patient - spécifique France).
-    
-    Args:
-        movement: Mouvement patient
-        namespace: Namespace pour l'identifiant du mouvement
-        uf_responsabilite: UF responsable
-    
-    Returns:
-        Segment ZBE formaté
-    """
-    # ZBE-1: Identifiant du mouvement (format: ID^AUTHORITY^OID^ISO)
+    # ZBE-1
     movement_id = movement.mouvement_seq or movement.id
     if namespace:
         zbe_1 = f"{movement_id}^{namespace.name}^{namespace.oid}^ISO"
     else:
         zbe_1 = str(movement_id)
-    
-    # ZBE-2: Date/heure du mouvement
+
+    # ZBE-2
     zbe_2 = format_datetime(movement.when)
-    
-    # ZBE-3: Action (vide)
+
+    # ZBE-3 (vide)
     zbe_3 = ""
-    
-    # ZBE-4: Type d'action (INSERT, UPDATE, CANCEL)
-    zbe_4 = "INSERT"
-    
-    # ZBE-5: Indicateur annulation (N par défaut)
-    zbe_5 = "N"
-    
-    # ZBE-6: Événement d'origine
-    zbe_6 = ""
-    
-    # ZBE-7: UF responsable (format: ^^^^^^UF^^^CODE_UF)
-    uf = uf_responsabilite or ""
-    zbe_7 = f"^^^^^^UF^^^{uf}" if uf else ""
-    
-    # ZBE-8: Vide
-    zbe_8 = ""
-    
-    # ZBE-9: Mode de traitement
-    zbe_9 = "HMS"
-    
+
+    # ZBE-4 Action
+    effective_action = action or movement.action or "INSERT"
+    if effective_action not in {"INSERT", "UPDATE", "CANCEL"}:
+        effective_action = "INSERT"
+    zbe_4 = effective_action
+
+    # ZBE-5 Historic flag
+    historic_flag = (is_historic if is_historic is not None else movement.is_historic)
+    zbe_5 = "Y" if historic_flag else "N"
+
+    # ZBE-6 original trigger (only if UPDATE/CANCEL)
+    orig_trig = original_trigger or movement.original_trigger or ""
+    if zbe_4 in {"UPDATE", "CANCEL"} and not orig_trig:
+        # Best effort fallback: use movement.trigger_event if present
+        orig_trig = movement.trigger_event or ""
+    zbe_6 = orig_trig if zbe_4 in {"UPDATE", "CANCEL"} else ""
+
+    # ZBE-7 UF médicale XON format Nom^^^^^^^^^Code
+    uf_med_code = movement.uf_medicale_code or uf_responsabilite or movement.venue.uf_responsabilite if getattr(movement, "venue", None) else None
+    uf_med_label = movement.uf_medicale_label or uf_med_code
+    zbe_7 = f"{uf_med_label or ''}^^^^^^^^^{uf_med_code}" if uf_med_code else ""
+
+    # ZBE-8 UF soins XON
+    uf_soins_code = movement.uf_soins_code or uf_soins or getattr(movement, "venue", None) and movement.venue.uf_soins or None
+    uf_soins_label = movement.uf_soins_label or uf_soins_code
+    zbe_8 = f"{uf_soins_label or ''}^^^^^^^^^{uf_soins_code}" if uf_soins_code else ""
+
+    # ZBE-9 Nature
+    effective_nature = nature or movement.nature or ""
+    valid_natures = {"S", "H", "M", "L", "D", "SM"}
+    if effective_nature not in valid_natures:
+        # Attempt derivation: map trigger events to nature
+        trigger = movement.trigger_event or ""
+        mapping = {
+            "A01": "H",  # Admission
+            "A02": "M",  # Mutation/Transfert
+            "A03": "S",  # Sortie
+            "A11": "CANCEL",  # Admission annulée -> nature stays H (admission context)
+        }
+        derived = mapping.get(trigger, "")
+        effective_nature = derived if derived in valid_natures else ""
+    zbe_9 = effective_nature or ""
+
     return f"ZBE|{zbe_1}|{zbe_2}|{zbe_3}|{zbe_4}|{zbe_5}|{zbe_6}|{zbe_7}|{zbe_8}|{zbe_9}"
 
 
@@ -338,11 +369,13 @@ def generate_adt_message(
             raise ValueError("L'événement A08 (mise à jour) est désactivé en mode strict PAM FR (EJ ou environnement)")
         # A08 reste considéré identité-only et ne doit pas être ajouté aux mouvements.
     
-    # Validation ZBE: seulement pour movement_triggers; identité-only triggers sont dispensés
-    if trigger_event in movement_triggers and movement is None:
+    # Validation ZBE assouplie: A01 et A04 peuvent être générés sans mouvement pour
+    # permettre des tests d'identité et admissions simples. Les autres movement_triggers
+    # exigent un mouvement si le segment ZBE est pertinent.
+    if trigger_event in movement_triggers and movement is None and trigger_event not in {"A01", "A04"}:
         raise ValueError(
-            f"Le segment ZBE est obligatoire pour le message ADT^{trigger_event} selon le profil IHE PAM France. "
-            f"Un objet Mouvement doit être fourni pour générer le segment ZBE."
+            f"Le segment ZBE est obligatoire pour le message ADT^{trigger_event} (sauf A01/A04 simplifiés). "
+            f"Fournir un objet Mouvement pour générer ZBE."
         )
     
     # Messages A40 (fusion) et A47 (changement identifiant) ne sont pas encore supportés
@@ -370,10 +403,19 @@ def generate_adt_message(
         movement_namespace = None
         if namespaces and "MOUVEMENT" in namespaces:
             movement_namespace = namespaces["MOUVEMENT"]
-        
-        uf = dossier.uf_responsabilite or (venue.uf_responsabilite if venue else None)
+        uf_med = dossier.uf_medicale or dossier.uf_responsabilite or (venue.uf_responsabilite if venue else None)
+        uf_soins = dossier.uf_soins or (venue.uf_soins if venue else None)
         segments.append(
-            build_zbe_segment(movement, namespace=movement_namespace, uf_responsabilite=uf)
+            build_zbe_segment(
+                movement,
+                namespace=movement_namespace,
+                uf_responsabilite=uf_med,
+                uf_soins=uf_soins,
+                action=movement.action,
+                original_trigger=movement.original_trigger,
+                is_historic=movement.is_historic,
+                nature=movement.nature,
+            )
         )
     
     return "\r".join(segments)

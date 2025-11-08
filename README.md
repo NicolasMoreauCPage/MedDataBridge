@@ -94,6 +94,27 @@ PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset --rich-s
 
 Le seed est ignoré si des patients existent déjà (idempotent).
 
+### Identifiants IHE PAM France
+
+Selon le profil IHE PAM France, les identifiants métier sont positionnés dans des segments spécifiques :
+
+| Segment | Champ | Entité | Description | Exemple |
+|---------|-------|--------|-------------|---------|
+| **PID-3** | Patient Identifier List | Patient | Identifiants du patient (peut contenir plusieurs identifiants) | `12345^^^FACILITY^PI` |
+| **PID-18** | Patient Account Number | Dossier | Identifiant du dossier administratif | `D001^^^FACILITY^AN` |
+| **PV1-19** | Visit Number | Venue | Identifiant de la venue/séjour | `V2023001^^^FACILITY^VN` |
+| **ZBE-1** | Movement Identifier | Mouvement | Identifiant du mouvement (extension IHE PAM FR) | `M001^^^FACILITY^PI` |
+
+**Format CX (Composite ID with Check Digit)** :
+```
+<ID>^<Check Digit>^<Check Digit Scheme>^<Assigning Authority>^<Identifier Type Code>
+```
+
+**Bonnes pratiques** :
+- Utiliser des identifiants stables et uniques par établissement
+- PID-3 peut contenir plusieurs identifiants (INS, IPP, etc.)
+- ZBE-1 permet de tracer précisément chaque mouvement pour les annulations (A11, A12, A13, etc.)
+
 ### Auto-création des Unités Fonctionnelles (UF)
 
 Lorsqu'un message PAM référence une UF (Unité Fonctionnelle) via ZBE-7 qui n'existe pas dans la structure, deux comportements sont possibles :

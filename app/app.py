@@ -184,6 +184,8 @@ def create_app() -> FastAPI:
     
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)
+    from app.routers import admin_gateway
+    app.include_router(admin_gateway.router)
     app.include_router(ght.router, prefix="/admin")
     app.include_router(namespaces.router, prefix="/admin")
     print(" - Admin routers mounted under /admin")
@@ -241,14 +243,13 @@ def create_app() -> FastAPI:
         # We do this after route registration so SQLAdmin's mounting at
         # /admin doesn't intercept our custom /admin/ght pages.
         # Mount SQLAdmin under /sqladmin to avoid conflict with our admin pages.
-        # Configure SQLAdmin with custom templates for branding
-        sqladmin_templates_dir = str(Path(__file__).parent / "templates" / "sqladmin_custom")
+        # Configure SQLAdmin
+        # Access via /admin gateway page which provides navigation context
         admin = Admin(
             app, 
             engine, 
             base_url="/sqladmin",
-            title="MedData Bridge - Administration SQL",
-            templates_dir=sqladmin_templates_dir
+            title="MedData Bridge - Admin SQL"
         )
         
         # Register all admin views from app.admin module

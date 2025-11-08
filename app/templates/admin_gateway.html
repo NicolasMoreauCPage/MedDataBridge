@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Administration SQL{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
+      <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+      Administration SQL
+    </h1>
+    <p class="text-slate-600">Interface d'administration avancée de la base de données</p>
+  </div>
+
+  <!-- Warning Alert -->
+  <div class="mb-6 rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-amber-800">Accès réservé aux administrateurs</h3>
+        <div class="mt-2 text-sm text-amber-700">
+          <p>L'interface SQLAdmin permet de modifier directement les données de la base. Les modifications effectuées ici <strong>ne passent pas</strong> par les contrôles de validation de l'application.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Grid -->
+  <div class="mb-8 grid gap-4 md:grid-cols-2">
+    <div class="rounded-lg bg-white p-6 shadow-sm border border-slate-200">
+      <h3 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        Fonctionnalités disponibles
+      </h3>
+      <ul class="space-y-3">
+        <li class="flex items-start gap-2 text-sm text-slate-700">
+          <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Modification directe des tables de la base</span>
+        </li>
+        <li class="flex items-start gap-2 text-sm text-slate-700">
+          <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Vue complète de toutes les entités métier</span>
+        </li>
+        <li class="flex items-start gap-2 text-sm text-slate-700">
+          <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Recherche et filtrage avancés</span>
+        </li>
+        <li class="flex items-start gap-2 text-sm text-slate-700">
+          <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Export/Import de données en masse</span>
+        </li>
+        <li class="flex items-start gap-2 text-sm text-slate-700">
+          <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Suppression d'enregistrements</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="rounded-lg bg-white p-6 shadow-sm border border-slate-200">
+      <h3 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Domaines accessibles
+      </h3>
+      <ul class="space-y-2 text-sm text-slate-700">
+        <li class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+          Contextes organisationnels (GHT, EJ, EG)
+        </li>
+        <li class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+          Structure organisationnelle complète
+        </li>
+        <li class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-green-500"></div>
+          Patients & parcours de soins
+        </li>
+        <li class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+          Identifiants et référentiels
+        </li>
+        <li class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-red-500"></div>
+          Interopérabilité (endpoints, messages)
+        </li>
+        <li class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+          Vocabulaires et terminologies
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Info Alert -->
+  <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-blue-800">💡 Navigation</h3>
+        <div class="mt-2 text-sm text-blue-700">
+          <p>Pour revenir à l'application, utilisez le menu de navigation en haut de page ou le bouton "Retour" ci-dessous.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex flex-col sm:flex-row gap-3">
+    <a href="/sqladmin/" 
+       target="_blank"
+       class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-red-600 to-red-700 text-white font-medium shadow-sm hover:from-red-700 hover:to-red-800 transition-all">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+      </svg>
+      Accéder à SQLAdmin
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+      </svg>
+    </a>
+    <a href="/" 
+       class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+      </svg>
+      Retour au tableau de bord
+    </a>
+  </div>
+</div>
+{% endblock %}

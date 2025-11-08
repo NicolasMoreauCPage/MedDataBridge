@@ -17,7 +17,7 @@ def test_navigation_menus(page, test_server):
         expect(nav.locator(f"[data-test-nav='{section_attr}']")).to_be_visible()
 
     # Vérifie la présence des liens principaux (au moins 1 par href)
-    for href in ["/patients", "/dossiers", "/admin/ght", "/messages", "/messages/send", "/guide", "/api-docs", "/sqladmin"]:
+    for href in ["/patients", "/dossiers", "/admin/ght", "/messages", "/messages/send", "/guide", "/api-docs", "/admin"]:
         link_count = nav.locator(f"a[href='{href}']").count()
         assert link_count >= 1, f"Expected at least 1 link for {href}, found {link_count}"
 

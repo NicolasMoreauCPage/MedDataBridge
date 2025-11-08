@@ -392,6 +392,22 @@ def seed_demo_scenarios():
         from app.db import get_next_sequence
         now = datetime.utcnow()
 
+        # Récupérer la hiérarchie des UF créées pour chaque EJ afin d'utiliser
+        # des identifiants réels dans les dossiers/venues/mouvements (meilleure cohérence).
+    # Import déjà effectué en tête de fichier (Pole, Service, UniteFonctionnelle)
+        ej_uf_map: dict[int, list[UniteFonctionnelle]] = {}
+        for ej in session.exec(select(EntiteJuridique)).all():
+            # Parcours indirect: EJ -> EntiteGeographique -> Pole -> Service -> UF
+            ufs = session.exec(
+                select(UniteFonctionnelle)
+                .join(Service)
+                .join(Pole)
+                .join(EntiteGeographique)
+                .where(EntiteGeographique.entite_juridique_id == ej.id)
+            ).all()
+            if ufs:
+                ej_uf_map[ej.id] = ufs
+
         scenario_defs = [
             {
                 "patient_family": "SCENARIO-TRANSFERTS",
@@ -424,7 +440,16 @@ def seed_demo_scenarios():
             },
         ]
 
+        # Utiliser round-robin sur les EJ disponibles pour distribuer les scénarios
+        ej_ids = list(ej_uf_map.keys())
+        if not ej_ids:
+            print("⚠ Aucune UF trouvée pour lier les scénarios (structure absente).")
         for scen_idx, scen in enumerate(scenario_defs, start=1):
+            ej_id = ej_ids[(scen_idx - 1) % len(ej_ids)] if ej_ids else None
+            ufs_for_ej = ej_uf_map.get(ej_id, [])
+            primary_uf = ufs_for_ej[0] if ufs_for_ej else None
+            secondary_uf = ufs_for_ej[1] if len(ufs_for_ej) > 1 else primary_uf
+
             patient = Patient(
                 family=scen["patient_family"],
                 given="Demo",
@@ -445,7 +470,7 @@ def seed_demo_scenarios():
             dossier = Dossier(
                 dossier_seq=dossier_seq,
                 patient_id=patient.id,
-                uf_responsabilite=f"UF-DEMO-{scen_idx}",
+                uf_responsabilite=primary_uf.identifier if primary_uf else f"UF-DEMO-{scen_idx}",
                 admit_time=now,
                 dossier_type=DossierType.HOSPITALISE,
                 reason="Scenario démo",
@@ -454,14 +479,14 @@ def seed_demo_scenarios():
             session.commit()
             session.refresh(dossier)
 
-            # Créer 2 venues pour permettre transferts
+            # Créer 2 venues pour permettre transferts, en utilisant UF primaire / secondaire
             venues = []
-            for v_num in [1, 2]:
+            for v_num, uf_ref in [(1, primary_uf), (2, secondary_uf)]:
                 venue_seq = get_next_sequence(session, "venue")
                 venue = Venue(
                     venue_seq=venue_seq,
                     dossier_id=dossier.id,
-                    uf_responsabilite=dossier.uf_responsabilite,
+                    uf_responsabilite=(uf_ref.identifier if uf_ref else dossier.uf_responsabilite),
                     start_time=now,
                     code=f"DEMO-{scen_idx}-{v_num}",
                     label=f"Unité Démo {scen_idx}-{v_num}",
@@ -473,24 +498,32 @@ def seed_demo_scenarios():
                 venues.append(venue)
 
             current_venue_index = 0
+            current_uf = primary_uf
             for flow_idx, (movement_type, trigger) in enumerate(scen["flows"], start=1):
-                # Changer de venue sur A02 (transfert)
-                if trigger == "A02":
-                    current_venue_index = 1 - current_venue_index  # toggle between 0 and 1
+                if trigger == "A02":  # transfert -> changer de venue/UF
+                    current_venue_index = 1 - current_venue_index
+                    current_uf = secondary_uf if current_venue_index == 1 else primary_uf
                 venue = venues[current_venue_index]
                 mouvement_seq = get_next_sequence(session, "mouvement")
+                location_components = [
+                    (current_uf.identifier if current_uf else venue.uf_responsabilite),
+                    f"BOX-{flow_idx}",
+                    f"CH-{flow_idx:02d}",
+                ]
                 mouvement = Mouvement(
                     mouvement_seq=mouvement_seq,
                     venue_id=venue.id,
                     when=now,
-                    location=f"{venue.code}/BOX-{flow_idx}",
+                    location="^".join(location_components),
                     trigger_event=trigger,
                     movement_type=movement_type,
+                    from_location=venues[1 - current_venue_index].uf_responsabilite if trigger == "A02" else None,
+                    to_location=venue.uf_responsabilite if trigger == "A02" else None,
                 )
                 session.add(mouvement)
                 session.commit()
 
-        print("✓ Scénarios complexes DEMO insérés (3 patients scénarisés).")
+        print("✓ Scénarios complexes DEMO insérés (3 patients scénarisés, liés aux UF réelles).")
 
 
 def main():

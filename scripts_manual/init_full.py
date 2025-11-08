@@ -148,11 +148,14 @@ def seed_rich():
     """Seed plus riche multi-patients/multi-venues/mouvements.
 
     Génère:
-      - 5 patients
-      - Pour chaque patient: 1 dossier
-      - Pour chaque dossier: 2 venues
-      - Pour chaque venue: 3 mouvements (A01 admission, A02 transfert, A03 sortie virtuelle)
+      - 100 patients avec données variées (noms français, dates aléatoires)
+      - Pour chaque patient: 1-2 dossiers avec UF aléatoires
+      - Pour chaque dossier: 1-3 venues
+      - Pour chaque venue: 2-5 mouvements (admission, transferts, sorties)
     """
+    import random
+    from datetime import timedelta
+    
     with Session(engine) as session:
         existing = session.exec(select(Patient).limit(1)).first()
         if existing:
@@ -160,74 +163,130 @@ def seed_rich():
             return
 
         # Séquences initiales
-        for seq_name in ["dossier", "venue", "mouvement"]:
+        for seq_name in ["patient", "dossier", "venue", "mouvement"]:
             if not session.get(Sequence, seq_name):
                 session.add(Sequence(name=seq_name, value=0))
         session.commit()
 
+        # Listes pour varier les données
+        first_names = ["Jean", "Marie", "Pierre", "Sophie", "Luc", "Anne", "Paul", "Julie", "Marc", "Claire",
+                       "Francois", "Isabelle", "Jacques", "Nathalie", "Michel", "Catherine", "Andre", "Sylvie",
+                       "Philippe", "Monique", "Alain", "Francoise", "Bernard", "Nicole", "Georges", "Emilie",
+                       "Thomas", "Camille", "Nicolas", "Laura", "David", "Sarah", "Julien", "Marine"]
+        last_names = ["Dupont", "Martin", "Bernard", "Dubois", "Thomas", "Robert", "Richard", "Petit",
+                      "Durand", "Leroy", "Moreau", "Simon", "Laurent", "Lefebvre", "Michel", "Garcia",
+                      "David", "Bertrand", "Roux", "Vincent", "Fournier", "Morel", "Girard", "Andre",
+                      "Mercier", "Blanc", "Guerin", "Boyer", "Garnier", "Chevalier", "Francois", "Legrand"]
+        genders = ["M", "F"]
+        uf_codes = ["001", "002", "003", "UF_MED", "UF_SOINS", "UF_HEB", "CHIR"]
+        
         now = datetime.utcnow()
-        for i in range(1, 6):
+        
+        print("🚀 Création du seed riche (100 patients)...")
+        
+        for i in range(1, 101):
+            patient_seq = get_next_sequence(session, "patient")
+            
+            gender = random.choice(genders)
+            first_name = random.choice(first_names)
+            last_name = random.choice(last_names)
+            # Date de naissance entre 18 et 80 ans
+            birth_days_ago = random.randint(365*18, 365*80)
+            birth_date = (now - timedelta(days=birth_days_ago)).strftime("%Y%m%d")
+            
             patient = Patient(
-                family=f"PATIENT-{i}",
-                given="Test",
-                birth_date="1990-01-01",
-                gender="female" if i % 2 == 0 else "male",
+                patient_seq=patient_seq,
+                identifier=f"PAT{patient_seq:06d}",
+                family=last_name,
+                given=first_name,
+                birth_date=birth_date,
+                gender="female" if gender == "F" else "male",
                 city="Paris",
-                postal_code="7500" + str(i),
+                postal_code=f"750{random.randint(10,20):02d}",
                 country="FR",
                 identity_reliability_code="VALI",
                 identity_reliability_date="2024-01-15",
                 identity_reliability_source="CNI",
             )
             session.add(patient)
-            session.commit()
-            session.refresh(patient)
+            session.flush()
 
-            dossier = Dossier(
-                dossier_seq=i,
-                patient_id=patient.id,
-                uf_responsabilite=f"UF-{100+i}",
-                admit_time=now,
-                dossier_type=DossierType.HOSPITALISE,
-                reason="Admission automatique seed riche",
-            )
-            session.add(dossier)
-            session.commit()
-            session.refresh(dossier)
-
-            for v in range(1, 3):
-                venue = Venue(
-                    venue_seq=(i - 1) * 2 + v,
-                    dossier_id=dossier.id,
-                    uf_responsabilite=dossier.uf_responsabilite,
-                    start_time=now,
-                    code=f"LOC-{i}-{v}",
-                    label=f"Location {i}-{v}",
-                    operational_status="active",
+            # 1-2 dossiers par patient
+            num_dossiers = random.randint(1, 2)
+            for d in range(num_dossiers):
+                dossier_seq = get_next_sequence(session, "dossier")
+                admit_days_ago = random.randint(0, 180)
+                admit_time = now - timedelta(days=admit_days_ago)
+                
+                dossier = Dossier(
+                    dossier_seq=dossier_seq,
+                    patient_id=patient.id,
+                    uf_responsabilite=random.choice(uf_codes),
+                    uf_medicale=random.choice(uf_codes) if random.random() > 0.3 else None,
+                    uf_hebergement=random.choice(uf_codes) if random.random() > 0.5 else None,
+                    uf_soins=random.choice(uf_codes) if random.random() > 0.7 else None,
+                    admit_time=admit_time,
+                    discharge_time=admit_time + timedelta(days=random.randint(1, 14)) if random.random() > 0.3 else None,
+                    dossier_type=DossierType.HOSPITALISE,
+                    reason="Admission automatique seed riche",
                 )
-                session.add(venue)
-                session.commit()
-                session.refresh(venue)
+                session.add(dossier)
+                session.flush()
 
-                # Mouvements
-                mouvements_specs = [
-                    ("Admission", "A01"),
-                    ("Transfert", "A02"),
-                    ("Sortie", "A03"),
-                ]
-                for m_idx, (mt_label, trigger) in enumerate(mouvements_specs, start=1):
-                    mouvement = Mouvement(
-                        mouvement_seq=((i - 1) * 6) + ((v - 1) * 3) + m_idx,
-                        venue_id=venue.id,
-                        when=now,
-                        location=venue.code + f"/SALLE-{m_idx}",
-                        trigger_event=trigger,
-                        movement_type=mt_label,
+                # 1-3 venues par dossier
+                num_venues = random.randint(1, 3)
+                for v in range(num_venues):
+                    venue_seq = get_next_sequence(session, "venue")
+                    venue_start = admit_time + timedelta(hours=v*24)
+                    
+                    venue = Venue(
+                        venue_seq=venue_seq,
+                        dossier_id=dossier.id,
+                        uf_responsabilite=random.choice(uf_codes),
+                        start_time=venue_start,
+                        code=f"LOC-{patient_seq}-{v}",
+                        label=f"Location {patient_seq}-{v}",
+                        operational_status="active",
                     )
-                    session.add(mouvement)
-                session.commit()
+                    session.add(venue)
+                    session.flush()
 
-        print("✓ Seed riche inséré (5 patients / 5 dossiers / 10 venues / 30 mouvements).")
+                    # 2-5 mouvements par venue
+                    num_mouvements = random.randint(2, 5)
+                    movement_types = ["admission", "transfer", "discharge", "update"]
+                    for m in range(num_mouvements):
+                        mouv_seq = get_next_sequence(session, "mouvement")
+                        mouv_time = venue_start + timedelta(hours=m*12)
+                        
+                        mouvement = Mouvement(
+                            mouvement_seq=mouv_seq,
+                            venue_id=venue.id,
+                            type="ADT^A01" if m == 0 else f"ADT^A0{random.randint(1,8)}",
+                            when=mouv_time,
+                            movement_type=movement_types[min(m, len(movement_types)-1)],
+                            trigger_event=f"A0{random.randint(1,8)}",
+                            location=f"{random.choice(uf_codes)}^B{random.randint(1,5)}^{random.randint(1,20):03d}"
+                        )
+                        session.add(mouvement)
+            
+            if i % 10 == 0:
+                session.commit()
+                print(f"   ✓ {i} patients créés...")
+
+        session.commit()
+        
+        # Statistiques finales
+        from sqlmodel import func
+        total_patients = session.exec(select(func.count(Patient.id))).one()
+        total_dossiers = session.exec(select(func.count(Dossier.id))).one()
+        total_venues = session.exec(select(func.count(Venue.id))).one()
+        total_mouvements = session.exec(select(func.count(Mouvement.id))).one()
+        
+        print(f"\n✅ Seed riche inséré avec succès!")
+        print(f"   • Patients: {total_patients}")
+        print(f"   • Dossiers: {total_dossiers}")
+        print(f"   • Venues: {total_venues}")
+        print(f"   • Mouvements: {total_mouvements}")
 
 
 def seed_demo_scenarios():

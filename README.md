@@ -78,7 +78,7 @@ Flags supplémentaires disponibles :
 
 ```text
 --with-vocab   Initialise les vocabulaires (équivalent tools/init_vocabularies.py)
---rich-seed    Insère un jeu multi-patients (5 patients, 5 dossiers, 10 venues, 30 mouvements)
+--rich-seed    Insère un jeu multi-patients (~100 patients, ~150 dossiers, ~300 venues, ~1000 mouvements)
 --force-reset  Supprime poc.db avant recréation
 ```
 

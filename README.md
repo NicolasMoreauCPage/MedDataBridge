@@ -17,6 +17,7 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+
 ## Configuration
 
 L'application utilise des variables d'environnement pour sa configuration :
@@ -55,6 +56,7 @@ En production, utilisez gunicorn avec des workers uvicorn :
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m gunicorn app.app:app -k uvicorn.workers.UvicornWorker -w 4
+```
 
 ### Initialisation complète (base + seed)
 
@@ -110,11 +112,13 @@ Selon le profil IHE PAM France, les identifiants métier sont positionnés dans 
 | **ZBE-1** | Movement Identifier | Mouvement | Identifiant du mouvement (extension IHE PAM FR) | `M001^^^FACILITY^PI` |
 
 **Format CX (Composite ID with Check Digit)** :
-```
+
+```text
 <ID>^<Check Digit>^<Check Digit Scheme>^<Assigning Authority>^<Identifier Type Code>
 ```
 
 **Bonnes pratiques** :
+
 - Utiliser des identifiants stables et uniques par établissement
 - PID-3 peut contenir plusieurs identifiants (INS, IPP, etc.)
 - ZBE-1 permet de tracer précisément chaque mouvement pour les annulations (A11, A12, A13, etc.)
@@ -207,16 +211,17 @@ alembic upgrade head
 ```
 
 Bonnes pratiques :
+
 1. Toujours valider le diff autogénéré (ajout/suppression de colonnes inattendues).
 2. Nommer clairement les messages de révision (ex: "add systemendpoint file columns").
 3. Commiter les fichiers sous `alembic/versions/`.
 4. Utiliser `alembic downgrade -1` pour revenir d'une migration récente si besoin.
 
 Lorsqu'un champ est ajouté dans un modèle SQLModel :
+
 ```bash
 alembic revision --autogenerate -m "add <champ> to <table>"
 alembic upgrade head
-```
 ```
 
 ## Outils et Scripts
@@ -352,6 +357,7 @@ utilisé dans les identifiants émis (PID-3 CX pour HL7 ou `identifier.system` p
 - `forced_identifier_oid` : OID à placer comme assigning authority / assigner (ex: `1.2.250.1.71.1.2.2`)
 
 Quand ces champs sont renseignés pour un endpoint, l'application :
+
 - Pour HL7/MLLP : construit le composant PID-3 CX comme `value^^^{assigningAuthority}^{PI}` où
    `assigningAuthority` est `forced_identifier_oid` (si présent) sinon `forced_identifier_system`.
 - Pour FHIR : applique `forced_identifier_system` à tout identifiant sans `system` et ajoute un

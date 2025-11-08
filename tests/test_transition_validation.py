@@ -67,10 +67,12 @@ async def test_reject_invalid_transition_absence_from_external(session: Session)
     session.commit()
     
     # Construire un message A03 (absence temporaire) - invalide depuis A04
+    mvt_id = get_next_sequence(session, "mouvement")
     msg_a03 = f"""MSH|^~\\&|SEND|FAC|RECV|FAC|20251103120000||ADT^A03^ADT_A03|MSG001|P|2.5
 EVN|A03|20251103120000
 PID|1||{patient.patient_seq}^^^IPP||Test^Invalid||19800101|M
-PV1|1|O|CONS-01||||||||||||||||{venue.venue_seq}"""
+PV1|1|O|CONS-01||||||||||||||||{venue.venue_seq}
+ZBE|{mvt_id}|20251103120000||CREATE|N|A03"""
     
     # Tenter d'envoyer le message
     ack = await on_message_inbound_async(msg_a03, session, None)
@@ -138,10 +140,12 @@ async def test_accept_valid_transition_absence_from_hospitalization(session: Ses
     session.commit()
     
     # Construire un message A03 (absence temporaire) - valide depuis A01
+    mvt_id = get_next_sequence(session, "mouvement")
     msg_a03 = f"""MSH|^~\\&|SEND|FAC|RECV|FAC|20251103120000||ADT^A03^ADT_A03|MSG002|P|2.5
 EVN|A03|20251103120000
 PID|1||{patient.patient_seq}^^^IPP||Test^Valid||19800101|M
-PV1|1|I|MED-101||||||||||||||||{venue.venue_seq}"""
+PV1|1|I|MED-101||||||||||||||||{venue.venue_seq}
+ZBE|{mvt_id}|20251103120000||CREATE|N|A03"""
     
     # Tenter d'envoyer le message
     ack = await on_message_inbound_async(msg_a03, session, None)
@@ -213,10 +217,12 @@ async def test_reject_invalid_a22_without_a21(session: Session):
     session.commit()
     
     # Construire un message A22 (retour d'absence) - invalide depuis A01
+    mvt_id = get_next_sequence(session, "mouvement")
     msg_a22 = f"""MSH|^~\\&|SEND|FAC|RECV|FAC|20251103120000||ADT^A22^ADT_A22|MSG003|P|2.5
 EVN|A22|20251103120000
 PID|1||{patient.patient_seq}^^^IPP||Test^InvalidReturn||19800101|M
-PV1|1|I|MED-101||||||||||||||||{venue.venue_seq}"""
+PV1|1|I|MED-101||||||||||||||||{venue.venue_seq}
+ZBE|{mvt_id}|20251103120000||CREATE|N|A22"""
     
     # Tenter d'envoyer le message
     ack = await on_message_inbound_async(msg_a22, session, None)

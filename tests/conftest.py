@@ -162,7 +162,8 @@ def hl7_adt_a01_fixture():
         f"MSH|^~\\&|SENDING_APP|SENDING_FAC|RECEIVING_APP|RECEIVING_FAC|{now}||ADT^A01|MSG00001|P|2.5.1|\n"
         f"EVN|A01|{now}||||\n"
         f"PID|1||12345^^^HOPITAL^PI||DUPONT^JEAN^^^^^L||19800101|M|||1 RUE DU TEST^^VILLE^^75001^FRA||0123456789^^^test@email.com|||||\n"
-        f"PV1|1|I|CARDIO^101^1^HOPITAL||||12345^DOC^JOHN^^^^^||||||||||ADM|A0|||||||||||||||||||||||||{now}|"
+        f"PV1|1|I|CARDIO^101^1^HOPITAL||||12345^DOC^JOHN^^^^^||||||||||ADM|A0|||||||||||||||||||||||||{now}|\n"
+        f"ZBE|MVT_A01_{now}|||||{now}|"
     )
 
 

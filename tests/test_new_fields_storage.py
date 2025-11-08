@@ -119,11 +119,16 @@ def test_complete_reception_and_storage(session: Session):
     message = f"""MSH|^~\\&|SENDING_APP|SENDING_FAC|POC|POC|{now}||ADT^A04|MSG_FULL_001|P|2.5
 EVN|A04|{now}
 PID|1||FULL_TEST_001^^^HOSP^PI||MARTIN^Marie^Claire^^^^D~DUPONT^Marie^Claire^^^^L||19850615|F|||15 rue Victor Hugo^^Lyon^Rhône^69001^FRA~^^Marseille^^13000^FRA||0123456789~0698765432^HOME^CP~0487654321^WORK^WP||||||||||Marseille|||||||||VALI
+PV1||N|UF001^^^^UF|||||||||||||||VNUM_FULL_001
+ZBE|MVT_FULL_{now}|||||{now}
 """
     
     # Traiter le message
-    result = on_message_inbound(message, session)
-    assert result["status"] == "success"
+    result = on_message_inbound(message, session, None)
+    if isinstance(result, dict):
+        assert result["status"] == "success"
+    else:
+        assert "MSA|AA" in result
     
     # Récupérer le patient créé
     patient = session.exec(select(Patient).where(Patient.identifier == "FULL_TEST_001")).first()
@@ -202,8 +207,11 @@ EVN|A31|{now}
 PID|1||ROUNDTRIP_FULL_001^^^HOSP^PI||DURAND^Pierre^^^^D~LEFEBVRE^Pierre^^^^L||19880725|M|||10 avenue des Champs^^Paris^^75008^FRA~^^Lille^^^FRA||0145678901~0612345678^HOME^CP~0498765432^WORK^WP|||||||||||||||Lille|||||||||VALI
 """
     
-    result = on_message_inbound(message_update, session)
-    assert result["status"] == "success"
+    result = on_message_inbound(message_update, session, None)
+    if isinstance(result, dict):
+        assert result["status"] == "success"
+    else:
+        assert "MSA|AA" in result
     
     # 6. Vérifier MAJ en DB
     updated = session.exec(select(Patient).where(Patient.identifier == "ROUNDTRIP_FULL_001")).first()

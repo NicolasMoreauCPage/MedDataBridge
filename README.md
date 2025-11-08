@@ -26,6 +26,8 @@ L'application utilise des variables d'environnement pour sa configuration :
 | TESTING | Mode test (pas d'init DB ni serveurs MLLP) | 0, 1, true, True | 0 |
 | INIT_VOCAB | Initialiser les vocabulaires au démarrage | 0, 1, true, True | 0 |
 | MLLP_TRACE | Logs MLLP détaillés | 0, 1, true, True | 0 |
+| PAM_AUTO_CREATE_UF | Auto-création UF placeholder si absente | 0, 1, true, True | 0 |
+| STRICT_PAM_FR | Mode strict IHE PAM France global | 0, 1, true, True | 0 |
 | SSL_CERT_FILE | Certificat CA pour FHIR | chemin fichier | None |
 | REQUESTS_CA_BUNDLE | Bundle CA pour FHIR | chemin fichier | None |
 
@@ -91,6 +93,27 @@ PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset --rich-s
 ```
 
 Le seed est ignoré si des patients existent déjà (idempotent).
+
+### Auto-création des Unités Fonctionnelles (UF)
+
+Lorsqu'un message PAM référence une UF (Unité Fonctionnelle) via ZBE-7 qui n'existe pas dans la structure, deux comportements sont possibles :
+
+1. **Mode strict** (par défaut, `PAM_AUTO_CREATE_UF=0`) : le message est rejeté avec une erreur explicite indiquant l'UF manquante. C'est le comportement recommandé en production pour garantir la cohérence des données.
+
+2. **Mode permissif** (`PAM_AUTO_CREATE_UF=1`) : l'UF est créée automatiquement comme placeholder virtuel sous un service "AUTO_SERVICE". Utile pour :
+   - Tests et développement (évite de créer manuellement toutes les UF)
+   - Intégration initiale (permet d'ingérer les données avant import MFN^M05 de la structure)
+   - Migration legacy (accepte les codes UF temporaires)
+
+Pour activer l'auto-création :
+
+```bash
+export PAM_AUTO_CREATE_UF=1
+# Ou au démarrage
+PAM_AUTO_CREATE_UF=1 PYTHONPATH=. .venv/bin/python -m uvicorn app.app:app --reload
+```
+
+Les UF auto-créées sont marquées `is_virtual=True` et peuvent être complétées ultérieurement via l'UI d'admin ou un import MFN^M05.
 
 ### Mode strict IHE PAM France (global & par Entité Juridique)
 

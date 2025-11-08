@@ -511,3 +511,55 @@ export SSL_CERT_FILE=/chemin/vers/ca.pem
 # Option 2: Dans la configuration endpoint
 /admin/endpoints/{id}/edit -> CA Certificate
 ```
+
+## 🚀 Workflow Git & Déploiement
+
+### Architecture des branches
+
+- **`main`** : Branche de production, déployée automatiquement sur Render.com
+- **`feature/*`** : Branches de développement, restent **locales** (non pushées sur GitHub)
+
+### Développement local (branches feature)
+
+```bash
+# 1. Créer une branche feature
+git checkout -b feature/ma-nouvelle-fonctionnalite
+
+# 2. Développer et tester localement
+# ... modifications de code ...
+pytest tests/ -v
+
+# 3. Commits locaux uniquement
+git add .
+git commit -m "feat: ma nouvelle fonctionnalité"
+
+# ⚠️ NE PAS PUSH vers GitHub
+# Les branches feature restent locales !
+```
+
+### Mise en production (branche main)
+
+```bash
+# 1. Vérifier que tous les tests passent
+pytest tests/test_identifier_generator.py -v
+
+# 2. Fusionner dans main
+git checkout main
+git merge feature/ma-nouvelle-fonctionnalite
+
+# 3. Push vers GitHub → Déploiement automatique
+git push origin main
+
+# 4. Vérifier le déploiement
+# - GitHub Actions : https://github.com/NicolasMoreauCPage/MedDataBridge/actions
+# - Application : https://meddata-bridge.onrender.com
+```
+
+### Configuration du déploiement
+
+Voir [DEPLOY.md](DEPLOY.md) pour les instructions détaillées de configuration sur Render.com.
+
+**URLs de production :**
+- Application : `https://meddata-bridge.onrender.com`
+- Documentation API : `https://meddata-bridge.onrender.com/docs`
+- Interface admin : `https://meddata-bridge.onrender.com/admin`

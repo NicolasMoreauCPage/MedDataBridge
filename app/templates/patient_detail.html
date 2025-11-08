@@ -58,6 +58,12 @@
   </dl>
   
   <div class="mt-6 flex gap-3">
+    <a href="/timeline/patient/{{ patient.id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-xl hover:bg-purple-700">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      Timeline
+    </a>
     <a href="/patients/{{ patient.id }}/edit" class="btn btn-primary">Modifier</a>
     <form method="post" action="/patients/{{ patient.id }}/delete" onsubmit="return confirm('⚠️ Confirmer la suppression de ce patient ?\n\nCette action supprimera également tous les dossiers, venues et mouvements associés.');" style="display:inline;">
       <button type="submit" class="btn btn-danger">Supprimer</button>

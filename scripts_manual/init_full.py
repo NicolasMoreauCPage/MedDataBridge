@@ -2,111 +2,248 @@
 """Initialisation complète de l'environnement local.
 
 Étapes:
-1. (Optionnel) --force-reset : supprime le fichier poc.db s'il existe
-2. Création des tables via SQLModel (idempotent)
-3. Application des migrations legacy (006, 007) si non présentes
-4. (Optionnel) --with-vocab : initialise les vocabulaires (tools/init_vocabularies.py)
-5. Seed de données: minimal par défaut (Patient+Dossier+Venue+Mouvement) ou riche avec --rich-seed
+1. --force-reset : supprime le fichier poc.db si présent
+2. Création des tables (idempotent)
+3. Application migrations legacy basiques (006/007)
+4. Structure étendue optionnelle (--extended-structure)
+5. Seed minimal ou riche
+6. Scénarios démo optionnels
+7. Vocabulaires optionnels
 
-Flags:
-    --force-reset   : recrée totalement la base
-    --with-vocab    : lance l'initialisation des vocabulaires
-    --rich-seed     : insère plusieurs patients/dossiers/venues/mouvements
-
-Usage:
-        python scripts_manual/init_full.py                         # init simple
-        python scripts_manual/init_full.py --with-vocab            # init + vocabulaires
-        python scripts_manual/init_full.py --rich-seed             # init + seed étendu
-        python scripts_manual/init_full.py --force-reset --rich-seed --with-vocab
-
-Le script est idempotent: le seed est ignoré s'il existe déjà des patients.
+Le script est idempotent: on ne réinsère pas le seed minimal/rich si des patients existent déjà.
 """
 from __future__ import annotations
 import argparse
-import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from random import choice
 
 from sqlmodel import Session, select
+from subprocess import CalledProcessError, run
 
 from app.db import init_db, engine, get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
-from app.models_structure_fhir import GHTContext
-from subprocess import CalledProcessError, run
+from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
+from app.models_structure import (
+    Pole,
+    Service,
+    UniteFonctionnelle,
+    UniteHebergement,
+    Chambre,
+    Lit,
+    LocationPhysicalType,
+    LocationServiceType,
+)
 
 DB_PATH = Path("poc.db")
 
-# --- Migrations legacy (006, 007) ---
 MIGRATION_CMDS = [
-    ("006", "entite_juridique_id", "ALTER TABLE systemendpoint ADD COLUMN entite_juridique_id INTEGER REFERENCES entitejuridique(id);", "CREATE INDEX IF NOT EXISTS idx_systemendpoint_entite_juridique_id ON systemendpoint(entite_juridique_id);") ,
-    ("007", "inbox_path", "ALTER TABLE systemendpoint ADD COLUMN inbox_path TEXT; ALTER TABLE systemendpoint ADD COLUMN outbox_path TEXT; ALTER TABLE systemendpoint ADD COLUMN archive_path TEXT; ALTER TABLE systemendpoint ADD COLUMN error_path TEXT; ALTER TABLE systemendpoint ADD COLUMN file_extensions TEXT;", None),
+    (
+        "006",
+        "entite_juridique_id",
+        "ALTER TABLE systemendpoint ADD COLUMN entite_juridique_id INTEGER REFERENCES entitejuridique(id);",
+        "CREATE INDEX IF NOT EXISTS idx_systemendpoint_entite_juridique_id ON systemendpoint(entite_juridique_id);",
+    ),
+    (
+        "007",
+        "inbox_path",
+        "ALTER TABLE systemendpoint ADD COLUMN inbox_path TEXT; ALTER TABLE systemendpoint ADD COLUMN outbox_path TEXT; ALTER TABLE systemendpoint ADD COLUMN archive_path TEXT; ALTER TABLE systemendpoint ADD COLUMN error_path TEXT; ALTER TABLE systemendpoint ADD COLUMN file_extensions TEXT;",
+        None,
+    ),
 ]
 
 
-def apply_legacy_migrations():
+def apply_legacy_migrations() -> None:
     if not DB_PATH.exists():
-        print("Base non créée encore (tables vont être créées). Migrations différées.")
         return
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(systemendpoint)")
-        cols = [r[1] for r in cursor.fetchall()]
-        for code, marker_col, sql_up, sql_extra in MIGRATION_CMDS:
-            if marker_col not in cols:
-                print(f"→ Migration {code} en cours…")
-                for stmt in sql_up.split(";"):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(systemendpoint)")
+    cols = [r[1] for r in cursor.fetchall()]
+    for code, marker_col, sql_up, sql_extra in MIGRATION_CMDS:
+        if marker_col not in cols:
+            print(f"→ Migration {code}…")
+            for stmt in sql_up.split(";"):
+                s = stmt.strip()
+                if s:
+                    cursor.execute(s)
+            if sql_extra:
+                for stmt in sql_extra.split(";"):
                     s = stmt.strip()
                     if s:
                         cursor.execute(s)
-                if sql_extra:
-                    for stmt in sql_extra.split(";"):
-                        s = stmt.strip()
-                        if s:
-                            cursor.execute(s)
-                print(f"✓ Migration {code} appliquée")
-            else:
-                print(f"✓ Migration {code} déjà appliquée")
-        conn.commit()
-    finally:
-        conn.close()
+            print(f"✓ Migration {code} appliquée")
+    conn.commit()
+    conn.close()
 
 
-def seed_minimal():
+def ensure_extended_structure(create_demo_ght: bool = True) -> None:
+    """Crée hiérarchie étendue + namespaces si absents (idempotent)."""
     with Session(engine) as session:
-        patient_count = session.exec(select(Patient).limit(1)).first()
-        if patient_count:
-            print("Seed ignoré (données déjà présentes).")
-            return
-        # Séquences (optionnel) - juste pour montrer l'utilisation
-        for seq_name in ["dossier", "venue", "mouvement"]:
-            if not session.get(Sequence, seq_name):
-                session.add(Sequence(name=seq_name, value=0))
-        session.commit()
+        ght = session.exec(select(GHTContext).where(GHTContext.code == "GHT-EXT")).first()
+        if not ght:
+            ght = GHTContext(name="GHT Étendu Démo", code="GHT-EXT", description="Structure étendue pour seed")
+            session.add(ght)
+            session.commit()
+            session.refresh(ght)
+            print("✓ GHT étendu créé")
 
-        # Patient
+        ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == ght.id)).all()
+        if not ejs:
+            for idx in [1, 2]:
+                ej = EntiteJuridique(
+                    name=f"Centre Hospitalier Étendu {idx}",
+                    short_name=f"CH EXT {idx}",
+                    finess_ej=f"{100000000 + idx}",
+                    description="EJ étendue",
+                    ght_context_id=ght.id,
+                )
+                session.add(ej)
+            session.commit()
+            ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == ght.id)).all()
+            print("✓ EJ étendues créées (2)")
+        else:
+            print(f"✓ {len(ejs)} EJ déjà présentes")
+
+        for ej in ejs:
+            geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej.id)).first()
+            if geo:
+                continue
+            geo = EntiteGeographique(
+                identifier=f"EGE-EXT-{ej.id}",
+                name=f"Site Étendu EJ {ej.id}",
+                finess=f"2000000{ej.id}",
+                description="Site étendu",
+                entite_juridique_id=ej.id,
+            )
+            session.add(geo)
+            session.flush()
+            pole = Pole(
+                identifier=f"POLE-EXT-{ej.id}",
+                name=f"Pôle Central EJ {ej.id}",
+                physical_type=LocationPhysicalType.SI,
+                entite_geo_id=geo.id,
+            )
+            session.add(pole)
+            session.flush()
+            for svc_idx, svc_label in [(1, "MCO"), (2, "URGENCES")]:
+                service = Service(
+                    identifier=f"SERV-EXT-{ej.id}-{svc_idx}",
+                    name=f"Service {svc_label} EJ {ej.id}",
+                    physical_type=LocationPhysicalType.SI,
+                    service_type=LocationServiceType.MCO,
+                    pole_id=pole.id,
+                )
+                session.add(service)
+                session.flush()
+                for uf_idx in range(1, 4):
+                    uf = UniteFonctionnelle(
+                        identifier=f"UF-EXT-{ej.id}-{svc_idx}-{uf_idx}",
+                        name=f"UF {svc_label} {uf_idx} EJ {ej.id}",
+                        physical_type=LocationPhysicalType.SI,
+                        service_id=service.id,
+                    )
+                    session.add(uf)
+                    session.flush()
+                    # Hébergement simple
+                    uh = UniteHebergement(
+                        identifier=f"UH-EXT-{ej.id}-{svc_idx}-{uf_idx}",
+                        name=f"UH {svc_label} {uf_idx} EJ {ej.id}",
+                        physical_type=LocationPhysicalType.SI,
+                        unite_fonctionnelle_id=uf.id,
+                    )
+                    session.add(uh)
+                    session.flush()
+                    for ch_idx in range(1, 3):
+                        chambre = Chambre(
+                            identifier=f"CH-EXT-{ej.id}-{svc_idx}-{uf_idx}-{ch_idx}",
+                            name=f"Chambre {uf_idx}-{ch_idx} EJ {ej.id}",
+                            physical_type=LocationPhysicalType.RO,
+                            unite_hebergement_id=uh.id,
+                        )
+                        session.add(chambre)
+                        session.flush()
+                        for lit_idx in range(1, 3):
+                            lit = Lit(
+                                identifier=f"LIT-EXT-{ej.id}-{svc_idx}-{uf_idx}-{ch_idx}-{lit_idx}",
+                                name=f"Lit {uf_idx}-{ch_idx}-{lit_idx} EJ {ej.id}",
+                                physical_type=LocationPhysicalType.BD,
+                                chambre_id=chambre.id,
+                            )
+                            session.add(lit)
+            session.commit()
+            print(f"   ✓ Hiérarchie complète créée pour EJ {ej.finess_ej}")
+
+        existing_ns = session.exec(select(IdentifierNamespace)).all()
+        ns_map = {(n.type, n.entite_juridique_id) for n in existing_ns}
+        to_add = []
+        for ej in ejs:
+            for typ in ["IPP", "NDA", "VN", "MVT"]:
+                if (typ, ej.id) not in ns_map:
+                    to_add.append(
+                        IdentifierNamespace(
+                            name=f"Namespace {typ} EJ {ej.id}",
+                            system=f"urn:oid:1.2.250.1.{ej.id}.{typ.lower()}",
+                            oid=f"1.2.250.1.{ej.id}.{typ.lower()}",
+                            type=typ,
+                            ght_context_id=ght.id,
+                            entite_juridique_id=ej.id,
+                        )
+                    )
+        if not any(n.type == "STRUCT" for n in existing_ns):
+            to_add.append(
+                IdentifierNamespace(
+                    name="Namespace Structure GHT",
+                    system="urn:oid:1.2.250.1.STRUCT",
+                    oid="1.2.250.1.STRUCT",
+                    type="STRUCT",
+                    ght_context_id=ght.id,
+                )
+            )
+        if to_add:
+            session.add_all(to_add)
+            session.commit()
+            print(f"✓ Namespaces ajoutés ({len(to_add)})")
+        else:
+            print("✓ Namespaces déjà présents")
+
+
+def _ensure_sequences(session: Session) -> None:
+    for name in ["patient", "dossier", "venue", "mouvement"]:
+        if not session.get(Sequence, name):
+            session.add(Sequence(name=name, value=0))
+    session.commit()
+
+
+def seed_minimal() -> None:
+    with Session(engine) as session:
+        existing = session.exec(select(Patient).limit(1)).first()
+        if existing:
+            print("Seed minimal ignoré (patients déjà présents).")
+            return
+        _ensure_sequences(session)
         patient = Patient(
-            family="DURAND",
-            given="Alice",
-            birth_date="1985-04-12",
-            gender="female",
+            family="DOE",
+            given="John",
+            birth_date="1985-05-05",
+            gender="male",
             city="Paris",
-            postal_code="75001",
+            postal_code="75000",
             country="FR",
             identity_reliability_code="VALI",
-            identity_reliability_date="2024-01-15",
+            identity_reliability_date="2024-01-01",
             identity_reliability_source="CNI",
         )
         session.add(patient)
         session.commit()
         session.refresh(patient)
 
-        # Dossier
+        dossier_seq = get_next_sequence(session, "dossier")
         dossier = Dossier(
-            dossier_seq=get_next_sequence(session, "dossier"),
+            dossier_seq=dossier_seq,
             patient_id=patient.id,
-            uf_responsabilite="UF-100",
+            uf_responsabilite="UF-EXT-1-1-1",  # sera valide si structure étendue; sinon valeur libre
             admit_time=datetime.utcnow(),
             dossier_type=DossierType.HOSPITALISE,
             reason="Admission initiale",
@@ -115,199 +252,58 @@ def seed_minimal():
         session.commit()
         session.refresh(dossier)
 
-        # Venue
+        venue_seq = get_next_sequence(session, "venue")
         venue = Venue(
-            venue_seq=get_next_sequence(session, "venue"),
+            venue_seq=venue_seq,
             dossier_id=dossier.id,
-            uf_responsabilite="UF-100",
+            uf_responsabilite=dossier.uf_responsabilite,
             start_time=datetime.utcnow(),
-            code="CHIR-A",
-            label="Chirurgie A",
+            code="VENUE-1",
+            label="Unité Initiale",
             operational_status="active",
         )
         session.add(venue)
         session.commit()
         session.refresh(venue)
 
-        # Mouvement
+        mouvement_seq = get_next_sequence(session, "mouvement")
         mouvement = Mouvement(
-            mouvement_seq=get_next_sequence(session, "mouvement"),
+            mouvement_seq=mouvement_seq,
             venue_id=venue.id,
             when=datetime.utcnow(),
-            location="CHIR-A/SALLE-1",
+            location=f"{venue.uf_responsabilite}^BOX-1^CH-01",
             trigger_event="A01",
             movement_type="Admission",
         )
         session.add(mouvement)
         session.commit()
+        print("✓ Seed minimal inséré")
 
-        print("✓ Seed minimal inséré (Patient + Dossier + Venue + Mouvement).")
 
-
-def seed_rich():
-    """Seed plus riche multi-patients/multi-venues/mouvements.
-
-    Génère:
-      - 5 patients
-      - Pour chaque patient: 1 dossier
-      - Pour chaque dossier: 2 venues
-      - Pour chaque venue: 3 mouvements (A01 admission, A02 transfert, A03 sortie virtuelle)
-    """
+def seed_rich(nb_patients: int = 40) -> None:
     with Session(engine) as session:
         existing = session.exec(select(Patient).limit(1)).first()
         if existing:
-            print("Seed riche ignoré (données déjà présentes).")
+            print("Seed riche ignoré (patients déjà présents).")
             return
+        _ensure_sequences(session)
 
-        # Séquences initiales
-        for seq_name in ["dossier", "venue", "mouvement"]:
-            if not session.get(Sequence, seq_name):
-                session.add(Sequence(name=seq_name, value=0))
-        session.commit()
+        # Collect UF codes si structure présente
+        uf_codes = [uf.identifier for uf in session.exec(select(UniteFonctionnelle)).all()]
+        if not uf_codes:
+            uf_codes = ["UF-RICH-1", "UF-RICH-2"]
 
-        now = datetime.utcnow()
-        for i in range(1, 6):
+        for i in range(1, nb_patients + 1):
             patient = Patient(
-                family=f"PATIENT-{i}",
-                given="Test",
-                birth_date="1990-01-01",
-                gender="female" if i % 2 == 0 else "male",
-                city="Paris",
-                postal_code="7500" + str(i),
-                country="FR",
-                identity_reliability_code="VALI",
-                identity_reliability_date="2024-01-15",
-                identity_reliability_source="CNI",
-            )
-            session.add(patient)
-            session.commit()
-            session.refresh(patient)
-
-            dossier = Dossier(
-                dossier_seq=i,
-                patient_id=patient.id,
-                uf_responsabilite=f"UF-{100+i}",
-                admit_time=now,
-                dossier_type=DossierType.HOSPITALISE,
-                reason="Admission automatique seed riche",
-            )
-            session.add(dossier)
-            session.commit()
-            session.refresh(dossier)
-
-            for v in range(1, 3):
-                venue = Venue(
-                    venue_seq=(i - 1) * 2 + v,
-                    dossier_id=dossier.id,
-                    uf_responsabilite=dossier.uf_responsabilite,
-                    start_time=now,
-                    code=f"LOC-{i}-{v}",
-                    label=f"Location {i}-{v}",
-                    operational_status="active",
-                )
-                session.add(venue)
-                session.commit()
-                session.refresh(venue)
-
-                # Mouvements
-                mouvements_specs = [
-                    ("Admission", "A01"),
-                    ("Transfert", "A02"),
-                    ("Sortie", "A03"),
-                ]
-                for m_idx, (mt_label, trigger) in enumerate(mouvements_specs, start=1):
-                    mouvement = Mouvement(
-                        mouvement_seq=((i - 1) * 6) + ((v - 1) * 3) + m_idx,
-                        venue_id=venue.id,
-                        when=now,
-                        location=venue.code + f"/SALLE-{m_idx}",
-                        trigger_event=trigger,
-                        movement_type=mt_label,
-                    )
-                    session.add(mouvement)
-                session.commit()
-
-        print("✓ Seed riche inséré (5 patients / 5 dossiers / 10 venues / 30 mouvements).")
-
-
-def seed_demo_scenarios():
-    """Scénarios complexes de mouvements pour un GHT DEMO.
-
-    Crée un GHT 'GHT DEMO' si absent puis insère 3 patients avec des séquences
-    de mouvements illustrant des cas métier: transferts multiples, annulation,
-    transferts multiples, annulation (A11) et sortie (A03) sans utiliser A08 (non supporté PAM FR).
-    """
-    from sqlmodel import select
-    with Session(engine) as session:
-        # GHT DEMO
-        ght = session.exec(select(GHTContext).where(GHTContext.code == "GHT-DEMO")).first()
-        if not ght:
-            ght = GHTContext(name="GHT DEMO", code="GHT-DEMO", description="Contexte de démonstration")
-            session.add(ght)
-            session.commit()
-            session.refresh(ght)
-            print("✓ GHT DEMO créé")
-        else:
-            print("✓ GHT DEMO déjà présent")
-
-        # Ne pas dupliquer les patients si déjà scénarisés
-        existing_demo = session.exec(select(Patient).where(Patient.family.like("SCENARIO-%")).limit(1)).first()
-        if existing_demo:
-            print("Scénarios DEMO ignorés (déjà présents).")
-            return
-
-        # Assurer les séquences
-        for seq_name in ["dossier", "venue", "mouvement"]:
-            if not session.get(Sequence, seq_name):
-                session.add(Sequence(name=seq_name, value=0))
-        session.commit()
-
-        from app.db import get_next_sequence
-        now = datetime.utcnow()
-
-        scenario_defs = [
-            {
-                "patient_family": "SCENARIO-TRANSFERTS",
-                "flows": [
-                    ("Admission", "A01"),
-                    ("Transfert", "A02"),
-                    ("Transfert", "A02"),
-                    ("Sortie", "A03"),
-                ],
-            },
-            {
-                "patient_family": "SCENARIO-ANNULATION",
-                "flows": [
-                    ("Admission", "A01"),
-                    ("Annulation admission", "A11"),
-                    ("Nouvelle admission", "A01"),
-                    ("Transfert", "A02"),
-                    ("Sortie", "A03"),
-                ],
-            },
-            {
-                "patient_family": "SCENARIO-TRANSFERT-MULTI",
-                "flows": [
-                    ("Admission", "A01"),
-                    ("Transfert", "A02"),
-                    ("Transfert secondaire", "A02"),
-                    ("Transfert tertiaire", "A02"),
-                    ("Sortie", "A03"),
-                ],
-            },
-        ]
-
-        for scen_idx, scen in enumerate(scenario_defs, start=1):
-            patient = Patient(
-                family=scen["patient_family"],
-                given="Demo",
-                birth_date="1980-01-01",
+                family=f"RICH-{i:03d}",
+                given=choice(["Alice", "Bob", "Chloé", "David", "Eva"]),
+                birth_date="1970-01-01",
                 gender="other",
-                city="DemoVille",
+                city="VilleX",
                 postal_code="00000",
                 country="FR",
                 identity_reliability_code="VALI",
-                identity_reliability_date="2024-01-15",
+                identity_reliability_date="2024-02-01",
                 identity_reliability_source="CNI",
             )
             session.add(patient)
@@ -315,29 +311,30 @@ def seed_demo_scenarios():
             session.refresh(patient)
 
             dossier_seq = get_next_sequence(session, "dossier")
+            uf_resp = choice(uf_codes)
             dossier = Dossier(
                 dossier_seq=dossier_seq,
                 patient_id=patient.id,
-                uf_responsabilite=f"UF-DEMO-{scen_idx}",
-                admit_time=now,
+                uf_responsabilite=uf_resp,
+                admit_time=datetime.utcnow(),
                 dossier_type=DossierType.HOSPITALISE,
-                reason="Scenario démo",
+                reason="Admission auto",
             )
             session.add(dossier)
             session.commit()
             session.refresh(dossier)
 
-            # Créer 2 venues pour permettre transferts
+            # 2 venues
             venues = []
-            for v_num in [1, 2]:
+            for v in range(1, 3):
                 venue_seq = get_next_sequence(session, "venue")
                 venue = Venue(
                     venue_seq=venue_seq,
                     dossier_id=dossier.id,
-                    uf_responsabilite=dossier.uf_responsabilite,
-                    start_time=now,
-                    code=f"DEMO-{scen_idx}-{v_num}",
-                    label=f"Unité Démo {scen_idx}-{v_num}",
+                    uf_responsabilite=uf_resp,
+                    start_time=datetime.utcnow(),
+                    code=f"VENUE-{i}-{v}",
+                    label=f"Unité {v}",
                     operational_status="active",
                 )
                 session.add(venue)
@@ -345,69 +342,167 @@ def seed_demo_scenarios():
                 session.refresh(venue)
                 venues.append(venue)
 
-            current_venue_index = 0
-            for flow_idx, (movement_type, trigger) in enumerate(scen["flows"], start=1):
-                # Changer de venue sur A02 (transfert)
-                if trigger == "A02":
-                    current_venue_index = 1 - current_venue_index  # toggle between 0 and 1
-                venue = venues[current_venue_index]
+            # mouvements (admission + transfert + sortie)
+            triggers = [("Admission", "A01"), ("Transfert", "A02"), ("Sortie", "A03")]
+            current_index = 0
+            for step_idx, (m_type, trig) in enumerate(triggers, start=1):
+                if trig == "A02":
+                    current_index = 1 - current_index
+                venue = venues[current_index]
+                mouvement_seq = get_next_sequence(session, "mouvement")
+                mouvement = Mouvement(
+                    mouvement_seq=mouvement_seq,
+                    venue_id=venue.id,
+                    when=datetime.utcnow(),
+                    location=f"{venue.uf_responsabilite}^BOX-{step_idx}^CH-{step_idx:02d}",
+                    trigger_event=trig,
+                    movement_type=m_type,
+                    from_location=venues[1 - current_index].uf_responsabilite if trig == "A02" else None,
+                    to_location=venue.uf_responsabilite if trig == "A02" else None,
+                )
+                session.add(mouvement)
+                session.commit()
+            if i % 10 == 0:
+                print(f"   … {i} patients créés")
+
+        print(f"✓ Seed riche inséré ({nb_patients} patients)")
+
+
+def seed_demo_scenarios() -> None:
+    """Insère 3 patients avec scénarios de transferts / annulations."""
+    with Session(engine) as session:
+        existing_demo = session.exec(select(Patient).where(Patient.family.like("SCENARIO-%")).limit(1)).first()
+        if existing_demo:
+            print("Scénarios démo déjà présents.")
+            return
+        _ensure_sequences(session)
+        now = datetime.utcnow()
+        scenario_defs = [
+            ("SCENARIO-TRANSFERTS", ["A01", "A02", "A02", "A03"]),
+            ("SCENARIO-ANNULATION", ["A01", "A11", "A01", "A02", "A03"]),
+            ("SCENARIO-TRANSFERT-MULTI", ["A01", "A02", "A02", "A02", "A03"]),
+        ]
+        uf_codes = [uf.identifier for uf in session.exec(select(UniteFonctionnelle)).all()] or ["UF-DEMO-1", "UF-DEMO-2"]
+        for scen_idx, (family_name, triggers) in enumerate(scenario_defs, start=1):
+            patient = Patient(
+                family=family_name,
+                given="Demo",
+                birth_date="1980-01-01",
+                gender="other",
+                city="DemoVille",
+                postal_code="00000",
+                country="FR",
+                identity_reliability_code="VALI",
+                identity_reliability_date="2024-03-01",
+                identity_reliability_source="CNI",
+            )
+            session.add(patient)
+            session.commit()
+            session.refresh(patient)
+            dossier_seq = get_next_sequence(session, "dossier")
+            uf_resp = choice(uf_codes)
+            dossier = Dossier(
+                dossier_seq=dossier_seq,
+                patient_id=patient.id,
+                uf_responsabilite=uf_resp,
+                admit_time=now,
+                dossier_type=DossierType.HOSPITALISE,
+                reason="Scenario démo",
+            )
+            session.add(dossier)
+            session.commit()
+            session.refresh(dossier)
+            venues = []
+            for v in range(1, 3):
+                venue_seq = get_next_sequence(session, "venue")
+                venue = Venue(
+                    venue_seq=venue_seq,
+                    dossier_id=dossier.id,
+                    uf_responsabilite=choice(uf_codes),
+                    start_time=now,
+                    code=f"SC-{scen_idx}-{v}",
+                    label=f"Unité Scénario {v}",
+                    operational_status="active",
+                )
+                session.add(venue)
+                session.commit()
+                session.refresh(venue)
+                venues.append(venue)
+            current_index = 0
+            for step_idx, trig in enumerate(triggers, start=1):
+                if trig == "A02":
+                    current_index = 1 - current_index
+                venue = venues[current_index]
                 mouvement_seq = get_next_sequence(session, "mouvement")
                 mouvement = Mouvement(
                     mouvement_seq=mouvement_seq,
                     venue_id=venue.id,
                     when=now,
-                    location=f"{venue.code}/BOX-{flow_idx}",
-                    trigger_event=trigger,
-                    movement_type=movement_type,
+                    location=f"{venue.uf_responsabilite}^BOX-{step_idx}^CH-{step_idx:02d}",
+                    trigger_event=trig,
+                    movement_type="Transfert" if trig == "A02" else ("Annulation" if trig == "A11" else "Admission/Sortie"),
+                    from_location=venues[1 - current_index].uf_responsabilite if trig == "A02" else None,
+                    to_location=venue.uf_responsabilite if trig == "A02" else None,
                 )
                 session.add(mouvement)
                 session.commit()
+        print("✓ Scénarios démo insérés")
 
-        print("✓ Scénarios complexes DEMO insérés (3 patients scénarisés).")
+
+def _load_vocabularies(tag: str = "") -> bool:
+    """Charge les vocabulaires; retourne True si succès."""
+    try:
+        import sys
+        run([sys.executable, "tools/init_vocabularies.py"], check=True)
+        print(f"✓ Vocabulaires initialisés{f' ({tag})' if tag else ''}")
+        return True
+    except CalledProcessError as e:
+        print(f"✗ Échec init vocabulaires{f' ({tag})' if tag else ''}: {e}")
+    except FileNotFoundError as e:
+        print(f"✗ Script vocab introuvable{f' ({tag})' if tag else ''}: {e}")
+    return False
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Initialisation complète locale")
     parser.add_argument("--force-reset", action="store_true", help="Supprime poc.db avant recréation")
     parser.add_argument("--with-vocab", action="store_true", help="Initialise les vocabulaires")
-    parser.add_argument("--rich-seed", action="store_true", help="Insère un jeu de données plus riche (multi) au lieu du seed minimal")
-    parser.add_argument("--demo-scenarios", action="store_true", help="Insère scénarios complexes de mouvements liés à un GHT DEMO")
+    parser.add_argument("--rich-seed", action="store_true", help="Seed riche (multi patients)")
+    parser.add_argument("--demo-scenarios", action="store_true", help="Insère scénarios complexes")
+    parser.add_argument("--extended-structure", action="store_true", help="Crée structure étendue avant seeds")
     args = parser.parse_args()
 
     if args.force_reset and DB_PATH.exists():
         print("→ Suppression ancienne base poc.db")
         DB_PATH.unlink()
 
-    print("→ Création des tables (idempotent)…")
+    print("→ Création tables…")
     init_db()
-
-    print("→ Application migrations legacy…")
+    print("→ Migrations legacy…")
     apply_legacy_migrations()
 
+    auto_vocab_requested = False
+    if args.extended_structure:
+        print("→ Structure étendue…")
+        ensure_extended_structure()
+        if not args.with_vocab:
+            print("→ Vocabulaires (auto car structure étendue)…")
+            auto_vocab_requested = _load_vocabularies("auto")
+
     if args.rich_seed:
-        print("→ Seed riche…")
         seed_rich()
     else:
-        print("→ Seed minimal…")
         seed_minimal()
 
     if args.demo_scenarios:
-        print("→ Scénarios complexes GHT DEMO…")
         seed_demo_scenarios()
 
-    if args.with_vocab:
-        print("→ Initialisation des vocabulaires…")
-        try:
-            import sys
-            # Utiliser l'interpréteur courant pour éviter FileNotFoundError (python peut ne pas être dans PATH)
-            result = run([sys.executable, "tools/init_vocabularies.py"], check=True)
-            print("✓ Vocabulaires initialisés")
-        except CalledProcessError as e:
-            print(f"✗ Échec init vocabulaires: retour code {e.returncode}")
-        except FileNotFoundError as e:
-            print(f"✗ Interpréteur introuvable pour init vocab: {e}")
+    if args.with_vocab and not auto_vocab_requested:
+        print("→ Vocabulaires…")
+        _load_vocabularies()
 
-    print("\n✅ Initialisation complète terminée.")
+    print("\n✅ Initialisation terminée")
+
 
 if __name__ == "__main__":
     main()

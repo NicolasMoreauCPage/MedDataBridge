@@ -13,37 +13,61 @@ def _now_ts():
 
 @pytest.mark.asyncio
 async def test_a06_insert_rejected_if_not_admitted(session: Session):
-    """A06 with ZBE-4=INSERT after A13 (discharge) must be rejected."""
-    # Arrange: patient with venue, last movement A13 (discharge cancel? actually A13 cancels A03 => previous context not admitted)
-    # We'll simulate last event A13 explicitly.
-    pat_seq = get_next_sequence(session, "patient")
-    p = Patient(patient_seq=pat_seq, identifier=str(pat_seq), family="RULES", given="A06-INSERT")
-    session.add(p); session.flush()
+   """A06 with ZBE-4=INSERT after A13 (discharge) must be rejected."""
+   # Arrange: patient with venue, last movement A13 (discharge cancel? actually A13 cancels A03 => previous context not admitted)
+   pat_seq = get_next_sequence(session, "patient")
+   p = Patient(patient_seq=pat_seq, identifier=str(pat_seq), family="RULES", given="A06-INSERT")
+   session.add(p)
+   session.flush()
 
-    d = Dossier(dossier_seq=get_next_sequence(session, "dossier"), patient_id=p.id, uf_medicale="TEST",
- uf_hebergement="TEST", admit_time=datetime.now())
-    session.add(d); session.flush()
+   d = Dossier(
+      dossier_seq=get_next_sequence(session, "dossier"),
+      patient_id=p.id,
+      uf_medicale="TEST",
+      uf_hebergement="TEST",
+      admit_time=datetime.now(),
+   )
+   session.add(d)
+   session.flush()
 
-    v = Venue(venue_seq=get_next_sequence(session, "venue"), dossier_id=d.id, uf_medicale="TEST",
- uf_hebergement="TEST", start_time=datetime.now(), code="HOSP", label="Hosp")
-    session.add(v); session.flush()
+   v = Venue(
+      venue_seq=get_next_sequence(session, "venue"),
+      dossier_id=d.id,
+      uf_medicale="TEST",
+      uf_hebergement="TEST",
+      start_time=datetime.now(),
+      code="HOSP",
+      label="Hosp",
+   )
+   session.add(v)
+   session.flush()
 
-    # Last movement A13
-    m = Mouvement(venue_id=v.id, mouvement_seq=get_next_sequence(session, "mouvement"), when=datetime.now(), location="MED-101", trigger_event="A13")
-    session.add(m); session.commit()
+   # Last movement A13 (discharge cancellation of previous A03 context)
+   m = Mouvement(
+      venue_id=v.id,
+      mouvement_seq=get_next_sequence(session, "mouvement"),
+      when=datetime.now(),
+      location="MED-101",
+      trigger_event="A13",
+   )
+   session.add(m)
+   session.commit()
 
-    now = _now_ts()
-    msg = f"""MSH|^~\&|SEND|FAC|RECV|FAC|{now}||ADT^A06^ADT_A06|MSG006|P|2.5\n"""
-    msg += f"EVN|A06|{now}\n"
-    msg += f"PID|1||{p.patient_seq}^^^IPP||Rules^Insert||19800101|M\n"
-    msg += f"PV1|1|I|MED-101||||||||||||||||{v.venue_seq}\n"
-    # ZBE: ...|ZBE-4=INSERT|ZBE-5=Y|ZBE-6=A06
-    msg += "ZBE||" + now + "||INSERT|Y|A06||||\n"
+   now = _now_ts()
+   msg = (
+      f"MSH|^~\\&|SEND|FAC|RECV|FAC|{now}||ADT^A06^ADT_A06|MSG006|P|2.5\n"
+      f"EVN|A06|{now}\n"
+      f"PID|1||{p.patient_seq}^^^IPP||Rules^Insert||19800101|M\n"
+      f"PV1|1|I|MED-101||||||||||||||||{v.venue_seq}\n"
+      # ZBE: ...|ZBE-4=INSERT|ZBE-5=Y|ZBE-6=A06
+      f"ZBE||{now}||INSERT|Y|A06||||\n"
+   )
 
-    ack = await on_message_inbound_async(msg, session, None)
+   ack = await on_message_inbound_async(msg, session, None)
 
-    assert "MSA|AE" in ack, ack
-    assert "A06" in ack and ("INSERT" in ack or "non admis" in ack)
+   assert "MSA|AE" in ack, ack
+   # Accept either legacy wording (INSERT/non admis) or new transition error format.
+   assert "A06" in ack and ("INSERT" in ack or "non admis" in ack or "Transition IHE" in ack)
 
 
 @pytest.mark.asyncio

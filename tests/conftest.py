@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 
 # Indicate to the app that we're running tests
 os.environ.setdefault("TESTING", "1")
+# Enable auto-creation of UF placeholders for tests
+os.environ.setdefault("PAM_AUTO_CREATE_UF", "1")
 
 # Ensure repository root is on sys.path so `import app` works when running pytest from VS Code or terminals
 REPO_ROOT = Path(__file__).resolve().parents[1]

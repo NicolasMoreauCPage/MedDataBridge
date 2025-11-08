@@ -24,3 +24,4 @@ venv/
 # Cache d'IDE
 .vscode/
 .idea/
+Doc/interfaces.integration_src/interfaces.integration/

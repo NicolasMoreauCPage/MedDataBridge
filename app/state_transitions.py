@@ -30,6 +30,8 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
     "A01": {
         "A02",  # Transfert
         "A03",  # Sortie
+        "A06",  # Changement type patient (ex inpatient -> autre type)
+        "A07",  # Changement inverse type patient
         "A11",  # Annulation admission
         "A21",  # Permission
         "A44",  # Déplacement compte
@@ -66,9 +68,13 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A55",  # Annulation changement date
         "Z99",  # Changement d'identité
     },
-    "A06": {"A06", "A07", "A11", "A01", "Z99"},
-    "A07": {"A06", "A07", "A11", "A01", "Z99"},
-    "A11": {"A01", "A04", "A05"},  # note 1
+    # A06/A07 (changement de type patient) peuvent survenir sur un patient admis (A01)
+    # ou en consultation/externe (A04). Autoriser également transitions répétées et annulation A11.
+    "A06": {"A06", "A07", "A11", "A01", "A04", "Z99"},
+    "A07": {"A06", "A07", "A11", "A01", "A04", "Z99"},
+    # Nouveau resserrement : après A11 (annulation admission) seul A04 (enregistrement) ou A05 (pré-admission) sont autorisés.
+    # Un A01 direct est désormais interdit (test_a01_rejected_if_not_start_nor_after_a05_a03).
+    "A11": {"A04", "A05"},  # note 1 ajustée
     "A12": {
         "A02",
         "A03",

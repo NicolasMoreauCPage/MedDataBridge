@@ -23,3 +23,4 @@ from app.routers.scenarios import router as scenarios_router
 from app.routers.ihe import router as ihe_router
 from app.routers.docs import router as docs_router
 from app.routers.dossier_type import router as dossier_type_router
+from app.routers.timeline import router as timeline_router

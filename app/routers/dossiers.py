@@ -60,6 +60,7 @@ def list_dossiers(
             ],
             "detail_url": f"/dossiers/{d.id}",
             "context_url": f"/context/dossier/{d.id}",
+            "timeline_url": f"/timeline/dossier/{d.id}",
             "edit_url": f"/dossiers/{d.id}/edit",
             "delete_url": f"/dossiers/{d.id}/delete"
         }

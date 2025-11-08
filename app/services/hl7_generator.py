@@ -324,7 +324,11 @@ def generate_adt_message(
         control_id = f"MSG{timestamp.strftime('%Y%m%d%H%M%S')}"
     
     # Validation des segments obligatoires selon le profil IHE PAM FR
-    movement_triggers = {"A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08",
+    # Triggers considérés comme mouvement (requièrent segment ZBE) selon IHE PAM FR.
+    # Les messages d'identité pure (A08 update identité, A28 new patient, A31 update patient, A40/A47 merges/identifier changes)
+    # ne doivent PAS exiger ZBE.
+    identity_only_triggers = {"A08", "A28", "A31", "A40", "A47"}
+    movement_triggers = {"A01", "A02", "A03", "A04", "A05", "A06", "A07",
                          "A11", "A12", "A13", "A21", "A22", "A23", "A38",
                          "A52", "A53", "A54", "A55"}
 
@@ -332,9 +336,9 @@ def generate_adt_message(
     if _is_strict_pam(endpoint):
         if trigger_event == "A08":
             raise ValueError("L'événement A08 (mise à jour) est désactivé en mode strict PAM FR (EJ ou environnement)")
-        movement_triggers.discard("A08")
+        # A08 reste considéré identité-only et ne doit pas être ajouté aux mouvements.
     
-    # Les messages de mouvement requièrent le segment ZBE (sauf A28, A31, A40, A47 qui sont des messages d'identité)
+    # Validation ZBE: seulement pour movement_triggers; identité-only triggers sont dispensés
     if trigger_event in movement_triggers and movement is None:
         raise ValueError(
             f"Le segment ZBE est obligatoire pour le message ADT^{trigger_event} selon le profil IHE PAM France. "

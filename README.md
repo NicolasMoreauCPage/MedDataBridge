@@ -17,6 +17,7 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
+
 ## Configuration
 
 L'application utilise des variables d'environnement pour sa configuration :
@@ -26,6 +27,9 @@ L'application utilise des variables d'environnement pour sa configuration :
 | TESTING | Mode test (pas d'init DB ni serveurs MLLP) | 0, 1, true, True | 0 |
 | INIT_VOCAB | Initialiser les vocabulaires au démarrage | 0, 1, true, True | 0 |
 | MLLP_TRACE | Logs MLLP détaillés | 0, 1, true, True | 0 |
+| PAM_AUTO_CREATE_UF | Auto-création UF placeholder si absente | 0, 1, true, True | 0 |
+| MFN_AUTO_VIRTUAL_POLE | Auto-création de pôle virtuel si un service est importé sans pôle parent | 0, 1, true, True | 1 |
+| STRICT_PAM_FR | Mode strict IHE PAM France global | 0, 1, true, True | 0 |
 | SSL_CERT_FILE | Certificat CA pour FHIR | chemin fichier | None |
 | REQUESTS_CA_BUNDLE | Bundle CA pour FHIR | chemin fichier | None |
 
@@ -53,6 +57,7 @@ En production, utilisez gunicorn avec des workers uvicorn :
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m gunicorn app.app:app -k uvicorn.workers.UvicornWorker -w 4
+```
 
 ### Initialisation complète (base + seed)
 
@@ -75,9 +80,12 @@ PYTHONPATH=. .venv/bin/python -m uvicorn app.app:app --reload
 Flags supplémentaires disponibles :
 
 ```text
---with-vocab   Initialise les vocabulaires (équivalent tools/init_vocabularies.py)
---rich-seed    Insère un jeu multi-patients (5 patients, 5 dossiers, 10 venues, 30 mouvements)
---force-reset  Supprime poc.db avant recréation
+--with-vocab          Initialise les vocabulaires (équivalent tools/init_vocabularies.py)
+--force-reset         Supprime poc.db avant recréation
+--extended-structure  Crée une structure étendue (GHT + 2 EJ + hiérarchie complète: site, pôle, services, UF, UH, chambres, lits + namespaces identifiants IPP/NDA/VN/MVT)
+--rich-seed           Insère un jeu multi-patients (~100 patients, ~150 dossiers, ~300 venues, ~1000 mouvements) réutilisant les UF réelles si présentes
+--demo-scenarios      Ajoute un contexte GHT DEMO avec 2 EJ minimal + scénarios mouvements (transferts, annulations, multi-transferts) liés aux UF réelles
+(*auto-vocab*)        Les vocabulaires sont chargés automatiquement si --extended-structure est utilisé sans --with-vocab
 ```
 
 Exemples :
@@ -86,11 +94,89 @@ Exemples :
 # Init + vocabulaires
 PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --with-vocab
 
-# Init complète + seed riche + vocabulaires
-PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset --rich-seed --with-vocab
+# Structure étendue + seed riche + scénarios démo + vocabulaires
+PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset --extended-structure --rich-seed --demo-scenarios --with-vocab
 ```
 
-Le seed est ignoré si des patients existent déjà (idempotent).
+Le seed est ignoré si des patients existent déjà (idempotent). Pour que le seed riche s'appuie sur la structure,
+créez d'abord la structure étendue (flag --extended-structure) avant d'exécuter --rich-seed.
+
+### Identifiants IHE PAM France
+
+Selon le profil IHE PAM France, les identifiants métier sont positionnés dans des segments spécifiques :
+
+| Segment | Champ | Entité | Description | Exemple |
+|---------|-------|--------|-------------|---------|
+| **PID-3** | Patient Identifier List | Patient | Identifiants du patient (peut contenir plusieurs identifiants) | `12345^^^FACILITY^PI` |
+| **PID-18** | Patient Account Number | Dossier | Identifiant du dossier administratif | `D001^^^FACILITY^AN` |
+| **PV1-19** | Visit Number | Venue | Identifiant de la venue/séjour | `V2023001^^^FACILITY^VN` |
+| **ZBE-1** | Movement Identifier | Mouvement | Identifiant du mouvement (extension IHE PAM FR) | `M001^^^FACILITY^PI` |
+
+**Format CX (Composite ID with Check Digit)** :
+
+```text
+<ID>^<Check Digit>^<Check Digit Scheme>^<Assigning Authority>^<Identifier Type Code>
+```
+
+**Bonnes pratiques** :
+
+- Utiliser des identifiants stables et uniques par établissement
+- PID-3 peut contenir plusieurs identifiants (INS, IPP, etc.)
+- ZBE-1 permet de tracer précisément chaque mouvement pour les annulations (A11, A12, A13, etc.)
+
+### Auto-création des Unités Fonctionnelles (UF)
+
+Lorsqu'un message PAM référence une UF (Unité Fonctionnelle) via ZBE-7 qui n'existe pas dans la structure, deux comportements sont possibles :
+
+1. **Mode strict** (par défaut, `PAM_AUTO_CREATE_UF=0`) : le message est rejeté avec une erreur explicite indiquant l'UF manquante. C'est le comportement recommandé en production pour garantir la cohérence des données.
+
+2. **Mode permissif** (`PAM_AUTO_CREATE_UF=1`) : l'UF est créée automatiquement comme placeholder virtuel sous un service "AUTO_SERVICE". Utile pour :
+   - Tests et développement (évite de créer manuellement toutes les UF)
+   - Intégration initiale (permet d'ingérer les données avant import MFN^M05 de la structure)
+   - Migration legacy (accepte les codes UF temporaires)
+
+Pour activer l'auto-création :
+
+```bash
+export PAM_AUTO_CREATE_UF=1
+# Ou au démarrage
+PAM_AUTO_CREATE_UF=1 PYTHONPATH=. .venv/bin/python -m uvicorn app.app:app --reload
+```
+
+Les UF auto-créées sont marquées `is_virtual=True` et peuvent être complétées ultérieurement via l'UI d'admin ou un import MFN^M05.
+
+### Auto-création des Pôles / Services virtuels (import MFN^M05)
+
+Lors de l'import d'un message MFN^M05 réel, certaines hiérarchies peuvent être incomplètes (ex: un service fait référence directement à une Entité Géographique sans qu'un pôle n'ait été défini entre les deux, ou une UF référence un service inexistant). Pour garantir l'ingestibilité et conserver la traçabilité des identifiants, le moteur applique les règles suivantes :
+
+1. Si un SERVICE est rencontré sans pôle parent explicite, un pôle virtuel `VIRTUAL-POLE-<code_service>` est créé sous l'Entité Géographique correspondante (`is_virtual=True`).
+2. Si une UF référence un SERVICE absent, un service virtuel `VIRTUAL-SERVICE-<code_uf>` est créé (lui-même sous un pôle virtuel si nécessaire) puis l'UF est rattachée.
+3. Les entités virtuelles sont marquées `is_virtual=True` pour permettre un remplacement ultérieur lors d'un import complet de structure.
+4. L'import est idempotent : si l'entité existe déjà (même code), ses métadonnées sont mises à jour sans générer d'erreur de contrainte UNIQUE.
+
+Avantages :
+
+- Permet de charger des fichiers de structure partiels en phase de migration ou de recette.
+- Évite les erreurs de clé étrangère (`pole_id` NULL) sur les services isolés.
+- Facilite le chaînage immédiat avec l'import des messages PAM (mouvements) sans bloquer sur la complétude de la hiérarchie.
+
+Bonnes pratiques :
+
+- Planifier un second import MFN^M05 "complet" une fois les codes établis pour remplacer les entités virtuelles.
+- Surveiller via l'UI admin la présence de `is_virtual=True` et régulariser avant la mise en production.
+- Activer `MFN_AUTO_VIRTUAL_POLE=0` en production si vous souhaitez rejeter les services orphelins et imposer une hiérarchie stricte.
+
+Pour désactiver la création automatique de pôles virtuels :
+
+```bash
+export MFN_AUTO_VIRTUAL_POLE=0
+```
+
+Pour réactiver :
+
+```bash
+export MFN_AUTO_VIRTUAL_POLE=1
+```
 
 ### Mode strict IHE PAM France (global & par Entité Juridique)
 
@@ -143,6 +229,44 @@ Bonnes pratiques :
 2. Désactiver ponctuellement côté EJ pour tester les cas legacy A08.
 3. Ne pas mélanger A08 avec Z99 pour les corrections partielles en mode strict.
 
+### Milestone v0.2.0 (HL7v2 + FHIR Roundtrip)
+
+Cette version marque un cap fonctionnel : le moteur est capable de simuler un logiciel d'interopérabilité hospitalier avec ingestion et émission HL7v2 (ADT PAM France, MFN^M05 structure) et génération/mapping FHIR.
+
+Principales capacités prouvées dans la branche :
+
+1. Import réel MFN^M05 avec hiérarchie partielle et auto-création contrôlée de pôles/services virtuels (`MFN_AUTO_VIRTUAL_POLE`).
+2. Ingestion lotie de ~1k messages PAM avec validation de transitions IHE (table de passage explicitée dans `app/state_transitions.py`).
+3. Génération de messages ADT (A01/A03/A06/A07/A11/A13/A04/A05, annulations incluses) avec adaptation stricte (A08 désactivé) selon flags EJ / global.
+4. Roundtrip identifiants (PID-3 IPP, PID-18 AN, PV1-19 VN, ZBE-1 MVT) consolidé dans test d'intégration `tests/test_production_integration.py`.
+5. Validation centralisée des transitions + rejet explicite avec ACK `MSA|AE` détaillé.
+6. Fallback d'encodage latin-1 pour ingestion legacy (évite les erreurs Unicode sur des dumps historiques).
+7. Champs `uf_responsabilite` rendus optionnels sur `Dossier` et `Venue` pour compatibilité scénarios partiels/pré-admission; résolution automatique ou marquage `UNKNOWN` ensuite.
+
+Notes de migration / schéma :
+
+La colonne `uf_responsabilite` (tables `dossier`, `venue`) est désormais nullable. Sur une base déjà créée avant v0.2.0 (SQLite), exécuter soit :
+
+```bash
+# Option rapide (recréation)
+cp poc.db poc.db.bak
+rm poc.db
+PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset
+
+# Option Alembic (à créer si non existante)
+alembic revision -m "make uf_responsabilite nullable" --autogenerate
+alembic upgrade head
+```
+
+Limites connues (non bloquantes pour le milestone) :
+
+- Quelques tests UI/forme peuvent rester sensibles au timing (flaky) → à stabiliser via waits explicites.
+- Import MFN ne gère pas encore les mises à jour différentielles (replay complet recommandé).
+- Pas de moteur de segmentation HL7 générique (parsing ciblé sur segments clés PID/PV1/ZBE/MRG).
+
+Tag proposé : `v0.2.0`.
+
+
 ### Migrations structurées (Alembic)
 
 Alembic est configuré (fichier `alembic.ini`, dossier `alembic/`). Pour générer la migration réelle initiale :
@@ -159,16 +283,17 @@ alembic upgrade head
 ```
 
 Bonnes pratiques :
+
 1. Toujours valider le diff autogénéré (ajout/suppression de colonnes inattendues).
 2. Nommer clairement les messages de révision (ex: "add systemendpoint file columns").
 3. Commiter les fichiers sous `alembic/versions/`.
 4. Utiliser `alembic downgrade -1` pour revenir d'une migration récente si besoin.
 
 Lorsqu'un champ est ajouté dans un modèle SQLModel :
+
 ```bash
 alembic revision --autogenerate -m "add <champ> to <table>"
 alembic upgrade head
-```
 ```
 
 ## Outils et Scripts
@@ -304,6 +429,7 @@ utilisé dans les identifiants émis (PID-3 CX pour HL7 ou `identifier.system` p
 - `forced_identifier_oid` : OID à placer comme assigning authority / assigner (ex: `1.2.250.1.71.1.2.2`)
 
 Quand ces champs sont renseignés pour un endpoint, l'application :
+
 - Pour HL7/MLLP : construit le composant PID-3 CX comme `value^^^{assigningAuthority}^{PI}` où
    `assigningAuthority` est `forced_identifier_oid` (si présent) sinon `forced_identifier_system`.
 - Pour FHIR : applique `forced_identifier_system` à tout identifiant sans `system` et ajoute un

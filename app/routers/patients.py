@@ -145,6 +145,7 @@ def list_patients(request: Request, session=Depends(get_session)):
             "cells": [p.patient_seq, p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
             "detail_url": f"/patients/{p.id}",
             "context_url": f"/context/patient/{p.id}",
+            "timeline_url": f"/timeline/patient/{p.id}",
             "edit_url": f"/patients/{p.id}/edit",
             "delete_url": f"/patients/{p.id}/delete"
         }

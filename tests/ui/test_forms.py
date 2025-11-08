@@ -1,7 +1,6 @@
-def wait_for_ready(url: str, max_retries: int = 30, delay: float = 0.5):
-def safe_navigate(page, url: str, timeout_ms: int = 10000):
 from playwright.sync_api import expect
 from .ui_helpers import wait_for_ready, safe_navigate
+
 
 def test_navigation_menus(page, test_server):
     """Ensure the main navigation exposes the grouped menus expected by the UI."""

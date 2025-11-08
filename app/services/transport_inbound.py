@@ -36,9 +36,25 @@ from app.services.identifier_manager import (
 from app.services.message_router import IHEMessageRouter
 from app.state_transitions import is_valid_transition, assert_transition
 
+# Import parsing functions from infrastructure layer (Phase 1 extraction)
+from app.infrastructure.hl7.parsing import (
+    parse_pid,
+    parse_pd1,
+    parse_pv1,
+    parse_zbe,
+    parse_mrg,
+    has_segment,
+    parse_patient_identifiers,
+)
+# Import validation functions from infrastructure layer (Phase 1 extraction)
+from app.infrastructure.hl7.validation import validate_transition
+
 logger = logging.getLogger("transport_inbound")
 
 
+# DEPRECATED: Old inline parsing functions below - use infrastructure.hl7.parsing instead
+# These are kept temporarily for compatibility during migration (Phase 1)
+# Will be removed in Phase 4 cleanup
 def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str]]:
     """Parse les identifiants patients du segment PID"""
     identifiers = []
@@ -755,7 +771,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
         movement_triggers.discard("A08")
     
     if trigger in movement_triggers:
-        if not _has_segment(msg, "ZBE"):
+        if not has_segment(msg, "ZBE"):
             return build_ack(
                 msg,
                 ack_code="AE",
@@ -764,7 +780,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
     
     # Messages A40 (fusion patients) et A47 (changement identifiant) : MRG obligatoire
     if trigger in {"A40", "A47"}:
-        if not _has_segment(msg, "MRG"):
+        if not has_segment(msg, "MRG"):
             return build_ack(
                 msg,
                 ack_code="AE",
@@ -830,9 +846,10 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 log.ack_payload = ack
                 return ack
 
-            pid_data = _parse_pid(msg)
-            pv1_data = _parse_pv1(msg)
-            zbe_data = _parse_zbe(msg)
+            # Use infrastructure parsing modules (Phase 1 extraction)
+            pid_data = parse_pid(msg)
+            pv1_data = parse_pv1(msg)
+            zbe_data = parse_zbe(msg)
             
             # Contrôle additionnel pour ZBE-9="C" : vérifier l'état du dossier
             # La correction de statut sans création de nouveau mouvement (valeur C)
@@ -965,34 +982,14 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                                 previous_event = last_mouvement.trigger_event
                                 logger.debug(f"Found previous event '{previous_event}' from patient {patient_id}")
             
-            # Valider la transition (lève ValueError si invalide),
-            # sauf pour les messages d'identité purs (A28/A31/A40/A47) qui
-            # ne font pas partie du workflow de venue IHE PAM.
-            identity_only_triggers = {"A28", "A31", "A40", "A47"}
-            relax = os.getenv("PAM_RELAX_TRANSITIONS", "0") in ("1", "true", "True")
-            if trigger not in identity_only_triggers and not relax:
-                try:
-                    assert_transition(previous_event, trigger)
-                except ValueError as ve:
-                    # Transition invalide : rejeter avec ACK AE
-                    log.status = "rejected"
-                    error_text = str(ve)
-                    ack = build_ack(msg, ack_code="AE", text=error_text)
-                    log.ack_payload = ack
-                    logger.warning(
-                        "Transition IHE PAM invalide rejetée",
-                        extra={
-                            "trigger": trigger,
-                            "previous_event": previous_event,
-                            "error": error_text
-                        }
-                    )
-                    return ack
-            elif relax and trigger not in identity_only_triggers:
-                logger.info(
-                    "[RELAX] Transition ignorée (validation désactivée)",
-                    extra={"trigger": trigger, "previous_event": previous_event}
-                )
+            # Validate transition using infrastructure layer (Phase 1 extraction)
+            is_valid, error_text = validate_transition(previous_event, trigger)
+            if not is_valid:
+                # Transition invalide : rejeter avec ACK AE
+                log.status = "rejected"
+                ack = build_ack(msg, ack_code="AE", text=error_text)
+                log.ack_payload = ack
+                return ack
             
             logger.info(
                 "Routing ADT message",

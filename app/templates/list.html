@@ -106,6 +106,11 @@
                       Contexte
                     </a>
                   {% endif %}
+                  {% if row.timeline_url %}
+                    <a href="{{ row.timeline_url }}" class="text-purple-600 hover:text-purple-700">
+                      Timeline
+                    </a>
+                  {% endif %}
                   {% if row.edit_url %}
                     <a href="{{ row.edit_url }}" class="text-slate-600 hover:text-slate-700">
                       Modifier

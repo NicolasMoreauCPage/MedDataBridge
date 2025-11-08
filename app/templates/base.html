@@ -170,7 +170,14 @@
                 <a href="/endpoints" class="block rounded-xl px-3 py-2 hover:bg-green-50">Endpoints</a>
                 <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-green-50">Scénarios IHE PAM</a>
                 <a href="/validation" class="block rounded-xl px-3 py-2 hover:bg-green-50">Validation HL7</a>
-                <a href="/conformity" class="block rounded-xl px-3 py-2 hover:bg-green-50">Conformité IHE</a>
+                {% if request.state.ght_context %}
+                  <a href="/conformity" class="block rounded-xl px-3 py-2 hover:bg-green-50">Conformité IHE</a>
+                {% else %}
+                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un GHT pour accéder à la conformité">
+                    Conformité IHE
+                    <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                  </span>
+                {% endif %}
               </div>
             </div>
           </div>

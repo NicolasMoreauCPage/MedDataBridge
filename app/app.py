@@ -33,8 +33,11 @@ from app.models_endpoints import SystemEndpoint, MessageLog
 from app import models_scenarios  # ensure scenario models are registered
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
-    UniteHebergement, Chambre, Lit
+    UniteHebergement, Chambre, Lit, UFActivity
 )
+from app.models_identifiers import Identifier
+from app.models_vocabulary import VocabularySystem, VocabularyValue
+from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.db_session_factory import session_factory
 from app.services.transport_inbound import on_message_inbound
 from app.services.mllp_manager import MLLPManager
@@ -105,18 +108,60 @@ class PatientAdmin(ModelView, model=Patient):
     # Vue d'admin pour Patient
     name = "Patient"
     name_plural = "Patients"
+    icon = "fa-solid fa-user"
+    column_list = [
+        Patient.id, Patient.patient_seq, Patient.identifier,
+        Patient.family, Patient.given, Patient.gender,
+        Patient.birth_date, Patient.deceased_boolean
+    ]
+    column_searchable_list = [Patient.family, Patient.given, Patient.identifier]
+    column_sortable_list = [Patient.id, Patient.family, Patient.given, Patient.birth_date]
+    column_default_sort = [(Patient.id, True)]
+    page_size = 50
 
 class VenueAdmin(ModelView, model=Venue):
     name = "Venue"
     name_plural = "Venues"
+    icon = "fa-solid fa-calendar-check"
+    column_list = [
+        Venue.id, Venue.venue_seq, Venue.identifier,
+        Venue.status, Venue.dossier_id,
+        Venue.period_start, Venue.period_end
+    ]
+    column_searchable_list = [Venue.identifier, Venue.venue_seq]
+    column_sortable_list = [Venue.id, Venue.period_start, Venue.status]
+    column_default_sort = [(Venue.id, True)]
+    page_size = 50
 
 class DossierAdmin(ModelView, model=Dossier):
     name = "Dossier"
     name_plural = "Dossiers"
+    icon = "fa-solid fa-folder-open"
+    column_list = [
+        Dossier.id, Dossier.dossier_seq, Dossier.identifier,
+        Dossier.type, Dossier.patient_id,
+        Dossier.admission_date, Dossier.discharge_date
+    ]
+    column_searchable_list = [Dossier.identifier, Dossier.dossier_seq]
+    column_sortable_list = [Dossier.id, Dossier.admission_date, Dossier.type]
+    column_default_sort = [(Dossier.id, True)]
+    page_size = 50
 
 class MouvementAdmin(ModelView, model=Mouvement):
     name = "Mouvement"
     name_plural = "Mouvements"
+    icon = "fa-solid fa-arrows-alt"
+    column_list = [
+        Mouvement.id, Mouvement.mouvement_seq, Mouvement.identifier,
+        Mouvement.trigger_event, Mouvement.action,
+        Mouvement.effective_date_time, Mouvement.location,
+        Mouvement.uf_medicale_code, Mouvement.nature,
+        Mouvement.venue_id, Mouvement.dossier_id
+    ]
+    column_searchable_list = [Mouvement.identifier, Mouvement.mouvement_seq, Mouvement.location]
+    column_sortable_list = [Mouvement.id, Mouvement.effective_date_time, Mouvement.trigger_event]
+    column_default_sort = [(Mouvement.effective_date_time, True)]
+    page_size = 50
 
 class SystemEndpointAdmin(ModelView, model=SystemEndpoint):
     name = "Point d'accès système"
@@ -163,80 +208,207 @@ class GHTContextAdmin(ModelView, model=GHTContext):
     name = "Contexte GHT"
     name_plural = "Contextes GHT"
     icon = "fa-solid fa-network-wired"
-    column_list = [GHTContext.id, GHTContext.name, GHTContext.code, GHTContext.is_active, GHTContext.created_at]
-    column_searchable_list = [GHTContext.name, GHTContext.code]
-    column_sortable_list = [GHTContext.id, GHTContext.name, GHTContext.is_active]
+    column_list = [
+        GHTContext.id, GHTContext.name, GHTContext.code,
+        GHTContext.oid_root, GHTContext.fhir_base_url,
+        GHTContext.is_active, GHTContext.created_at
+    ]
+    column_searchable_list = [GHTContext.name, GHTContext.code, GHTContext.oid_root]
+    column_sortable_list = [GHTContext.id, GHTContext.name, GHTContext.is_active, GHTContext.created_at]
+    column_default_sort = [(GHTContext.id, False)]
+    page_size = 50
 
 class EntiteJuridiqueAdmin(ModelView, model=EntiteJuridique):
     name = "Entité Juridique"
     name_plural = "Entités Juridiques"
     icon = "fa-solid fa-building"
     column_list = [
-        EntiteJuridique.id, EntiteJuridique.name, EntiteJuridique.finess_ej, 
-        EntiteJuridique.siren, EntiteJuridique.is_active, EntiteJuridique.ght_context_id
+        EntiteJuridique.id, EntiteJuridique.name, EntiteJuridique.short_name,
+        EntiteJuridique.finess_ej, EntiteJuridique.siren,
+        EntiteJuridique.type_code, EntiteJuridique.is_active,
+        EntiteJuridique.ght_context_id
     ]
     column_searchable_list = [EntiteJuridique.name, EntiteJuridique.finess_ej, EntiteJuridique.siren]
     column_sortable_list = [EntiteJuridique.id, EntiteJuridique.name, EntiteJuridique.is_active]
+    column_default_sort = [(EntiteJuridique.name, False)]
+    page_size = 50
 
-    # Admin pour la structure
+# Admin pour la structure
 class EntiteGeographiqueAdmin(ModelView, model=EntiteGeographique):
     name = "Entité Géographique"
     name_plural = "Entités Géographiques"
     icon = "fa-solid fa-hospital"
     column_list = [
-        EntiteGeographique.id, EntiteGeographique.name, EntiteGeographique.finess, 
-        EntiteGeographique.entite_juridique_id
+        EntiteGeographique.id, EntiteGeographique.name, EntiteGeographique.short_name,
+        EntiteGeographique.finess, EntiteGeographique.siret,
+        EntiteGeographique.address_city, EntiteGeographique.address_postalcode,
+        EntiteGeographique.status, EntiteGeographique.entite_juridique_id
     ]
-    column_searchable_list = [EntiteGeographique.name, EntiteGeographique.finess]
-    column_sortable_list = [EntiteGeographique.id, EntiteGeographique.name]
+    column_searchable_list = [EntiteGeographique.name, EntiteGeographique.finess, EntiteGeographique.siret]
+    column_sortable_list = [EntiteGeographique.id, EntiteGeographique.name, EntiteGeographique.status]
+    column_default_sort = [(EntiteGeographique.name, False)]
+    page_size = 50
 
 class PoleAdmin(ModelView, model=Pole):
     name = "Pôle"
     name_plural = "Pôles"
     icon = "fa-solid fa-sitemap"
-    column_list = [Pole.id, Pole.name, Pole.identifier, Pole.entite_geo_id]
+    column_list = [
+        Pole.id, Pole.name, Pole.identifier, Pole.short_name,
+        Pole.status, Pole.physical_type, Pole.entite_geo_id, Pole.is_virtual
+    ]
     column_searchable_list = [Pole.name, Pole.identifier]
-    column_sortable_list = [Pole.id, Pole.name]
+    column_sortable_list = [Pole.id, Pole.name, Pole.status]
+    column_default_sort = [(Pole.name, False)]
+    page_size = 50
 
 class ServiceAdmin(ModelView, model=Service):
     name = "Service"
     name_plural = "Services"
     icon = "fa-solid fa-building"
-    column_list = [Service.id, Service.name, Service.identifier, Service.service_type, Service.pole_id]
+    column_list = [
+        Service.id, Service.name, Service.identifier, Service.short_name,
+        Service.service_type, Service.status, Service.pole_id, Service.is_virtual
+    ]
     column_searchable_list = [Service.name, Service.identifier]
-    column_sortable_list = [Service.id, Service.name]
+    column_sortable_list = [Service.id, Service.name, Service.service_type]
+    column_default_sort = [(Service.name, False)]
+    page_size = 50
 
 class UniteFonctionnelleAdmin(ModelView, model=UniteFonctionnelle):
     name = "Unité Fonctionnelle"
     name_plural = "Unités Fonctionnelles"
     icon = "fa-solid fa-folder"
-    column_list = [UniteFonctionnelle.id, UniteFonctionnelle.name, UniteFonctionnelle.identifier, UniteFonctionnelle.service_id]
+    column_list = [
+        UniteFonctionnelle.id, UniteFonctionnelle.name, UniteFonctionnelle.identifier,
+        UniteFonctionnelle.short_name, UniteFonctionnelle.status,
+        UniteFonctionnelle.uf_type, UniteFonctionnelle.service_id, UniteFonctionnelle.is_virtual
+    ]
     column_searchable_list = [UniteFonctionnelle.name, UniteFonctionnelle.identifier]
-    column_sortable_list = [UniteFonctionnelle.id, UniteFonctionnelle.name]
+    column_sortable_list = [UniteFonctionnelle.id, UniteFonctionnelle.name, UniteFonctionnelle.status]
+    column_default_sort = [(UniteFonctionnelle.name, False)]
+    page_size = 50
 
 class UniteHebergementAdmin(ModelView, model=UniteHebergement):
     name = "Unité d'Hébergement"
     name_plural = "Unités d'Hébergement"
     icon = "fa-solid fa-bed"
-    column_list = [UniteHebergement.id, UniteHebergement.name, UniteHebergement.identifier, UniteHebergement.unite_fonctionnelle_id]
+    column_list = [
+        UniteHebergement.id, UniteHebergement.name, UniteHebergement.identifier,
+        UniteHebergement.short_name, UniteHebergement.status,
+        UniteHebergement.etage, UniteHebergement.aile, UniteHebergement.unite_fonctionnelle_id
+    ]
     column_searchable_list = [UniteHebergement.name, UniteHebergement.identifier]
     column_sortable_list = [UniteHebergement.id, UniteHebergement.name]
+    column_default_sort = [(UniteHebergement.name, False)]
+    page_size = 50
 
 class ChambreAdmin(ModelView, model=Chambre):
     name = "Chambre"
     name_plural = "Chambres"
     icon = "fa-solid fa-door-open"
-    column_list = [Chambre.id, Chambre.name, Chambre.identifier, Chambre.unite_hebergement_id]
+    column_list = [
+        Chambre.id, Chambre.name, Chambre.identifier, Chambre.short_name,
+        Chambre.status, Chambre.type_chambre, Chambre.unite_hebergement_id
+    ]
     column_searchable_list = [Chambre.name, Chambre.identifier]
     column_sortable_list = [Chambre.id, Chambre.name]
+    column_default_sort = [(Chambre.name, False)]
+    page_size = 50
 
 class LitAdmin(ModelView, model=Lit):
     name = "Lit"
     name_plural = "Lits"
     icon = "fa-solid fa-bed"
-    column_list = [Lit.id, Lit.name, Lit.identifier, Lit.status, Lit.operational_status, Lit.chambre_id]
+    column_list = [
+        Lit.id, Lit.name, Lit.identifier, Lit.short_name,
+        Lit.status, Lit.operational_status, Lit.chambre_id
+    ]
     column_searchable_list = [Lit.name, Lit.identifier]
-    column_sortable_list = [Lit.id, Lit.name]
+    column_sortable_list = [Lit.id, Lit.name, Lit.status]
+    column_default_sort = [(Lit.name, False)]
+    page_size = 50
+
+# Admin pour les identifiants et vocabulaires
+class IdentifierAdmin(ModelView, model=Identifier):
+    name = "Identifiant"
+    name_plural = "Identifiants"
+    icon = "fa-solid fa-hashtag"
+    column_list = [
+        Identifier.id, Identifier.value, Identifier.system,
+        Identifier.type_code, Identifier.entity_type,
+        Identifier.entity_id, Identifier.is_primary
+    ]
+    column_searchable_list = [Identifier.value, Identifier.system, Identifier.type_code]
+    column_sortable_list = [Identifier.id, Identifier.entity_type, Identifier.is_primary]
+    column_default_sort = [(Identifier.id, True)]
+    page_size = 50
+
+class VocabularySystemAdmin(ModelView, model=VocabularySystem):
+    name = "Système de vocabulaire"
+    name_plural = "Systèmes de vocabulaires"
+    icon = "fa-solid fa-book"
+    column_list = [
+        VocabularySystem.id, VocabularySystem.name, VocabularySystem.url,
+        VocabularySystem.version, VocabularySystem.description
+    ]
+    column_searchable_list = [VocabularySystem.name, VocabularySystem.url]
+    column_sortable_list = [VocabularySystem.id, VocabularySystem.name]
+    column_default_sort = [(VocabularySystem.name, False)]
+    page_size = 50
+
+class VocabularyValueAdmin(ModelView, model=VocabularyValue):
+    name = "Valeur de vocabulaire"
+    name_plural = "Valeurs de vocabulaires"
+    icon = "fa-solid fa-list"
+    column_list = [
+        VocabularyValue.id, VocabularyValue.code, VocabularyValue.display,
+        VocabularyValue.system_id, VocabularyValue.is_active
+    ]
+    column_searchable_list = [VocabularyValue.code, VocabularyValue.display]
+    column_sortable_list = [VocabularyValue.id, VocabularyValue.code, VocabularyValue.is_active]
+    column_default_sort = [(VocabularyValue.code, False)]
+    page_size = 50
+
+class UFActivityAdmin(ModelView, model=UFActivity):
+    name = "Activité UF"
+    name_plural = "Activités UF"
+    icon = "fa-solid fa-tasks"
+    column_list = [
+        UFActivity.id, UFActivity.code, UFActivity.display,
+        UFActivity.system
+    ]
+    column_searchable_list = [UFActivity.code, UFActivity.display]
+    column_sortable_list = [UFActivity.id, UFActivity.code]
+    column_default_sort = [(UFActivity.code, False)]
+    page_size = 50
+
+class InteropScenarioAdmin(ModelView, model=InteropScenario):
+    name = "Scénario d'interopérabilité"
+    name_plural = "Scénarios d'interopérabilité"
+    icon = "fa-solid fa-project-diagram"
+    column_list = [
+        InteropScenario.id, InteropScenario.name, InteropScenario.description,
+        InteropScenario.trigger_type, InteropScenario.is_active
+    ]
+    column_searchable_list = [InteropScenario.name, InteropScenario.description]
+    column_sortable_list = [InteropScenario.id, InteropScenario.name, InteropScenario.is_active]
+    column_default_sort = [(InteropScenario.name, False)]
+    page_size = 50
+
+class InteropScenarioStepAdmin(ModelView, model=InteropScenarioStep):
+    name = "Étape de scénario"
+    name_plural = "Étapes de scénarios"
+    icon = "fa-solid fa-list-ol"
+    column_list = [
+        InteropScenarioStep.id, InteropScenarioStep.scenario_id,
+        InteropScenarioStep.step_order, InteropScenarioStep.action,
+        InteropScenarioStep.is_active
+    ]
+    column_searchable_list = [InteropScenarioStep.action]
+    column_sortable_list = [InteropScenarioStep.id, InteropScenarioStep.scenario_id, InteropScenarioStep.step_order]
+    column_default_sort = [(InteropScenarioStep.scenario_id, False), (InteropScenarioStep.step_order, False)]
+    page_size = 50
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -401,6 +573,7 @@ def create_app() -> FastAPI:
         admin.add_view(PoleAdmin)
         admin.add_view(ServiceAdmin)
         admin.add_view(UniteFonctionnelleAdmin)
+        admin.add_view(UFActivityAdmin)
         admin.add_view(UniteHebergementAdmin)
         admin.add_view(ChambreAdmin)
         admin.add_view(LitAdmin)
@@ -409,8 +582,17 @@ def create_app() -> FastAPI:
         admin.add_view(SystemEndpointAdmin)
         admin.add_view(MessageLogAdmin)
 
-        # Espaces de noms
+        # Espaces de noms et identifiants
         admin.add_view(NamespaceAdmin)
+        admin.add_view(IdentifierAdmin)
+
+        # Vocabulaires
+        admin.add_view(VocabularySystemAdmin)
+        admin.add_view(VocabularyValueAdmin)
+
+        # Scénarios d'interopérabilité
+        admin.add_view(InteropScenarioAdmin)
+        admin.add_view(InteropScenarioStepAdmin)
 
     return app
 

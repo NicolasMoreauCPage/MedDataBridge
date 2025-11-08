@@ -241,7 +241,14 @@ def create_app() -> FastAPI:
         # We do this after route registration so SQLAdmin's mounting at
         # /admin doesn't intercept our custom /admin/ght pages.
         # Mount SQLAdmin under /sqladmin to avoid conflict with our admin pages.
-        admin = Admin(app, engine, base_url="/sqladmin")
+        admin = Admin(
+            app, 
+            engine, 
+            base_url="/sqladmin",
+            title="MedData Bridge - Administration",
+            logo_url=None,  # Could add logo later if needed
+            templates_dir=templates_dir  # Use our custom templates directory
+        )
         
         # Register all admin views from app.admin module
         register_admin_views(admin)

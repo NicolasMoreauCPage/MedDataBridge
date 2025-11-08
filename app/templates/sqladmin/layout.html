@@ -1,0 +1,65 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+  .admin-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+  }
+  .admin-banner a {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.2s;
+    font-weight: 500;
+  }
+  .admin-banner a:hover {
+    background: rgba(255,255,255,0.25);
+  }
+  .admin-banner-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .admin-banner-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    background: white;
+    color: #667eea;
+    font-weight: bold;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-banner">
+  <div class="admin-banner-title">
+    <span class="admin-banner-logo">MD</span>
+    MedData Bridge - Administration SQL
+  </div>
+  <a href="/">
+    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+    </svg>
+    Retour à l'application
+  </a>
+</div>
+{{ super() }}
+{% endblock %}

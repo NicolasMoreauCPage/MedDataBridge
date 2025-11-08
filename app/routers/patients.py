@@ -22,6 +22,7 @@ from app.db import get_session, peek_next_sequence, get_next_sequence
 from app.models import Patient
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
+from app.services.vocabulary_lookup import get_vocabulary_options
 
 
 def get_templates(request: Request):
@@ -242,11 +243,31 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
     if not p:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Patient introuvable"}, status_code=404)
     
+    # Options dynamiques (fallback enum via service si vocabulaire absent)
+    identity_opts = get_vocabulary_options("identity-reliability-rniv") or [
+        {"value": code, "label": label} for code, label in [
+            ("VALI", "Validée"), ("QUAL", "Qualifiée"), ("PROV", "Provisoire"),
+            ("VIDE", "Fictive"), ("DOUTE", "Douteuse"), ("DOUB", "Doublon")
+        ]
+    ]
+    # Statuts maritaux HL7v2
+    marital_opts = get_vocabulary_options("marital-status") or [
+        {"value": c, "label": l} for c, l in [
+            ("S", "Célibataire"), ("M", "Marié"), ("D", "Divorcé"), ("W", "Veuf"),
+            ("P", "Partenaire"), ("A", "Séparé"), ("U", "Inconnu")
+        ]
+    ]
+    ins_type_opts = get_vocabulary_options("ins-type") or [
+        {"value": v, "label": v} for v in ["NIR", "INS-C"]
+    ]
     return templates.TemplateResponse(request, "patient_form.html", {
         "request": request,
         "title": "Modifier patient",
         "patient": p,
-        "action_url": f"/patients/{patient_id}/edit"
+        "action_url": f"/patients/{patient_id}/edit",
+        "identity_reliability_options": identity_opts,
+        "marital_status_options": marital_opts,
+        "ins_type_options": ins_type_opts,
     })
 
 
@@ -359,13 +380,31 @@ def new_patient_form(request: Request, session=Depends(get_session)):
     # Générer des données de démonstration pré-remplies
     sample_data = generate_sample_patient_data()
     
+    identity_opts = get_vocabulary_options("identity-reliability-rniv") or [
+        {"value": code, "label": label} for code, label in [
+            ("VALI", "Validée"), ("QUAL", "Qualifiée"), ("PROV", "Provisoire"),
+            ("VIDE", "Fictive"), ("DOUTE", "Douteuse"), ("DOUB", "Doublon")
+        ]
+    ]
+    marital_opts = get_vocabulary_options("marital-status") or [
+        {"value": c, "label": l} for c, l in [
+            ("S", "Célibataire"), ("M", "Marié"), ("D", "Divorcé"), ("W", "Veuf"),
+            ("P", "Partenaire"), ("A", "Séparé"), ("U", "Inconnu")
+        ]
+    ]
+    ins_type_opts = get_vocabulary_options("ins-type") or [
+        {"value": v, "label": v} for v in ["NIR", "INS-C"]
+    ]
     return templates.TemplateResponse(request, "patient_form.html", {
         "request": request,
         "title": "Nouveau patient",
         "patient": None,
         "next_seq": next_seq,
         "action_url": "/patients/new",
-        "sample_data": sample_data
+        "sample_data": sample_data,
+        "identity_reliability_options": identity_opts,
+        "marital_status_options": marital_opts,
+        "ins_type_options": ins_type_opts,
     })
 
 @router.post("/new")

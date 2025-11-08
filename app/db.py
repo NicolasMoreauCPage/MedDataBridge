@@ -46,6 +46,10 @@ def get_session():
     with Session(engine) as session:
         yield session
 
+def session_factory():
+    """Factory explicite pour obtenir une session non gérée (scripts utilitaires)."""
+    return Session(engine)
+
 def _get_seq(session: Session, name: str) -> Sequence:
     seq: Optional[Sequence] = session.get(Sequence, name)
     if not seq:

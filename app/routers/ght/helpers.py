@@ -21,6 +21,7 @@ from app.models_structure import (
     LocationPhysicalType,
     LocationServiceType,
 )
+from app.services.vocabulary_lookup import get_vocabulary_options
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -186,28 +187,32 @@ PHYSICAL_TYPE_DEFAULTS = {
 
 # Form options builders
 def status_options() -> List[dict]:
-    return [
+    """Options de statut depuis vocabulaires paramétrables (fallback enum)."""
+    return get_vocabulary_options("location-status") or [
         {"value": status.value, "label": STATUS_LABELS.get(status.value, status.value)}
         for status in LocationStatus
     ]
 
 
 def mode_options() -> List[dict]:
-    return [
+    """Options de mode depuis vocabulaires paramétrables (fallback enum)."""
+    return get_vocabulary_options("location-mode") or [
         {"value": mode.value, "label": MODE_LABELS.get(mode.value, mode.value)}
         for mode in LocationMode
     ]
 
 
 def physical_type_options() -> List[dict]:
-    return [
+    """Options de type physique depuis vocabulaires paramétrables (fallback enum)."""
+    return get_vocabulary_options("location-physical-type") or [
         {"value": typ.value, "label": PHYSICAL_TYPE_LABELS.get(typ.value, typ.value)}
         for typ in LocationPhysicalType
     ]
 
 
 def service_type_options() -> List[dict]:
-    return [
+    """Options de type de service depuis vocabulaires paramétrables (fallback enum)."""
+    return get_vocabulary_options("location-service-type") or [
         {
             "value": service_type.value,
             "label": SERVICE_TYPE_LABELS.get(service_type.value, service_type.value),

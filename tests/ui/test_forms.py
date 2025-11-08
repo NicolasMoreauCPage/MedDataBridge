@@ -11,8 +11,9 @@ def test_navigation_menus(page, test_server):
     nav = page.locator("nav")
 
     # Vérifie la présence des sections principales (li ou a)
-    for section in ["Activités", "Structure", "Interopérabilité", "Ressources"]:
-        expect(nav.locator(f":text('{section}')")).to_be_visible()
+    # Utilisation d'attributs data-test-section pour éviter collisions strict mode
+    for section_attr in ["activites", "structure", "interop", "ressources"]:
+        expect(nav.locator(f"[data-test-section='{section_attr}']")).to_be_visible()
 
     # Vérifie la présence des liens principaux (sans dépendre de l'ouverture de menu)
     for href in ["/patients", "/dossiers", "/admin/ght", "/messages", "/messages/send", "/guide", "/api-docs", "/sqladmin"]:

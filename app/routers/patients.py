@@ -443,6 +443,11 @@ async def create_patient(
         session.add(patient)
         session.commit()
         # Note: L'émission automatique est gérée par entity_events.py (after_insert listener)
+        try:
+            from app.utils.flash import flash as _flash
+            _flash(request, "Enregistrement patient réussi", "success")
+        except Exception:
+            pass
 
         if is_ajax:
             return {"status": "success", "message": "Patient créé avec succès", "redirect": "/patients"}

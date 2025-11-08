@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Administration SQL{% endblock %}
+{% block title %}Administration Base de Données{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-8">
@@ -8,11 +8,11 @@
   <div class="mb-8">
     <h1 class="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
       <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
       </svg>
-      Administration SQL
+      Administration Base de Données
     </h1>
-    <p class="text-slate-600">Interface d'administration avancée de la base de données</p>
+    <p class="text-slate-600">Accès direct à la base de données pour les administrateurs techniques</p>
   </div>
 
   <!-- Warning Alert -->
@@ -24,9 +24,9 @@
         </svg>
       </div>
       <div class="ml-3">
-        <h3 class="text-sm font-medium text-amber-800">Accès réservé aux administrateurs</h3>
+        <h3 class="text-sm font-medium text-amber-800">Accès réservé aux administrateurs techniques</h3>
         <div class="mt-2 text-sm text-amber-700">
-          <p>L'interface SQLAdmin permet de modifier directement les données de la base. Les modifications effectuées ici <strong>ne passent pas</strong> par les contrôles de validation de l'application.</p>
+          <p>Cette interface permet de modifier directement toutes les données de la base. Les modifications effectuées ici <strong>ne passent pas</strong> par les contrôles de validation de l'application.</p>
         </div>
       </div>
     </div>
@@ -136,7 +136,7 @@
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
       </svg>
-      Accéder à SQLAdmin
+      Accéder à l'interface d'administration
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
       </svg>

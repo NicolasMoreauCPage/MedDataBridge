@@ -13,7 +13,7 @@ def test_navigation_menus(page, test_server):
 
     # Vérifie la présence des sections principales (li ou a)
     # Utilisation d'attributs data-test-nav pour éviter collisions strict mode
-    for section_attr in ["activites", "structure", "interop", "ressources"]:
+    for section_attr in ["activites", "structure", "interop", "ressources", "administration"]:
         expect(nav.locator(f"[data-test-nav='{section_attr}']")).to_be_visible()
 
     # Vérifie la présence des liens principaux (au moins 1 par href)

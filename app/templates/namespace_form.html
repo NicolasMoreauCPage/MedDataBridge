@@ -61,6 +61,72 @@
                         </select>
                     </div>
 
+                    <!-- Configuration des préfixes pour génération d'identifiants de test -->
+                    <div class="border-t border-slate-200 pt-6 mt-6">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-4">
+                            Configuration des préfixes (pour scénarios de test)
+                        </h3>
+                        <p class="text-sm text-slate-600 mb-4">
+                            Configurez des préfixes d'identifiants pour éviter les collisions avec les données du système récepteur lors des tests.
+                        </p>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700">Mode de génération</label>
+                                <select name="prefix_mode" id="prefix_mode"
+                                        onchange="togglePrefixMode()"
+                                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="fixed" {% if not namespace or namespace.prefix_mode == 'fixed' %}selected{% endif %}>Préfixe fixe + séquence</option>
+                                    <option value="range" {% if namespace and namespace.prefix_mode == 'range' %}selected{% endif %}>Plage numérique (min-max)</option>
+                                </select>
+                            </div>
+
+                            <div id="pattern_field">
+                                <label class="block text-sm font-medium text-slate-700">Pattern de préfixe</label>
+                                <input type="text" name="prefix_pattern" id="prefix_pattern"
+                                       value="{{ namespace.prefix_pattern if namespace else '' }}"
+                                       placeholder="ex: 9..., 91...., 501..."
+                                       pattern="[0-9]*\.+"
+                                       class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <p class="mt-1 text-sm text-slate-500">
+                                    Les '.' représentent des chiffres générés aléatoirement.<br>
+                                    Exemples: "9..." → 9001-9999, "91...." → 91000-91999, "501..." → 501000-501999
+                                </p>
+                            </div>
+
+                            <div id="range_fields" style="display: none;">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700">Valeur minimale</label>
+                                        <input type="number" name="prefix_min" id="prefix_min"
+                                               value="{{ namespace.prefix_min if namespace else '' }}"
+                                               placeholder="ex: 9000000"
+                                               class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700">Valeur maximale</label>
+                                        <input type="number" name="prefix_max" id="prefix_max"
+                                               value="{{ namespace.prefix_max if namespace else '' }}"
+                                               placeholder="ex: 9999999"
+                                               class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    </div>
+                                </div>
+                                <p class="mt-1 text-sm text-slate-500">
+                                    Plage numérique complète (ex: 9000000 - 9999999)
+                                </p>
+                            </div>
+
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h4 class="text-sm font-semibold text-blue-900 mb-2">💡 Conseils</h4>
+                                <ul class="text-sm text-blue-800 space-y-1">
+                                    <li>• Utilisez des préfixes réservés pour tests (ex: plage 9xxxxx)</li>
+                                    <li>• Coordonnez avec l'équipe du système récepteur</li>
+                                    <li>• Un préfixe court (9...) génère plus de collisions qu'un long (91....)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="flex justify-end gap-4">
                         <a href="/admin/ght/{{ context.id }}" 
                            class="px-4 py-2 text-slate-600 hover:text-slate-800">
@@ -76,4 +142,25 @@
         </div>
     </div>
 </div>
+
+<script>
+function togglePrefixMode() {
+    const mode = document.getElementById('prefix_mode').value;
+    const patternField = document.getElementById('pattern_field');
+    const rangeFields = document.getElementById('range_fields');
+    
+    if (mode === 'range') {
+        patternField.style.display = 'none';
+        rangeFields.style.display = 'block';
+        document.getElementById('prefix_pattern').required = false;
+    } else {
+        patternField.style.display = 'block';
+        rangeFields.style.display = 'none';
+        document.getElementById('prefix_pattern').required = false;
+    }
+}
+
+// Initialiser l'affichage au chargement
+document.addEventListener('DOMContentLoaded', togglePrefixMode);
+</script>
 {% endblock %}

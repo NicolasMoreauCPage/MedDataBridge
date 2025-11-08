@@ -16,6 +16,7 @@ from typing import Optional, Dict, Any, List
 import os
 
 from app.models import Patient, Dossier, Venue, Mouvement
+from app.services.nature_mapping import derive_nature
 from app.models_shared import SystemEndpoint
 from app.models_identifiers import Identifier
 from app.models_structure_fhir import IdentifierNamespace
@@ -153,7 +154,9 @@ def build_pv1_segment(
     dossier: Dossier,
     venue: Optional[Venue] = None,
     identifiers: Optional[List[Identifier]] = None,
-    session: Optional[Session] = None
+    session: Optional[Session] = None,
+    previous_uf: Optional[str] = None,
+    trigger_event: Optional[str] = None,
 ) -> str:
     """
     Construit le segment PV1 (Patient Visit).
@@ -207,11 +210,18 @@ def build_pv1_segment(
     
     # PV1-10: UF responsable (format: ^^^^^UF_CODE)
     uf = dossier.uf_responsabilite or ""
+    # PV1-6: Prior Patient Location / ici UF précédente en cas de transfert (A02)
+    pv1_6 = ""
+    if trigger_event == "A02" and previous_uf:
+        # Format simple: ^^^^^UF_PRECEDENTE (reuse same pattern)
+        pv1_6 = f"^^^^^{previous_uf}"
     
     # PV1-44: Date/heure admission
     admit_time = format_datetime(dossier.admit_time)
     
-    return f"PV1||{patient_class}|{location}|||||||{uf}||||||||||||{visit_number}|||||||||||||||||||||||||{admit_time}"
+    # Insert pv1_6 at position PV1-6 (after PV1-5 empty placeholders)
+    # Current skeleton: PV1||class|loc|PV1-4|PV1-5|PV1-6|PV1-7.... We'll keep blanks for 4,5.
+    return f"PV1||{patient_class}|{location}|||{pv1_6}|||{uf}||||||||||||{visit_number}|||||||||||||||||||||||||{admit_time}"
 
 
 def build_zbe_segment(
@@ -278,19 +288,8 @@ def build_zbe_segment(
     zbe_8 = f"{uf_soins_label or ''}^^^^^^^^^{uf_soins_code}" if uf_soins_code else ""
 
     # ZBE-9 Nature
-    effective_nature = nature or movement.nature or ""
-    valid_natures = {"S", "H", "M", "L", "D", "SM"}
-    if effective_nature not in valid_natures:
-        # Attempt derivation: map trigger events to nature
-        trigger = movement.trigger_event or ""
-        mapping = {
-            "A01": "H",  # Admission
-            "A02": "M",  # Mutation/Transfert
-            "A03": "S",  # Sortie
-            "A11": "CANCEL",  # Admission annulée -> nature stays H (admission context)
-        }
-        derived = mapping.get(trigger, "")
-        effective_nature = derived if derived in valid_natures else ""
+    trigger = movement.trigger_event or original_trigger
+    effective_nature = derive_nature(trigger, nature or movement.nature)
     zbe_9 = effective_nature or ""
 
     return f"ZBE|{zbe_1}|{zbe_2}|{zbe_3}|{zbe_4}|{zbe_5}|{zbe_6}|{zbe_7}|{zbe_8}|{zbe_9}"
@@ -395,7 +394,7 @@ def generate_adt_message(
             timestamp=timestamp
         ),
         build_pid_segment(patient, session=session),
-        build_pv1_segment(dossier, venue=venue, session=session)
+    build_pv1_segment(dossier, venue=venue, session=session, trigger_event=trigger_event)
     ]
     
     # Segment ZBE si mouvement présent
@@ -405,6 +404,23 @@ def generate_adt_message(
             movement_namespace = namespaces["MOUVEMENT"]
         uf_med = dossier.uf_medicale or dossier.uf_responsabilite or (venue.uf_responsabilite if venue else None)
         uf_soins = dossier.uf_soins or (venue.uf_soins if venue else None)
+        # Determine previous UF for transfers (A02) from last movement if available
+        previous_uf = None
+        if trigger_event == "A02" and venue:
+            from sqlmodel import select as _select
+            if session:
+                prev = session.exec(
+                    _select(Mouvement)
+                    .where(Mouvement.venue_id == venue.id)
+                    .where(Mouvement.mouvement_seq < movement.mouvement_seq)
+                    .order_by(Mouvement.mouvement_seq.desc())
+                ).first()
+                if prev and prev.uf_medicale_code:
+                    previous_uf = prev.uf_medicale_code
+                elif prev and dossier.uf_responsabilite:
+                    previous_uf = dossier.uf_responsabilite
+        # Rebuild PV1 with previous UF if needed (replace last appended PV1 segment)
+        segments[2] = build_pv1_segment(dossier, venue=venue, session=session, previous_uf=previous_uf, trigger_event=trigger_event)
         segments.append(
             build_zbe_segment(
                 movement,

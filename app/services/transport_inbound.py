@@ -46,6 +46,7 @@ from app.infrastructure.hl7.parsing import (
     has_segment,
     parse_patient_identifiers,
 )
+from app.services.nature_mapping import derive_nature
 # Import validation functions from infrastructure layer (Phase 1 extraction)
 from app.infrastructure.hl7.validation import validate_transition
 
@@ -855,7 +856,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             action = zbe_data.get("action")
             original_trigger = zbe_data.get("original_trigger")
             is_historic = zbe_data.get("is_historic")
-            nature = zbe_data.get("nature")
+            nature = derive_nature(trigger, zbe_data.get("nature"))
 
             if action in {"UPDATE", "CANCEL"}:
                 # Vérifier présence identifiant mouvement originel (ZBE-1) et original_trigger

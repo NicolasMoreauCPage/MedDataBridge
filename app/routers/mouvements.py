@@ -5,6 +5,7 @@ from sqlmodel import select
 from datetime import datetime
 from typing import Optional
 from app.db import get_session, get_next_sequence, peek_next_sequence
+from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
@@ -774,6 +775,11 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
     # Fallback: derive display value if legacy 'type' is missing
     type_value = m.type if getattr(m, 'type', None) else (f"ADT^{m.trigger_event}" if getattr(m, 'trigger_event', None) else None)
+    movement_nature_options = get_vocabulary_options("movement-nature") or [
+        {"value": c, "label": l} for c, l in [
+            ("S", "Séjour"), ("H", "Hospitalisation"), ("M", "Mouvement"), ("L", "Localisation"), ("D", "Diagnostic"), ("SM", "Sous-mouvement")
+        ]
+    ]
     fields = [
         {"label": "Venue ID", "name": "venue_id", "type": "number", "value": m.venue_id},
         {"label": "Type (ex: ADT^A01)", "name": "type", "type": "select", "options": ["ADT^A01", "ADT^A02", "ADT^A03", "ADT^A04"], "value": type_value},
@@ -786,7 +792,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
         {"label": "Statut", "name": "status", "type": "select", "options": ["active", "completed", "cancelled", "pending"], "value": getattr(m,'status',None)},
         {"label": "Note", "name": "note", "type": "text", "value": getattr(m,'note',None)},
         {"label": "Numéro de séquence", "name": "mouvement_seq", "type": "number", "value": m.mouvement_seq},
-        {"label": "Type de mouvement", "name": "movement_type", "type": "text", "value": getattr(m, "movement_type", None)},
+        {"label": "Type de mouvement", "name": "movement_type", "type": "select", "options": [o["value"] for o in movement_nature_options], "value": getattr(m, "movement_type", None)},
         {"label": "Raison du mouvement", "name": "movement_reason", "type": "text", "value": getattr(m, "movement_reason", None)},
         {"label": "Rôle de l'intervenant", "name": "performer_role", "type": "text", "value": getattr(m, "performer_role", None)},
     ]

@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from app.db import get_session, get_next_sequence, peek_next_sequence
 from app.models import Dossier, Patient, DossierType
 from app.models_endpoints import SystemEndpoint
@@ -307,6 +307,9 @@ async def replay_dossier_scenario(
     request: Request,
     scenario_id: int = Form(...),
     endpoint_ids: List[str] = Form(...),
+    identifier_prefix_ipp: Optional[str] = Form(None),
+    identifier_prefix_nda: Optional[str] = Form(None),
+    use_test_namespace: bool = Form(False),
     session=Depends(get_session),
 ):
     dossier = session.get(Dossier, dossier_id)
@@ -338,10 +341,32 @@ async def replay_dossier_scenario(
         flash(request, "Aucun endpoint valide sélectionné.", level="error")
         return RedirectResponse(url=f"/dossiers/{dossier_id}", status_code=303)
 
+    # Créer ou mettre à jour le ScenarioBinding avec configuration des préfixes
+    binding = session.exec(
+        select(ScenarioBinding).where(
+            ScenarioBinding.scenario_id == scenario_id,
+            ScenarioBinding.dossier_id == dossier_id
+        )
+    ).first()
+    
+    if not binding:
+        binding = ScenarioBinding(
+            scenario_id=scenario_id,
+            dossier_id=dossier_id
+        )
+    
+    # Mettre à jour configuration préfixes
+    binding.use_test_namespace = use_test_namespace
+    binding.identifier_prefix_ipp = identifier_prefix_ipp.strip() if identifier_prefix_ipp else None
+    binding.identifier_prefix_nda = identifier_prefix_nda.strip() if identifier_prefix_nda else None
+    session.add(binding)
+    session.commit()
+    session.refresh(binding)
+
     summary_lines = []
     for endpoint in endpoints:
         try:
-            logs = await send_scenario(session, scenario, endpoint)
+            logs = await send_scenario(session, scenario, endpoint, binding=binding)
         except Exception as exc:
             flash(request, f"{endpoint.name}: {exc}", level="error")
             continue
@@ -354,6 +379,11 @@ async def replay_dossier_scenario(
         if errors:
             line += f", {len(errors)} erreurs"
         summary_lines.append(line)
+        
+    # Ajouter info sur identifiants générés
+    if binding.generated_ipp or binding.generated_nda:
+        ids_info = f"Identifiants générés: IPP={binding.generated_ipp or 'N/A'}, NDA={binding.generated_nda or 'N/A'}"
+        summary_lines.append(ids_info)
 
     if not summary_lines:
         return RedirectResponse(url=f"/dossiers/{dossier_id}", status_code=303)

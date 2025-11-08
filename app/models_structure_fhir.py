@@ -32,6 +32,24 @@ class IdentifierNamespace(SQLModel, table=True):
     type: str  # Type d'identifiant (ex: "IPP", "NDA", "FINESS", etc.)
     description: Optional[str] = None
     is_active: bool = Field(default=True)
+    
+    # Configuration des préfixes pour génération d'identifiants de test
+    prefix_pattern: Optional[str] = Field(
+        default=None,
+        description="Pattern de préfixe pour génération (ex: '9...', '91...', '501...'). Les '.' représentent des chiffres générés."
+    )
+    prefix_mode: Optional[str] = Field(
+        default="fixed",
+        description="Mode de génération: 'fixed' (préfixe fixe + séquence), 'range' (plage min-max)"
+    )
+    prefix_min: Optional[int] = Field(
+        default=None,
+        description="Valeur minimale pour mode 'range' (ex: 9000000 pour plage 9000000-9999999)"
+    )
+    prefix_max: Optional[int] = Field(
+        default=None,
+        description="Valeur maximale pour mode 'range' (ex: 9999999)"
+    )
 
     # Relations
     ght_context_id: int = Field(foreign_key="ghtcontext.id")

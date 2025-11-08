@@ -60,5 +60,25 @@ class ScenarioBinding(SQLModel, table=True):
     scenario_id: int = Field(foreign_key="interopscenario.id", index=True)
     dossier_id: int = Field(foreign_key="dossier.id", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Configuration pour génération d'identifiants de test
+    use_test_namespace: bool = Field(
+        default=False,
+        description="Si vrai, utilise un namespace dédié test pour éviter collisions"
+    )
+    identifier_prefix_ipp: Optional[str] = Field(
+        default=None,
+        description="Préfixe spécifique pour IPP (ex: '9001', '91'). Override namespace par défaut."
+    )
+    identifier_prefix_nda: Optional[str] = Field(
+        default=None,
+        description="Préfixe spécifique pour NDA (ex: '501', '9'). Override namespace par défaut."
+    )
+    
+    # Identifiants générés lors de la dernière exécution (pour traçabilité)
+    generated_ipp: Optional[str] = Field(default=None, description="Dernier IPP généré")
+    generated_nda: Optional[str] = Field(default=None, description="Dernier NDA généré")
+    generated_venue_id: Optional[str] = Field(default=None, description="Dernier VENUE généré")
+    last_execution_at: Optional[datetime] = Field(default=None, description="Date dernière exécution")
 
     scenario: Mapped["InteropScenario"] = Relationship(back_populates="bindings")

@@ -37,6 +37,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional, Set
+import re
 
 from app.services.mllp import parse_msh_fields
 
@@ -666,47 +667,70 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
         if trigger in IDENTITY_ONLY and pv1:
             issues.append(ValidationIssue("PV1_UNEXPECTED", f"PV1 is generally not expected for identity-only event {trigger}", severity="info"))
     
-    # Validation ZBE-9 (Mode de traitement) - règle IHE PAM CPage
+    # Validation ZBE (IHE PAM FR étendue)
     zbe = _get_first_segment(msg, "ZBE")
     if zbe:
         zbe_parts = zbe.split("|")
-        zbe_9 = _field(zbe_parts, 9)  # ZBE-9: Mode de traitement
-        zbe_6 = _field(zbe_parts, 6)  # ZBE-6: Type d'événement original (pour Z99)
-        
-        # Règle IHE PAM CPage: La valeur "C" (Correction) ne peut être utilisée
-        # que dans les messages Z99 (modification de mouvement) pour corriger
-        # un changement de statut sur des mouvements d'admission/préadmission (A01, A04, A05).
-        # Ref: INT_CPAGE_FORMAT_IHE_PAM_2.11.txt, page 118
-        if zbe_9 and zbe_9.upper() == "C":
-            if trigger != "Z99":
-                issues.append(ValidationIssue(
-                    "ZBE9_C_NOT_Z99",
-                    f"ZBE-9 valeur 'C' (Correction) ne peut être utilisée que dans les messages Z99 (modification de mouvement), pas dans {trigger}",
-                    severity="error"
-                ))
-            else:
-                # Dans un Z99, vérifier que ZBE-6 indique un événement d'admission/préadmission
-                valid_correction_events = {"A01", "A04", "A05"}
-                if zbe_6 and zbe_6 not in valid_correction_events:
-                    issues.append(ValidationIssue(
-                        "ZBE9_C_INVALID_EVENT",
-                        f"ZBE-9='C' (Correction de statut) autorisé uniquement pour Z99 sur A01, A04 ou A05. ZBE-6='{zbe_6}' n'est pas autorisé",
-                        severity="error"
-                    ))
-                elif zbe_6 in valid_correction_events:
-                    # Correction valide
-                    issues.append(ValidationIssue(
-                        "ZBE9_C_STATUS_CORRECTION",
-                        f"ZBE-9='C' détecté: Correction de changement de statut sur {zbe_6} sans création de nouveau mouvement (conforme IHE PAM)",
-                        severity="info"
-                    ))
-                else:
-                    # ZBE-6 manquant dans Z99 avec C
-                    issues.append(ValidationIssue(
-                        "ZBE6_MISSING_WITH_C",
-                        "ZBE-6 (Type d'événement original) requis dans Z99 avec ZBE-9='C' pour valider l'événement corrigé",
-                        severity="warn"
-                    ))
+        zbe_1 = _field(zbe_parts, 1)
+        zbe_2 = _field(zbe_parts, 2)
+        zbe_4 = _field(zbe_parts, 4).upper() if _field(zbe_parts, 4) else ""
+        zbe_5 = _field(zbe_parts, 5).upper() if _field(zbe_parts, 5) else ""
+        zbe_6 = _field(zbe_parts, 6).upper() if _field(zbe_parts, 6) else ""
+        zbe_7 = _field(zbe_parts, 7)
+        zbe_8 = _field(zbe_parts, 8)
+        zbe_9 = _field(zbe_parts, 9).upper() if _field(zbe_parts, 9) else ""
+
+        # ZBE-1 identifiant mouvement
+        if not zbe_1:
+            issues.append(ValidationIssue("ZBE1_MISSING", "ZBE-1 identifiant mouvement requis", severity="error"))
+
+        # ZBE-2 date/heure
+        if not zbe_2:
+            issues.append(ValidationIssue("ZBE2_MISSING", "ZBE-2 date/heure mouvement requise", severity="error"))
+        else:
+            if not re.match(r"^\d{8}(\d{2}(\d{2}(\d{2})?)?)?$", zbe_2):
+                issues.append(ValidationIssue("ZBE2_FORMAT", f"ZBE-2 format timestamp invalide: {zbe_2}", severity="warn"))
+
+        # ZBE-4 action
+        if zbe_4 and zbe_4 not in {"INSERT", "UPDATE", "CANCEL"}:
+            issues.append(ValidationIssue("ZBE4_INVALID", f"ZBE-4 action inconnue: {zbe_4}", severity="error"))
+        if not zbe_4:
+            issues.append(ValidationIssue("ZBE4_MISSING", "ZBE-4 action requise (INSERT|UPDATE|CANCEL)", severity="error"))
+
+        # ZBE-5 historic flag
+        if zbe_5 and zbe_5 not in {"Y", "N"}:
+            issues.append(ValidationIssue("ZBE5_INVALID", f"ZBE-5 doit être Y ou N, reçu: {zbe_5}", severity="error"))
+        if not zbe_5:
+            issues.append(ValidationIssue("ZBE5_MISSING", "ZBE-5 historique (Y/N) requis", severity="error"))
+
+        # ZBE-6 original trigger requirement if UPDATE/CANCEL
+        if zbe_4 in {"UPDATE", "CANCEL"} and not zbe_6:
+            issues.append(ValidationIssue("ZBE6_REQUIRED", f"ZBE-6 trigger original requis avec action {zbe_4}", severity="error"))
+        if zbe_6 and zbe_4 == "INSERT":
+            issues.append(ValidationIssue("ZBE6_UNEXPECTED", "ZBE-6 ne doit pas être présent avec action INSERT", severity="warn"))
+
+        # ZBE-7 UF médicale (XON) code composant 10
+        if not zbe_7:
+            issues.append(ValidationIssue("ZBE7_MISSING", "ZBE-7 UF médicale requise", severity="error"))
+        else:
+            comps7 = zbe_7.split("^")
+            if len(comps7) < 10 or not comps7[9].strip():
+                issues.append(ValidationIssue("ZBE7_CODE_MISSING", "ZBE-7 composant 10 code UF médicale manquant", severity="error"))
+
+        # ZBE-8 UF soins (XON) code composant 10 (warning si absent, pas erreur pour compat)
+        if zbe_8:
+            comps8 = zbe_8.split("^")
+            if len(comps8) < 10 or not comps8[9].strip():
+                issues.append(ValidationIssue("ZBE8_CODE_MISSING", "ZBE-8 composant 10 code UF soins manquant", severity="warn"))
+        else:
+            issues.append(ValidationIssue("ZBE8_ABSENT", "ZBE-8 UF soins absente (compatibilité legacy: warning seulement)", severity="info"))
+
+        # ZBE-9 nature
+        valid_natures = {"S", "H", "M", "L", "D", "SM"}
+        if zbe_9 and zbe_9 not in valid_natures:
+            issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature inconnue: {zbe_9}", severity="error"))
+        if not zbe_9:
+            issues.append(ValidationIssue("ZBE9_MISSING", "ZBE-9 nature requise", severity="error"))
     
     # Validation des champs PV1 (types de données complexes) si présent
     pv1 = _get_first_segment(msg, "PV1")

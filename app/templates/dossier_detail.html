@@ -90,6 +90,7 @@
         </div>
         <form method="post" action="/dossiers/{{ dossier.id }}/replay" class="space-y-3">
           <input type="hidden" name="scenario_id" value="{{ entry.scenario.id }}">
+          
           <div class="space-y-1">
             <label class="block text-xs font-medium uppercase tracking-wide text-slate-500">Destinataires</label>
             <select name="endpoint_ids" multiple class="block w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500" size="4" required>
@@ -99,6 +100,43 @@
             </select>
             <p class="text-xs text-slate-400">Maintenez Ctrl/Cmd pour sélectionner plusieurs systèmes.</p>
           </div>
+          
+          <!-- Configuration des préfixes d'identifiants -->
+          <details class="border border-slate-200 rounded-lg p-3">
+            <summary class="text-xs font-medium text-slate-700 cursor-pointer hover:text-slate-900">
+              ⚙️ Configuration des identifiants de test
+            </summary>
+            <div class="mt-3 space-y-3">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Préfixe IPP</label>
+                  <input type="text" name="identifier_prefix_ipp" placeholder="ex: 9..." 
+                         class="block w-full rounded border-slate-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500">
+                  <p class="text-xs text-slate-400 mt-0.5">Ex: "9..." → 9001-9999</p>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Préfixe NDA</label>
+                  <input type="text" name="identifier_prefix_nda" placeholder="ex: 501..." 
+                         class="block w-full rounded border-slate-300 px-2 py-1 text-sm focus:border-blue-500 focus:ring-blue-500">
+                  <p class="text-xs text-slate-400 mt-0.5">Ex: "501..." → 501000-501999</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="checkbox" name="use_test_namespace" id="use_test_ns_{{ entry.scenario.id }}" 
+                       class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                <label for="use_test_ns_{{ entry.scenario.id }}" class="text-xs text-slate-600">
+                  Utiliser namespace de test dédié
+                </label>
+              </div>
+              <div class="bg-blue-50 border border-blue-200 rounded p-2">
+                <p class="text-xs text-blue-800">
+                  💡 Les préfixes permettent d'éviter les collisions avec les identifiants du système récepteur. 
+                  Laissez vide pour utiliser la configuration du namespace par défaut.
+                </p>
+              </div>
+            </div>
+          </details>
+          
           <button type="submit" class="w-full rounded-xl bg-emerald-600 text-white px-4 py-2 text-sm hover:bg-emerald-700">Rejouer le scénario</button>
         </form>
       </div>

@@ -5,6 +5,7 @@ from sqlmodel import Session
 
 from app.db import get_session
 from app.models import Dossier, DossierType
+from app.services.vocabulary_lookup import get_vocabulary_options
 from app.utils.dossier_helpers import sync_dossier_class
 
 router = APIRouter(prefix="/dossier-type", tags=["dossier"])
@@ -21,9 +22,14 @@ async def show_change_type_form(
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier non trouvé")
         
+    options = get_vocabulary_options("dossier-type") or [
+        {"value": v, "label": l} for v, l in [
+            ("hospitalise", "Hospitalisé"), ("externe", "Externe"), ("urgence", "Urgence")
+        ]
+    ]
     return templates.TemplateResponse(
         "dossier_type_change.html",
-        {"request": request, "dossier": dossier}
+        {"request": request, "dossier": dossier, "dossier_type_options": options}
     )
 
 @router.post("/{dossier_id}/change")

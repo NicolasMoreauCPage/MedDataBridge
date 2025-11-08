@@ -13,7 +13,9 @@ python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 .venv\Scripts\activate     # Windows
 
+
 # Installer les dépendances
+
 pip install -r requirements.txt
 ```
 
@@ -64,7 +66,7 @@ PYTHONPATH=. .venv/bin/python -m gunicorn app.app:app -k uvicorn.workers.Uvicorn
 Pour accélérer un onboarding local, un script d'initialisation idempotent est disponible :
 
 ```bash
-# (Re)crée la base, applique les migrations legacy et insère un jeu minimal (Patient+Dossier+Venue+Mouvement)
+# (Re)crée la base et insère un jeu minimal (Patient+Dossier+Venue+Mouvement)
 PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py
 
 # Réinitialiser complètement (supprime poc.db avant)
@@ -194,7 +196,7 @@ Effets quand strict actif (per-EJ ou global) :
 2. Génération générique (`generate_adt_message`) : A08 retiré de la liste des triggers de mouvement et rejeté si demandé.
 3. Inbound (`transport_inbound`) : message ADT^A08 rejeté avec ACK AE.
 4. Scénarios de démo (`--demo-scenarios`) : aucun A08 créé.
-5. Migration `0002_add_strict_pam_fr_entitejuridique.py` : ajoute la colonne avec valeur par défaut `True` (toutes les EJ héritent du mode strict initialement).
+5. Comportement : par défaut `EntiteJuridique.strict_pam_fr = True` (toutes les EJ héritent du mode strict initialement).
 
 
 Pour activer strict global :
@@ -243,19 +245,13 @@ Principales capacités prouvées dans la branche :
 6. Fallback d'encodage latin-1 pour ingestion legacy (évite les erreurs Unicode sur des dumps historiques).
 7. Champs `uf_responsabilite` rendus optionnels sur `Dossier` et `Venue` pour compatibilité scénarios partiels/pré-admission; résolution automatique ou marquage `UNKNOWN` ensuite.
 
-Notes de migration / schéma :
+Notes de schéma :
 
-La colonne `uf_responsabilite` (tables `dossier`, `venue`) est désormais nullable. Sur une base déjà créée avant v0.2.0 (SQLite), exécuter soit :
+La colonne `uf_responsabilite` (tables `dossier`, `venue`) est désormais nullable. Pour mettre à jour une base existante :
 
 ```bash
-# Option rapide (recréation)
-cp poc.db poc.db.bak
-rm poc.db
-PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset
-
-# Option Alembic (à créer si non existante)
-alembic revision -m "make uf_responsabilite nullable" --autogenerate
-alembic upgrade head
+# Option recommandée (recréation rapide en dev)
+python tools/reset_db.py --init-vocab
 ```
 
 Limites connues (non bloquantes pour le milestone) :
@@ -267,34 +263,67 @@ Limites connues (non bloquantes pour le milestone) :
 Tag proposé : `v0.2.0`.
 
 
-### Migrations structurées (Alembic)
+### Gestion du schéma de base de données
 
-Alembic est configuré (fichier `alembic.ini`, dossier `alembic/`). Pour générer la migration réelle initiale :
+#### Phase de développement (approche actuelle)
+
+Le projet utilise **SQLModel** avec `create_all()` pour gérer automatiquement le schéma :
+
+```python
+# Dans app/db.py, appelé au démarrage
+SQLModel.metadata.create_all(engine)
+```
+
+**Avantages** :
+- Les modèles Python sont la source de vérité unique
+- Pas de synchronisation manuelle modèle ↔ migrations
+- Réinitialisation simple et rapide pour tests/dev
+
+**Réinitialisation complète de la base** :
 
 ```bash
-# Installer (si pas déjà installé)
-pip install -r requirements.txt
+# Script interactif avec confirmation
+python tools/reset_db.py
 
-# Créer une révision à partir des modèles SQLModel
-alembic revision --autogenerate -m "initial schema"
+# Avec initialisation des vocabulaires
+python tools/reset_db.py --init-vocab
+```
 
-# Appliquer la migration
+Ce script :
+1. Supprime toutes les tables existantes (`DROP`)
+2. Recrée le schéma complet depuis les modèles SQLModel
+3. Optionnellement initialise les vocabulaires
+
+**Workflow de développement recommandé** :
+
+```bash
+# Après modification d'un modèle SQLModel
+rm poc.db                           # Supprimer l'ancienne DB
+python tools/reset_db.py --init-vocab  # Recréer avec vocabulaires
+# OU démarrer directement l'app qui appellera init_db()
+INIT_VOCAB=1 uvicorn app.app:app --reload
+```
+
+#### Migration vers Alembic (production future)
+
+Quand le projet passera en production avec des données à préserver, utilisez **Alembic** :
+
+```bash
+# Initialiser Alembic (une seule fois)
+alembic init alembic
+
+# Générer une migration depuis l'état actuel
+alembic revision --autogenerate -m "baseline from SQLModel"
+
+# Appliquer les migrations
+alembic upgrade head
+
+# Pour chaque modification future de modèle
+alembic revision --autogenerate -m "add field X to table Y"
 alembic upgrade head
 ```
 
-Bonnes pratiques :
-
-1. Toujours valider le diff autogénéré (ajout/suppression de colonnes inattendues).
-2. Nommer clairement les messages de révision (ex: "add systemendpoint file columns").
-3. Commiter les fichiers sous `alembic/versions/`.
-4. Utiliser `alembic downgrade -1` pour revenir d'une migration récente si besoin.
-
-Lorsqu'un champ est ajouté dans un modèle SQLModel :
-
-```bash
-alembic revision --autogenerate -m "add <champ> to <table>"
-alembic upgrade head
-```
+**Note** : Alembic est déjà configuré dans le projet (`alembic.ini`, `alembic/env.py`) mais n'est pas utilisé en phase de développement actif.
 
 ## Outils et Scripts
 
@@ -482,3 +511,55 @@ export SSL_CERT_FILE=/chemin/vers/ca.pem
 # Option 2: Dans la configuration endpoint
 /admin/endpoints/{id}/edit -> CA Certificate
 ```
+
+## 🚀 Workflow Git & Déploiement
+
+### Architecture des branches
+
+- **`main`** : Branche de production, déployée automatiquement sur Render.com
+- **`feature/*`** : Branches de développement, restent **locales** (non pushées sur GitHub)
+
+### Développement local (branches feature)
+
+```bash
+# 1. Créer une branche feature
+git checkout -b feature/ma-nouvelle-fonctionnalite
+
+# 2. Développer et tester localement
+# ... modifications de code ...
+pytest tests/ -v
+
+# 3. Commits locaux uniquement
+git add .
+git commit -m "feat: ma nouvelle fonctionnalité"
+
+# ⚠️ NE PAS PUSH vers GitHub
+# Les branches feature restent locales !
+```
+
+### Mise en production (branche main)
+
+```bash
+# 1. Vérifier que tous les tests passent
+pytest tests/test_identifier_generator.py -v
+
+# 2. Fusionner dans main
+git checkout main
+git merge feature/ma-nouvelle-fonctionnalite
+
+# 3. Push vers GitHub → Déploiement automatique
+git push origin main
+
+# 4. Vérifier le déploiement
+# - GitHub Actions : https://github.com/NicolasMoreauCPage/MedDataBridge/actions
+# - Application : https://meddata-bridge.onrender.com
+```
+
+### Configuration du déploiement
+
+Voir [DEPLOY.md](DEPLOY.md) pour les instructions détaillées de configuration sur Render.com.
+
+**URLs de production :**
+- Application : `https://meddata-bridge.onrender.com`
+- Documentation API : `https://meddata-bridge.onrender.com/docs`
+- Interface admin : `https://meddata-bridge.onrender.com/admin`

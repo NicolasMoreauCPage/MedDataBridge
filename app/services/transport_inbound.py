@@ -46,6 +46,7 @@ from app.infrastructure.hl7.parsing import (
     has_segment,
     parse_patient_identifiers,
 )
+from app.services.nature_mapping import derive_nature
 # Import validation functions from infrastructure layer (Phase 1 extraction)
 from app.infrastructure.hl7.validation import validate_transition
 
@@ -850,57 +851,65 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             pid_data = parse_pid(msg)
             pv1_data = parse_pv1(msg)
             zbe_data = parse_zbe(msg)
-            
-            # Contrôle additionnel pour ZBE-9="C" : vérifier l'état du dossier
-            # La correction de statut sans création de nouveau mouvement (valeur C)
-            # ne peut être utilisée que si la venue est en état d'admission ou préadmission
-            if zbe_data.get("movement_indicator") == "C":
-                if trigger == "Z99":
-                    # Récupérer la venue via PV1-19
-                    visit_num_str = pv1_data.get("visit_number")
-                    if visit_num_str:
-                        try:
-                            venue_seq = int(visit_num_str.split("^")[0]) if "^" in visit_num_str else int(visit_num_str)
-                            venue = session.exec(
-                                select(Venue).where(Venue.venue_seq == venue_seq)
-                            ).first()
-                            if venue:
-                                # Vérifier que l'état opérationnel est "planned" (préadmission) ou "active" (admission)
-                                if venue.operational_status not in {"planned", "active"}:
-                                    log.status = "rejected"
-                                    error_text = f"ZBE-9='C' (correction de statut) non autorisé: la venue {venue_seq} n'est pas en état d'admission ou préadmission (état actuel: {venue.operational_status or 'non défini'})"
-                                    ack = build_ack(msg, ack_code="AE", text=error_text)
-                                    log.ack_payload = ack
-                                    logger.warning(
-                                        "Message Z99 avec ZBE-9='C' rejeté: état de venue invalide",
-                                        extra={
-                                            "venue_seq": venue_seq,
-                                            "operational_status": venue.operational_status,
-                                            "trigger": trigger
-                                        }
-                                    )
-                                    return ack
-                            else:
-                                # Venue non trouvée
-                                log.status = "rejected"
-                                error_text = f"ZBE-9='C': venue {venue_seq} non trouvée"
-                                ack = build_ack(msg, ack_code="AE", text=error_text)
-                                log.ack_payload = ack
-                                return ack
-                        except (ValueError, IndexError) as e:
-                            # Numéro de venue invalide
-                            log.status = "rejected"
-                            error_text = f"ZBE-9='C': numéro de venue invalide dans PV1-19 ({visit_num_str})"
-                            ack = build_ack(msg, ack_code="AE", text=error_text)
-                            log.ack_payload = ack
-                            return ack
-                    else:
-                        # PV1-19 manquant pour un Z99 avec C
-                        log.status = "rejected"
-                        error_text = "ZBE-9='C' requiert un numéro de venue (PV1-19) pour valider l'état d'admission"
-                        ack = build_ack(msg, ack_code="AE", text=error_text)
-                        log.ack_payload = ack
-                        return ack
+
+            # Nouvelle logique inbound UPDATE/CANCEL basée sur ZBE-4/ZBE-5/ZBE-6
+            action = zbe_data.get("action")
+            original_trigger = zbe_data.get("original_trigger")
+            is_historic = zbe_data.get("is_historic")
+            nature = derive_nature(trigger, zbe_data.get("nature"))
+
+            if action in {"UPDATE", "CANCEL"}:
+                # Vérifier présence identifiant mouvement originel (ZBE-1) et original_trigger
+                if not zbe_data.get("movement_id"):
+                    log.status = "rejected"
+                    ack = build_ack(msg, ack_code="AE", text="ZBE-1 identifiant mouvement requis pour action UPDATE/CANCEL")
+                    log.ack_payload = ack
+                    return ack
+                if not original_trigger:
+                    log.status = "rejected"
+                    ack = build_ack(msg, ack_code="AE", text=f"ZBE-6 trigger original requis pour action {action}")
+                    log.ack_payload = ack
+                    return ack
+                # Rechercher mouvement existant par sequence (si numérique) ou fallback id brut
+                target_seq = None
+                raw_id = zbe_data.get("movement_id")
+                try:
+                    target_seq = int(raw_id.split("^")[0]) if "^" in raw_id else int(raw_id)
+                except Exception:
+                    target_seq = None
+                existing_mvt = None
+                if target_seq is not None:
+                    existing_mvt = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == target_seq)).first()
+                if not existing_mvt:
+                    existing_mvt = session.exec(select(Mouvement).where(Mouvement.type == raw_id)).first()
+                if not existing_mvt:
+                    log.status = "rejected"
+                    ack = build_ack(msg, ack_code="AE", text=f"Mouvement original '{raw_id}' introuvable pour {action}")
+                    log.ack_payload = ack
+                    return ack
+                # Appliquer annulation ou mise à jour
+                if action == "CANCEL":
+                    existing_mvt.status = "cancelled"
+                elif action == "UPDATE":
+                    # Mettre à jour UF codes/labels/nature si présents dans zbe_data
+                    if zbe_data.get("uf_medicale_code"):
+                        existing_mvt.uf_medicale_code = zbe_data.get("uf_medicale_code")
+                        existing_mvt.uf_medicale_label = zbe_data.get("uf_medicale_label") or existing_mvt.uf_medicale_code
+                    if zbe_data.get("uf_soins_code"):
+                        existing_mvt.uf_soins_code = zbe_data.get("uf_soins_code")
+                        existing_mvt.uf_soins_label = zbe_data.get("uf_soins_label") or existing_mvt.uf_soins_code
+                    if nature:
+                        existing_mvt.nature = nature
+                    existing_mvt.original_trigger = original_trigger
+                    existing_mvt.action = action
+                    existing_mvt.is_historic = bool(is_historic)
+                session.add(existing_mvt)
+                session.flush()
+                logger.info("Applied inbound movement modification", extra={"action": action, "movement_seq": existing_mvt.mouvement_seq})
+
+            # Historique: si is_historic et timestamp passé, aucune restriction additionnelle ici (déjà validé format) mais log info
+            if is_historic:
+                logger.info("Historic movement ingested", extra={"movement_id": zbe_data.get("movement_id"), "trigger": trigger})
             
             # Validation des transitions IHE PAM
             # Récupérer le dernier événement du dossier/venue si applicable

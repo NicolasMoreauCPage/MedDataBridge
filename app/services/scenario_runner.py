@@ -8,11 +8,13 @@ from typing import Iterable, List, Optional, Tuple
 from sqlmodel import Session, select
 
 from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioBinding
+from app.models_structure_fhir import IdentifierNamespace
 from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import parse_msh_fields, send_mllp
 from app.services.scenario_date_updater import update_hl7_message_dates
 from app.services.scenario_transform import transform_hl7_for_context
+from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message
 
 
 class ScenarioExecutionError(Exception):
@@ -61,16 +63,18 @@ async def _send_hl7_step(
     session: Session,
     step: InteropScenarioStep,
     endpoint: SystemEndpoint,
-    update_dates: bool = True
+    update_dates: bool = True,
+    binding: Optional[ScenarioBinding] = None
 ) -> MessageLog:
     """
-    Envoie une étape HL7 via MLLP.
+    Envoie une étape HL7 via MLLP avec remplacement optionnel des identifiants.
     
     Args:
         session: Session de base de données
         step: Étape du scénario à envoyer
         endpoint: Endpoint cible
         update_dates: Si True, met à jour les dates du message pour qu'elles soient récentes
+        binding: ScenarioBinding optionnel pour configuration des identifiants
     """
     if not endpoint.host or not endpoint.port:
         raise ScenarioExecutionError("Endpoint MLLP incomplet (host/port manquant)")
@@ -97,6 +101,60 @@ async def _send_hl7_step(
     except Exception:
         # En cas d'erreur transformation, fallback au payload original
         payload_to_send = step.payload
+    
+    # Remplacement des identifiants si configuré via binding
+    generated_ids = {}
+    if binding and ght_context_id:
+        try:
+            # Récupérer les namespaces configurés pour ce contexte
+            ipp_namespace = session.exec(
+                select(IdentifierNamespace).where(
+                    IdentifierNamespace.ght_context_id == ght_context_id,
+                    IdentifierNamespace.type == "IPP",
+                    IdentifierNamespace.is_active == True
+                )
+            ).first()
+            
+            nda_namespace = session.exec(
+                select(IdentifierNamespace).where(
+                    IdentifierNamespace.ght_context_id == ght_context_id,
+                    IdentifierNamespace.type == "NDA",
+                    IdentifierNamespace.is_active == True
+                )
+            ).first()
+            
+            venue_namespace = session.exec(
+                select(IdentifierNamespace).where(
+                    IdentifierNamespace.ght_context_id == ght_context_id,
+                    IdentifierNamespace.type == "VN",
+                    IdentifierNamespace.is_active == True
+                )
+            ).first()
+            
+            # Si au moins IPP et NDA configurés, remplacer les identifiants
+            if ipp_namespace and nda_namespace:
+                payload_to_send, generated_ids = replace_identifiers_in_hl7_message(
+                    message=payload_to_send,
+                    session=session,
+                    ipp_namespace=ipp_namespace,
+                    nda_namespace=nda_namespace,
+                    venue_namespace=venue_namespace,
+                    ipp_prefix_override=binding.identifier_prefix_ipp,
+                    nda_prefix_override=binding.identifier_prefix_nda
+                )
+                
+                # Mettre à jour le binding avec les identifiants générés
+                if generated_ids:
+                    binding.generated_ipp = generated_ids.get('ipp')
+                    binding.generated_nda = generated_ids.get('nda')
+                    binding.generated_venue_id = generated_ids.get('venue')
+                    binding.last_execution_at = datetime.utcnow()
+                    session.add(binding)
+                    session.commit()
+        except Exception as e:
+            # Log l'erreur mais continue avec le payload non modifié
+            print(f"⚠️ Erreur remplacement identifiants: {e}")
+            pass
 
     # Mettre à jour les dates du message si demandé
     if update_dates:
@@ -184,6 +242,7 @@ async def send_step(
     step: InteropScenarioStep,
     endpoint: SystemEndpoint,
     update_dates: bool = True,
+    binding: Optional[ScenarioBinding] = None
 ) -> MessageLog:
     """
     Envoie une étape de scénario au système cible.
@@ -193,6 +252,7 @@ async def send_step(
         step: Étape du scénario à envoyer
         endpoint: Endpoint cible
         update_dates: Si True, met à jour automatiquement les dates HL7 pour qu'elles soient récentes
+        binding: ScenarioBinding optionnel pour configuration des identifiants
     """
     trigger = _extract_trigger(step)
 
@@ -212,7 +272,7 @@ async def send_step(
         return log
 
     if endpoint.kind == "MLLP":
-        return await _send_hl7_step(session, step, endpoint, update_dates=update_dates)
+        return await _send_hl7_step(session, step, endpoint, update_dates=update_dates, binding=binding)
     if endpoint.kind == "FHIR":
         return await _send_fhir_step(session, step, endpoint)
     raise ScenarioExecutionError(f"Type d'endpoint non supporté: {endpoint.kind}")
@@ -225,6 +285,7 @@ async def send_scenario(
     *,
     step_ids: Iterable[int] | None = None,
     update_dates: bool = True,
+    binding: Optional[ScenarioBinding] = None
 ) -> List[MessageLog]:
     """
     Envoie tout ou partie d'un scénario dans l'ordre des steps.
@@ -235,6 +296,7 @@ async def send_scenario(
         endpoint: Endpoint cible
         step_ids: IDs des étapes spécifiques à envoyer (None = toutes)
         update_dates: Si True, met à jour automatiquement les dates HL7 pour qu'elles soient récentes
+        binding: ScenarioBinding optionnel pour configuration des identifiants
     """
     logs: List[MessageLog] = []
     steps = scenario.steps
@@ -245,7 +307,7 @@ async def send_scenario(
     steps = sorted(steps, key=lambda s: s.order_index)
 
     for step in steps:
-        log = await send_step(session, step, endpoint, update_dates=update_dates)
+        log = await send_step(session, step, endpoint, update_dates=update_dates, binding=binding)
         logs.append(log)
         if step.delay_seconds:
             await asyncio.sleep(step.delay_seconds)

@@ -237,6 +237,43 @@ def create_encounter_priority_mappings(session: Session) -> List[VocabularyMappi
     
     return mappings
 
+def create_identity_reliability_mappings(session: Session) -> List[VocabularyMapping]:
+    """Crée le mapping FICTI → VIDE pour éliminer doublon sémantique"""
+    mappings = []
+    
+    # Récupérer les systèmes
+    legacy_system = session.exec(
+        select(VocabularySystem).where(VocabularySystem.name == "identity-reliability-hl7v2")
+    ).first()
+    
+    rniv_system = session.exec(
+        select(VocabularySystem).where(VocabularySystem.name == "identity-reliability-rniv")
+    ).first()
+    
+    if not legacy_system or not rniv_system:
+        return []
+    
+    # Récupérer la valeur FICTI du système legacy
+    ficti_value = session.exec(
+        select(VocabularyValue).where(
+            VocabularyValue.code == "FICTI",
+            VocabularyValue.system_id == legacy_system.id,
+        )
+    ).first()
+    
+    if ficti_value:
+        # Mapping FICTI (HL7v2 legacy) → VIDE (RNIV canonique)
+        mapping = VocabularyMapping(
+            source_value=ficti_value,
+            target_system=rniv_system,
+            target_code="VIDE",
+            map_type="equivalent",
+            comment="FICTI est un alias legacy de VIDE (fictive)"
+        )
+        mappings.append(mapping)
+    
+    return mappings
+
 def init_vocabulary_mappings(session: Session) -> None:
     """Initialise tous les mappings entre vocabulaires"""
     
@@ -256,6 +293,9 @@ def init_vocabulary_mappings(session: Session) -> None:
     
     # Mappings priorité de venue
     all_mappings.extend(create_encounter_priority_mappings(session))
+    
+    # Mapping fiabilité identité (FICTI → VIDE)
+    all_mappings.extend(create_identity_reliability_mappings(session))
     
     # Sauvegarder tous les mappings
     for mapping in all_mappings:

@@ -70,6 +70,21 @@ async def create_namespace(
             detail=f"System URI {form['system']} already exists"
         )
 
+    # Gestion des préfixes pour génération d'identifiants de test
+    prefix_pattern = form.get("prefix_pattern") or None
+    prefix_mode = form.get("prefix_mode") or "fixed"
+    prefix_min = None
+    prefix_max = None
+    
+    if prefix_mode == "range":
+        try:
+            if form.get("prefix_min"):
+                prefix_min = int(form["prefix_min"])
+            if form.get("prefix_max"):
+                prefix_max = int(form["prefix_max"])
+        except ValueError:
+            raise HTTPException(status_code=400, detail="prefix_min and prefix_max must be integers")
+    
     namespace = IdentifierNamespace(
         name=form["name"],
         system=form["system"],
@@ -77,6 +92,10 @@ async def create_namespace(
         type=form.get("type", "PI"),
         description=form.get("description"),
         is_active=form.get("is_active", "true") == "true",
+        prefix_pattern=prefix_pattern,
+        prefix_mode=prefix_mode,
+        prefix_min=prefix_min,
+        prefix_max=prefix_max,
         ght_context_id=context.id
     )
     session.add(namespace)
@@ -199,6 +218,20 @@ async def update_namespace(
     namespace.type = form.get("type", namespace.type)
     namespace.description = form.get("description")
     namespace.is_active = form.get("is_active", "true") == "true"
+    
+    # Mise à jour configuration préfixes
+    namespace.prefix_pattern = form.get("prefix_pattern") or None
+    namespace.prefix_mode = form.get("prefix_mode") or "fixed"
+    
+    if namespace.prefix_mode == "range":
+        try:
+            namespace.prefix_min = int(form["prefix_min"]) if form.get("prefix_min") else None
+            namespace.prefix_max = int(form["prefix_max"]) if form.get("prefix_max") else None
+        except ValueError:
+            raise HTTPException(status_code=400, detail="prefix_min and prefix_max must be integers")
+    else:
+        namespace.prefix_min = None
+        namespace.prefix_max = None
     
     session.add(namespace)
     session.commit()

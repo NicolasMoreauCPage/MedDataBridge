@@ -172,7 +172,9 @@ class Lit(BaseLocation, table=True):
     operational_status: Optional[str] = None  # Statut opérationnel: libre, occupé, maintenance, etc.
     chambre_id: int = Field(foreign_key="chambre.id")
     chambre: Chambre = Relationship(back_populates="lits")
-    
-    class Config:
-        use_enum_values = True
+
+    # Pydantic v2 migration: remplacer inner Config par model_config
+    model_config = {
+        "use_enum_values": True
+    }
 

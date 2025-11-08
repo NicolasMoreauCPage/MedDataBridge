@@ -77,6 +77,7 @@ def list_venues(
                 v.label
             ],
             "detail_url": f"/venues/{v.id}",
+            "timeline_url": f"/timeline/venue/{v.id}",
             "edit_url": f"/venues/{v.id}/edit",
             "delete_url": f"/venues/{v.id}/delete"
         }

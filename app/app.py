@@ -310,6 +310,11 @@ def create_app() -> FastAPI:
     app.include_router(mouvements.router)
     print(" - Core entity routers mounted with their prefixes")
     
+    # 2b. Timeline views
+    from app.routers import timeline
+    app.include_router(timeline.router)
+    print(" - Timeline router mounted")
+    
     # 3. Structure management
     app.include_router(structure.redirect_router)  # Redirections singulier->pluriel (AVANT le router principal)
     app.include_router(structure.router)  # Has prefix /structure

@@ -259,6 +259,8 @@ def create_app() -> FastAPI:
     templates.env.filters["none_to_dash"] = none_to_dash
     # Stocker dans app.state pour accès dans les routes si besoin
     app.state.templates = templates
+    # Store version from pyproject.toml
+    app.state.version = "0.2.0"
 
     # Servir les fichiers statiques (CSS/JS)
     static_dir = str(Path(__file__).parent / "static")

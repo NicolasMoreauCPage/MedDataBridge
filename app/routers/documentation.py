@@ -85,6 +85,16 @@ def get_doc_structure():
             "files": [
                 "scenario_date_update.md"
             ]
+        },
+        "09-Code-Reference": {
+            "icon": "📚",
+            "title": "Référence Code",
+            "files": [
+                "architecture.md",
+                "api_guide.md",
+                "models_reference.md",
+                "user_guide.md"
+            ]
         }
     }
 

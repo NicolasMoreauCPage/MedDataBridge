@@ -185,6 +185,9 @@ class GHTContextMiddleware(BaseHTTPMiddleware):
         
         # Compter les messages en erreur selon le contexte
         request.state.error_message_count = await get_error_message_count(request)
+        
+        # Inject version into request state for templates
+        request.state.version = getattr(request.app.state, "version", "0.2.0")
 
         # En tests, on évite les redirections automatiques pour ne pas casser
         # les scénarios Playwright. Les pages peuvent afficher un message doux.

@@ -141,44 +141,44 @@
           </div>
         </li>
         {% if request.state.ght_context %}
-        <li class="relative group">
-          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 focus:outline-none transition">
+        <li class="relative group" data-test-section="activites">
+          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 focus:outline-none transition" data-test-toggle="activites">
             <div class="flex items-center gap-1">
               <!-- Neutral clipboard icon to avoid lock confusion -->
               <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6M9 11h6M9 15h6M5 7h.01M5 11h.01M5 15h.01M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/>
               </svg>
-              Activités
+              <span data-test-label="activites" data-test-section="activites">Activités</span>
             </div>
             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
-          <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
+          <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition" data-test-menu="activites">
             <div class="w-[420px] grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
               <div>
-                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Suivi des prises en charge</p>
-                <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Patients</a>
-                <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Dossiers</a>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400" data-test-subsection="suivi">Suivi des prises en charge</p>
+                <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="patients">Patients</a>
+                <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="dossiers">Dossiers</a>
                 {% if request.state and request.state.dossier_context %}
-                  <a href="/venues?dossier_id={{ request.state.dossier_context.id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Venues</a>
+                  <a href="/venues?dossier_id={{ request.state.dossier_context.id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="venues">Venues</a>
                 {% else %}
-                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier pour voir les venues">
+                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier pour voir les venues" data-test-link="venues-disabled">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
                     Venues
                   </span>
                 {% endif %}
                 {% if request.state and request.state.dossier_context %}
-                  <a href="/mouvements?dossier_id={{ request.state.dossier_context.id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Mouvements</a>
+                  <a href="/mouvements?dossier_id={{ request.state.dossier_context.id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">Mouvements</a>
                 {% else %}
-                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier pour voir les mouvements">
+                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier pour voir les mouvements" data-test-link="mouvements-disabled">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
                     Mouvements
                   </span>
                 {% endif %}
               </div>
               <div>
-                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Formulaires & validations</p>
-                <a href="/forms" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Formulaires</a>
-                <a href="/vocabularies" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Listes de valeurs</a>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400" data-test-subsection="formulaires">Formulaires & validations</p>
+                <a href="/forms" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="forms">Formulaires</a>
+                <a href="/vocabularies" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="vocabularies">Listes de valeurs</a>
               </div>
             </div>
           </div>
@@ -186,8 +186,8 @@
         {% endif %}
         {% if request.state.ght_context %}
         <li class="relative group">
-          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 focus:outline-none transition">
-            <div class="flex items-center gap-1">
+          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 focus:outline-none transition" data-test-section="structure">
+            <div class="flex items-center gap-1" data-test-label="structure">
               <!-- Building icon for structure -->
               <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7a2 2 0 012-2h10a2 2 0 012 2v14M9 7v4m6-4v4M9 13h6"/>
@@ -284,7 +284,7 @@
               <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h11l-3-3m3 3l-3 3M17 17H6l3 3m-3-3l3-3"/>
               </svg>
-              Interopérabilité
+              <span data-test-section="interop" data-test-label="interop">Interopérabilité</span>
             </div>
             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
@@ -306,7 +306,7 @@
         </li>
         <li class="relative group">
           <button class="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 focus:outline-none transition">
-            Ressources
+            <span data-test-section="ressources" data-test-label="ressources">Ressources</span>
             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
           <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
@@ -345,7 +345,7 @@
         </div>
         {% if request.state.ght_context %}
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-2">
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-2" data-test-section="activites">
             <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
             </svg>
@@ -373,7 +373,7 @@
           <a href="/vocabularies" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Listes de valeurs</a>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-2">
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-2" data-test-section="structure">
             <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
             </svg>
@@ -450,7 +450,7 @@
         </div>
         {% endif %}
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Interopérabilité</p>
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1" data-test-section="interop">Interopérabilité</p>
           <a href="/messages" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Messages</a>
           <a href="/messages/send" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Injecter HL7/FHIR</a>
           <a href="/endpoints" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Points d'accès</a>
@@ -458,7 +458,7 @@
           <a href="/standards" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Standards</a>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Ressources</p>
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1" data-test-section="ressources">Ressources</p>
           <a href="/guide" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Guide utilisateur</a>
           <a href="/standards-docs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Documentation IHE</a>
           <a href="/api-docs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">API Reference</a>
@@ -496,7 +496,7 @@
               {% set bg = 'bg-blue-50 border-blue-200 text-blue-700' %}
               {% set icon = 'M13 16h-1v-4h-1m1-4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z' %}
             {% endif %}
-            <div class="flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-sm {{ bg }}" data-flash>
+            <div class="flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-sm {{ bg }}{% if flash.level == 'success' %} toast-success{% endif %}" data-flash role="alert">
               <svg class="mt-0.5 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ icon }}"/></svg>
               <div class="flex-1 text-sm leading-6">
                 {{ flash.message }}
@@ -589,5 +589,21 @@
       }
     });
   </script>
+  
+  <!-- Footer avec version -->
+  <footer class="mt-auto border-t border-slate-200 bg-white">
+    <div class="mx-auto max-w-content px-4 py-3">
+      <div class="flex items-center justify-between text-xs text-slate-500">
+        <div>
+          © 2025 MedData Bridge
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="app-version" class="px-2 py-1 rounded bg-slate-100 text-slate-600 font-mono">v{{ request.state.version|default('0.2.0') }}</span>
+          <a href="/documentation" class="hover:text-blue-600">Documentation</a>
+          <a href="/api/docs" class="hover:text-blue-600">API</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

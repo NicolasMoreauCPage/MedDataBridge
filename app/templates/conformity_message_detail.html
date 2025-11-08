@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Navigation -->
+  <nav class="mb-6 flex items-center space-x-2 text-sm">
+    <a href="/conformity" class="text-blue-600 hover:text-blue-700">Conformité</a>
+    <span class="text-slate-400">→</span>
+    <a href="/conformity/ej/{{ message.ej_id }}" class="text-blue-600 hover:text-blue-700">EJ</a>
+    <span class="text-slate-400">→</span>
+    <a href="/conformity/ej/{{ message.ej_id }}/messages" class="text-blue-600 hover:text-blue-700">Messages</a>
+    <span class="text-slate-400">→</span>
+    <span class="text-slate-900">#{{ message.id }}</span>
+  </nav>
+
+  <!-- En-tête message -->
+  <div class="bg-white rounded-lg shadow p-6 mb-8">
+    <div class="flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Message #{{ message.id }}</h1>
+        <div class="mt-2 space-y-1 text-sm text-slate-600">
+          <p>Type: <code class="font-mono">{{ message.message_type or 'N/A' }}</code></p>
+          <p>Direction: <span class="font-medium">{{ message.direction or 'N/A' }}</span></p>
+          <p>Date: {{ message.created_at.strftime('%Y-%m-%d %H:%M:%S') if message.created_at else 'N/A' }}</p>
+        </div>
+      </div>
+      <form method="post" action="/conformity/ej/{{ message.ej_id }}/messages/{{ message.id }}/revalidate">
+        <button type="submit" 
+                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+          🔄 Rejouer validation
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Résumé validation -->
+  <div class="grid gap-6 md:grid-cols-3 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-sm font-medium text-slate-600 mb-2">Erreurs</h3>
+      <div class="text-3xl font-bold {% if errors %}text-red-600{% else %}text-green-600{% endif %}">
+        {{ errors|length }}
+      </div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-sm font-medium text-slate-600 mb-2">Avertissements</h3>
+      <div class="text-3xl font-bold {% if warnings %}text-yellow-600{% else %}text-slate-400{% endif %}">
+        {{ warnings|length }}
+      </div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-sm font-medium text-slate-600 mb-2">Informations</h3>
+      <div class="text-3xl font-bold text-blue-600">
+        {{ infos|length }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Issues par sévérité -->
+  {% if errors %}
+  <div class="bg-white rounded-lg shadow mb-6">
+    <div class="bg-red-50 px-6 py-4 border-b border-red-100">
+      <h2 class="text-lg font-semibold text-red-900">❌ Erreurs ({{ errors|length }})</h2>
+    </div>
+    <div class="divide-y divide-slate-200">
+      {% for issue in errors %}
+      <div class="px-6 py-4">
+        <div class="flex items-start space-x-3">
+          <code class="text-sm font-mono bg-red-100 text-red-800 px-2 py-1 rounded">
+            {{ issue.code }}
+          </code>
+          <p class="text-sm text-slate-700 flex-1">{{ issue.message }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if warnings %}
+  <div class="bg-white rounded-lg shadow mb-6">
+    <div class="bg-yellow-50 px-6 py-4 border-b border-yellow-100">
+      <h2 class="text-lg font-semibold text-yellow-900">⚠️  Avertissements ({{ warnings|length }})</h2>
+    </div>
+    <div class="divide-y divide-slate-200">
+      {% for issue in warnings %}
+      <div class="px-6 py-4">
+        <div class="flex items-start space-x-3">
+          <code class="text-sm font-mono bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+            {{ issue.code }}
+          </code>
+          <p class="text-sm text-slate-700 flex-1">{{ issue.message }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if infos %}
+  <div class="bg-white rounded-lg shadow mb-6">
+    <div class="bg-blue-50 px-6 py-4 border-b border-blue-100">
+      <h2 class="text-lg font-semibold text-blue-900">ℹ️  Informations ({{ infos|length }})</h2>
+    </div>
+    <div class="divide-y divide-slate-200">
+      {% for issue in infos %}
+      <div class="px-6 py-4">
+        <div class="flex items-start space-x-3">
+          <code class="text-sm font-mono bg-blue-100 text-blue-800 px-2 py-1 rounded">
+            {{ issue.code }}
+          </code>
+          <p class="text-sm text-slate-700 flex-1">{{ issue.message }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not all_issues %}
+  <div class="bg-white rounded-lg shadow p-12 text-center">
+    <div class="text-green-600 text-6xl mb-4">✓</div>
+    <h2 class="text-2xl font-semibold text-slate-900 mb-2">Message conforme</h2>
+    <p class="text-slate-600">Aucune issue de validation détectée</p>
+  </div>
+  {% endif %}
+
+  <!-- Message brut -->
+  <div class="bg-white rounded-lg shadow mt-8">
+    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-slate-900">📄 Message HL7 brut</h2>
+      <button onclick="copyMessage()" 
+              class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-sm transition">
+        📋 Copier
+      </button>
+    </div>
+    <div class="p-6">
+      <pre id="rawMessage" class="bg-slate-900 text-green-400 p-4 rounded overflow-x-auto text-xs font-mono">{{ message.raw_message }}</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyMessage() {
+  const text = document.getElementById('rawMessage').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Message copié dans le presse-papier');
+  });
+}
+</script>
+{% endblock %}

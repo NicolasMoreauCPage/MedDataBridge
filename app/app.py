@@ -41,7 +41,7 @@ from app.routers import (
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
     generate, structure, workflow, fhir_structure, vocabularies, ght, namespaces,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
-    documentation
+    documentation, conformity
 )
 
 logging.basicConfig(
@@ -204,7 +204,8 @@ def create_app() -> FastAPI:
     app.include_router(vocabularies.router)
     app.include_router(validation.router)  # Validation hors contexte
     app.include_router(documentation.router)  # Documentation
-    print(" - Validation router mounted")
+    app.include_router(conformity.router)  # Conformité par EJ
+    print(" - Validation and conformity routers mounted")
     # Context management (patient/dossier quick set/clear)
     try:
         from app.routers import context

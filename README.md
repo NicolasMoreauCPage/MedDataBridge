@@ -28,6 +28,7 @@ L'application utilise des variables d'environnement pour sa configuration :
 | INIT_VOCAB | Initialiser les vocabulaires au démarrage | 0, 1, true, True | 0 |
 | MLLP_TRACE | Logs MLLP détaillés | 0, 1, true, True | 0 |
 | PAM_AUTO_CREATE_UF | Auto-création UF placeholder si absente | 0, 1, true, True | 0 |
+| MFN_AUTO_VIRTUAL_POLE | Auto-création de pôle virtuel si un service est importé sans pôle parent | 0, 1, true, True | 1 |
 | STRICT_PAM_FR | Mode strict IHE PAM France global | 0, 1, true, True | 0 |
 | SSL_CERT_FILE | Certificat CA pour FHIR | chemin fichier | None |
 | REQUESTS_CA_BUNDLE | Bundle CA pour FHIR | chemin fichier | None |
@@ -143,6 +144,39 @@ PAM_AUTO_CREATE_UF=1 PYTHONPATH=. .venv/bin/python -m uvicorn app.app:app --relo
 ```
 
 Les UF auto-créées sont marquées `is_virtual=True` et peuvent être complétées ultérieurement via l'UI d'admin ou un import MFN^M05.
+
+### Auto-création des Pôles / Services virtuels (import MFN^M05)
+
+Lors de l'import d'un message MFN^M05 réel, certaines hiérarchies peuvent être incomplètes (ex: un service fait référence directement à une Entité Géographique sans qu'un pôle n'ait été défini entre les deux, ou une UF référence un service inexistant). Pour garantir l'ingestibilité et conserver la traçabilité des identifiants, le moteur applique les règles suivantes :
+
+1. Si un SERVICE est rencontré sans pôle parent explicite, un pôle virtuel `VIRTUAL-POLE-<code_service>` est créé sous l'Entité Géographique correspondante (`is_virtual=True`).
+2. Si une UF référence un SERVICE absent, un service virtuel `VIRTUAL-SERVICE-<code_uf>` est créé (lui-même sous un pôle virtuel si nécessaire) puis l'UF est rattachée.
+3. Les entités virtuelles sont marquées `is_virtual=True` pour permettre un remplacement ultérieur lors d'un import complet de structure.
+4. L'import est idempotent : si l'entité existe déjà (même code), ses métadonnées sont mises à jour sans générer d'erreur de contrainte UNIQUE.
+
+Avantages :
+
+- Permet de charger des fichiers de structure partiels en phase de migration ou de recette.
+- Évite les erreurs de clé étrangère (`pole_id` NULL) sur les services isolés.
+- Facilite le chaînage immédiat avec l'import des messages PAM (mouvements) sans bloquer sur la complétude de la hiérarchie.
+
+Bonnes pratiques :
+
+- Planifier un second import MFN^M05 "complet" une fois les codes établis pour remplacer les entités virtuelles.
+- Surveiller via l'UI admin la présence de `is_virtual=True` et régulariser avant la mise en production.
+- Activer `MFN_AUTO_VIRTUAL_POLE=0` en production si vous souhaitez rejeter les services orphelins et imposer une hiérarchie stricte.
+
+Pour désactiver la création automatique de pôles virtuels :
+
+```bash
+export MFN_AUTO_VIRTUAL_POLE=0
+```
+
+Pour réactiver :
+
+```bash
+export MFN_AUTO_VIRTUAL_POLE=1
+```
 
 ### Mode strict IHE PAM France (global & par Entité Juridique)
 

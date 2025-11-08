@@ -279,7 +279,13 @@ def save_location(
             )
         
         # Sélection et création selon le type
-        if loc_type == "M":  # Entité juridique
+        existing_entity = None
+        # Helper to fetch existing by identifier for update/dedup
+        def _get_existing(model_cls, ident):
+            return session.exec(select(model_cls).where(model_cls.identifier == ident)).first()
+
+        if loc_type == "M":  # Entité juridique (niveau EG dans ce modèle de stockage)
+            existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
             entity = EntiteGeographique(
                 **base_props,
                 finess=characteristics.get("FNS") or "",  # Ensure empty string if missing
@@ -295,6 +301,7 @@ def save_location(
             )
             
         elif loc_type == "ETBL_GRPQ":  # Établissement géographique
+            existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
             entity = EntiteGeographique(
                 **base_props,
                 finess=characteristics.get("FNS") or "",  # Ensure empty string if missing
@@ -303,6 +310,7 @@ def save_location(
             )
             
         elif loc_type == "P":  # Pôle
+            existing_entity = _get_existing(Pole, base_props["identifier"])
             entity = Pole(
                 **base_props,
                 physical_type=LocationPhysicalType.AREA,
@@ -316,6 +324,7 @@ def save_location(
                 service_type = LocationServiceType(tplg.lower()) if tplg.lower() in [e.value for e in LocationServiceType] else LocationServiceType.MCO
             except Exception:
                 service_type = LocationServiceType.MCO
+            existing_entity = _get_existing(Service, base_props["identifier"])
             entity = Service(
                 **base_props,
                 physical_type=LocationPhysicalType.SI,
@@ -330,6 +339,7 @@ def save_location(
             )
             
         elif loc_type == "UF":  # Unité Fonctionnelle
+            existing_entity = _get_existing(UniteFonctionnelle, base_props["identifier"])
             entity = UniteFonctionnelle(
                 **base_props,
                 physical_type=LocationPhysicalType.SI,
@@ -337,18 +347,21 @@ def save_location(
             )
             
         elif loc_type == "UH":  # Unité d'Hébergement
+            existing_entity = _get_existing(UniteHebergement, base_props["identifier"])
             entity = UniteHebergement(
                 **base_props,
                 physical_type=LocationPhysicalType.WI,
             )
             
         elif loc_type == "CH":  # Chambre
+            existing_entity = _get_existing(Chambre, base_props["identifier"])
             entity = Chambre(
                 **base_props,
                 physical_type=LocationPhysicalType.RO,
             )
             
         elif loc_type == "LIT":  # Lit
+            existing_entity = _get_existing(Lit, base_props["identifier"])
             entity = Lit(
                 **base_props,
                 physical_type=LocationPhysicalType.BD,
@@ -380,6 +393,27 @@ def save_location(
                     ).first()
                     if parent:
                         entity.entite_geo_id = parent.id
+                elif isinstance(entity, Service):
+                    # Certains messages sources lient directement le Service à l'EG via ETBLSMNT sans LCLSTN.
+                    # On crée alors (ou réutilise) un Pôle virtuel intermédiaire.
+                    parent_eg = session.exec(
+                        select(EntiteGeographique).where(EntiteGeographique.identifier == target_clean)
+                    ).first()
+                    if parent_eg and not getattr(entity, "pole_id", None):
+                        virtual_pole_id = f"VIRTUAL-POLE-{parent_eg.identifier}"
+                        virtual_pole = session.exec(select(Pole).where(Pole.identifier == virtual_pole_id)).first()
+                        if not virtual_pole:
+                            virtual_pole = Pole(
+                                identifier=virtual_pole_id,
+                                name=f"Pôle virtuel ({parent_eg.name})",
+                                physical_type=LocationPhysicalType.AREA,
+                                entite_geo_id=parent_eg.id,
+                                is_virtual=True
+                            )
+                            session.add(virtual_pole)
+                            session.flush()
+                            logger.info(f"Création d'un Pôle virtuel {virtual_pole.identifier} (relation ETBLSMNT) pour Service {entity.identifier}")
+                        entity.pole_id = virtual_pole.id
                         
             elif relation["type"] == "LCLSTN":
                 # Relation de localisation (tous les niveaux hiérarchiques)
@@ -533,16 +567,60 @@ def save_location(
         
         # Sauvegarde
         if isinstance(entity, Service):
-            logger.warning(f"⚠️  BEFORE COMMIT Service {entity.identifier}, pole_id={entity.pole_id}, n_relations_processed={len(relations)}")
+            # Dernière chance : si pole_id toujours absent, tenter de déduire à partir d'un EG existant et créer un pôle virtuel.
+            if not getattr(entity, "pole_id", None):
+                # Cherche un EG plausible: même FINESS ou premier EG.
+                candidate_eg = None
+                eg_finess = characteristics.get("FNS")
+                if eg_finess:
+                    candidate_eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.finess == eg_finess)).first()
+                if not candidate_eg:
+                    candidate_eg = session.exec(select(EntiteGeographique)).first()
+                if candidate_eg:
+                    virtual_pole_id = f"VIRTUAL-POLE-{candidate_eg.identifier}"
+                    virtual_pole = session.exec(select(Pole).where(Pole.identifier == virtual_pole_id)).first()
+                    if not virtual_pole:
+                        virtual_pole = Pole(
+                            identifier=virtual_pole_id,
+                            name=f"Pôle virtuel ({candidate_eg.name})",
+                            physical_type=LocationPhysicalType.AREA,
+                            entite_geo_id=candidate_eg.id,
+                            is_virtual=True
+                        )
+                        session.add(virtual_pole)
+                        session.flush()
+                        logger.info(f"Création tardive d'un Pôle virtuel {virtual_pole.identifier} pour Service {entity.identifier} (fallback)")
+                    entity.pole_id = virtual_pole.id
+            logger.warning(f"⚠️  BEFORE COMMIT Service {entity.identifier}, pole_id={getattr(entity,'pole_id', None)}, n_relations_processed={len(relations)}")
         
-        session.add(entity)
-        session.commit()
-        session.refresh(entity)
+        if existing_entity:
+            # Mise à jour (idempotence import)
+            updatable_fields = [
+                "name","short_name","address_line1","address_line2","address_line3","address_city","address_postalcode",
+                "opening_date","activation_date","closing_date","deactivation_date"
+            ]
+            for f in updatable_fields:
+                setattr(existing_entity, f, getattr(entity, f))
+            # Relations / foreign keys (ex: pole_id, service_id...)
+            for rel_field in ["entite_geo_id","pole_id","service_id","unite_fonctionnelle_id","unite_hebergement_id","chambre_id"]:
+                if hasattr(entity, rel_field) and getattr(entity, rel_field, None):
+                    setattr(existing_entity, rel_field, getattr(entity, rel_field))
+            session.add(existing_entity)
+            session.commit()
+            session.refresh(existing_entity)
+            saved_entity = existing_entity
+            status = "updated"
+        else:
+            session.add(entity)
+            session.commit()
+            session.refresh(entity)
+            saved_entity = entity
+            status = "success"
         
         return {
-            "status": "success",
-            "type": entity.__class__.__name__,
-            "id": entity.id
+            "status": status,
+            "type": saved_entity.__class__.__name__,
+            "id": saved_entity.id
         }
         
     except Exception as e:

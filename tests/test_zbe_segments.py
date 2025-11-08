@@ -60,3 +60,57 @@ def test_zbe_update_requires_original_trigger():
         assert "|UPDATE|" in zbe
         assert "|A01|" in zbe  # original trigger appears in ZBE-6
 
+
+def test_zbe_cancel_action_generates_cancel_segment():
+    init_db()
+    with Session(engine) as session:
+        patient, dossier, venue = _setup(session)
+        m1 = Mouvement(mouvement_seq=9301, venue_id=venue.id, when=datetime.utcnow(), location="LOC-X/BOX", trigger_event="A01", action="INSERT")
+        session.add(m1); session.commit(); session.refresh(m1)
+        m1.action = "CANCEL"; m1.original_trigger = "A01"
+        session.add(m1); session.commit(); session.refresh(m1)
+        msg = generate_admission_message(patient, dossier, venue, m1, session=session)
+        zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
+        assert "|CANCEL|" in zbe
+
+
+def test_zbe_update_missing_original_trigger_should_fallback():
+    init_db()
+    with Session(engine) as session:
+        patient, dossier, venue = _setup(session)
+        m1 = Mouvement(mouvement_seq=9401, venue_id=venue.id, when=datetime.utcnow(), location="LOC-X/BOX", trigger_event="A01", action="INSERT")
+        session.add(m1); session.commit(); session.refresh(m1)
+        m1.action = "UPDATE"  # no original_trigger provided
+        session.add(m1); session.commit(); session.refresh(m1)
+        msg = generate_admission_message(patient, dossier, venue, m1, session=session)
+        zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
+        # Fallback uses movement.trigger_event for ZBE-6
+        assert "|A01|" in zbe
+
+
+def test_zbe_historic_flag_Y():
+    init_db()
+    with Session(engine) as session:
+        patient, dossier, venue = _setup(session)
+        past_time = datetime.utcnow()
+        m1 = Mouvement(mouvement_seq=9501, venue_id=venue.id, when=past_time, location="LOC-P/BOX", trigger_event="A01", action="INSERT", is_historic=True)
+        session.add(m1); session.commit(); session.refresh(m1)
+        msg = generate_admission_message(patient, dossier, venue, m1, session=session)
+        zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
+        # ZBE-5 historic flag should be Y
+        parts = zbe.split("|")
+        assert parts[5] == "Y"
+
+
+def test_zbe_warning_missing_uf_soins_optional():
+    init_db()
+    with Session(engine) as session:
+        patient, dossier, venue = _setup(session)
+        m1 = Mouvement(mouvement_seq=9601, venue_id=venue.id, when=datetime.utcnow(), location="LOC-X/BOX", trigger_event="A01", action="INSERT", uf_medicale_code="UF-MED")
+        session.add(m1); session.commit(); session.refresh(m1)
+        msg = generate_admission_message(patient, dossier, venue, m1, session=session)
+        zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
+        # ZBE has no UF soins -> ZBE-8 empty
+        parts = zbe.split("|")
+        assert parts[8] == ""
+

@@ -278,12 +278,13 @@ def build_zbe_segment(
     zbe_6 = orig_trig if zbe_4 in {"UPDATE", "CANCEL"} else ""
 
     # ZBE-7 UF médicale XON format Nom^^^^^^^^^Code
-    uf_med_code = movement.uf_medicale_code or uf_responsabilite or movement.venue.uf_responsabilite if getattr(movement, "venue", None) else None
+    uf_med_code = movement.uf_medicale_code or uf_responsabilite or (movement.venue.uf_responsabilite if getattr(movement, "venue", None) else None)
     uf_med_label = movement.uf_medicale_label or uf_med_code
     zbe_7 = f"{uf_med_label or ''}^^^^^^^^^{uf_med_code}" if uf_med_code else ""
 
     # ZBE-8 UF soins XON
-    uf_soins_code = movement.uf_soins_code or uf_soins or getattr(movement, "venue", None) and movement.venue.uf_soins or None
+    # Venue n'a pas (encore) d'attribut uf_soins; on ne tente pas de l'utiliser pour éviter AttributeError
+    uf_soins_code = movement.uf_soins_code or uf_soins
     uf_soins_label = movement.uf_soins_label or uf_soins_code
     zbe_8 = f"{uf_soins_label or ''}^^^^^^^^^{uf_soins_code}" if uf_soins_code else ""
 
@@ -402,8 +403,21 @@ def generate_adt_message(
         movement_namespace = None
         if namespaces and "MOUVEMENT" in namespaces:
             movement_namespace = namespaces["MOUVEMENT"]
-        uf_med = dossier.uf_medicale or dossier.uf_responsabilite or (venue.uf_responsabilite if venue else None)
-        uf_soins = dossier.uf_soins or (venue.uf_soins if venue else None)
+        # UF médicale et UF soins dérivées principalement du mouvement (ZBE-7/ZBE-8)
+        # Ancienne logique référençait des attributs inexistants sur Dossier/Venue (uf_medicale, uf_soins).
+        # Fallback: dossier.uf_responsabilite ou venue.uf_responsabilite pour UF médicale si mouvement n'a pas de code.
+        uf_med = (
+            movement.uf_medicale_code
+            or getattr(dossier, "uf_medicale", None)  # compat éventuelle si ajouté plus tard
+            or dossier.uf_responsabilite
+            or (venue.uf_responsabilite if venue else None)
+        )
+        # UF soins seulement si fournie sur le mouvement; pas de fallback explicite (segment ZBE-8 peut être vide)
+        uf_soins = (
+            movement.uf_soins_code
+            or getattr(dossier, "uf_soins", None)
+            or (getattr(venue, "uf_soins", None) if venue else None)
+        )
         # Determine previous UF for transfers (A02) from last movement if available
         previous_uf = None
         if trigger_event == "A02" and venue:

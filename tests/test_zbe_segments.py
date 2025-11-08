@@ -114,3 +114,42 @@ def test_zbe_warning_missing_uf_soins_optional():
         parts = zbe.split("|")
         assert parts[8] == ""
 
+
+def test_zbe_invalid_action_fallback_to_insert():
+    init_db()
+    with Session(engine) as session:
+        patient, dossier, venue = _setup(session)
+        m1 = Mouvement(mouvement_seq=9701, venue_id=venue.id, when=datetime.utcnow(), location="LOC-X/BOX", trigger_event="A01", action="BADACTION")
+        session.add(m1); session.commit(); session.refresh(m1)
+        # Generator should fallback action to INSERT
+        msg = generate_admission_message(patient, dossier, venue, m1, session=session)
+        zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
+        assert "|INSERT|" in zbe
+
+
+def test_zbe_update_missing_original_trigger_includes_fallback():
+    init_db()
+    with Session(engine) as session:
+        patient, dossier, venue = _setup(session)
+        m1 = Mouvement(mouvement_seq=9801, venue_id=venue.id, when=datetime.utcnow(), location="LOC-X/BOX", trigger_event="A02", action="UPDATE")
+        session.add(m1); session.commit(); session.refresh(m1)
+        msg = generate_admission_message(patient, dossier, venue, m1, session=session)
+        zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
+        # Fallback original trigger uses movement.trigger_event
+        parts = zbe.split("|")
+        assert parts[6] == "A02"
+
+
+def test_zbe_invalid_nature_code_not_emitted():
+    init_db()
+    with Session(engine) as session:
+        patient, dossier, venue = _setup(session)
+        # Provide an invalid nature value directly on movement
+        m1 = Mouvement(mouvement_seq=9901, venue_id=venue.id, when=datetime.utcnow(), location="LOC-X/BOX", trigger_event="A01", action="INSERT", nature="ZZ")
+        session.add(m1); session.commit(); session.refresh(m1)
+        msg = generate_admission_message(patient, dossier, venue, m1, session=session)
+        zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
+        parts = zbe.split("|")
+        # derive_nature should ignore invalid override and compute from trigger (A01 => probably 'S' or mapped value). Ensure not 'ZZ'.
+        assert parts[9] != "ZZ"
+

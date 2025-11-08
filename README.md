@@ -79,6 +79,7 @@ Flags supplémentaires disponibles :
 ```text
 --with-vocab   Initialise les vocabulaires (équivalent tools/init_vocabularies.py)
 --rich-seed    Insère un jeu multi-patients (~100 patients, ~150 dossiers, ~300 venues, ~1000 mouvements)
+--demo-scenarios  Ajoute un contexte GHT DEMO avec 2 Entités Juridiques (Nord/Sud), une structure minimale (site, pôle, service MCO, 2 UF) et 3 patients scénarisés (transferts, annulations, multi-transferts)
 --force-reset  Supprime poc.db avant recréation
 ```
 

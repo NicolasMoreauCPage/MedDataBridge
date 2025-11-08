@@ -32,7 +32,8 @@ from sqlmodel import Session, select
 
 from app.db import init_db, engine, get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
-from app.models_structure_fhir import GHTContext
+from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import Pole, Service, UniteFonctionnelle, LocationPhysicalType, LocationServiceType
 from subprocess import CalledProcessError, run
 
 DB_PATH = Path("poc.db")
@@ -308,6 +309,73 @@ def seed_demo_scenarios():
             print("✓ GHT DEMO créé")
         else:
             print("✓ GHT DEMO déjà présent")
+
+        # --- Structure démo enrichie (Entités Juridiques + géographie + services + UF) ---
+        existing_ej = session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == ght.id)).all()
+        if not existing_ej:
+            print("→ Création des Entités Juridiques de démonstration…")
+            ej_defs = [
+                {"name": "Centre Hospitalier DEMO Nord", "short_name": "CH DEMO N", "finess_ej": "010000000"},
+                {"name": "Centre Hospitalier DEMO Sud", "short_name": "CH DEMO S", "finess_ej": "020000000"},
+            ]
+            ej_objs = []
+            for ej_def in ej_defs:
+                ej = EntiteJuridique(
+                    name=ej_def["name"],
+                    short_name=ej_def["short_name"],
+                    finess_ej=ej_def["finess_ej"],
+                    description="EJ de démonstration pour scénarios mouvements",
+                    ght_context_id=ght.id,
+                )
+                session.add(ej)
+                session.flush()
+                ej_objs.append(ej)
+            session.commit()
+            print(f"   ✓ {len(ej_objs)} EJ créées")
+
+            # Pour chaque EJ on crée 1 entité géographique, 1 pôle, 1 service, 2 UF (activité hospitalisation + urgences)
+            for idx, ej in enumerate(ej_objs, start=1):
+                geo = EntiteGeographique(
+                    identifier=f"EGE-{idx}",
+                    name=f"Site {idx} DEMO",
+                    finess=f"1000000{idx}",
+                    description="Entité géographique de démonstration",
+                    entite_juridique_id=ej.id,
+                )
+                session.add(geo)
+                session.flush()
+
+                pole = Pole(
+                    identifier=f"POLE-{idx}",
+                    name=f"Pôle Général {idx}",
+                    physical_type=LocationPhysicalType.SI,
+                    entite_geo_id=geo.id,
+                )
+                session.add(pole)
+                session.flush()
+
+                service = Service(
+                    identifier=f"SERV-{idx}",
+                    name=f"Service MCO {idx}",
+                    physical_type=LocationPhysicalType.SI,
+                    service_type=LocationServiceType.MCO,
+                    pole_id=pole.id,
+                )
+                session.add(service)
+                session.flush()
+
+                for u in range(1, 3):
+                    uf = UniteFonctionnelle(
+                        identifier=f"UF-{idx}-{u}",
+                        name=f"UF DEMO {idx}-{u}",
+                        physical_type=LocationPhysicalType.SI,
+                        service_id=service.id,
+                    )
+                    session.add(uf)
+                session.commit()
+            print("   ✓ Structure hiérarchique (geo+pôle+service+UF) créée pour chaque EJ")
+        else:
+            print(f"✓ {len(existing_ej)} EJ déjà présentes (structure non régénérée)")
 
         # Ne pas dupliquer les patients si déjà scénarisés
         existing_demo = session.exec(select(Patient).where(Patient.family.like("SCENARIO-%")).limit(1)).first()

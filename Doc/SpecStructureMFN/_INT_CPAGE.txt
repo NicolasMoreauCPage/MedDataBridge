@@ -1,0 +1,1128 @@
+Description des formats
+d’échanges
+Messages HL7 MFN
+Mise à jour : 06/02/2025
+
+Groupement d'Intérêt Public CPAGE (GIP CPAGE)
+Parc Technologique de la Toison d’Or – 19 Rue Louis de Broglie
+B.P. 56507 – 21065 DIJON CEDEX
+ 03 80 28 46 00
+
+ 03 80 28 46 01
+
+Web : www.cpage.fr
+
+Organisme de Formation Agrée (N° Agrément : 26.21.02024.21)
+N° SIREN : 182.100.255 Code APE : 751 A
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+SOMMAIRE
+SOMMAIRE ..................................................................................................................................................... 2
+1
+
+2
+
+Introduction ................................................................................................................................................ 4
+1.1
+
+IHE & HL7 ............................................................................................................................................. 4
+
+1.2
+
+Documentations de référence ............................................................................................................. 5
+
+HL7 MFN Structure ..................................................................................................................................... 7
+2.1
+
+Livre blanc Interop’Santé..................................................................................................................... 7
+
+2.2
+
+Structure des messages HL7 ............................................................................................................... 7
+
+2.3
+
+Segments ............................................................................................................................................. 9
+
+2.3.1
+
+MSH : Entête ................................................................................................................................ 9
+
+2.3.2
+
+MFI : Master File Identification Segment ................................................................................... 10
+
+2.3.3
+
+MFE : Master File Entry Segment............................................................................................... 10
+
+2.3.4
+
+LOC : Location Identification Segment ....................................................................................... 11
+
+2.3.5
+
+LCH : Location Characteristic Segment ...................................................................................... 12
+
+2.3.6
+
+LRL : Location Relationship Segment ......................................................................................... 12
+
+2.4
+
+Liste des spécifiés par entités ............................................................................................................ 13
+
+2.4.1
+
+Etablissement juridique ............................................................................................................. 13
+
+2.4.1
+
+Etablissement géographique ..................................................................................................... 13
+
+2.4.2
+
+Service ........................................................................................................................................ 14
+
+2.4.3
+
+Unités fonctionnelles ................................................................................................................. 15
+
+2.4.1
+
+Chambre ..................................................................................................................................... 17
+
+2.4.2
+
+Lit................................................................................................................................................ 17
+
+Page 2 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+Page 3 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+IHE SIU
+
+1 Introduction
+1.1 IHE & HL7
+
+HL7
+
+HL7 est défini à plusieurs niveaux :
+- international : la norme américaine définie par l'ANSI.
+- européen : l'organisme IHE a défini des profils à partir du standard international : PAM (Patient
+Administration Management) , RAD (radiologie),...
+- français : IHE France définit l'extension nationale.
+
+Plusieurs formats de présentation des messages existent pour la norme HL7 : pipe et xml.
+Cpage utilise le pipe. C'est à dire que le principal séparateur des informations du message est le caractère
+pipe : |
+
+Organisme IHE: Integrating the Healthcare Enterprise (IHE)
+
+Integrating the Healthcare Enterprise (I.H.E.) est une initiative des professionnels de santé, destinée à
+améliorer la façon avec laquelle les logiciels du domaine échangent leurs informations. IHE propose
+l'utilisation coordonnée de standards établis, comme DICOM et HL7, afin d'apporter des solutions aux
+problèmes récurrents d'intégration de différents logiciels de santé.
+Page 4 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+L'objectif est d'assurer une meilleure interopérabilité entre les systèmes qui utilisent IHE. Les
+développements sont aussi théoriquement facilités.
+Aux États-Unis, IHE est sponsorisé par la Healthcare Information and Management Systems Society
+(HIMSS), la Radiological Society of North America (RSNA) et l'American College of Cardiology (ACC).
+
+Le principe est de réunir utilisateurs et industriels pour identifier et résoudre les problèmes de connectivité
+entre produits et matériels d'origines diverses.
+Cela en s'appuyant sur des standards reconnus tels que HL7 et DICOM, dans le cadre de la radiologie, de
+manière à ce que lors de l'installation des produits dans les établissements de santé leur interconnexion
+soit aisée. L'initiative IHE s'appuie sur une démarche internationale permettant à chaque pays de proposer
+la prise en compte de ses spécificités. Il est important de noter le soutien apporté à cette initiative par les
+autorités nationales et européennes.
+
+Organisme HL7
+
+Health Level 7 (HL7) est une organisation qui définit une norme éponyme pour les échanges informatisés
+de données cliniques, financières et administratives entre systèmes d'information hospitaliers (SIH).
+Initialement américaine, cette norme s'exporte et tend à s'imposer comme standard international pour ce
+type d'information. Elle définit entre autres la structure et le rôle des messages pour permettre une
+communication efficiente des données liées au système de la santé. Le chiffre 7 de HL7 n'est pas lié à un
+numéro de version, comme on pourrait le penser. Cela indique simplement que c'est un langage qui
+fonctionne au niveau de la couche 7, c'est-à-dire la couche application, du modèle OSI.
+
+1.2 Documentations de référence
+
+HL7
+
+HL7 2.5 Chapitre 2 (Data Types)
+
+Page 5 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+HL7
+
+HL7 2.5 Chapitre 3 (Events / Segments)
+
+InteropSanté
+
+K:\Pole GAP\Doc diffusable\Produit\20_Interfaces\Spécifications\IHE
+HL7\Structure\atelierStructureV1_03.pdf
+
+Page 6 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+2 HL7 MFN Structure
+2.1 Livre blanc Interop’Santé
+Le Master Files Notification for Location HL7 version 2.5 est utilisé par certains éditeurs pour transmettre
+actuellement la localisation des chambres + lits aux applications tierces présentes dans les hôpitaux. Le
+type de propagation de ce message est en mode push. Ci-joint le contenu du message M05 :
+
+Ce message emploie notamment le segment LCH qui a la capacité de transmettre des couples code –
+valeur, permettant de répondre génériquement et s’adapte à des besoins très spécifiques de définitions de
+structure hospitalière. De plus, le segment LRL permet d’associer 2 à 2 les éléments préalablement définis
+dans les segments LCH, comme par exemple, l’association chambre – lit.
+
+Contexte CPage
+Message généré par C.Page i
+
+Structure du message
+Le message est composé des segments ci-dessous :
+MSH, MFI, {MFE, LOC, [{LCH}], [{LRL}]}
+
+2.2 Structure des messages HL7
+Un message HL7 respecte la structure hiérarchique suivante :
+
+Page 7 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+•
+
+Message
+
+•
+
+Segment
+
+•
+
+Champs
+
+Figure 12 : Structure d'un message HL7 2.5
+
+Page 8 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+2.3 Segments
+Convention de notation :
+• Les champs en gras sont obligatoires.
+• Les champs soulignés sont des identifiants
+
+2.3.1 MSH : Entête
+
+Seq. Type HL7 Rép.
+
+Description
+
+Commentaire / Nomenclature
+
+1
+
+ST
+
+N
+
+Caractère sépérateur
+
+|
+
+2
+
+ST
+
+N
+
+Caractères d'encodage
+
+^~\&
+
+3
+
+EI
+
+N
+
+Sending Application
+
+Paramétrage établissement
+
+4
+
+EI
+
+N
+
+Sending Facility
+
+Paramétrage établissement
+
+5
+
+EI
+
+N
+
+Receiving Application
+
+Paramètre du connecteur HL7
+
+6
+
+EI
+
+N
+
+Receiving Facility
+
+Paramètre du connecteur HL7
+
+7
+
+TS
+
+N
+
+Date de production du message
+
+9
+
+CM
+
+N
+
+Type de message HL7
+
+10
+
+ST
+
+N
+
+Identifiant du message
+
+11
+
+PT
+
+N
+
+Type de production
+
+P
+
+12
+
+VID
+
+N
+
+Version
+
+2.5
+
+17
+
+ID
+
+N
+
+Code pays
+
+FRA
+
+MFN^M05^MFN_M05
+
+Page 9 / 18
+
+Production
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+Seq. Type HL7 Rép.
+
+Description
+
+18
+
+Encodage
+
+ID
+
+N
+
+Commentaire / Nomenclature
+8859/1
+
+2.3.2 MFI : Master File Identification Segment
+Seq. Type HL7 Rép.
+
+Description
+
+Commentaire / Nomenclature
+
+1
+
+CE
+
+N
+
+Identifiant de la nature de la
+structure
+
+2
+
+HD
+
+N
+
+Numéro de version de la
+structure
+
+« LOC »
+
+« CPAGE_LOC_FRA »
+« REP » pour indiquer le remplacement complet de la
+structure
+
+3
+
+ID
+
+N
+
+Code traitement
+
+Ou
+« UPD » pour un mise à jour d’une ressource
+
+5
+
+TS
+
+N
+
+Date d'effet de la structure
+
+6
+
+ID
+
+N
+
+Niveau de réponse
+
+Date de l’extraction
+« NE» pour indiquer que l’on ne souhaite pas d’
+acquittement.
+
+2.3.3 MFE : Master File Entry Segment
+Le segment MFE (Master File Entry Segment) identifie chaque entité de la structure, c'est-à-dire sa clé
+unique.
+Le message contient autant de segments MFE que d’entités que le système émetteur souhaite transmettre.
+Seq. Type HL7 Rép.
+
+Description
+
+Commentaire / Nomenclature
+« MAD » pour ajout
+
+1
+
+SI
+
+N
+
+Code traitement de l'entité
+« MDC » pour suppression
+Page 10 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+Seq. Type HL7 Rép.
+
+Description
+
+Commentaire / Nomenclature
+« MUP » pour mise à jour
+
+2
+
+ST
+
+N
+
+Identifiant de contrôle de l'entité
+
+Vide : ne doit être rempli que si MFI-6 est différent de
+« NE »
+Exemple :
+
+Clé primaire de l'entité
+4
+
+PL
+
+N
+
+5
+
+ID
+
+N
+
+^^^^^D^^^^0192&CPAGE&700004591&FINEJ pour le
+Le couple PL-6 et PL-10 doivent service 0192
+être unique pour référencer
+^^^^^R^^^^0030&CPAGE&700004591&FINEJ pour la
+l’entité
+chambre 0030
+Type de la clé primaire de l'entité « PL »
+
+2.3.4 LOC : Location Identification Segment
+Seq. Type HL7 Rép.
+
+Description
+
+PL
+
+Clé primaire
+
+Le contenu de ce champ est égal au champ MFE-4
+
+Type de localisation
+
+Il contient le type d’entité transporté. Sa valeur est
+identique au sous-champ PL-6 (Person Location Type)
+du champ LOC-1
+
+1
+
+3
+
+IS
+
+N
+
+N
+
+Commentaire / Nomenclature
+
+Peut prendre les valeurs suivantes :
+
+4
+
+XON
+
+N
+
+Nom de l’entité
+
+-
+
+Etablissement juridique
+
+-
+
+Etablissement géographique
+
+-
+
+Service
+
+-
+
+UF
+
+-
+
+Chambre
+
+-
+
+Lit
+
+Page 11 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+2.3.5 LCH : Location Characteristic Segment
+Seq. Type HL7 Rép.
+
+Description
+
+1
+
+PL
+
+N
+
+Clé primaire
+
+4
+
+CWE
+
+N
+
+Identifiant unique du type
+d’attribut
+
+5
+
+CWE
+
+N
+
+Commentaire / Nomenclature
+Le contenu de ce champ est égal au champ MFE-4
+
+Valeur de l’attribut
+
+Il contient la donnée de l’attribut. Dans le cas d’une
+donnée de type date, le format est
+yyyyMMddHHmmss. Pour une valeur décimale, le
+point et la virgule sont acceptés. Pour les valeurs
+numériques, les zéros non significatifs ne sont pas
+écrits.
+La donnée est cadrée à gauche quel que soit son type
+(date, numérique, alphanumérique, …) et est toujours
+transmise dans le deuxième sous champ (text) de
+CWE.
+
+2.3.6 LRL : Location Relationship Segment
+Il sert à transporter les liens entre entités. Il contient la clé primaire source à lier, la clé primaire de l’entité
+associée et le type de relation entre les deux entités.
+Seq. Type HL7 Rép.
+
+Description
+
+Commentaire / Nomenclature
+
+1
+
+PL
+
+N
+
+Clé primaire
+
+4
+
+CWE
+
+N
+
+Définition de la relation entre les « LCLSTN » Relation de localisation
+deux entités
+« ETBLSMNT » Relation établissement
+
+6
+
+PL
+
+N
+
+Clé primaire de l’entité associée Il contient la clé primaire de l’entité associée et le type
+d’entité décrite. Le mode d’utilisation du type de
+
+Ce champ est égal au champ MFE-4. Il contient
+l’identifiant de l’entité source
+
+Page 12 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+Seq. Type HL7 Rép.
+
+Description
+
+Commentaire / Nomenclature
+donnée PL est le même que celui décrit pour le champ
+MFE-4.
+
+2.4 Liste des spécifiés par entités
+2.4.1 Etablissement juridique
+Les établissements juridiques sont exportés avec le type (LOC-3) « M »
+
+Attribut (LCH-4)
+
+Commentaire
+
+Donnée interne CPage associée
+
+ID_GLBL^Identifiant unique
+global
+
+CHO.NUCHCH
+
+CD^Code
+
+CHO.NUCHCH
+
+LBL^Libelle
+
+CHO.LRCHCH
+
+LBL_CRT^Libelle court
+
+CHO.LIBJCH
+
+FNS^Code FINESS
+
+CHO.NUFICH
+
+ADRS_1^Adresse 1
+
+CHO.AD1CCH
+
+ADRS_2^Adresse 2
+
+CHO.AD2CCH
+
+ADRS_3^Adresse 3
+
+CHO.AD3CCH
+
+CD_PSTL^Code postal
+
+CHO.COP_NCPOPO
+
+VL^Ville
+
+CHO.BUDCCH
+
+INS^Code INSEE commune
+
+CHO.COCOCH
+
+DT_OVRTR^Date d''ouverture
+
+« 19000101000000 »
+
+DT_ACTVTN^Date d''activation
+
+« 19000101000000 »
+
+2.4.1 Etablissement géographique
+Les établissements géographiques sont exportés avec le type (LOC-3) « ETBL_GRPQ »
+Page 13 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+Attribut (LCH-4)
+
+Commentaire
+
+Donnée interne CPage associée
+
+ID_GLBL^Identifiant unique
+global
+
+CHO.NUCHCH + ETA.NUETET
+
+CD^Code
+
+ETA.NUETET
+
+LBL^Libelle
+
+ETA.LIETET
+
+LBL_CRT^Libelle court
+
+ETA.LRETET
+
+FNS^Code FINESS
+
+ETA.NUFIET
+
+ADRS_1^Adresse 1
+
+ETA.AD1EET
+
+ADRS_2^Adresse 2
+
+ETA.AD2EET
+
+ADRS_3^Adresse 3
+
+ETA.AD3EET
+
+CD_PSTL^Code postal
+
+ETA.COP_NCPOPO
+
+VL^Ville
+
+ETA.BUDEET
+
+DT_OVRTR^Date d''ouverture
+
+ETA.DATFET
+
+DT_ACTVTN^Date d''activation
+
+ETA.DATFET
+
+CTGR_S^Catégorie SAE
+
+ETA.SCET_CAETCET
+
+Le lien (LRL-4) avec l’établissement juridique est de type « ETBLSMNT» (Relation établissement).
+
+2.4.2 Service
+Les services sont exportés avec le type (LOC-3) « D »
+
+Attribut (LCH-4)
+
+Commentaire
+
+Donnée interne CPage associée
+
+ID_GLBL^Identifiant unique
+global
+
+CHO.NUCHCH + ETA.NUETET +
+SER.COSESE
+
+CD^Code
+
+SER.COSESE
+Page 14 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+LBL^Libelle
+
+SER.LIBESE
+
+LBL_CRT^Libelle court
+
+SER.LIBRSE
+
+ID_GLBL_RSPNSBL^Identifiant
+unique global du responsable
+
+MED.NUMEME depuis
+SER.SAGE_NUAGAGE
+
+NM_USL_ RSPNSBL^Nom usuel
+du responsable
+
+MED.NOMEME depuis
+SER.SAGE_NUAGAGE
+
+PRNM_ RSPNSBL^Prénom du
+responsable
+
+MED.PRENME depuis
+SER.SAGE_NUAGAGE
+
+RPPS_ RSPNSBL^Code RPPS du
+responsable
+
+MED.RPPSME depuis
+SER.SAGE_NUAGAGE
+
+ADL_ RSPNSBL^Code ADELI du
+responsable
+
+MED.NUADME depuis
+SER.SAGE_NUAGAGE
+
+CD_SPCLT_ RSPNSBL^Code
+spécialité B2 du responsable
+
+MED.SPB2_SPB2PB2 depuis
+SER.SAGE_NUAGAGE
+
+DT_OVRTR^Date d''ouverture
+
+SER.DATDSE
+
+DT_ACTVTN^Date d''activation
+
+SER.DATDSE
+
+Le lien (LRL-4) avec l’établissement géographique est de type « LCLSTN » (Relation de localisation).
+
+2.4.3 Unités fonctionnelles
+Les unités fonctionnelles sont exportées avec le type (LOC-3) :
+-
+
+« UNT_MDCL » lorsque le type de l’UF est « E » (Externe)
+
+-
+
+« N » lorsque le type de l’UF est « H » (Hopitalisation)
+
+-
+
+« H » lorsque le type de l’UF est « T » (Externe + Hospitalisation)
+
+Attribut (LCH-4)
+
+Commentaire
+Page 15 / 18
+
+Donnée interne CPage associée
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+ID_GLBL^Identifiant unique
+global
+
+CHO.NUCHCH + ETA.NUETET +
+SER.COSESE + UFO.NUUFUF
+
+CD^Code
+
+UFO.NUUFUF
+
+LBL^Libelle
+
+UFO.LIBEUF
+
+LBL_CRT^Libelle court
+
+UFO.LIBRUF
+
+LTR_BDGTR^Lettres budgétaires
+
+UFO.SBUD_CODEBUD
+
+DSCPLN_EQPMNT^Discipline
+d''équipement
+
+UFO.DIS_CODEDI
+
+TP_ACTVT^Type d''activité
+
+UFO.SCAC_TYACCAC
+
+CHMP_ACTVT^Champ d''activité
+
+UFO.DOACUF tel que :
+
+INDCTR^Indicateur
+
+DT_OVRTR^Date d''ouverture
+
+-
+
+« MC » : MCO, si DOACUF
+vaut « M », « C », « O »
+ou « N »
+
+-
+
+« SSR » si DOACUF vaut
+«S»
+
+-
+
+« HD » : HAD, si DOACUF
+vaut « D »
+
+-
+
+« PSY » : Psy
+
+-
+
+« SEA » : Séances
+
+-
+
+« URG » : Urgences
+
+-
+
+« ATR » dans les autres
+cas
+
+-
+
+« MDCL » si TYPEUF vaut
+«E»
+
+-
+
+« HBRGMNT» si TYPEUF
+vaut « H »
+
+-
+
+« MDCL~HBRGMNT » si
+TYPEUF vaut « T »
+
+UFO.DATDUF
+Page 16 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+Le lien (LRL-4) avec le service est de type « LCLSTN » (Relation de localisation).
+Le lien (LRL-4) avec l’établissement géographique est de type « LCLSTN » (Relation de localisation).
+
+2.4.1 Chambre
+Les chambres sont exportées avec le type (LOC-3) « R »
+
+Attribut (LCH-4)
+
+Commentaire
+
+Donnée interne CPage associée
+
+ID_GLBL^Identifiant unique
+global
+
+CHO.NUCHCH + ETA.NUETET +
+SER.COSESE + UFO.NUUFUF +
+PIE.NUPIPI
+
+CD^Code
+
+PIE.NUPIPI
+
+LBL^Libelle
+
+PIE.LIBCPI
+
+LBL_CRT^Libelle court
+
+PIE.LIBRPI
+
+DT_OVRTR^Date d''ouverture
+
+PIE.DAEFPI
+
+Le lien (LRL-4) avec l’UF est de type « LCLSTN » (Relation de localisation).
+
+2.4.2 Lit
+Les lits sont exportés avec le type (LOC-3) « B »
+
+Attribut (LCH-4)
+
+Commentaire
+
+Donnée interne CPage associée
+
+ID_GLBL^Identifiant unique
+global
+
+CHO.NUCHCH + ETA.NUETET +
+SER.COSESE + UFO.NUUFUF +
+PIE.NUPIPI + LLI.NULLLL
+
+CD^Code
+
+LLI.NULLLL
+
+LBL^Libelle
+
+LLI.LIBCLL
+Page 17 / 18
+
+Fiche
+conseil
+Messages
+HL7 MFN
+Saisie des indemnités journalières
+
+LBL_CRT^Libelle court
+
+LLI.LIBRLL
+
+DT_OVRTR^Date d''ouverture
+
+LLI.DAEFLL
+
+Le lien (LRL-4) avec la chambre est de type « LCLSTN » (Relation de localisation).
+
+Pour toute autre information, vous pouvez nous contacter sur notre site internet : http://www.cpage.fr
+
+Page 18 / 18
+
+

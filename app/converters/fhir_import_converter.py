@@ -255,18 +255,26 @@ class FHIRToPatientConverter:
         names = fhir_patient.get("name", [])
         official_name = next((n for n in names if n.get("use") == "official"), names[0] if names else {})
         
-        nom = official_name.get("family", "")
-        prenoms = " ".join(official_name.get("given", []))
+        family = official_name.get("family", "")
+        given = " ".join(official_name.get("given", []))
         
         # Extraire les identifiants
         identifiers = fhir_patient.get("identifier", [])
         
-        # Créer le patient
+        # Parser la date de naissance
+        birth_date_str = fhir_patient.get("birthDate")
+        birth_date = birth_date_str if birth_date_str else None
+        
+        # Parser le genre
+        gender_fhir = fhir_patient.get("gender")
+        gender = self._parse_gender(gender_fhir)
+        
+        # Créer le patient avec les vrais champs du modèle
         patient = Patient(
-            nom=nom,
-            prenom=prenoms,
-            date_naissance=self._parse_birth_date(fhir_patient.get("birthDate")),
-            sexe=self._parse_gender(fhir_patient.get("gender"))
+            family=family,
+            given=given,
+            birth_date=birth_date,
+            gender=gender
         )
         
         self.session.add(patient)
@@ -290,11 +298,15 @@ class FHIRToPatientConverter:
         
         self.session.commit()
         
-        # Créer un dossier par défaut
+        # Créer un dossier par défaut avec numéro de séquence
+        # Générer dossier_seq unique basé sur l'ID patient et timestamp
+        dossier_seq = patient.id * 10000 + int(datetime.now().timestamp() % 10000)
+        
         dossier = Dossier(
+            dossier_seq=dossier_seq,
             patient_id=patient.id,
-            ej_id=self.ej.id,
-            date_ouverture=datetime.now()
+            admit_time=datetime.now(),
+            dossier_type="HOSPITALISE"
         )
         self.session.add(dossier)
         self.session.commit()

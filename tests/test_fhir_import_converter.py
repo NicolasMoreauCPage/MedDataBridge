@@ -187,15 +187,13 @@ def test_import_patient(session):
     assert patient is not None
     assert patient.nom == "Dupont"
     assert patient.prenom == "Jean Pierre"
-    assert patient.sexe == "M"
-    assert patient.date_naissance.year == 1980
-    assert patient.date_naissance.month == 1
-    assert patient.date_naissance.day == 15
+    assert patient.gender == "M"
+    assert patient.birth_date == "1980-01-15"
     
     # Vérifier qu'un dossier a été créé
     dossier = session.query(Dossier).filter(Dossier.patient_id == patient.id).first()
     assert dossier is not None
-    assert dossier.ej_id == ej.id
+    assert dossier.dossier_seq is not None
 
 
 def test_import_encounter(session):

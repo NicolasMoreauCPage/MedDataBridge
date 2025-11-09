@@ -11,7 +11,7 @@ import pytest
 from datetime import datetime, timedelta
 from sqlmodel import Session, create_engine, select
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
-from app.models_shared import Dossier, Venue, Mouvement, Patient
+from app.models import Dossier, Venue, Mouvement, Patient
 from app.models_structure_fhir import EntiteJuridique
 from app.services.scenario_capture import capture_dossier_as_template
 
@@ -21,17 +21,22 @@ def test_session():
     """Session de test en mémoire (isolée)."""
     engine = create_engine("sqlite:///:memory:")
     from app.models import SQLModel
+    from app.models_structure_fhir import GHTContext
     SQLModel.metadata.create_all(engine)
     
     with Session(engine) as session:
         # Créer contexte GHT minimal
-        ght = EntiteJuridique(
-            code="TEST",
-            libelle="GHT Test",
-            namespace_oid="1.2.3.4.5",
-            namespace_code="TEST",
+        ght_ctx = GHTContext(name="GHT Test")
+        session.add(ght_ctx)
+        session.commit()
+        session.refresh(ght_ctx)
+        
+        ej = EntiteJuridique(
+            name="EJ Test",
+            finess_ej="TEST",
+            ght_context_id=ght_ctx.id,
         )
-        session.add(ght)
+        session.add(ej)
         session.commit()
         
         yield session

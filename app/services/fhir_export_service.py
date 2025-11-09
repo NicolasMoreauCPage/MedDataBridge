@@ -4,6 +4,7 @@ Service d'export des données vers FHIR.
 from datetime import datetime
 from typing import Dict, List, Optional
 from sqlmodel import Session, select
+import hashlib
 
 from app.models_structure_fhir import EntiteJuridique, EntiteGeographique
 from app.utils.structured_logging import StructuredLogger, log_operation, metrics
@@ -20,10 +21,12 @@ from app.converters.fhir_converter import (
     HL7ToFHIRConverter
 )
 
+from app.services.cache_service import get_cache_service
+
 class FHIRExportService:
     """Service d'export des données vers FHIR."""
     
-    def __init__(self, session: Session, base_url: str):
+    def __init__(self, session: Session, base_url: str, enable_cache: bool = True):
         self.session = session
         self.base_url = base_url
         self.structure_converter = StructureToFHIRConverter(base_url)
@@ -35,11 +38,29 @@ class FHIRExportService:
         # Cache des références
         self._location_refs: Dict[str, FHIRReference] = {}
         self._patient_refs: Dict[str, FHIRReference] = {}
+        
+        # Service de cache Redis
+        self.enable_cache = enable_cache
+        self.cache = get_cache_service() if enable_cache else None
     
     def export_structure(self, ej: EntiteJuridique) -> FHIRBundle:
         """Exporte la structure d'un établissement en FHIR."""
         import time
         start_time = time.time()
+        
+        # Vérifier le cache
+        cache_key = f"fhir:export:structure:ej:{ej.id}"
+        if self.cache and self.enable_cache:
+            cached = self.cache.get(cache_key)
+            if cached:
+                self.logger.info(
+                    "Structure export from cache",
+                    ej_id=ej.id,
+                    cache_hit=True,
+                    duration_ms=round((time.time() - start_time) * 1000, 2)
+                )
+                metrics.observe("fhir.export.duration", (time.time() - start_time) * 1000, {"type": "structure", "cache": "hit"})
+                return FHIRBundle(**cached)
         
         self.logger.info(
             "Starting structure export",
@@ -187,10 +208,32 @@ class FHIRExportService:
             entries_count=len(entries)
         )
         
-        return FHIRBundle(entry=entries)
+        bundle = FHIRBundle(entry=entries)
+        
+        # Mise en cache
+        if self.cache and self.enable_cache:
+            cache_ttl = 3600  # 1 heure pour structure (change rarement)
+            self.cache.set(cache_key, bundle.model_dump(), ttl=cache_ttl)
+            self.logger.debug("Structure cached", cache_key=cache_key, ttl=cache_ttl)
+        
+        metrics.observe("fhir.export.duration", duration * 1000, {"type": "structure", "cache": "miss"})
+        
+        return bundle
     
     def export_patients(self, ej: EntiteJuridique) -> FHIRBundle:
         """Exporte les patients d'un établissement en FHIR."""
+        import time
+        start_time = time.time()
+        
+        # Vérifier le cache
+        cache_key = f"fhir:export:patients:ej:{ej.id}"
+        if self.cache and self.enable_cache:
+            cached = self.cache.get(cache_key)
+            if cached:
+                self.logger.info("Patients export from cache", ej_id=ej.id, cache_hit=True)
+                metrics.observe("fhir.export.duration", (time.time() - start_time) * 1000, {"type": "patients", "cache": "hit"})
+                return FHIRBundle(**cached)
+        
         entries = []
         
         # Organisation
@@ -224,10 +267,33 @@ class FHIRExportService:
                 f"{patient.family} {patient.given}"
             )
         
-        return FHIRBundle(entry=entries)
+        bundle = FHIRBundle(entry=entries)
+        
+        # Mise en cache (TTL court car patients changent souvent)
+        if self.cache and self.enable_cache:
+            cache_ttl = 600  # 10 minutes
+            self.cache.set(cache_key, bundle.model_dump(), ttl=cache_ttl)
+            self.logger.debug("Patients cached", cache_key=cache_key, ttl=cache_ttl)
+        
+        duration = time.time() - start_time
+        metrics.observe("fhir.export.duration", duration * 1000, {"type": "patients", "cache": "miss"})
+        
+        return bundle
     
     def export_venues(self, ej: EntiteJuridique) -> FHIRBundle:
         """Exporte les venues d'un établissement en FHIR."""
+        import time
+        start_time = time.time()
+        
+        # Vérifier le cache
+        cache_key = f"fhir:export:venues:ej:{ej.id}"
+        if self.cache and self.enable_cache:
+            cached = self.cache.get(cache_key)
+            if cached:
+                self.logger.info("Venues export from cache", ej_id=ej.id, cache_hit=True)
+                metrics.observe("fhir.export.duration", (time.time() - start_time) * 1000, {"type": "venues", "cache": "hit"})
+                return FHIRBundle(**cached)
+        
         entries = []
         
         # Venues - find all venues linked to UFs in this EJ
@@ -290,4 +356,15 @@ class FHIRExportService:
             )
             entries.append(self.converter.create_bundle_entry(encounter))
         
-        return FHIRBundle(entry=entries)
+        bundle = FHIRBundle(entry=entries)
+        
+        # Mise en cache (TTL très court car venues changent en temps réel)
+        if self.cache and self.enable_cache:
+            cache_ttl = 300  # 5 minutes
+            self.cache.set(cache_key, bundle.model_dump(), ttl=cache_ttl)
+            self.logger.debug("Venues cached", cache_key=cache_key, ttl=cache_ttl)
+        
+        duration = time.time() - start_time
+        metrics.observe("fhir.export.duration", duration * 1000, {"type": "venues", "cache": "miss"})
+        
+        return bundle

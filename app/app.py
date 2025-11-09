@@ -224,7 +224,12 @@ def create_app() -> FastAPI:
     app.include_router(scenarios.router)
     print(" - Utility routers mounted")
     
-    # 7. Import endpoints for test examples
+    # 7. Cache management
+    from app.routers import cache
+    app.include_router(cache.router, prefix="/api")
+    print(" - Cache router mounted at /api/cache")
+    
+    # 8. Import endpoints for test examples
     from app.routers import import_examples
     app.include_router(import_examples.router)
     print(" - Import examples router mounted at /import")

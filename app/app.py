@@ -331,7 +331,8 @@ def create_app() -> FastAPI:
             app, 
             engine, 
             base_url="/sqladmin",
-            title="MedData Bridge - Admin SQL"
+            title="MedData Bridge - Admin SQL",
+            templates_dir="app/templates"
         )
         
         # Register all admin views from app.admin module

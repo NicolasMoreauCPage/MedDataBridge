@@ -1,0 +1,429 @@
+{
+  "total_files_checked": 1170,
+  "imported_estimate": 73,
+  "validation_failed": 1097,
+  "errors": 0,
+  "failures_sample_count": 1161,
+  "failures_sample": [
+    {
+      "file": "1117924595.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 2,
+      "pv1": true,
+      "zbe": false,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924601.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": false,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924606.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924612.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924621.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924627.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924634.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924640.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924643.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924648.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924658.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 4,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924663.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 6,
+      "pv1": true,
+      "zbe": false,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924669.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 6,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924673.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 6,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924683.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 6,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924689.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 6,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924695.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 8,
+      "pv1": true,
+      "zbe": false,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924700.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 8,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924708.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 8,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924714.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 8,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924720.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 8,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924723.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 10,
+      "pv1": true,
+      "zbe": false,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924731.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 10,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924738.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 10,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924745.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 10,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924752.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 10,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924757.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 10,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924763.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 12,
+      "pv1": true,
+      "zbe": false,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924769.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 12,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    },
+    {
+      "file": "1117924776.hl7",
+      "is_valid": true,
+      "errors_count": 0,
+      "warnings_count": 12,
+      "pv1": true,
+      "zbe": true,
+      "first_warning": {
+        "segment": "PV1",
+        "field": "F19",
+        "message": "Champ Numéro de venue vide",
+        "line": 5
+      }
+    }
+  ]
+}

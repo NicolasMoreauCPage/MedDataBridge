@@ -66,6 +66,35 @@
       <form action="/generate/fhir/{{ dossier.id }}" method="post" data-download="1">
         <button type="submit" class="w-full rounded-xl bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">Télécharger FHIR (JSON)</button>
       </form>
+      
+      <!-- Nouveau: Capture comme template réutilisable -->
+      <details class="mt-4 border border-amber-200 rounded-xl p-3 bg-amber-50">
+        <summary class="text-sm font-medium text-amber-800 cursor-pointer hover:text-amber-900">
+          📦 Capturer comme template IHE
+        </summary>
+        <form method="post" action="/dossiers/{{ dossier.id }}/capture-as-template" class="mt-3 space-y-2">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Nom du template (optionnel)</label>
+            <input type="text" name="template_name" placeholder="Dossier {{ dossier.dossier_seq }} capturé" 
+                   class="block w-full rounded border-slate-300 px-2 py-1 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Description (optionnel)</label>
+            <textarea name="template_description" rows="2" placeholder="Décrivez ce parcours patient..."
+                      class="block w-full rounded border-slate-300 px-2 py-1 text-sm"></textarea>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded p-2">
+            <p class="text-xs text-blue-800">
+              💡 Le template sera un <b>snapshot indépendant</b> : vous pourrez supprimer/modifier ce dossier 
+              sans affecter le template créé. Retrouvez-le dans <a href="/scenarios/templates" class="underline">Templates IHE</a>.
+            </p>
+          </div>
+          <button type="submit" class="w-full rounded-xl bg-amber-600 text-white px-4 py-2 text-sm hover:bg-amber-700">
+            Capturer comme template
+          </button>
+        </form>
+      </details>
+      
       <a href="/dossiers/{{ dossier.id }}/edit" class="block mt-4 bg-blue-600 text-white px-4 py-2 rounded text-center">Modifier</a>
       <form method="post" action="/dossiers/{{ dossier.id }}/delete" onsubmit="return confirm('Supprimer ce dossier ?');" style="display:inline;">
         <button type="submit" class="w-full mt-2 bg-red-600 text-white px-4 py-2 rounded">Supprimer</button>

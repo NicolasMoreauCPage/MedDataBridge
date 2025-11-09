@@ -426,14 +426,13 @@ def dossier_detail(
     ep_map = {e.id: e for e in endpoints}
     
     return templates.TemplateResponse(
+        request,
         "messages_dossier_detail.html",
         {
-            "request": request,
             "dossier_number": dossier_number,
             "messages": dossier_messages,
             "ack_statuses": ack_statuses,
-            "ep_map": ep_map,
-        },
+            "ep_map": ep_map},
     )
 
 

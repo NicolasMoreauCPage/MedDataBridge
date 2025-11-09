@@ -136,15 +136,14 @@ async def workflow_view(
     }
     
     return templates.TemplateResponse(
+        request,
         "mouvement_workflow.html",
         {
-            "request": request,
             **data,
             "graph": WORKFLOW_GRAPH,
             "event_catalog": filtered_catalog,
             "all_events": SUPPORTED_WORKFLOW_EVENTS,
-            "default_datetime": default_datetime,
-        },
+            "default_datetime": default_datetime},
     )
 
 @router.post("/{venue_id}/mouvement")

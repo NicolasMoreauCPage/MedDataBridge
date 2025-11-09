@@ -55,7 +55,15 @@ def test_edit_namespace(client: TestClient, session: Session):
     ctx = _ensure_context(client, session)
     ns = IdentifierNamespace(name="EDIT_NS", system="urn:oid:9.8", type="PI", ght_context_id=ctx.id)
     session.add(ns); session.commit(); session.refresh(ns)
-    r = client.post(f"/admin/ght/{ctx.id}/namespaces/{ns.id}/edit", data={"name": "EDIT_NS2", "system":"urn:oid:9.8", "type":"PI"}, follow_redirects=False)
+    r = client.post(f"/admin/ght/{ctx.id}/namespaces/{ns.id}/edit", 
+        data={
+            "name": "EDIT_NS2", 
+            "system": "urn:oid:9.8", 
+            "type": "PI",
+            "description": "Namespace édité",
+            "oid": "1.2.3.4.5"
+        }, 
+        follow_redirects=False)
     assert r.status_code in (303,302)
     session.expire_all(); ns2 = session.get(IdentifierNamespace, ns.id)
     assert ns2.name == "EDIT_NS2"

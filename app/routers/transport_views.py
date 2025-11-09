@@ -27,9 +27,9 @@ async def view_transport_configs(request: Request, endpoint_id: int, session: Se
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
     return templates.TemplateResponse(
-        "endpoint_transport.html", 
+        request,
+        "endpoint_transport.html",
         {
-            "request": request,
             "endpoint": endpoint,
             "mllp_configs": endpoint.mllp_configs,
             "fhir_configs": endpoint.fhir_configs
@@ -44,9 +44,9 @@ async def new_mllp_config_form(request: Request, endpoint_id: int, session: Sess
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
     return templates.TemplateResponse(
+        request,
         "mllp_config_form.html",
         {
-            "request": request,
             "endpoint": endpoint,
             "config": None
         }
@@ -115,9 +115,9 @@ async def edit_mllp_config_form(
         raise HTTPException(status_code=403, detail="Config does not belong to endpoint")
     
     return templates.TemplateResponse(
+        request,
         "mllp_config_form.html",
         {
-            "request": request,
             "endpoint": endpoint,
             "config": config
         }
@@ -177,9 +177,9 @@ async def new_fhir_config_form(request: Request, endpoint_id: int, session: Sess
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
     return templates.TemplateResponse(
+        request,
         "fhir_config_form.html",
         {
-            "request": request,
             "endpoint": endpoint,
             "config": None
         }
@@ -241,9 +241,9 @@ async def edit_fhir_config_form(
         raise HTTPException(status_code=403, detail="Config does not belong to endpoint")
     
     return templates.TemplateResponse(
+        request,
         "fhir_config_form.html",
         {
-            "request": request,
             "endpoint": endpoint,
             "config": config
         }

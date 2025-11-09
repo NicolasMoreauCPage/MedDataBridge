@@ -119,7 +119,7 @@ def test_pattern_exhaustion():
             generate_and_persist_identifier(session, ns, IdentifierType.IPP)
         
         # Le 11ème devrait échouer (après max_attempts)
-        with pytest.raises(IdentifierGenerationError, match="Impossible de générer identifiant unique"):
+        with pytest.raises(IdentifierGenerationError, match="Toutes les valeurs possibles ont été essayées"):
             generate_and_persist_identifier(session, ns, IdentifierType.IPP)
 
 

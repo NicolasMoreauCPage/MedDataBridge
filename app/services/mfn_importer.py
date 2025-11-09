@@ -392,3 +392,17 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             index[(t, code)] = lit
 
     return created
+
+
+# -------------------------------------------------------------
+# Compatibilité tests: fonction attendue import_mfn_structure
+# -------------------------------------------------------------
+def import_mfn_structure(session: Session, message: str) -> Dict[str, int]:
+    """Wrapper pour compatibilité avec anciens tests.
+
+    Cherche un contexte GHT actif et délègue à import_mfn.
+    """
+    ght = session.exec(select(GHTContext).where(GHTContext.is_active == True)).first()  # noqa: E712
+    if not ght:
+        raise ValueError("Aucun contexte GHT actif pour import MFN")
+    return import_mfn(message, session, ght)

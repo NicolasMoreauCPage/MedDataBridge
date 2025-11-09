@@ -225,7 +225,8 @@ class Mouvement(SQLModel, table=True):
     # Type de message HL7 (ex: "ADT^A01"). Conservé pour compat UI/ancienne donnée.
     # La logique métier doit utiliser trigger_event (A01, A03, A21, ...).
     type: Optional[str] = None
-    when: datetime
+    when: datetime  # Date/heure du mouvement (début)
+    end_time: Optional[datetime] = None  # Fin (pour mapping FHIR Encounter period.end)
     location: Optional[str] = None
     # Extensions
     from_location: Optional[str] = None
@@ -252,3 +253,27 @@ class Mouvement(SQLModel, table=True):
     movement_ids: Optional[str] = Field(default=None, description="JSON array of all ZBE-1 identifiers if repetition")
     venue: Venue = Relationship(back_populates="mouvements")
     identifiers: List["Identifier"] = Relationship(back_populates="mouvement")
+
+    # --- Compatibilité ascendante (anciens champs attendus par tests/anciens templates) ---
+    @property
+    def statut(self) -> Optional[str]:  # ancien nom
+        return self.status
+
+    @statut.setter
+    def statut(self, value: Optional[str]):
+        self.status = value
+
+    @property
+    def date_debut(self) -> datetime:
+        return self.when
+
+    @property
+    def date_fin(self) -> Optional[datetime]:
+        return self.end_time
+
+    @property
+    def dossier_id(self) -> Optional[int]:
+        try:
+            return self.venue.dossier_id if self.venue else None
+        except Exception:
+            return None

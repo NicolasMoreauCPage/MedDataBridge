@@ -613,14 +613,13 @@ def render_form(
 ):
     """Render generic form template with provided fields"""
     return templates.TemplateResponse(
+        request,
         "forms.html",
         {
-            "request": request,
             "title": title,
             "fields": fields,
             "action_url": action_url,
             "cancel_url": cancel_url,
-            "error": error,
-        },
+            "error": error},
         status_code=status_code,
     )

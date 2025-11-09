@@ -40,13 +40,23 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 # car il y a un problème d'import circulaire qui empêche le chargement complet
 # de toutes les routes (seules 9 routes sur 45 sont chargées sinon)
 import app.routers.ght as ght
+import app.routers.ght_ej_min as ght_ej_min
+"""Application composition module.
+
+NOTE (Fallback Router Removal): The previous temporary fallback router
+`ght_ej_fallback` guaranteeing `/admin/ght/{context_id}/ej/{ej_id}` has been
+removed now that the main `ght` router consistently loads all routes after the
+import/reload bugfix sequence. If future partial-load regressions occur, prefer
+modularizing `app/routers/ght.py` instead of reintroducing a fallback.
+"""
+import app.routers.ght_ej_fallback as _deprecated_ght_ej_fallback  # Deprecated (kept only if reactivation needed)
 
 from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
-    generate, structure, workflow, fhir_structure, vocabularies, namespaces,
+    generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
-    documentation, conformity
+    documentation, conformity, fhir_export, fhir_import, metrics, auth
 )
 
 logging.basicConfig(
@@ -192,7 +202,8 @@ def create_app() -> FastAPI:
     from app.routers import admin_gateway
     app.include_router(admin_gateway.router)
     app.include_router(ght.router, prefix="/admin")
-    app.include_router(namespaces.router, prefix="/admin")
+    # Minimal EJ detail router (guarantee availability even if ght incomplete)
+    app.include_router(ght_ej_min.router, prefix="/admin")
     print(" - Admin routers mounted under /admin")
     
     # 5. Integration and transport
@@ -225,11 +236,58 @@ def create_app() -> FastAPI:
     app.include_router(scenarios.router)
     print(" - Utility routers mounted")
     
-    # 7. Test helpers
+    # 7. Cache management
+    from app.routers import cache
+    app.include_router(cache.router, prefix="/api")
+    print(" - Cache router mounted at /api/cache")
+    
+    # 8. Import endpoints for test examples
+    from app.routers import import_examples
+    app.include_router(import_examples.router)
+    print(" - Import examples router mounted at /import")
+    
+    # 7. Authentication
+    app.include_router(auth.router)
+    print(" - Authentication router mounted")
+    
+    # 7.1. Protected admin endpoints
+    from app.routers import admin_protected
+    app.include_router(admin_protected.router)
+    print(" - Protected admin router mounted at /api/admin")
+    
+    # 8. FHIR API endpoints
+    app.include_router(fhir_export.router)
+    app.include_router(fhir_import.router)
+    app.include_router(metrics.router)
+    print(" - FHIR API routers mounted")
+
+    # 11. Monitoring dashboard (UI)
+    try:
+        from fastapi import Request
+        from fastapi.responses import HTMLResponse
+        from fastapi import APIRouter
+        from fastapi.templating import Jinja2Templates
+        templates = Jinja2Templates(directory="app/templates")
+        dashboard_router = APIRouter()
+
+        @dashboard_router.get("/dashboard", response_class=HTMLResponse, tags=["Monitoring"])
+        async def dashboard(request: Request):
+            return templates.TemplateResponse(request, "dashboard.html")
+
+        @dashboard_router.get("/cache-dashboard", response_class=HTMLResponse, tags=["Monitoring"])
+        async def cache_dashboard(request: Request):
+            return templates.TemplateResponse(request, "cache_dashboard.html")
+
+        app.include_router(dashboard_router)
+        print(" - Monitoring dashboard mounted at /dashboard")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Dashboard not available: {e}")
+    
+    # 9. Test helpers
     app.include_router(health.router)
     print(" - Test helpers mounted")
     
-    # 8. Debug endpoints (dev only)
+    # 10. Debug endpoints (dev only)
     try:
         from app.routers import debug_events
         app.include_router(debug_events.router)
@@ -250,8 +308,9 @@ def create_app() -> FastAPI:
         for route in app.routes[:]:
             if hasattr(route, 'path') and route.path.startswith('/admin/ght'):
                 app.routes.remove(route)
-        # Réenregistrer avec toutes les routes
+        # Réenregistrer principal + minimal EJ route
         app.include_router(ght.router, prefix="/admin")
+        app.include_router(ght_ej_min.router, prefix="/admin")
         ght_routes_count = len([r for r in app.routes if hasattr(r, 'path') and r.path.startswith('/admin/ght')])
         print(f" → BUGFIX: Module ght rechargé ({ght_routes_count} routes /admin/ght)")
     except Exception as e:
@@ -284,10 +343,5 @@ def create_app() -> FastAPI:
 # `create_app()` directly after preparing the test database so we avoid
 # side-effects (like initializing the production DB or starting MLLP
 # managers) at import time which can interfere with test setup.
-if os.getenv("TESTING", "0") not in ("1", "true", "True"):
-    app = create_app()
-else:
-    # Tests will call create_app() explicitly; keep a placeholder to
-    # avoid AttributeError in environments that import `app.app`.
-    app = None
+app = create_app()
 # reload trigger lun. 03 nov. 2025 08:00:19 CET

@@ -1,8 +1,102 @@
-# FHIR Export Performance Benchmarking
+# FHIR Export Performance Benchmarking & Extended Demo Initialization
 
 ## Overview
 
-This document describes the FHIR export benchmarking tools and methodology used to measure and optimize cache performance.
+This document has two purposes:
+
+1. Describe the FHIR export benchmarking tools and methodology used to measure and optimize cache performance.
+2. Document the initialization of the extended multi-EJ demo dataset (realistic GHT: CHU, hôpital local, EHPAD, psychiatrie) used as a foundation for performance and interoperability tests.
+
+If you only need benchmarking usage, you can skip directly to the section "Benchmark Tools". For reproducing a realistic dataset before benchmarking, start with "Extended Demo Initialization".
+
+---
+
+## Extended Demo Initialization (Multi-EJ GHT)
+
+### Goal
+
+Provide a realistic territory-wide GHT containing 4 juridical entities:
+
+- CHU Universitaire Lyon (multi-sites: MCO, Maternité, Urgences, SSR)
+- Centre Hospitalier Local (médecine, chirurgie légère / soins courants)
+- EHPAD (hébergement personnes âgées dépendantes)
+- Établissement Psychiatrique (PSY)
+
+Each EJ includes its own sites (EG), poles, services, UF, UH, chambres, lits, and associated identifier namespaces. Endpoints (HL7 MLLP inbound/outbound + FHIR export/import) are provisioned per EJ. A synthetic patient population with venues/mouvements is generated idempotently.
+
+### Main Seeding Functions
+
+Located in `app/services/structure_seed.py`:
+
+- `ensure_extended_demo_ght(session, ght_context_id)`
+  - Iterates over `EXTENDED_GHT_DATA['juridical_entities']` and upserts full hierarchy.
+- `ensure_endpoints_for_context(session, ght_context_id)`
+  - Creates or updates a standard set of endpoints (MLLP sender/receiver, FHIR export/import) for every EJ present in the context.
+- `seed_demo_population(session, ght_context_id, target_patient_count=120)`
+  - Populates patients, dossiers, venues, mouvements. Idempotent: if patient count ≥ target, it skips creation.
+
+### Orchestration Script
+
+Run `tools/init_extended_demo.py` to perform all steps (DB init + structure + endpoints + population):
+
+```bash
+export PYTHONPATH=.
+.venv/bin/python tools/init_extended_demo.py
+```
+
+The script prints summary counters for created/updated entities and patient/movement counts.
+
+### Idempotence & Re-run Behavior
+
+- Structural entities (EJ/EG/Pole/Service/UF/UH/Chambre/Lit) use stable `identifier` or business keys (FINESS) → upsert without duplication.
+- Endpoints matched by `(entite_juridique_id, name)` → updated if already present.
+- Patient population: counts existing patients for the context; if already at or above target, no new patients are added.
+
+### Expected Counts (First Run Approximation)
+
+| Category | Approx Count | Notes |
+|----------|--------------|-------|
+| Entités Juridiques (EJ) | 4 | CHU + Local + EHPAD + PSY |
+| Sites (EG) | ~8 | Varies per EJ (CHU multi-sites) |
+| Pôles | 8–12 | Depends on dataset version |
+| Services | 12–20 | Urgences, MCO, SSR, etc. |
+| UF | 20–30 | Includes hospitalisation, urgences, bloc, consultations |
+| UH | 20–25 | Some UF sans UH (ex: consultations only) |
+| Chambres/Boxes | 60–90 | Includes lits EHPAD chambres simples/doubles |
+| Lits | 100–140 | Operational status varied (available/occupied/maintenance) |
+| Patients | 120 | Target default |
+| Mouvements | 200–250 | Admission/transfers/discharges synthetic chain |
+
+Second run: structural counts unchanged; endpoints updated only; patient + mouvements stable (no increment if target met).
+
+### Verifying Initialization
+
+1. Start the API server (Linux task or manual):
+   ```bash
+   .venv/bin/python -m uvicorn app.app:app --reload
+   ```
+2. Visit `/admin/ght/1/ej/1` (CHU) and `/admin/ght/1/ej/2` etc. to inspect counts.
+3. Check endpoints via `/endpoints` UI or API.
+4. Confirm patient volume via `/patients` or direct DB query.
+
+### Troubleshooting
+
+| Symptom | Cause | Resolution |
+|---------|-------|------------|
+| 404 on `/admin/ght/1/ej/1` | Router partial load | Ensure fallback removed only after full `ght` load; restart server |
+| Duplicate endpoints | Script re-run with name changes | Keep names stable; they are used as upsert keys |
+| Excess patients | Manual data injection before seed | Adjust `target_patient_count` or purge DB |
+| Slow seed time | Large movement generation | Lower target count (`seed_demo_population(..., target_patient_count=60)`) |
+
+### Future Improvements
+
+- Modularize `app/routers/ght.py` (currently large) into sub-routers.
+- Configurable endpoint templates per EJ type (e.g., EHPAD minimal set vs CHU full set).
+- Parameterize movement generation (patterns, ADT mix ratios).
+
+---
+
+## Benchmark Tools
 
 ## Tools
 

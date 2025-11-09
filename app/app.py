@@ -40,6 +40,16 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 # car il y a un problème d'import circulaire qui empêche le chargement complet
 # de toutes les routes (seules 9 routes sur 45 sont chargées sinon)
 import app.routers.ght as ght
+import app.routers.ght_ej_min as ght_ej_min
+"""Application composition module.
+
+NOTE (Fallback Router Removal): The previous temporary fallback router
+`ght_ej_fallback` guaranteeing `/admin/ght/{context_id}/ej/{ej_id}` has been
+removed now that the main `ght` router consistently loads all routes after the
+import/reload bugfix sequence. If future partial-load regressions occur, prefer
+modularizing `app/routers/ght.py` instead of reintroducing a fallback.
+"""
+import app.routers.ght_ej_fallback as _deprecated_ght_ej_fallback  # Deprecated (kept only if reactivation needed)
 
 from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
@@ -192,6 +202,8 @@ def create_app() -> FastAPI:
     from app.routers import admin_gateway
     app.include_router(admin_gateway.router)
     app.include_router(ght.router, prefix="/admin")
+    # Minimal EJ detail router (guarantee availability even if ght incomplete)
+    app.include_router(ght_ej_min.router, prefix="/admin")
     print(" - Admin routers mounted under /admin")
     
     # 5. Integration and transport
@@ -296,8 +308,9 @@ def create_app() -> FastAPI:
         for route in app.routes[:]:
             if hasattr(route, 'path') and route.path.startswith('/admin/ght'):
                 app.routes.remove(route)
-        # Réenregistrer avec toutes les routes
+        # Réenregistrer principal + minimal EJ route
         app.include_router(ght.router, prefix="/admin")
+        app.include_router(ght_ej_min.router, prefix="/admin")
         ght_routes_count = len([r for r in app.routes if hasattr(r, 'path') and r.path.startswith('/admin/ght')])
         print(f" → BUGFIX: Module ght rechargé ({ght_routes_count} routes /admin/ght)")
     except Exception as e:

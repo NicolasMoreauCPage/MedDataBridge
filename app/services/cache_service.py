@@ -10,8 +10,13 @@ import json
 import logging
 from typing import Optional, Any, Dict, List
 from datetime import timedelta
-import redis
-from redis.exceptions import RedisError
+try:
+    import redis
+    from redis.exceptions import RedisError
+except ModuleNotFoundError:  # Redis library not installed; degrade gracefully
+    redis = None
+    class RedisError(Exception):
+        pass
 from app.utils.structured_logging import metrics
 
 logger = logging.getLogger(__name__)
@@ -41,23 +46,28 @@ class CacheService:
         self.default_ttl = default_ttl
         self.enabled = True
         
-        try:
-            self.client = redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
-                decode_responses=True,
-                socket_connect_timeout=2,
-                socket_timeout=2
-            )
-            # Test de connexion
-            self.client.ping()
-            logger.info(f"✅ Cache Redis connecté sur {host}:{port}")
-        except RedisError as e:
-            logger.warning(f"⚠️  Cache Redis indisponible: {e}. Désactivation du cache.")
+        if redis is None:
+            logger.warning("Redis library not installed; cache disabled (install 'redis' package to enable).")
             self.enabled = False
             self.client = None
+        else:
+            try:
+                self.client = redis.Redis(
+                    host=host,
+                    port=port,
+                    db=db,
+                    password=password,
+                    decode_responses=True,
+                    socket_connect_timeout=2,
+                    socket_timeout=2
+                )
+                # Test de connexion
+                self.client.ping()
+                logger.info(f"✅ Cache Redis connecté sur {host}:{port}")
+            except RedisError as e:
+                logger.warning(f"⚠️  Cache Redis indisponible: {e}. Désactivation du cache.")
+                self.enabled = False
+                self.client = None
     
     def get(self, key: str) -> Optional[Any]:
         """

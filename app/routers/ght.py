@@ -29,6 +29,29 @@ from app.services.structure_seed import ensure_demo_structure
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/ght", tags=["ght"])
+
+# --- Fallback early helpers (to ensure EJ detail route exists even if later import stops) ---
+from sqlmodel import Session as _EarlySession, select as _early_select
+from fastapi import HTTPException as _EarlyHTTPException, Request as _EarlyRequest, Depends as _EarlyDepends
+
+def _early_get_context(session: _EarlySession, context_id: int) -> GHTContext:
+    ctx = session.get(GHTContext, context_id)
+    if not ctx:
+        raise _EarlyHTTPException(status_code=404, detail="Contexte non trouvé")
+    return ctx
+
+def _early_get_ej(session: _EarlySession, context: GHTContext, ej_id: int) -> EntiteJuridique:
+    ej = session.exec(
+        _early_select(EntiteJuridique)
+        .where(EntiteJuridique.id == ej_id)
+        .where(EntiteJuridique.ght_context_id == context.id)
+    ).first()
+    if not ej:
+        raise _EarlyHTTPException(status_code=404, detail="Entité juridique non trouvée")
+    return ej
+
+# NOTE: La route de fallback /{context_id}/ej/{ej_id} a été supprimée car la définition
+# complète plus bas est désormais chargée correctement après correction de l'import.
 @router.get("")
 @router.get("/")
 async def list_ght_contexts(
@@ -320,6 +343,70 @@ def _get_ej_or_404(
     if not entite:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
     return entite
+
+# ROUTE DE SECOURS: Vue détail EJ (ajoutée en tête de fichier pour garantir disponibilité
+# même si la fin du module ne s'exécute pas correctement). Dupliquée de la version complète.
+@router.get("/{context_id}/ej/{ej_id}")
+async def view_entite_juridique_fallback(
+    request: Request,
+    context_id: int,
+    ej_id: int,
+    session: Session = Depends(get_session),
+):
+    """Affiche le détail d'une entité juridique (fallback)."""
+    context = _get_context_or_404(session, context_id)
+    entite = _get_ej_or_404(session, context, ej_id)
+
+    geo_ids = [geo.id for geo in entite.entites_geographiques]
+    pole_ids: List[int] = []
+    service_ids: List[int] = []
+    uf_ids: List[int] = []
+    uh_ids: List[int] = []
+    chambre_ids: List[int] = []
+
+    if geo_ids:
+        pole_ids = list(session.exec(select(Pole.id).where(Pole.entite_geo_id.in_(geo_ids))))
+    if pole_ids:
+        service_ids = list(session.exec(select(Service.id).where(Service.pole_id.in_(pole_ids))))
+    if service_ids:
+        uf_ids = list(session.exec(select(UniteFonctionnelle.id).where(UniteFonctionnelle.service_id.in_(service_ids))))
+    if uf_ids:
+        uh_ids = list(session.exec(select(UniteHebergement.id).where(UniteHebergement.unite_fonctionnelle_id.in_(uf_ids))))
+    if uh_ids:
+        chambre_ids = list(session.exec(select(Chambre.id).where(Chambre.unite_hebergement_id.in_(uh_ids))))
+
+    lit_count = 0
+    if chambre_ids:
+        lit_count = session.exec(select(func.count(Lit.id)).where(Lit.chambre_id.in_(chambre_ids))).one()
+
+    counts = {
+        "entites_geo": len(geo_ids),
+        "entites_geo_actives": sum(1 for geo in entite.entites_geographiques if getattr(geo, "is_active", True)),
+        "poles": len(pole_ids),
+        "services": len(service_ids),
+        "ufs": len(uf_ids),
+        "uhs": len(uh_ids),
+        "chambres": len(chambre_ids),
+        "lits": lit_count,
+    }
+
+    namespaces = session.exec(
+        select(IdentifierNamespace)
+        .where(IdentifierNamespace.entite_juridique_id == ej_id)
+        .order_by(IdentifierNamespace.type, IdentifierNamespace.name)
+    ).all()
+
+    return templates.TemplateResponse(
+        request,
+        "ej_detail.html",
+        {
+            "context": context,
+            "entite": entite,
+            "entites_geographiques": entite.entites_geographiques,
+            "namespaces": namespaces,
+            "counts": counts,
+        },
+    )
 
 
 def _get_entite_geo_or_404(

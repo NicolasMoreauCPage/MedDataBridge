@@ -1,0 +1,34 @@
+{
+  "checked": 1170,
+  "missing_pv1_count": 4,
+  "results": [
+    {
+      "file": "1117925011.hl7",
+      "status": "imported",
+      "patient": "900099044638",
+      "venue_seq": 1346,
+      "mouvements": []
+    },
+    {
+      "file": "1117925016.hl7",
+      "status": "imported",
+      "patient": "900099044638",
+      "venue_seq": 1347,
+      "mouvements": []
+    },
+    {
+      "file": "1117925160.hl7",
+      "status": "imported",
+      "patient": "900018127444",
+      "venue_seq": 1348,
+      "mouvements": []
+    },
+    {
+      "file": "1117925176.hl7",
+      "status": "imported",
+      "patient": "900018127444",
+      "venue_seq": 1349,
+      "mouvements": []
+    }
+  ]
+}

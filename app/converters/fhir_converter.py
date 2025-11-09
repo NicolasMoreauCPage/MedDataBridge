@@ -138,17 +138,43 @@ class StructureToFHIRConverter:
         "LIT": ("BED", "Lit")
     }
     
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str = "http://localhost/fhir"):
+        # base_url par défaut pour compatibilité avec tests appelant sans argument
         self.base_url = base_url
         self.converter = HL7ToFHIRConverter()
 
-    def create_location(self, 
-                       identifier: str,
-                       name: str,
-                       location_type: str,
-                       physical_type: str,
+    def create_location(self,
+                       identifier_or_obj,
+                       name: Optional[str] = None,
+                       location_type: Optional[str] = None,
+                       physical_type: Optional[str] = None,
                        parent_ref: Optional[FHIRReference] = None) -> FHIRLocation:
-        """Crée une ressource Location FHIR."""
+        """Crée une ressource Location FHIR.
+        Peut être appelée de deux façons:
+        - create_location(<model_obj>) où <model_obj> est une instance d'un modèle structure (EG, Pole, Service, UF, UH, Chambre, Lit)
+        - create_location(identifier, name, location_type, physical_type, parent_ref)
+        """
+        # Détection appel simplifié avec objet
+        if name is None and location_type is None and physical_type is None and hasattr(identifier_or_obj, "__class__"):
+            obj = identifier_or_obj
+            identifier = getattr(obj, "identifier", None) or getattr(obj, "finess_ej", "")
+            name = getattr(obj, "name", getattr(obj, "label", "Inconnu"))
+            class_map = {
+                "EntiteGeographique": "ETBL_GRPQ",
+                "Pole": "PL",
+                "Service": "D",
+                "UniteFonctionnelle": "UF",
+                "UniteHebergement": "UH",
+                "Chambre": "CH",
+                "Lit": "LIT"
+            }
+            location_type = class_map.get(obj.__class__.__name__, "ETBL_GRPQ")
+            physical_type = getattr(obj, "physical_type", "SI")
+        else:
+            identifier = identifier_or_obj
+            # Tous les paramètres doivent être fournis dans l'appel explicite
+            if None in (name, location_type, physical_type):
+                raise TypeError("create_location requires name, location_type and physical_type when called with an identifier")
         
         # Identifiant
         identifiers = [
@@ -160,7 +186,7 @@ class StructureToFHIRConverter:
         
         # Type de localisation
         type_code, type_display = self.LOCATION_TYPES.get(location_type, ("UNK", "Inconnu"))
-        location_type = self.converter.create_codeable_concept(
+        location_type_cc = self.converter.create_codeable_concept(
             type_code,
             f"{self.base_url}/location/type",
             type_display
@@ -168,10 +194,10 @@ class StructureToFHIRConverter:
         
         # Type physique - handle both lowercase and uppercase physical types
         phys_code, phys_display = self.PHYSICAL_TYPES.get(
-            physical_type.upper(), 
-            self.PHYSICAL_TYPES.get(physical_type, ("bu", "Building"))
+            (physical_type or "BU").upper(), 
+            self.PHYSICAL_TYPES.get(physical_type or "BU", ("bu", "Building"))
         )
-        physical_type = self.converter.create_codeable_concept(
+        physical_type_cc = self.converter.create_codeable_concept(
             phys_code,
             "http://terminology.hl7.org/CodeSystem/location-physical-type",
             phys_display
@@ -180,8 +206,8 @@ class StructureToFHIRConverter:
         return FHIRLocation(
             identifier=identifiers,
             name=name,
-            type=[location_type],
-            physicalType=physical_type,
+            type=[location_type_cc],
+            physicalType=physical_type_cc,
             partOf=parent_ref
         )
 

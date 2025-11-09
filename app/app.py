@@ -238,6 +238,11 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     print(" - Authentication router mounted")
     
+    # 7.1. Protected admin endpoints
+    from app.routers import admin_protected
+    app.include_router(admin_protected.router)
+    print(" - Protected admin router mounted at /api/admin")
+    
     # 8. FHIR API endpoints
     app.include_router(fhir_export.router)
     app.include_router(fhir_import.router)
@@ -256,6 +261,10 @@ def create_app() -> FastAPI:
         @dashboard_router.get("/dashboard", response_class=HTMLResponse, tags=["Monitoring"])
         async def dashboard(request: Request):
             return templates.TemplateResponse("dashboard.html", {"request": request})
+
+        @dashboard_router.get("/cache-dashboard", response_class=HTMLResponse, tags=["Monitoring"])
+        async def cache_dashboard(request: Request):
+            return templates.TemplateResponse("cache_dashboard.html", {"request": request})
 
         app.include_router(dashboard_router)
         print(" - Monitoring dashboard mounted at /dashboard")
@@ -321,10 +330,5 @@ def create_app() -> FastAPI:
 # `create_app()` directly after preparing the test database so we avoid
 # side-effects (like initializing the production DB or starting MLLP
 # managers) at import time which can interfere with test setup.
-if os.getenv("TESTING", "0") not in ("1", "true", "True"):
-    app = create_app()
-else:
-    # Tests will call create_app() explicitly; keep a placeholder to
-    # avoid AttributeError in environments that import `app.app`.
-    app = None
+app = create_app()
 # reload trigger lun. 03 nov. 2025 08:00:19 CET

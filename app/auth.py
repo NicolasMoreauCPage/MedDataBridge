@@ -5,6 +5,7 @@ Fournit:
 - Génération et validation de tokens JWT
 - Dépendances FastAPI pour protéger les endpoints
 - Gestion des utilisateurs basique
+- Rotation de refresh tokens avec blacklist Redis
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -14,6 +15,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import os
+import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Configuration JWT
@@ -41,6 +46,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     refresh_token: Optional[str] = None
+    roles: list[str] = []
 
 
 class UserInDB(BaseModel):
@@ -100,7 +106,7 @@ def authenticate_user(username: str, password: str) -> Optional[UserInDB]:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Crée un token JWT."""
+    """Crée un token JWT avec jti (JWT ID) unique."""
     to_encode = data.copy()
     
     if expires_delta:
@@ -108,32 +114,99 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode.update({"exp": expire, "type": "access"})
+    # Ajouter jti (JWT ID) unique pour traçabilité et révocation
+    jti = str(uuid.uuid4())
+    to_encode.update({"exp": expire, "type": "access", "jti": jti})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def create_refresh_token(data: dict) -> str:
-    """Crée un refresh token."""
+def create_refresh_token(data: dict, include_roles: bool = True) -> str:
+    """Crée un refresh token avec jti unique.
+
+    Args:
+        data: Données de base (sub, user_id, roles optionnel)
+        include_roles: Inclure ou non les rôles dans le refresh token. Par défaut True pour permettre leur persistance.
+    """
     to_encode = data.copy()
+    if include_roles and "roles" not in to_encode:
+        # Si les rôles ne sont pas présents mais l'utilisateur existe dans la DB factice, les récupérer
+        username = to_encode.get("sub")
+        if username and username in fake_users_db:
+            to_encode["roles"] = fake_users_db[username].roles
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
+    
+    # Ajouter jti unique pour rotation et révocation
+    jti = str(uuid.uuid4())
+    to_encode.update({"exp": expire, "type": "refresh", "jti": jti})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def decode_token(token: str) -> TokenData:
-    """Décode et valide un token JWT."""
+def is_token_blacklisted(jti: str) -> bool:
+    """Vérifie si un token est blacklisté."""
+    try:
+        from app.services.cache_service import get_cache_service
+        cache = get_cache_service()
+        return cache.exists(f"token:blacklist:{jti}")
+    except Exception as e:
+        logger.warning(f"Erreur vérification blacklist: {e}")
+        # En cas d'erreur Redis, on autorise (fail-open pour disponibilité)
+        return False
+
+
+def blacklist_token(jti: str, ttl_seconds: int) -> bool:
+    """Ajoute un token à la blacklist.
+    
+    Args:
+        jti: JWT ID du token
+        ttl_seconds: Durée de vie en secondes (doit correspondre à l'expiration du token)
+    
+    Returns:
+        True si ajouté avec succès, False sinon
+    """
+    try:
+        from app.services.cache_service import get_cache_service
+        cache = get_cache_service()
+        # Stocker avec TTL pour nettoyage automatique
+        return cache.set(f"token:blacklist:{jti}", {"revoked": True}, ttl=ttl_seconds)
+    except Exception as e:
+        logger.error(f"Erreur blacklist token: {e}")
+        return False
+
+
+def decode_token(token: str, check_blacklist: bool = True) -> TokenData:
+    """Décode et valide un token JWT.
+    
+    Args:
+        token: Token JWT à décoder
+        check_blacklist: Vérifier si le token est révoqué (défaut: True)
+    
+    Returns:
+        TokenData avec les informations du token
+    
+    Raises:
+        HTTPException: Si le token est invalide, expiré ou révoqué
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         user_id: int = payload.get("user_id")
         roles: list = payload.get("roles", [])
+        jti: str = payload.get("jti")
         
         if username is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token invalide",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Vérifier la blacklist si demandé
+        if check_blacklist and jti and is_token_blacklisted(jti):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token révoqué",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         

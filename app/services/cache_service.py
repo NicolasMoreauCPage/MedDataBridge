@@ -12,6 +12,7 @@ from typing import Optional, Any, Dict, List
 from datetime import timedelta
 import redis
 from redis.exceptions import RedisError
+from app.utils.structured_logging import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +75,20 @@ class CacheService:
         try:
             value = self.client.get(key)
             if value is None:
+                metrics.record_operation("cache_get", 0.0, status="miss", key=key)
                 return None
-            
             # Désérialiser JSON
-            return json.loads(value)
-        except (RedisError, json.JSONDecodeError) as e:
+            try:
+                deserialized = json.loads(value)
+                metrics.record_operation("cache_get", 0.0, status="success", key=key)
+                return deserialized
+            except json.JSONDecodeError as je:
+                metrics.record_operation("cache_get", 0.0, status="error", key=key, error="json_decode")
+                logger.error(f"Erreur décodage JSON cache '{key}': {je}")
+                return None
+        except RedisError as e:
             logger.error(f"Erreur lecture cache '{key}': {e}")
+            metrics.record_operation("cache_get", 0.0, status="error", key=key, error=str(e))
             return None
     
     def set(
@@ -106,9 +115,11 @@ class CacheService:
             ttl = ttl or self.default_ttl
             serialized = json.dumps(value, default=str)
             self.client.setex(key, ttl, serialized)
+            metrics.record_operation("cache_set", 0.0, status="success", key=key, ttl=ttl)
             return True
         except (RedisError, TypeError, json.JSONEncodeError) as e:
             logger.error(f"Erreur écriture cache '{key}': {e}")
+            metrics.record_operation("cache_set", 0.0, status="error", key=key, ttl=ttl, error=str(e))
             return False
     
     def delete(self, key: str) -> bool:
@@ -126,9 +137,11 @@ class CacheService:
         
         try:
             self.client.delete(key)
+            metrics.record_operation("cache_delete", 0.0, status="success", key=key)
             return True
         except RedisError as e:
             logger.error(f"Erreur suppression cache '{key}': {e}")
+            metrics.record_operation("cache_delete", 0.0, status="error", key=key, error=str(e))
             return False
     
     def delete_pattern(self, pattern: str) -> int:
@@ -146,11 +159,14 @@ class CacheService:
         
         try:
             keys = self.client.keys(pattern)
+            deleted = 0
             if keys:
-                return self.client.delete(*keys)
-            return 0
+                deleted = self.client.delete(*keys)
+            metrics.record_operation("cache_delete_pattern", 0.0, status="success", pattern=pattern, deleted=deleted)
+            return deleted
         except RedisError as e:
             logger.error(f"Erreur suppression pattern '{pattern}': {e}")
+            metrics.record_operation("cache_delete_pattern", 0.0, status="error", pattern=pattern, error=str(e))
             return 0
     
     def exists(self, key: str) -> bool:
@@ -167,9 +183,12 @@ class CacheService:
             return False
         
         try:
-            return bool(self.client.exists(key))
+            exists = bool(self.client.exists(key))
+            metrics.record_operation("cache_exists", 0.0, status="success", key=key, exists=exists)
+            return exists
         except RedisError as e:
             logger.error(f"Erreur vérification existence '{key}': {e}")
+            metrics.record_operation("cache_exists", 0.0, status="error", key=key, error=str(e))
             return False
     
     def get_stats(self) -> Dict[str, Any]:
@@ -221,9 +240,11 @@ class CacheService:
         try:
             self.client.flushdb()
             logger.warning("⚠️  Cache Redis vidé complètement")
+            metrics.record_operation("cache_flush_all", 0.0, status="success")
             return True
         except RedisError as e:
             logger.error(f"Erreur vidage cache: {e}")
+            metrics.record_operation("cache_flush_all", 0.0, status="error", error=str(e))
             return False
 
 

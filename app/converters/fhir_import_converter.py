@@ -157,17 +157,34 @@ class FHIRToLocationConverter:
         else:
             raise FHIRImportError(f"Type physique non supporté: {physical_type}")
 
-    def _extract_physical_type(self, fhir_location: Dict[str, Any]) -> Optional[str]:
-        """Extrait le type physique depuis physicalType."""
+    def _extract_physical_type(self, fhir_location: Dict[str, Any]) -> Optional[LocationPhysicalType]:
+        """Extrait le type physique depuis physicalType et retourne un membre de LocationPhysicalType.
+
+        FHIR peut fournir des codes en minuscules; notre enum stocke les valeurs en minuscules.
+        """
         physical_type = fhir_location.get("physicalType")
         if not physical_type:
             return None
-        
+
         coding = physical_type.get("coding", [])
         if coding:
-            code = coding[0].get("code")
-            # Normaliser en uppercase (FHIR peut renvoyer en minuscules)
-            return code.upper() if code else None
+            code = coding[0].get("code") or ""
+            code_lc = code.lower()
+            # Mapper quelques alias éventuels
+            alias_map = {
+                "ward": "wa",
+                "wing": "wi",
+                "level": "lv",
+                "site": "si",
+                "building": "bu",
+                "room": "ro",
+                "bed": "bd",
+            }
+            code_norm = alias_map.get(code_lc, code_lc)
+            try:
+                return LocationPhysicalType(code_norm)
+            except ValueError:
+                return None
         return None
 
     def _extract_identifiers(self, fhir_location: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -389,20 +406,19 @@ class FHIRToEncounterConverter:
         # Pour l'instant, utiliser la première venue du dossier ou en créer une
         venue = self.session.query(Venue).filter(Venue.dossier_id == dossier.id).first()
         if not venue:
-            # Créer une venue par défaut
+            # Créer une venue par défaut (start_time = début de la period si disponible)
             venue_seq = dossier.id * 1000 + int(datetime.now().timestamp() % 1000)
             start_time = date_debut or datetime.now()
             venue = Venue(
                 venue_seq=venue_seq,
                 dossier_id=dossier.id,
-                admit_time=start_time,
                 start_time=start_time
             )
             self.session.add(venue)
             self.session.commit()
             self.session.refresh(venue)
         
-        # Générer un mouvement_seq unique
+        # Générer un mouvement_seq unique (simple combinaison venue + horodatage courte fenêtre)
         mouvement_seq = venue.id * 10000 + int(datetime.now().timestamp() % 10000)
         
         # Créer le mouvement
@@ -411,6 +427,7 @@ class FHIRToEncounterConverter:
             venue_id=venue.id,
             type=type_mouvement,
             when=date_debut or datetime.now(),
+            end_time=date_fin,
             status=self._map_status(status)
         )
         

@@ -220,6 +220,35 @@ class MetricsCollector:
         """Réinitialise les métriques."""
         self.metrics.clear()
 
+    # --- Extension légère pour compatibilité avec code utilisant metrics.observe() ---
+    def observe(self, metric: str, value: float, tags: Optional[Dict[str, Any]] = None):
+        """Observe une valeur (style gauge/histogram simplifié).
+
+        Conserve agrégats min/max/sum/count et la dernière valeur. Tags sont fusionnés.
+        """
+        if metric not in self.metrics:
+            self.metrics[metric] = {
+                "count": 0,
+                "total": 0.0,
+                "min": float('inf'),
+                "max": 0.0,
+                "last": None,
+                "tags": tags or {},
+            }
+        m = self.metrics[metric]
+        m["count"] += 1
+        m["total"] += value
+        m["min"] = min(m["min"], value)
+        m["max"] = max(m["max"], value)
+        m["last"] = value
+        if tags:
+            # Met à jour les tags (sans pertes)
+            m["tags"].update(tags)
+        # Log basique
+        self.logger.info(
+            f"Metric observed: {metric}", metric=metric, value=value, tags=m.get("tags")
+        )
+
 
 # Instance globale du collecteur de métriques
 metrics = MetricsCollector()

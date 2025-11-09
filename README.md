@@ -3,7 +3,30 @@
 
 Application FastAPI pour l'interopérabilité HL7v2 (MLLP) et FHIR dans le contexte français.
 
-## Installation
+## Démarrage rapide
+
+```bash
+# 1. Créer et activer l'environnement virtuel
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# ou .venv\Scripts\activate  # Windows
+
+# 2. Installer les dépendances
+pip install -r requirements.txt
+
+# 3. Initialiser la base de données (complète : structure + vocab + namespaces + population)
+python init_db.py
+
+# 4. Démarrer le serveur
+uvicorn app.app:app --reload
+
+# 5. Accéder à l'interface admin
+# http://localhost:8000/admin/ght/1/ej/1
+```
+
+**Pour plus de détails sur l'initialisation, voir [INIT_GUIDE.md](INIT_GUIDE.md)**
+
+## Installation détaillée
 
 ```bash
 # Créer un environnement virtuel
@@ -13,9 +36,7 @@ python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 .venv\Scripts\activate     # Windows
 
-
 # Installer les dépendances
-
 pip install -r requirements.txt
 ```
 

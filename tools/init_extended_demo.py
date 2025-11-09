@@ -14,6 +14,7 @@ from app.models_structure_fhir import GHTContext
 from app.services.structure_seed import (
     ensure_extended_demo_ght,
     ensure_endpoints_for_context,
+    ensure_namespaces_for_context,
     seed_demo_population,
     EXTENDED_GHT_DATA,
 )
@@ -42,6 +43,10 @@ def main():
         print("[ENDPOINTS] Ensuring endpoints for each EJ...")
         stats_ep = ensure_endpoints_for_context(session, context, finess_list)
         print("  -> done", stats_ep)
+
+        print("[NAMESPACES] Ensuring identifier namespaces for each EJ...")
+        stats_ns = ensure_namespaces_for_context(session, context, finess_list)
+        print("  -> done", stats_ns)
 
         print("[PATIENTS] Seeding population (target 120)...")
         stats_pat = seed_demo_population(session, context, target_patients=120)

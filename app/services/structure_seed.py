@@ -1314,6 +1314,88 @@ def ensure_endpoints_for_context(
     return {"endpoints": stats}
 
 
+def ensure_namespaces_for_context(
+    session: Session,
+    context: GHTContext,
+    ej_finess_list: List[str],
+) -> Dict[str, Any]:
+    """Crée ou met à jour les namespaces d'identifiants pour chaque EJ du contexte.
+    
+    Génère pour chaque EJ (FINESS) :
+    - IPP (Identifiant Patient Permanent)
+    - NDA (Numéro Dossier Administratif)
+    - VENUE (Identifiant de Venue/Séjour)
+    
+    Plus un namespace global de structure pour le contexte GHT.
+    
+    Idempotent : recherche par name unique.
+    """
+    from app.models_structure_fhir import IdentifierNamespace
+    stats = Counter()
+    
+    # OID racine du contexte (fallback si absent)
+    oid_base = context.oid_racine or "1.2.250.1.71.1.1"
+    
+    # Namespace global structure GHT
+    struct_name = f"Structure {context.name}"
+    existing_struct = session.exec(
+        select(IdentifierNamespace).where(IdentifierNamespace.name == struct_name)
+    ).first()
+    if existing_struct is None:
+        ns = IdentifierNamespace(
+            name=struct_name,
+            description=f"Identifiants structure pour contexte {context.name}",
+            oid=f"{oid_base}.99",
+            system=f"http://{context.code or 'ght'}.fr/ns/structure",
+            type="STRUCTURE",
+            ght_context_id=context.id,
+        )
+        session.add(ns)
+        stats["created"] += 1
+    else:
+        existing_struct.updated_at = datetime.utcnow()
+        stats["updated"] += 1
+    
+    # Namespaces par EJ
+    for idx, finess_ej in enumerate(ej_finess_list, start=1):
+        # Récupérer l'EJ pour l'associer
+        from app.models_structure_fhir import EntiteJuridique
+        ej = session.exec(
+            select(EntiteJuridique).where(EntiteJuridique.finess_ej == finess_ej)
+        ).first()
+        ej_id = ej.id if ej else None
+        
+        types_ns = [
+            ("IPP", "Identifiant Patient Permanent", "2", "ipp"),
+            ("NDA", "Numéro Dossier Administratif", "3", "nda"),
+            ("VENUE", "Identifiant de Venue", "4", "venue"),
+        ]
+        
+        for ns_type, desc, oid_suffix, system_suffix in types_ns:
+            ns_name = f"{ns_type} {finess_ej}"
+            existing_ns = session.exec(
+                select(IdentifierNamespace).where(IdentifierNamespace.name == ns_name)
+            ).first()
+            if existing_ns is None:
+                ns = IdentifierNamespace(
+                    name=ns_name,
+                    description=f"{desc} pour EJ {finess_ej}",
+                    oid=f"{oid_base}.{idx}.{oid_suffix}",
+                    system=f"http://{finess_ej}.fr/ns/{system_suffix}",
+                    type=ns_type,
+                    ght_context_id=context.id,
+                    entite_juridique_id=ej_id,
+                )
+                session.add(ns)
+                stats["created"] += 1
+            else:
+                existing_ns.updated_at = datetime.utcnow()
+                stats["updated"] += 1
+    
+    session.commit()
+    return {"namespaces": stats}
+
+
 def seed_demo_population(
     session: Session,
     context: GHTContext,

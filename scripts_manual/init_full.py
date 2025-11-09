@@ -5,10 +5,10 @@
 1. --force-reset : supprime le fichier medbridge.db si présent
 2. Création des tables (idempotent)
 3. Application migrations legacy basiques (006/007)
-4. Structure étendue optionnelle (--extended-structure)
+4. Structure étendue optionnelle (--extended-structure) : multi-EJ + endpoints + namespaces
 5. Seed minimal ou riche
 6. Scénarios démo optionnels
-7. Vocabulaires optionnels
+7. Vocabulaires (auto si --extended-structure, ou explicit avec --with-vocab)
 
 Le script est idempotent: on ne réinsère pas le seed minimal/rich si des patients existent déjà.
 """
@@ -79,7 +79,21 @@ def apply_legacy_migrations() -> None:
 
 
 def ensure_extended_structure(create_demo_ght: bool = True) -> None:
-    """Crée hiérarchie étendue + namespaces si absents (idempotent)."""
+    """Appelle tools/init_extended_demo.py pour structure multi-EJ complète + endpoints + namespaces."""
+    import sys
+    try:
+        run([sys.executable, "tools/init_extended_demo.py"], check=True)
+        print("✓ Structure étendue (multi-EJ, endpoints, namespaces) initialisée")
+        return True
+    except CalledProcessError as e:
+        print(f"✗ Échec init structure étendue: {e}")
+    except FileNotFoundError as e:
+        print(f"✗ Script init_extended_demo.py introuvable: {e}")
+    return False
+
+
+def _legacy_ensure_extended_structure(create_demo_ght: bool = True) -> None:
+    """DEPRECATED: Ancienne logique basique (conservée pour compatibilité)."""
     with Session(engine) as session:
         ght = session.exec(select(GHTContext).where(GHTContext.code == "GHT-EXT")).first()
         if not ght:
@@ -106,6 +120,8 @@ def ensure_extended_structure(create_demo_ght: bool = True) -> None:
         else:
             print(f"✓ {len(ejs)} EJ déjà présentes")
 
+        # NOTE: Ce code legacy a été déplacé dans _legacy_ensure_extended_structure
+        # La nouvelle logique appelle directement tools/init_extended_demo.py
         for ej in ejs:
             geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej.id)).first()
             if geo:

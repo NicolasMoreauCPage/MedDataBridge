@@ -260,11 +260,11 @@ def create_app() -> FastAPI:
 
         @dashboard_router.get("/dashboard", response_class=HTMLResponse, tags=["Monitoring"])
         async def dashboard(request: Request):
-            return templates.TemplateResponse("dashboard.html", {"request": request})
+            return templates.TemplateResponse(request, "dashboard.html")
 
         @dashboard_router.get("/cache-dashboard", response_class=HTMLResponse, tags=["Monitoring"])
         async def cache_dashboard(request: Request):
-            return templates.TemplateResponse("cache_dashboard.html", {"request": request})
+            return templates.TemplateResponse(request, "cache_dashboard.html")
 
         app.include_router(dashboard_router)
         print(" - Monitoring dashboard mounted at /dashboard")

@@ -21,12 +21,11 @@ async def new_namespace_form(
     """Affiche le formulaire de création d'un nouveau namespace."""
     context = get_context_or_404(session, context_id)
     return templates.TemplateResponse(
+        request,
         "namespace_form.html",
         {
-            "request": request,
             "context": context,
-            "namespace": None,
-        },
+            "namespace": None},
     )
 
 @router.post("/new")
@@ -71,9 +70,9 @@ async def namespace_detail(
         raise HTTPException(status_code=404, detail="Namespace non trouvé")
     
     return templates.TemplateResponse(
+        request,
         "namespace_detail.html",
         {
-            "request": request,
             "context": context,
             "namespace": namespace
         },

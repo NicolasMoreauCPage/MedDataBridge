@@ -35,12 +35,11 @@ async def new_namespace(
         raise HTTPException(status_code=404, detail="GHT context not found")
 
     return templates.TemplateResponse(
+        request,
         "namespace_form.html",
         {
-            "request": request,
             "context": context,
-            "namespace": None,
-        },
+            "namespace": None},
     )
 
 @router.post("/{ght_id}/namespaces/new")
@@ -132,13 +131,12 @@ async def view_namespace(
     ).all()
     
     return templates.TemplateResponse(
+        request,
         "namespace_detail.html",
         {
-            "request": request,
             "context": context,
             "namespace": namespace,
-            "identifiers": identifiers,
-        },
+            "identifiers": identifiers},
     )
 
 @router.get("/{ght_id}/namespaces/{namespace_id}/edit")
@@ -162,12 +160,11 @@ async def edit_namespace(
         raise HTTPException(status_code=404, detail="Namespace not found")
 
     return templates.TemplateResponse(
+        request,
         "namespace_form.html",
         {
-            "request": request,
             "context": context,
-            "namespace": namespace,
-        },
+            "namespace": namespace},
     )
 
 @router.post("/{ght_id}/namespaces/{namespace_id}/edit")
@@ -261,13 +258,12 @@ async def new_ej_namespace(
     ej = _get_ej_or_404(session, context, ej_id)
 
     return templates.TemplateResponse(
+        request,
         "namespace_form.html",
         {
-            "request": request,
             "context": context,
             "entite": ej,
-            "namespace": None,
-        },
+            "namespace": None},
     )
 
 
@@ -345,13 +341,12 @@ async def edit_ej_namespace(
         raise HTTPException(status_code=404, detail="Namespace not found")
 
     return templates.TemplateResponse(
+        request,
         "namespace_form.html",
         {
-            "request": request,
             "context": context,
             "entite": ej,
-            "namespace": namespace,
-        },
+            "namespace": namespace},
     )
 
 

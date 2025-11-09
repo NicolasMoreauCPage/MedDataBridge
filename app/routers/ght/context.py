@@ -25,8 +25,9 @@ async def list_ght_contexts(
     """Liste tous les contextes GHT (page de sélection)."""
     contexts = session.exec(select(GHTContext)).all()
     return templates.TemplateResponse(
+        request,
         "ght_contexts.html",
-        {"request": request, "contexts": contexts},
+        {"contexts": contexts},
     )
 
 
@@ -34,11 +35,10 @@ async def list_ght_contexts(
 async def new_ght_context_form(request: Request):
     """Affiche le formulaire de création d'un nouveau contexte GHT."""
     return templates.TemplateResponse(
+        request,
         "ght_form.html",
         {
-            "request": request,
-            "context": None,
-        },
+            "context": None},
     )
 
 
@@ -81,16 +81,15 @@ async def create_ght_context(
     if existing:
         flash(request, "Ce code est déjà utilisé par un autre contexte GHT.", "error")
         return templates.TemplateResponse(
-            "ght_form.html",
-            {
-                "request": request,
+            request,
+        "ght_form.html",
+        {
                 "context": None,
                 "form_data": {
                     "name": name,
                     "code": code,
                     "description": description,
-                    "is_active": is_active,
-                },
+                    "is_active": is_active},
             },
             status_code=400,
         )
@@ -166,9 +165,9 @@ async def edit_ght_context_form(
         raise HTTPException(status_code=404, detail="Contexte non trouvé")
     
     return templates.TemplateResponse(
+        request,
         "ght_form.html",
         {
-            "request": request,
             "context": context
         }
     )
@@ -201,16 +200,15 @@ async def update_ght_context(
                 return {"ok": False, "message": "Ce code est déjà utilisé", "errors": {"code": "Code déjà utilisé"}}
 
             return templates.TemplateResponse(
-                "ght_form.html",
-                {
-                    "request": request,
+                request,
+        "ght_form.html",
+        {
                     "context": context,
                     "form_data": {
                         "name": name,
                         "code": code,
                         "description": description,
-                        "is_active": is_active,
-                    },
+                        "is_active": is_active},
                 },
                 status_code=400,
             )
@@ -252,15 +250,14 @@ async def view_ght_context(
     selected_ej_id = request.session.get(f"ght_{context_id}_ej_id")
     selected_ej_name = request.session.get(f"ght_{context_id}_ej_name")
     return templates.TemplateResponse(
+        request,
         "ght_detail.html",
         {
-            "request": request,
             "context": context,
             "namespaces": context.namespaces,
             "entites_juridiques": context.entites_juridiques,
             "selected_ej_id": selected_ej_id,
-            "selected_ej_name": selected_ej_name,
-        }
+            "selected_ej_name": selected_ej_name}
     )
 
 

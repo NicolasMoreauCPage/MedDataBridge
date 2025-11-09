@@ -16,11 +16,10 @@ async def standards_docs(
 ):
     """Page de documentation des standards supportés."""
     return templates.TemplateResponse(
+        request,
         "standards_docs.html",
         {
-            "request": request,
-            "title": "Documentation des standards",
-        }
+            "title": "Documentation des standards"}
     )
 
 

@@ -11,6 +11,6 @@ router = APIRouter(prefix="/guide", tags=["guide"])
 @router.get("/", response_class=HTMLResponse)
 def user_guide(request: Request):
     return templates.TemplateResponse(
+        request,
         "user_guide.html",
-        {"request": request},
     )

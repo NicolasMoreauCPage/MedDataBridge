@@ -135,9 +135,9 @@ async def documentation_home(request: Request):
     """Page d'accueil de la documentation."""
     # Utiliser la nouvelle page d'index simplifiée
     return request.app.state.templates.TemplateResponse(
+        request,
         "documentation_index.html",
         {
-            "request": request,
             "title": "Documentation"
         }
     )
@@ -156,9 +156,9 @@ async def documentation_guide_legacy(request: Request, filename: str):
             index_content = render_markdown(f.read())
     
     return request.app.state.templates.TemplateResponse(
+        request,
         "documentation.html",
         {
-            "request": request,
             "structure": structure,
             "index_content": index_content,
             "current_doc": None
@@ -180,9 +180,9 @@ async def view_document(request: Request, category: str, filename: str):
     
     if not doc_path.exists() or not doc_path.is_file():
         return request.app.state.templates.TemplateResponse(
-            "documentation.html",
-            {
-                "request": request,
+            request,
+        "documentation.html",
+        {
                 "structure": structure,
                 "error": f"Document non trouvé : {category}/{filename}",
                 "current_doc": None
@@ -233,9 +233,9 @@ async def view_document(request: Request, category: str, filename: str):
     source_path = f"{category}/{filename}"
     
     return request.app.state.templates.TemplateResponse(
+        request,
         "documentation.html",
         {
-            "request": request,
             "structure": structure,
             "doc_content": content_html,
             "doc_title": title,
@@ -293,9 +293,9 @@ async def search_documentation(request: Request, q: str = ""):
                         pass
     
     return request.app.state.templates.TemplateResponse(
+        request,
         "documentation.html",
         {
-            "request": request,
             "structure": structure,
             "search_query": q,
             "search_results": results,

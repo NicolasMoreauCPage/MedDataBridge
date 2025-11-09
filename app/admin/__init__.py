@@ -13,7 +13,7 @@ from .context import GHTContextAdmin, EntiteJuridiqueAdmin, EntiteGeographiqueAd
 from .vocabulary import VocabularySystemAdmin, VocabularyValueAdmin
 from .identifiers import IdentifierAdmin, NamespaceAdmin
 from .connectivity import SystemEndpointAdmin, MessageLogAdmin
-from .scenarios import InteropScenarioAdmin, InteropScenarioStepAdmin
+from .scenarios import InteropScenarioAdmin, InteropScenarioStepAdmin, ScenarioTemplateAdmin, ScenarioTemplateStepAdmin
 
 
 def register_admin_views(admin):
@@ -53,6 +53,8 @@ def register_admin_views(admin):
     admin.add_view(MessageLogAdmin)
     admin.add_view(InteropScenarioAdmin)
     admin.add_view(InteropScenarioStepAdmin)
+    admin.add_view(ScenarioTemplateAdmin)
+    admin.add_view(ScenarioTemplateStepAdmin)
 
     # === 6. VOCABULAIRES & RÉFÉRENTIELS ===
     admin.add_view(VocabularySystemAdmin)
@@ -69,4 +71,5 @@ __all__ = [
     'IdentifierAdmin', 'NamespaceAdmin',
     'VocabularySystemAdmin', 'VocabularyValueAdmin',
     'InteropScenarioAdmin', 'InteropScenarioStepAdmin',
+    'ScenarioTemplateAdmin', 'ScenarioTemplateStepAdmin',
 ]

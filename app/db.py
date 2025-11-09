@@ -24,6 +24,10 @@ from app.models_structure_fhir import GHTContext, IdentifierNamespace
 from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_identifiers import Identifier
 from app import models_scenarios  # ensure scenario models are registered
+try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)
+    from app.services.scenario_template_init import init_scenario_templates  # noqa: E402
+except Exception:  # pragma: no cover
+    init_scenario_templates = None  # type: ignore
 from app import models_workflows  # ensure workflow models are registered
 
 # Moteur SQLite local. Par défaut, fichier `medbridge.db` au répertoire courant.
@@ -40,6 +44,10 @@ engine = create_engine(
 def init_db() -> None:
     """Crée les tables si elles n'existent pas (idempotent)."""
     SQLModel.metadata.create_all(engine)
+    # Initialisation idempotente des templates de scénarios abstraits (IHE, démo...)
+    if init_scenario_templates:
+        with Session(engine) as _s:
+            init_scenario_templates(_s)
 
 def get_session():
     """Dépendance FastAPI: fournit une session courte (context manager)."""

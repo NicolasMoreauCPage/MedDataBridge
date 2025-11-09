@@ -104,6 +104,7 @@
           <p class="text-xs text-slate-500 mt-1">
             {% if request and request.state and request.state.ght_context %}
               {{ request.state.ght_context.name }} • {{ request.state.ght_context.code }}
+              <a href="/admin/ght" class="ml-2 text-blue-600 hover:underline">Changer</a>
             {% else %}
               Aucun contexte sélectionné. <a href="/admin/ght" class="text-blue-600 hover:underline">Choisir un GHT</a>.
             {% endif %}

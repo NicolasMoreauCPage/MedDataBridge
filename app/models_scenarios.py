@@ -112,3 +112,58 @@ class ScenarioBinding(SQLModel, table=True):
     last_execution_at: Optional[datetime] = Field(default=None, description="Date dernière exécution")
 
     scenario: Mapped["InteropScenario"] = Relationship(back_populates="bindings")
+
+
+# ---------------------------------------------------------------------------
+# Templates de scénarios abstraits
+# ---------------------------------------------------------------------------
+# Un ScenarioTemplate décrit une suite SÉMANTIQUE d'événements (admission, transfert,
+# sortie...) indépendante de tout contexte GHT / Établissement / Identité patient.
+# Lorsqu'on veut rejouer un template on le "matérialise" en InteropScenario avec
+# des InteropScenarioStep concrets (payload HL7, FHIR...) adaptés au contexte courant.
+# ---------------------------------------------------------------------------
+
+class ScenarioTemplate(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key: str = Field(index=True, unique=True)  # ex: "ihe.hospitSimple"
+    name: str
+    description: Optional[str] = None
+    category: Optional[str] = Field(default="IHE", index=True)  # IHE | DEMO | TEST | CUSTOM
+    protocols_supported: str = Field(default="HL7v2,FHIR")  # CSV des protocoles générables
+    tags: Optional[str] = None
+    is_active: bool = Field(default=True, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    steps: Mapped[List["ScenarioTemplateStep"]] = Relationship(
+        back_populates="template",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "order_by": "ScenarioTemplateStep.order_index"},
+    )
+
+
+class ScenarioTemplateStep(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    template_id: int = Field(foreign_key="scenariotemplate.id", index=True)
+    order_index: int = Field(index=True)
+
+    # Code sémantique interne portable d'un standard à l'autre
+    # Ex: PARCOURS_START, ADMISSION_PLANNED, ADMISSION_CONFIRMED, TRANSFER_OUT, TRANSFER_IN,
+    # DISCHARGE, PARCOURS_END
+    semantic_event_code: str = Field(index=True)
+    narrative: Optional[str] = None  # description humaine lisible
+
+    # Hints pour générateurs de messages multi-standard
+    hl7_event_code: Optional[str] = None        # ex: ADT^A01, ADT^A02...
+    fhir_profile_hint: Optional[str] = None     # ex: Encounter(hospitalization)
+    message_role: Optional[str] = None          # admission|transfer|update|discharge|lifecycle
+
+    # Payloads de référence (extraits) conservés pour faciliter les mappings futurs
+    reference_payload_xml: Optional[str] = None     # fragment XML pivot/IHE
+    reference_payload_hl7: Optional[str] = None     # message HL7 v2 exemple
+    reference_payload_fhir: Optional[str] = None    # bundle/resource FHIR exemple
+
+    delay_suggested_seconds: Optional[int] = None   # délai relatif conseillé
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    template: Mapped["ScenarioTemplate"] = Relationship(back_populates="steps")

@@ -10,6 +10,7 @@ from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import ScenarioBinding, InteropScenario
 from app.services.emit_on_create import emit_to_senders
 from app.services.scenario_runner import send_scenario
+from app.services.scenario_capture import capture_dossier_as_template
 from app.form_config import get_field_config, MODEL_FIELDS
 from app.utils.flash import flash
 from app.dependencies.ght import require_ght_context
@@ -391,6 +392,44 @@ async def replay_dossier_scenario(
         "Relecture du scénario terminée. " + " ; ".join(summary_lines),
         level="success",
     )
+    return RedirectResponse(url=f"/dossiers/{dossier_id}", status_code=303)
+
+
+@router.post("/{dossier_id}/capture-as-template")
+def capture_dossier_template(
+    dossier_id: int,
+    request: Request,
+    template_name: Optional[str] = Form(None),
+    template_description: Optional[str] = Form(None),
+    session=Depends(get_session),
+):
+    """
+    Capture un dossier existant comme ScenarioTemplate réutilisable.
+    
+    Le template créé est INDÉPENDANT du dossier source :
+    - Snapshot des données à l'instant T (pas de référence FK)
+    - Modification/suppression du dossier n'affecte pas le template
+    - Le template peut être rejoué comme les templates IHE importés
+    """
+    try:
+        template = capture_dossier_as_template(
+            db=session,
+            dossier_id=dossier_id,
+            template_name=template_name,
+            template_description=template_description,
+            category="captured",
+        )
+        flash(
+            request,
+            f"Template '{template.name}' créé avec succès (clé: {template.key}). "
+            f"Retrouvez-le dans /scenarios/templates",
+            level="success",
+        )
+    except ValueError as exc:
+        flash(request, f"Erreur capture: {exc}", level="error")
+    except Exception as exc:
+        flash(request, f"Erreur inattendue: {exc}", level="error")
+    
     return RedirectResponse(url=f"/dossiers/{dossier_id}", status_code=303)
 
 

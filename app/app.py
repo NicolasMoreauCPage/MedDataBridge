@@ -36,10 +36,15 @@ from app.services.entity_events import register_entity_events
 from app.services.entity_events_structure import register_structure_entity_events
 from app.services.scheduler import start_scheduler, stop_scheduler
 
+# BUGFIX: Le module ght doit être importé AVANT le __init__.py des routers
+# car il y a un problème d'import circulaire qui empêche le chargement complet
+# de toutes les routes (seules 9 routes sur 45 sont chargées sinon)
+import app.routers.ght as ght
+
 from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
-    generate, structure, workflow, fhir_structure, vocabularies, ght, namespaces,
+    generate, structure, workflow, fhir_structure, vocabularies, namespaces,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity
 )
@@ -233,6 +238,24 @@ def create_app() -> FastAPI:
         logging.getLogger(__name__).warning(f"Debug router not available: {e}")
     
     print("All routes registered.")
+    
+    # BUGFIX TEMPORAIRE: Forcer le rechargement du module ght pour obtenir toutes les routes
+    # Le module ght.py ne charge que 9 routes sur 45+ lors de l'import normal à cause
+    # d'un problème d'import circulaire ou de taille de fichier (3464 lignes).
+    # Cette solution force le rechargement après que toutes les dépendances soient chargées.
+    try:
+        import importlib
+        importlib.reload(ght)
+        # Remplacer le router existant par le router complet
+        for route in app.routes[:]:
+            if hasattr(route, 'path') and route.path.startswith('/admin/ght'):
+                app.routes.remove(route)
+        # Réenregistrer avec toutes les routes
+        app.include_router(ght.router, prefix="/admin")
+        ght_routes_count = len([r for r in app.routes if hasattr(r, 'path') and r.path.startswith('/admin/ght')])
+        print(f" → BUGFIX: Module ght rechargé ({ght_routes_count} routes /admin/ght)")
+    except Exception as e:
+        print(f" → BUGFIX WARNING: Échec du rechargement de ght: {e}")
 
     # Initialize the admin interface (SQLAdmin) only when not running
     # tests. In test runs a separate test engine/session is used and

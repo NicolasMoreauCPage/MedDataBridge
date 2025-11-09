@@ -243,6 +243,24 @@ def create_app() -> FastAPI:
     app.include_router(fhir_import.router)
     app.include_router(metrics.router)
     print(" - FHIR API routers mounted")
+
+    # 11. Monitoring dashboard (UI)
+    try:
+        from fastapi import Request
+        from fastapi.responses import HTMLResponse
+        from fastapi import APIRouter
+        from fastapi.templating import Jinja2Templates
+        templates = Jinja2Templates(directory="app/templates")
+        dashboard_router = APIRouter()
+
+        @dashboard_router.get("/dashboard", response_class=HTMLResponse, tags=["Monitoring"])
+        async def dashboard(request: Request):
+            return templates.TemplateResponse("dashboard.html", {"request": request})
+
+        app.include_router(dashboard_router)
+        print(" - Monitoring dashboard mounted at /dashboard")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Dashboard not available: {e}")
     
     # 9. Test helpers
     app.include_router(health.router)

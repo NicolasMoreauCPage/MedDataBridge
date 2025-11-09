@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% import "components.html" as components %}
+
+{% block content %}
+{# Breadcrumb #}
+{{ components.breadcrumb([
+  {"label": "Scénarios", "url": "/scenarios"},
+  {"label": "Importer", "url": None}
+]) }}
+
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-2xl font-semibold text-slate-900 mb-6">Importer un scénario</h1>
+
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <form method="post" action="/scenarios/import" enctype="multipart/form-data">
+      
+      {# Context selection #}
+      <div class="mb-6">
+        <label for="ght_context_id" class="block text-sm font-medium text-slate-700 mb-2">
+          Contexte GHT <span class="text-red-500">*</span>
+        </label>
+        <select 
+          name="ght_context_id" 
+          id="ght_context_id"
+          required
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">Sélectionner un contexte...</option>
+          {% for ctx in contexts %}
+            <option value="{{ ctx.id }}">{{ ctx.name }}</option>
+          {% endfor %}
+        </select>
+        <p class="mt-1 text-sm text-slate-500">
+          Le contexte dans lequel le scénario sera créé
+        </p>
+      </div>
+
+      {# File upload #}
+      <div class="mb-6">
+        <label for="json_file" class="block text-sm font-medium text-slate-700 mb-2">
+          Fichier JSON
+        </label>
+        <input 
+          type="file" 
+          name="json_file" 
+          id="json_file"
+          accept=".json"
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+        <p class="mt-1 text-sm text-slate-500">
+          Sélectionnez un fichier JSON exporté depuis un scénario
+        </p>
+      </div>
+
+      {# Or paste JSON #}
+      <div class="mb-6">
+        <label for="json_data" class="block text-sm font-medium text-slate-700 mb-2">
+          Ou coller le JSON directement
+        </label>
+        <textarea 
+          name="json_data" 
+          id="json_data"
+          rows="10"
+          placeholder='{"id": 1, "key": "scenario-001", "name": "Mon scénario", ...}'
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+        ></textarea>
+        <p class="mt-1 text-sm text-slate-500">
+          Si un fichier est uploadé, ce champ sera ignoré
+        </p>
+      </div>
+
+      {# Override options #}
+      <div class="mb-6 p-4 bg-slate-50 rounded-lg">
+        <h3 class="text-sm font-medium text-slate-900 mb-3">Options avancées</h3>
+        
+        <div class="mb-4">
+          <label for="override_key" class="block text-sm font-medium text-slate-700 mb-2">
+            Nouvelle clé (optionnel)
+          </label>
+          <input 
+            type="text" 
+            name="override_key" 
+            id="override_key"
+            placeholder="scenario-new-key"
+            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+          <p class="mt-1 text-sm text-slate-500">
+            Remplace la clé du scénario pour éviter les conflits
+          </p>
+        </div>
+
+        <div>
+          <label for="override_name" class="block text-sm font-medium text-slate-700 mb-2">
+            Nouveau nom (optionnel)
+          </label>
+          <input 
+            type="text" 
+            name="override_name" 
+            id="override_name"
+            placeholder="Mon scénario importé"
+            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+          <p class="mt-1 text-sm text-slate-500">
+            Remplace le nom du scénario
+          </p>
+        </div>
+      </div>
+
+      {# Actions #}
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+        <a 
+          href="/scenarios"
+          class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50"
+        >
+          Annuler
+        </a>
+        <button 
+          type="submit"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700"
+        >
+          Importer
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# Help section #}
+  <div class="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+    <h3 class="text-sm font-medium text-blue-900 mb-2">💡 Comment ça marche ?</h3>
+    <ul class="text-sm text-blue-800 space-y-1">
+      <li>• Exportez un scénario existant via le bouton "Exporter JSON" sur sa page de détail</li>
+      <li>• Modifiez le JSON si nécessaire (changez les payloads, délais, etc.)</li>
+      <li>• Importez-le ici en uploadant le fichier ou en collant le JSON</li>
+      <li>• Le scénario sera recréé avec tous ses steps dans le contexte sélectionné</li>
+    </ul>
+  </div>
+</div>
+
+{% endblock %}

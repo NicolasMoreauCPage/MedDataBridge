@@ -25,6 +25,36 @@ class InteropScenario(SQLModel, table=True):
 
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id")
 
+    # --- Configuration avancée de recalage temporel (date shifting) ---
+    time_anchor_mode: Optional[str] = Field(
+        default=None,
+        description="Mode d'ancrage des dates: 'now' (par défaut), 'admission_minus_days', 'fixed_start'"
+    )
+    time_anchor_days_offset: Optional[int] = Field(
+        default=None,
+        description="Si mode 'admission_minus_days': nombre de jours à soustraire depuis maintenant pour fixer l'admission"
+    )
+    time_fixed_start_iso: Optional[str] = Field(
+        default=None,
+        description="Timestamp ISO si mode 'fixed_start' (ex: 2025-11-09T08:30:00)"
+    )
+    preserve_intervals: bool = Field(
+        default=True,
+        description="Préserve les intervalles relatifs entre événements (delta global + jitter contrôlé)"
+    )
+    jitter_min_minutes: Optional[int] = Field(
+        default=None,
+        description="Limite basse jitter (minutes) appliqué aux mouvements non critiques (ex transferts)"
+    )
+    jitter_max_minutes: Optional[int] = Field(
+        default=None,
+        description="Limite haute jitter (minutes)"
+    )
+    apply_jitter_on_events: Optional[str] = Field(
+        default="A02,A03,A06,A07,A08",  # transferts / updates
+        description="Liste CSV des codes événements HL7 sur lesquels appliquer le jitter"
+    )
+
     steps: Mapped[List["InteropScenarioStep"]] = Relationship(
         back_populates="scenario",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "order_by": "InteropScenarioStep.order_index"},

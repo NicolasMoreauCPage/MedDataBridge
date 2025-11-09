@@ -65,11 +65,40 @@ class HL7Validator:
 
     def validate_datetime(self, value: str, format: str = "%Y%m%d%H%M%S") -> bool:
         """Valide un format de date/heure."""
+        if not value or not value.strip():
+            return False
+        # Try strict parse first
         try:
             datetime.strptime(value, format)
             return True
-        except ValueError:
+        except Exception:
+            pass
+
+        # Be more tolerant: extract leading digit sequence and try several common HL7 timestamp lengths
+        m = re.match(r"^(\d+)", value)
+        if not m:
             return False
+        digits = m.group(1)
+
+        # Ordered list of formats to try (from most to least specific)
+        fmts = ["%Y%m%d%H%M%S", "%Y%m%d%H%M", "%Y%m%d%H", "%Y%m%d"]
+        # Corresponding required digit lengths
+        lens = [14, 12, 10, 8]
+
+        for fmt, needed in zip(fmts, lens):
+            s = digits
+            if len(s) < needed:
+                # pad with zeros (assume missing lower-order fields are zero)
+                s = s.ljust(needed, "0")
+            elif len(s) > needed:
+                # truncate extra trailing digits
+                s = s[:needed]
+            try:
+                datetime.strptime(s, fmt)
+                return True
+            except Exception:
+                continue
+        return False
 
     def get_field(self, segment: str, position: int) -> Tuple[str, List[str]]:
         """Extrait un champ et ses composants d'un segment."""
@@ -205,7 +234,8 @@ class PAMValidator(HL7Validator):
         - Format tests unitaires simplifiés: ZBE|<code>|...|<date> (code en champ 1, date en champ 6)
         """
         fields = segment.split("|")
-        allowed_codes = ["ADMIT", "TRANSFER", "DISCHARGE"]
+        # Common movement/action codes observed in PAM feeds: INSERT/UPDATE/DELETE and IHE-style ADMIT/TRANSFER/DISCHARGE
+        allowed_codes = ["INSERT", "UPDATE", "DELETE", "ADMIT", "TRANSFER", "DISCHARGE"]
         # Détection format:
         # - Format test: champ 1 contient un code (valide ou non, mais alphabétique court)
         #   -> ZBE|CODE|...|date (ex: "ADMIT", "INVALID")
@@ -213,13 +243,20 @@ class PAMValidator(HL7Validator):
         #   -> ZBE|ID|date||UF (ex: "1", "MVT001", "") - code en champ 3 (souvent vide)
         field1 = fields[1] if len(fields) > 1 else ""
         field3 = fields[3] if len(fields) > 3 else ""
-        # Heuristique: format intégration si field1 est vide OU numérique OU commence par "MVT"
-        # (ID patterns courants: "", "1", "2", "MVT001", etc.)
-        is_likely_id = not field1 or field1.isdigit() or field1.startswith("MVT")
+        # Heuristique: format intégration si field1 est vide OU numérique
+        # OU contient un identifiant composé (contient '^')
+        # OU commence par "MVT" (patterns: "", "1", "2", "MVT001", "12565061^CPAGE^...")
+        is_likely_id = (not field1) or field1.isdigit() or field1.startswith("MVT") or ('^' in field1)
         variant_integration = is_likely_id
         if variant_integration:
-            mvt_code = fields[3]
+            # Integration-style: identifier in F1, date in F2, action often in F4 (F3 sometimes empty)
             date_value = fields[2] if len(fields) > 2 else ""
+            # Prefer F3, but fallback to F4 or F5 if messaging varies
+            mvt_code = ""
+            for idx in (3, 4, 5):
+                if len(fields) > idx and fields[idx]:
+                    mvt_code = fields[idx]
+                    break
             code_field_label = "F3"
             date_field_label = "F2"
         else:
@@ -263,7 +300,9 @@ class MFNValidator(HL7Validator):
         super().__init__(content)
         self.required_segments = ["MSH", "MFI"]
         self.valid_loc_types = {
-            "ETBL_GRPQ", "PL", "D", "UF", "UH", "CH", "LIT"
+            "M", "N", "R", "B",  # Types CPAGE: M=EJ, N=?, R=?, B=?
+            "ETBL_GRPQ", "PL", "D", "UF", "UH", "CH", "LIT",
+            "UNT_MDCL"  # Type d'UF médicale
         }
     
     def validate_message(self, content: str) -> ValidationResult:
@@ -354,6 +393,8 @@ class MFNValidator(HL7Validator):
                 field=type_field_label,
                 line_number=line
             ))
+            # Retourner un type générique au lieu de None pour ne pas bloquer les LCH suivants
+            loc_type = "UNKNOWN"
         self.errors = list(self._raw_errors)
         self.warnings = list(self._raw_warnings)
         return loc_type

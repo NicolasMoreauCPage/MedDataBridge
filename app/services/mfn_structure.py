@@ -3,12 +3,96 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from sqlmodel import Session, select
 
-from app.models_structure import (
-    EntiteGeographique, Pole, Service, UniteFonctionnelle,
-    UniteHebergement, Chambre, Lit, LocationPhysicalType, LocationServiceType
-)
+# NOTE: models import is delayed inside functions to avoid circular imports
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_loc_type(raw: str) -> str:
+    """Normalise différentes variantes de LOC-3 (libellés français ou codes CPAGE)
+    vers les codes internes attendus (M, ETBL_GRPQ, P, D, UF/N, UH, CH/R, LIT/B).
+    """
+    if not raw:
+        return ""
+    r = raw.strip()
+    # Normalize accents and case-insensitive matching by lowering
+    low = r.lower()
+    # direct code mappings
+    mapping = {
+        "m": "M",
+        "etbl_grpq": "ETBL_GRPQ",
+        "etablissements geographiques": "ETBL_GRPQ",
+        "etablissement geographique": "ETBL_GRPQ",
+        "etablissement géographique": "ETBL_GRPQ",
+        "etablissement juridique": "M",
+        "etablissement juridique ": "M",
+        "service": "D",
+        "services": "D",
+        "d": "D",
+        "p": "P",
+        "pole": "P",
+        "pôle": "P",
+        "uf": "UF",
+        "unt_mdcl": "N",
+        "unt-mdcl": "N",
+        "unite fonctionnelle": "UF",
+        "unité fonctionnelle": "UF",
+        "unite d'hebergement": "UH",
+        "unite d\'hebergement": "UH",
+        "unité d'hébergement": "UH",
+        "unite d hebergement": "UH",
+        "chambre": "R",
+        "chambres": "R",
+        "r": "R",
+        "lit": "B",
+        "lits": "B",
+        "b": "B",
+        "lith": "B",
+        "l it": "B",
+        "l it ": "B",
+        "l it\n": "B",
+        "l it\r": "B",
+        "lit\r": "B",
+        "l it\t": "B",
+        "l it\f": "B",
+        "l it\v": "B",
+        "l it\0": "B",
+        "l it\x00": "B",
+        "lit\x00": "B",
+        "etbl_grpq": "ETBL_GRPQ",
+        "etbl_grpq^^^^": "ETBL_GRPQ",
+    }
+
+    # Try exact mapping on lowered raw
+    if low in mapping:
+        return mapping[low]
+
+    # Try to remove accents by simple replacements and retry
+    rep = low.replace("é", "e").replace("è", "e").replace("ê", "e").replace("à", "a").replace("'", "").strip()
+    if rep in mapping:
+        return mapping[rep]
+
+    # If the raw contains a known substring
+    for k, v in mapping.items():
+        if k in low:
+            return v
+
+    # If it's already a short code like 'CH' or 'LIT'
+    up = raw.strip().upper()
+    synonyms = {
+        "CH": "R",
+        "R": "R",
+        "LIT": "LIT",
+        "B": "B",
+        "N": "N",
+        "UF": "UF",
+        "UNT_MDCL": "N",
+        "UNT-MDCL": "N",
+    }
+    if up in synonyms:
+        return synonyms[up]
+
+    return raw
 
 def clean_hl7_date(hl7_date: Optional[str]) -> Optional[str]:
     """Normalise une date HL7 en chaîne YYYYMMDD[HHMMSS]."""
@@ -61,7 +145,13 @@ def extract_location_type(loc_segment: List[str]) -> Tuple[str, str]:
     # LOC|^^^^^D^^^^0192&CPAGE&700004591&FINEJ||D|Service
     raw_identifier = loc_segment[1] if len(loc_segment) > 1 else ""
     location_identifier = _extract_identifier_from_loc(raw_identifier)
-    location_type = loc_segment[3] if len(loc_segment) > 3 else ""
+    # In some CPAGE exports the LOC type is placed in field 4 (index 4) while older
+    # messages used index 3. Prefer index 4, fallback to 3 to be robust.
+    location_type = ""
+    if len(loc_segment) > 4 and loc_segment[4]:
+        location_type = loc_segment[4]
+    elif len(loc_segment) > 3 and loc_segment[3]:
+        location_type = loc_segment[3]
     return location_type, location_identifier
 
 def parse_location_characteristics(lch_segments: List[List[str]]) -> Dict[str, str]:
@@ -170,7 +260,15 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
 def _import_locations_multipass(locations: List[Dict[str, Any]], session: Session) -> List[Dict[str, Any]]:
     """Import locations with multiple passes to resolve parent dependencies"""
     # Order by hierarchy level (parents first)
-    type_order = {"M": 1, "ETBL_GRPQ": 1, "P": 2, "D": 3, "UF": 4, "UH": 5, "CH": 6, "LIT": 7}
+    type_order = {
+        "M": 1, "ETBL_GRPQ": 1,  # EJ/EG
+        "P": 2,  # Pôle
+        "D": 3,  # Service
+        "UF": 4, "N": 4,  # Unité fonctionnelle (UF standard ou type N)
+        "UH": 5,  # Unité d'hébergement
+        "CH": 6, "R": 6,  # Chambre (CH standard ou type R)
+        "LIT": 7, "B": 7  # Lit (LIT standard ou type B)
+    }
     locations_sorted = sorted(locations, key=lambda x: type_order.get(x["type"], 99))
     
     results = []
@@ -230,7 +328,14 @@ def save_location(
     Sauvegarde une location en base selon son type
     """
     logger.info(f"save_location called: loc_type={loc_type}, identifier={identifier}, n_relations={len(relations)}")
+    # Normalize loc_type to canonical internal codes (handles French labels and CPAGE variants)
+    loc_type = _normalize_loc_type(loc_type)
     try:
+        # Local imports to avoid circular dependency at module import time
+        from app.models_structure import (
+            EntiteGeographique, Pole, Service, UniteFonctionnelle,
+            UniteHebergement, Chambre, Lit, LocationPhysicalType, LocationServiceType
+        )
         # Propriétés communes
         base_props = {
             "identifier": characteristics.get("ID_GLBL", ""),
@@ -278,11 +383,69 @@ def save_location(
                 },
             )
         
+        # If loc_type is empty, try to infer from relations (common in CPAGE exports)
+        if not loc_type:
+            # First: try to find an existing entity in DB using the identifier
+            try:
+                from app.models_structure import (
+                    EntiteGeographique, Pole, Service, UniteFonctionnelle,
+                    UniteHebergement, Chambre, Lit
+                )
+                model_checks = [
+                    (EntiteGeographique, "M"),
+                    (EntiteGeographique, "ETBL_GRPQ"),
+                    (Pole, "P"),
+                    (Service, "D"),
+                    (UniteFonctionnelle, "UF"),
+                    (UniteHebergement, "UH"),
+                    (Chambre, "CH"),
+                    (Lit, "B"),
+                ]
+                for model_cls, inferred_code in model_checks:
+                    existing = session.exec(select(model_cls).where(model_cls.identifier == identifier)).first()
+                    if existing:
+                        logger.info(f"Found existing DB entity for identifier={identifier}, inferring loc_type='{inferred_code}' from table {model_cls.__name__}")
+                        loc_type = inferred_code
+                        break
+            except Exception:
+                # If any DB/ORM issue occurs, ignore and fall back to relation heuristic
+                logger.debug("DB lookup for missing loc_type failed; falling back to relation inference")
+
+            # Second: fallback to relation-based inference (existing behaviour)
+            if not loc_type:
+                inferred = None
+                for rel in relations:
+                    parent_type, parent_identifier = _extract_type_and_identifier_from_loc(rel.get('target', ''))
+                    if parent_type in ['R', 'CH']:
+                        inferred = 'B'  # child of a room is usually a bed
+                        break
+                    if parent_type == 'UH':
+                        inferred = 'CH'  # child of UH is usually a chambre
+                        break
+                if inferred:
+                    logger.info(f"Inferring missing loc_type='{inferred}' for identifier={identifier} based on relations")
+                    loc_type = inferred
+
         # Sélection et création selon le type
         existing_entity = None
         # Helper to fetch existing by identifier for update/dedup
         def _get_existing(model_cls, ident):
             return session.exec(select(model_cls).where(model_cls.identifier == ident)).first()
+
+        # Helper to find a parent entity by identifier or by suffix (some MFN use short local ids)
+        def _find_by_identifier(model_cls, ident):
+            if not ident:
+                return None
+            # Try exact match first
+            ent = session.exec(select(model_cls).where(model_cls.identifier == ident)).first()
+            if ent:
+                return ent
+            # Try suffix match
+            try:
+                ent = session.exec(select(model_cls).where(model_cls.identifier.like(f"%{ident}"))).first()
+                return ent
+            except Exception:
+                return None
 
         if loc_type == "M":  # Entité juridique (niveau EG dans ce modèle de stockage)
             existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
@@ -367,12 +530,36 @@ def save_location(
                 physical_type=LocationPhysicalType.BD,
                 operational_status=characteristics.get("OPERATIONAL_STATUS")
             )
+        
+        elif loc_type == "B":  # Lit (format CPAGE alternatif)
+            existing_entity = _get_existing(Lit, base_props["identifier"])
+            entity = Lit(
+                **base_props,
+                physical_type=LocationPhysicalType.BD,
+                operational_status=characteristics.get("OPERATIONAL_STATUS")
+            )
+        
+        elif loc_type == "R":  # Chambre (format CPAGE)
+            existing_entity = _get_existing(Chambre, base_props["identifier"])
+            entity = Chambre(
+                **base_props,
+                physical_type=LocationPhysicalType.RO,
+            )
+        
+        elif loc_type == "N":  # UF (format CPAGE alternatif)
+            existing_entity = _get_existing(UniteFonctionnelle, base_props["identifier"])
+            entity = UniteFonctionnelle(
+                **base_props,
+                physical_type=LocationPhysicalType.SI,
+                um_code=characteristics.get("CD_UM")
+            )
             
         else:
-            logger.warning(f"Type de location non supporté: {loc_type}")
+            logger.warning(f"Type de location non supporté: '{loc_type}' (identifier={identifier})")
             return {
                 "status": "error",
-                "error": f"Type de location non supporté: {loc_type}"
+                "error": f"Type de location non supporté: '{loc_type}'",
+                "identifier": identifier
             }
         
         logger.info(f"Created entity {entity.__class__.__name__} ID={entity.identifier}, about to process {len(relations)} relations")
@@ -425,17 +612,13 @@ def save_location(
                     # Service.pole_id requis
                     if parent_type == "P":
                         # Parent normal: Pôle
-                        parent_pole = session.exec(
-                            select(Pole).where(Pole.identifier == parent_identifier)
-                        ).first()
+                        parent_pole = _find_by_identifier(Pole, parent_identifier)
                         if parent_pole:
                             entity.pole_id = parent_pole.id
                     
                     elif parent_type == "ETBL_GRPQ":
                         # Saut de hiérarchie: Service → EG directement
-                        parent_eg = session.exec(
-                            select(EntiteGeographique).where(EntiteGeographique.identifier == parent_identifier)
-                        ).first()
+                        parent_eg = _find_by_identifier(EntiteGeographique, parent_identifier)
                         if parent_eg:
                             # Chercher ou créer un Pôle virtuel intermédiaire
                             virtual_pole_id = f"VIRTUAL-POLE-{parent_identifier}"
@@ -461,17 +644,13 @@ def save_location(
                     # UniteFonctionnelle.service_id requis
                     if parent_type == "D":
                         # Parent normal: Service
-                        parent_service = session.exec(
-                            select(Service).where(Service.identifier == parent_identifier)
-                        ).first()
+                        parent_service = _find_by_identifier(Service, parent_identifier)
                         if parent_service:
                             entity.service_id = parent_service.id
                     
                     elif parent_type == "P":
                         # Saut: UF → Pôle (créer Service virtuel)
-                        parent_pole = session.exec(
-                            select(Pole).where(Pole.identifier == parent_identifier)
-                        ).first()
+                        parent_pole = _find_by_identifier(Pole, parent_identifier)
                         if parent_pole:
                             # Get or create Service virtuel
                             virtual_service_id = f"VIRTUAL-SERVICE-{parent_identifier}"
@@ -496,9 +675,7 @@ def save_location(
                     
                     elif parent_type == "ETBL_GRPQ":
                         # Double saut: UF → EG (créer Pôle + Service virtuels)
-                        parent_eg = session.exec(
-                            select(EntiteGeographique).where(EntiteGeographique.identifier == parent_identifier)
-                        ).first()
+                        parent_eg = _find_by_identifier(EntiteGeographique, parent_identifier)
                         if parent_eg:
                             # Get or create virtual Pole
                             virtual_pole_id = f"VIRTUAL-POLE-{parent_identifier}"
@@ -541,27 +718,41 @@ def save_location(
                 elif isinstance(entity, UniteHebergement):
                     # UH.unite_fonctionnelle_id requis
                     if parent_type == "UF":
-                        parent = session.exec(
-                            select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == parent_identifier)
-                        ).first()
+                        parent = _find_by_identifier(UniteFonctionnelle, parent_identifier)
                         if parent:
                             entity.unite_fonctionnelle_id = parent.id
                         
                 elif isinstance(entity, Chambre):
                     # Chambre.unite_hebergement_id requis
                     if parent_type == "UH":
-                        parent = session.exec(
-                            select(UniteHebergement).where(UniteHebergement.identifier == parent_identifier)
-                        ).first()
+                        parent = _find_by_identifier(UniteHebergement, parent_identifier)
                         if parent:
                             entity.unite_hebergement_id = parent.id
+                    elif parent_type in ["N", "UF"]:
+                        # Chambre peut être directement sous une UF (sans UH)
+                        parent_uf = _find_by_identifier(UniteFonctionnelle, parent_identifier)
+                        if parent_uf:
+                            # Créer une UH virtuelle
+                            virtual_uh_id = f"VIRTUAL-UH-{parent_identifier}"
+                            virtual_uh = session.exec(
+                                select(UniteHebergement).where(UniteHebergement.identifier == virtual_uh_id)
+                            ).first()
+                            if not virtual_uh:
+                                virtual_uh = UniteHebergement(
+                                    identifier=virtual_uh_id,
+                                    name=f"UH virtuelle ({parent_uf.name})",
+                                    physical_type=LocationPhysicalType.WI,
+                                    unite_fonctionnelle_id=parent_uf.id
+                                )
+                                session.add(virtual_uh)
+                                session.flush()
+                                logger.info(f"Création UH virtuelle pour Chambre {entity.identifier}")
+                            entity.unite_hebergement_id = virtual_uh.id
                         
                 elif isinstance(entity, Lit):
                     # Lit.chambre_id requis
-                    if parent_type == "CH":
-                        parent = session.exec(
-                            select(Chambre).where(Chambre.identifier == parent_identifier)
-                        ).first()
+                    if parent_type in ["CH", "R"]:
+                        parent = _find_by_identifier(Chambre, parent_identifier)
                         if parent:
                             entity.chambre_id = parent.id
         
@@ -681,6 +872,12 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             
         return segments
     
+    # Local imports to avoid circular dependency
+    from app.models_structure import (
+        EntiteGeographique, Pole, Service, UniteFonctionnelle,
+        UniteHebergement, Chambre, Lit
+    )
+
     # Collect entities to export
     if eg_identifier:
         # Filter mode: only export hierarchy from specified EG

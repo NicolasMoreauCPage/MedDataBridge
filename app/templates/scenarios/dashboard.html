@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% import "components.html" as components %}
+
+{% block content %}
+{{ components.breadcrumb(breadcrumbs) if breadcrumbs }}
+
+<div class="mb-8">
+  <h1 class="text-2xl font-semibold text-slate-900">{{ title }}</h1>
+  <p class="mt-1 text-sm text-slate-600">
+    Vue d'ensemble des exécutions de scénarios sur les {{ filters.days_back }} derniers jours
+  </p>
+</div>
+
+{# Statistiques en cartes #}
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+  <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      </div>
+      <div class="ml-4">
+        <p class="text-sm font-medium text-slate-600">Exécutions totales</p>
+        <p class="text-2xl font-semibold text-slate-900">{{ stats.total_runs }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div class="ml-4">
+        <p class="text-sm font-medium text-slate-600">Taux de succès</p>
+        <p class="text-2xl font-semibold text-slate-900">{{ stats.success_rate }}%</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div class="ml-4">
+        <p class="text-sm font-medium text-slate-600">Durée moyenne</p>
+        <p class="text-2xl font-semibold text-slate-900">{{ stats.avg_duration }}s</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div class="ml-4">
+        <p class="text-sm font-medium text-slate-600">Erreurs</p>
+        <p class="text-2xl font-semibold text-slate-900">{{ stats.error_count }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Distribution ACK #}
+{% if ack_distribution %}
+<div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-8">
+  <h3 class="text-lg font-medium text-slate-900 mb-4">Distribution des ACK</h3>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    {% for code, count in ack_distribution.items() %}
+    <div class="flex flex-col">
+      <span class="text-sm font-medium text-slate-600">{{ code }}</span>
+      <span class="text-xl font-semibold text-slate-900">{{ count }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Filtres #}
+<div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm mb-6">
+  <h3 class="text-lg font-medium text-slate-900 mb-4">Filtres</h3>
+  <form method="get" class="grid grid-cols-1 gap-4 sm:grid-cols-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Scénario</label>
+      <select name="scenario_id" class="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <option value="">Tous</option>
+        {% for sc in scenarios %}
+        <option value="{{ sc.id }}" {% if filters.scenario_id == sc.id %}selected{% endif %}>{{ sc.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Endpoint</label>
+      <select name="endpoint_id" class="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <option value="">Tous</option>
+        {% for ep in endpoints %}
+        <option value="{{ ep.id }}" {% if filters.endpoint_id == ep.id %}selected{% endif %}>{{ ep.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Statut</label>
+      <select name="status" class="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <option value="">Tous</option>
+        <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Complété</option>
+        <option value="failed" {% if filters.status == 'failed' %}selected{% endif %}>Échoué</option>
+        <option value="running" {% if filters.status == 'running' %}selected{% endif %}>En cours</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1">Période (jours)</label>
+      <input type="number" name="days_back" value="{{ filters.days_back }}" min="1" max="365" 
+             class="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    
+    <div class="sm:col-span-4">
+      <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+        Appliquer les filtres
+      </button>
+      <a href="/scenarios/runs" class="ml-2 inline-flex items-center px-4 py-2 bg-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-300">
+        Réinitialiser
+      </a>
+    </div>
+  </form>
+</div>
+
+{# Tableau des runs #}
+<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-200">
+    <h3 class="text-lg font-medium text-slate-900">Exécutions récentes</h3>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          {% for header in headers %}
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+              {{ header }}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-slate-200">
+        {% for row in rows %}
+          <tr class="hover:bg-slate-50">
+            {% for cell in row.cells %}
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                {% if row.detail_url and loop.first %}
+                  <a href="{{ row.detail_url }}" class="text-blue-600 hover:text-blue-700 font-medium">{{ cell }}</a>
+                {% else %}
+                  {{ cell|safe }}
+                {% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="{{ headers|length }}" class="px-6 py-8 text-center text-sm text-slate-500">
+              Aucune exécution trouvée pour ces critères.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# API endpoints pour graphiques JS futurs #}
+<div class="mt-8 bg-slate-50 border border-slate-200 rounded-xl p-6">
+  <h3 class="text-lg font-medium text-slate-900 mb-3">API disponibles</h3>
+  <ul class="space-y-2 text-sm text-slate-600">
+    <li><code class="bg-white px-2 py-1 rounded border border-slate-300">/scenarios/api/stats</code> - Statistiques globales</li>
+    <li><code class="bg-white px-2 py-1 rounded border border-slate-300">/scenarios/api/ack-distribution</code> - Distribution ACK</li>
+    <li><code class="bg-white px-2 py-1 rounded border border-slate-300">/scenarios/api/timeline</code> - Timeline quotidienne</li>
+    <li><code class="bg-white px-2 py-1 rounded border border-slate-300">/scenarios/api/comparison</code> - Comparaison scénarios</li>
+    <li><code class="bg-white px-2 py-1 rounded border border-slate-300">/scenarios/api/run/{run_id}/errors</code> - Détail erreurs</li>
+  </ul>
+  <p class="mt-3 text-sm text-slate-500">
+    Ces endpoints JSON peuvent être utilisés pour alimenter des graphiques interactifs (Chart.js, D3, etc.).
+  </p>
+</div>
+
+{% endblock %}

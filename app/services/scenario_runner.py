@@ -9,10 +9,15 @@ from sqlmodel import Session, select
 
 from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
 from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioBinding
+from app.models_scenario_runs import (
+    ScenarioExecutionRun,
+    ScenarioExecutionStepLog,
+)
 from app.models_structure_fhir import IdentifierNamespace
 from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import parse_msh_fields, send_mllp
 from app.services.scenario_date_updater import update_hl7_message_dates
+from app.services.scenario_timeplan import TimeShiftConfig, shift_hl7_scenario
 from app.services.scenario_transform import transform_hl7_for_context
 from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message
 
@@ -64,7 +69,8 @@ async def _send_hl7_step(
     step: InteropScenarioStep,
     endpoint: SystemEndpoint,
     update_dates: bool = True,
-    binding: Optional[ScenarioBinding] = None
+    binding: Optional[ScenarioBinding] = None,
+    payload_override: Optional[str] = None,
 ) -> MessageLog:
     """
     Envoie une étape HL7 via MLLP avec remplacement optionnel des identifiants.
@@ -78,6 +84,9 @@ async def _send_hl7_step(
     """
     if not endpoint.host or not endpoint.port:
         raise ScenarioExecutionError("Endpoint MLLP incomplet (host/port manquant)")
+
+    # Choisir payload de départ (override pré-calculé si fourni)
+    working_payload = payload_override if payload_override else step.payload
 
     # Adapter le message au contexte local (MSH, namespaces PID-3)
     try:
@@ -93,14 +102,14 @@ async def _send_hl7_step(
             ght_context_id = getattr(endpoint, "ght_context_id", None)
         payload_to_send = transform_hl7_for_context(
             session,
-            step.payload,
+            working_payload,
             endpoint=endpoint,
             ght_context_id=ght_context_id,
             remap_pid3=True,
         )
     except Exception:
         # En cas d'erreur transformation, fallback au payload original
-        payload_to_send = step.payload
+        payload_to_send = working_payload
     
     # Remplacement des identifiants si configuré via binding
     generated_ids = {}
@@ -156,18 +165,22 @@ async def _send_hl7_step(
             print(f"⚠️ Erreur remplacement identifiants: {e}")
             pass
 
-    # Mettre à jour les dates du message si demandé
-    if update_dates:
+    # Mettre à jour les dates du message si demandé ET pas déjà recalé globalement
+    if update_dates and payload_override is None:
         try:
             payload_to_send = update_hl7_message_dates(payload_to_send, datetime.utcnow())
         except Exception:
-            # En cas d'erreur de mise à jour, utiliser le payload original
-            payload_to_send = payload_to_send
+            pass
 
     ack_payload = ""
     status = "error"
     try:
-        ack_payload = await send_mllp(endpoint.host, endpoint.port, payload_to_send)
+        maybe = send_mllp(endpoint.host, endpoint.port, payload_to_send)
+        # Support both async and sync monkeypatched implementations
+        if hasattr(maybe, "__await"):
+            ack_payload = await maybe
+        else:
+            ack_payload = maybe
         status = "sent" if ack_payload else "unknown"
     except Exception as exc:
         ack_payload = str(exc)
@@ -242,7 +255,8 @@ async def send_step(
     step: InteropScenarioStep,
     endpoint: SystemEndpoint,
     update_dates: bool = True,
-    binding: Optional[ScenarioBinding] = None
+    binding: Optional[ScenarioBinding] = None,
+    payload_override: Optional[str] = None,
 ) -> MessageLog:
     """
     Envoie une étape de scénario au système cible.
@@ -272,7 +286,14 @@ async def send_step(
         return log
 
     if endpoint.kind == "MLLP":
-        return await _send_hl7_step(session, step, endpoint, update_dates=update_dates, binding=binding)
+        return await _send_hl7_step(
+            session,
+            step,
+            endpoint,
+            update_dates=update_dates,
+            binding=binding,
+            payload_override=payload_override,
+        )
     if endpoint.kind == "FHIR":
         return await _send_fhir_step(session, step, endpoint)
     raise ScenarioExecutionError(f"Type d'endpoint non supporté: {endpoint.kind}")
@@ -285,18 +306,17 @@ async def send_scenario(
     *,
     step_ids: Iterable[int] | None = None,
     update_dates: bool = True,
-    binding: Optional[ScenarioBinding] = None
+    binding: Optional[ScenarioBinding] = None,
+    use_advanced_timeplan: bool = True,
+    dry_run: bool = False,
+    start_order_index: Optional[int] = None,
 ) -> List[MessageLog]:
-    """
-    Envoie tout ou partie d'un scénario dans l'ordre des steps.
-    
-    Args:
-        session: Session de base de données
-        scenario: Scénario à envoyer
-        endpoint: Endpoint cible
-        step_ids: IDs des étapes spécifiques à envoyer (None = toutes)
-        update_dates: Si True, met à jour automatiquement les dates HL7 pour qu'elles soient récentes
-        binding: ScenarioBinding optionnel pour configuration des identifiants
+    """Envoie ou simule (dry_run) un scénario.
+
+    Ajouts:
+      - dry_run: ne pas envoyer, seulement prévisualiser (statut dry_run)
+      - start_order_index: commencer à partir d'une étape (skip antérieures)
+      - journalisation dans ScenarioExecutionRun/ScenarioExecutionStepLog
     """
     logs: List[MessageLog] = []
     steps = scenario.steps
@@ -305,12 +325,137 @@ async def send_scenario(
         steps = [step for step in steps if step.id in ids]
 
     steps = sorted(steps, key=lambda s: s.order_index)
+    if start_order_index is not None:
+        steps = [s for s in steps if s.order_index >= start_order_index]
+
+    # Créer le run
+    run = ScenarioExecutionRun(
+        scenario_id=scenario.id,
+        endpoint_id=endpoint.id,
+        status="running" if not dry_run else "dry_run",
+        dry_run=dry_run,
+        total_steps=len(steps),
+    )
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+
+    # Pré-calcul avancé de recalage temporel si activé (uniquement si pas dry_run ou si on veut aperçu cohérent)
+    payload_overrides: dict[int, str] = {}
+    if update_dates and use_advanced_timeplan:
+        try:
+            hl7_steps = [s for s in steps if s.message_format.lower() == "hl7"]
+            original_messages = [s.payload for s in hl7_steps]
+            cfg = TimeShiftConfig(
+                anchor_mode=scenario.time_anchor_mode or "now",
+                anchor_days_offset=scenario.time_anchor_days_offset,
+                fixed_start_iso=scenario.time_fixed_start_iso,
+                preserve_intervals=scenario.preserve_intervals,
+                jitter_min_minutes=scenario.jitter_min_minutes,
+                jitter_max_minutes=scenario.jitter_max_minutes,
+                jitter_events=[e.strip() for e in (scenario.apply_jitter_on_events or "").split(',') if e.strip()] or None,
+            )
+            shifted_messages = shift_hl7_scenario(original_messages, cfg)
+            for s, new_payload in zip(hl7_steps, shifted_messages):
+                payload_overrides[s.id] = new_payload
+        except Exception as e:
+            print(f"[scenario_runner] Timeplan advanced failed: {e}. Fallback per-message update.")
 
     for step in steps:
-        log = await send_step(session, step, endpoint, update_dates=update_dates, binding=binding)
-        logs.append(log)
-        if step.delay_seconds:
+        start_ts = datetime.utcnow()
+        override = payload_overrides.get(step.id)
+        ack_code = None
+        status = "dry_run" if dry_run else "pending"
+        error_message = None
+        message_log: Optional[MessageLog] = None
+        try:
+            if dry_run:
+                # Aperçu remplacement identifiants uniquement (si binding)
+                if binding:
+                    # Preview - ne persiste pas les identifiants
+                    pass  # Placeholder pour future preview détaillée
+                status = "dry_run"
+            else:
+                message_log = await send_step(
+                    session,
+                    step,
+                    endpoint,
+                    update_dates=update_dates,
+                    binding=binding,
+                    payload_override=override,
+                )
+                status = message_log.status
+                # Extraction code ACK HL7 (AA/AE/AR) ou HTTP code pour FHIR
+                if message_log.kind == "MLLP" and message_log.ack_payload:
+                    for line in message_log.ack_payload.replace("\r", "\n").split("\n"):
+                        if line.startswith("MSA|"):
+                            msa_fields = line.split("|")
+                            if len(msa_fields) > 1:
+                                ack_code = msa_fields[1]
+                            break
+                elif message_log.kind == "FHIR" and message_log.correlation_id:
+                    ack_code = message_log.correlation_id
+        except ScenarioExecutionError as exc:
+            status = "error"
+            error_message = str(exc)
+        end_ts = datetime.utcnow()
+        duration_ms = int((end_ts - start_ts).total_seconds() * 1000)
+
+        # Créer le step log
+        step_log = ScenarioExecutionStepLog(
+            run_id=run.id,
+            step_id=step.id,
+            endpoint_id=endpoint.id,
+            order_index=step.order_index,
+            status=status,
+            ack_code=ack_code,
+            duration_ms=duration_ms,
+            error_message=error_message,
+            payload_excerpt=(override or step.payload)[:512],
+        )
+        session.add(step_log)
+        session.commit()
+
+        if message_log:
+            logs.append(message_log)
+        else:
+            # Créer un faux MessageLog pour interface unifiée (dry_run ou erreur sans émission MLLP/FHIR)
+            synthetic = MessageLog(
+                direction="out",
+                kind=endpoint.kind,
+                endpoint_id=endpoint.id,
+                payload=override or step.payload,
+                ack_payload="" if not ack_code else ack_code,
+                status=status,
+                correlation_id=None,
+            )
+            session.add(synthetic)
+            session.commit()
+            session.refresh(synthetic)
+            logs.append(synthetic)
+
+        # Pause si définie et pas dry_run
+        if step.delay_seconds and not dry_run:
             await asyncio.sleep(step.delay_seconds)
+
+    # Mise à jour du run
+    run.finished_at = datetime.utcnow()
+    run.success_steps = sum(1 for l in run.step_logs if l.status == "sent")
+    run.error_steps = sum(1 for l in run.step_logs if l.status == "error")
+    run.skipped_steps = sum(1 for l in run.step_logs if l.status == "skipped")
+    if dry_run:
+        run.status = "dry_run"
+    elif run.error_steps == 0 and run.success_steps == run.total_steps:
+        run.status = "success"
+    elif run.error_steps == 0 and (run.success_steps + run.skipped_steps) == run.total_steps:
+        run.status = "success"
+    elif run.error_steps < run.total_steps:
+        run.status = "partial"
+    else:
+        run.status = "error"
+    session.add(run)
+    session.commit()
+    session.refresh(run)
 
     return logs
 

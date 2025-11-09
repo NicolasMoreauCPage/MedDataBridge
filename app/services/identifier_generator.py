@@ -10,7 +10,7 @@ Objectifs:
 
 from __future__ import annotations
 
-import random
+import random, threading
 from typing import Optional, Tuple
 from sqlmodel import Session, select, func
 
@@ -21,6 +21,9 @@ from app.models_structure_fhir import IdentifierNamespace
 class IdentifierGenerationError(Exception):
     """Erreur lors de la génération d'un identifiant."""
     pass
+
+# Verrou global pour sécuriser la génération concurrente (threads/tests)
+_GEN_LOCK = threading.Lock()
 
 
 def _parse_prefix_pattern(pattern: str) -> Tuple[str, int]:
@@ -99,14 +102,15 @@ def _generate_with_prefix_pattern(
             f"Pattern '{pattern}' ne permet pas de génération (pas de '.')"
         )
     
-    # Calculer min/max pour la partie variable
-    min_val = 10 ** (variable_digits - 1)  # ex: 100 pour 3 digits
+    # Calculer min/max pour la partie variable (0 à 10^n - 1)
+    min_val = 0
     max_val = (10 ** variable_digits) - 1   # ex: 999 pour 3 digits
     
     for attempt in range(max_attempts):
-        # Générer partie variable
+        # Générer partie variable avec padding zeros si nécessaire
         variable_part = random.randint(min_val, max_val)
-        candidate = f"{fixed_prefix}{variable_part}"
+        variable_str = str(variable_part).zfill(variable_digits)
+        candidate = f"{fixed_prefix}{variable_str}"
         
         # Vérifier collision dans table Identifier
         existing = session.exec(
@@ -222,37 +226,41 @@ def generate_identifier(
     
     # Cas 1: Pattern de préfixe (mode par défaut)
     if pattern:
-        return _generate_with_prefix_pattern(
-            session=session,
-            pattern=pattern,
-            identifier_type=identifier_type,
-            namespace_system=namespace.system,
-        )
+        with _GEN_LOCK:
+            return _generate_with_prefix_pattern(
+                session=session,
+                pattern=pattern,
+                identifier_type=identifier_type,
+                namespace_system=namespace.system,
+            )
     
     # Cas 2: Plage numérique (mode range)
     if mode == "range" and namespace.prefix_min is not None and namespace.prefix_max is not None:
-        return _generate_with_range(
-            session=session,
-            min_val=namespace.prefix_min,
-            max_val=namespace.prefix_max,
-            identifier_type=identifier_type,
-            namespace_system=namespace.system,
-        )
+        with _GEN_LOCK:
+            return _generate_with_range(
+                session=session,
+                min_val=namespace.prefix_min,
+                max_val=namespace.prefix_max,
+                identifier_type=identifier_type,
+                namespace_system=namespace.system,
+            )
     
     # Cas 3: Pas de configuration = génération séquentielle simple
     # Trouver le dernier identifiant de ce type dans ce namespace
-    last_ident = session.exec(
-        select(Identifier)
-        .where(
-            Identifier.type == identifier_type,
-            Identifier.system == namespace.system
-        )
-        .order_by(Identifier.id.desc())
-    ).first()
+    with _GEN_LOCK:
+        last_ident = session.exec(
+            select(Identifier)
+            .where(
+                Identifier.type == identifier_type,
+                Identifier.system == namespace.system
+            )
+            .order_by(Identifier.id.desc())
+        ).first()
     
     if last_ident and last_ident.value.isdigit():
-        next_val = int(last_ident.value) + 1
-        return str(next_val)
+        with _GEN_LOCK:
+            next_val = int(last_ident.value) + 1
+            return str(next_val)
     
     # Fallback: commencer à 1000 pour ce namespace
     return "1000"
@@ -310,6 +318,74 @@ def generate_identifier_set(
         )
     
     return result
+
+
+def generate_and_persist_identifier(
+    session: Session,
+    namespace: IdentifierNamespace,
+    identifier_type: IdentifierType,
+    prefix_override: Optional[str] = None
+) -> str:
+    """Génère et persiste immédiatement un identifiant de manière atomique.
+
+    Cette fonction ferme la fenêtre de course potentielle entre la génération
+    (vérification de disponibilité) et l'insertion effective dans la base en
+    réalisant les deux opérations sous le même verrou global.
+
+    Args:
+        session: Session base de données
+        namespace: Namespace configurant le préfixe / plage
+        identifier_type: Type d'identifiant (IPP, NDA, VN)
+        prefix_override: Override pattern si nécessaire
+
+    Returns:
+        La valeur d'identifiant générée et enregistrée.
+    """
+    pattern = prefix_override if prefix_override else namespace.prefix_pattern
+    mode = namespace.prefix_mode or "fixed"
+
+    with _GEN_LOCK:
+        # Pattern
+        if pattern:
+            value = _generate_with_prefix_pattern(
+                session=session,
+                pattern=pattern,
+                identifier_type=identifier_type,
+                namespace_system=namespace.system,
+            )
+        # Plage
+        elif mode == "range" and namespace.prefix_min is not None and namespace.prefix_max is not None:
+            value = _generate_with_range(
+                session=session,
+                min_val=namespace.prefix_min,
+                max_val=namespace.prefix_max,
+                identifier_type=identifier_type,
+                namespace_system=namespace.system,
+            )
+        else:
+            # Séquentiel
+            last_ident = session.exec(
+                select(Identifier)
+                .where(
+                    Identifier.type == identifier_type,
+                    Identifier.system == namespace.system
+                )
+                .order_by(Identifier.id.desc())
+            ).first()
+            if last_ident and last_ident.value.isdigit():
+                value = str(int(last_ident.value) + 1)
+            else:
+                value = "1000"
+
+        ident = Identifier(
+            value=value,
+            type=identifier_type,
+            system=namespace.system,
+            status="active"
+        )
+        session.add(ident)
+        session.commit()
+        return value
 
 
 def count_available_identifiers(namespace: IdentifierNamespace) -> Optional[int]:

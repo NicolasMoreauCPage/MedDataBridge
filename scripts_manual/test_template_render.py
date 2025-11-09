@@ -9,7 +9,7 @@ from app.models_structure_fhir import GHTContext, EntiteJuridique
 from app.routers.endpoints import registry
 
 templates = Jinja2Templates(directory="app/templates")
-engine = create_engine("sqlite:///poc.db")
+engine = create_engine("sqlite:///medbridge.db")
 
 # Mock request
 class MockRequest:

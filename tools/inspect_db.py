@@ -1,7 +1,7 @@
 from sqlmodel import Session, select, create_engine
 from app.models import Patient
 
-engine = create_engine("sqlite:///./poc.db")
+engine = create_engine("sqlite:///./medbridge.db")
 with Session(engine) as session:
     patients = session.exec(select(Patient)).all()
     if not patients:

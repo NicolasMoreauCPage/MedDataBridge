@@ -9,7 +9,7 @@ from sqlmodel import select
 
 def check_database():
     print("\n" + "="*80)
-    print("CONTENU DE LA BASE DE DONNÉES poc.db")
+    print("CONTENU DE LA BASE DE DONNÉES medbridge.db")
     print("="*80)
     
     session = Session(engine)

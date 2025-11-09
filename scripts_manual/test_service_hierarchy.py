@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.models_structure_fhir import EntiteGeographique, Pole
 from app.models_structure import Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 
-DATABASE_URL = "sqlite:///./poc.db"
+DATABASE_URL = "sqlite:///./medbridge.db"
 engine = create_engine(DATABASE_URL)
 
 with Session(engine) as session:

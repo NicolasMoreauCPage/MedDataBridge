@@ -2,7 +2,7 @@
 Accès base de données et aides de séquence
 
 Contenu
-- Création du moteur SQLModel/SQLite (fichier local `poc.db`).
+- Création du moteur SQLModel/SQLite (fichier local `medbridge.db`).
 - Utilitaires de session via dépendance `get_session` (FastAPI Depends).
 - Gestion de séquences applicatives simples (table `Sequence`) avec `peek_next_sequence`
     et `get_next_sequence`.
@@ -26,10 +26,10 @@ from app.models_identifiers import Identifier
 from app import models_scenarios  # ensure scenario models are registered
 from app import models_workflows  # ensure workflow models are registered
 
-# Moteur SQLite local. Par défaut, fichier `poc.db` au répertoire courant.
+# Moteur SQLite local. Par défaut, fichier `medbridge.db` au répertoire courant.
 # Pool size increased to handle concurrent emissions
 engine = create_engine(
-    "sqlite:///./poc.db",
+    "sqlite:///./medbridge.db",
     echo=False,
     pool_size=20,  # Increased from default 5
     max_overflow=30,  # Increased from default 10

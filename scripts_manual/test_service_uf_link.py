@@ -1,7 +1,7 @@
 """Test simple pour voir les liens Service -> UF."""
 import sqlite3
 
-conn = sqlite3.connect("poc.db")
+conn = sqlite3.connect("medbridge.db")
 cursor = conn.cursor()
 
 # Compter les UF par service

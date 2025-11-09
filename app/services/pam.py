@@ -163,7 +163,7 @@ def generate_pam_messages_for_dossier(dossier: Dossier) -> List[str]:
                 primary_id = patient.identifier or patient.external_id or (f"PSEQ{patient.patient_seq}" if patient.patient_seq is not None else f"PID{patient.id}")
                 # Emit PID-3 as CX with system tag for source context + type PI
                 pid_cx = f"{primary_id}^^^SRC-PAM&1.2.250.1.211.99.1&ISO^PI"
-                msh = f"MSH|^~\\&|POC|POC|DST|DST|{m.when:%Y%m%d%H%M%S}||{m.type}|{dossier.dossier_seq}|P|2.5"
+                msh = f"MSH|^~\\&|MedBridge|SYSTEM|DST|DST|{m.when:%Y%m%d%H%M%S}||{m.type}|{dossier.dossier_seq}|P|2.5"
                 pid = f"PID|||{pid_cx}||{patient.family}^{patient.given}||{patient.birth_date}|{patient.gender}"
                 pv1_loc = m.location or v.code or "UNKNOWN"
                 pv1 = f"PV1||I|{pv1_loc}|||^^^^^{v.uf_responsabilite}"
@@ -715,7 +715,7 @@ async def handle_admission_message(
                     continue
             session.flush()
         except Exception:
-            # if identifiers persistence fails, continue; not fatal for POC
+            # if identifiers persistence fails, continue; not fatal
             pass
         # Créer un dossier et une venue
         d_seq = get_next_sequence(session, "dossier")

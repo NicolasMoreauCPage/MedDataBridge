@@ -65,7 +65,7 @@
       <div>
         <h3 class="font-semibold text-slate-800 uppercase tracking-wide text-xs">Variables d’environnement</h3>
         <ul class="list-disc pl-5 space-y-1">
-          <li><code>DATABASE_URL</code> : URL de connexion SQLModel (sinon <code>sqlite:///./poc.db</code>).</li>
+          <li><code>DATABASE_URL</code> : URL de connexion SQLModel (sinon <code>sqlite:///./medbridge.db</code>).</li>
           <li><code>MLLP_TRACE=1</code> : trace hexadécimale des trames envoyées / reçues.</li>
           <li><code>TESTING=1</code> : désactive l’obligation d’avoir un contexte GHT actif (CI/CD).</li>
           <li><code>FHIR_VERIFY_SSL=0</code> : autorise les certificats auto-signés.</li>
@@ -201,7 +201,7 @@ PYTHONPATH=. uvicorn app.app:create_app --factory --reload</code></pre>
       <div class="space-y-3">
         <h3 class="font-semibold text-slate-800">7.2 Bonnes pratiques</h3>
         <ul class="list-disc pl-5 space-y-1">
-          <li>Purger ou sauvegarder la base (<code>sqlite3 poc.db .dump</code>) avant une campagne intensive.</li>
+          <li>Purger ou sauvegarder la base (<code>sqlite3 medbridge.db .dump</code>) avant une campagne intensive.</li>
           <li>Synchroniser la structure avant les scénarios PAM afin de garantir la cohérence des segments PV1.</li>
           <li>Utiliser un endpoint interne en boucle avant de pousser vers des SI partenaires.</li>
           <li>Documenter les endpoints et tokens dans un coffre sécurisé (les secrets ne sont pas chiffrés en base).</li>

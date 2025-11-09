@@ -6,7 +6,7 @@ from app.models_transport import SystemEndpoint
 from app.models_structure_fhir import GHTContext, EntiteJuridique
 from app.routers.endpoints import registry
 
-engine = create_engine("sqlite:///poc.db")
+engine = create_engine("sqlite:///medbridge.db")
 
 with Session(engine) as session:
     print("\n=== Test endpoint detail ===")

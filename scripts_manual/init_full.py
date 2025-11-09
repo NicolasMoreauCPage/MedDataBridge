@@ -2,7 +2,7 @@
 """Initialisation complète de l'environnement local.
 
 Étapes:
-1. --force-reset : supprime le fichier poc.db si présent
+1. --force-reset : supprime le fichier medbridge.db si présent
 2. Création des tables (idempotent)
 3. Application migrations legacy basiques (006/007)
 4. Structure étendue optionnelle (--extended-structure)
@@ -36,7 +36,7 @@ from app.models_structure import (
     LocationServiceType,
 )
 
-DB_PATH = Path("poc.db")
+DB_PATH = Path("medbridge.db")
 
 MIGRATION_CMDS = [
     (
@@ -465,7 +465,7 @@ def _load_vocabularies(tag: str = "") -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Initialisation complète locale")
-    parser.add_argument("--force-reset", action="store_true", help="Supprime poc.db avant recréation")
+    parser.add_argument("--force-reset", action="store_true", help="Supprime medbridge.db avant recréation")
     parser.add_argument("--with-vocab", action="store_true", help="Initialise les vocabulaires")
     parser.add_argument("--rich-seed", action="store_true", help="Seed riche (multi patients)")
     parser.add_argument("--demo-scenarios", action="store_true", help="Insère scénarios complexes")
@@ -473,7 +473,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.force_reset and DB_PATH.exists():
-        print("→ Suppression ancienne base poc.db")
+        print("→ Suppression ancienne base medbridge.db")
         DB_PATH.unlink()
 
     print("→ Création tables…")

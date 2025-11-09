@@ -5,7 +5,7 @@ import sqlite3
 import sys
 
 def main():
-    db_path = "poc.db"
+    db_path = "medbridge.db"
     
     try:
         conn = sqlite3.connect(db_path)

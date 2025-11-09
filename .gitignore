@@ -13,9 +13,9 @@ venv/
 *.log
 *.sqlite3
 
-# Base de données SQLite (garder uniquement poc.db en production)
+# Base de données SQLite (garder uniquement medbridge.db en production)
 *.db
-!poc.db  # Décommenter pour inclure poc.db dans git si besoin
+!medbridge.db  # Décommenter pour inclure medbridge.db dans git si besoin
 
 # Configuration locale
 .env

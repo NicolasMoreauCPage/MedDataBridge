@@ -69,7 +69,7 @@ Pour accélérer un onboarding local, un script d'initialisation idempotent est 
 # (Re)crée la base et insère un jeu minimal (Patient+Dossier+Venue+Mouvement)
 PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py
 
-# Réinitialiser complètement (supprime poc.db avant)
+# Réinitialiser complètement (supprime medbridge.db avant)
 PYTHONPATH=. .venv/bin/python scripts_manual/init_full.py --force-reset
 ```
 
@@ -83,7 +83,7 @@ Flags supplémentaires disponibles :
 
 ```text
 --with-vocab          Initialise les vocabulaires (équivalent tools/init_vocabularies.py)
---force-reset         Supprime poc.db avant recréation
+--force-reset         Supprime medbridge.db avant recréation
 --extended-structure  Crée une structure étendue (GHT + 2 EJ + hiérarchie complète: site, pôle, services, UF, UH, chambres, lits + namespaces identifiants IPP/NDA/VN/MVT)
 --rich-seed           Insère un jeu multi-patients (~100 patients, ~150 dossiers, ~300 venues, ~1000 mouvements) réutilisant les UF réelles si présentes
 --demo-scenarios      Ajoute un contexte GHT DEMO avec 2 EJ minimal + scénarios mouvements (transferts, annulations, multi-transferts) liés aux UF réelles
@@ -298,7 +298,7 @@ Ce script :
 
 ```bash
 # Après modification d'un modèle SQLModel
-rm poc.db                           # Supprimer l'ancienne DB
+rm medbridge.db                           # Supprimer l'ancienne DB
 python tools/reset_db.py --init-vocab  # Recréer avec vocabulaires
 # OU démarrer directement l'app qui appellera init_db()
 INIT_VOCAB=1 uvicorn app.app:app --reload
@@ -488,16 +488,16 @@ MLLP_TRACE=1 PYTHONPATH=. .venv/bin/python -m uvicorn app.app:app
 
 ```bash
 # Sauvegarder
-cp poc.db poc.db.bak
+cp medbridge.db medbridge.db.bak
 
 # Réinitialiser
-rm poc.db
+rm medbridge.db
 ./tools/init_vocabularies.py
 ```
 
 Note: Certaines modifications de modèles (ajout de colonnes) ne sont pas appliquées automatiquement
 sur une base SQLite existante. Si vous ajoutez/champ de modèle (ex: `forced_identifier_system`),
-vous devrez soit recréer la base (`rm poc.db` puis relancer `./tools/init_vocabularies.py`),
+vous devrez soit recréer la base (`rm medbridge.db` puis relancer `./tools/init_vocabularies.py`),
 soit effectuer une migration SQL manuelle.
 
 ### SSL/TLS

@@ -58,7 +58,7 @@ mllp_manager = MLLPManager(session_factory=session_factory, on_message=on_messag
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # En tests, on ne veut pas initialiser la DB de prod (poc.db) ni démarrer
+    # En tests, on ne veut pas initialiser la DB de production (medbridge.db) ni démarrer
     # des serveurs MLLP en arrière-plan. Les tests surchargent l'accès DB via
     # des overrides, on saute donc init/reload quand TESTING est présent.
     testing = os.getenv("TESTING", "0") in ("1", "true", "True")
@@ -96,8 +96,8 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="FHIR PAM POC UI",
-        version="0.2.0",
+        title="MedBridge - Healthcare Interoperability Platform",
+        version="1.0.0-rc1",
         lifespan=lifespan
     )
 

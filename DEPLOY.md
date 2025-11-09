@@ -26,7 +26,7 @@
    Dans Render Dashboard → Environment :
    ```
    SESSION_SECRET_KEY=<générer une clé aléatoire>
-   DATABASE_URL=sqlite:///./poc.db
+   DATABASE_URL=sqlite:///./medbridge.db
    ```
 
 4. **Plan gratuit**

@@ -2,7 +2,7 @@
 
 Fonctions principales
 - Validation et parsing des segments MSH/PID/PD1/PV1
-- Application d'updates Z99 tolérantes (POC) sur des entités manquantes
+- Application d'updates Z99 tolérantes sur des entités manquantes
 - Routage métier via `IHEMessageRouter`
 - Journalisation dans `MessageLog` et génération des ACK HL7 (AA/AE/AR)
 
@@ -277,7 +277,7 @@ def _parse_pid(message: str) -> dict:
 
 
 def _parse_pd1(message: str) -> dict:
-    """Parse PD1 segment for a couple of useful POC fields.
+    """Parse PD1 segment for useful fields.
     Returns dict with keys: primary_care_provider, religion, language
     PD1 is optional; be tolerant.
     """

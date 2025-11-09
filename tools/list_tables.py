@@ -1,5 +1,5 @@
 import sqlite3
-conn = sqlite3.connect('poc.db')
+conn = sqlite3.connect('medbridge.db')
 tables = conn.execute('SELECT name FROM sqlite_master WHERE type="table" ORDER BY name').fetchall()
 print(f"Total tables: {len(tables)}")
 for t in tables:  # Show all

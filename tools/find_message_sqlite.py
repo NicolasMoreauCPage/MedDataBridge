@@ -1,6 +1,6 @@
 import sqlite3, os, sys
 needle = sys.argv[1] if len(sys.argv) > 1 else "1117924663"
-db_path = os.path.join(os.getcwd(), 'poc.db')
+db_path = os.path.join(os.getcwd(), 'medbridge.db')
 conn = sqlite3.connect(db_path)
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()

@@ -8,7 +8,7 @@ Options:
     --init-vocab    Also initialize vocabulary systems after schema creation
 
 This script is intended for development only. It will:
-1. Drop all existing tables in poc.db
+1. Drop all existing tables in medbridge.db
 2. Recreate schema from SQLModel models (via create_all)
 3. Optionally initialize vocabulary systems if --init-vocab is passed
 
@@ -28,7 +28,7 @@ from app.db import engine, session_factory
 
 def reset_database(init_vocab: bool = False):
     """Drop all tables and recreate schema from models."""
-    print("⚠️  WARNING: This will DROP all tables in poc.db")
+    print("⚠️  WARNING: This will DROP all tables in medbridge.db")
     print("    All data will be lost!")
     
     response = input("\nContinue? (yes/no): ")

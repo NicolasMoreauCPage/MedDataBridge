@@ -269,7 +269,7 @@ Effacer contexte
 
 ## Authentification
 
-Actuellement: aucune (POC). Production nécessitera:
+**Note RC:** Authentification simplifiée actuellement. La version 1.0 finale incluera:
 
 - OAuth2 / OIDC
 
@@ -279,7 +279,7 @@ Actuellement: aucune (POC). Production nécessitera:
 
 ## Rate Limiting
 
-Non implémenté (POC). Prévoir pour production:
+**Note RC:** Rate limiting à implémenter pour v1.0 finale:
 
 - 100 req/min par IP (API générale)
 

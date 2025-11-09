@@ -9,7 +9,7 @@ def column_exists(cursor, table: str, column: str) -> bool:
     return any(row[1] == column for row in cursor.fetchall())
 
 def main():
-    db_path = "poc.db"
+    db_path = "medbridge.db"
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()

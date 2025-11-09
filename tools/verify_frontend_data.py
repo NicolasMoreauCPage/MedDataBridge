@@ -1,7 +1,7 @@
 """Verify EJ #6 EG filtering and what frontend would see - using raw SQL."""
 import sqlite3
 
-conn = sqlite3.connect("poc.db")
+conn = sqlite3.connect("medbridge.db")
 cursor = conn.cursor()
 
 # Get EJ #6

@@ -25,20 +25,37 @@ from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 )
+from app.models import Sequence
+
+
+def get_next_sequence(session: Session, name: str) -> int:
+    """Simple sequence generator used by the import tool to assign venue/dossier sequence ids."""
+    seq = session.exec(select(Sequence).where(Sequence.name == name)).first()
+    if not seq:
+        seq = Sequence(name=name, value=1)
+        session.add(seq)
+        session.flush()
+        return seq.value
+    seq.value += 1
+    session.add(seq)
+    session.flush()
+    return seq.value
 
 def init_namespaces(session: Session, ght: GHTContext) -> dict[str, IdentifierNamespace]:
     """Initialise les namespaces requis pour l'exemple."""
     namespaces = {}
     
+    # Provide canonical URN OIDs for the namespaces so the IdentifierNamespace.system
+    # (non-null) constraint is satisfied when creating GHT-level namespaces.
     ns_configs = {
-        "IPP": ("IPP", "Identifiant Permanent Patient"),
-        "NDA": ("NDA", "Numéro de Dossier Administratif"),
-        "IEL": ("IEL", "Identifiant Episode Local"),
-        "FINESSEJ": ("FINESS EJ", "Identifiant FINESS Entité Juridique"),
-        "FINESSEG": ("FINESS EG", "Identifiant FINESS Entité Géographique"), 
+        "IPP": ("IPP", "Identifiant Permanent Patient", "1.2.250.1.211.10.200.2"),
+        "NDA": ("NDA", "Numéro de Dossier Administratif", "1.2.250.1.211.12.1.2"),
+        "IEL": ("IEL", "Identifiant Episode Local", "1.2.250.1.211.12.1.2"),
+        "FINESSEJ": ("FINESS EJ", "Identifiant FINESS Entité Juridique", "1.2.250.1.211.10.200.1"),
+        "FINESSEG": ("FINESS EG", "Identifiant FINESS Entité Géographique", "1.2.250.1.211.10.200.1"),
     }
     
-    for ns_type, (name, desc) in ns_configs.items():
+    for ns_type, (name, desc, oid) in ns_configs.items():
         ns = session.exec(
             select(IdentifierNamespace)
             .where(IdentifierNamespace.ght_context_id == ght.id)
@@ -50,6 +67,8 @@ def init_namespaces(session: Session, ght: GHTContext) -> dict[str, IdentifierNa
                 type=ns_type,
                 name=name,
                 description=desc,
+                system=f"urn:oid:{oid}",
+                oid=oid,
                 ght_context_id=ght.id,
                 is_active=True
             )
@@ -201,7 +220,26 @@ def import_structure_mfn(session: Session, ej: EntiteJuridique, structure_file: 
                 loc_type = fields[3] if len(fields) > 3 else None
                 name = fields[4] if len(fields) > 4 else None
                 
+                # Si on crée un Service sans Pôle, créer un Pôle par défaut
+                if loc_type == 'D' and last_entities['pole'] is None and last_entities['eg']:
+                    default_pole = session.exec(
+                        select(Pole).where(
+                            Pole.identifier == f"POLE_DEFAULT_{last_entities['eg'].identifier}"
+                        )
+                    ).first()
+                    if not default_pole:
+                        default_pole = Pole(
+                            identifier=f"POLE_DEFAULT_{last_entities['eg'].identifier}",
+                            name="Pôle par défaut",
+                            entite_geo_id=last_entities['eg'].id,
+                            physical_type='SI'
+                        )
+                        session.add(default_pole)
+                        session.flush()
+                    last_entities['pole'] = default_pole
+                
                 entity_configs = {
+                    'M': (None, None, {}),  # Ignore EJ (déjà existant)
                     'ETBL_GRPQ': ('eg', EntiteGeographique, {'entite_juridique_id': ej.id, 'finess': ej.finess_ej}),
                     'PL': ('pole', Pole, {'entite_geo_id': last_entities['eg'].id if last_entities['eg'] else None}),
                     'D': ('service', Service, {'pole_id': last_entities['pole'].id if last_entities['pole'] else None, 'service_type': 'MCO'}),
@@ -213,6 +251,10 @@ def import_structure_mfn(session: Session, ej: EntiteJuridique, structure_file: 
                 
                 if loc_type in entity_configs:
                     key, entity_class, extra_params = entity_configs[loc_type]
+                    
+                    # Skip if entity_class is None (e.g., EJ already exists)
+                    if entity_class is None:
+                        continue
                     
                     # Check if entity exists
                     entity = session.exec(select(entity_class).where(entity_class.identifier == loc_id)).first()
@@ -278,6 +320,11 @@ def import_pam_messages(session: Session, ej: EntiteJuridique, directory: Path, 
     }
     
     try:
+        # Collections for per-file reporting
+        imported_files = []
+        validation_failed = []
+        error_files = []
+
         for hl7_file in hl7_files[:max_files]:
             try:
                 # Lecture et validation du fichier HL7
@@ -288,6 +335,28 @@ def import_pam_messages(session: Session, ej: EntiteJuridique, directory: Path, 
                 result = validator.validate_message(hl7_content)
                 
                 if not result.is_valid:
+                    # Capture validation failures with the raw PV1/ZBE lines for easier debugging
+                    pv1_line = None
+                    zbe_line = None
+                    try:
+                        c = hl7_content.replace('\r\n', '\r').replace('\n', '\r')
+                        segs = c.split('\r')
+                        for s in segs:
+                            if s.startswith('PV1|'):
+                                pv1_line = s
+                            if s.startswith('ZBE|'):
+                                zbe_line = s
+                    except Exception:
+                        pass
+
+                    validation_failed.append({
+                        'file': hl7_file.name,
+                        'errors': [(e.segment, e.field, e.message, e.line_number) for e in result.errors],
+                        'warnings': [(w.segment, w.field, w.message, w.line_number) for w in (result.warnings or [])],
+                        'pv1': pv1_line,
+                        'zbe': zbe_line
+                    })
+
                     print(f"\n❌ Erreurs de validation dans {hl7_file.name}:")
                     for error in result.errors:
                         line_info = f" (ligne {error.line_number})" if error.line_number else ""
@@ -314,76 +383,150 @@ def import_pam_messages(session: Session, ej: EntiteJuridique, directory: Path, 
                 # Traiter les segments
                 for segment in segments:
                     fields = segment.split('|')
-                    
+
                     if segment.startswith('PID|'):
                         # Identifiants patient
-                        pid_id = fields[3].split('^')[0] if len(fields) > 3 else None
-                        pid_name = fields[5].split('^') if len(fields) > 5 else []
-                        name = pid_name[0] if pid_name else 'Inconnu'
-                        surname = pid_name[1] if len(pid_name) > 1 else ''
-                        
+                        pid_id = fields[3].split('^')[0] if len(fields) > 3 and fields[3] else None
+                        pid_name = fields[5].split('^') if len(fields) > 5 and fields[5] else []
+                        family = pid_name[0] if pid_name and pid_name[0] else 'Inconnu'
+                        given = pid_name[1] if len(pid_name) > 1 and pid_name[1] else None
+
                         # Chercher le patient existant ou en créer un nouveau
                         current_patient = session.exec(
                             select(Patient).where(Patient.identifier == pid_id)
                         ).first()
-                        
+
                         if not current_patient:
+                            # Patient.family is NOT NULL in the model; provide a default
                             current_patient = Patient(
                                 identifier=pid_id,
-                                name=name,
-                                surname=surname,
+                                family=family,
+                                given=given,
                                 entite_juridique_id=ej.id
                             )
                             session.add(current_patient)
                             session.flush()
-                            patients_created += 1
+                            stats['patients_created'] += 1
                     
                     elif segment.startswith('PV1|') and current_patient:
                         # Informations de venue
-                        pv1_id = fields[19] if len(fields) > 19 else None
-                        pv1_uh = fields[3].split('^')[0] if len(fields) > 3 else None
-                        
+                        pv1_id = fields[19] if len(fields) > 19 and fields[19] else None
+                        # PV1-3 may contain a composite like "UF-CARDIO-H^^^..."; take first component
+                        pv1_loc = fields[3].split('^')[0] if len(fields) > 3 and fields[3] else None
+
                         # Chercher l'UH correspondante
                         uh = None
-                        if pv1_uh:
+                        if pv1_loc:
                             uh = session.exec(
                                 select(UniteHebergement)
-                                .where(UniteHebergement.identifier == pv1_uh)
+                                .where(UniteHebergement.identifier == pv1_loc)
                             ).first()
-                        
-                        # Chercher la venue existante ou en créer une nouvelle
-                        current_venue = session.exec(
-                            select(Venue)
-                            .where(Venue.identifier == pv1_id)
-                            .where(Venue.patient_id == current_patient.id)
-                        ).first()
-                        
+
+                        # Chercher la venue existante en utilisant l'identifiant PV1-19
+                        current_venue = None
+                        if pv1_id:
+                            # PV1-19 may be stored as an Identifier record linked to a Venue
+                            from app.models_identifiers import Identifier as IdModel
+                            ident = session.exec(
+                                select(IdModel).where(IdModel.value == pv1_id, IdModel.type == 'VN')
+                            ).first()
+                            if ident and ident.venue_id:
+                                current_venue = session.exec(select(Venue).where(Venue.id == ident.venue_id)).first()
+
                         if not current_venue:
+                            # Create a minimal Dossier for this patient so Venue.dossier_id can be set
+                            try:
+                                d_seq = get_next_sequence(session, "dossier")
+                                dossier = Dossier(
+                                    dossier_seq=d_seq,
+                                    patient_id=current_patient.id,
+                                    uf_responsabilite=uh.identifier if uh and hasattr(uh, 'identifier') else None,
+                                    admit_time=datetime.utcnow()
+                                )
+                                session.add(dossier)
+                                session.flush()
+                                stats.setdefault('dossiers_created', 0)
+                                stats['dossiers_created'] += 1
+                            except Exception:
+                                dossier = None
+
+                            # Create a new Venue linked to the Dossier
                             current_venue = Venue(
-                                identifier=pv1_id,
+                                # Use a generated venue_seq to avoid unique constraint collisions
+                                venue_seq=get_next_sequence(session, "venue"),
+                                dossier_id=dossier.id if dossier else None,
                                 patient_id=current_patient.id,
                                 unite_hebergement_id=uh.id if uh else None,
-                                entite_juridique_id=ej.id
+                                entite_juridique_id=ej.id,
+                                start_time=datetime.utcnow()
                             )
                             session.add(current_venue)
                             session.flush()
+                            stats['venues_created'] += 1
+
+                            # Persist PV1-19 as an Identifier for later lookups
+                            if pv1_id:
+                                try:
+                                    from app.models_identifiers import Identifier as IdModel, IdentifierType as IdType
+                                    ident = IdModel(value=pv1_id, type=IdType.VN, system=f"urn:hl7:pv1:19", venue_id=current_venue.id)
+                                    session.add(ident)
+                                    session.flush()
+                                except Exception:
+                                    pass
                     
                     elif segment.startswith('ZBE|') and current_venue:
-                        # Informations de mouvement
-                        zbe_datetime = fields[6] if len(fields) > 6 else None
-                        zbe_action = fields[1] if len(fields) > 1 else None
-                        
-                        if zbe_datetime and zbe_action:
-                            try:
-                                mvt_date = datetime.strptime(zbe_datetime, '%Y%m%d%H%M%S')
-                            except ValueError:
-                                # Gérer les formats de date invalides
+                        # Informations de mouvement (extraction tolérante)
+                        zbe_fields = segment.split('|')
+                        f1 = zbe_fields[1] if len(zbe_fields) > 1 else ""
+
+                        # Heuristique: integration-style if f1 empty, numeric, startswith MVT or contains '^'
+                        is_integration = (not f1) or f1.isdigit() or f1.startswith('MVT') or ('^' in f1)
+
+                        if is_integration:
+                            zbe_datetime_raw = zbe_fields[2] if len(zbe_fields) > 2 else None
+                            # action may be in F3/F4/F5 depending on feed
+                            zbe_action = None
+                            for idx in (3, 4, 5):
+                                if len(zbe_fields) > idx and zbe_fields[idx]:
+                                    zbe_action = zbe_fields[idx]
+                                    break
+                        else:
+                            zbe_datetime_raw = zbe_fields[6] if len(zbe_fields) > 6 else None
+                            zbe_action = f1 or None
+
+                        def parse_hl7_ts(raw: str):
+                            if not raw:
+                                return None
+                            m = __import__('re').match(r"^(\d+)", raw)
+                            if not m:
+                                return None
+                            digits = m.group(1)
+                            fmts = [('%Y%m%d%H%M%S', 14), ('%Y%m%d%H%M', 12), ('%Y%m%d%H', 10), ('%Y%m%d', 8)]
+                            from datetime import datetime as _dt
+                            for fmt, needed in fmts:
+                                s = digits
+                                if len(s) < needed:
+                                    s = s.ljust(needed, '0')
+                                elif len(s) > needed:
+                                    s = s[:needed]
+                                try:
+                                    return _dt.strptime(s, fmt)
+                                except Exception:
+                                    continue
+                            return None
+
+                        if zbe_datetime_raw and zbe_action:
+                            mvt_date = parse_hl7_ts(zbe_datetime_raw)
+                            if not mvt_date:
+                                # skip messages with unparseable date
                                 continue
 
+                            # Use model field names: 'when' is required (NOT NULL) and 'action' maps to ZBE action
                             mouvement = Mouvement(
+                                mouvement_seq=get_next_sequence(session, "mouvement"),
                                 venue_id=current_venue.id,
-                                event_datetime=mvt_date,
-                                action_code=zbe_action
+                                when=mvt_date,
+                                action=zbe_action
                             )
                             session.add(mouvement)
                             session.flush()
@@ -391,14 +534,20 @@ def import_pam_messages(session: Session, ej: EntiteJuridique, directory: Path, 
                 
                 session.commit()
                 stats['imported'] += 1
+                imported_files.append(hl7_file.name)
                 
             except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
                 print(f"❌ Erreur lors du traitement de {hl7_file.name}: {str(e)}")
+                print(tb)
                 session.rollback()
                 stats['errors'] += 1
+                error_files.append({'file': hl7_file.name, 'error': str(e), 'trace': tb})
                 continue
         
         # Afficher les statistiques détaillées
+        # Print summary and detailed per-file report
         print(f"\n📊 Résultats import PAM:")
         print(f"  ✓ Messages importés: {stats['imported']}")
         print(f"  ✗ Erreurs techniques: {stats['errors']}")
@@ -408,6 +557,31 @@ def import_pam_messages(session: Session, ej: EntiteJuridique, directory: Path, 
         print(f"  + Patients: {stats['patients_created']}")
         print(f"  + Venues: {stats['venues_created']}")
         print(f"  + Mouvements: {stats['mouvements_created']}")
+
+        # Detailed lists
+        if imported_files:
+            print(f"\n🗂️  Fichiers importés ({len(imported_files)}):")
+            for name in imported_files:
+                print(f"  - {name}")
+
+        if validation_failed:
+            print(f"\n⚠️  Fichiers avec erreurs de validation ({len(validation_failed)}):")
+            for v in validation_failed:
+                print(f"\n  - {v['file']}")
+                for seg, fld, msg, ln in v['errors']:
+                    lninfo = f" (ligne {ln})" if ln else ""
+                    print(f"     • {seg}{(' - '+fld) if fld else ''}: {msg}{lninfo}")
+                if v.get('pv1'):
+                    print(f"     PV1: {v.get('pv1')}")
+                if v.get('zbe'):
+                    print(f"     ZBE: {v.get('zbe')}")
+
+        if error_files:
+            print(f"\n❌ Fichiers avec erreurs techniques ({len(error_files)}):")
+            for e in error_files:
+                print(f"\n  - {e['file']}")
+                print(f"     Erreur: {e['error']}")
+                print(f"     Trace: {e['trace'].splitlines()[-1]}")
 
         return stats['imported']
 

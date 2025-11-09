@@ -25,6 +25,7 @@ from app.routers.vocabularies import router as vocabularies_router
 from app.routers.namespaces import router as namespaces_router
 from app.routers.guide import router as guide_router
 from app.routers.scenarios import router as scenarios_router
+from app.routers.scenario_templates import router as scenario_templates_router
 from app.routers.ihe import router as ihe_router
 from app.routers.docs import router as docs_router
 from app.routers.dossier_type import router as dossier_type_router

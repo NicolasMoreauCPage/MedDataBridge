@@ -234,6 +234,15 @@ def create_app() -> FastAPI:
     app.include_router(guide.router)
     app.include_router(docs.router)
     app.include_router(scenarios.router)
+    
+    # Scenario templates (contextualisables)
+    try:
+        from app.routers import scenario_templates
+        app.include_router(scenario_templates.router)
+        print(" - Scenario templates router mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Scenario templates router not available: {e}")
+    
     print(" - Utility routers mounted")
     
     # 7. Cache management

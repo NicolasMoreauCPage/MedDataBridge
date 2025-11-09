@@ -1,9 +1,9 @@
 ﻿{% extends "base.html" %}
 {% block content %}
-<div class="space-y-6">
+<div class="max-w-content mx-auto py-8 px-4 space-y-8">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-semibold text-slate-800">Endpoint #{{ e.id }}  {{ e.name }}</h1>
+      <h1 class="text-2xl font-bold text-primary">Endpoint #{{ e.id }}  {{ e.name }}</h1>
       <p class="text-slate-500 text-sm">Gérez la configuration et le rattachement de ce système.</p>
     </div>
     <div class="flex items-center gap-2">
@@ -18,26 +18,24 @@
       {% endif %}
     </div>
   </div>
-
   {% if error %}
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ error }}</div>
   {% endif %}
-
-  <form method="post" action="/endpoints/{{ e.id }}/update" class="bg-white rounded-xl border border-slate-200 p-4 md:p-6 space-y-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <form method="post" action="/endpoints/{{ e.id }}/update" class="bg-white rounded-xl border border-slate-200 p-8 space-y-6">
+    <div class="grid gap-6 md:grid-cols-2">
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Nom</label>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Nom</label>
         <input class="w-full rounded-lg border border-slate-300 px-3 py-2" name="name" value="{{ e.name }}" required>
       </div>
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Actif</label>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Actif</label>
         <select class="w-full rounded-lg border border-slate-300 px-3 py-2" name="is_enabled">
           <option value="true" {% if e.is_enabled %}selected{% endif %}>Oui</option>
           <option value="false" {% if not e.is_enabled %}selected{% endif %}>Non</option>
         </select>
       </div>
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Type</label>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Type</label>
         <select class="w-full rounded-lg border border-slate-300 px-3 py-2" name="kind" required>
           {% set kinds = ['MLLP','FHIR','FILE'] %}
           {% for k in kinds %}
@@ -46,7 +44,7 @@
         </select>
       </div>
       <div>
-        <label class="block text-sm text-slate-600 mb-1">Rôle</label>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Rôle</label>
         <select class="w-full rounded-lg border border-slate-300 px-3 py-2" name="role" required>
           {% set roles = ['sender','receiver','both'] %}
           {% for r in roles %}
@@ -54,9 +52,8 @@
           {% endfor %}
         </select>
       </div>
-
       <div>
-        <label class="block text-sm text-slate-600 mb-1">GHT Context</label>
+        <label class="block text-sm font-medium text-slate-700 mb-1">GHT Context</label>
         <select class="w-full rounded-lg border border-slate-300 px-3 py-2" name="ght_context_id" id="ght_select">
           <option value="">(Aucun)</option>
           {% for ght in ghts %}

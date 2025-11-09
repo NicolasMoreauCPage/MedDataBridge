@@ -18,8 +18,11 @@ from app.services.transport_inbound import on_message_inbound
 def test_complete_patient_workflow(client: TestClient, session: Session, hl7_adt_a01):
     """Test d'un workflow complet patient/dossier/venue/mouvement"""
     # 1. Admission (A01)
-    result = on_message_inbound(hl7_adt_a01, session)
-    assert result["status"] == "success"
+    result = on_message_inbound(hl7_adt_a01, session, None)
+    if isinstance(result, dict):
+        assert result["status"] == "success"
+    else:
+        assert "MSA|AA" in result
     
     # Vérification création patient
     patient = session.exec(select(Patient).where(Patient.identifier == "12345")).first()
@@ -40,10 +43,14 @@ def test_complete_patient_workflow(client: TestClient, session: Session, hl7_adt
     now = datetime.now().strftime("%Y%m%d%H%M%S")
     message_a31 = f"""MSH|^~\\&|SENDING_APP|SENDING_FAC|RECEIVING_APP|RECEIVING_FAC|{now}||ADT^A31|MSG00002|P|2.5.1|
 EVN|A31|{now}||||
-PID|1||12345^^^HOPITAL^PI||DUPONT^JEAN-PIERRE^^^^^L||19800101|M|||2 RUE DU TEST^^VILLE^^75002^FRA||0123456789|||||||"""
+PID|1||12345^^^HOPITAL^PI||DUPONT^JEAN-PIERRE^^^^^L||19800101|M|||2 RUE DU TEST^^VILLE^^75002^FRA||0123456789|||||||
+ZBE|MVT_A31_{now}|||||{now}|"""
     
-    result = on_message_inbound(message_a31, session)
-    assert result["status"] == "success"
+    result = on_message_inbound(message_a31, session, None)
+    if isinstance(result, dict):
+        assert result["status"] == "success"
+    else:
+        assert "MSA|AA" in result
     
     # Vérification mise à jour patient
     patient = session.exec(select(Patient).where(Patient.identifier == "12345")).first()
@@ -54,10 +61,14 @@ PID|1||12345^^^HOPITAL^PI||DUPONT^JEAN-PIERRE^^^^^L||19800101|M|||2 RUE DU TEST^
     message_a02 = f"""MSH|^~\\&|SENDING_APP|SENDING_FAC|RECEIVING_APP|RECEIVING_FAC|{now}||ADT^A02|MSG00003|P|2.5.1|
 EVN|A02|{now}||||
 PID|1||12345^^^HOPITAL^PI||DUPONT^JEAN-PIERRE^^^^^L||19800101|M|||2 RUE DU TEST^^VILLE^^75002^FRA||0123456789|||||||
-PV1|1|I|NEURO^202^2^HOPITAL||||12345^DOC^JOHN^^^^^||||||||||TRF|A0|||||||||||||||||||||||||{now}|"""
+PV1|1|I|NEURO^202^2^HOPITAL||||12345^DOC^JOHN^^^^^||||||||||TRF|A0|||||||||||||||||||||||||{now}|
+ZBE|MVT_A02_{now}|||||{now}|"""
     
-    result = on_message_inbound(message_a02, session)
-    assert result["status"] == "success"
+    result = on_message_inbound(message_a02, session, None)
+    if isinstance(result, dict):
+        assert result["status"] == "success"
+    else:
+        assert "MSA|AA" in result
     
     # Vérification création mouvement
     mouvements = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
@@ -69,10 +80,14 @@ PV1|1|I|NEURO^202^2^HOPITAL||||12345^DOC^JOHN^^^^^||||||||||TRF|A0||||||||||||||
     message_a03 = f"""MSH|^~\\&|SENDING_APP|SENDING_FAC|RECEIVING_APP|RECEIVING_FAC|{now}||ADT^A03|MSG00004|P|2.5.1|
 EVN|A03|{now}||||
 PID|1||12345^^^HOPITAL^PI||DUPONT^JEAN-PIERRE^^^^^L||19800101|M|||2 RUE DU TEST^^VILLE^^75002^FRA||0123456789|||||||
-PV1|1|O|NEURO^202^2^HOPITAL||||12345^DOC^JOHN^^^^^||||||||||DIS|A0|||||||||||||||||||||||||{now}|"""
+PV1|1|O|NEURO^202^2^HOPITAL||||12345^DOC^JOHN^^^^^||||||||||DIS|A0|||||||||||||||||||||||||{now}|
+ZBE|MVT_A03_{now}|||||{now}|"""
     
-    result = on_message_inbound(message_a03, session)
-    assert result["status"] == "success"
+    result = on_message_inbound(message_a03, session, None)
+    if isinstance(result, dict):
+        assert result["status"] == "success"
+    else:
+        assert "MSA|AA" in result
     
     # Vérification statut venue
     venue = session.refresh(venue)

@@ -67,14 +67,13 @@ def list_vocabularies(request: Request, session: Session = Depends(get_session))
 
     breadcrumbs = [{"label": "Listes de valeurs", "url": "/vocabularies"}]
     ctx = {
-        "request": request,
         "title": "Listes de valeurs (vue IHE)",
         "systems": grouped,
         "breadcrumbs": breadcrumbs,
         "can_create": True,
     }
 
-    return templates.TemplateResponse("vocabularies/list.html", ctx)
+    return templates.TemplateResponse(request, "vocabularies/list.html", ctx)
 
 @router.get("/{system_id}", response_class=HTMLResponse)
 def vocabulary_detail(system_id: int, request: Request, session: Session = Depends(get_session)):
@@ -162,7 +161,7 @@ def vocabulary_detail(system_id: int, request: Request, session: Session = Depen
         "has_hl7": any(row.get("hl7") for row in rows),
     }
 
-    return templates.TemplateResponse("vocabularies/detail.html", ctx)
+    return templates.TemplateResponse(request, "vocabularies/detail.html", ctx)
 
 @router.get("/new", response_class=HTMLResponse)
 def new_vocabulary(request: Request):
@@ -213,7 +212,6 @@ def new_vocabulary(request: Request):
         request,
         "form.html",
         {
-            "request": request,
             "title": "Nouvelle liste de valeurs",
             "fields": fields,
             "breadcrumbs": breadcrumbs,
@@ -302,7 +300,6 @@ def new_value(system_id: int, request: Request, session: Session = Depends(get_s
         request,
         "form.html",
         {
-            "request": request,
             "title": f"Nouvelle valeur - {system.label}",
             "fields": fields,
             "breadcrumbs": breadcrumbs,

@@ -53,4 +53,4 @@ def home(request: Request, session=Depends(get_session)):
 @router.get("/api-docs", response_class=HTMLResponse)
 def api_documentation(request: Request):
     """Documentation des APIs FHIR et HL7"""
-    return templates.TemplateResponse(request, "api_docs.html", {"request": request})
+    return templates.TemplateResponse(request, "api_docs.html")

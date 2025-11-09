@@ -6,12 +6,15 @@ from app.services.transport_inbound import on_message_inbound
 from app.models_identifiers import Identifier, IdentifierType
 
 
-def _build_message(pid_fields, pv1_fields):
+def _build_message(pid_fields, pv1_fields, movement_id=None):
     now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    if movement_id is None:
+        movement_id = f"MVT_{now}"
     msh = f"MSH|^~\\&|TEST|TEST|DST|DST|{now}||ADT^A01|MSG001|P|2.5\r"
+    zbe = f"ZBE|{movement_id}|||||{now}\r"
     pid = "|".join(pid_fields) + "\r"
     pv1 = "|".join(pv1_fields) + "\r"
-    return "".join([msh, pid, pv1])
+    return "".join([msh, zbe, pid, pv1])
 
 
 def test_pid18_and_pv119_simple_values(session):
@@ -46,8 +49,11 @@ def test_pid18_and_pv119_simple_values(session):
 
     msg = _build_message(pid_fields, pv1_fields)
 
-    res = on_message_inbound(msg, session)
-    assert res["status"] == "success"
+    res = on_message_inbound(msg, session, None)
+    if isinstance(res, dict):
+        assert res["status"] == "success"
+    else:
+        assert "MSA|AA" in res
 
     # Assert dossier identifier (AN) created
     ident_acc = session.exec(select(Identifier).where(Identifier.value == "ACC-12345")).first()
@@ -87,8 +93,11 @@ def test_pid18_and_pv119_cx_form(session):
 
     msg = _build_message(pid_fields, pv1_fields)
 
-    res = on_message_inbound(msg, session)
-    assert res["status"] == "success"
+    res = on_message_inbound(msg, session, None)
+    if isinstance(res, dict):
+        assert res["status"] == "success"
+    else:
+        assert "MSA|AA" in res
 
     ident_acc = session.exec(select(Identifier).where(Identifier.value == "ACC-CTX")).first()
     assert ident_acc is not None

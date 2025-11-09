@@ -1,0 +1,30 @@
+{% macro status_badge(status) %}
+{%- set color = 'slate' -%}
+{%- if status in ['ack_ok','sent','processed','received','ok'] %}{% set color='green' %}{% elif status in ['warn','warning','partial'] %}{% set color='yellow' %}{% elif status in ['error','fail','ack_error'] %}{% set color='red' %}{% endif %}
+<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-{{ color }}-100 text-{{ color }}-700">{{ status }}</span>
+{% endmacro %}
+
+{% macro progress_bar(rate) %}
+<div class="w-full bg-slate-200 rounded-full h-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ rate }}">
+  <div class="{{ 'bg-green-500' if rate >= 95 else ('bg-yellow-500' if rate >= 80 else 'bg-red-500') }} h-2 rounded-full" style="width: {{ rate }}%;"></div>
+</div>
+{% endmacro %}
+
+{% macro metric_card(label, value, subtitle='', rate=None) %}
+<div class="bg-white rounded-xl shadow-sm p-6 hover:shadow-lg transition">
+  <h3 class="text-sm font-medium text-slate-600 mb-2">{{ label }}</h3>
+  <div class="flex items-baseline space-x-2">
+    <span class="text-3xl font-bold text-slate-900">{{ value }}</span>
+    {% if subtitle %}<span class="text-sm text-slate-500">{{ subtitle }}</span>{% endif %}
+  </div>
+  {% if rate is not none %}
+  <div class="mt-4">
+    <div class="flex items-center justify-between mb-1">
+      <span class="text-sm text-slate-600">Conformité</span>
+      <span class="text-lg font-semibold {{ 'text-green-600' if rate >=95 else ('text-yellow-600' if rate >=80 else 'text-red-600') }}">{{ rate }}%</span>
+    </div>
+    {{ progress_bar(rate) }}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}

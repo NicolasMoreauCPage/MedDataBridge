@@ -19,22 +19,17 @@ from .scenarios import InteropScenarioAdmin, InteropScenarioStepAdmin
 def register_admin_views(admin):
     """
     Enregistre toutes les vues admin dans l'instance SQLAdmin.
+    Ordre optimisé pour navigation logique par domaine métier.
     
     Args:
         admin: Instance sqladmin.Admin
     """
-    # Contextes
+    # === 1. CONTEXTES ORGANISATIONNELS ===
     admin.add_view(GHTContextAdmin)
     admin.add_view(EntiteJuridiqueAdmin)
-    
-    # Entités cliniques
-    admin.add_view(PatientAdmin)
-    admin.add_view(DossierAdmin)
-    admin.add_view(VenueAdmin)
-    admin.add_view(MouvementAdmin)
-
-    # Structure (hiérarchie des locations)
     admin.add_view(EntiteGeographiqueAdmin)
+    
+    # === 2. STRUCTURE ORGANISATIONNELLE (hiérarchie) ===
     admin.add_view(PoleAdmin)
     admin.add_view(ServiceAdmin)
     admin.add_view(UniteFonctionnelleAdmin)
@@ -43,21 +38,25 @@ def register_admin_views(admin):
     admin.add_view(ChambreAdmin)
     admin.add_view(LitAdmin)
 
-    # Connectivité et messages
-    admin.add_view(SystemEndpointAdmin)
-    admin.add_view(MessageLogAdmin)
+    # === 3. PATIENTS & PARCOURS DE SOINS ===
+    admin.add_view(PatientAdmin)
+    admin.add_view(DossierAdmin)
+    admin.add_view(VenueAdmin)
+    admin.add_view(MouvementAdmin)
 
-    # Espaces de noms et identifiants
+    # === 4. IDENTIFIANTS & ESPACES DE NOMS ===
     admin.add_view(NamespaceAdmin)
     admin.add_view(IdentifierAdmin)
 
-    # Vocabulaires
-    admin.add_view(VocabularySystemAdmin)
-    admin.add_view(VocabularyValueAdmin)
-
-    # Scénarios d'interopérabilité
+    # === 5. INTEROPÉRABILITÉ ===
+    admin.add_view(SystemEndpointAdmin)
+    admin.add_view(MessageLogAdmin)
     admin.add_view(InteropScenarioAdmin)
     admin.add_view(InteropScenarioStepAdmin)
+
+    # === 6. VOCABULAIRES & RÉFÉRENTIELS ===
+    admin.add_view(VocabularySystemAdmin)
+    admin.add_view(VocabularyValueAdmin)
 
 
 __all__ = [

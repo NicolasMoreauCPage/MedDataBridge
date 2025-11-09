@@ -246,7 +246,7 @@ async def structure_dashboard(
         context["filtered_ej_id"] = ej
         context["filtered_egs"] = [eg.id for eg in egs]
     
-    return templates.TemplateResponse("structure_new.html", context)
+    return templates.TemplateResponse(request, "structure_new.html", context)
 
 @router.post("/import/hl7")
 async def import_structure_hl7(
@@ -1535,8 +1535,7 @@ async def view_structure_map(
         raise HTTPException(status_code=404, detail=f"{type.upper()} #{id} non trouvé")
     
     # Pour l'instant, retourner une page simple indiquant que cette fonctionnalité arrive bientôt
-    return templates.TemplateResponse("structure_map_placeholder.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "structure_map_placeholder.html", {
         "entity": entity,
         "type": type,
         "type_label": {

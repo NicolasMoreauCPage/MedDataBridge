@@ -2,13 +2,13 @@
 {% from "macros/validation_report.html" import validation_report %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4">
-  <h2 class="text-lg font-semibold">Message #{{ m.id }}</h2>
-  <a href="/messages" class="rounded-xl border border-slate-200 px-3 py-1 text-sm">Retour</a>
-</div>
-
-<div class="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="max-w-content mx-auto py-8 px-4">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold text-primary">Message #{{ m.id }}</h2>
+    <a href="/messages" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Retour</a>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-8 mb-8 shadow-sm">
+    <div class="grid gap-6 md:grid-cols-2">
     <label class="block">
       <span class="text-sm text-slate-600">Horodatage</span>
       <input value="{{ m.created_at }}" readonly class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />

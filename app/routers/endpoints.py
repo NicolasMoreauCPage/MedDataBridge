@@ -326,8 +326,7 @@ def detail_endpoint(endpoint_id: int, request: Request, session=Depends(get_sess
     else:
         is_running = endpoint_id in set(registry.running_ids())
     
-    return templates.TemplateResponse("endpoint_detail.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "endpoint_detail.html", {
         "e": e,
         "is_running": is_running,
         "ghts": ghts,
@@ -376,8 +375,7 @@ def update_endpoint(
         ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
         # Pour les endpoints FILE, "running" = is_enabled
         is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
-        return templates.TemplateResponse("endpoint_detail.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "endpoint_detail.html", {
             "e": e,
             "is_running": is_running,
             "ghts": ghts,
@@ -399,8 +397,7 @@ def update_endpoint(
             ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
             # Pour les endpoints FILE, "running" = is_enabled
             is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
-            return templates.TemplateResponse("endpoint_detail.html", {
-                "request": request,
+            return templates.TemplateResponse(request, "endpoint_detail.html", {
                 "e": e,
                 "is_running": is_running,
                 "ghts": ghts,
@@ -482,7 +479,6 @@ def show_clone_structure_form(endpoint_id: int, request: Request, session: Sessi
         request,
         "endpoint_clone_structure.html",
         {
-            "request": request,
             "source": source,
             "targets": targets
         }
@@ -639,9 +635,9 @@ def show_endpoint_context(endpoint_id: int, request: Request, session: Session =
     ).all()
     
     return templates.TemplateResponse(
+        request,
         "endpoint_context.html",
         {
-            "request": request,
             "endpoint": endpoint,
             "context": context,
             "patient_mappings": patient_mappings,

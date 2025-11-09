@@ -28,8 +28,9 @@ async def show_change_type_form(
         ]
     ]
     return templates.TemplateResponse(
+        request,
         "dossier_type_change.html",
-        {"request": request, "dossier": dossier, "dossier_type_options": options}
+        {"dossier": dossier, "dossier_type_options": options}
     )
 
 @router.post("/{dossier_id}/change")

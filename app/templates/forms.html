@@ -1,63 +1,58 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="space-y-4">
-  <h2 class="text-xl font-semibold text-slate-800">{{ title }}</h2>
-  
+<div class="max-w-content mx-auto py-8 px-4">
+  <h2 class="text-2xl font-bold text-primary mb-6">{{ title }}</h2>
   {% if error %}
-  <div class="p-4 bg-red-50 border border-red-300 rounded-xl">
-    <div class="flex items-center gap-3">
+    <div class="p-4 bg-red-50 border border-red-300 rounded-xl flex items-center gap-3 mb-4 animate-fadeIn">
       <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <span class="text-red-700">{{ error }}</span>
     </div>
-  </div>
   {% endif %}
 
-  <form 
-    method="post" 
-    class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 max-w-2xl has-state-transitions"
-    {% if action_url %}action="{{ action_url }}"{% endif %}
-    novalidate
-    role="form"
-  >
-  <div class="grid gap-6 w-full form-grid">
-    {% for field in fields %}
-      <div class="space-y-2 relative group">
-        {% set field_id = field.name + '_field' %}
-        {% set help_id = field.name + '_help' %}
-        {% set error_id = field.name + '_error' %}
-        
-        <label for="{{ field_id }}" class="flex items-baseline gap-2">
-          <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
-            {{ field.label }}
-          </span>
-          {% if field.required %}
-            <span class="text-red-500 font-medium" aria-hidden="true">*</span>
-          {% endif %}
-          {% if field.help %}
-          <div id="{{ help_id }}" class="relative inline-block">
-            <button 
-              type="button" 
-              class="text-slate-400 hover:text-slate-600" 
-              aria-label="Plus d'informations sur {{ field.label }}"
-              aria-describedby="{{ help_id }}_tooltip"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
-            <div 
-              id="{{ help_id }}_tooltip"
-              class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10"
-              role="tooltip"
-            >
-              <span class="text-xs text-slate-200">{{ field.help }}</span>
-              <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800"></div>
-            </div>
-          </div>
-          {% endif %}
-        </label>
+  <form method="post" class="bg-white rounded-xl border border-slate-200 shadow-sm p-8 max-w-2xl mx-auto" {% if action_url %}action="{{ action_url }}"{% endif %} novalidate role="form">
+    <div class="grid gap-6">
+      {% for field in fields %}
+        <div class="space-y-2 relative group">
+          {% set field_id = field.name + '_field' %}
+          {% set help_id = field.name + '_help' %}
+          {% set error_id = field.name + '_error' %}
+          <label for="{{ field_id }}" class="flex items-baseline gap-2">
+            <span class="text-sm font-medium text-slate-700">{{ field.label }}</span>
+            {% if field.required %}
+              <span class="text-red-500 font-medium" aria-hidden="true">*</span>
+            {% endif %}
+            {% if field.help %}
+              <div id="{{ help_id }}" class="relative inline-block">
+                <button type="button" class="text-slate-400 hover:text-primary" aria-label="Plus d'informations sur {{ field.label }}" aria-describedby="{{ help_id }}_tooltip">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <div id="{{ help_id }}_tooltip" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-primary text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10" role="tooltip">
+                  <span class="text-xs">{{ field.help }}</span>
+                  <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-primary"></div>
+                </div>
+              </div>
+            {% endif %}
+          </label>
+          <!-- ...existing code for input fields, errors... -->
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-8 flex justify-end">
+      <button type="submit" class="px-6 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-blue-700 transition">Valider le message</button>
+    </div>
+  </form>
+
+  {% if validation_report %}
+    <div class="mt-10 bg-slate-50 border border-slate-200 rounded-xl p-6 animate-fadeIn">
+      <h3 class="text-lg font-bold text-primary mb-4">Rapport de validation</h3>
+      <!-- ...existing code for displaying validation_report... -->
+    </div>
+  {% endif %}
+</div>
 
         {% if field.type == "select" %}
           <div class="relative">

@@ -240,7 +240,7 @@ def patient_timeline(
         return templates.TemplateResponse(
             request,
             "error.html",
-            {"request": request, "message": "Patient non trouvé"}
+            {"message": "Patient non trouvé"}
         )
     
     events = _get_patient_events(session, patient_id)
@@ -259,7 +259,6 @@ def patient_timeline(
         request,
         "timeline.html",
         {
-            "request": request,
             "title": f"Timeline - {patient.family} {patient.given}",
             "breadcrumbs": breadcrumbs,
             "events": events,
@@ -282,7 +281,7 @@ def dossier_timeline(
         return templates.TemplateResponse(
             request,
             "error.html",
-            {"request": request, "message": "Dossier non trouvé"}
+            {"message": "Dossier non trouvé"}
         )
     
     events = _get_dossier_events(session, dossier_id)
@@ -307,7 +306,6 @@ def dossier_timeline(
         request,
         "timeline.html",
         {
-            "request": request,
             "title": f"Timeline - Dossier #{dossier.dossier_seq}",
             "breadcrumbs": breadcrumbs,
             "events": events,
@@ -330,7 +328,7 @@ def venue_timeline(
         return templates.TemplateResponse(
             request,
             "error.html",
-            {"request": request, "message": "Venue non trouvée"}
+            {"message": "Venue non trouvée"}
         )
     
     events = _get_venue_events(session, venue_id)
@@ -358,7 +356,6 @@ def venue_timeline(
         request,
         "timeline.html",
         {
-            "request": request,
             "title": f"Timeline - Venue #{venue.venue_seq}",
             "breadcrumbs": breadcrumbs,
             "events": events,

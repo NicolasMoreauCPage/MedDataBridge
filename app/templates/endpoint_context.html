@@ -1,56 +1,45 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+<div class="max-w-content mx-auto py-8 px-4">
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-semibold">Contexte de l'endpoint {{ endpoint.name }}</h2>
-        <div>
-            <a href="/endpoints/{{ endpoint.id }}/clone-structure" 
-               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V7M8 7a4 4 0 0 1 4-4v0a4 4 0 0 1 4 4M8 7h8" />
-                </svg>
-                Cloner cette structure
-            </a>
-        </div>
+        <h2 class="text-2xl font-bold text-primary">Contexte de l'endpoint {{ endpoint.name }}</h2>
+        <a href="/endpoints/{{ endpoint.id }}/clone-structure" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V7M8 7a4 4 0 0 1 4-4v0a4 4 0 0 1 4 4M8 7h8" />
+            </svg>
+            Cloner cette structure
+        </a>
     </div>
-    
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Informations du contexte</h4>
-        </div>
-        <div class="card-body">
-            <p><strong>Dernière séquence:</strong> {{ context.last_sequence_value }}</p>
-            <p><strong>Créé le:</strong> {{ context.created_at }}</p>
-            <p><strong>Mis à jour le:</strong> {{ context.updated_at }}</p>
-        </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <h4 class="text-lg font-semibold mb-2">Informations du contexte</h4>
+        <p><strong>Dernière séquence :</strong> {{ context.last_sequence_value }}</p>
+        <p><strong>Créé le :</strong> {{ context.created_at }}</p>
+        <p><strong>Mis à jour le :</strong> {{ context.updated_at }}</p>
     </div>
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Mappings Patients</h4>
-        </div>
-        <div class="card-body">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID Externe</th>
-                        <th>ID Patient</th>
-                        <th>Patient</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for mapping in patient_mappings %}
-                    <tr>
-                        <td>{{ mapping.external_id }}</td>
-                        <td>{{ mapping.patient.patient_seq }}</td>
-                        <td>{{ mapping.patient.family }}, {{ mapping.patient.given }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <h4 class="text-lg font-semibold mb-2">Mappings Patients</h4>
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">ID Externe</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">ID Patient</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Patient</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-200">
+                {% for mapping in patient_mappings %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-2">{{ mapping.external_id }}</td>
+                    <td class="px-4 py-2">{{ mapping.patient.patient_seq }}</td>
+                    <td class="px-4 py-2">{{ mapping.patient.family }}, {{ mapping.patient.given }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+    <!-- ...existing code for dossier mappings, etc... -->
+</div>
 
     <div class="card mb-4">
         <div class="card-header">

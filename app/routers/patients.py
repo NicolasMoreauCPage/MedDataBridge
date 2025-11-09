@@ -216,7 +216,7 @@ def patient_detail(patient_id: int, request: Request, session=Depends(get_sessio
     p = session.get(Patient, patient_id)
     templates = get_templates(request)
     if not p:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Patient introuvable"}, status_code=404)
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
 
     # Définir le contexte patient en session
     request.session["patient_id"] = p.id
@@ -229,7 +229,6 @@ def patient_detail(patient_id: int, request: Request, session=Depends(get_sessio
             venue.mouvements = session.exec(select(type(venue.mouvements[0])).where(type(venue.mouvements[0]).venue_id == venue.id)).all() if venue.mouvements else []
 
     return templates.TemplateResponse(request, "patient_detail.html", {
-        "request": request,
         "patient": p,
         "dossiers": dossiers
     })
@@ -241,7 +240,7 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
     p = session.get(Patient, patient_id)
     templates = get_templates(request)
     if not p:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Patient introuvable"}, status_code=404)
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
     
     # Options dynamiques (fallback enum via service si vocabulaire absent)
     identity_opts = get_vocabulary_options("identity-reliability-rniv") or [
@@ -266,7 +265,6 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
         ]
     ]
     return templates.TemplateResponse(request, "patient_form.html", {
-        "request": request,
         "title": "Modifier patient",
         "patient": p,
         "action_url": f"/patients/{patient_id}/edit",
@@ -318,7 +316,7 @@ def update_patient(
     if not p:
         templates = get_templates(request)
         if not p:
-            return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Patient introuvable"}, status_code=404)
+            return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
     # Mise à jour des champs - Identité
     p.patient_seq = patient_seq
     p.external_id = external_id or p.external_id
@@ -371,7 +369,7 @@ def delete_patient(patient_id: int, request: Request, session=Depends(get_sessio
     p = session.get(Patient, patient_id)
     templates = get_templates(request)
     if not p:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Patient introuvable"}, status_code=404)
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
     session.delete(p)
     session.commit()
     # Note: L'émission automatique pour les suppressions n'est pas encore implémentée
@@ -407,7 +405,6 @@ def new_patient_form(request: Request, session=Depends(get_session)):
         ]
     ]
     return templates.TemplateResponse(request, "patient_form.html", {
-        "request": request,
         "title": "Nouveau patient",
         "patient": None,
         "next_seq": next_seq,

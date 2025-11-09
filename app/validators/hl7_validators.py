@@ -220,27 +220,23 @@ class MFNValidator(HL7Validator):
         
         return loc_type
     
-    def validate_lch_segment(self, segment: str, line: int, current_loc: Optional[str]):
+    def validate_lch_segment(self, segment: str, i: int, current_loc):
         """Valide un segment LCH."""
         if not current_loc:
             self.errors.append(ValidationError(
-                message="Segment LCH sans LOC parent valide",
+                message=f"Segment LCH sans LOC parent à la ligne {i}",
                 segment="LCH",
-                line_number=line
+                line_number=i
             ))
             return
-        
-        # Code attribut (champ 3)
-        attr_code, attr_components = self.get_field(segment, 3)
-        if not attr_components:
+
+        # Valider le format du code (champ 3)
+        code, code_components = self.get_field(segment, 3)
+        if code and len(code_components) < 2:
             self.warnings.append(ValidationError(
-                message="Code attribut mal formaté",
+                message="Code attribut mal formaté (devrait contenir 'code^label')",
                 segment="LCH",
                 field="F3",
-                value=attr_code,
-                line_number=line
+                value=code,
+                line_number=i
             ))
-        
-        # Valeur (champ 4)
-        value, _ = self.get_field(segment, 4)
-        self.validate_field_not_empty(value, "LCH", "Valeur", 4)

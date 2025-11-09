@@ -8,9 +8,9 @@ def test_pam_validator_required_segments():
     
     # Message minimal valide
     message = "\r".join([
-        "MSH|^~\\&|SIH|CH|PAM|CH|20251109101500||ADT^A01|123|P|2.5||",
+        "MSH|^~\\&|SIH|CH|PAM|CH|20251109101500||ADT^A01|123|P|2.5||", 
         "PID|1||123^^^IPP||DOE^John||",
-        "PV1|1||CARDIO||||||||||||||||||||VN123|||"
+        "PV1|1|I|CARDIO||||||||||||||||VN123||A||||||"
     ])
     
     result = validator.validate_message(message)
@@ -63,7 +63,7 @@ def test_pam_validator_pv1_validation():
     validator = PAMValidator()
     
     # PV1 valide
-    pv1 = "PV1|1||CARDIO||||||||||||||||||||VN123|||"
+    pv1 = "PV1|1|I|CARDIO||||||||||||||||VN123||A||||||"
     result = validator.validate_pv1_segment(pv1, 1)
     assert not validator.errors
     

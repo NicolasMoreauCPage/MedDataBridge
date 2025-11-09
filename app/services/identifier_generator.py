@@ -106,9 +106,13 @@ def _generate_with_prefix_pattern(
     min_val = 0
     max_val = (10 ** variable_digits) - 1   # ex: 999 pour 3 digits
     
-    for attempt in range(max_attempts):
-        # Générer partie variable avec padding zeros si nécessaire
-        variable_part = random.randint(min_val, max_val)
+    # Créer une liste des nombres possibles et la mélanger
+    possible_values = list(range(min_val, max_val + 1))
+    random.shuffle(possible_values)
+    
+    for attempt in range(len(possible_values)):
+        # Prendre la valeur suivante dans la liste mélangée
+        variable_part = possible_values[attempt]
         variable_str = str(variable_part).zfill(variable_digits)
         candidate = f"{fixed_prefix}{variable_str}"
         
@@ -124,10 +128,7 @@ def _generate_with_prefix_pattern(
         if not existing:
             return candidate
     
-    raise IdentifierGenerationError(
-        f"Impossible de générer identifiant unique après {max_attempts} tentatives "
-        f"pour pattern '{pattern}' (type={identifier_type}, system={namespace_system})"
-    )
+    raise IdentifierGenerationError("Toutes les valeurs possibles ont été essayées")
 
 
 def _generate_with_range(

@@ -44,9 +44,9 @@ import app.routers.ght as ght
 from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
-    generate, structure, workflow, fhir_structure, vocabularies, namespaces,
+    generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
-    documentation, conformity
+    documentation, conformity, fhir_export, fhir_import, metrics, auth
 )
 
 logging.basicConfig(
@@ -192,7 +192,6 @@ def create_app() -> FastAPI:
     from app.routers import admin_gateway
     app.include_router(admin_gateway.router)
     app.include_router(ght.router, prefix="/admin")
-    app.include_router(namespaces.router, prefix="/admin")
     print(" - Admin routers mounted under /admin")
     
     # 5. Integration and transport
@@ -225,11 +224,26 @@ def create_app() -> FastAPI:
     app.include_router(scenarios.router)
     print(" - Utility routers mounted")
     
-    # 7. Test helpers
+    # 7. Import endpoints for test examples
+    from app.routers import import_examples
+    app.include_router(import_examples.router)
+    print(" - Import examples router mounted at /import")
+    
+    # 7. Authentication
+    app.include_router(auth.router)
+    print(" - Authentication router mounted")
+    
+    # 8. FHIR API endpoints
+    app.include_router(fhir_export.router)
+    app.include_router(fhir_import.router)
+    app.include_router(metrics.router)
+    print(" - FHIR API routers mounted")
+    
+    # 9. Test helpers
     app.include_router(health.router)
     print(" - Test helpers mounted")
     
-    # 8. Debug endpoints (dev only)
+    # 10. Debug endpoints (dev only)
     try:
         from app.routers import debug_events
         app.include_router(debug_events.router)

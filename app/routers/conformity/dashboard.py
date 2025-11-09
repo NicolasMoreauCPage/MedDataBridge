@@ -79,8 +79,7 @@ def conformity_home(request: Request, session: Session = Depends(get_session)):
             "rate_7d": rate
         })
     
-    return templates.TemplateResponse("conformity_home.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "conformity_home.html", {
         "title": "Conformité par Entité Juridique",
         "ej_stats": ej_stats
     })
@@ -95,13 +94,11 @@ def ej_dashboard(ej_id: int, request: Request, session: Session = Depends(get_se
     summary = get_ej_summary(session, ej_id)
     
     if not summary:
-        return templates.TemplateResponse("not_found.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "not_found.html", {
             "title": "EJ introuvable"
         }, status_code=404)
     
-    return templates.TemplateResponse("conformity_dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "conformity_dashboard.html", {
         "title": f"Conformité - {summary['ej']['name']}",
         "summary": summary
     })
@@ -114,8 +111,7 @@ def ej_messages(ej_id: int, request: Request, session: Session = Depends(get_ses
     
     ej = session.get(EntiteJuridique, ej_id)
     if not ej:
-        return templates.TemplateResponse("not_found.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "not_found.html", {
             "title": "EJ introuvable"
         }, status_code=404)
     
@@ -158,8 +154,7 @@ def ej_messages(ej_id: int, request: Request, session: Session = Depends(get_ses
             "warn_count": warn_count
         })
     
-    return templates.TemplateResponse("conformity_messages.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "conformity_messages.html", {
         "title": f"Messages - {ej.name}",
         "ej": ej,
         "messages": message_list
@@ -173,8 +168,7 @@ def message_detail(ej_id: int, message_id: int, request: Request, session: Sessi
     
     msg = session.get(MessageLog, message_id)
     if not msg or msg.ej_id != ej_id:
-        return templates.TemplateResponse("not_found.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "not_found.html", {
             "title": "Message introuvable"
         }, status_code=404)
     
@@ -192,8 +186,7 @@ def message_detail(ej_id: int, message_id: int, request: Request, session: Sessi
     warnings = [i for i in issues if i.get("severity") == "warn"]
     infos = [i for i in issues if i.get("severity") == "info"]
     
-    return templates.TemplateResponse("conformity_message_detail.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "conformity_message_detail.html", {
         "title": f"Message {msg.id} - Détail validation",
         "message": msg,
         "errors": errors,

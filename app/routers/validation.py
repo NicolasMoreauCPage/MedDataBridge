@@ -22,8 +22,7 @@ EVN|A01|20251105120000
 PID|1||123456^^^HOSP||DUPONT^JEAN||19800101|M
 PV1|1|I|CARDIO^101^1|||||||||||||||||1"""
     
-    return templates.TemplateResponse("validation.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "validation.html", {
         "title": "Validation Messages HL7 v2.5",
         "validation_done": False,
         "hl7_message": example_message,
@@ -74,8 +73,7 @@ async def validate_message(
         else:
             hl7_base.append(issue)
     
-    return templates.TemplateResponse("validation.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "validation.html", {
         "title": "Validation Messages HL7 v2.5",
         "validation_done": True,
         "hl7_message": hl7_message,
@@ -114,8 +112,7 @@ async def validate_scenario_route(
           f"workflow issues: {len(result.workflow_issues)}, "
           f"coherence issues: {len(result.coherence_issues)}")
     
-    return templates.TemplateResponse("validation.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "validation.html", {
         "title": "Validation Scénario HL7 v2.5",
         "validation_done": False,
         "scenario_result": result,

@@ -12,6 +12,6 @@ templates = Jinja2Templates(directory="app/templates")
 async def admin_gateway(request: Request):
     """Page d'accès à l'interface d'administration SQL."""
     return templates.TemplateResponse(
-        "admin_gateway.html",
-        {"request": request}
+        request,
+        "admin_gateway.html"
     )

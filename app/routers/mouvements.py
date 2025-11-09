@@ -88,7 +88,6 @@ def list_mouvements(
                 request,
                 "error.html",
                 {
-                    "request": request,
                     "title": "Venue introuvable",
                     "message": "La venue spécifiée n'existe pas. Veuillez sélectionner une venue valide.",
                     "back_url": "/dossiers"
@@ -120,7 +119,6 @@ def list_mouvements(
                 request,
                 "error.html",
                 {
-                    "request": request,
                     "title": "Dossier introuvable",
                     "message": "Le dossier spécifié n'existe pas. Veuillez sélectionner un dossier valide.",
                     "back_url": "/dossiers"
@@ -147,7 +145,6 @@ def list_mouvements(
             request,
             "error.html",
             {
-                "request": request,
                 "title": "Paramètre manquant",
                 "message": "Vous devez spécifier soit un dossier_id soit un venue_id pour voir les mouvements.",
                 "back_url": "/dossiers"
@@ -395,7 +392,6 @@ def new_mouvement(
             request,
             "error.html",
             {
-                "request": request,
                 "title": "Aucune venue disponible",
                 "message": "Impossible de créer un mouvement : aucune venue n'est disponible. Créez d'abord une venue.",
                 "back_url": "/venues/new" if filter_dossier_id else "/dossiers"
@@ -635,7 +631,6 @@ def new_mouvement(
         request,
         "form.html",
         {
-            "request": request,
             "title": title,
             "fields": fields,
             "back_url": back_url
@@ -759,7 +754,6 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
         request,
         "mouvement_detail.html",
         {
-            "request": request,
             "mouvement": m,
             "type_display": type_display,
             "type_badge": type_badge,
@@ -801,7 +795,6 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
         request, 
         "form.html", 
         {
-            "request": request, 
             "title": "Modifier mouvement", 
             "fields": fields, 
             "action_url": f"/mouvements/{mouvement_id}/edit",

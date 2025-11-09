@@ -177,7 +177,7 @@ def new_dossier(request: Request, session=Depends(get_session)):
         # Fusionner la configuration avec les valeurs de base
         field.update(config)
         fields.append(field)
-    return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Nouveau dossier", "fields": fields})
+    return templates.TemplateResponse(request, "form.html", {"title": "Nouveau dossier", "fields": fields})
 
 @router.post("/new")
 def create_dossier(
@@ -244,7 +244,6 @@ def dossier_detail(dossier_id: int, request: Request, session=Depends(get_sessio
     ).all()
 
     return templates.TemplateResponse(request, "dossier_detail.html", {
-            "request": request,
             "dossier": d,
             "patient": patient,
             "scenario_entries": scenario_entries,
@@ -256,7 +255,7 @@ def dossier_detail(dossier_id: int, request: Request, session=Depends(get_sessio
 def edit_dossier(dossier_id: int, request: Request, session=Depends(get_session)):
     d = session.get(Dossier, dossier_id)
     if not d:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Dossier introuvable"}, status_code=404)
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
     fields = [
         {"label": "Patient ID", "name": "patient_id", "type": "number", "value": d.patient_id},
         {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "text", "value": d.uf_responsabilite},
@@ -270,7 +269,7 @@ def edit_dossier(dossier_id: int, request: Request, session=Depends(get_session)
         {"label": "Raison", "name": "reason", "type": "text", "value": getattr(d, "reason", None)},
         {"label": "Disposition de sortie", "name": "discharge_disposition", "type": "text", "value": getattr(d, "discharge_disposition", None)},
     ]
-    return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Modifier dossier", "fields": fields, "action_url": f"/dossiers/{dossier_id}/edit"})
+    return templates.TemplateResponse(request, "form.html", {"title": "Modifier dossier", "fields": fields, "action_url": f"/dossiers/{dossier_id}/edit"})
 
 
 @router.post("/{dossier_id}/edit")
@@ -288,7 +287,7 @@ def update_dossier(
 ):
     d = session.get(Dossier, dossier_id)
     if not d:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Dossier introuvable"}, status_code=404)
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
     d.patient_id = patient_id
     d.uf_responsabilite = uf_responsabilite
     d.admission_type = admission_type
@@ -314,7 +313,7 @@ async def replay_dossier_scenario(
 ):
     dossier = session.get(Dossier, dossier_id)
     if not dossier:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Dossier introuvable"}, status_code=404)
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
 
     if not endpoint_ids:
         flash(request, "Veuillez sélectionner au moins un endpoint expéditeur.", level="error")
@@ -399,7 +398,7 @@ async def replay_dossier_scenario(
 def delete_dossier(dossier_id: int, request: Request, session=Depends(get_session)):
     d = session.get(Dossier, dossier_id)
     if not d:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Dossier introuvable"}, status_code=404)
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
     session.delete(d); session.commit()
     emit_to_senders(d, "dossier", session)
     return RedirectResponse(url="/dossiers", status_code=303)

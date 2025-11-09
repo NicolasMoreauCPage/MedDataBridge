@@ -45,102 +45,113 @@ class FHIRToLocationConverter:
         part_of = fhir_location.get("partOf")
         parent_ref = part_of.get("reference") if part_of else None
         
+        # Extraire identifier pour entité (NOT NULL required)
+        identifier = identifiers[0]["value"] if identifiers else name.replace(" ", "_").upper()
+        
         # Mapper vers le modèle approprié selon physicalType
         if physical_type == LocationPhysicalType.SI:
             # Site = Entité Géographique
             eg = EntiteGeographique(
-                nom=name,
-                ej_id=self.ej.id,
+                name=name,
+                identifier=identifier,
+                finess="999999999",  # FINESS par défaut si non fourni
+                entite_juridique_id=self.ej.id,
                 description=description
             )
             self.session.add(eg)
             self.session.commit()
             self.session.refresh(eg)
-            self._add_identifiers(eg, identifiers)
             return eg
             
-        elif physical_type == LocationPhysicalType.WI:
-            # Wing = Pole
+        elif physical_type == LocationPhysicalType.BU:
+            # Building = Pole
             parent_id = self._resolve_parent_id(parent_ref, EntiteGeographique)
             pole = Pole(
-                nom=name,
-                eg_id=parent_id,
+                name=name,
+                identifier=identifier,
+                physical_type=physical_type,
+                entite_geo_id=parent_id,
                 description=description
             )
             self.session.add(pole)
             self.session.commit()
             self.session.refresh(pole)
-            self._add_identifiers(pole, identifiers)
             return pole
             
-        elif physical_type == LocationPhysicalType.WA:
-            # Ward = Service
+        elif physical_type == LocationPhysicalType.WI:
+            # Wing = Service
             parent_id = self._resolve_parent_id(parent_ref, Pole)
             service = Service(
-                nom=name,
+                name=name,
+                identifier=identifier,
+                physical_type=physical_type,
+                service_type="MCO",  # Par défaut
                 pole_id=parent_id,
                 description=description
             )
             self.session.add(service)
             self.session.commit()
             self.session.refresh(service)
-            self._add_identifiers(service, identifiers)
             return service
             
-        elif physical_type == LocationPhysicalType.LV:
-            # Level = Unité Fonctionnelle
+        elif physical_type == LocationPhysicalType.WA:
+            # Ward = Unité Fonctionnelle
             parent_id = self._resolve_parent_id(parent_ref, Service)
             uf = UniteFonctionnelle(
-                nom=name,
+                name=name,
+                identifier=identifier,
+                physical_type=physical_type,
                 service_id=parent_id,
                 description=description
             )
             self.session.add(uf)
             self.session.commit()
             self.session.refresh(uf)
-            self._add_identifiers(uf, identifiers)
             return uf
             
-        elif physical_type == LocationPhysicalType.HU:
-            # Hostel Unit = Unité d'Hébergement
+        elif physical_type == LocationPhysicalType.LV:
+            # Level = Unité d'Hébergement
             parent_id = self._resolve_parent_id(parent_ref, UniteFonctionnelle)
             uh = UniteHebergement(
-                nom=name,
-                uf_id=parent_id,
+                name=name,
+                identifier=identifier,
+                physical_type=physical_type,
+                unite_fonctionnelle_id=parent_id,
                 description=description
             )
             self.session.add(uh)
             self.session.commit()
             self.session.refresh(uh)
-            self._add_identifiers(uh, identifiers)
             return uh
             
         elif physical_type == LocationPhysicalType.RO:
             # Room = Chambre
             parent_id = self._resolve_parent_id(parent_ref, UniteHebergement)
             chambre = Chambre(
-                nom=name,
-                uh_id=parent_id,
+                name=name,
+                identifier=identifier,
+                physical_type=physical_type,
+                unite_hebergement_id=parent_id,
                 description=description
             )
             self.session.add(chambre)
             self.session.commit()
             self.session.refresh(chambre)
-            self._add_identifiers(chambre, identifiers)
             return chambre
             
         elif physical_type == LocationPhysicalType.BD:
             # Bed = Lit
             parent_id = self._resolve_parent_id(parent_ref, Chambre)
             lit = Lit(
-                nom=name,
+                name=name,
+                identifier=identifier,
+                physical_type=physical_type,
                 chambre_id=parent_id,
                 description=description
             )
             self.session.add(lit)
             self.session.commit()
             self.session.refresh(lit)
-            self._add_identifiers(lit, identifiers)
             return lit
             
         else:

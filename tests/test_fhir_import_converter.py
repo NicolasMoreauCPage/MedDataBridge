@@ -73,37 +73,64 @@ def test_import_location_eg(session):
     
     assert eg is not None
     assert isinstance(eg, EntiteGeographique)
-    assert eg.nom == "Site Principal"
+    assert eg.name == "Site Principal"
+    assert eg.identifier == "EG001"
     assert eg.description == "Site principal de l'hôpital"
-    assert eg.ej_id == ej.id
+    assert eg.entite_juridique_id == ej.id
 
 
 def test_import_location_chambre(session):
     """Test l'import d'une Location FHIR vers Chambre."""
     ej = session.query(EntiteJuridique).first()
     
-    # Créer la hiérarchie nécessaire
-    eg = EntiteGeographique(nom="Site", ej_id=ej.id)
+    # Créer la hiérarchie nécessaire avec identifier (NOT NULL)
+    eg = EntiteGeographique(
+        name="Site",
+        identifier="EG-TEST-001",
+        finess="999999999",
+        entite_juridique_id=ej.id
+    )
     session.add(eg)
     session.commit()
     session.refresh(eg)
     
-    pole = Pole(nom="Pole", eg_id=eg.id)
+    pole = Pole(
+        name="Pole",
+        identifier="POLE-001",
+        entite_geo_id=eg.id,
+        physical_type="bu"
+    )
     session.add(pole)
     session.commit()
     session.refresh(pole)
     
-    service = Service(nom="Service", pole_id=pole.id)
+    service = Service(
+        name="Service",
+        identifier="SERV-001",
+        pole_id=pole.id,
+        physical_type="wi",
+        service_type="MCO"
+    )
     session.add(service)
     session.commit()
     session.refresh(service)
     
-    uf = UniteFonctionnelle(nom="UF", service_id=service.id)
+    uf = UniteFonctionnelle(
+        name="UF",
+        identifier="UF-001",
+        service_id=service.id,
+        physical_type="wa"
+    )
     session.add(uf)
     session.commit()
     session.refresh(uf)
     
-    uh = UniteHebergement(nom="UH", uf_id=uf.id)
+    uh = UniteHebergement(
+        name="UH",
+        identifier="UH-001",
+        unite_fonctionnelle_id=uf.id,
+        physical_type="lv"
+    )
     session.add(uh)
     session.commit()
     session.refresh(uh)
@@ -129,8 +156,9 @@ def test_import_location_chambre(session):
     
     assert chambre is not None
     assert isinstance(chambre, Chambre)
-    assert chambre.nom == "Chambre 101"
-    assert chambre.uh_id == uh.id
+    assert chambre.name == "Chambre 101"
+    assert chambre.identifier == "CH101"
+    assert chambre.unite_hebergement_id == uh.id
 
 
 def test_import_patient(session):

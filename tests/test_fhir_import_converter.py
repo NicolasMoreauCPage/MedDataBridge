@@ -185,9 +185,9 @@ def test_import_patient(session):
     patient = converter.convert_patient(fhir_patient)
     
     assert patient is not None
-    assert patient.nom == "Dupont"
-    assert patient.prenom == "Jean Pierre"
-    assert patient.gender == "M"
+    assert patient.family == "Dupont"
+    assert patient.given == "Jean Pierre"
+    assert patient.gender == "male"
     assert patient.birth_date == "1980-01-15"
     
     # Vérifier qu'un dossier a été créé
@@ -202,19 +202,24 @@ def test_import_encounter(session):
     
     # Créer un patient et un dossier
     patient = Patient(
-        nom="Martin",
-        prenom="Sophie",
-        date_naissance=datetime(1990, 5, 10),
-        sexe="F"
+        family="Martin",
+        given="Sophie",
+        birth_date="1990-05-10",
+        gender="female"
     )
     session.add(patient)
     session.commit()
     session.refresh(patient)
     
+    # Générer un dossier_seq unique
+    dossier_seq = patient.id * 10000 + int(datetime.now().timestamp() % 10000)
+    
     dossier = Dossier(
+        dossier_seq=dossier_seq,
         patient_id=patient.id,
-        ej_id=ej.id,
-        date_ouverture=datetime.now()
+        entite_juridique_id=ej.id,
+        admit_time=datetime.now(),
+        dossier_type="HOSPITALISE"
     )
     session.add(dossier)
     session.commit()
@@ -255,19 +260,24 @@ def test_import_bundle_complet(session):
     
     # Créer un patient et un dossier pour le test encounter
     patient = Patient(
-        nom="Test",
-        prenom="Patient",
-        date_naissance=datetime(1985, 3, 20),
-        sexe="M"
+        family="Test",
+        given="Patient",
+        birth_date="1985-03-20",
+        gender="male"
     )
     session.add(patient)
     session.commit()
     session.refresh(patient)
     
+    # Générer un dossier_seq unique
+    dossier_seq = patient.id * 10000 + int(datetime.now().timestamp() % 10000)
+    
     dossier = Dossier(
+        dossier_seq=dossier_seq,
         patient_id=patient.id,
-        ej_id=ej.id,
-        date_ouverture=datetime.now()
+        entite_juridique_id=ej.id,
+        admit_time=datetime.now(),
+        dossier_type="HOSPITALISE"
     )
     session.add(dossier)
     session.commit()
@@ -368,8 +378,8 @@ def test_import_patient_sans_nom(session):
     patient = converter.convert_patient(fhir_patient)
     
     assert patient is not None
-    assert patient.nom == ""  # Nom vide
-    assert patient.sexe == "I"  # Inconnu
+    assert patient.family == ""  # Nom vide
+    assert patient.gender == "unknown"  # Inconnu
 
 
 def test_import_location_type_invalide(session):

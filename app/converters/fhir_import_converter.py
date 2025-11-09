@@ -13,7 +13,7 @@ from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit, LocationPhysicalType
 )
-from app.models import Patient, Dossier, Mouvement
+from app.models import Patient, Dossier, Mouvement, Venue
 from app.models_identifiers import Identifier, IdentifierType
 
 
@@ -165,7 +165,9 @@ class FHIRToLocationConverter:
         
         coding = physical_type.get("coding", [])
         if coding:
-            return coding[0].get("code")
+            code = coding[0].get("code")
+            # Normaliser en uppercase (FHIR peut renvoyer en minuscules)
+            return code.upper() if code else None
         return None
 
     def _extract_identifiers(self, fhir_location: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -323,17 +325,12 @@ class FHIRToPatientConverter:
             return None
 
     def _parse_gender(self, gender: Optional[str]) -> Optional[str]:
-        """Parse un sexe FHIR."""
+        """Parse un sexe FHIR (garde les valeurs FHIR: male/female/other/unknown)."""
         if not gender:
-            return None
+            return "unknown"
         
-        gender_map = {
-            "male": "M",
-            "female": "F",
-            "other": "O",
-            "unknown": "I"
-        }
-        return gender_map.get(gender.lower(), "I")
+        # Retourner la valeur FHIR telle quelle (le modèle stocke male/female/other/unknown)
+        return gender.lower()
 
     def _map_system_to_type(self, system: str) -> str:
         """Mappe un system FHIR vers un IdentifierType."""
@@ -387,13 +384,34 @@ class FHIRToEncounterConverter:
         if not dossier:
             raise FHIRImportError(f"Aucun dossier trouvé pour le patient {patient_id}")
         
+        # Trouver ou créer une venue pour ce dossier
+        # TODO: Implémenter une vraie résolution de venue depuis les locations
+        # Pour l'instant, utiliser la première venue du dossier ou en créer une
+        venue = self.session.query(Venue).filter(Venue.dossier_id == dossier.id).first()
+        if not venue:
+            # Créer une venue par défaut
+            venue_seq = dossier.id * 1000 + int(datetime.now().timestamp() % 1000)
+            start_time = date_debut or datetime.now()
+            venue = Venue(
+                venue_seq=venue_seq,
+                dossier_id=dossier.id,
+                admit_time=start_time,
+                start_time=start_time
+            )
+            self.session.add(venue)
+            self.session.commit()
+            self.session.refresh(venue)
+        
+        # Générer un mouvement_seq unique
+        mouvement_seq = venue.id * 10000 + int(datetime.now().timestamp() % 10000)
+        
         # Créer le mouvement
         mouvement = Mouvement(
-            dossier_id=dossier.id,
+            mouvement_seq=mouvement_seq,
+            venue_id=venue.id,
             type=type_mouvement,
-            date_debut=date_debut,
-            date_fin=date_fin,
-            statut=self._map_status(status)
+            when=date_debut or datetime.now(),
+            status=self._map_status(status)
         )
         
         self.session.add(mouvement)

@@ -29,7 +29,9 @@ class LocationPhysicalType(str, Enum):
     """http://terminology.hl7.org/ValueSet/location-physical-type"""
     SI = "si"  # Site
     BU = "bu"  # Bâtiment
-    WI = "wi"  # Aile
+    WI = "wi"  # Aile (Wing)
+    WA = "wa"  # Unité de soins (Ward)
+    LV = "lv"  # Niveau/Étage (Level)
     FL = "fl"  # Étage
     RO = "ro"  # Chambre
     BD = "bd"  # Lit

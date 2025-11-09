@@ -1,11 +1,10 @@
 """Test fixtures"""
 import pytest
-from sqlmodel import SQLModel, Session, create_engine
+from sqlmodel import SQLModel, Session
 import os
 import sys
 from pathlib import Path
 from datetime import datetime
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 # Indicate to the app that we're running tests
@@ -19,37 +18,21 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 
-# Import the FastAPI app utilities
-from app.db import engine, get_session
+# Note: we import app.db (engine/get_session) locally in fixtures to allow
+# setting TESTING env vars and manipulating sys.path before attempting to
+# import application modules. This avoids E402 linter errors while keeping
+# behavior stable.
 
 # Some tests run in minimal environments and may not have all optional
 # dependencies installed (passlib, etc). Avoid importing the full FastAPI
-# application at import time to keep unit tests lightweight. We try to import
-# the app and related routers; if that fails we set a flag and skip creating
-# the TestClient fixtures.
+# application at import time to keep unit tests lightweight. We check whether
+# the full app can be imported and set a flag accordingly. Any imports that
+# require application-level modules are done lazily inside fixtures.
 FULL_APP_AVAILABLE = True
 try:
-    from app.app import lifespan
-    # Create a test application only when the full app is importable
-    app = FastAPI(lifespan=lifespan)
-
-    def override_get_session():
-        with Session(engine) as session:
-            yield session
-
-    # Set up the test application with required routes
-    try:
-        from app.routers import structure
-        app.include_router(structure.router)
-    except Exception:
-        # If routers fail to import, fall back to skipping full app features
-        FULL_APP_AVAILABLE = False
-
-    # Override the get_session dependency with our test session
-    try:
-        app.dependency_overrides[get_session] = override_get_session
-    except Exception:
-        FULL_APP_AVAILABLE = False
+    # Only check that the app module is importable; do not wire anything here.
+    import importlib
+    importlib.import_module("app.app")
 except Exception:
     FULL_APP_AVAILABLE = False
 
@@ -57,6 +40,8 @@ except Exception:
 @pytest.fixture(name="session")
 def session_fixture():
     """Provide a DB session for tests. The DB schema is created by the autouse fixture."""
+    from app.db import engine
+
     with Session(engine) as session:
         # Some tests expect session.refresh(obj) to return the object
         _orig_refresh = session.refresh
@@ -107,6 +92,8 @@ def test_endpoints_fixture(session: Session):
 @pytest.fixture(autouse=True)
 def setup_database():
     """Autouse fixture: create schema and initialize minimal reference data for tests."""
+    from app.db import engine
+
     # Create tables
     SQLModel.metadata.create_all(engine)
 
@@ -138,7 +125,9 @@ def setup_database():
     yield
 
     # Drop tables after each test to keep isolation
-    SQLModel.metadata.drop_all(engine)
+    from app.db import engine as _engine
+
+    SQLModel.metadata.drop_all(_engine)
 
 
 @pytest.fixture(name="client")
@@ -148,7 +137,12 @@ def client_fixture(session: Session):
 
     # Lazy import app factory so DB is initialized first
     from app.app import create_app
-    from app.db import get_session
+    from app.db import get_session, engine as _engine
+
+    def override_get_session():
+        from app.db import engine
+        with Session(engine) as session:
+            yield session
 
     app = create_app()
     app.dependency_overrides[get_session] = override_get_session
@@ -160,7 +154,7 @@ def client_fixture(session: Session):
         try:
             from app.models_structure_fhir import GHTContext
             from sqlmodel import select as _select
-            with Session(engine) as s:
+            with Session(_engine) as s:
                 ctx = s.exec(_select(GHTContext)).first()
                 if not ctx:
                     ctx = GHTContext(name="Test GHT", code="TEST_GHT", is_active=True)

@@ -22,3 +22,6 @@ itsdangerous>=2.1.0  # Pour les sessions sécurisées
 
 # Migrations
 alembic==1.13.2
+
+# Security
+passlib>=1.7.4

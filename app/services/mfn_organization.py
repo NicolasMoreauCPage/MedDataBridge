@@ -62,7 +62,7 @@ def generate_mfn_organization_message(session: Session, ej: Optional[EntiteJurid
     
     # En-tête MSH
     segments = [
-        f"MSH|^~\\&|MedBridge|MedBridge|RECEIVER|RECEIVER|{now}||MFN^M05^MFN_M05|{now}|P|2.5|||||FRA|8859/1"
+        f"MSH|^~\\&|MedBridge|MedBridge|RECEIVER|RECEIVER|{now}||MFN^M05^MFN_M05|{now}|P|2.5^FRA^2.11|||||FRA|8859/1"
     ]
     
     # MFI - Master File Identification

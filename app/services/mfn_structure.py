@@ -837,7 +837,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
     # En-tête du message
     now = datetime.now().strftime("%Y%m%d%H%M%S")
     message = [
-        f"MSH|^~\\&|STR|STR|RECEPTEUR|RECEPTEUR|{now}||MFN^M05^MFN_M05|{now}|P|2.5|||||FRA|8859/15",
+        f"MSH|^~\\&|STR|STR|RECEPTEUR|RECEPTEUR|{now}||MFN^M05^MFN_M05|{now}|P|2.5^FRA^2.11|||||FRA|8859/1",
         f"MFI|LOC|CPAGE_LOC_FRA|REP||{now}|AL"
     ]
     

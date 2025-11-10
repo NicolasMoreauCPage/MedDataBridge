@@ -15,7 +15,7 @@ import logging
 import threading
 from typing import Any, Dict, Set
 from sqlalchemy import event
-from sqlmodel import Session  # Use SQLModel Session, not SQLAlchemy Session
+from sqlalchemy.orm import Session  # Use SQLAlchemy Session for event listeners
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.services.emit_on_create import emit_to_senders_async

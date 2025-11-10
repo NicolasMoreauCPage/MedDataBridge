@@ -307,44 +307,13 @@
 
     <script>
         let hitMissChart = null;
-        let authToken = null;
-
-        // Get auth token from localStorage or prompt user
-        function getAuthToken() {
-            if (!authToken) {
-                authToken = localStorage.getItem('auth_token');
-                if (!authToken) {
-                    authToken = prompt('Please enter your JWT access token:');
-                    if (authToken) {
-                        localStorage.setItem('auth_token', authToken);
-                    }
-                }
-            }
-            return authToken;
-        }
 
         async function fetchMetrics() {
-            const token = getAuthToken();
-            if (!token) {
-                showError('No authentication token provided');
-                return null;
-            }
-
             try {
-                const response = await fetch('/api/metrics/cache', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await fetch('/api/metrics/cache');
 
                 if (!response.ok) {
-                    if (response.status === 401 || response.status === 403) {
-                        localStorage.removeItem('auth_token');
-                        authToken = null;
-                        showError('Authentication failed. Please refresh and enter a valid token.');
-                    } else {
-                        showError(`Failed to fetch metrics: ${response.statusText}`);
-                    }
+                    showError(`Failed to fetch metrics: ${response.statusText}`);
                     return null;
                 }
 

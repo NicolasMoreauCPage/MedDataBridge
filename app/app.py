@@ -337,14 +337,29 @@ def create_app() -> FastAPI:
         # We do this after route registration so SQLAdmin's mounting at
         # /admin doesn't intercept our custom /admin/ght pages.
         # Mount SQLAdmin under /sqladmin to avoid conflict with our admin pages.
-        # Configure SQLAdmin
+        # Configure SQLAdmin with no authentication (internal use only)
         # Access via /admin gateway page which provides navigation context
+        from sqladmin.authentication import AuthenticationBackend
+        from starlette.requests import Request
+        
+        class NoAuthBackend(AuthenticationBackend):
+            """Backend d'authentification désactivé pour usage interne."""
+            async def login(self, request: Request) -> bool:
+                return True
+            
+            async def logout(self, request: Request) -> bool:
+                return True
+            
+            async def authenticate(self, request: Request) -> bool:
+                return True
+        
         admin = Admin(
             app, 
             engine, 
             base_url="/sqladmin",
             title="MedData Bridge - Admin SQL",
-            templates_dir="app/templates"
+            templates_dir="app/templates",
+            authentication_backend=NoAuthBackend(secret_key="not-used-for-internal-app")
         )
         
         # Register all admin views from app.admin module

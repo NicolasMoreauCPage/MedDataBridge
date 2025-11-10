@@ -125,13 +125,11 @@ async def health_check():
 
 
 @router.get("/cache", response_model=dict)
-async def get_cache_metrics(
-    _: None = Depends(require_role(["admin", "moderator"]))
-) -> Dict[str, Any]:
+async def get_cache_metrics() -> Dict[str, Any]:
     """
     Récupère les métriques de cache Redis.
     
-    Accessible uniquement aux administrateurs et modérateurs.
+    Endpoint public pour usage interne.
     
     Returns:
         Dictionnaire contenant:

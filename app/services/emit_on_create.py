@@ -301,19 +301,40 @@ def generate_pam_hl7(
         return "\r".join([msh, evn, pid])
         
     if entity_type == "dossier":
-        # ADT^A05 (Pre-admission) pour création dossier (profil IHE PAM: pré-admission avant confirmation)
+        # ⚠️ IMPORTANT : La création d'un dossier ne génère PAS de message IHE PAM
+        # car il n'y a pas d'événement patient associé. C'est la création de la VENUE
+        # (admission/pre-admit) qui générera le message ADT^A05.
+        # En FHIR : Dossier = EpisodeOfCare, Venue = Encounter
+        return None  # Pas de message généré pour un dossier seul
+    
+    if entity_type == "venue":
+        # ADT^A05 (Pre-admit) pour création de venue
+        # La venue correspond à une admission/encounter en IHE PAM
         assigning_system = forced_identifier_system or "HOSP"
         assigning_oid = forced_identifier_oid
-
-        # Patient lié (peut être déjà chargé par SQLModel Relationship)
-        patient = entity.patient if hasattr(entity, "patient") else None
+        
+        # Charger le dossier et le patient
+        dossier = entity.dossier if hasattr(entity, "dossier") else None
+        patient = dossier.patient if dossier and hasattr(dossier, "patient") else None
+        
+        if not dossier:
+            # Impossible de générer un message sans dossier
+            return None
+        
+        # Patient info
         if patient:
-            # Fallback IPP sans persistance si patient_seq absent
             patient_seq_val = getattr(patient, "patient_seq", None) or (patient.id or "TEMP")
             patient_id = patient.identifier or patient.external_id or str(patient_seq_val)
             family = patient.family or ""
             given = patient.given or ""
-            birth_date = patient.birth_date or ""
+            # Gérer birth_date comme string ou date object
+            if patient.birth_date:
+                if hasattr(patient.birth_date, 'strftime'):
+                    birth_date = patient.birth_date.strftime("%Y%m%d")
+                else:
+                    birth_date = str(patient.birth_date).replace("-", "")
+            else:
+                birth_date = ""
             # Map HL7 gender codes
             raw_gender = (patient.gender or "").strip()
             gender_map_hl7 = {
@@ -324,78 +345,94 @@ def generate_pam_hl7(
             }
             gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
         else:
-            patient_id = str(entity.patient_id)
+            patient_id = str(dossier.patient_id)
             family = ""
             given = ""
             birth_date = ""
             gender = ""
-
+        
+        # Timestamp et identifiants
+        admit_time = entity.start_time.strftime("%Y%m%d%H%M%S") if entity.start_time else ""
+        control_id = str(entity.venue_seq)
+        visit_number = str(dossier.dossier_seq)  # NDA = numéro du dossier
+        
+        # Authority pour identifiants
         authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
         pid3 = f"{patient_id}^^^{authority}^PI"
-        admit_time = entity.admit_time.strftime("%Y%m%d%H%M%S") if entity.admit_time else ""
-        control_id = str(entity.dossier_seq)
-
+        
         # MSH / EVN
         msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A05|{control_id}|P|2.5"
         evn = f"EVN|A05|{admit_time}"
-
-        # PID avec PID-18 = dossier_seq
+        
+        # PID segment
         pid_fields = [
             "PID", "1", "", pid3, "", f"{family}^{given}", "", birth_date, gender
         ]
         while len(pid_fields) < 19:
             pid_fields.append("")
-        pid_fields[18] = control_id
-        # Enrichissement adresse (PID-11) et télécom (PID-13) si patient disponible
+        pid_fields[18] = visit_number  # PID-18 = Account Number (NDA)
+        
+        # Enrichir adresse et télécom si patient disponible
         if patient:
-            # PID-11: address simple (street^other^city^state^zip^country^type)
+            # PID-11: address
             addr = []
-            addr.append((patient.address or ""))  # street
+            addr.append(patient.address or "")
             addr.append("")  # other designation
-            addr.append(patient.city or "")  # city
-            addr.append(patient.state or "")  # state
-            addr.append(patient.postal_code or "")  # zip
-            addr.append(patient.country or "")  # country
+            addr.append(patient.city or "")
+            addr.append(patient.state or "")
+            addr.append(patient.postal_code or "")
+            addr.append(patient.country or "")
             addr.append("H")  # type Home
             pid_fields[11] = "^".join(addr)
-            # PID-13 phones/email (XTN repetitions)
+            
+            # PID-13: phones/email (XTN)
             xtn_parts = []
             if getattr(patient, "phone", None):
                 xtn_parts.append(f"^PRN^PH^^^^{patient.phone}")
             if getattr(patient, "mobile", None):
                 xtn_parts.append(f"^ORN^CP^^^^{patient.mobile}")
-            if getattr(patient, "work_phone", None):
-                xtn_parts.append(f"^WPN^PH^^^^{patient.work_phone}")
             if getattr(patient, "email", None):
-                # Email format: ^NET^Internet^{email} (XTN.4 email)
                 xtn_parts.append(f"^NET^Internet^{patient.email}")
             if xtn_parts:
                 pid_fields[13] = "~".join(xtn_parts)
+        
         pid = "|".join(pid_fields)
-
-        # PV1 enrichi
-        patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E"}
-        dossier_type_val = getattr(entity, "dossier_type", None)
+        
+        # PV1 segment avec mapping du patient_class via vocabulary
+        # Récupérer encounter_class depuis le dossier pour utiliser le mapping
+        from app.services.vocabulary_translate import map_code
+        
+        dossier_type_val = getattr(dossier, "dossier_type", None)
         if hasattr(dossier_type_val, "value"):
             dossier_type_val = dossier_type_val.value
-        patient_class = patient_class_map.get(str(dossier_type_val), "I")
-        location = entity.uf_responsabilite or ""
-        admission_type = getattr(entity, "admission_type", "") or ""
-        attending = getattr(entity, "attending_provider", "") or ""
-        attending_xcn = attending if attending else ""
-        hospital_service = ""
-        admit_source = getattr(entity, "admission_source", "") or ""
-        visit_number = control_id
-        discharge_disp = getattr(entity, "discharge_disposition", "") or ""
-        admit_datetime = admit_time
-        pv1 = (
-            f"PV1|1|{patient_class}|{location}|{admission_type}|||{attending_xcn}|||{hospital_service}||||{admit_source}|||||{visit_number}"
-            "|||||||||||||||||||{discharge_disp}|||||||||{admit_datetime}".format(
-                discharge_disp=discharge_disp, admit_datetime=admit_datetime
-            )
+        
+        # Le dossier_type correspond à encounter_class dans notre modèle
+        # Utiliser le mapping vocabulaire pour obtenir patient_class (PV1-2)
+        encounter_class = str(dossier_type_val) if dossier_type_val else "IMP"
+        patient_class = map_code(
+            session,
+            source_system_name="encounter-class",
+            source_code=encounter_class,
+            target_system_name="patient-class"
         )
-
-        # ZBE segment (UF responsabilité)
+        
+        # Fallback si pas de mapping trouvé
+        if not patient_class:
+            patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E", "IMP": "I", "AMB": "O", "EMER": "E"}
+            patient_class = patient_class_map.get(encounter_class, "I")
+        
+        location = entity.uf_responsabilite or ""
+        admission_type = getattr(dossier, "admission_type", "") or ""
+        attending = entity.attending_provider or dossier.attending_provider or ""
+        hospital_service = entity.hospital_service or ""
+        admit_source = getattr(dossier, "admission_source", "") or ""
+        
+        pv1 = (
+            f"PV1|1|{patient_class}|{location}|{admission_type}|||{attending}|||{hospital_service}||||{admit_source}|||||{visit_number}"
+            f"|||||||||||||||||||||||||{admit_time}"
+        )
+        
+        # ZBE segment (mouvement/UF)
         zbe_id = control_id
         action = "INSERT"
         historic = "N"
@@ -405,13 +442,8 @@ def generate_pam_hl7(
             if location
             else f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|"
         )
-
+        
         return "\r".join([msh, evn, pid, pv1, zbe])
-    if entity_type == "venue":
-        return (
-            f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{entity.start_time or ''}||Z99^Z99|{entity.id}|P|2.5\r"
-            f"Z99|VENUE|{entity.venue_seq}|{entity.code}|{entity.label}"
-        )
     if entity_type == "mouvement":
         # Extract event type from mouvement.type (format: "ADT^A01" or "ADT^A01^ADT_A01")
         msg_type = entity.type if entity.type else "ADT^A99"
@@ -451,8 +483,31 @@ def generate_pam_hl7(
             )
             pid = f"PID|1||UNKNOWN^^^{authority}^PI||UNKNOWN^UNKNOWN||||"
         
-        # Build PV1 segment
-        patient_class = "I"  # Inpatient by default
+        # Build PV1 segment avec mapping vocabulaire
+        from app.services.vocabulary_translate import map_code
+        
+        # Déterminer encounter_class depuis le dossier pour mapper vers patient_class
+        if dossier:
+            dossier_type_val = getattr(dossier, "dossier_type", None)
+            if hasattr(dossier_type_val, "value"):
+                dossier_type_val = dossier_type_val.value
+            encounter_class = str(dossier_type_val) if dossier_type_val else "IMP"
+            
+            # Utiliser le mapping vocabulaire
+            patient_class = map_code(
+                session,
+                source_system_name="encounter-class",
+                source_code=encounter_class,
+                target_system_name="patient-class"
+            )
+            
+            # Fallback si pas de mapping
+            if not patient_class:
+                patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E", "IMP": "I", "AMB": "O", "EMER": "E"}
+                patient_class = patient_class_map.get(encounter_class, "I")
+        else:
+            patient_class = "I"  # Inpatient by default
+        
         location = entity.location or entity.to_location or ""
         if venue:
             uf_resp = venue.uf_responsabilite or ""
@@ -461,15 +516,23 @@ def generate_pam_hl7(
         else:
             uf_resp = ""
         
-        # PV1-19 (Visit Number) - use venue_seq if available
+        # PV1-19 (Visit Number) - use dossier_seq (NDA)
         visit_number = ""
-        if venue:
+        if dossier:
+            visit_number = str(dossier.dossier_seq)
+        elif venue:
             visit_number = str(venue.venue_seq)
         
         pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{visit_number}||||||||||||||||||||{uf_resp}||||||{timestamp}"
         
+        # ZBE segment
+        zbe_id = control_id
+        action = "UPDATE" if event_code in ["A08", "A31"] else "TRANSFER" if event_code == "A02" else "DISCHARGE" if event_code == "A03" else "INSERT"
+        historic = "N"
+        zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|^^^^^^UF^^^{uf_resp}" if uf_resp else f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
+        
         # Combine all segments with \r separator (HL7 standard)
-        return "\r".join([msh, evn, pid, pv1])
+        return "\r".join([msh, evn, pid, pv1, zbe])
     
     return ""
 

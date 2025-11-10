@@ -230,8 +230,34 @@ def create_dossier(
         admit_time=admit_dt,
         dossier_seq=seq,
     )
-    session.add(d); session.commit()
-    emit_to_senders(d, "dossier", session)
+    session.add(d)
+    session.commit()
+    session.refresh(d)  # Assurer que l'ID est disponible
+    
+    # ⚠️ IMPORTANT : La création d'un dossier ne génère PAS de message IHE PAM directement.
+    # emit_to_senders(d, "dossier", session)  # ← Désactivé (retourne None maintenant)
+    
+    # À la place, on crée automatiquement une VENUE qui génère le message ADT^A05 (Pre-admit)
+    from app.models import Venue
+    from app.db import get_next_sequence
+    
+    venue_seq = get_next_sequence(session, "venue")
+    venue = Venue(
+        dossier_id=d.id,
+        uf_responsabilite=uf_responsabilite,
+        start_time=admit_dt,
+        hospital_service=None,  # Sera défini plus tard si nécessaire
+        assigned_location=None,
+        attending_provider=attending_provider,
+        venue_seq=venue_seq,
+        code="PRE_ADMIT",
+        label="Pré-admission automatique"
+    )
+    session.add(venue)
+    session.commit()
+    
+    # La venue génère le message ADT^A05
+    emit_to_senders(venue, "venue", session)
     
     # Support AJAX/JSON and HTML responses
     if request.headers.get("Accept") == "application/json":

@@ -6,6 +6,7 @@ Objectifs:
 - Respecter les plages d'identifiants spécifiques du système récepteur
 - Détecter et éviter les collisions avec identifiants existants
 - Utiliser namespaces dédiés pour scénarios de test
+- Utiliser génération basée sur timestamp pour IPP et NDA garantissant l'unicité
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from sqlmodel import Session, select, func
 
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure_fhir import IdentifierNamespace
+from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq
 
 
 class IdentifierGenerationError(Exception):
@@ -194,6 +196,10 @@ def generate_identifier(
     Cette fonction est le point d'entrée principal pour générer des identifiants
     de test avec gestion des préfixes et évitement de collisions.
     
+    IMPORTANT: Pour IPP et NDA, utilise la génération basée sur timestamp:
+    - IPP: 12 chiffres, préfixe '9' + 11 chiffres timestamp
+    - NDA: 9 chiffres, préfixe '9' + 8 chiffres timestamp
+    
     Args:
         session: Session DB pour vérifier les collisions
         namespace: IdentifierNamespace contenant la config de préfixe
@@ -201,27 +207,33 @@ def generate_identifier(
         prefix_override: Préfixe spécifique pour cette génération (override config namespace)
         
     Returns:
-        Identifiant généré (ex: "9001234", "501789")
+        Identifiant généré (ex: "917351234567", "912345678")
         
     Raises:
         IdentifierGenerationError: Si génération impossible
         
     Exemples:
     ```python
-    # Avec namespace configuré avec prefix_pattern="9..."
+    # IPP avec génération timestamp (12 chiffres)
     ipp = generate_identifier(session, ipp_namespace, IdentifierType.IPP)
-    # → "9001234"
+    # → "917351234567"
     
-    # Avec override de préfixe
-    nda = generate_identifier(session, nda_namespace, IdentifierType.NDA, prefix_override="501...")
-    # → "501789"
+    # NDA avec génération timestamp (9 chiffres)
+    nda = generate_identifier(session, nda_namespace, IdentifierType.NDA)
+    # → "912345678"
     
-    # Avec mode range
-    ipp2 = generate_identifier(session, range_namespace, IdentifierType.IPP)
-    # → "9234567" (dans plage min=9000000, max=9999999)
+    # VENUE avec pattern classique
+    venue = generate_identifier(session, venue_namespace, IdentifierType.VN)
+    # → selon config du namespace
     ```
     """
-    # Déterminer la source de configuration
+    # Cas spéciaux: IPP et NDA utilisent la génération basée sur timestamp
+    if identifier_type == IdentifierType.IPP:
+        return str(generate_patient_seq())
+    elif identifier_type == IdentifierType.NDA:
+        return str(generate_dossier_seq())
+    
+    # Pour les autres types (VN, etc.), utiliser la configuration du namespace
     pattern = prefix_override if prefix_override else namespace.prefix_pattern
     mode = namespace.prefix_mode or "fixed"
     

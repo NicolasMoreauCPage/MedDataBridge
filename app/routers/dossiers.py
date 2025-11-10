@@ -9,6 +9,7 @@ from app.models import Dossier, Patient, DossierType
 from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import ScenarioBinding, InteropScenario
 from app.services.emit_on_create import emit_to_senders
+from app.utils.seq_generator import generate_dossier_seq
 from app.services.scenario_runner import send_scenario
 from app.services.scenario_capture import capture_dossier_as_template
 from app.form_config import get_field_config, MODEL_FIELDS
@@ -149,7 +150,8 @@ def list_dossiers(
 
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(request: Request, session=Depends(get_session)):
-    next_seq = peek_next_sequence(session, "dossier")
+    # L'identifiant sera généré automatiquement basé sur le timestamp
+    next_seq = None
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M")  # valeur par défaut = maintenant
     
     # Récupérer les UF de l'EJ en contexte (via jointures)
@@ -217,7 +219,8 @@ def create_dossier(
     session=Depends(get_session),
 ):
     admit_dt = datetime.fromisoformat(admit_time)
-    seq = dossier_seq or get_next_sequence(session, "dossier")
+    # Générer l'identifiant dossier basé sur timestamp (9 chiffres, préfixe '9')
+    seq = dossier_seq or generate_dossier_seq()
     d = Dossier(
         patient_id=patient_id,
         uf_responsabilite=uf_responsabilite,

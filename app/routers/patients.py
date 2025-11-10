@@ -23,6 +23,7 @@ from app.models import Patient
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
+from app.utils.seq_generator import generate_patient_seq
 
 
 def get_templates(request: Request):
@@ -386,10 +387,11 @@ def delete_patient(patient_id: int, request: Request, session=Depends(get_sessio
     return RedirectResponse(url="/patients", status_code=303)
 
 @router.get("/new", response_class=HTMLResponse)
-def new_patient_form(request: Request, session=Depends(get_session)):
-    """Affiche le formulaire de création patient (conforme RGPD France)."""
-    templates = get_templates(request)
-    next_seq = peek_next_sequence(session, "patient")
+def new_patient(request: Request, session=Depends(get_session)):
+    """Affiche le formulaire de création d'un patient (conforme RGPD France)."""
+    # L'identifiant sera généré automatiquement basé sur le timestamp
+    # Pas besoin de pré-générer un numéro de séquence
+    next_seq = None
     
     # Générer des données de démonstration pré-remplies
     sample_data = generate_sample_patient_data()
@@ -420,6 +422,7 @@ def new_patient_form(request: Request, session=Depends(get_session)):
             ("M", "Masculin"), ("F", "Féminin"), ("O", "Autre"), ("U", "Indéterminé")
         ]
     ]
+    templates = get_templates(request)
     return templates.TemplateResponse(request, "patient_form.html", {
         "title": "Nouveau patient",
         "patient": None,
@@ -471,7 +474,10 @@ async def create_patient(
     is_ajax = request.headers.get('accept') == 'application/json'
 
     try:
-        patient_seq = get_next_sequence(session, "patient") if patient_seq is None else patient_seq
+        # Générer l'identifiant patient basé sur timestamp (12 chiffres, préfixe '9')
+        if patient_seq is None:
+            patient_seq = generate_patient_seq()
+        
         patient = Patient(
             patient_seq=patient_seq,
             external_id=external_id,

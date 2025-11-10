@@ -274,6 +274,56 @@ def create_identity_reliability_mappings(session: Session) -> List[VocabularyMap
     
     return mappings
 
+def create_contact_relationship_role_mappings(session: Session) -> List[VocabularyMapping]:
+    """Crée les mappings entre contact-relationship-hl7v2 (NK1-3) et contact-role (NK1-7).
+
+    Stratégie: certaines relations déterminent implicitement un rôle fonctionnel.
+    - C (Emergency Contact) -> EMERGENCY
+    - SPO (Conjoint) / PAR / CHD / FTH / MTH / SIB / GRD -> NEXT_OF_KIN
+    - E (Employeur) -> OTHER (ou GUARANTOR si besoin futur)
+    - O (Autre) / U (Inconnu) -> OTHER
+
+    Le mapping est de type 'narrower' sauf cas direct C->EMERGENCY où 'equivalent'.
+    """
+    mappings: List[VocabularyMapping] = []
+    rel_system = session.exec(select(VocabularySystem).where(VocabularySystem.name == "contact-relationship-hl7v2")).first()
+    role_system = session.exec(select(VocabularySystem).where(VocabularySystem.name == "contact-role")).first()
+    if not rel_system or not role_system:
+        return mappings
+
+    mapping_spec = {
+        "C": ("EMERGENCY", "equivalent"),
+        "SPO": ("NEXT_OF_KIN", "narrower"),
+        "PAR": ("NEXT_OF_KIN", "narrower"),
+        "CHD": ("NEXT_OF_KIN", "narrower"),
+        "FTH": ("NEXT_OF_KIN", "narrower"),
+        "MTH": ("NEXT_OF_KIN", "narrower"),
+        "SIB": ("NEXT_OF_KIN", "narrower"),
+        "GRD": ("NEXT_OF_KIN", "narrower"),
+        "E": ("OTHER", "narrower"),
+        "O": ("OTHER", "equivalent"),
+        "U": ("OTHER", "narrower"),
+    }
+
+    for rel_code, (role_code, map_type) in mapping_spec.items():
+        rel_value = session.exec(
+            select(VocabularyValue).where(
+                VocabularyValue.code == rel_code,
+                VocabularyValue.system_id == rel_system.id,
+            )
+        ).first()
+        if not rel_value:
+            continue
+        mapping = VocabularyMapping(
+            source_value=rel_value,
+            target_system=role_system,
+            target_code=role_code,
+            map_type=map_type,
+            comment="Mapping relation NK1-3 vers rôle NK1-7 généré automatiquement"
+        )
+        mappings.append(mapping)
+    return mappings
+
 def init_vocabulary_mappings(session: Session) -> None:
     """Initialise tous les mappings entre vocabulaires"""
     
@@ -296,6 +346,9 @@ def init_vocabulary_mappings(session: Session) -> None:
     
     # Mapping fiabilité identité (FICTI → VIDE)
     all_mappings.extend(create_identity_reliability_mappings(session))
+
+    # Mapping contact relationship -> role
+    all_mappings.extend(create_contact_relationship_role_mappings(session))
     
     # Sauvegarder tous les mappings
     for mapping in all_mappings:

@@ -50,6 +50,7 @@ from app.services.nature_mapping import derive_nature
 # Import validation functions from infrastructure layer (Phase 1 extraction)
 from app.infrastructure.hl7.validation import validate_transition
 from app.services.vocabulary_translate import map_code
+from app.models_contacts import PatientContact, VenueContact  # NK1 parsing models
 
 logger = logging.getLogger("transport_inbound")
 
@@ -275,6 +276,119 @@ def _parse_pid(message: str) -> dict:
         logger.error(f"Erreur parsing PID: {str(e)}")
         
     return out
+
+
+def _parse_nk1_segments(message: str) -> dict:
+    """Parse les segments NK1 et retourne deux listes prêtes à persister.
+
+    Heuristique: si dates de présence (NK1-8/9) ont composante heure (>=12 chars) -> venue contact.
+    Sinon patient contact.
+    """
+    lines = re.split(r"\r|\n", message)
+    nk1_lines = [l for l in lines if l.startswith("NK1|")]
+    patient_contacts = []
+    venue_contacts = []
+
+    def _parse_date(val: str):
+        if not val:
+            return None
+        if len(val) >= 8 and val[:8].isdigit():
+            from datetime import datetime as _dt
+            try:
+                return _dt.strptime(val[:8], "%Y%m%d").date()
+            except Exception:
+                return None
+        return None
+
+    def _parse_dt(val: str):
+        if not val:
+            return None
+        from datetime import datetime as _dt
+        try:
+            if len(val) >= 14 and val[:14].isdigit():
+                return _dt.strptime(val[:14], "%Y%m%d%H%M%S")
+            if len(val) >= 8 and val[:8].isdigit():
+                return _dt.strptime(val[:8], "%Y%m%d")
+        except Exception:
+            return None
+        return None
+
+    for raw in nk1_lines:
+        parts = raw.split("|")
+        if len(parts) < 4:
+            continue
+        sequence = int(parts[1] or "1") if parts[1].isdigit() else 1
+        name_comp = (parts[2].split("^") + ["", "", "", "", ""])[:5]
+        family, given, middle, suffix, prefix = name_comp
+        rel_comp = (parts[3].split("^") + ["", "", ""])[:3]
+        rel_code, rel_display, rel_system = rel_comp
+        addr_comp = (parts[4].split("^") + ["", "", "", "", "", ""])[:6]
+        line1, line2, city, state, postal, country = addr_comp
+        phone_home = parts[5] if len(parts) > 5 else ""
+        phone_work = parts[6] if len(parts) > 6 else ""
+        role = parts[7] if len(parts) > 7 else ""
+        start_raw = parts[8] if len(parts) > 8 else ""
+        end_raw = parts[9] if len(parts) > 9 else ""
+        gender = parts[15] if len(parts) > 15 else ""
+        birth_raw = parts[16] if len(parts) > 16 else ""
+        language = parts[20] if len(parts) > 20 else ""
+        reason = parts[29] if len(parts) > 29 else ""
+
+        is_venue = len(start_raw) >= 12 or len(end_raw) >= 12
+        if is_venue:
+            vc = VenueContact(
+                sequence=sequence,
+                family_name=family or "UNKNOWN",
+                given_name=given or None,
+                middle_name=middle or None,
+                suffix=suffix or None,
+                prefix=prefix or None,
+                relationship_code=rel_code or "OTH",
+                relationship_display=rel_display or None,
+                relationship_system=rel_system or "HL7-0063",
+                address_line1=line1 or None,
+                address_line2=line2 or None,
+                address_city=city or None,
+                address_postalcode=postal or None,
+                address_country=country or "FR",
+                phone_number=phone_home or None,
+                business_phone=phone_work or None,
+                contact_role=role or None,
+                start_datetime=_parse_dt(start_raw),
+                end_datetime=_parse_dt(end_raw),
+                gender=gender or None,
+                birth_date=_parse_date(birth_raw),
+                contact_reason=reason or None
+            )
+            venue_contacts.append(vc)
+        else:
+            pc = PatientContact(
+                sequence=sequence,
+                family_name=family or "UNKNOWN",
+                given_name=given or None,
+                middle_name=middle or None,
+                suffix=suffix or None,
+                prefix=prefix or None,
+                relationship_code=rel_code or "OTH",
+                relationship_display=rel_display or None,
+                relationship_system=rel_system or "HL7-0063",
+                address_line1=line1 or None,
+                address_line2=line2 or None,
+                address_city=city or None,
+                address_postalcode=postal or None,
+                address_country=country or "FR",
+                phone_number=phone_home or None,
+                business_phone=phone_work or None,
+                contact_role=role or None,
+                start_date=_parse_date(start_raw),
+                end_date=_parse_date(end_raw),
+                gender=gender or None,
+                birth_date=_parse_date(birth_raw),
+                primary_language=language or None,
+                contact_reason=reason or None
+            )
+            patient_contacts.append(pc)
+    return {"patient_contacts": patient_contacts, "venue_contacts": venue_contacts}
 
 
 def _parse_pd1(message: str) -> dict:
@@ -852,6 +966,8 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             pid_data = parse_pid(msg)
             pv1_data = parse_pv1(msg)
             zbe_data = parse_zbe(msg)
+            # Parse NK1 segments (contacts patient & venue) tôt pour persistance après création entités
+            nk1_data = _parse_nk1_segments(msg)
 
             # Nouvelle logique inbound UPDATE/CANCEL basée sur ZBE-4/ZBE-5/ZBE-6
             action = zbe_data.get("action")
@@ -1042,6 +1158,52 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 extra={"trigger": trigger, "patient_identifiers": pid_data.get("identifiers")},
             )
             success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg)
+
+            # --- Persistance des contacts après succès routage ---
+            if success:
+                try:
+                    # Récupérer patient créé/mis à jour (identifiant principal PID-3 première valeur)
+                    patient_obj = None
+                    if pid_data.get("identifiers"):
+                        first_ident_raw = pid_data["identifiers"][0][0]
+                        ident_value = first_ident_raw.split("^")[0]
+                        from sqlmodel import select
+                        patient_obj = session.exec(select(Patient).where(Patient.identifier == ident_value)).first()
+
+                    # Récupérer venue si mouvement (présence ZBE ou trigger mouvement) pour VenueContact
+                    venue_obj = None
+                    movement_triggers_inner = {"A01","A02","A03","A04","A05","A06","A07","A08","A11","A12","A13","A21","A22","A23","A38","A52","A53","A54","A55"}
+                    if trigger in movement_triggers_inner and patient_obj:
+                        # Dernière venue du dossier du patient (créée dans handler admission)
+                        dossier_obj = None
+                        if patient_obj.dossiers:
+                            dossier_obj = sorted(patient_obj.dossiers, key=lambda d: d.dossier_seq)[-1]
+                        if dossier_obj and dossier_obj.venues:
+                            venue_obj = sorted(dossier_obj.venues, key=lambda v: v.venue_seq)[-1]
+
+                    # Persist PatientContact (uniquement messages identité A28/A31) ou si patient existe
+                    if patient_obj and nk1_data.get("patient_contacts"):
+                        for pc in nk1_data["patient_contacts"]:
+                            pc.patient_id = patient_obj.id
+                            # Set emergency flag/priority heuristics
+                            if pc.relationship_code in {"C"} or (pc.contact_role or "").upper() == "EMERGENCY":
+                                pc.is_emergency_contact = True
+                                pc.priority = 1
+                            else:
+                                pc.priority = pc.sequence or 99
+                            session.add(pc)
+                        session.flush()
+
+                    # Persist VenueContact (messages de mouvement) si venue trouvée
+                    if venue_obj and nk1_data.get("venue_contacts"):
+                        for vc in nk1_data["venue_contacts"]:
+                            vc.venue_id = venue_obj.id
+                            if (vc.contact_role or "").upper() in {"ACCOMPANYING"}:
+                                vc.is_accompanying = True
+                            session.add(vc)
+                        session.flush()
+                except Exception:
+                    logger.exception("Erreur persistance contacts NK1")
 
             if success:
                 log.status = "processed"

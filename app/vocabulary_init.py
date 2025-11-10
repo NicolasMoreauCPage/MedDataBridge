@@ -169,6 +169,56 @@ def create_marital_status_vocab() -> List[VocabularySystem]:
     system.values = [VocabularyValue(code=c, display=lbl, order=i+1) for i, (c, lbl) in enumerate(codes)]
     return [system]
 
+def _create_contact_relationship_and_role_vocab() -> List[VocabularySystem]:
+    """Crée les vocabulaires pour NK1-3 (relationship) et NK1-7 (contact role).
+
+    Deux systèmes distincts:
+    - contact-relationship-hl7v2 : Représente HL7 Table 0063 codes tels que utilisés en NK1-3
+    - contact-role : Système LOCAL unifié pour les rôles fonctionnels (NEXT_OF_KIN, EMERGENCY, ACCOMPANYING, GUARANTOR, CAREGIVER, OTHER)
+
+    Les mappings (HL7 -> LOCAL) seront ajoutés par `init_vocabulary_mappings` dans une phase ultérieure.
+    """
+    # HL7 Table 0063 subset (IHE PAM France fréquemment utilisée)
+    rel_system = VocabularySystem(
+        name="contact-relationship-hl7v2",
+        label="Relation contact (HL7 Table 0063)",
+        system_type=VocabularySystemType.HL7V2,
+        description="Codes relation NK1-3: C/E/N/SPO/CHD/PAR/SIB/GRD/FTH/MTH/O/U"
+    )
+    rel_codes = [
+        ("C", "Contact d'urgence"),
+        ("E", "Employeur"),
+        ("N", "Plus proche parent"),
+        ("SPO", "Conjoint"),
+        ("CHD", "Enfant"),
+        ("PAR", "Parent"),
+        ("SIB", "Frère/Soœur"),
+        ("GRD", "Tuteur"),
+        ("FTH", "Père"),
+        ("MTH", "Mère"),
+        ("O", "Autre"),
+        ("U", "Inconnu"),
+    ]
+    rel_system.values = [VocabularyValue(code=c, display=lbl, order=i+1) for i, (c, lbl) in enumerate(rel_codes)]
+
+    role_system = VocabularySystem(
+        name="contact-role",
+        label="Rôle fonctionnel du contact",
+        system_type=VocabularySystemType.LOCAL,
+        description="Rôles NK1-7 unifiés (NEXT_OF_KIN, EMERGENCY, ACCOMPANYING, GUARANTOR, CAREGIVER, OTHER)"
+    )
+    role_codes = [
+        ("NEXT_OF_KIN", "Personne à prévenir"),
+        ("EMERGENCY", "Contact d'urgence"),
+        ("ACCOMPANYING", "Accompagnant"),
+        ("GUARANTOR", "Garant financier"),
+        ("CAREGIVER", "Aidant"),
+        ("OTHER", "Autre rôle"),
+    ]
+    role_system.values = [VocabularyValue(code=c, display=lbl, order=i+1) for i, (c, lbl) in enumerate(role_codes)]
+
+    return [rel_system, role_system]
+
 def create_administrative_gender() -> List[VocabularySystem]:
     """Crée les vocabulaires pour le genre administratif"""
     systems = []
@@ -341,6 +391,9 @@ def init_vocabularies(session):
     all_systems.extend(create_identity_reliability_vocab())
     all_systems.extend(create_ins_type_vocab())
     all_systems.extend(create_marital_status_vocab())
+    # --- Nouveau: Vocabulaire des relations et rôles de contact (HL7 NK1) ---
+    # Ajout séparé pour éviter collision avec create_fr_patient_contact_role (spécifique NOS FHIR)
+    all_systems.extend(_create_contact_relationship_and_role_vocab())
     
     # Sauvegarder tous les systèmes et leurs valeurs
     for system in all_systems:

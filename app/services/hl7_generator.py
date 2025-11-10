@@ -16,6 +16,7 @@ from typing import Optional, Dict, Any, List
 import os
 
 from app.models import Patient, Dossier, Venue, Mouvement
+from app.models_contacts import PatientContact, VenueContact  # NK1 generation for identity & movement messages
 from app.services.nature_mapping import derive_nature
 from app.services.vocabulary_translate import reverse_map_code, map_code
 from app.models_shared import SystemEndpoint
@@ -302,6 +303,133 @@ def build_zbe_segment(
     return f"ZBE|{zbe_1}|{zbe_2}|{zbe_3}|{zbe_4}|{zbe_5}|{zbe_6}|{zbe_7}|{zbe_8}|{zbe_9}"
 
 
+def build_nk1_segment(contact: PatientContact) -> str:
+    """Construit un segment NK1 pour un contact patient (ADT A28/A31).
+
+    Champs couverts (positions):
+    - NK1-1: Set ID (sequence)
+    - NK1-2: Nom (XPN: Family^Given^Middle^Suffix^Prefix)
+    - NK1-3: Relation (CE: code^display^system)
+    - NK1-4: Adresse (XAD: line1^line2^city^state^postal^country)
+    - NK1-5: Téléphone personnel (XTN simplifié)
+    - NK1-6: Téléphone professionnel (XTN simplifié)
+    - NK1-7: Rôle du contact (code interne ou HL7) (CE simplifié: role^^^^display)
+    - NK1-8: Date début relation (YYYYMMDD)
+    - NK1-9: Date fin relation (YYYYMMDD)
+    - NK1-15: Sexe administratif
+    - NK1-16: Date de naissance
+    - NK1-20: Langue
+    - NK1-29: Raison du contact
+
+    Les autres champs sont laissés vides pour conserver les positions mais ne sont
+    pas encore utilisés.
+    """
+    def _fmt_date(d):
+        from datetime import date as _d
+        if not d:
+            return ""
+        if isinstance(d, _d):
+            return d.strftime("%Y%m%d")
+        # accepter string déjà au bon format
+        s = str(d)
+        if len(s) == 8 and s.isdigit():
+            return s
+        return ""
+
+    name = f"{contact.family_name}^{contact.given_name or ''}^{contact.middle_name or ''}^{contact.suffix or ''}^{contact.prefix or ''}"
+    relation = f"{contact.relationship_code}^{contact.relationship_display or ''}^{contact.relationship_system or ''}"
+    address = f"{contact.address_line1 or ''}^{contact.address_line2 or ''}^{contact.address_city or ''}^" \
+              f"^{contact.address_postalcode or ''}^{contact.address_country or ''}"
+    phone_home = contact.phone_number or ''
+    phone_work = contact.business_phone or ''
+    role_ce = contact.contact_role or ''  # Could be expanded later to full CE format
+    start_rel = _fmt_date(contact.start_date)
+    end_rel = _fmt_date(contact.end_date)
+    gender = contact.gender or ''
+    birth = _fmt_date(contact.birth_date)
+    language = contact.primary_language or ''
+    reason = contact.contact_reason or ''
+
+    # Build field list up to NK1-29. Index i corresponds to NK1-(i+1)
+    fields = []
+    fields.append(str(contact.sequence))            # 1
+    fields.append(name)                             # 2
+    fields.append(relation)                         # 3
+    fields.append(address)                          # 4
+    fields.append(phone_home)                       # 5
+    fields.append(phone_work)                       # 6
+    fields.append(role_ce)                          # 7
+    fields.append(start_rel)                        # 8
+    fields.append(end_rel)                          # 9
+    # NK1-10..NK1-14 unused -> empty placeholders
+    for _ in range(5):
+        fields.append("")                           # 10-14
+    fields.append(gender)                           # 15
+    fields.append(birth)                            # 16
+    # NK1-17..NK1-19 empty
+    for _ in range(3):
+        fields.append("")                           # 17-19
+    fields.append(language)                         # 20
+    # NK1-21..NK1-28 empty
+    for _ in range(8):
+        fields.append("")                           # 21-28
+    fields.append(reason)                           # 29
+
+    return "NK1|" + "|".join(fields)
+
+
+def build_nk1_segment_venue(contact: VenueContact) -> str:
+    """Construit un segment NK1 pour un contact lié à une venue (mouvements A01/A02/A03/A04).
+
+    Structure similaire à build_nk1_segment mais utilise les champs spécifiques (start_datetime/end_datetime).
+    """
+    def _fmt_dt(d):
+        from datetime import datetime as _dt
+        if not d:
+            return ""
+        if isinstance(d, _dt):
+            return d.strftime("%Y%m%d%H%M%S")
+        s = str(d)
+        if len(s) >= 8 and s[:8].isdigit():
+            return s[:14]  # tolerer format déjà HL7
+        return ""
+
+    name = f"{contact.family_name}^{contact.given_name or ''}^{contact.middle_name or ''}^{contact.suffix or ''}^{contact.prefix or ''}"
+    relation = f"{contact.relationship_code}^{contact.relationship_display or ''}^{contact.relationship_system or ''}"
+    address = f"{contact.address_line1 or ''}^{contact.address_line2 or ''}^{contact.address_city or ''}^" \
+              f"^{contact.address_postalcode or ''}^{contact.address_country or ''}"
+    phone_home = contact.phone_number or ''
+    phone_work = contact.business_phone or ''
+    role_ce = contact.contact_role or ''
+    start_dt = _fmt_dt(contact.start_datetime)
+    end_dt = _fmt_dt(contact.end_datetime)
+    gender = contact.gender or ''
+    birth = _fmt_dt(contact.birth_date)[:8] if contact.birth_date else ''
+    reason = contact.contact_reason or ''
+
+    fields = []
+    fields.append(str(contact.sequence))   # 1
+    fields.append(name)                    # 2
+    fields.append(relation)                # 3
+    fields.append(address)                 # 4
+    fields.append(phone_home)              # 5
+    fields.append(phone_work)              # 6
+    fields.append(role_ce)                 # 7
+    fields.append(start_dt)                # 8 (start presence)
+    fields.append(end_dt)                  # 9 (end presence)
+    for _ in range(5):
+        fields.append("")                 # 10-14
+    fields.append(gender)                  # 15
+    fields.append(birth)                   # 16
+    for _ in range(3):
+        fields.append("")                 # 17-19
+    fields.append("")                      # 20 (langue non utilisée pour venue contact pour l'instant)
+    for _ in range(8):
+        fields.append("")                 # 21-28
+    fields.append(reason)                  # 29
+    return "NK1|" + "|".join(fields)
+
+
 def _is_strict_pam(endpoint: Optional[SystemEndpoint]) -> bool:
     """Détermine si le mode strict PAM FR est actif.
 
@@ -403,6 +531,25 @@ def generate_adt_message(
         build_pid_segment(patient, session=session),
     build_pv1_segment(dossier, venue=venue, session=session, trigger_event=trigger_event)
     ]
+
+    # Ajouter les segments NK1 pour les messages d'identité (A28, A31)
+    if trigger_event in {"A28", "A31"}:
+        # Charger les contacts si non présents et session fournie
+        contacts: List[PatientContact] = []
+        try:
+            if hasattr(patient, "contacts") and patient.contacts:
+                contacts = list(patient.contacts)
+            elif session:
+                from sqlmodel import select as _select
+                contacts = session.exec(
+                    _select(PatientContact).where(PatientContact.patient_id == patient.id).order_by(PatientContact.sequence)
+                ).all()
+        except Exception:
+            contacts = []  # robust fallback
+        # Trier par priority/sequence si attributs disponibles
+        contacts.sort(key=lambda c: (getattr(c, 'priority', 1), c.sequence))
+        for c in contacts:
+            segments.append(build_nk1_segment(c))
     
     # Segment ZBE si mouvement présent
     if movement:
@@ -454,6 +601,24 @@ def generate_adt_message(
             )
         )
     
+    # Ajouter NK1 segments pour les mouvements (venue contacts) si trigger mouvement
+    movement_trigger_for_contacts = {"A01", "A02", "A03", "A04"}
+    if trigger_event in movement_trigger_for_contacts and venue:
+        venue_contacts: List[VenueContact] = []
+        try:
+            if hasattr(venue, "contacts") and venue.contacts:
+                venue_contacts = list(venue.contacts)
+            elif session:
+                from sqlmodel import select as _select
+                venue_contacts = session.exec(
+                    _select(VenueContact).where(VenueContact.venue_id == venue.id).order_by(VenueContact.sequence)
+                ).all()
+        except Exception:
+            venue_contacts = []
+        venue_contacts.sort(key=lambda c: c.sequence)
+        for vc in venue_contacts:
+            segments.append(build_nk1_segment_venue(vc))
+
     return "\r".join(segments)
 
 

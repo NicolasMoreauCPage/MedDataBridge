@@ -147,7 +147,23 @@ Selon le profil IHE PAM France, les identifiants métier sont positionnés dans 
 - PID-3 peut contenir plusieurs identifiants (INS, IPP, etc.)
 - ZBE-1 permet de tracer précisément chaque mouvement pour les annulations (A11, A12, A13, etc.)
 
-### Auto-création des Unités Fonctionnelles (UF)
+### Gestion des contacts (NK1) et interopérabilité HL7/FHIR
+
+#### Modèles et segments
+
+- Les contacts patient et venue sont modélisés via `PatientContact` et `VenueContact` (voir `app/models_contacts.py`).
+- Les segments HL7 NK1 sont générés pour chaque contact lors des messages identité (A28/A31) et mouvements (A01/A02/A03/A04).
+- Le parsing NK1 distingue les contacts patient (dates simples) et venue (dates avec heure), et persiste automatiquement les entités.
+
+#### Export FHIR
+
+- Les contacts sont exportés dans `Patient.contact[]` (depuis PatientContact), `RelatedPerson` et `Encounter.participant` (depuis VenueContact).
+- Les codes de relation et rôles sont mappés via les vocabulaires `contact-relationship-hl7v2` et `contact-role`.
+- La traduction HL7 <-> FHIR est assurée par les fonctions `map_code()` et `reverse_map_code()`.
+
+#### Documentation complète
+
+Consultez la documentation HTML détaillée : [coverage_html/vocabulary_contacts.html](coverage_html/vocabulary_contacts.html) pour la table des codes, les mappings, la logique programme et des exemples d'utilisation.
 
 Lorsqu'un message PAM référence une UF (Unité Fonctionnelle) via ZBE-7 qui n'existe pas dans la structure, deux comportements sont possibles :
 

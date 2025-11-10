@@ -103,8 +103,13 @@ def after_commit(session: Session):
                 # We're in an async context (FastAPI), schedule the emission
                 loop.create_task(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
             except RuntimeError:
-                # No event loop running, skip emission
-                logger.warning(f"[entity_events] No event loop available, skipping emission for {entity_type} id={entity_id}")
+                # No event loop running in current thread - create one in background thread
+                logger.info(f"[entity_events] No event loop, starting emission in background thread for {entity_type} id={entity_id}")
+                thread = threading.Thread(
+                    target=lambda: asyncio.run(_emit_in_new_session(entity_class, entity_id, entity_type, operation)),
+                    daemon=True
+                )
+                thread.start()
         
         except Exception as exc:
             logger.error(f"[entity_events] Failed to schedule emission {entity_type} id={entity_id}: {exc}")

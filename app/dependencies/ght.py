@@ -26,6 +26,18 @@ def require_ght_context(request: Request):
     """
     context = getattr(request.state, "ght_context", None)
     if context is None:
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        session_id = request.session.get("ght_context_id")
+        logger.warning(f"GHT context required but not found. Session has ght_context_id={session_id}, state.ght_context={context}")
+        
+        # Pour les requêtes POST de formulaire, rediriger plutôt que lever une exception
+        if request.method == "POST":
+            from app.middleware.flash import flash
+            flash(request, "Veuillez sélectionner un contexte GHT avant de continuer", "warning")
+            return RedirectResponse(url="/admin/ght", status_code=303)
+        
         raise HTTPException(
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
             detail="Active GHT context required",

@@ -45,6 +45,16 @@ async def ej_detail(
 ):
     context = _ctx(session, context_id)
     entite = _ej(session, context, ej_id)
+    
+    # Set session context for banner display
+    request.session["ght_context_id"] = context_id
+    request.session["ej_context_id"] = ej_id
+    # Also set request.state for immediate display
+    try:
+        request.state.ght_context = context
+        request.state.ej_context = entite
+    except Exception:
+        pass
 
     geo_ids = [g.id for g in entite.entites_geographiques]
     pole_ids = service_ids = uf_ids = uh_ids = chambre_ids = []

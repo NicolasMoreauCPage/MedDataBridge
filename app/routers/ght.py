@@ -354,8 +354,25 @@ async def view_entite_juridique_fallback(
     session: Session = Depends(get_session),
 ):
     """Affiche le détail d'une entité juridique (fallback)."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[FALLBACK] Entering view_entite_juridique_fallback for ght={context_id}, ej={ej_id}")
+    
     context = _get_context_or_404(session, context_id)
     entite = _get_ej_or_404(session, context, ej_id)
+    
+    logger.info(f"[FALLBACK] Setting session: ght_context_id={context_id}, ej_context_id={ej_id}")
+    # Enregistrer les contextes en session pour les requêtes suivantes
+    request.session["ght_context_id"] = context_id
+    request.session["ej_context_id"] = ej_id
+    logger.info(f"[FALLBACK] Session after set: {dict(request.session)}")
+    
+    # Pour affichage immédiat dans le bandeau, alimenter aussi request.state
+    try:
+        request.state.ght_context = context
+        request.state.ej_context = entite
+    except Exception:
+        pass
 
     geo_ids = [geo.id for geo in entite.entites_geographiques]
     pole_ids: List[int] = []

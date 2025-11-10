@@ -149,7 +149,7 @@ def generate_pam_hl7(
         if operation == "update":
             event_type = "A31"  # ADT^A31 (Update person information)
         else:
-            event_type = "A04"  # ADT^A04 (Register patient) - new patient created
+            event_type = "A28"  # ADT^A28 (Add person information) - new patient created
         
         # Build timestamp
         from datetime import datetime
@@ -157,8 +157,9 @@ def generate_pam_hl7(
         control_id = str(getattr(entity, "patient_seq", getattr(entity, "id", "UNKNOWN")))
         
         # MSH segment avec structure de message et version IHE PAM France
-        # MSH-8-3: structure (ADT_A01 pour A04, ADT_A31 pour A31)
-        msg_structure = "ADT_A01" if event_type == "A04" else f"ADT_{event_type}"
+        # MSH-8-3: structure (ADT_A05 pour A28/A31, car même structure que A04/A05)
+        # A28 et A31 utilisent ADT_A05 comme structure de message
+        msg_structure = "ADT_A05"  # A28/A31 utilisent la structure ADT_A05
         # MSH-9: ADT^{event_type}^{structure}
         # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
         # MSH-16: FRA (pays)
@@ -469,17 +470,36 @@ def generate_pam_hl7(
         
         # Build MSH segment avec structure de message et version IHE PAM France
         control_id = str(entity.mouvement_seq)
-        # Extract event code (A01, A02, A03, Z99, etc.)
+        # Extract event code (A01, A02, A03, A21, A22, A11, A12, A13, A52, A53, Z99, etc.)
         event_code = msg_type.split("^")[1] if "^" in msg_type else "A99"
-        # Determine message structure based on event code
-        # A01/A04 = ADT_A01, A02 = ADT_A02, A03 = ADT_A03, Z99 = ADT_A01
-        if event_code in ["A01", "A04", "Z99"]:
+        # Determine message structure based on event code (IHE PAM France)
+        # Référence: HL7 v2.5 Table 0354 - Message Structure
+        if event_code in ["A01", "A04", "A05", "A08", "A13", "A28", "A31", "Z99"]:
+            # Admissions, enregistrements, mises à jour
             msg_structure = "ADT_A01"
         elif event_code == "A02":
+            # Transfert
             msg_structure = "ADT_A02"
         elif event_code == "A03":
+            # Sortie définitive
             msg_structure = "ADT_A03"
+        elif event_code in ["A06", "A07"]:
+            # Changement ambulatoire/hospitalisation
+            msg_structure = "ADT_A06"
+        elif event_code in ["A09", "A10", "A11"]:
+            # Suivi patient, annulation admission
+            msg_structure = "ADT_A09"
+        elif event_code in ["A12", "A15"]:
+            # Annulation transfert, sortie en attente
+            msg_structure = "ADT_A12"
+        elif event_code in ["A21", "A22", "A52", "A53"]:
+            # Sorties temporaires et retours
+            msg_structure = "ADT_A21"
+        elif event_code in ["A38", "A40"]:
+            # Annulation préadmission, fusion patients
+            msg_structure = "ADT_A38"
         else:
+            # Fallback pour codes non standard
             msg_structure = f"ADT_{event_code}"
         
         # MSH-9: ADT^{event_code}^{structure}

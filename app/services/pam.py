@@ -22,27 +22,37 @@ else:
     build_message_for_movement = getattr(_adapter_module, "build_message_for_movement", None)
 
 MOVEMENT_KIND_BY_TRIGGER = {
-    "A01": "admission",
-    "A04": "registration",
-    "A05": "preadmission",
-    "A06": "class-change",
-    "A07": "class-change",
-    "A11": "admission-cancel",
-    "A23": "registration-cancel",
-    "A28": "update",
-    "A29": "update",
-    "A31": "update",
-    "A38": "preadmission-cancel",
-    "A02": "transfer",
-    "A12": "transfer-cancel",
-    "A03": "discharge",
-    "A13": "discharge-cancel",
-    "A21": "leave-out",
-    "A52": "leave-out",
-    "A22": "leave-return",
-    "A53": "leave-return",
-    "A54": "doctor-change",
-    "A55": "doctor-change-cancel",
+    # Événements Patient (pas de mouvement)
+    "A28": "patient-add",       # Ajout patient (création)
+    "A31": "patient-update",    # Mise à jour patient
+    "A40": "patient-merge",     # Fusion de patients
+    
+    # Événements Admission
+    "A01": "admission",         # Admission hospitalisation
+    "A04": "admission",         # Admission ambulatoire (consultation externe)
+    "A05": "preadmission",      # Pré-admission
+    "A06": "class-change",      # Changement classe ambulatoire → hospitalisation
+    "A07": "class-change",      # Changement classe hospitalisation → ambulatoire
+    
+    # Événements Transfert/Sortie
+    "A02": "transfer",          # Transfert
+    "A03": "discharge",         # Sortie définitive
+    "A21": "leave-out",         # Sortie temporaire (absence)
+    "A22": "leave-return",      # Retour d'absence
+    "A52": "leave-out-cancel",  # Annulation sortie temporaire
+    "A53": "leave-return-cancel", # Annulation retour d'absence
+    
+    # Événements Annulation
+    "A11": "admission-cancel",  # Annulation admission
+    "A12": "transfer-cancel",   # Annulation transfert
+    "A13": "discharge-cancel",  # Annulation sortie
+    "A23": "registration-cancel", # Annulation enregistrement
+    "A38": "preadmission-cancel", # Annulation pré-admission
+    
+    # Autres
+    "A29": "patient-delete",    # Suppression patient
+    "A54": "doctor-change",     # Changement médecin
+    "A55": "doctor-change-cancel", # Annulation changement médecin
 }
 
 MOVEMENT_STATUS_BY_TRIGGER = {

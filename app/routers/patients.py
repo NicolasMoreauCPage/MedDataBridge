@@ -358,6 +358,10 @@ def update_patient(
     # RGPD: on ne met PAS à jour race/religion/ssn/administrative_gender
     
     session.add(p)
+    # Force SQLAlchemy to detect changes even if values are the same
+    from sqlalchemy.orm import attributes
+    attributes.flag_modified(p, "family")  # Flag at least one column as modified
+    session.flush()  # Trigger before_update/after_update events
     session.commit()
     # Note: L'émission automatique est gérée par entity_events.py (after_update listener)
     return RedirectResponse(url="/patients", status_code=303)

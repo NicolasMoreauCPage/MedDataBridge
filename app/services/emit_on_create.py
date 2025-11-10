@@ -8,6 +8,7 @@ from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_endpoints import SystemEndpoint, MessageLog, FHIRConfig
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.fhir import generate_fhir_bundle_for_dossier
+from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.mllp import send_mllp
 from app.services.pam_validation import validate_pam
@@ -544,11 +545,21 @@ def generate_fhir(
     forced_identifier_system: str | None = None,
     forced_identifier_oid: str | None = None,
 ):
-    """Build a minimal FHIR payload for the entity."""
-    if entity_type == "dossier":
-        return generate_fhir_bundle_for_dossier(entity)
+    """Build a FHIR Bundle for the entity using the new architecture.
+    
+    Architecture:
+    - Patient → Patient resource
+    - Dossier → EpisodeOfCare resource
+    - Venue → Encounter resource
+    - Mouvement → Encounter resource (nested in venue Encounter)
+    """
+    # Use new FHIR resource generator
+    return generate_fhir_bundle_for_entity(entity, entity_type, session)
 
-    if entity_type == "patient":
+
+def _old_generate_fhir_patient_code():
+    """OLD CODE - kept for reference but not used."""
+    if False:  # entity_type == "patient":
         # Build identifiers with proper systems
         identifiers = []
         
@@ -764,15 +775,7 @@ def generate_fhir(
             })
         
         return patient_res
-
-    # POC fallback for venue/mouvement
-    return {
-        "resourceType": "Observation",
-        "id": str(entity.id),
-        "status": "final",
-        "code": {"text": entity_type},
-        "valueString": str(entity),
-    }
+    # End of old code
 
 
 def _build_fhir_targets(endpoint: SystemEndpoint) -> Sequence[Tuple[str, str, str | None]]:

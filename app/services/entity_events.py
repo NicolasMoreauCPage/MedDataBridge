@@ -10,7 +10,6 @@ Fonctionne pour TOUTES les sources de modification:
 - Scripts/outils (via accès direct à la DB)
 """
 
-"""
 import asyncio
 import logging
 import threading

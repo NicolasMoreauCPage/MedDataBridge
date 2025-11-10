@@ -23,6 +23,7 @@ from app.models_structure import (
     UniteHebergement, Chambre, Lit,
     LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType
 )
+from app.services.vocabulary_translate import map_code, reverse_map_code
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,80 @@ def _iso_to_hl7(date_value: str) -> Optional[str]:
     if dt.hour or dt.minute or dt.second:
         return dt.strftime("%Y%m%d%H%M%S")
     return dt.strftime("%Y%m%d")
+
+
+def _translate_physical_type_to_fhir(session: Session, internal_code: str) -> str:
+    """Traduit un code physical_type interne vers le code FHIR.
+    
+    Utilise le système de vocabulaire pour la traduction. Fallback sur le code original.
+    
+    Args:
+        session: Session SQLModel
+        internal_code: Code physical_type interne (ex: "ro", "bd", "wi")
+    
+    Returns:
+        Code FHIR (traduit ou original si pas de mapping)
+    """
+    if not internal_code:
+        return internal_code
+    
+    # Tenter la traduction via vocabulaire
+    fhir_code = map_code(session, "location-physical-type", internal_code, "location-physical-type")
+    return fhir_code if fhir_code else internal_code
+
+
+def _translate_physical_type_from_fhir(session: Session, fhir_code: str) -> str:
+    """Traduit un code FHIR physical_type vers le code interne.
+    
+    Args:
+        session: Session SQLModel
+        fhir_code: Code FHIR (ex: "ro", "bd", "wi")
+    
+    Returns:
+        Code interne (traduit ou original si pas de mapping)
+    """
+    if not fhir_code:
+        return fhir_code
+    
+    # Tenter la traduction inverse via vocabulaire
+    internal_code = reverse_map_code(session, "location-physical-type", fhir_code, "location-physical-type")
+    return internal_code if internal_code else fhir_code
+
+
+def _translate_service_type_to_fhir(session: Session, internal_code: str) -> str:
+    """Traduit un code service_type interne vers le code FHIR.
+    
+    Args:
+        session: Session SQLModel
+        internal_code: Code service_type interne (ex: "mco", "ssr", "psy")
+    
+    Returns:
+        Code FHIR (traduit ou original si pas de mapping)
+    """
+    if not internal_code:
+        return internal_code
+    
+    # Tenter la traduction via vocabulaire
+    fhir_code = map_code(session, "location-service-type", internal_code, "location-service-type")
+    return fhir_code if fhir_code else internal_code
+
+
+def _translate_service_type_from_fhir(session: Session, fhir_code: str) -> str:
+    """Traduit un code FHIR service_type vers le code interne.
+    
+    Args:
+        session: Session SQLModel
+        fhir_code: Code FHIR (ex: "mco", "ssr", "psy")
+    
+    Returns:
+        Code interne (traduit ou original si pas de mapping)
+    """
+    if not fhir_code:
+        return fhir_code
+    
+    # Tenter la traduction inverse via vocabulaire
+    internal_code = reverse_map_code(session, "location-service-type", fhir_code, "location-service-type")
+    return internal_code if internal_code else fhir_code
 
 
 def _hl7_to_iso(date_value: Optional[str]) -> Optional[str]:
@@ -228,8 +303,10 @@ def fhir_location_to_entity(location: Dict[Any, Any], session: Session) -> tuple
         return entity, parent_ref
     
     if physical_type == "area" and "type" not in location:  # Pôle
+        # Traduire le code FHIR vers le code interne via vocabulaire
+        internal_physical = _translate_physical_type_from_fhir(session, physical_type)
         return (
-            Pole(**common_data, physical_type=_physical_from_code(physical_type, LocationPhysicalType.AREA)),
+            Pole(**common_data, physical_type=internal_physical or LocationPhysicalType.AREA),
             parent_ref,
         )
         
@@ -242,11 +319,13 @@ def fhir_location_to_entity(location: Dict[Any, Any], session: Session) -> tuple
         else:
             coding_candidates = []
         # Accept service type codings from either the French code system or the HL7 terminology
-        service_type = next((coding.get("code") for coding in coding_candidates
+        fhir_service_type = next((coding.get("code") for coding in coding_candidates
                            if coding.get("system") in (
                                "http://interop-sante.fr/fhir/CodeSystem/fr-service-type",
                                "http://terminology.hl7.org/CodeSystem/service-type",
                            )), None)
+        # Traduire le code FHIR vers le code interne via vocabulaire
+        service_type = _translate_service_type_from_fhir(session, fhir_service_type) if fhir_service_type else None
         logger.debug(f"Processing service with type={service_type}, parent_ref={parent_ref}")
         
         if not service_type:
@@ -276,9 +355,11 @@ def fhir_location_to_entity(location: Dict[Any, Any], session: Session) -> tuple
                     session.flush()
                     logger.debug(f"Created new Pole: id={pole.id}, name={pole.name}")
             
+        # Traduire physical_type FHIR vers interne via vocabulaire
+        internal_physical = _translate_physical_type_from_fhir(session, physical_type) if physical_type else None
         service_data = {
             **common_data,
-            "physical_type": _physical_from_code(physical_type, LocationPhysicalType.SI),
+            "physical_type": internal_physical or LocationPhysicalType.SI,
             "service_type": LocationServiceType(service_type),
             "pole_id": pole.id if pole else None
         }
@@ -316,20 +397,24 @@ def fhir_location_to_entity(location: Dict[Any, Any], session: Session) -> tuple
         uf_ext = _get_extension("http://interop-sante.fr/fhir/StructureDefinition/fr-uf-type")
         uf_type = uf_ext.get("valueCode") if uf_ext else None
         if uf_type:
+            # Traduire physical_type FHIR vers interne via vocabulaire
+            internal_physical = _translate_physical_type_from_fhir(session, physical_type)
             return (
                 UniteFonctionnelle(
                 **common_data,
-                physical_type=_physical_from_code(physical_type, LocationPhysicalType.AREA),
+                physical_type=internal_physical or LocationPhysicalType.AREA,
                 uf_type=uf_type,
                 ),
                 parent_ref,
             )
 
     elif physical_type == "wi":  # Unité d'hébergement
+        # Traduire physical_type FHIR vers interne via vocabulaire
+        internal_physical = _translate_physical_type_from_fhir(session, physical_type)
         return (
             UniteHebergement(
             **common_data,
-            physical_type=_physical_from_code(physical_type, LocationPhysicalType.WI),
+            physical_type=internal_physical or LocationPhysicalType.WI,
             etage=next((ext.get("valueString") for ext in extensions
                        if ext.get("url") == "http://example.org/fhir/StructureDefinition/floor"), None),
             aile=next((ext.get("valueString") for ext in extensions
@@ -339,10 +424,12 @@ def fhir_location_to_entity(location: Dict[Any, Any], session: Session) -> tuple
         )
 
     elif physical_type == "ro":  # Chambre
+        # Traduire physical_type FHIR vers interne via vocabulaire
+        internal_physical = _translate_physical_type_from_fhir(session, physical_type)
         return (
             Chambre(
             **common_data,
-            physical_type=_physical_from_code(physical_type, LocationPhysicalType.RO),
+            physical_type=internal_physical or LocationPhysicalType.RO,
             type_chambre=next((ext.get("valueCode") for ext in extensions
                              if ext.get("url") == "http://example.org/fhir/StructureDefinition/room-type"), "simple"),
             gender_usage=location.get("physicalType", {}).get("text"),
@@ -351,10 +438,12 @@ def fhir_location_to_entity(location: Dict[Any, Any], session: Session) -> tuple
         )
         
     elif physical_type == "bd":  # Lit
+        # Traduire physical_type FHIR vers interne via vocabulaire
+        internal_physical = _translate_physical_type_from_fhir(session, physical_type)
         return (
             Lit(
             **common_data,
-            physical_type=_physical_from_code(physical_type, LocationPhysicalType.BD),
+            physical_type=internal_physical or LocationPhysicalType.BD,
             operational_status=location.get("operationalStatus", {}).get("coding", [{}])[0].get("code", "libre")
             ),
             parent_ref,
@@ -482,18 +571,22 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
             location.setdefault("extension", []).append(manager_ext)
             
     elif isinstance(entity, Pole):
+        # Traduire via vocabulaire : "area" est le code par défaut pour Pole
+        fhir_code = _translate_physical_type_to_fhir(session, "area")
         location["physicalType"] = {
             "coding": [{
                 "system": "http://terminology.hl7.org/CodeSystem/location-physical-type",
-                "code": "area"
+                "code": fhir_code
             }]
         }
         
     elif isinstance(entity, Service):
+        # Traduire le service_type via vocabulaire
+        fhir_service_type = _translate_service_type_to_fhir(session, entity.service_type) if entity.service_type else entity.service_type
         location["type"] = [{
             "coding": [{
                 "system": "http://interop-sante.fr/fhir/CodeSystem/fr-service-type",
-                "code": entity.service_type
+                "code": fhir_service_type
             }]
         }]
         
@@ -568,10 +661,12 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
             location.setdefault("extension", []).extend(uf_extensions)
         
     elif isinstance(entity, UniteHebergement):
+        # Traduire via vocabulaire : "wi" (wing/aile) pour UniteHebergement
+        fhir_code = _translate_physical_type_to_fhir(session, "wi")
         location["physicalType"] = {
             "coding": [{
                 "system": "http://terminology.hl7.org/CodeSystem/location-physical-type",
-                "code": "wi"
+                "code": fhir_code
             }]
         }
         if entity.etage:
@@ -586,10 +681,12 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
             })
             
     elif isinstance(entity, Chambre):
+        # Traduire via vocabulaire : "ro" (room) pour Chambre
+        fhir_code = _translate_physical_type_to_fhir(session, "ro")
         location["physicalType"] = {
             "coding": [{
                 "system": "http://terminology.hl7.org/CodeSystem/location-physical-type",
-                "code": "ro"
+                "code": fhir_code
             }]
         }
         location.setdefault("extension", []).append({
@@ -600,10 +697,12 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
             location["physicalType"]["text"] = entity.gender_usage
             
     elif isinstance(entity, Lit):
+        # Traduire via vocabulaire : "bd" (bed) pour Lit
+        fhir_code = _translate_physical_type_to_fhir(session, "bd")
         location["physicalType"] = {
             "coding": [{
                 "system": "http://terminology.hl7.org/CodeSystem/location-physical-type",
-                "code": "bd"
+                "code": fhir_code
             }]
         }
         if getattr(entity, "operational_status", None):

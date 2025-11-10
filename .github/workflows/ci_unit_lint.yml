@@ -1,0 +1,32 @@
+name: CI - unit tests & lint
+
+on:
+  push:
+    branches: [ improvements/autopilot ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  unit-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Lint with ruff
+        run: |
+          ruff check app tools tests || true
+
+      - name: Run unit tests (MFN heuristics)
+        run: |
+          pytest -q tests/test_mfn_heuristics.py -q

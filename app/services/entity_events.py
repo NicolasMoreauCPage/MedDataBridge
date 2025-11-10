@@ -53,6 +53,8 @@ def _schedule_emission(session: Session, entity: Any, entity_type: str, operatio
     entity_id = entity.id
     emission_key = (entity_id, entity_type, operation)
     
+    logger.info(f"[entity_events] Scheduling emission: {entity_type} id={entity_id} op={operation}")
+    
     if emission_key not in _pending_emissions[session_id]:
         _pending_emissions[session_id].add(emission_key)
         logger.debug(f"[entity_events] Scheduled emission: {entity_type} id={entity_id} op={operation}")
@@ -165,6 +167,7 @@ def _entity_after_update(mapper, connection, target):
     """Generic handler for entity updates."""
     session = Session.object_session(target)
     if not session:
+        logger.warning(f"[entity_events] after_update: no session for {type(target).__name__} id={getattr(target, 'id', '?')}")
         return
     
     entity_type = {
@@ -175,7 +178,10 @@ def _entity_after_update(mapper, connection, target):
     }.get(type(target))
     
     if entity_type:
+        logger.info(f"[entity_events] after_update triggered: {entity_type} id={target.id}")
         _schedule_emission(session, target, entity_type, "update")
+    else:
+        logger.warning(f"[entity_events] after_update: unknown entity type {type(target).__name__}")
 
 
 def register_entity_events():

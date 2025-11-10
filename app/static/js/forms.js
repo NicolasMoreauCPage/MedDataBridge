@@ -147,18 +147,22 @@ class FormManager {
         this.clearFieldError(field);
         const validations = this.getFieldValidations(field);
         
+        // Treat "None" string as empty (Jinja2 sometimes renders None as "None")
+        const value = field.value === 'None' ? '' : field.value;
+        const isEmpty = !value || value.trim() === '';
+        
         // If the field is empty and required, show required error
-        if ((!field.value || field.value.trim() === '') && validations.required) {
+        if (isEmpty && validations.required) {
             this.showFieldError(field, validations.required);
             return false;
         }
         
         // If field has value, check type-specific validations
-        if (field.value && field.value.trim() !== '') {
+        if (!isEmpty) {
             for (const [validationType, message] of Object.entries(validations)) {
                 if (validationType === 'required') continue;
                 const validator = this.validators[validationType];
-                if (validator && !validator(field.value)) {
+                if (validator && !validator(value)) {
                     this.showFieldError(field, message);
                     return false;
                 }

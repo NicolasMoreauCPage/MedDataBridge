@@ -826,29 +826,52 @@ def update_mouvement(
     m = session.get(Mouvement, mouvement_id)
     if not m:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-    m.venue_id = venue_id
-    m.type = type
-    # Keep trigger_event in sync with the selected type
-    if type:
-        parts = type.split('^', 1)
-        m.trigger_event = parts[1] if len(parts) == 2 else None
-    else:
-        m.trigger_event = None
-    m.when = datetime.fromisoformat(when)
-    m.location = location
-    m.from_location = from_location
-    m.to_location = to_location
-    m.reason = reason
-    m.performer = performer
-    m.status = status
-    m.note = note
-    m.mouvement_seq = mouvement_seq
-    m.movement_type = movement_type
-    m.movement_reason = movement_reason
-    m.performer_role = performer_role
-    session.add(m); session.commit()
-    emit_to_senders(m, "mouvement", session)
-    return RedirectResponse(url="/mouvements", status_code=303)
+    try:
+        m.venue_id = venue_id
+        m.type = type
+        # Keep trigger_event in sync with the selected type
+        if type:
+            parts = type.split('^', 1)
+            m.trigger_event = parts[1] if len(parts) == 2 else None
+        else:
+            m.trigger_event = None
+        
+        # Parse datetime, handle empty string
+        if when:
+            m.when = datetime.fromisoformat(when)
+        else:
+            m.when = None
+            
+        m.location = location
+        m.from_location = from_location
+        m.to_location = to_location
+        m.reason = reason
+        m.performer = performer
+        m.status = status
+        m.note = note
+        m.mouvement_seq = mouvement_seq
+        m.movement_type = movement_type
+        m.movement_reason = movement_reason
+        m.performer_role = performer_role
+        
+        session.add(m)
+        session.commit()
+        
+        # Refresh with relationships for emit_to_senders
+        session.refresh(m)
+        if m.venue:
+            session.refresh(m.venue, ["dossier"])
+            if m.venue.dossier:
+                session.refresh(m.venue.dossier, ["patient"])
+        
+        emit_to_senders(m, "mouvement", session)
+        return RedirectResponse(url="/mouvements", status_code=303)
+    except Exception as e:
+        session.rollback()
+        # Return error to user with proper template
+        from app.middleware.flash import flash
+        flash(request, f"Erreur lors de la modification: {str(e)}", "error")
+        return RedirectResponse(url=f"/mouvements/{mouvement_id}/edit", status_code=303)
 
 
 @router.post("/{mouvement_id}/delete")

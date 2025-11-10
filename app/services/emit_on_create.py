@@ -156,8 +156,14 @@ def generate_pam_hl7(
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         control_id = str(getattr(entity, "patient_seq", getattr(entity, "id", "UNKNOWN")))
         
-        # MSH segment
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_type}|{control_id}|P|2.5"
+        # MSH segment avec structure de message et version IHE PAM France
+        # MSH-8-3: structure (ADT_A01 pour A04, ADT_A31 pour A31)
+        msg_structure = "ADT_A01" if event_type == "A04" else f"ADT_{event_type}"
+        # MSH-9: ADT^{event_type}^{structure}
+        # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
+        # MSH-16: FRA (pays)
+        # MSH-17: 8859/1 (encodage ISO-8859-1)
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||||FRA|8859/1"
         
         # EVN segment
         evn = f"EVN|{event_type}|{timestamp}"
@@ -361,8 +367,12 @@ def generate_pam_hl7(
         authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
         pid3 = f"{patient_id}^^^{authority}^PI"
         
-        # MSH / EVN
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A05|{control_id}|P|2.5"
+        # MSH / EVN avec structure de message et version IHE PAM France
+        # MSH-8-3: ADT_A01 (structure pour A05)
+        # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
+        # MSH-16: FRA (pays)
+        # MSH-17: 8859/1 (encodage ISO-8859-1)
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A05^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||||FRA|8859/1"
         evn = f"EVN|A05|{admit_time}"
         
         # PID segment
@@ -457,12 +467,28 @@ def generate_pam_hl7(
         # Build timestamp
         timestamp = entity.when.strftime("%Y%m%d%H%M%S") if entity.when else ""
         
-        # Build MSH segment
+        # Build MSH segment avec structure de message et version IHE PAM France
         control_id = str(entity.mouvement_seq)
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||{msg_type}|{control_id}|P|2.5"
-        
-        # Build EVN segment (extract event code from msg_type)
+        # Extract event code (A01, A02, A03, Z99, etc.)
         event_code = msg_type.split("^")[1] if "^" in msg_type else "A99"
+        # Determine message structure based on event code
+        # A01/A04 = ADT_A01, A02 = ADT_A02, A03 = ADT_A03, Z99 = ADT_A01
+        if event_code in ["A01", "A04", "Z99"]:
+            msg_structure = "ADT_A01"
+        elif event_code == "A02":
+            msg_structure = "ADT_A02"
+        elif event_code == "A03":
+            msg_structure = "ADT_A03"
+        else:
+            msg_structure = f"ADT_{event_code}"
+        
+        # MSH-9: ADT^{event_code}^{structure}
+        # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
+        # MSH-16: FRA (pays)
+        # MSH-17: 8859/1 (encodage ISO-8859-1)
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||||FRA|8859/1"
+        
+        # Build EVN segment
         evn = f"EVN|{event_code}|{timestamp}"
         
         # Build PID segment if we have patient info

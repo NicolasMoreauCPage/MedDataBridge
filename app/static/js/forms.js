@@ -21,7 +21,8 @@ class FormManager {
         this.validators = {
             required: (value) => value && value.trim() !== '',
             email: (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-            phone: (value) => !value || /^(\+\d{1,3}[- ]?)?\d{10}$/.test(value),
+            // Plus permissif pour les téléphones - accepte espaces, tirets, points, parenthèses
+            phone: (value) => !value || /^[\d\s\-\.\+\(\)]+$/.test(value.trim()),
             numeric: (value) => !value || !isNaN(value),
             date: (value) => !value || !isNaN(Date.parse(value)),
             ...options.validators

@@ -46,6 +46,7 @@ class FHIRPatient(BaseModel):
     active: bool = True
     name: List[Dict[str, Any]]
     managingOrganization: Optional[FHIRReference] = None
+    contact: Optional[List[Dict[str, Any]]] = None  # Patient.contact[]
 
 class FHIREncounter(BaseModel):
     """Ressource Encounter FHIR."""
@@ -57,6 +58,20 @@ class FHIREncounter(BaseModel):
     subject: FHIRReference
     period: Optional[FHIRPeriod] = None
     location: Optional[List[Dict[str, Any]]] = None
+    participant: Optional[List[Dict[str, Any]]] = None  # Encounter.participant[]
+
+class FHIRRelatedPerson(BaseModel):
+    """Ressource RelatedPerson FHIR pour VenueContact."""
+    resourceType: str = "RelatedPerson"
+    id: Optional[str] = None
+    patient: FHIRReference
+    relationship: Optional[List[FHIRCodeableConcept]] = None
+    name: Optional[List[Dict[str, Any]]] = None
+    telecom: Optional[List[Dict[str, Any]]] = None
+    gender: Optional[str] = None
+    birthDate: Optional[str] = None
+    address: Optional[Dict[str, Any]] = None
+    period: Optional[FHIRPeriod] = None
 
 class FHIRBundle(BaseModel):
     """Bundle FHIR."""
@@ -222,7 +237,8 @@ class PatientToFHIRConverter:
                       identifier: str,
                       name: str,
                       surname: str,
-                      organization_ref: Optional[FHIRReference] = None) -> FHIRPatient:
+                      organization_ref: Optional[FHIRReference] = None,
+                      contacts: Optional[List[Dict[str, Any]]] = None) -> FHIRPatient:
         """Crée une ressource Patient FHIR."""
         
         # Identifiant
@@ -243,7 +259,8 @@ class PatientToFHIRConverter:
         return FHIRPatient(
             identifier=identifiers,
             name=names,
-            managingOrganization=organization_ref
+            managingOrganization=organization_ref,
+            contact=contacts
         )
 
 class EncounterToFHIRConverter:
@@ -259,7 +276,8 @@ class EncounterToFHIRConverter:
                         status: str,
                         start_date: Optional[datetime] = None,
                         end_date: Optional[datetime] = None,
-                        location_ref: Optional[FHIRReference] = None) -> FHIREncounter:
+                        location_ref: Optional[FHIRReference] = None,
+                        participants: Optional[List[Dict[str, Any]]] = None) -> FHIREncounter:
         """Crée une ressource Encounter FHIR."""
         
         # Identifiant
@@ -291,5 +309,35 @@ class EncounterToFHIRConverter:
             },
             subject=patient_ref,
             period=period,
-            location=locations
+            location=locations,
+            participant=participants
+        )
+
+    def create_related_person(self,
+                              identifier: str,
+                              patient_ref: FHIRReference,
+                              relationship_code: str,
+                              relationship_display: str,
+                              name: Dict[str, Any],
+                              telecom: Optional[List[Dict[str, Any]]] = None,
+                              gender: Optional[str] = None,
+                              birth_date: Optional[str] = None,
+                              address: Optional[Dict[str, Any]] = None,
+                              period: Optional[FHIRPeriod] = None) -> FHIRRelatedPerson:
+        """Crée une ressource RelatedPerson FHIR."""
+        rel_cc = self.converter.create_codeable_concept(
+            relationship_code,
+            "http://terminology.hl7.org/CodeSystem/v2-0063",
+            relationship_display or relationship_code
+        )
+        return FHIRRelatedPerson(
+            id=identifier,
+            patient=patient_ref,
+            relationship=[rel_cc],
+            name=[name],
+            telecom=telecom,
+            gender=gender,
+            birthDate=birth_date,
+            address=address,
+            period=period
         )

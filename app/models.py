@@ -5,6 +5,9 @@ from sqlmodel import SQLModel, Field, Relationship, Session
 
 from app.models_identifiers import Identifier, IdentifierType
 
+if TYPE_CHECKING:
+    from app.models_contacts import PatientContact, VenueContact
+
 
 class IdentityReliabilityCode(str, Enum):
     """
@@ -110,6 +113,7 @@ class Patient(SQLModel, table=True):
 
     dossiers: List["Dossier"] = Relationship(back_populates="patient")
     identifiers: List["Identifier"] = Relationship(back_populates="patient")
+    contacts: List["PatientContact"] = Relationship(back_populates="patient")
 
     # Backwards-compat properties used by tests/templates expecting French names
     @property
@@ -208,6 +212,7 @@ class Venue(SQLModel, table=True):
     dossier: Dossier = Relationship(back_populates="venues")
     mouvements: List["Mouvement"] = Relationship(back_populates="venue")
     identifiers: List["Identifier"] = Relationship(back_populates="venue")
+    contacts: List["VenueContact"] = Relationship(back_populates="venue")
 
     # Backwards-compat property expected by tests/templates
     @property

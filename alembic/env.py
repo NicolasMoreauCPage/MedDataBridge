@@ -6,6 +6,7 @@ from sqlmodel import SQLModel
 
 # Import models to register tables
 from app.models import Patient, Dossier, Venue, Mouvement, Sequence
+from app.models_contacts import PatientContact, VenueContact
 from app.models_endpoints import SystemEndpoint, MessageLog
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
 from app.models_structure_fhir import GHTContext, IdentifierNamespace

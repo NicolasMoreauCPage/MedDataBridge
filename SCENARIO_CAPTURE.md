@@ -260,8 +260,8 @@ def test_template_no_foreign_key_to_dossier(test_session):
 ✅ Matérialisation HL7v2 + FHIR  
 
 ### Phase 2 : Enrichissement clinique
-🔲 Capturer diagnostics (DG1)  
-🔲 Capturer allergies (AL1)  
+🔲 (Option hors profil) Capturer diagnostics (DG1)
+🔲 (Option hors profil) Capturer allergies (AL1)
 🔲 Capturer observations vitales (OBX)  
 🔲 Capturer prescriptions (RXO/RXE)  
 

@@ -243,10 +243,16 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
         return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
     
     # Options dynamiques (fallback enum via service si vocabulaire absent)
+    # HL7 Table 0445 - Identity Reliability Code (IHE PAM France)
     identity_opts = get_vocabulary_options("identity-reliability-rniv") or [
         {"value": code, "label": label} for code, label in [
-            ("VALI", "Validée"), ("QUAL", "Qualifiée"), ("PROV", "Provisoire"),
-            ("VIDE", "Fictive"), ("DOUTE", "Douteuse"), ("DOUB", "Doublon")
+            ("VALI", "Validée (avec INS qualifié)"),
+            ("PROV", "Provisoire"),
+            ("VIDE", "Non qualifiée"),
+            ("DOUB", "Doublon détecté"),
+            ("DESA", "Désactivée"),
+            ("IDVER", "Vérifiée"),
+            ("ANOM", "Anonyme")
         ]
     ]
     # Statuts maritaux HL7v2
@@ -388,10 +394,16 @@ def new_patient_form(request: Request, session=Depends(get_session)):
     # Générer des données de démonstration pré-remplies
     sample_data = generate_sample_patient_data()
     
+    # HL7 Table 0445 - Identity Reliability Code (IHE PAM France)
     identity_opts = get_vocabulary_options("identity-reliability-rniv") or [
         {"value": code, "label": label} for code, label in [
-            ("VALI", "Validée"), ("QUAL", "Qualifiée"), ("PROV", "Provisoire"),
-            ("VIDE", "Fictive"), ("DOUTE", "Douteuse"), ("DOUB", "Doublon")
+            ("VALI", "Validée (avec INS qualifié)"),
+            ("PROV", "Provisoire"),
+            ("VIDE", "Non qualifiée"),
+            ("DOUB", "Doublon détecté"),
+            ("DESA", "Désactivée"),
+            ("IDVER", "Vérifiée"),
+            ("ANOM", "Anonyme")
         ]
     ]
     marital_opts = get_vocabulary_options("marital-status") or [

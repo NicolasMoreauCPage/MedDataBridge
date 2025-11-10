@@ -17,6 +17,7 @@ import os
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.services.nature_mapping import derive_nature
+from app.services.vocabulary_translate import reverse_map_code, map_code
 from app.models_shared import SystemEndpoint
 from app.models_identifiers import Identifier
 from app.models_structure_fhir import IdentifierNamespace
@@ -170,14 +171,19 @@ def build_pv1_segment(
     Returns:
         Segment PV1 formaté
     """
-    # PV1-2: Type de patient (I=Inpatient, O=Outpatient, E=Emergency)
-    patient_class = dossier.dossier_type or "I"
-    if patient_class == "URGENCE":
-        patient_class = "E"
-    elif patient_class == "EXTERNE":
-        patient_class = "O"
-    else:
-        patient_class = "I"
+    # PV1-2: Patient class HL7v2 -> derived from encounter-class (internal FHIR codes)
+    # dossier.encounter_class may hold internal FHIR ActCode (IMP, AMB, EMER). If absent, derive from dossier_type.
+    fhir_encounter_class = getattr(dossier, "encounter_class", None)
+    if not fhir_encounter_class:
+        dt = dossier.dossier_type.value if hasattr(dossier.dossier_type, "value") else dossier.dossier_type
+        map_by_type = {"urgence": "EMER", "externe": "AMB", "hospitalise": "IMP"}
+        fhir_encounter_class = map_by_type.get(str(dt), "IMP")
+    # Translate FHIR encounter class to HL7 patient-class via vocabulary mappings if available.
+    patient_class = reverse_map_code(session, "encounter-class", fhir_encounter_class, "patient-class") if session else None
+    if not patient_class:
+        # Fallback heuristic
+        fallback_map = {"EMER": "E", "AMB": "O", "IMP": "I"}
+        patient_class = fallback_map.get(fhir_encounter_class, "I")
     
     # PV1-3: Localisation (code venue si présent)
     location = ""

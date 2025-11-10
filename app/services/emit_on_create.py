@@ -13,6 +13,17 @@ from app.services.mllp import send_mllp
 from app.services.pam_validation import validate_pam
 import json
 
+# Global sanitization helper: coerce None / 'None' / whitespace-only to ''
+def _c(val):
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        v = val.strip()
+        if v.lower() == "none" or v == "":
+            return ""
+        return v
+    return str(val)
+
 
 def build_pid3_identifiers(
     patient: Patient,
@@ -49,34 +60,39 @@ def build_pid3_identifiers(
 
     identifiers = []
     
-    # 1. IPP (patient_seq) - TOUJOURS en premier si présent
-    if patient.patient_seq:
-        system = forced_system or "HOSP"
-        identifiers.append(f"{patient.patient_seq}^^^{_auth(system, forced_oid)}^PI")
+    # 1. IPP (patient_seq) - générer si absent pour éviter 'None'
+    # 1. IPP (patient_seq) - si absent ne pas persister, utiliser fallback éphémère pour PID-3
+    ipp_value = getattr(patient, "patient_seq", None)
+    if not ipp_value:
+        ipp_value = patient.id or "TEMP"
+    system = forced_system or "HOSP"
+    identifiers.append(f"{_c(ipp_value)}^^^{_auth(system, forced_oid)}^PI")
     
     # 2. External ID si présent - chercher dans Identifier pour avoir system/oid
-    if patient.external_id:
+    external_id_clean = _c(getattr(patient, "external_id", None))
+    if external_id_clean:  # Only add if not empty after sanitization
         # Chercher si cet external_id est dans la table Identifier
         ext_ident = session.exec(
             select(Identifier)
             .where(Identifier.patient_id == patient.id)
-            .where(Identifier.value == patient.external_id)
+            .where(Identifier.value == external_id_clean)
             .where(Identifier.status == "active")
         ).first()
         
         if ext_ident:
             # Utiliser system/oid/type de l'Identifier
             identifiers.append(
-                f"{ext_ident.value}^^^{_auth(ext_ident.system, ext_ident.oid)}^{getattr(ext_ident.type, 'value', ext_ident.type)}"
+                f"{_c(ext_ident.value)}^^^{_auth(ext_ident.system, ext_ident.oid)}^{getattr(ext_ident.type, 'value', ext_ident.type)}"
             )
         else:
             # Fallback: external_id sans système connu
-            identifiers.append(f"{patient.external_id}^^^{_auth('EXTERNAL', None)}^PI")
+            identifiers.append(f"{external_id_clean}^^^{_auth('EXTERNAL', None)}^PI")
     
     # 3. NIR (Sécurité sociale) si présent
-    if patient.nir:
+    nir_clean = _c(getattr(patient, "nir", None))
+    if nir_clean:  # Only add if not empty after sanitization
         # NH = National Health ID (HL7 Table 0203)
-        identifiers.append(f"{patient.nir}^^^INS-NIR^NH")
+        identifiers.append(f"{nir_clean}^^^INS-NIR^NH")
     
     # 4. Tous les autres identifiants actifs
     # Exclure ceux déjà ajoutés (patient_seq, external_id, nir)
@@ -99,9 +115,9 @@ def build_pid3_identifiers(
             # Format: value^^^system^type
             # Si OID présent, on pourrait l'ajouter: value^^^system&OID&ISO^type
             identifiers.append(
-                f"{ident.value}^^^{_auth(ident.system, ident.oid)}^{getattr(ident.type, 'value', ident.type)}"
+                f"{_c(ident.value)}^^^{_auth(ident.system, ident.oid)}^{getattr(ident.type, 'value', ident.type)}"
             )
-            already_added_values.add(ident.value)
+            already_added_values.add(_c(ident.value))
     
     # Joindre avec ~ (répétition HL7)
     return "~".join(identifiers) if identifiers else ""
@@ -117,6 +133,17 @@ def generate_pam_hl7(
 ) -> str:
     """Build a minimal HL7 PAM message for the given entity type."""
     if entity_type == "patient":
+        # Local helper to coerce any None / 'None' / whitespace-only values to ''
+        def _c(val):  # c = clean / coerce
+            if val is None:
+                return ""
+            # Some legacy data may literally contain the string 'None'
+            if isinstance(val, str):
+                v = val.strip()
+                if v.lower() == "none" or v == "":
+                    return ""
+                return v
+            return str(val)
         # Determine event type based on operation
         if operation == "update":
             event_type = "A31"  # ADT^A31 (Update person information)
@@ -146,24 +173,37 @@ def generate_pam_hl7(
         # PID-5: Noms du patient (XPN, multi-valué)
         # Répétition 1 : nom usuel, Répétition 2 : nom de naissance (si différent)
         names = []
-        family = entity.family or ""
-        given = entity.given or ""
-        middle = getattr(entity, "middle", "") or ""
+        family = _c(getattr(entity, "family", ""))
+        given = _c(getattr(entity, "given", ""))
+        middle = _c(getattr(entity, "middle", ""))
         # Nom usuel (usage D)
         name_usuel = f"{family}^{given}^{middle}^^^^D" if middle else f"{family}^{given}^^^^D"
         names.append(name_usuel)
         # Nom de naissance (usage L) si présent et différent
-        birth_family = getattr(entity, "birth_family", None)
+        birth_family = _c(getattr(entity, "birth_family", None)) or None
         if birth_family and birth_family != family:
             name_naissance = f"{birth_family}^{given}^{middle}^^^^L" if middle else f"{birth_family}^{given}^^^^L"
             names.append(name_naissance)
         name = "~".join(names)
         
-        # PID-7: Date de naissance
-        birth_date = entity.birth_date or ""
+        # PID-7: Date de naissance (format HL7: YYYYMMDD)
+        birth_date_raw = _c(getattr(entity, "birth_date", ""))
+        if birth_date_raw:
+            # Convert YYYY-MM-DD to YYYYMMDD
+            birth_date = birth_date_raw.replace("-", "").replace("/", "")[:8]
+        else:
+            birth_date = ""
         
         # PID-8: Sexe administratif
-        gender = entity.gender or ""
+        # Normalisation du sexe administratif HL7 (PID-8)
+        raw_gender = _c(getattr(entity, "gender", ""))
+        gender_map_hl7 = {
+            "m": "M", "male": "M",
+            "f": "F", "female": "F",
+            "o": "O", "other": "O",
+            "u": "U", "unknown": "U", "undifferentiated": "U", "n": "U"
+        }
+        gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
         
         # PID-11: Adresses du patient (XAD, multi-valué)
         addresses = []
@@ -172,48 +212,79 @@ def generate_pam_hl7(
         # HL7 Table 0190 for type (H=Home, B=Business, M=Mailing, P=Permanent...).
         # We set main address as Home (H).
         addr1 = [
-            getattr(entity, "address", "") or "",
+            _c(getattr(entity, "address", "")),
             "",  # other designation
-            getattr(entity, "city", "") or "",
-            getattr(entity, "state", "") or "",
-            getattr(entity, "postal_code", "") or "",
-            getattr(entity, "country", "") or "",
+            _c(getattr(entity, "city", "")),
+            _c(getattr(entity, "state", "")),
+            _c(getattr(entity, "postal_code", "")),
+            _c(getattr(entity, "country", "")),
             "H",  # address type
         ]
         addresses.append("^".join(addr1))
         # Adresse de naissance (si présente)
-        if getattr(entity, "birth_address", None) or getattr(entity, "birth_city", None):
+        if _c(getattr(entity, "birth_address", None)) or _c(getattr(entity, "birth_city", None)):
             # Not a standard HL7 address type exists for "birth"; use a custom mnemonic BIR.
             addr2 = [
-                getattr(entity, "birth_address", "") or "",
+                _c(getattr(entity, "birth_address", "")),
                 "",  # other designation
-                getattr(entity, "birth_city", "") or "",
-                getattr(entity, "birth_state", "") or "",
-                getattr(entity, "birth_postal_code", "") or "",
-                getattr(entity, "birth_country", "") or "",
+                _c(getattr(entity, "birth_city", "")),
+                _c(getattr(entity, "birth_state", "")),
+                _c(getattr(entity, "birth_postal_code", "")),
+                _c(getattr(entity, "birth_country", "")),
                 "BIR",  # custom type for birth address
             ]
             addresses.append("^".join(addr2))
         patient_address = "~".join(addresses)
         
         # PID-13: Téléphones (XTN, multi-valué)
+        # Format XTN: [phone]^[use]^[equipment]^[email]^[country]^[area]^[local]^[extension]...
+        # Simplified: ^[use]^[equipment]^^^^[local]
         phones = []
-        phone = getattr(entity, "phone", "") or ""
+        
+        # Téléphone principal (domicile)
+        phone = _c(getattr(entity, "phone", ""))
         if phone:
-            phones.append(phone)
-        # Ajout d'autres téléphones si présents (mobile, pro...)
-        if hasattr(entity, "mobile") and getattr(entity, "mobile"):
-            phones.append(getattr(entity, "mobile"))
-        if hasattr(entity, "work_phone") and getattr(entity, "work_phone"):
-            phones.append(getattr(entity, "work_phone"))
+            # Format: ^PRN^PH^^^^local_number
+            # PRN = Primary Residence Number, PH = Telephone
+            phones.append(f"^PRN^PH^^^^{phone}")
+        
+        # Mobile
+        mobile = _c(getattr(entity, "mobile", ""))
+        if mobile:
+            # Format: ^ORN^CP^^^^local_number
+            # ORN = Other Residence Number, CP = Cell Phone
+            phones.append(f"^ORN^CP^^^^{mobile}")
+        
+        # Téléphone professionnel
+        work_phone = _c(getattr(entity, "work_phone", ""))
+        if work_phone:
+            # Format: ^WPN^PH^^^^local_number
+            # WPN = Work Number, PH = Telephone
+            phones.append(f"^WPN^PH^^^^{work_phone}")
+        
+        # Email (XTN.4 pour email dans format XTN)
+        email = _c(getattr(entity, "email", ""))
+        if email:
+            # Format: ^^^email_address (XTN.4 = email address)
+            # Ou format complet: ^NET^Internet^^^email_address
+            phones.append(f"^NET^Internet^{email}")
+        
         phone_field = "~".join(phones)
         
         # PID-23: Lieu de naissance (ville)
-        birth_place = getattr(entity, "birth_city", "") or ""
+        birth_place = _c(getattr(entity, "birth_city", ""))
+        
+        # PID-16: Statut marital (Marital Status) - HL7 Table 0002
+        # S=Single, M=Married, D=Divorced, W=Widowed, P=Domestic partner, A=Separated, U=Unknown
+        marital_status = _c(getattr(entity, "marital_status", ""))
+        
+        # PID-26: Nationalité (Citizenship)
+        nationality = _c(getattr(entity, "nationality", ""))
         
         # PID-32: Statut de l'identité (Identity Reliability Code) - HL7 Table 0445
-        # VIDE/PROV/VALI/DOUTE/FICTI
-        identity_code = getattr(entity, "identity_reliability_code", "") or ""
+        # VALI=Validée (avec INS qualifié), PROV=Provisoire, VIDE=Non qualifiée, 
+        # DOUB=Doublon, DESA=Désactivée, DPOT=Dépôt, IDVER=Vérifiée, CACH=Cachée, ANOM=Anonyme
+        identity_code = _c(getattr(entity, "identity_reliability_code", ""))
         
         # Construction du segment PID complet HL7 v2.5
         # Format: PID|SetID|PatientID|PatientIDList|AltPatientID|PatientName|MothersMaidenName|
@@ -222,54 +293,120 @@ def generate_pam_hl7(
         #            DriversLicense|MothersIdentifier|EthnicGroup|BirthPlace|MultipleBirth|
         #            BirthOrder|Citizenship|VeteranStatus|Nationality|PatientDeathDate|DeathIndicator|
         #            IdentityUnknownIndicator|IdentityReliabilityCode
-        # PID-1 à PID-13 remplis, PID-14 à PID-22 vides (9 pipes), PID-23 birth_place, PID-24 à PID-31 vides (8 pipes), PID-32 identity_code
-        # Note: chaque champ est séparé par |, donc: ...|{phone}||||||||||{birth_place}|||||||||{identity_code}
-        pid = f"PID|1||{pid3}||{name}||{birth_date}|{gender}|||{patient_address}||{phone_field}||||||||||{birth_place}|||||||||{identity_code}"
+        # PID-1 à PID-13 remplis, PID-14-15 vides (2 pipes), PID-16 marital_status, PID-17-22 vides (6 pipes), PID-23 birth_place, PID-24-25 vides (2 pipes), PID-26 nationality, PID-27-31 vides (5 pipes), PID-32 identity_code
+        # Note: chaque champ est séparé par |
+        # Après PID-13: || (14,15) | marital (16) | |||||| (17-22) | birth_place (23) | || (24-25) | nationality (26) | ||||| (27-31) | identity (32)
+        pid = f"PID|1||{_c(pid3)}||{_c(name)}||{birth_date}|{gender}|||{_c(patient_address)}||{phone_field}|||{marital_status}|||||||{birth_place}|||{nationality}||||||{identity_code}"
         
         return "\r".join([msh, evn, pid])
         
     if entity_type == "dossier":
-        # ADT^A01 (Admit patient) - new admission created
+        # ADT^A05 (Pre-admission) pour création dossier (profil IHE PAM: pré-admission avant confirmation)
         assigning_system = forced_identifier_system or "HOSP"
         assigning_oid = forced_identifier_oid
-        
-        # Get patient info
-        patient = entity.patient if hasattr(entity, 'patient') else None
+
+        # Patient lié (peut être déjà chargé par SQLModel Relationship)
+        patient = entity.patient if hasattr(entity, "patient") else None
         if patient:
-            patient_id = patient.identifier or patient.external_id or str(patient.patient_seq)
+            # Fallback IPP sans persistance si patient_seq absent
+            patient_seq_val = getattr(patient, "patient_seq", None) or (patient.id or "TEMP")
+            patient_id = patient.identifier or patient.external_id or str(patient_seq_val)
             family = patient.family or ""
             given = patient.given or ""
             birth_date = patient.birth_date or ""
-            gender = patient.gender or ""
+            # Map HL7 gender codes
+            raw_gender = (patient.gender or "").strip()
+            gender_map_hl7 = {
+                "m": "M", "male": "M",
+                "f": "F", "female": "F",
+                "o": "O", "other": "O",
+                "u": "U", "unknown": "U", "undifferentiated": "U", "n": "U"
+            }
+            gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
         else:
             patient_id = str(entity.patient_id)
             family = ""
             given = ""
             birth_date = ""
             gender = ""
-        
+
         authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
         pid3 = f"{patient_id}^^^{authority}^PI"
-        
-        # Build timestamp
         admit_time = entity.admit_time.strftime("%Y%m%d%H%M%S") if entity.admit_time else ""
         control_id = str(entity.dossier_seq)
-        
-        # MSH segment
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A01|{control_id}|P|2.5"
-        
-        # EVN segment
-        evn = f"EVN|A01|{admit_time}"
-        
-        # PID segment
-        pid = f"PID|1||{pid3}||{family}^{given}||{birth_date}|{gender}"
-        
-        # PV1 segment
-        patient_class = "I"  # Inpatient
+
+        # MSH / EVN
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A05|{control_id}|P|2.5"
+        evn = f"EVN|A05|{admit_time}"
+
+        # PID avec PID-18 = dossier_seq
+        pid_fields = [
+            "PID", "1", "", pid3, "", f"{family}^{given}", "", birth_date, gender
+        ]
+        while len(pid_fields) < 19:
+            pid_fields.append("")
+        pid_fields[18] = control_id
+        # Enrichissement adresse (PID-11) et télécom (PID-13) si patient disponible
+        if patient:
+            # PID-11: address simple (street^other^city^state^zip^country^type)
+            addr = []
+            addr.append((patient.address or ""))  # street
+            addr.append("")  # other designation
+            addr.append(patient.city or "")  # city
+            addr.append(patient.state or "")  # state
+            addr.append(patient.postal_code or "")  # zip
+            addr.append(patient.country or "")  # country
+            addr.append("H")  # type Home
+            pid_fields[11] = "^".join(addr)
+            # PID-13 phones/email (XTN repetitions)
+            xtn_parts = []
+            if getattr(patient, "phone", None):
+                xtn_parts.append(f"^PRN^PH^^^^{patient.phone}")
+            if getattr(patient, "mobile", None):
+                xtn_parts.append(f"^ORN^CP^^^^{patient.mobile}")
+            if getattr(patient, "work_phone", None):
+                xtn_parts.append(f"^WPN^PH^^^^{patient.work_phone}")
+            if getattr(patient, "email", None):
+                # Email format: ^NET^Internet^{email} (XTN.4 email)
+                xtn_parts.append(f"^NET^Internet^{patient.email}")
+            if xtn_parts:
+                pid_fields[13] = "~".join(xtn_parts)
+        pid = "|".join(pid_fields)
+
+        # PV1 enrichi
+        patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E"}
+        dossier_type_val = getattr(entity, "dossier_type", None)
+        if hasattr(dossier_type_val, "value"):
+            dossier_type_val = dossier_type_val.value
+        patient_class = patient_class_map.get(str(dossier_type_val), "I")
         location = entity.uf_responsabilite or ""
-        pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||{control_id}|||||||||||||||||||{location}||||||{admit_time}"
-        
-        return "\r".join([msh, evn, pid, pv1])
+        admission_type = getattr(entity, "admission_type", "") or ""
+        attending = getattr(entity, "attending_provider", "") or ""
+        attending_xcn = attending if attending else ""
+        hospital_service = ""
+        admit_source = getattr(entity, "admission_source", "") or ""
+        visit_number = control_id
+        discharge_disp = getattr(entity, "discharge_disposition", "") or ""
+        admit_datetime = admit_time
+        pv1 = (
+            f"PV1|1|{patient_class}|{location}|{admission_type}|||{attending_xcn}|||{hospital_service}||||{admit_source}|||||{visit_number}"
+            "|||||||||||||||||||{discharge_disp}|||||||||{admit_datetime}".format(
+                discharge_disp=discharge_disp, admit_datetime=admit_datetime
+            )
+        )
+
+        # ZBE segment (UF responsabilité)
+        zbe_id = control_id
+        action = "INSERT"
+        historic = "N"
+        original_trigger = "A05"
+        zbe = (
+            f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|^^^^^^UF^^^{location}"
+            if location
+            else f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|"
+        )
+
+        return "\r".join([msh, evn, pid, pv1, zbe])
     if entity_type == "venue":
         return (
             f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{entity.start_time or ''}||Z99^Z99|{entity.id}|P|2.5\r"
@@ -349,52 +486,220 @@ def generate_fhir(
         return generate_fhir_bundle_for_dossier(entity)
 
     if entity_type == "patient":
-        identifiers = [{"value": str(entity.patient_seq)}]
-        if getattr(entity, "ssn", None):
-            identifiers.append({"system": "urn:ssn", "value": entity.ssn})
-        if forced_identifier_system:
-            new_ids = []
-            for iid in identifiers:
-                new = iid if iid.get("system") else {**iid, "system": forced_identifier_system}
-                if forced_identifier_oid:
-                    new = {**new, "assigner": {"identifier": {"value": forced_identifier_oid}}}
-                new_ids.append(new)
-            identifiers = new_ids
+        # Build identifiers with proper systems
+        identifiers = []
+        
+        # 1. IPP (patient_seq) - always include with system
+        if entity.patient_seq:
+            ipp_system = forced_identifier_system or "http://example.org/fhir/sid/patient-id"
+            ipp_identifier = {
+                "system": ipp_system,
+                "value": str(entity.patient_seq),
+                "type": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                        "code": "PI",
+                        "display": "Patient Internal Identifier"
+                    }]
+                }
+            }
+            if forced_identifier_oid:
+                ipp_identifier["assigner"] = {"identifier": {"value": forced_identifier_oid}}
+            identifiers.append(ipp_identifier)
+        
+        # 2. External ID if present
+        external_id_clean = _c(getattr(entity, "external_id", None))
+        if external_id_clean:
+            identifiers.append({
+                "system": "http://example.org/fhir/sid/external-id",
+                "value": external_id_clean,
+                "type": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                        "code": "PI"
+                    }]
+                }
+            })
+        
+        # 3. NIR (Sécurité sociale) if present
+        nir_clean = _c(getattr(entity, "nir", None))
+        if nir_clean:
+            identifiers.append({
+                "system": "urn:oid:1.2.250.1.213.1.4.8",  # OID INS-NIR France
+                "value": nir_clean,
+                "type": {
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                        "code": "NH",
+                        "display": "National Health Plan Identifier"
+                    }]
+                }
+            })
+        
+        # 4. SSN if present (legacy field)
+        ssn_clean = _c(getattr(entity, "ssn", None))
+        if ssn_clean:
+            identifiers.append({
+                "system": "http://hl7.org/fhir/sid/us-ssn",
+                "value": ssn_clean
+            })
 
-        name = {"family": entity.family, "given": [entity.given]}
-        if getattr(entity, "middle", None):
-            name["given"].append(entity.middle)
-        if getattr(entity, "prefix", None):
-            name["prefix"] = [entity.prefix]
-        if getattr(entity, "suffix", None):
-            name["suffix"] = [entity.suffix]
+        # Sanitize name components using global _c helper
+        family = _c(getattr(entity, "family", ""))
+        given = _c(getattr(entity, "given", ""))
+        
+        name = {"family": family or None}  # FHIR requires omitting empty values or use null
+        if given:
+            name["given"] = [given]
+        
+        middle = _c(getattr(entity, "middle", ""))
+        if middle:
+            name.setdefault("given", []).append(middle)
+        
+        prefix = _c(getattr(entity, "prefix", ""))
+        if prefix:
+            name["prefix"] = [prefix]
+        
+        suffix = _c(getattr(entity, "suffix", ""))
+        if suffix:
+            name["suffix"] = [suffix]
+        
+        # Build list of names (official name + birth name if different)
+        names = [name]
+        
+        # Add birth name (maiden name) if present and different from current family name
+        birth_family = _c(getattr(entity, "birth_family", ""))
+        if birth_family and birth_family != family:
+            birth_name = {"use": "maiden", "family": birth_family}
+            if given:
+                birth_name["given"] = [given]
+            if middle:
+                birth_name.setdefault("given", []).append(middle)
+            names.append(birth_name)
 
+        # Sanitize other fields
+        gender_hl7 = _c(getattr(entity, "gender", ""))
+        birth_date = _c(getattr(entity, "birth_date", "")) or None
+        
+        # Marital status (HL7 Table 0002 to FHIR marital-status value set)
+        marital_status_hl7 = _c(getattr(entity, "marital_status", ""))
+        marital_status_fhir = None
+        if marital_status_hl7:
+            # FHIR uses http://terminology.hl7.org/CodeSystem/v3-MaritalStatus
+            # HL7 v2 codes map directly: S, M, D, W, etc.
+            marital_status_fhir = {
+                "coding": [{
+                    "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+                    "code": marital_status_hl7.upper()
+                }]
+            }
+        
+        # Convert HL7 v2 gender codes to FHIR (M→male, F→female, O→other, U→unknown)
+        gender_fhir = None
+        if gender_hl7:
+            gender_map = {
+                "M": "male",
+                "F": "female",
+                "O": "other",
+                "U": "unknown",
+                "A": "other",  # Ambiguous
+                "N": "unknown"  # Not applicable
+            }
+            gender_fhir = gender_map.get(gender_hl7.upper(), gender_hl7.lower())
+        
         patient_res = {
             "resourceType": "Patient",
             "id": str(entity.id),
             "identifier": identifiers,
-            "name": [name],
-            "gender": entity.gender,
-            "birthDate": entity.birth_date,
+            "name": names,
         }
-        if getattr(entity, "phone", None):
-            patient_res.setdefault("telecom", []).append({"system": "phone", "value": entity.phone})
-        if getattr(entity, "address", None) or getattr(entity, "city", None):
-            patient_res.setdefault("address", []).append(
-                {
-                    "line": [getattr(entity, "address", None)] if getattr(entity, "address", None) else [],
-                    "city": getattr(entity, "city", None),
-                    "state": getattr(entity, "state", None),
-                    "postalCode": getattr(entity, "postal_code", None),
-                }
-            )
-        if getattr(entity, "primary_care_provider", None):
+        
+        # Only include gender/birthDate/maritalStatus if present
+        if gender_fhir:
+            patient_res["gender"] = gender_fhir
+        if birth_date:
+            patient_res["birthDate"] = birth_date
+        if marital_status_fhir:
+            patient_res["maritalStatus"] = marital_status_fhir
+        
+        # Telecom contacts with proper use and system
+        phone = _c(getattr(entity, "phone", ""))
+        if phone:
+            patient_res.setdefault("telecom", []).append({
+                "system": "phone",
+                "value": phone,
+                "use": "home"
+            })
+        
+        mobile = _c(getattr(entity, "mobile", ""))
+        if mobile:
+            patient_res.setdefault("telecom", []).append({
+                "system": "phone",
+                "value": mobile,
+                "use": "mobile"
+            })
+        
+        work_phone = _c(getattr(entity, "work_phone", ""))
+        if work_phone:
+            patient_res.setdefault("telecom", []).append({
+                "system": "phone",
+                "value": work_phone,
+                "use": "work"
+            })
+        
+        email = _c(getattr(entity, "email", ""))
+        if email:
+            patient_res.setdefault("telecom", []).append({
+                "system": "email",
+                "value": email
+            })
+        
+        address = _c(getattr(entity, "address", ""))
+        city = _c(getattr(entity, "city", ""))
+        state = _c(getattr(entity, "state", ""))
+        postal = _c(getattr(entity, "postal_code", ""))
+        country = _c(getattr(entity, "country", ""))
+        
+        if address or city:
+            addr = {}
+            if address:
+                addr["line"] = [address]
+            if city:
+                addr["city"] = city
+            if state:
+                addr["state"] = state
+            if postal:
+                addr["postalCode"] = postal
+            if country:
+                addr["country"] = country
+            patient_res.setdefault("address", []).append(addr)
+        
+        # Primary care provider extension
+        pcp = _c(getattr(entity, "primary_care_provider", ""))
+        if pcp:
             patient_res.setdefault("extension", []).append(
                 {
                     "url": "http://example.org/fhir/StructureDefinition/primary-care-provider",
-                    "valueString": entity.primary_care_provider,
+                    "valueString": pcp,
                 }
             )
+        
+        # Nationality extension (using standard FHIR patient-nationality extension)
+        nationality = _c(getattr(entity, "nationality", ""))
+        if nationality:
+            patient_res.setdefault("extension", []).append({
+                "url": "http://hl7.org/fhir/StructureDefinition/patient-nationality",
+                "extension": [{
+                    "url": "code",
+                    "valueCodeableConcept": {
+                        "coding": [{
+                            "system": "urn:iso:std:iso:3166",
+                            "code": nationality
+                        }]
+                    }
+                }]
+            })
+        
         return patient_res
 
     # POC fallback for venue/mouvement
@@ -461,16 +766,14 @@ async def emit_to_senders_async(
             operation=operation,
         )
         
-        # TEMPORARILY DISABLED: FHIR generation fails with detached entities
-        # TODO: Fix FHIR generation to work with expunged entities or use different strategy
-        # fhir_payload = generate_fhir(
-        #     entity,
-        #     entity_type,
-        #     session,
-        #     forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
-        #     forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
-        # )
-        fhir_payload = None
+        # Generate FHIR payload
+        fhir_payload = generate_fhir(
+            entity,
+            entity_type,
+            session,
+            forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
+            forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
+        )
 
         if endpoint.kind == "MLLP":
             status = "generated"

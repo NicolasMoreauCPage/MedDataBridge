@@ -96,11 +96,12 @@ http://127.0.0.1:8000/sqladmin/scenariotemplate/list
 
 ### HL7v2 (ADT)
 
-Segments générés selon semantic_event_code :
-- MSH + EVN + PID + PV1 (toujours)
+Segments générés selon semantic_event_code (profil IHE PAM minimal) :
+- MSH + EVN + PID + PV1 (toujours pour événements séjour)
 - PV2 (si ADMISSION)
-- DG1 (si DISCHARGE)
-- AL1 (si ADMISSION_CONFIRMED)
+
+Exclus (hors périmètre administratif de base) : DG1, AL1, OBX, DRG, GT1, ACC, UB1, UB2, PDA, DB1. Segment ZBE réintroduit pour UF (extension locale FR minimale).
+Diagnostics et allergies peuvent être représentés côté FHIR (Encounter.diagnosis, Condition, AllergyIntolerance) ou réintroduits via extension locale.
 
 ### FHIR (Bundle)
 
@@ -147,7 +148,9 @@ tests/
 
 ## 🎯 Prochaines améliorations
 
-- [ ] Génération PV2/DG1/AL1 plus riche (données cliniques)
+- [ ] (Extension) Génération PV2 enrichi (données cliniques légères)
+- [ ] (Extension) Support DG1/AL1/OBX hors profil IHE PAM FR
+- [ ] (Option) Extension locale DG1 hors profil IHE PAM FR
 - [ ] Support ADT^A40-A60 (fusions, annulations)
 - [ ] Templates FHIR PDQm / PIXm
 - [ ] Import depuis XML pivot (pas seulement HL7)

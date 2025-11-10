@@ -89,15 +89,12 @@ def _build_hl7_message(event: str, semantic: str, ids: dict, ej: Optional[Entite
         pv2 = f"PV2||M|{semantic}||||||{ts}|||||||||||N|||||||"
         segments.append(pv2)
     
-    # DG1 pour diagnostic (discharge)
-    if "DISCHARGE" in semantic or "PARCOURS_END" in semantic:
-        dg1 = f"DG1|1|ICD10|I10^Hypertension essentielle^I10||{ts}|A|"
-        segments.append(dg1)
+    # DG1 (diagnostic) est volontairement exclu: non autorisé dans le flux IHE PAM FR basique
+    # Si besoin futur (extension locale), ajouter génération conditionnelle hors profil standard.
+    # Exemple (désactivé): DG1|1|ICD10|I10^Hypertension essentielle^I10||{ts}|A|
     
-    # AL1 allergies (optionnel sur admission)
-    if "ADMISSION_CONFIRMED" in semantic:
-        al1 = f"AL1|1|DA|00000001^PENICILLINE^99LCA|MO|REACTION||{ts}"
-        segments.append(al1)
+    # AL1 (allergies) exclu du profil IHE PAM minimal (clinique hors périmètre)
+    # Pour extension future, réactiver sous drapeau ENABLE_AL1.
     
     return "\r".join(segments) + "\r"
 

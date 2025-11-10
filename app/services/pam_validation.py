@@ -10,11 +10,11 @@ Hiérarchie de validation (ordre de prédominance):
 3. Règles HL7 v2.5 base (standard)
 
 Contrôles IHE PAM & HAPI:
-- Segments obligatoires: MSH, EVN, PID (toujours requis)
-- PV1 requis pour les événements de venue/séjour (A01, A03, A04, A05, A06, A08, A11, A12, A13, A21, A22, A23, A52, A53)
-- PV1 optionnel/toléré pour les événements d'identité (A28, A31, A40, A47)
-- Segments optionnels: PD1, PV2, NK1, SFT, DB1, OBX, AL1, DG1, DRG, GT1, ACC, UB1, UB2, PDA
-- Segments Z spécifiques (ZBE, ZFP, ZFV, ZFM, ZFA, ZFD, ZFU, ZPA, ZPV, ZFT, ZFI, ZFS)
+- Segments obligatoires (profil minimal): MSH, EVN, PID (toujours)
+- PV1 requis pour événements séjour (A01, A03, A04, A05, A06, A08, A11, A12, A13, A21, A22, A23)
+- PV1 optionnel pour identité (A28, A31, A40, A47)
+- Optionnels limités: PD1, NK1, PV2, MRG (fusion). Les segments cliniques/financiers (AL1, DG1, OBX, DRG, GT1, ACC, UB1, UB2, PDA, DB1) sont exclus.
+- Extension locale possible via ENABLE_PAM_EXT=1 pour réactiver anciennes listes (non activé par défaut).
 
 Contrôles HL7 v2.5 base:
 - MSH-1 (Field Separator) = "|"
@@ -38,6 +38,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional, Set
 import re
+import os  # needed for EXTENDED_MODE env flag
 
 from app.services.mllp import parse_msh_fields
 
@@ -46,101 +47,27 @@ from app.services.mllp import parse_msh_fields
 # Format: trigger -> {"required": [segments], "optional": [segments]}
 # "required" = segment obligatoire (true, false dans HAPI)
 # "optional" = segment optionnel (false, false ou false, true dans HAPI)
+EXTENDED_MODE = os.getenv("ENABLE_PAM_EXT", "0") in {"1", "true", "True"}
+
 SEGMENT_RULES = {
-    "A01": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFA", "ZFP", "ZFV", "ZFM", "ZFD",
-                     "DB1", "OBX", "ACC", "AL1", "DG1", "DRG", "GT1", "UB1", "UB2", "PDA",
-                     "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    },
-    "A03": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "AL1", "DG1", "DRG", "OBX", "GT1", "ACC", "PDA",
-                     "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    },
-    "A04": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFA", "ZFP", "ZFV", "ZFM", "ZFD",
-                     "DB1", "OBX", "ACC", "AL1", "DG1", "DRG", "GT1", "UB1", "UB2", "PDA",
-                     "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    },
-    "A05": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "ZFA", "PDA", "ZFD",
-                     "DB1", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2",
-                     "ZFU", "ZFS"],
-    },
-    "A06": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA",
-                     "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    },
-    "A08": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2",
-                     "DB1", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA",
-                     "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-        "forbidden": ["ZBE"],  # Supprimé du A08 selon note dans HAPI
-    },
-    "A11": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX", "DG1", "DRG"],
-    },
-    "A12": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX", "DG1"],
-    },
-    "A13": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX", "DG1", "DRG"],
-    },
-    "A21": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX"],
-    },
-    "A22": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX"],
-    },
-    "A23": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX", "DG1"],
-    },
-    "A52": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX"],
-    },
-    "A53": {
-        "required": ["MSH", "EVN", "PID", "PV1"],
-        "optional": ["SFT", "PD1", "NK1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM",
-                     "DB1", "OBX"],
-    },
-    # Événements d'identité (pas de PV1 requis)
-    "A28": {
-        "required": ["MSH", "EVN", "PID"],
-        "optional": ["SFT", "PD1", "NK1", "PV1", "PV2", "ZPA", "AL1", "DG1", "GT1"],
-    },
-    "A31": {
-        "required": ["MSH", "EVN", "PID"],
-        "optional": ["SFT", "PD1", "NK1", "PV1", "PV2", "ZPA", "AL1", "DG1", "GT1"],
-    },
-    "A40": {
-        "required": ["MSH", "EVN", "PID"],
-        "optional": ["SFT", "PD1", "NK1", "MRG"],
-    },
-    "A47": {
-        "required": ["MSH", "EVN", "PID"],
-        "optional": ["SFT", "PD1", "MRG"],
-    },
+    # Séjour / venue events (IHE PAM minimal): MSH EVN PID PV1; optional PD1 NK1 PV2
+    "A01": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A03": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A04": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A05": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A06": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A08": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A11": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A12": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A13": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A21": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A22": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A23": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    # Identité: PV1 optionnel; MRG pour fusion
+    "A28": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "PV1", "PV2"]},
+    "A31": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "PV1", "PV2"]},
+    "A40": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "MRG"]},
+    "A47": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "MRG"]},
 }
 
 # Events that are identity-only in IHE PAM; PV1 is optional
@@ -158,25 +85,22 @@ if _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}:
 # Ordre attendu des segments principaux selon HAPI structures
 # Format: liste ordonnée des segments (requis et optionnels)
 SEGMENT_ORDER = {
-    "A01": ["MSH", "SFT", "EVN", "PID", "PD1", "NK1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "DB1", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A03": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "DB1", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A04": ["MSH", "SFT", "EVN", "PID", "PD1", "NK1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A05": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A06": ["MSH", "SFT", "EVN", "PID", "PD1", "MRG", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A07": ["MSH", "SFT", "EVN", "PID", "PD1", "MRG", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A08": ["MSH", "SFT", "EVN", "PID", "PD1", "NK1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A11": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A12": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A13": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A21": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A22": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A23": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "OBX", "AL1", "DG1", "DRG", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A28": ["MSH", "SFT", "EVN", "PID", "PD1", "NK1", "PV1", "PV2", "ZBE", "OBX", "AL1", "DG1", "GT1", "ACC", "UB1", "UB2", "ZPA"],
-    "A31": ["MSH", "SFT", "EVN", "PID", "PD1", "NK1", "PV1", "PV2", "ZBE", "OBX", "AL1", "DG1", "GT1", "ACC", "UB1", "UB2", "ZPA"],
-    "A40": ["MSH", "SFT", "EVN", "PID", "PD1", "MRG", "PV1", "ZPA"],
-    "A47": ["MSH", "SFT", "EVN", "PID", "PD1", "MRG", "PV1", "ZPA"],
-    "A52": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
-    "A53": ["MSH", "SFT", "EVN", "PID", "PD1", "PV1", "PV2", "ZBE", "ZFP", "ZFV", "ZFM", "ZFU", "ZPA", "ZPV", "ZFT", "ZFI"],
+    "A01": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A03": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A04": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A05": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A06": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A08": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A11": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A12": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A13": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A21": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A22": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A23": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A28": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A31": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A40": ["MSH", "EVN", "PID", "PD1", "NK1", "MRG"],
+    "A47": ["MSH", "EVN", "PID", "PD1", "MRG"],
 }
 
 

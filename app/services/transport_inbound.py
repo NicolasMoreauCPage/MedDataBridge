@@ -49,6 +49,7 @@ from app.infrastructure.hl7.parsing import (
 from app.services.nature_mapping import derive_nature
 # Import validation functions from infrastructure layer (Phase 1 extraction)
 from app.infrastructure.hl7.validation import validate_transition
+from app.services.vocabulary_translate import map_code
 
 logger = logging.getLogger("transport_inbound")
 

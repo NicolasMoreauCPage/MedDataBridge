@@ -8,6 +8,7 @@ import re
 from app.models import Dossier, Patient, Venue, Mouvement
 from app.db import get_next_sequence
 from app.services.identifier_manager import create_identifier_from_hl7
+from app.services.vocabulary_translate import map_code
 
 logger = logging.getLogger(__name__)
 
@@ -813,11 +814,17 @@ async def handle_admission_message(
         if not admit_time:
             admit_time = datetime.utcnow()
 
+        # Map PV1-2 patient_class (HL7v2) -> internal encounter-class (FHIR ActCode) via vocabulary mapping
+        hl7_patient_class = pv1_data.get("patient_class") or "I"
+        encounter_class_code = map_code(session, "patient-class", hl7_patient_class, "encounter-class") or (
+            {"I": "IMP", "O": "AMB", "E": "EMER"}.get(hl7_patient_class, "IMP")
+        )
         dossier = Dossier(
             dossier_seq=d_seq,
             patient_id=patient.id,
             uf_responsabilite=pv1_data.get("hospital_service") or "UNKNOWN",
             admit_time=admit_time,
+            encounter_class=encounter_class_code,
         )
         session.add(dossier)
         session.flush()

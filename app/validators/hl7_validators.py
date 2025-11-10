@@ -72,9 +72,12 @@ class HL7Validator:
             datetime.strptime(value, format)
             return True
         except Exception:
-            pass
+            # If caller requested the strict default full-timestamp format, don't be permissive
+            if format == "%Y%m%d%H%M%S":
+                return False
 
-        # Be more tolerant: extract leading digit sequence and try several common HL7 timestamp lengths
+        # Be more tolerant only for non-default formats: extract leading digit sequence and try
+        # several common HL7 timestamp lengths
         m = re.match(r"^(\d+)", value)
         if not m:
             return False
@@ -251,12 +254,9 @@ class PAMValidator(HL7Validator):
         if variant_integration:
             # Integration-style: identifier in F1, date in F2, action often in F4 (F3 sometimes empty)
             date_value = fields[2] if len(fields) > 2 else ""
-            # Prefer F3, but fallback to F4 or F5 if messaging varies
-            mvt_code = ""
-            for idx in (3, 4, 5):
-                if len(fields) > idx and fields[idx]:
-                    mvt_code = fields[idx]
-                    break
+            # Integration-style: movement code is expected in F3. Tests expect
+            # an error when F3 is empty, so do not fallback to other fields.
+            mvt_code = fields[3] if len(fields) > 3 else ""
             code_field_label = "F3"
             date_field_label = "F2"
         else:

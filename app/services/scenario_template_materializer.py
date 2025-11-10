@@ -39,22 +39,48 @@ def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dic
     return data
 
 
-def _build_hl7_message(event: str, semantic: str, ids: dict, ej: Optional[EntiteJuridique]) -> str:
+def _build_hl7_message(event: str, semantic: str, ids: dict, ej: Optional[EntiteJuridique], namespace_oid: Optional[str] = None) -> str:
     # Construction enrichie avec segments contextuels selon semantic_event_code
     sending_app = "MEDDATA"
     sending_fac = (ej.code_ej if ej and hasattr(ej, "code_ej") and ej.code_ej else "FAC")
     ts = _now_hl7_ts()
     ipp = ids.get("ipp", "000000000")
     nda = ids.get("nda", "0000000")
+    # If a namespace OID is provided (via options or EJ), include it in identifier components
+    assigning_authority = namespace_oid or (ej.namespace_oid if ej and hasattr(ej, "namespace_oid") else None)
+    if assigning_authority:
+        ipp_field = f"{ipp}^^^{assigning_authority}^PI"
+        nda_field = f"{nda}^^^{assigning_authority}^VN"
+    else:
+        ipp_field = ipp
+        nda_field = nda
     msg_id = f"MSG{ts}{semantic[:4]}"
     
     msh = f"MSH|^~\\&|{sending_app}|{sending_fac}|RECEIVER|{sending_fac}|{ts}||{event}|{msg_id}|P|2.5"
     evn = f"EVN|{event.split('^')[-1]}|{ts}"
-    pid = f"PID|1||{ipp}||TEMPLATE^{semantic}||19900101|F|||123 RUE TEST^^CITY^^38000^100||||||||||||||||||"
+    pid = f"PID|1||{ipp_field}||TEMPLATE^{semantic}||19900101|F|||123 RUE TEST^^CITY^^38000^100||||||||||||||||||"
     
     # PV1 adapté selon type d'événement
     pv_class = "I" if "ADMISSION" in semantic or "TRANSFER" in semantic else "E"
-    pv1 = f"PV1|1|{pv_class}|WARD^ROOM^BED|||DR001^MEDECIN^TEST^^^Dr.||||||||||||||{nda}||||||||||||||||||||||||||{ts}|||"
+    # Build PV1 fields as a list to place the Visit Number (NDA) exactly in PV1-19
+    # HL7 fields are 1-indexed; when splitting the line by '|' the index in the
+    # Python list corresponds: fields[0] == 'PV1', fields[19] == PV1-19.
+    pv1_fields = [
+        "PV1",             # fields[0] placeholder for the segment name
+        "1",               # PV1-1 Set ID
+        pv_class,           # PV1-2 Patient Class
+        "WARD^ROOM^BED",   # PV1-3 Assigned Patient Location
+        "",                # PV1-4
+        "DR001^MEDECIN^TEST^^^Dr.",  # PV1-5 Attending Doctor
+    ]
+    # Pad empty fields up to index 18 (so that index 19 is PV1-19)
+    while len(pv1_fields) < 19:
+        pv1_fields.append("")
+    # Set PV1-19 to the nda_field (Visit Number)
+    pv1_fields.append(nda_field)
+    # Append a few common trailing fields (we include the timestamp near the end)
+    pv1_fields.extend(["", "", "", "", "", "", ts, "", ""])  # tail fillers
+    pv1 = "|".join(pv1_fields)
     
     segments = [msh, evn, pid, pv1]
     
@@ -90,6 +116,11 @@ def _build_fhir_bundle(semantic: str, ids: dict, ej: Optional[EntiteJuridique]) 
     status = encounter_status_map.get(semantic, "unknown")
     ipp = ids.get("ipp", "TEMP")
     nda = ids.get("nda", "NDA")
+    namespace = None
+    try:
+        namespace = getattr(ej, "namespace_oid", None) if ej is not None else None
+    except Exception:
+        namespace = None
     org_id = f"ORG-{ej.code_ej}" if ej and hasattr(ej, "code_ej") else "ORG-DEFAULT"
     
     bundle = {
@@ -102,7 +133,11 @@ def _build_fhir_bundle(semantic: str, ids: dict, ej: Optional[EntiteJuridique]) 
                     "resourceType": "Patient",
                     "id": ipp,
                     "identifier": [
-                        {"system": "urn:meddata:ipp", "value": ipp}
+                        {
+                            "system": (namespace if namespace else "urn:meddata:ipp"),
+                            "value": ipp,
+                            "type": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0203", "code": "MR"}]}
+                        }
                     ],
                     "name": [{"family": "TEMPLATE", "given": [semantic]}],
                     "gender": "female",
@@ -114,7 +149,10 @@ def _build_fhir_bundle(semantic: str, ids: dict, ej: Optional[EntiteJuridique]) 
                 "resource": {
                     "resourceType": "Organization",
                     "id": org_id,
-                    "identifier": [{"system": "urn:meddata:ej", "value": org_id}],
+                    "identifier": [
+                        {"system": "urn:meddata:ej", "value": org_id},
+                        {"system": "urn:oid:1.2.250.1.71.4.2.2", "value": (ej.finess_ej if ej and hasattr(ej, "finess_ej") else org_id)}
+                    ],
                     "name": (ej.name if ej and hasattr(ej, "name") else "Organisation Template"),
                     "type": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/organization-type", "code": "prov"}]}]
                 }
@@ -186,15 +224,29 @@ def materialize_template(
 
     ids = _generate_identifiers(session, options)
 
+    # ej_context may be an EntiteJuridique object or an id (int) provided by tests.
+    ej_obj: Optional[EntiteJuridique]
+    if ej_context is None:
+        ej_obj = None
+    elif isinstance(ej_context, (int, str)):
+        try:
+            ej_obj = session.get(EntiteJuridique, int(ej_context))
+        except Exception:
+            ej_obj = None
+        if ej_obj is None:
+            raise ValueError(f"EJ {ej_context} introuvable pour matérialisation")
+    else:
+        ej_obj = ej_context
+
     order_index = 1
     for t_step in template.steps:
         if scenario.protocol == "HL7":
             event = t_step.hl7_event_code or "ADT^A01"
-            payload = _build_hl7_message(event, t_step.semantic_event_code, ids, ej_context)
+            payload = _build_hl7_message(event, t_step.semantic_event_code, ids, ej_obj, namespace_oid=options.namespace_oid)
             message_type = event
             message_format = "hl7"
         else:
-            payload = _build_fhir_bundle(t_step.semantic_event_code, ids, ej_context)
+            payload = _build_fhir_bundle(t_step.semantic_event_code, ids, ej_obj)
             message_type = "Bundle"
             message_format = "fhir"
         step = InteropScenarioStep(

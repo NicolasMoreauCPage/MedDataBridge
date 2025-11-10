@@ -107,6 +107,9 @@ def capture_dossier_as_template(
     template_key = f"captured.dossier_{dossier_id}_{int(datetime.now().timestamp())}"
     
     # 3. Créer ScenarioTemplate SNAPSHOT
+    # Ensure tags are stored as a CSV string (db column expects str)
+    tags_value = ",".join(["captured", "real-data", f"dossier-{dossier_id}"])
+
     template = ScenarioTemplate(
         key=template_key,
         name=template_name or f"Dossier {dossier.dossier_seq or dossier_id} capturé",
@@ -117,7 +120,7 @@ def capture_dossier_as_template(
         ),
         category=category,
         protocols_supported="HL7v2,FHIR",  # On peut rejouer en HL7 et FHIR
-        tags=["captured", "real-data", f"dossier-{dossier_id}"],
+        tags=tags_value,
         is_active=True,
     )
     db.add(template)
@@ -135,17 +138,19 @@ def capture_dossier_as_template(
                 delta = mvt.when - prev_mvt.when
                 delay_seconds = int(delta.total_seconds())
         
+        service_label = venue.hospital_service or venue.uf_responsabilite or getattr(venue, 'service_code', None) or 'service'
+
         step = ScenarioTemplateStep(
             template_id=template.id,
             order_index=order_idx,
             semantic_event_code=semantic_code,
-            narrative=f"{mvt.movement_type or mvt.type or 'Mouvement'} vers {venue.hospital_service or 'service'} "
+            narrative=f"{mvt.movement_type or mvt.type or 'Mouvement'} vers {service_label} "
                       f"le {mvt.when.strftime('%Y-%m-%d %H:%M') if mvt.when else 'N/A'}",
             hl7_event_code=hl7_event,
             fhir_profile_hint="Bundle",
             message_role=role,
             # SNAPSHOT : on stocke les données à l'instant T (pas de FK vers Mouvement/Venue)
-            reference_payload_hl7=f"# Mouvement ID {mvt.id}\n# Type: {mvt.movement_type or mvt.type}\n# Service: {venue.hospital_service}",
+            reference_payload_hl7=f"# Mouvement ID {mvt.id}\n# Type: {mvt.movement_type or mvt.type}\n# Service: {service_label}",
             delay_suggested_seconds=delay_seconds,
         )
         db.add(step)

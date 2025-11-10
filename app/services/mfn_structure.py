@@ -162,7 +162,11 @@ def parse_location_characteristics(lch_segments: List[List[str]]) -> Dict[str, s
         field_name = field_info[0]  # ex: "ID_GLBL"
         value_field = segment[5] if len(segment) > 5 else ""
         components = value_field.split("^") if value_field else [""]
-        value = components[-1] if components else ""
+        # Prefer the last non-empty component (some exports place the value in the
+        # first component while others append metadata after). This mirrors the
+        # logic used elsewhere in the parser that picks the last non-empty
+        # component when available.
+        value = next((c for c in reversed(components) if c), components[-1] if components else "")
         characteristics[field_name] = value
     return characteristics
 

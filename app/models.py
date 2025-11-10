@@ -36,6 +36,7 @@ class DossierType(str, Enum):
 class Sequence(SQLModel, table=True):
     name: str = Field(primary_key=True)   # ex: "dossier", "venue", "mouvement"
     value: int = 0
+    # no __table_args__ here to avoid redefinition issues during tests
 
 # --- Patient ---
 class Patient(SQLModel, table=True):
@@ -253,6 +254,12 @@ class Mouvement(SQLModel, table=True):
     movement_ids: Optional[str] = Field(default=None, description="JSON array of all ZBE-1 identifiers if repetition")
     venue: Venue = Relationship(back_populates="mouvements")
     identifiers: List["Identifier"] = Relationship(back_populates="mouvement")
+
+    class Config:
+        # Allow extra fields passed by legacy tests/scripts (e.g. date_heure_mouvement,
+        # type_mouvement) so they are retained on the model instance and can be
+        # normalized in DB hooks before persistence.
+        extra = "allow"
 
     # --- Compatibilité ascendante (anciens champs attendus par tests/anciens templates) ---
     @property

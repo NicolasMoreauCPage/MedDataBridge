@@ -10,12 +10,13 @@ Fonctionne pour TOUTES les sources de modification:
 - Scripts/outils (via accès direct à la DB)
 """
 
+"""
 import asyncio
 import logging
 import threading
 from typing import Any, Dict, Set
 from sqlalchemy import event
-from sqlalchemy.orm import Session
+from sqlmodel import Session  # Use SQLModel Session, not SQLAlchemy Session
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.services.emit_on_create import emit_to_senders_async

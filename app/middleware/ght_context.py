@@ -38,15 +38,23 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
     - Si présent, ouvre une session DB courte pour recharger `GHTContext`.
     - Renvoie l'entité ou None si rien n'est défini/accessible.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         context_id = request.session.get("ght_context_id")
+        logger.debug(f"[get_active_ght_context] Session has ght_context_id={context_id}")
+        
         if context_id:
             session = next(get_session())
             try:
-                return session.get(GHTContext, context_id)
+                ctx = session.get(GHTContext, context_id)
+                logger.debug(f"[get_active_ght_context] Loaded context: {ctx.name if ctx else 'None'}")
+                return ctx
             finally:
                 session.close()
-    except Exception:
+    except Exception as e:
+        logger.error(f"[get_active_ght_context] Error loading context: {e}", exc_info=True)
         pass
     return None
 

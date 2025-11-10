@@ -15,6 +15,10 @@ Points clés
 
 import logging, os, secrets
 
+# Charger les variables d'environnement depuis .env
+from dotenv import load_dotenv
+load_dotenv()
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, APIRouter
 from starlette.middleware.sessions import SessionMiddleware

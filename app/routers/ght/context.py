@@ -247,6 +247,12 @@ async def view_ght_context(
     # Stocker le contexte sélectionné en session
     request.session["ght_context_id"] = context_id
     
+    # Charger explicitement les entités juridiques pour éviter le lazy loading
+    from app.models_structure_fhir import EntiteJuridique
+    entites_juridiques = session.exec(
+        select(EntiteJuridique).where(EntiteJuridique.ght_context_id == context_id)
+    ).all()
+    
     selected_ej_id = request.session.get(f"ght_{context_id}_ej_id")
     selected_ej_name = request.session.get(f"ght_{context_id}_ej_name")
     return templates.TemplateResponse(
@@ -255,7 +261,7 @@ async def view_ght_context(
         {
             "context": context,
             "namespaces": context.namespaces,
-            "entites_juridiques": context.entites_juridiques,
+            "entites_juridiques": entites_juridiques,
             "selected_ej_id": selected_ej_id,
             "selected_ej_name": selected_ej_name}
     )

@@ -46,6 +46,50 @@ async def reset_metrics():
     }
 
 
+@router.get("/dashboard", response_model=dict)
+async def get_metrics_dashboard():
+    """
+    Récupère un tableau de bord complet des métriques de l'application.
+    
+    Returns:
+        Dictionnaire avec:
+        - operations: Métriques détaillées par opération
+        - summary: Statistiques globales
+        - health: Statut de santé
+    """
+    operation_metrics = metrics.get_metrics()
+    
+    # Calculer des statistiques globales
+    total_operations = sum(m.get("count", 0) for m in operation_metrics.values())
+    total_errors = sum(m.get("error_count", 0) for m in operation_metrics.values())
+    total_success = sum(m.get("success_count", 0) for m in operation_metrics.values())
+    
+    health_status = "healthy"
+    error_rate = 0
+    if total_operations > 0:
+        error_rate = total_errors / total_operations
+        if error_rate > 0.1:  # Plus de 10% d'erreurs
+            health_status = "degraded"
+        if error_rate > 0.5:  # Plus de 50% d'erreurs
+            health_status = "unhealthy"
+    
+    return {
+        "summary": {
+            "total_operations": total_operations,
+            "total_success": total_success,
+            "total_errors": total_errors,
+            "error_rate": round(error_rate * 100, 2),
+            "success_rate": round((total_success / total_operations * 100) if total_operations > 0 else 0, 2),
+            "operations_tracked": len(operation_metrics)
+        },
+        "health": {
+            "status": health_status,
+            "message": "All systems operational" if health_status == "healthy" else f"Error rate: {round(error_rate * 100, 2)}%"
+        },
+        "operations": operation_metrics
+    }
+
+
 @router.get("/health", response_model=dict)
 async def health_check():
     """

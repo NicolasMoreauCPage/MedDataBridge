@@ -1,0 +1,46 @@
+{% extends "sqladmin/base.html" %}
+{% from 'sqladmin/_macros.html' import display_menu %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="/static/css/sqladmin-custom.css">
+{% endblock %}
+
+{% block body %}
+<div class="wrapper">
+  <aside class="navbar navbar-expand-lg navbar-vertical navbar-expand-md navbar-dark">
+    <div class="container-fluid">
+      <h1 class="navbar-brand navbar-brand-autodark">
+        <a href="{{ url_for('admin:index') }}">
+          {% if admin.logo_url %}
+          <img src="{{ admin.logo_url }}" width="64" height="64" alt="Admin" class="navbar-brand-image" />
+          {% else %}
+          <h3>{{ admin.title }}</h3>
+          {% endif %}
+        </a>
+        <!-- Lien retour ajouté -->
+        <a href="/admin" class="custom-back-link">
+          ← Retour à l'administration
+        </a>
+      </h1>
+      <nav class="navbar navbar-expand-sm" id="navbar-menu">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          {{ display_menu(admin) }}
+        </div>
+      </nav>
+    </div>
+  </aside>
+  <div class="page">
+    <div class="content">
+      <div class="container-xl">
+        {% block content %}
+        {% endblock %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

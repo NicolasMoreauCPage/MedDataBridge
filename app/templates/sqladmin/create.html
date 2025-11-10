@@ -1,0 +1,117 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block title %}{% if is_edit %}Modifier{% else %}Créer{% endif %} - {{ model_view.name }} - {{ admin.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="{{ admin.get_admin_url() }}/{{ model_view.identity }}/list" 
+           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4 transition">
+            <i class="fas fa-arrow-left mr-2"></i>Retour à la liste
+        </a>
+        <h1 class="text-2xl font-bold text-slate-900">
+            {% if is_edit %}Modifier{% else %}Créer{% endif %} - {{ model_view.name }}
+        </h1>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
+        <form method="post" class="p-6 space-y-6">
+            {% if form.errors %}
+            <div class="rounded-lg bg-red-50 border border-red-200 p-4">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+                    <div class="flex-1">
+                        <h3 class="text-sm font-medium text-red-800 mb-2">Erreurs de validation</h3>
+                        <ul class="text-sm text-red-700 space-y-1">
+                            {% for field, errors in form.errors.items() %}
+                            {% for error in errors %}
+                            <li>{{ field }}: {{ error }}</li>
+                            {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% for field in form %}
+            {% if field.type != 'CSRFTokenField' and field.type != 'HiddenField' %}
+            <div>
+                <label for="{{ field.id }}" class="block text-sm font-medium text-slate-700 mb-2">
+                    {{ field.label.text }}
+                    {% if field.flags.required %}
+                    <span class="text-red-500">*</span>
+                    {% endif %}
+                </label>
+                
+                {% if field.type == 'TextAreaField' %}
+                <textarea id="{{ field.id }}" 
+                          name="{{ field.name }}" 
+                          class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+                          rows="4"
+                          {% if field.flags.required %}required{% endif %}>{{ field.data if field.data else '' }}</textarea>
+                
+                {% elif field.type == 'BooleanField' %}
+                <div class="flex items-center">
+                    <input type="checkbox" 
+                           id="{{ field.id }}" 
+                           name="{{ field.name }}" 
+                           class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                           {% if field.data %}checked{% endif %}>
+                    <label for="{{ field.id }}" class="ml-2 text-sm text-slate-600">
+                        {{ field.description if field.description else 'Activer' }}
+                    </label>
+                </div>
+                
+                {% elif field.type == 'SelectField' %}
+                <select id="{{ field.id }}" 
+                        name="{{ field.name }}" 
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        {% if field.flags.required %}required{% endif %}>
+                    {% for value, label in field.choices %}
+                    <option value="{{ value }}" {% if field.data == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                
+                {% elif field.type == 'DateField' or field.type == 'DateTimeField' %}
+                <input type="{{ 'datetime-local' if field.type == 'DateTimeField' else 'date' }}" 
+                       id="{{ field.id }}" 
+                       name="{{ field.name }}" 
+                       value="{{ field.data if field.data else '' }}"
+                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       {% if field.flags.required %}required{% endif %}>
+                
+                {% else %}
+                <input type="{{ field.type.replace('Field', '').lower() if field.type else 'text' }}" 
+                       id="{{ field.id }}" 
+                       name="{{ field.name }}" 
+                       value="{{ field.data if field.data else '' }}"
+                       class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       {% if field.flags.required %}required{% endif %}>
+                {% endif %}
+                
+                {% if field.description %}
+                <p class="mt-1 text-xs text-slate-500">{{ field.description }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+                <a href="{{ admin.get_admin_url() }}/{{ model_view.identity }}/list" 
+                   class="text-sm text-slate-600 hover:text-slate-800 transition">
+                    Annuler
+                </a>
+                <button type="submit" 
+                        class="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm">
+                    <i class="fas fa-save"></i>
+                    <span>Enregistrer</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block title %}{{ model_view.name }} - {{ admin.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">{{ model_view.name }}</h1>
+            <p class="text-sm text-slate-600 mt-1">Gestion des enregistrements</p>
+        </div>
+        
+        {% if model_view.can_create %}
+        <a href="{{ admin.get_admin_url() }}/{{ model_view.identity }}/create" 
+           class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm">
+            <i class="fas fa-plus"></i>
+            <span>Créer</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Search & Filters -->
+    {% if model_view.search_fields or model_view.list_filter %}
+    <div class="bg-white rounded-lg border border-slate-200 p-4 mb-4">
+        <form method="get" class="flex items-center gap-3">
+            {% if model_view.search_fields %}
+            <div class="flex-1">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" 
+                           name="search" 
+                           value="{{ request.query_params.get('search', '') }}"
+                           placeholder="Rechercher..."
+                           class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+            <button type="submit" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                Rechercher
+            </button>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        {% if model_view.can_delete %}
+                        <th class="px-4 py-3 text-left">
+                            <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        </th>
+                        {% endif %}
+                        
+                        {% for column in model_view.list_columns %}
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                            {{ column }}
+                        </th>
+                        {% endfor %}
+                        
+                        {% if model_view.can_edit or model_view.can_view_details or model_view.can_delete %}
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                            Actions
+                        </th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for item in items %}
+                    <tr class="hover:bg-slate-50 transition">
+                        {% if model_view.can_delete %}
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <input type="checkbox" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        </td>
+                        {% endif %}
+                        
+                        {% for column in model_view.list_columns %}
+                        <td class="px-4 py-3 text-sm text-slate-700">
+                            {{ item[column] if item[column] is not none else '-' }}
+                        </td>
+                        {% endfor %}
+                        
+                        {% if model_view.can_edit or model_view.can_view_details or model_view.can_delete %}
+                        <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-2">
+                                {% if model_view.can_view_details %}
+                                <a href="{{ admin.get_admin_url() }}/{{ model_view.identity }}/details/{{ item['id'] }}" 
+                                   class="text-blue-600 hover:text-blue-800 transition"
+                                   title="Voir les détails">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% endif %}
+                                
+                                {% if model_view.can_edit %}
+                                <a href="{{ admin.get_admin_url() }}/{{ model_view.identity }}/edit/{{ item['id'] }}" 
+                                   class="text-emerald-600 hover:text-emerald-800 transition"
+                                   title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                                
+                                {% if model_view.can_delete %}
+                                <button onclick="deleteItem('{{ item['id'] }}')"
+                                        class="text-red-600 hover:text-red-800 transition"
+                                        title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="100" class="px-4 py-8 text-center text-slate-500">
+                            <i class="fas fa-inbox text-3xl mb-3 block text-slate-300"></i>
+                            Aucun enregistrement trouvé
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if pagination %}
+        <div class="bg-slate-50 px-4 py-3 border-t border-slate-200 flex items-center justify-between">
+            <div class="text-sm text-slate-700">
+                Affichage de {{ pagination.start }} à {{ pagination.end }} sur {{ pagination.total }} résultats
+            </div>
+            <div class="flex gap-2">
+                {% if pagination.has_prev %}
+                <a href="{{ pagination.prev_url }}" 
+                   class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-50 transition text-sm">
+                    Précédent
+                </a>
+                {% endif %}
+                
+                {% if pagination.has_next %}
+                <a href="{{ pagination.next_url }}" 
+                   class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-50 transition text-sm">
+                    Suivant
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block tail_js %}
+<script>
+    function deleteItem(id) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer cet enregistrement ?')) {
+            fetch(`{{ admin.get_admin_url() }}/{{ model_view.identity }}/delete/${id}`, {
+                method: 'DELETE'
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                }
+            });
+        }
+    }
+    
+    // Select all checkbox
+    document.getElementById('select-all')?.addEventListener('change', function(e) {
+        document.querySelectorAll('tbody input[type="checkbox"]').forEach(cb => {
+            cb.checked = e.target.checked;
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

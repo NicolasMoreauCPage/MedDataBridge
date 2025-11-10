@@ -353,12 +353,14 @@ def create_app() -> FastAPI:
             async def authenticate(self, request: Request) -> bool:
                 return True
         
+        templates_path = os.path.join(os.path.dirname(__file__), "templates")
+        
         admin = Admin(
             app, 
             engine, 
             base_url="/sqladmin",
             title="MedData Bridge - Admin SQL",
-            templates_dir="app/templates",
+            templates_dir=templates_path,
             authentication_backend=NoAuthBackend(secret_key="not-used-for-internal-app")
         )
         

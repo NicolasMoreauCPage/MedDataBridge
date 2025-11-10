@@ -117,7 +117,7 @@ async def _emit_in_new_session(entity_class: type, entity_id: int, entity_type: 
     This is called in background after the original transaction commits.
     
     IMPORTANT: 
-    - Set emission flag to prevent recursive emissions (emission → new entity → emission loop).
+    - Set emission flag to prevent recursive emissions (emission -> new entity -> emission loop).
     - Use semaphore to limit concurrent emissions and prevent pool exhaustion.
     """
     from app.db import engine

@@ -1,5 +1,7 @@
 """API pour les métriques et le monitoring."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from typing import Optional, Dict, Any
 from app.utils.structured_logging import metrics
 from app.auth import require_role
@@ -7,6 +9,8 @@ from app.services.cache_service import get_cache_service
 
 
 router = APIRouter(prefix="/api/metrics", tags=["Metrics"])
+ui_router = APIRouter(prefix="/metrics", tags=["Metrics UI"])
+templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/operations", response_model=dict)
@@ -199,3 +203,19 @@ async def cache_health_check() -> Dict[str, Any]:
             "message": f"Cache error: {str(e)}",
             "enabled": False
         }
+
+
+# ========== UI Routes (HTML) ==========
+
+@ui_router.get("/dashboard", response_class=HTMLResponse)
+async def metrics_dashboard_ui(request: Request):
+    """
+    Page HTML du dashboard des métriques.
+    
+    Affiche les métriques de l'application de manière visuelle.
+    """
+    return templates.TemplateResponse(
+        request,
+        "metrics_dashboard.html",
+        {}
+    )

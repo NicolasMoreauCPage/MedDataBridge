@@ -269,7 +269,9 @@ def create_app() -> FastAPI:
     app.include_router(fhir_export.router)
     app.include_router(fhir_import.router)
     app.include_router(metrics.router)
+    app.include_router(metrics.ui_router)
     print(" - FHIR API routers mounted")
+    print(" - Metrics UI router mounted at /metrics")
 
     # 11. Monitoring dashboard (UI)
     try:

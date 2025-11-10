@@ -71,12 +71,12 @@ def test_msh_fields():
         fields = msh_patient.split("|")
         assert "ADT^A04^ADT_A01" in fields[8], f"MSH-9 incorrect: {fields[8]}"
         assert "2.5^FRA^2.11" in fields[11], f"MSH-12 incorrect: {fields[11]}"
-        assert "FRA" in fields[18], f"MSH-18 (country) incorrect: {fields[18]}"
-        assert "8859/1" in fields[19], f"MSH-19 (encoding) incorrect: {fields[19]}"
+        assert "FRA" in fields[16], f"MSH-16 (country) incorrect: {fields[16]}"
+        assert "8859/1" in fields[17], f"MSH-17 (encoding) incorrect: {fields[17]}"
         print("✅ ADT^A04^ADT_A01 (structure de message)")
         print("✅ MSH-12 = 2.5^FRA^2.11 (version IHE PAM France)")
-        print("✅ MSH-18 = FRA (pays)")
-        print("✅ MSH-19 = 8859/1 (encodage)")
+        print("✅ MSH-16 = FRA (pays)")
+        print("✅ MSH-17 = 8859/1 (encodage)")
         
         # Test 2: Venue (ADT^A05)
         print("\n=== TEST 2: Venue (ADT^A05) ===")
@@ -88,12 +88,12 @@ def test_msh_fields():
         fields = msh_venue.split("|")
         assert "ADT^A05^ADT_A01" in fields[8], f"MSH-9 incorrect: {fields[8]}"
         assert "2.5^FRA^2.11" in fields[11], f"MSH-12 incorrect: {fields[11]}"
-        assert "FRA" in fields[18], f"MSH-18 incorrect: {fields[18]}"
-        assert "8859/1" in fields[19], f"MSH-19 incorrect: {fields[19]}"
+        assert "FRA" in fields[16], f"MSH-16 incorrect: {fields[16]}"
+        assert "8859/1" in fields[17], f"MSH-17 incorrect: {fields[17]}"
         print("✅ ADT^A05^ADT_A01")
         print("✅ MSH-12 = 2.5^FRA^2.11")
-        print("✅ MSH-18 = FRA")
-        print("✅ MSH-19 = 8859/1")
+        print("✅ MSH-16 = FRA")
+        print("✅ MSH-17 = 8859/1")
         
         # Test 3: Mouvement A01 (ADT^A01)
         print("\n=== TEST 3: Mouvement A01 (ADT^A01) ===")
@@ -105,12 +105,12 @@ def test_msh_fields():
         fields = msh_mouvement_a01.split("|")
         assert "ADT^A01^ADT_A01" in fields[8], f"MSH-9 incorrect: {fields[8]}"
         assert "2.5^FRA^2.11" in fields[11], f"MSH-12 incorrect: {fields[11]}"
-        assert "FRA" in fields[18], f"MSH-18 incorrect: {fields[18]}"
-        assert "8859/1" in fields[19], f"MSH-19 incorrect: {fields[19]}"
+        assert "FRA" in fields[16], f"MSH-16 incorrect: {fields[16]}"
+        assert "8859/1" in fields[17], f"MSH-17 incorrect: {fields[17]}"
         print("✅ ADT^A01^ADT_A01")
         print("✅ MSH-12 = 2.5^FRA^2.11")
-        print("✅ MSH-18 = FRA")
-        print("✅ MSH-19 = 8859/1")
+        print("✅ MSH-16 = FRA")
+        print("✅ MSH-17 = 8859/1")
         
         # Test 4: Mouvement A02 (ADT^A02)
         mouvement.type = "ADT^A02"
@@ -163,8 +163,8 @@ def test_msh_fields():
         print("\nRécapitulatif des corrections IHE PAM France 2.11:")
         print("  • MSH-9 (champ 8): Structure de message ajoutée (ADT_A01, ADT_A02, ADT_A03)")
         print("  • MSH-12 (champ 11): 2.5^FRA^2.11 (version IHE PAM France 2.11)")
-        print("  • MSH-18 (champ 17): FRA (pays)")
-        print("  • MSH-19 (champ 18): 8859/1 (encodage ISO-8859-1)")
+        print("  • MSH-16 (champ 16): FRA (pays)")
+        print("  • MSH-17 (champ 17): 8859/1 (encodage ISO-8859-1)")
 
 if __name__ == "__main__":
     test_msh_fields()

@@ -163,7 +163,7 @@ def generate_pam_hl7(
         # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
         # MSH-16: FRA (pays)
         # MSH-17: 8859/1 (encodage ISO-8859-1)
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||||FRA|8859/1"
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         
         # EVN segment
         evn = f"EVN|{event_type}|{timestamp}"
@@ -372,7 +372,7 @@ def generate_pam_hl7(
         # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
         # MSH-16: FRA (pays)
         # MSH-17: 8859/1 (encodage ISO-8859-1)
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A05^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||||FRA|8859/1"
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A05^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         evn = f"EVN|A05|{admit_time}"
         
         # PID segment
@@ -486,7 +486,7 @@ def generate_pam_hl7(
         # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
         # MSH-16: FRA (pays)
         # MSH-17: 8859/1 (encodage ISO-8859-1)
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||||FRA|8859/1"
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         
         # Build EVN segment
         evn = f"EVN|{event_code}|{timestamp}"

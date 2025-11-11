@@ -164,7 +164,10 @@ def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any
                     "type": "mouvement",
                     "icon": "activity",
                     "color": "orange",
-                    "title": f"{mouv.movement_type or mouv.trigger_event}",
+                    "title": (
+                        next((opt['label'] for opt in movement_type_options if opt['value'] == mouv.movement_type), mouv.movement_type)
+                        if mouv.movement_type and movement_type_options else mouv.movement_type or mouv.trigger_event
+                    ),
                     "description": f"Location: {mouv.location or 'N/A'}",
                     "datetime": mouv.when,
                     "entity_id": mouv.id,
@@ -298,6 +301,8 @@ def dossier_timeline(
             "error.html",
             {"message": "Dossier non trouvé"}
         )
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    movement_type_options = get_vocabulary_options("movement-nature") or []
     
     events = _get_dossier_events(session, dossier_id)
     
@@ -337,6 +342,7 @@ def dossier_timeline(
             "dossier": dossier,
             "venues": venues,
             "mouvements": mouvements
+            "movement_type_options": movement_type_options
         }
     )
 

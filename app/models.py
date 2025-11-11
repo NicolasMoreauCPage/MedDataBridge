@@ -141,16 +141,13 @@ class Dossier(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_seq: int = Field(index=True, unique=True)       # identifiant métier unique
     patient_id: int = Field(foreign_key="patient.id")
-    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
-    # Rendu optionnel pour compatibilité avec anciens tests/scénarios de création simplifiée.
-    # Si absent lors d'un flux PAM, sera dérivé d'un service hospital_service/PV1 ou marqué UNKNOWN.
-    uf_responsabilite: Optional[str] = None
-    uf_medicale: Optional[str] = None
-    uf_hebergement: Optional[str] = None
-    uf_soins: Optional[str] = None
     admit_time: datetime
     discharge_time: Optional[datetime] = None
     dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
+        entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
+        admit_time: datetime
+        discharge_time: Optional[datetime] = None
+        dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
 
     def update_type(self, new_type: DossierType, session: Session | None = None) -> None:
         """
@@ -182,13 +179,9 @@ class Dossier(SQLModel, table=True):
     admission_type: Optional[str] = None
     admission_source: Optional[str] = None  # Source d'admission
     attending_provider: Optional[str] = None
-    primary_diagnosis: Optional[str] = None
-    discharge_disposition: Optional[str] = None
-    encounter_class: Optional[str] = None
-    encounter_type: Optional[str] = None  # Type de rencontre
-    priority: Optional[str] = None  # Priorité de la rencontre
-    reason: Optional[str] = None  # Raison de la rencontre
-    current_state: Optional[str] = None  # État actuel du dossier
+        # Champs métier
+        reason: Optional[str] = None  # Motif d'admission (utiliser vocabulaire FR)
+        current_state: Optional[str] = None  # État actuel du dossier (utiliser vocabulaire FR)
     patient: Patient = Relationship(back_populates="dossiers")
     venues: List["Venue"] = Relationship(back_populates="dossier")
     identifiers: List["Identifier"] = Relationship(back_populates="dossier")

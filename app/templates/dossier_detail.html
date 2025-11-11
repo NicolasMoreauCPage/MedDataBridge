@@ -21,12 +21,35 @@
       <div class="text-sm text-slate-500 mb-2">Patient</div>
       <div class="text-base">{{ dossier.patient.family }} {{ dossier.patient.given }}</div>
       <div class="text-sm text-slate-600 mt-2">UF responsabilité (dossier): <b>{{ dossier.uf_responsabilite }}</b></div>
-  <div class="text-sm text-slate-600">Type d'admission: <b>{{ dossier.admission_type }}</b></div>
-  <div class="text-sm text-slate-600">Source: <b>{{ dossier.admission_source }}</b></div>
-  <div class="text-sm text-slate-600">Médecin responsable: <b>{{ dossier.attending_provider }}</b></div>
-  <div class="text-sm text-slate-600">Admission: <b>{{ dossier.admit_time }}</b></div>
-  <div class="text-sm text-slate-600">Diagnostic principal: <b>{{ dossier.primary_diagnosis }}</b></div>
-  <div class="text-sm text-slate-600">Disposition à la sortie: <b>{{ dossier.discharge_disposition }}</b></div>
+        <div class="text-sm text-slate-600">Type de dossier: <b>
+          {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+          {% set type_label = None %}
+          {% for opt in dossier_type_options %}
+            {% if opt.value == current_type %}{% set type_label = opt.label %}{% endif %}
+          {% endfor %}
+          {{ type_label or current_type or '-' }}
+        </b></div>
+        <div class="text-sm text-slate-600">Type d'admission: <b>{{ dossier.admission_type }}</b></div>
+          {# Ajout: affichage label vocabulaire si disponible #}
+          {% if dossier.admission_type and admission_type_options %}
+            {% set admission_label = None %}
+            {% for opt in admission_type_options %}
+              {% if opt.value == dossier.admission_type %}{% set admission_label = opt.label %}{% endif %}
+            {% endfor %}
+            <span class="font-medium">{{ admission_label or dossier.admission_type }}</span>
+          {% endif %}
+        <div class="text-sm text-slate-600">Source: <b>{{ dossier.admission_source }}</b></div>
+        <div class="text-sm text-slate-600">Médecin responsable: <b>{{ dossier.attending_provider }}</b></div>
+        <div class="text-sm text-slate-600">Admission: <b>{{ dossier.admit_time }}</b></div>
+        <div class="text-sm text-slate-600">Disposition à la sortie: <b>{{ dossier.discharge_disposition }}</b></div>
+          {# Ajout: affichage label vocabulaire si disponible #}
+          {% if dossier.discharge_disposition and discharge_disp_options %}
+            {% set disp_label = None %}
+            {% for opt in discharge_disp_options %}
+              {% if opt.value == dossier.discharge_disposition %}{% set disp_label = opt.label %}{% endif %}
+            {% endfor %}
+            <span class="font-medium">{{ disp_label or dossier.discharge_disposition }}</span>
+          {% endif %}
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 p-6">

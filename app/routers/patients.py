@@ -222,9 +222,15 @@ def patient_detail(patient_id: int, request: Request, session=Depends(get_sessio
         for venue in dossier.venues:
             venue.mouvements = session.exec(select(type(venue.mouvements[0])).where(type(venue.mouvements[0]).venue_id == venue.id)).all() if venue.mouvements else []
 
+        from app.services.vocabulary_lookup import get_vocabulary_options
+        dossier_type_options = get_vocabulary_options("dossier-type") or [
+            {"value": t.value, "label": t.value.capitalize()} for t in dossiers[0].__class__.dossier_type.__class__] if dossiers else []
+        discharge_disp_options = get_vocabulary_options("discharge-disposition") or []
     return templates.TemplateResponse(request, "patient_detail.html", {
         "patient": p,
-        "dossiers": dossiers
+        "dossiers": dossiers,
+        "dossier_type_options": dossier_type_options
+            "discharge_disp_options": discharge_disp_options
     })
 
 

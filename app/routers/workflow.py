@@ -135,6 +135,8 @@ async def workflow_view(
         if code in allowed_events
     }
     
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    reason_options = get_vocabulary_options("movement-reason") or []
     return templates.TemplateResponse(
         request,
         "mouvement_workflow.html",
@@ -143,7 +145,9 @@ async def workflow_view(
             "graph": WORKFLOW_GRAPH,
             "event_catalog": filtered_catalog,
             "all_events": SUPPORTED_WORKFLOW_EVENTS,
-            "default_datetime": default_datetime},
+            "default_datetime": default_datetime,
+            "reason_options": reason_options
+        },
     )
 
 @router.post("/{venue_id}/mouvement")

@@ -14,7 +14,14 @@
     {% if dossier %}
       <div class="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
         <span class="font-semibold">Dossier #{{ dossier.dossier_seq|default('-', true) }}</span>
-        <span class="ml-2 text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{{ dossier.dossier_type.value|capitalize }}</span>
+          <span class="ml-2 text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">
+            {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+            {% set type_label = None %}
+            {% for opt in dossier_type_options %}
+              {% if opt.value == current_type %}{% set type_label = opt.label %}{% endif %}
+            {% endfor %}
+            {{ type_label or current_type or '-' }}
+          </span>
       </div>
     {% endif %}
   </div>
@@ -75,7 +82,14 @@
     <div class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
       <div class="flex items-center justify-between">
         <span class="font-semibold">Dossier #{{ dossier.dossier_seq|default('-', true) }}</span>
-        <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{{ dossier.dossier_type.value|capitalize }}</span>
+            <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">
+              {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+              {% set type_label = None %}
+              {% for opt in dossier_type_options %}
+                {% if opt.value == current_type %}{% set type_label = opt.label %}{% endif %}
+              {% endfor %}
+              {{ type_label or current_type or '-' }}
+            </span>
       </div>
       <div class="text-xs text-slate-500 mt-1">Admission : {{ dossier.admit_time }}</div>
       {% set ds_venues = venues|selectattr('dossier_id', 'equalto', dossier.id)|list %}

@@ -81,7 +81,14 @@
         <div class="border rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition">
           <div class="flex items-center justify-between mb-2">
             <a href="/dossiers/{{ dossier.id }}" class="font-semibold text-blue-700 hover:text-blue-900 hover:underline">
-              Dossier #{{ dossier.dossier_seq }} ({{ dossier.dossier_type }})
+                Dossier #{{ dossier.dossier_seq }} (
+                  {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+                  {% set type_label = None %}
+                  {% for opt in dossier_type_options %}
+                    {% if opt.value == current_type %}{% set type_label = opt.label %}{% endif %}
+                  {% endfor %}
+                  {{ type_label or current_type or '-' }}
+                )
             </a>
             <div class="flex gap-2">
               <a href="/dossiers/{{ dossier.id }}/edit" class="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded hover:bg-blue-50 transition">
@@ -95,6 +102,14 @@
             </div>
           </div>
           <div class="text-sm text-slate-600 mb-2">Admis le {{ dossier.admit_time }} {% if dossier.discharge_time %}— Sorti le {{ dossier.discharge_time }}{% endif %}</div>
+            {# Ajout: affichage label vocabulaire si disponible #}
+            {% if dossier.discharge_disposition and discharge_disp_options %}
+              {% set disp_label = None %}
+              {% for opt in discharge_disp_options %}
+                {% if opt.value == dossier.discharge_disposition %}{% set disp_label = opt.label %}{% endif %}
+              {% endfor %}
+              <span class="font-medium">{{ disp_label or dossier.discharge_disposition }}</span>
+            {% endif %}
           <div class="ml-4">
             <h4 class="font-medium text-slate-700 mt-2">Venues</h4>
             {% if dossier.venues and dossier.venues|length > 0 %}

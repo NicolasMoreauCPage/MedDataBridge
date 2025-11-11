@@ -22,9 +22,16 @@
     <h1 class="text-2xl font-bold mb-6">Modifier le type du dossier #{{ dossier.dossier_seq|default('', true) }}</h1>
         
         <div class="mb-6">
-            <p class="text-gray-700">Type actuel: 
-                <span class="font-medium">{{ dossier.dossier_type.value|default('-', true) }}</span>
-            </p>
+                            <p class="text-gray-700">Type actuel: 
+                                    <span class="font-medium">
+                                        {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+                                        {% set type_label = None %}
+                                        {% for opt in dossier_type_options %}
+                                            {% if opt.value == current_type %}{% set type_label = opt.label %}{% endif %}
+                                        {% endfor %}
+                                        {{ type_label or current_type or '-' }}
+                                    </span>
+                            </p>
         </div>
 
         <form id="changeTypeForm" class="mb-6">
@@ -33,9 +40,10 @@
                     Nouveau type
                 </label>
                 <select id="newType" name="newType" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                    <option value="hospitalise" {% if dossier.dossier_type.value == 'hospitalise' %}selected{% endif %}>Hospitalisé</option>
-                    <option value="externe" {% if dossier.dossier_type.value == 'externe' %}selected{% endif %}>Externe</option>
-                    <option value="urgence" {% if dossier.dossier_type.value == 'urgence' %}selected{% endif %}>Urgence</option>
+                    {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+                    {% for opt in dossier_type_options %}
+                      <option value="{{ opt.value }}" {% if opt.value == current_type %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
                 </select>
             </div>
 

@@ -54,6 +54,12 @@ def list_dossiers(
     # Exécuter la requête
     dossiers = session.exec(stmt).all()
 
+    # Injecter les options de vocabulaire pour le type de dossier
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    dossier_type_options = get_vocabulary_options("dossier-type") or [
+        {"value": t.value, "label": t.value.capitalize()} for t in DossierType
+    ]
+
     # Préparer les lignes avec les actions détaillées
     rows = [
         {
@@ -107,7 +113,7 @@ def list_dossiers(
             "name": "admission_type",
             "type": "select",
             "placeholder": "Tous les types",
-            "options": [
+            "options": get_vocabulary_options("admission-type") or [
                 {"value": "URGENCE", "label": "Urgence"},
                 {"value": "PROGRAMME", "label": "Programmé"},
                 {"value": "MUTATION", "label": "Mutation"}
@@ -149,7 +155,8 @@ def list_dossiers(
         "new_url": "/dossiers/new" + (f"?patient_id={patient_id}" if patient_id else ""),
         "filters": filters,
         "actions": actions,
-        "show_actions": True
+        "show_actions": True,
+        "dossier_type_options": dossier_type_options
     }
     return templates.TemplateResponse(request, "list.html", ctx)
 
@@ -182,6 +189,10 @@ def new_dossier(request: Request, session=Depends(get_session)):
     ]
     
     # Construction des champs avec la configuration centralisée
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    current_state_opts = get_vocabulary_options("dossier-current-state") or [
+        {"value": v, "label": v} for v in ["Pas de venue courante", "Pré-admis consult.ext.", "Pré-admis hospit.", "Hospitalisé", "Absence temporaire", "Consultant externe"]
+    ]
     base_fields = [
         {"name": "patient_id", "label": "Patient ID", "type": "number"},
         {"name": "uf_responsabilite", "label": "UF de responsabilité", "type": "select", "options": uf_options},
@@ -191,7 +202,7 @@ def new_dossier(request: Request, session=Depends(get_session)):
         {"name": "admit_time", "label": "Date d'admission", "type": "datetime-local"},
         {"name": "dossier_seq", "label": "Numéro de séquence", "type": "number"},
         # Add state transition fields so client-side validation can hook into them
-        {"name": "current_state", "label": "État courant", "type": "select", "options": ["Pas de venue courante", "Pré-admis consult.ext.", "Pré-admis hospit.", "Hospitalisé", "Absence temporaire", "Consultant externe"]},
+        {"name": "current_state", "label": "État courant", "type": "select", "options": current_state_opts},
         {"name": "event_code", "label": "Code événement", "type": "select", "options": ["A01","A03","A04","A05","A06","A07","A11","A13","A21","A22","A38","A52","A53"]},
     ]
     
@@ -302,11 +313,24 @@ def dossier_detail(dossier_id: int, request: Request, session=Depends(get_sessio
         .order_by(SystemEndpoint.name)
     ).all()
 
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    dossier_type_options = get_vocabulary_options("dossier-type") or [
+        {"value": t.value, "label": t.value.capitalize()} for t in DossierType
+    ]
+    admission_type_options = get_vocabulary_options("admission-type") or [
+        {"value": "URGENCE", "label": "Urgence"},
+        {"value": "PROGRAMME", "label": "Programmé"},
+        {"value": "MUTATION", "label": "Mutation"}
+    ]
+    discharge_disp_options = get_vocabulary_options("discharge-disposition") or []
     return templates.TemplateResponse(request, "dossier_detail.html", {
             "dossier": d,
             "patient": patient,
             "scenario_entries": scenario_entries,
             "replay_endpoints": endpoints,
+            "dossier_type_options": dossier_type_options,
+            "admission_type_options": admission_type_options,
+            "discharge_disp_options": discharge_disp_options,
         })
 
 

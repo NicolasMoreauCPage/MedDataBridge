@@ -214,6 +214,14 @@
             </td>
             <td class="px-6 py-4 text-sm text-slate-600 max-w-xs truncate">
               {{ mouvement.reason or '-' }}
+                {# Ajout: affichage label vocabulaire si disponible #}
+                {% if mouvement.reason and reason_options %}
+                  {% set reason_label = None %}
+                  {% for opt in reason_options %}
+                    {% if opt.value == mouvement.reason %}{% set reason_label = opt.label %}{% endif %}
+                  {% endfor %}
+                  {{ reason_label or mouvement.reason }}
+                {% endif %}
             </td>
             <td class="px-6 py-4 text-sm text-slate-600">
               {{ mouvement.performer or '-' }}

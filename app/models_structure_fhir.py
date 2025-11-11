@@ -50,6 +50,7 @@ class IdentifierNamespace(SQLModel, table=True):
         default=None,
         description="Valeur maximale pour mode 'range' (ex: 9999999)"
     )
+    updated_at: Optional[datetime] = Field(default=None, description="Date de dernière mise à jour du namespace")
 
     # Relations
     ght_context_id: int = Field(foreign_key="ghtcontext.id")

@@ -62,7 +62,18 @@ def list_venues(
         for d in dossiers:
             venues.extend(session.exec(select(Venue).where(Venue.dossier_id == d.id)).all())
     else:
-        venues = session.exec(select(Venue)).all()
+        # Filtrer par contexte EJ si présent
+        ej_context = getattr(request.state, "ej_context", None)
+        if ej_context and getattr(ej_context, "id", None):
+            # Récupérer tous les dossiers de l'EJ
+            from app.models import Dossier
+            dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id)).all()]
+            if dossier_ids:
+                venues = session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids))).all()
+            else:
+                venues = []
+        else:
+            venues = session.exec(select(Venue)).all()
 
     rows = [
         {

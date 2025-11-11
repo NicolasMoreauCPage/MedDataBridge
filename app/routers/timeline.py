@@ -255,6 +255,17 @@ def patient_timeline(
         {"label": "Timeline", "url": f"/timeline/patient/{patient_id}"}
     ]
     
+    # Get all dossiers, venues, mouvements for this patient
+    dossiers = session.exec(select(Dossier).where(Dossier.patient_id == patient_id)).all()
+    venues = []
+    mouvements = []
+    for dossier in dossiers:
+        ds_venues = session.exec(select(Venue).where(Venue.dossier_id == dossier.id)).all()
+        venues.extend(ds_venues)
+        for venue in ds_venues:
+            mvts = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
+            mouvements.extend(mvts)
+
     return templates.TemplateResponse(
         request,
         "timeline.html",
@@ -264,7 +275,11 @@ def patient_timeline(
             "events": events,
             "entity_type": "patient",
             "entity_id": patient_id,
-            "entity_name": f"{patient.family} {patient.given}"
+            "entity_name": f"{patient.family} {patient.given}",
+            "patient": patient,
+            "dossiers": dossiers,
+            "venues": venues,
+            "mouvements": mouvements
         }
     )
 
@@ -302,6 +317,13 @@ def dossier_timeline(
         {"label": "Timeline", "url": f"/timeline/dossier/{dossier_id}"}
     ])
     
+    # Récupérer venues et mouvements liés au dossier
+    venues = session.exec(select(Venue).where(Venue.dossier_id == dossier_id)).all()
+    mouvements = []
+    for venue in venues:
+        mvts = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
+        mouvements.extend(mvts)
+
     return templates.TemplateResponse(
         request,
         "timeline.html",
@@ -311,7 +333,10 @@ def dossier_timeline(
             "events": events,
             "entity_type": "dossier",
             "entity_id": dossier_id,
-            "entity_name": f"Dossier #{dossier.dossier_seq}"
+            "entity_name": f"Dossier #{dossier.dossier_seq}",
+            "dossier": dossier,
+            "venues": venues,
+            "mouvements": mouvements
         }
     )
 

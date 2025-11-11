@@ -6,7 +6,6 @@
     <dt class="text-slate-500">Venue ID</dt><dd>{{ mouvement.venue_id }}</dd>
     <dt class="text-slate-500">Type</dt>
     <dd>
-      {% if type_display %}<div class="mb-1 text-slate-700">{{ type_display }}</div>{% endif %}
       <div class="inline-block">{{ type_badge | safe }}</div>
     </dd>
     <dt class="text-slate-500">Quand</dt><dd>{{ mouvement.when }}</dd>

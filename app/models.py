@@ -57,6 +57,7 @@ class Patient(SQLModel, table=True):
     external_id: Optional[str] = None  # Identifiant du système source externe
     identifier: Optional[str] = Field(default=None, index=True)  # Identifiant principal (peut être NIR ou autre)
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id")  # Association au contexte GHT
+    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")  # Association à l'EJ
     
     # Identité
     family: str = Field(alias="nom")  # Nom de famille (obligatoire)
@@ -140,6 +141,7 @@ class Dossier(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_seq: int = Field(index=True, unique=True)       # identifiant métier unique
     patient_id: int = Field(foreign_key="patient.id")
+    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     # Rendu optionnel pour compatibilité avec anciens tests/scénarios de création simplifiée.
     # Si absent lors d'un flux PAM, sera dérivé d'un service hospital_service/PV1 ou marqué UNKNOWN.
     uf_responsabilite: Optional[str] = None
@@ -196,6 +198,7 @@ class Venue(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     venue_seq: int = Field(index=True, unique=True)         # identifiant métier unique
     dossier_id: int = Field(foreign_key="dossier.id")
+    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     # Optionnel pour permettre création avant résolution de l'UF réelle (ex: préadmission partielle).
     uf_responsabilite: Optional[str] = None
     start_time: datetime
@@ -232,6 +235,7 @@ class Mouvement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     mouvement_seq: int = Field(index=True, unique=True)     # identifiant métier unique
     venue_id: int = Field(foreign_key="venue.id")
+    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     # Type de message HL7 (ex: "ADT^A01"). Conservé pour compat UI/ancienne donnée.
     # La logique métier doit utiliser trigger_event (A01, A03, A21, ...).
     type: Optional[str] = None

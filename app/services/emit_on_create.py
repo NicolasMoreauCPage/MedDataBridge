@@ -877,7 +877,10 @@ async def emit_to_senders_async(
             forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
             operation=operation,
         )
-        
+        # Ensure hl7_message is always a non-empty string
+        if hl7_message is None or (isinstance(hl7_message, str) and hl7_message.strip() == ""):
+            hl7_message = "[Emission error: HL7 message not generated]"
+
         # Generate FHIR payload
         fhir_payload = generate_fhir(
             entity,
@@ -906,12 +909,14 @@ async def emit_to_senders_async(
             except Exception as exc:  # noqa: BLE001 - we want to log the failure
                 status = "error"
                 ack_payload = str(exc)
+            # Ensure payload is always a non-empty string
+            payload_str = hl7_message if hl7_message else "[Emission error: HL7 message missing]"
             sent_logs.append(
                 MessageLog(
                     direction="out",
                     kind="MLLP",
                     endpoint_id=endpoint.id,
-                    payload=hl7_message,
+                    payload=payload_str,
                     ack_payload=ack_payload or "",
                     status=status,
                     pam_validation_status=pam_status,

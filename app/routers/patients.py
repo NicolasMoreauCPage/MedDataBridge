@@ -124,10 +124,14 @@ async def api_create_patient(
 def list_patients(request: Request, session=Depends(get_session)):
     # Liste paginée des patients (vue HTML)
     ght_context = getattr(request.state, "ght_context", None)
-    if ght_context:
-        patients = session.exec(select(Patient).where(Patient.ght_context_id == ght_context.id)).all()
-    else:
-        patients = session.exec(select(Patient)).all()
+    ej_context = getattr(request.state, "ej_context", None)
+    query = select(Patient)
+    # Si EJ sélectionné, filtrer uniquement par EJ
+    if ej_context and getattr(ej_context, "id", None):
+        query = query.where(Patient.entite_juridique_id == ej_context.id)
+    elif ght_context and getattr(ght_context, "id", None):
+        query = query.where(Patient.ght_context_id == ght_context.id)
+    patients = session.exec(query).all()
     rows = [
         {
             "cells": [p.patient_seq, p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
@@ -181,6 +185,7 @@ def list_patients(request: Request, session=Depends(get_session)):
         }
     ]
 
+    debug_info = f"EJ context: {getattr(ej_context, 'id', None)} | GHT context: {getattr(ght_context, 'id', None)} | patients: {len(rows)}"
     ctx = {
         "request": request,
         "title": "Patients",
@@ -190,7 +195,9 @@ def list_patients(request: Request, session=Depends(get_session)):
         "new_url": "/patients/new",
         "filters": filters,
         "actions": actions,
-        "show_actions": True
+        "show_actions": True,
+        "ght_context": ght_context,
+        "debug_info": debug_info,
     }
     
     templates = get_templates(request)

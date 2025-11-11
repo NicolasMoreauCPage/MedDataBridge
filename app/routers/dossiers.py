@@ -35,14 +35,19 @@ def list_dossiers(
 ):
     # Construction de la requête de base
     stmt = select(Dossier)
+    # Filtrer par contexte EJ si présent
+    ej_context = getattr(request.state, "ej_context", None)
+    if ej_context and getattr(ej_context, "id", None):
+        stmt = stmt.where(Dossier.entite_juridique_id == ej_context.id)
+
     if patient_id:
         stmt = stmt.where(Dossier.patient_id == patient_id)
         # Récupérer les infos du patient pour le fil d'Ariane
         patient = session.get(Patient, patient_id)
-        
+
     if dossier_type:
         stmt = stmt.where(Dossier.dossier_type == dossier_type)
-    
+
     if dossier_seq:
         stmt = stmt.where(Dossier.dossier_seq == dossier_seq)
 

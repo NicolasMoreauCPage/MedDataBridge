@@ -139,21 +139,44 @@ def list_mouvements(
         else:
             stmt = stmt.order_by(Mouvement.when.desc(), Mouvement.id.desc())
     
-    # Sinon, erreur : au moins un paramètre requis
+    # Sinon, filtrer par contexte EJ si présent
     else:
-        return templates.TemplateResponse(
-            request,
-            "error.html",
-            {
-                "title": "Paramètre manquant",
-                "message": "Vous devez spécifier soit un dossier_id soit un venue_id pour voir les mouvements.",
-                "back_url": "/dossiers"
-            },
-            status_code=400
-        )
-
-    # Exécuter la requête
-    mouvements = session.exec(stmt).all()
+        ej_context = getattr(request.state, "ej_context", None)
+        if ej_context and getattr(ej_context, "id", None):
+            # Récupérer tous les dossiers de l'EJ
+            from app.models import Dossier, Venue
+            dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id)).all()]
+            if dossier_ids:
+                venue_ids = [v.id for v in session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids)).all())]
+                if venue_ids:
+                    stmt = select(Mouvement).where(Mouvement.venue_id.in_(venue_ids))
+                    # Optionally filter out cancelled
+                    if not include_cancelled:
+                        stmt = stmt.where((Mouvement.status.is_(None)) | (Mouvement.status != "cancelled"))
+                    # Tri
+                    if order == "asc":
+                        stmt = stmt.order_by(Mouvement.when.asc(), Mouvement.id.asc())
+                    else:
+                        stmt = stmt.order_by(Mouvement.when.desc(), Mouvement.id.desc())
+                    mouvements = session.exec(stmt).all()
+                else:
+                    mouvements = []
+            else:
+                mouvements = []
+        else:
+            return templates.TemplateResponse(
+                request,
+                "error.html",
+                {
+                    "title": "Paramètre manquant",
+                    "message": "Vous devez spécifier soit un dossier_id soit un venue_id pour voir les mouvements.",
+                    "back_url": "/dossiers"
+                },
+                status_code=400
+            )
+    # Exécuter la requête si pas déjà fait
+    if 'mouvements' not in locals():
+        mouvements = session.exec(stmt).all()
 
     # Préparer les lignes avec les actions détaillées
     def _type_cell(m: Mouvement) -> str:
@@ -736,26 +759,14 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
     m = session.get(Mouvement, mouvement_id)
     if not m:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-    # Compute display helpers
-    # Type: prefer explicit HL7 type, fallback to trigger_event, else use movement_type badge label
-    type_display = None
-    if getattr(m, 'type', None):
-        type_display = m.type
-    elif getattr(m, 'trigger_event', None):
-        type_display = f"ADT^{m.trigger_event}"
-    else:
-        type_display = None
+    # Affichage uniquement du badge métier (movement_type)
     type_badge = get_type_badge(getattr(m, 'movement_type', None))
-
-    # Status: default to 'pending' when missing (consistent with list view)
     status_badge = get_status_badge(getattr(m, 'status', 'pending'))
-
     return templates.TemplateResponse(
         request,
         "mouvement_detail.html",
         {
             "mouvement": m,
-            "type_display": type_display,
             "type_badge": type_badge,
             "status_badge": status_badge,
         }

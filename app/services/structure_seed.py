@@ -1445,52 +1445,60 @@ def seed_demo_population(
     def _pick_lit(idx: int) -> str:
         return lit_cycle[idx % len(lit_cycle)]
 
+    # Sélectionner toutes les EJ du contexte
+    from app.models_structure_fhir import EntiteJuridique
+    ej_list = session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == context.id)).all()
+    num_ej = len(ej_list)
+
     for i in range(to_create):
+        fn = random.choice(first_names)
+        ln = random.choice(last_names)
+        birth_year = random.randint(1935, 2023)
+        birth_date = f"{birth_year}-" + f"{random.randint(1,12):02d}-{random.randint(1,28):02d}"
 
-            fn = random.choice(first_names)
-            ln = random.choice(last_names)
-            birth_year = random.randint(1935, 2023)
-            birth_date = f"{birth_year}-" + f"{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+        # Répartition cyclique des patients sur les EJ
+        ej = ej_list[i % num_ej] if num_ej > 0 else None
+        ej_id = ej.id if ej else None
 
-            # Générer un IPP comme identifiant externe
-            from app.models_structure_fhir import IdentifierNamespace
-            from app.models_identifiers import Identifier, IdentifierType
-            # Sélectionner le namespace IPP principal (premier trouvé)
-            ipp_namespace = session.exec(select(IdentifierNamespace).where(IdentifierNamespace.type == "IPP")).first()
-            ipp_value = None
-            if ipp_namespace:
-                from app.services.identifier_generator import generate_identifier
-                ipp_value = generate_identifier(session, ipp_namespace, IdentifierType.IPP)
+        # Générer un IPP comme identifiant externe
+        from app.models_structure_fhir import IdentifierNamespace
+        from app.models_identifiers import Identifier, IdentifierType
+        # Sélectionner le namespace IPP principal pour cette EJ
+        ipp_namespace = session.exec(select(IdentifierNamespace).where(IdentifierNamespace.type == "IPP").where(IdentifierNamespace.entite_juridique_id == ej_id)).first()
+        ipp_value = None
+        if ipp_namespace:
+            from app.services.identifier_generator import generate_identifier
+            ipp_value = generate_identifier(session, ipp_namespace, IdentifierType.IPP)
 
-            patient = Patient(
-                patient_seq=get_next_sequence(session, "patient"),
-                family=ln,
-                given=fn,
-                birth_date=birth_date,
-                gender=random.choice(["male", "female"]),
-                postal_code=f"69{random.randint(100,999)}",
-                city="Lyon",
-                identity_reliability_code=random.choice(["PROV", "QUAL", "VALI"]),
-                external_id=ipp_value,
+        patient = Patient(
+            patient_seq=get_next_sequence(session, "patient"),
+            family=ln,
+            given=fn,
+            birth_date=birth_date,
+            gender=random.choice(["male", "female"]),
+            postal_code=f"69{random.randint(100,999)}",
+            city="Lyon",
+            identity_reliability_code=random.choice(["PROV", "QUAL", "VALI"]),
+            external_id=ipp_value,
+            ght_context_id=context.id,
+            entite_juridique_id=ej_id,
+        )
+        session.add(patient)
+        session.flush()  # ensure patient.id
+        created_patients += 1
+
+        # Créer l'objet Identifier lié au patient
+        if ipp_value and ipp_namespace:
+            identifier = Identifier(
+                value=ipp_value,
+                type=IdentifierType.IPP,
+                system=ipp_namespace.system,
+                status="active",
+                assigned_date=datetime.utcnow(),
+                last_updated=datetime.utcnow(),
+                patient_id=patient.id
             )
-            session.add(patient)
-            session.flush()  # ensure patient.id
-            created_patients += 1
-
-            # Créer l'objet Identifier lié au patient
-            if ipp_value and ipp_namespace:
-                identifier = Identifier(
-                    value=ipp_value,
-                    type=IdentifierType.IPP,
-                    system=ipp_namespace.system,
-                    status="active",
-                    assigned_date=datetime.utcnow(),
-                    last_updated=datetime.utcnow(),
-                    patient_id=patient.id
-                )
-                session.add(identifier)
-
-            # Déterminer type dossier
+            session.add(identifier)
             r = random.random()
             if r < admit_ratio:
                 dossier_type = DossierType.HOSPITALISE
@@ -1499,23 +1507,39 @@ def seed_demo_population(
             else:
                 dossier_type = DossierType.EXTERNE
 
+            # Dates réalistes pour le séjour
+            from datetime import timedelta
+            admit_dt = datetime.utcnow() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 12))
+            discharge_dt = admit_dt + timedelta(days=random.randint(1, 10), hours=random.randint(1, 12))
+            # Sélectionner une UF de responsabilité et une UF d'hébergement pour l'EJ
+            from app.models_structure import UniteFonctionnelle
+            ufs_resp = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id.is_not(None))).all()
+            ufs_ej = [uf for uf in ufs_resp if getattr(uf.service, 'pole', None) and getattr(uf.service.pole, 'entite_geo', None) and getattr(uf.service.pole.entite_geo, 'entite_juridique_id', None) == ej_id]
+            uf_resp = random.choice(ufs_ej) if ufs_ej else None
+            uf_heberg = random.choice(ufs_ej) if ufs_ej else None
             dossier = Dossier(
                 dossier_seq=get_next_sequence(session, "dossier"),
                 patient_id=patient.id,
-                admit_time=datetime.utcnow(),
+                admit_time=admit_dt,
+                discharge_time=discharge_dt if dossier_type in [DossierType.HOSPITALISE, DossierType.URGENCE] else None,
                 dossier_type=dossier_type,
+                entite_juridique_id=ej_id,
+                uf_responsabilite=uf_resp.um_code if uf_resp else None,
+                uf_hebergement=uf_heberg.um_code if uf_heberg else None,
             )
             session.add(dossier)
             session.flush()  # ensure IDs
             created_dossiers += 1
 
             # Venue & mouvements selon type
+            venue_start = admit_dt + timedelta(hours=random.randint(0, 3))
             venue = Venue(
                 venue_seq=get_next_sequence(session, "venue"),
                 dossier_id=dossier.id,
-                start_time=datetime.utcnow(),
+                start_time=venue_start,
                 assigned_location=_pick_lit(i),
                 hospital_service="MED",
+                entite_juridique_id=ej_id,
             )
             session.add(venue)
             session.flush()
@@ -1525,11 +1549,12 @@ def seed_demo_population(
             m_adm = Mouvement(
                 mouvement_seq=get_next_sequence(session, "mouvement"),
                 venue_id=venue.id,
-                type="ADT^A01",
+                type=None,
                 trigger_event="A01",
-                when=datetime.utcnow(),
+                when=venue_start,
                 to_location=venue.assigned_location,
                 movement_type="admission",
+                entite_juridique_id=ej_id,
             )
             session.add(m_adm)
             created_mouvements += 1
@@ -1538,29 +1563,33 @@ def seed_demo_population(
                 # Optionnel transfert vers un autre lit
                 if random.random() < 0.3:
                     new_loc = _pick_lit(i + 17)
+                    transfer_dt = venue_start + timedelta(days=random.randint(0, 5), hours=random.randint(1, 8))
                     m_tx = Mouvement(
                         mouvement_seq=get_next_sequence(session, "mouvement"),
                         venue_id=venue.id,
-                        type="ADT^A02",
+                        type=None,
                         trigger_event="A02",
-                        when=datetime.utcnow(),
+                        when=transfer_dt,
                         from_location=venue.assigned_location,
                         to_location=new_loc,
                         movement_type="transfer",
+                        entite_juridique_id=ej_id,
                     )
                     session.add(m_tx)
                     created_mouvements += 1
                     venue.assigned_location = new_loc
                 # Discharge
                 if random.random() < 0.9:  # la majorité sont sortis
+                    discharge_dt = discharge_dt
                     m_dis = Mouvement(
                         mouvement_seq=get_next_sequence(session, "mouvement"),
                         venue_id=venue.id,
-                        type="ADT^A03",
+                        type=None,
                         trigger_event="A03",
-                        when=datetime.utcnow(),
+                        when=discharge_dt,
                         from_location=venue.assigned_location,
                         movement_type="discharge",
+                        entite_juridique_id=ej_id,
                     )
                     session.add(m_dis)
                     created_mouvements += 1
@@ -1569,11 +1598,12 @@ def seed_demo_population(
                 m_dis = Mouvement(
                     mouvement_seq=get_next_sequence(session, "mouvement"),
                     venue_id=venue.id,
-                    type="ADT^A03",
+                    type=None,
                     trigger_event="A03",
                     when=datetime.utcnow(),
                     from_location=venue.assigned_location,
                     movement_type="discharge",
+                    entite_juridique_id=ej_id,
                 )
                 session.add(m_dis)
                 created_mouvements += 1

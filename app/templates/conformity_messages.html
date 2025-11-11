@@ -6,7 +6,7 @@
   <nav class="mb-6 flex items-center space-x-2 text-sm">
     <a href="/conformity" class="text-blue-600 hover:text-blue-700">Conformité</a>
     <span class="text-slate-400">→</span>
-  <a href="/conformity/ej/{{ ej.id }}" class="text-blue-600 hover:text-blue-700">{{ ej.name|default('', true) }}</a>
+    <a href="/conformity/ej/{{ ej.id|default('', true) }}" class="text-blue-600 hover:text-blue-700">{{ ej.name|default('', true) }}</a>
     <span class="text-slate-400">→</span>
     <span class="text-slate-900">Messages</span>
   </nav>
@@ -49,23 +49,23 @@
         {% for msg in messages %}
         <tr class="hover:bg-slate-50">
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-          #{{ msg.log.id|default('', true) }}
+            #{{ msg.log.id|default('', true) }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-            {{ msg.log.created_at.strftime('%Y-%m-%d %H:%M') if msg.log.created_at is not none else 'N/A' }}
+            {{ msg.log.created_at.strftime('%Y-%m-%d %H:%M') if msg.log.created_at is not none else '' }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             <span class="px-2 py-1 rounded text-xs font-medium
                          {% if msg.log.direction == 'inbound' %}bg-blue-100 text-blue-800
                          {% else %}bg-green-100 text-green-800{% endif %}">
-              {{ msg.log.direction|default('N/A', true) }}
+              {{ msg.log.direction|default('', true) }}
             </span>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-            <code>{{ msg.log.message_type|default('N/A', true) }}</code>
+            <code>{{ msg.log.message_type|default('', true) }}</code>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-            {{ msg.log.endpoint_id|default('-', true) }}
+            {{ msg.log.endpoint_id|default('', true) }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             {% if msg.is_valid %}
@@ -75,18 +75,18 @@
             {% else %}
             <div class="space-y-1">
               <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
-                ✗ {{ msg.error_count }} erreur(s)
+                ✗ {{ msg.error_count|default('', true) }} erreur(s)
               </span>
               {% if msg.warn_count > 0 %}
               <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                ⚠ {{ msg.warn_count }} warning(s)
+                ⚠ {{ msg.warn_count|default('', true) }} warning(s)
               </span>
               {% endif %}
             </div>
             {% endif %}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <a href="/conformity/ej/{{ ej.id }}/messages/{{ msg.log.id }}" 
+            <a href="/conformity/ej/{{ ej.id|default('', true) }}/messages/{{ msg.log.id|default('', true) }}" 
                class="text-blue-600 hover:text-blue-900">
               Détail →
             </a>

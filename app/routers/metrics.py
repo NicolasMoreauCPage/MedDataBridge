@@ -126,6 +126,11 @@ async def health_check():
 
 @router.get("/cache", response_model=dict)
 async def get_cache_metrics() -> Dict[str, Any]:
+from fastapi import HTTPException, status, Depends
+from app.auth import get_current_user, require_role
+
+@router.get("/cache", response_model=dict)
+async def get_cache_metrics(current_user=Depends(require_role("admin"))) -> Dict[str, Any]:
     """
     Récupère les métriques de cache Redis.
     

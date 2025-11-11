@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Contacts</h1>
+<a href="{{ new_url }}" class="btn btn-primary">Nouveau contact</a>
+<h2>Contacts Patient</h2>
+<table class="table">
+    <thead>
+    <tr><th>ID</th><th>Patient</th><th>Nom</th><th>Relation</th><th>Téléphone</th><th>Tél. pro</th><th>Email</th><th>Adresse</th><th>Rôle</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for c in patient_contacts %}
+        <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.patient_id }}</td>
+            <td>{{ c.family_name }} {{ c.given_name }}</td>
+            <td>{{ c.relationship_code }}</td>
+            <td>{{ c.phone_number }}</td>
+            <td>{{ c.business_phone }}</td>
+            <td>{{ c.email }}</td>
+            <td>{{ c.address_line1 }}{% if c.address_line2 %}, {{ c.address_line2 }}{% endif %}, {{ c.address_city }} {{ c.address_postalcode }} {{ c.address_country }}</td>
+            <td>{{ c.contact_role }}</td>
+            <td>
+                <a href="/contacts/{{ c.id }}/edit" class="btn btn-sm btn-secondary">Éditer</a>
+                <form method="post" action="/contacts/{{ c.id }}/delete" style="display:inline">
+                    <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<h2>Contacts Venue</h2>
+<table class="table">
+    <thead>
+    <tr><th>ID</th><th>Venue</th><th>Nom</th><th>Relation</th><th>Téléphone</th><th>Tél. pro</th><th>Email</th><th>Adresse</th><th>Rôle</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for c in venue_contacts %}
+        <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.venue_id }}</td>
+            <td>{{ c.family_name }} {{ c.given_name }}</td>
+            <td>{{ c.relationship_code }}</td>
+            <td>{{ c.phone_number }}</td>
+            <td>{{ c.business_phone }}</td>
+            <td>{{ c.email }}</td>
+            <td>{{ c.address_line1 }}{% if c.address_line2 %}, {{ c.address_line2 }}{% endif %}, {{ c.address_city }} {{ c.address_postalcode }} {{ c.address_country }}</td>
+            <td>{{ c.contact_role }}</td>
+            <td>
+                <a href="/contacts/{{ c.id }}/edit" class="btn btn-sm btn-secondary">Éditer</a>
+                <form method="post" action="/contacts/{{ c.id }}/delete" style="display:inline">
+                    <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

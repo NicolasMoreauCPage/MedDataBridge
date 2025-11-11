@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+<form method="post" action="{{ action_url }}">
+    <div class="form-group">
+        <label for="contact_type">Type de contact</label>
+        <select name="contact_type" id="contact_type" class="form-control">
+            <option value="patient" {% if contact and contact.patient_id %}selected{% endif %}>PatientContact</option>
+            <option value="venue" {% if contact and contact.venue_id %}selected{% endif %}>VenueContact</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="patient_id">Patient ID</label>
+        <input type="number" name="patient_id" id="patient_id" class="form-control" value="{{ contact.patient_id if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="venue_id">Venue ID</label>
+        <input type="number" name="venue_id" id="venue_id" class="form-control" value="{{ contact.venue_id if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="family_name">Nom</label>
+        <input type="text" name="family_name" id="family_name" class="form-control" value="{{ contact.family_name if contact else '' }}" required>
+    </div>
+    <div class="form-group">
+        <label for="given_name">Prénom</label>
+        <input type="text" name="given_name" id="given_name" class="form-control" value="{{ contact.given_name if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="relationship_code">Relation</label>
+        <input type="text" name="relationship_code" id="relationship_code" class="form-control" value="{{ contact.relationship_code if contact else '' }}" required>
+    </div>
+    <div class="form-group">
+        <label for="phone_number">Téléphone</label>
+        <input type="text" name="phone_number" id="phone_number" class="form-control" value="{{ contact.phone_number if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="business_phone">Téléphone professionnel</label>
+        <input type="text" name="business_phone" id="business_phone" class="form-control" value="{{ contact.business_phone if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" class="form-control" value="{{ contact.email if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="address_line1">Adresse</label>
+        <input type="text" name="address_line1" id="address_line1" class="form-control" value="{{ contact.address_line1 if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="address_line2">Complément d'adresse</label>
+        <input type="text" name="address_line2" id="address_line2" class="form-control" value="{{ contact.address_line2 if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="address_city">Ville</label>
+        <input type="text" name="address_city" id="address_city" class="form-control" value="{{ contact.address_city if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="address_postalcode">Code postal</label>
+        <input type="text" name="address_postalcode" id="address_postalcode" class="form-control" value="{{ contact.address_postalcode if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="address_country">Pays</label>
+        <input type="text" name="address_country" id="address_country" class="form-control" value="{{ contact.address_country if contact else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="contact_role">Rôle</label>
+        <input type="text" name="contact_role" id="contact_role" class="form-control" value="{{ contact.contact_role if contact else '' }}">
+    </div>
+    <button type="submit" class="btn btn-success">Enregistrer</button>
+</form>
+{% endblock %}

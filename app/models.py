@@ -4,6 +4,7 @@ from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship, Session
 
 from app.models_identifiers import Identifier, IdentifierType
+import app.models_contacts
 
 if TYPE_CHECKING:
     from app.models_contacts import PatientContact, VenueContact
@@ -223,7 +224,9 @@ class Venue(SQLModel, table=True):
     def status(self, value: str) -> None:
         self.operational_status = value
 
-# --- Mouvement (appartient à une Venue) ---
+ # --- Mouvement (appartient à une Venue) ---
+# ...existing code...
+
 class Mouvement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     mouvement_seq: int = Field(index=True, unique=True)     # identifiant métier unique

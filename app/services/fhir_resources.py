@@ -1,32 +1,12 @@
-"""
-Génération de ressources FHIR individuelles par entité.
+from typing import Any, Dict
+from app.models_structure import Patient
 
-Architecture FHIR correcte :
-- Patient → Patient resource
-- Dossier → EpisodeOfCare resource
-- Venue → Encounter resource (principal)
-- Mouvement → Encounter resource (nested/contained dans venue Encounter)
-
-Mapping HL7 ↔ FHIR :
-- ADT^A31 (Patient) → Patient
-- ADT^A05 (Venue) → Encounter
-- ADT^A01/A04 (Mouvement admission) → Encounter nested
-- ADT^A02 (Mouvement transfer) → Encounter nested
-- ADT^A03 (Mouvement discharge) → Encounter nested
-"""
-
-from datetime import datetime
-from typing import Optional
-from sqlmodel import Session
-from app.models import Patient, Dossier, Venue, Mouvement
-
-
-def generate_patient_resource(patient: Patient) -> dict:
+def generate_patient_resource(patient: Patient, forced_identifier_system=None, forced_identifier_oid=None) -> dict:
     """Génère une ressource FHIR Patient.
-    
     Args:
         patient: Le patient à convertir
-        
+        forced_identifier_system: Override system for all identifiers (optional)
+        forced_identifier_oid: Override assigner OID for all identifiers (optional)
     Returns:
         dict: Ressource FHIR Patient
     """
@@ -42,7 +22,6 @@ def generate_patient_resource(patient: Patient) -> dict:
             },
             "value": patient.external_id
         })
-    
     if getattr(patient, "patient_seq", None):
         identifiers.append({
             "system": "http://hospital.local/patient-id",
@@ -54,7 +33,6 @@ def generate_patient_resource(patient: Patient) -> dict:
             },
             "value": str(patient.patient_seq)
         })
-    
     if getattr(patient, "ssn", None):
         identifiers.append({
             "system": "http://hl7.org/fhir/sid/us-ssn",
@@ -66,7 +44,12 @@ def generate_patient_resource(patient: Patient) -> dict:
             },
             "value": patient.ssn
         })
-    
+    # Apply forced system/assigner if provided
+    if forced_identifier_system:
+        for iid in identifiers:
+            iid["system"] = forced_identifier_system
+            if forced_identifier_oid:
+                iid["assigner"] = {"identifier": {"value": forced_identifier_oid}}
     return {
         "resourceType": "Patient",
         "id": f"pat-{patient.id}",
@@ -91,97 +74,6 @@ def generate_patient_resource(patient: Patient) -> dict:
         "birthDate": str(patient.birth_date) if patient.birth_date else None,
         "maritalStatus": {"text": patient.marital_status} if getattr(patient, "marital_status", None) else None,
     }
-
-
-def generate_episode_of_care_resource(dossier: Dossier, session: Optional[Session] = None) -> dict:
-    """Génère une ressource FHIR EpisodeOfCare pour un dossier.
-    
-    Un dossier représente l'épisode de soins administratif global.
-    
-    Args:
-        dossier: Le dossier à convertir
-        session: Session SQLModel optionnelle
-        
-    Returns:
-        dict: Ressource FHIR EpisodeOfCare
-    """
-    # Détermination du statut
-    if dossier.admit_time:
-        if dossier.discharge_time:
-            status = "finished"
-        else:
-            status = "active"
-    else:
-        status = "planned"
-    
-    # Identifiants
-    identifiers = [{
-        "system": "urn:oid:1.2.250.1.71.4.2.3",
-        "value": str(dossier.dossier_seq)
-    }]
-    
-    # Type mapping
-    dossier_type_val = getattr(dossier, "dossier_type", None)
-    if hasattr(dossier_type_val, "value"):
-        dossier_type_val = dossier_type_val.value
-    
-    encounter_class_code = getattr(dossier, "encounter_class", None)
-    if not encounter_class_code:
-        map_by_type = {"hospitalise": "IMP", "externe": "AMB", "urgence": "EMER"}
-        encounter_class_code = map_by_type.get(str(dossier_type_val), "IMP")
-    
-    display_map = {
-        "IMP": "inpatient encounter",
-        "AMB": "ambulatory",
-        "EMER": "emergency",
-        "ACUTE": "acute inpatient",
-        "NONAC": "non-acute inpatient"
-    }
-    
-    episode_res = {
-        "resourceType": "EpisodeOfCare",
-        "id": f"eoc-{dossier.id}",
-        "status": status,
-        "identifier": identifiers,
-        "patient": {"reference": f"Patient/pat-{dossier.patient_id}"},
-        "period": {
-            "start": dossier.admit_time.isoformat() if dossier.admit_time else None,
-            "end": dossier.discharge_time.isoformat() if dossier.discharge_time else None,
-        },
-    }
-    
-    # Type
-    if encounter_class_code:
-        episode_res["type"] = [{
-            "coding": [{
-                "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-                "code": encounter_class_code,
-                "display": display_map.get(encounter_class_code, encounter_class_code),
-            }]
-        }]
-    
-    # Managing organization
-    if getattr(dossier, "uf_responsabilite", None):
-        episode_res["managingOrganization"] = {
-            "reference": f"Organization/{dossier.uf_responsabilite}",
-            "display": dossier.uf_responsabilite,
-        }
-    
-    return episode_res
-
-
-def generate_encounter_resource_for_venue(venue: Venue, session: Optional[Session] = None) -> dict:
-    """Génère une ressource FHIR Encounter pour une venue.
-    
-    Une venue représente un séjour/admission spécifique (pre-admit, admission, etc.)
-    
-    Args:
-        venue: La venue à convertir
-        session: Session SQLModel optionnelle
-        
-    Returns:
-        dict: Ressource FHIR Encounter
-    """
     # Charger le dossier pour accès patient et encounter_class
     dossier = venue.dossier if hasattr(venue, "dossier") else None
     if not dossier:
@@ -235,119 +127,12 @@ def generate_encounter_resource_for_venue(venue: Venue, session: Optional[Sessio
             "end": None  # Sera défini lors de la sortie
         }
     }
-    
-    # Service provider (UF)
-    if getattr(venue, "uf_responsabilite", None):
-        encounter_res["serviceProvider"] = {
-            "reference": f"Organization/{venue.uf_responsabilite}",
-            "display": venue.uf_responsabilite
-        }
-    
-    # Participant (médecin)
-    if getattr(venue, "attending_provider", None):
-        encounter_res["participant"] = [{
-            "type": [{
-                "coding": [{
-                    "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
-                    "code": "ATND",
-                    "display": "attender"
-                }]
-            }],
-            "individual": {
-                "display": venue.attending_provider
-            }
-        }]
-    
-    # Location
-    if getattr(venue, "assigned_location", None):
-        encounter_res["location"] = [{
-            "location": {"display": venue.assigned_location},
-            "status": "active"
-        }]
-    
-    return encounter_res
 
-
-def generate_encounter_resource_for_mouvement(mouvement: Mouvement, session: Optional[Session] = None) -> dict:
-    """Génère une ressource FHIR Encounter pour un mouvement.
     
-    Un mouvement représente un événement au sein d'une venue (admission, transfer, discharge).
-    Il est représenté comme un Encounter nested/contained dans l'Encounter de la venue.
-    
-    Args:
-        mouvement: Le mouvement à convertir
-        session: Session SQLModel optionnelle
-        
-    Returns:
-        dict: Ressource FHIR Encounter (nested)
-    """
-    # Charger venue et dossier
-    venue = mouvement.venue if hasattr(mouvement, "venue") else None
-    if not venue:
-        raise ValueError("Mouvement must have venue loaded")
-    
-    dossier = venue.dossier if hasattr(venue, "dossier") else None
-    if not dossier:
-        raise ValueError("Venue must have dossier loaded")
-    
-    # Déterminer le type d'événement
-    msg_type = mouvement.type if mouvement.type else "ADT^A99"
-    event_code = msg_type.split("^")[1] if "^" in msg_type else "A99"
-    
-    # Mapping événement → status
-    status_map = {
-        "A01": "arrived",      # Admission
-        "A04": "arrived",      # Register
-        "A02": "in-progress",  # Transfer
-        "A03": "finished",     # Discharge
-        "A08": "in-progress",  # Update
-        "A11": "cancelled",    # Cancel admission
-    }
-    status = status_map.get(event_code, "in-progress")
-    
-    # Identifiants
-    identifiers = [{
-        "system": "http://hospital.local/mouvement-id",
-        "value": str(mouvement.mouvement_seq)
-    }]
-    
-    # Class depuis dossier
-    encounter_class_code = getattr(dossier, "encounter_class", "IMP")
-    
-    encounter_res = {
-        "resourceType": "Encounter",
-        "id": f"enc-mvt-{mouvement.id}",
-        "identifier": identifiers,
-        "status": status,
-        "class": {
-            "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-            "code": encounter_class_code
-        },
-        "subject": {"reference": f"Patient/pat-{dossier.patient_id}"},
-        "episodeOfCare": [{"reference": f"EpisodeOfCare/eoc-{dossier.id}"}],
-        "partOf": {"reference": f"Encounter/enc-venue-{venue.id}"},  # Nested dans venue
-        "period": {
-            "start": mouvement.when.isoformat() if mouvement.when else None,
-        }
-    }
-    
-    # Type d'événement
-    encounter_res["type"] = [{
-        "coding": [{
-            "system": "http://terminology.hl7.org/CodeSystem/v2-0003",
-            "code": event_code,
-            "display": f"ADT {event_code}"
-        }]
-    }]
-    
-    # Location si changement
-    if event_code == "A02" and getattr(mouvement, "to_location", None):
-        encounter_res["location"] = [{
-            "location": {"display": mouvement.to_location},
-            "status": "active"
-        }]
-    
-    return encounter_res
+from typing import Optional
+from sqlmodel import Session
+from datetime import datetime
+from app.services.fhir_resources import generate_episode_of_care_resource, generate_encounter_resource_for_venue, generate_encounter_resource_for_mouvement
 
 
 def generate_fhir_bundle_for_entity(
@@ -368,7 +153,12 @@ def generate_fhir_bundle_for_entity(
     entries = []
     
     if entity_type == "patient":
-        patient_res = generate_patient_resource(entity)
+        # Pass forced_identifier_system/oid if present
+        import inspect
+        frame = inspect.currentframe().f_back
+        forced_identifier_system = frame.f_locals.get("forced_identifier_system", None)
+        forced_identifier_oid = frame.f_locals.get("forced_identifier_oid", None)
+        patient_res = generate_patient_resource(entity, forced_identifier_system, forced_identifier_oid)
         entries.append({
             "resource": patient_res,
             "fullUrl": f"urn:uuid:pat-{entity.id}"

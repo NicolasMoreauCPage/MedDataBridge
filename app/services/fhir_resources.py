@@ -1,5 +1,5 @@
 from typing import Any, Dict
-from app.models_structure import Patient
+from app.models import Patient
 
 def generate_patient_resource(patient: Patient, forced_identifier_system=None, forced_identifier_oid=None) -> dict:
     """Génère une ressource FHIR Patient.
@@ -132,7 +132,7 @@ def generate_patient_resource(patient: Patient, forced_identifier_system=None, f
 from typing import Optional
 from sqlmodel import Session
 from datetime import datetime
-from app.services.fhir_resources import generate_episode_of_care_resource, generate_encounter_resource_for_venue, generate_encounter_resource_for_mouvement
+from app.services.fhir_encounters import generate_episode_of_care_resource, generate_encounter_resource_for_venue, generate_encounter_resource_for_mouvement
 
 
 def generate_fhir_bundle_for_entity(

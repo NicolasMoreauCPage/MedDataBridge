@@ -61,6 +61,7 @@ logger = logging.getLogger("transport_inbound")
 def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str]]:
     """Parse les identifiants patients du segment PID"""
     identifiers = []
+    from sqlmodel import select
     try:
         parts = pid_segment.split("|")
         if len(parts) <= 3:
@@ -1063,7 +1064,9 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             # Historique: si is_historic et timestamp passé, aucune restriction additionnelle ici (déjà validé format) mais log info
             if is_historic:
                 logger.info("Historic movement ingested", extra={"movement_id": zbe_data.get("movement_id"), "trigger": trigger})
-            
+
+            # Correction UnboundLocalError: import local de select
+            from sqlmodel import select
             # Validation des transitions IHE PAM
             # Récupérer le dernier événement du dossier/venue si applicable
             previous_event = None

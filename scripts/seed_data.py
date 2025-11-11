@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
+from sqlmodel import select
 from sqlmodel import Session, create_engine
 from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models_structure import (
@@ -195,7 +196,7 @@ def seed_venues(session: Session, patients: list[Patient], ufs: list[UniteFoncti
     for patient in patients:
         for i in range(nb_venues_per_patient):
             # Récupération du dossier du patient
-            dossier = session.query(Dossier).filter(Dossier.patient_id == patient.id).first()
+            dossier = session.exec(select(Dossier).where(Dossier.patient_id == patient.id)).first()
             
             # Création de la venue
             venue = Venue(

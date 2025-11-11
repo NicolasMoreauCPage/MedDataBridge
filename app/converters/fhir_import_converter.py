@@ -6,7 +6,7 @@ vers les modèles internes de MedDataBridge.
 """
 from typing import Any, Dict, List, Optional
 from datetime import datetime
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models_structure_fhir import EntiteJuridique
 from app.models_structure import (
@@ -394,9 +394,7 @@ class FHIRToEncounterConverter:
         type_mouvement = encounter_class.get("code", "AMB")
         
         # Trouver le dossier du patient
-        dossier = self.session.query(Dossier).filter(
-            Dossier.patient_id == patient_id
-        ).first()
+        dossier = self.session.exec(select(Dossier).where(Dossier.patient_id == patient_id)).first()
         
         if not dossier:
             raise FHIRImportError(f"Aucun dossier trouvé pour le patient {patient_id}")
@@ -404,7 +402,7 @@ class FHIRToEncounterConverter:
         # Trouver ou créer une venue pour ce dossier
         # TODO: Implémenter une vraie résolution de venue depuis les locations
         # Pour l'instant, utiliser la première venue du dossier ou en créer une
-        venue = self.session.query(Venue).filter(Venue.dossier_id == dossier.id).first()
+        venue = self.session.exec(select(Venue).where(Venue.dossier_id == dossier.id)).first()
         if not venue:
             # Créer une venue par défaut (start_time = début de la period si disponible)
             venue_seq = dossier.id * 1000 + int(datetime.now().timestamp() % 1000)

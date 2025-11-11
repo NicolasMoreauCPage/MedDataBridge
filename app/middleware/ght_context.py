@@ -18,6 +18,7 @@ Notes d'implémentation
 
 from typing import Optional
 from fastapi import Request
+from sqlmodel import select
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -129,7 +130,7 @@ async def get_error_message_count(request: Request) -> int:
                 if patient_id:
                     # Filtrer par dossiers du patient
                     from app.models import Dossier
-                    dossier_ids = [d.id for d in session.query(Dossier).filter_by(patient_id=patient_id).all()]
+                    dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.patient_id == patient_id)).all()]
                     if dossier_ids:
                         query = query.where(MessageLog.dossier_id.in_(dossier_ids))
                 else:
@@ -141,7 +142,7 @@ async def get_error_message_count(request: Request) -> int:
                         if ght_id:
                             # Filtrer par EJs du GHT
                             from app.models_structure_fhir import EntiteJuridique
-                            ej_ids = [ej.id for ej in session.query(EntiteJuridique).filter_by(ght_context_id=ght_id).all()]
+                            ej_ids = [ej.id for ej in session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == ght_id)).all()]
                             if ej_ids:
                                 query = query.where(MessageLog.ej_emetteur_id.in_(ej_ids))
             

@@ -1,68 +1,36 @@
-"""
-Routes Patients (UI HTML)
-
-Ce routeur expose les écrans de liste, création, édition et suppression de
-patients. Il s'appuie sur des templates Jinja et sur une dépendance
-`require_ght_context` pour s'assurer qu'un contexte GHT est actif.
-
-Principes clés
-- Toutes les vues rendent des pages HTML (pas d'API JSON ici).
-- Les formulaires utilisent un template générique `form.html` avec une
-    description des champs (label, type, options, etc.).
-- Les événements d'enregistrement déclenchent `emit_to_senders` pour publier
-    vers les transports configurés (HL7/FHIR sortants si activés).
-"""
-import random
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, Request, Form
+from fastapi import APIRouter, Depends, Request, Form, Body
+from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi import Request
-from sqlmodel import select
-from app.db import get_session, peek_next_sequence, get_next_sequence
 from app.models import Patient
-from app.services.emit_on_create import emit_to_senders
+from app.db import get_session
 from app.dependencies.ght import require_ght_context
+from sqlmodel import select
+from app.routers.contacts import get_templates
 from app.services.vocabulary_lookup import get_vocabulary_options
-from app.utils.seq_generator import generate_patient_seq
 
+router = APIRouter(
+    prefix="/patients",
+    tags=["patients"],
+    dependencies=[Depends(require_ght_context)],
+)
 
-def get_templates(request: Request):
-    # Récupère l'instance de templates enrichie (avec filtres globaux)
-    return request.app.state.templates
+@router.post("/api/patients", response_class=JSONResponse)
+async def api_create_patient(
+    family: str = Body(...),
+    given: str = Body(None),
+    birth_date: str = Body(None),
+    session=Depends(get_session)
+):
+    # API REST pour créer un patient (utilisé par les tests d'intégration)
+    try:
+        patient = Patient(family=family, given=given, birth_date=birth_date)
+        session.add(patient)
+        session.commit()
+        session.refresh(patient)
+        return {"id": patient.id, "family": patient.family, "given": patient.given, "birth_date": patient.birth_date}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
-
-def generate_sample_patient_data():
-    """Génère des données de patient réalistes pour pré-remplir le formulaire."""
-    # Listes de noms et prénoms français
-    family_names = [
-        "MARTIN", "BERNARD", "DUBOIS", "THOMAS", "ROBERT", "RICHARD", "PETIT", "DURAND",
-        "LEROY", "MOREAU", "SIMON", "LAURENT", "LEFEBVRE", "MICHEL", "GARCIA", "DAVID",
-        "BERTRAND", "ROUX", "VINCENT", "FOURNIER", "MOREL", "GIRARD", "ANDRE", "MERCIER"
-    ]
-    
-    given_names_m = [
-        "Jean", "Pierre", "Michel", "André", "Philippe", "Alain", "Jacques", "Bernard",
-        "François", "Claude", "Louis", "Paul", "Nicolas", "Julien", "Thomas", "Alexandre"
-    ]
-    
-    given_names_f = [
-        "Marie", "Nathalie", "Isabelle", "Sylvie", "Catherine", "Françoise", "Sophie",
-        "Monique", "Martine", "Christine", "Jacqueline", "Annie", "Claire", "Emma", "Julie"
-    ]
-    
-    middle_names = ["Marie", "Jean", "Paul", "Pierre", "Anne", "Louis", "René", "Claude"]
-    
-    cities = [
-        "Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Nantes", "Strasbourg",
-        "Montpellier", "Bordeaux", "Lille", "Rennes", "Reims", "Le Havre", "Saint-Étienne"
-    ]
-    
-    streets = [
-        "Rue de la République", "Avenue des Champs", "Boulevard Victor Hugo",
-        "Rue du Commerce", "Place de la Liberté", "Rue Jean Jaurès", "Avenue de la Paix",
-        "Rue Pasteur", "Boulevard Gambetta", "Rue Voltaire"
-    ]
-    
     # Génération aléatoire
     gender = random.choice(["M", "F", "U"])
     
@@ -128,19 +96,33 @@ def generate_sample_patient_data():
     }
 
 
+
 router = APIRouter(
     prefix="/patients",
     tags=["patients"],
     dependencies=[Depends(require_ght_context)],
 )
 
+@router.post("/api/patients", response_class=JSONResponse)
+async def api_create_patient(
+    family: str = Body(...),
+    given: str = Body(None),
+    birth_date: str = Body(None),
+    session=Depends(get_session)
+):
+    # API REST pour créer un patient (utilisé par les tests d'intégration)
+    try:
+        patient = Patient(family=family, given=given, birth_date=birth_date)
+        session.add(patient)
+        session.commit()
+        session.refresh(patient)
+        return {"id": patient.id, "family": patient.family, "given": patient.given, "birth_date": patient.birth_date}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
 @router.get("", response_class=HTMLResponse)
 def list_patients(request: Request, session=Depends(get_session)):
-    """Liste paginée des patients (vue HTML).
-
-    - Récupère les patients et prépare des lignes pour le composant `list.html`.
-    - Définit breadcrumbs, filtres et actions complémentaires.
-    """
+    # Liste paginée des patients (vue HTML)
     patients = session.exec(select(Patient)).all()
     rows = [
         {
@@ -213,7 +195,7 @@ def list_patients(request: Request, session=Depends(get_session)):
 
 @router.get("/{patient_id:int}", response_class=HTMLResponse)
 def patient_detail(patient_id: int, request: Request, session=Depends(get_session)):
-    """Affiche le détail d'un patient (lecture seule)."""
+    # Affiche le détail d'un patient (lecture seule)
     p = session.get(Patient, patient_id)
     templates = get_templates(request)
     if not p:
@@ -237,7 +219,7 @@ def patient_detail(patient_id: int, request: Request, session=Depends(get_sessio
 
 @router.get("/{patient_id:int}/edit", response_class=HTMLResponse)
 def edit_patient(patient_id: int, request: Request, session=Depends(get_session)):
-    """Affiche le formulaire d'édition d'un patient existant (conforme RGPD France)."""
+    # Affiche le formulaire d'édition d'un patient existant (conforme RGPD France)
     p = session.get(Patient, patient_id)
     templates = get_templates(request)
     if not p:
@@ -318,7 +300,7 @@ def update_patient(
     session=Depends(get_session),
     request: Request = None,
 ):
-    """Met à jour un patient existant (conforme RGPD - pas de race/religion)."""
+    # Met à jour un patient existant (conforme RGPD - pas de race/religion)
     p = session.get(Patient, patient_id)
     if not p:
         templates = get_templates(request)
@@ -376,7 +358,7 @@ def update_patient(
 
 @router.post("/{patient_id:int}/delete")
 def delete_patient(patient_id: int, request: Request, session=Depends(get_session)):
-    """Supprime un patient et revient à la liste."""
+    # Supprime un patient et revient à la liste
     p = session.get(Patient, patient_id)
     templates = get_templates(request)
     if not p:
@@ -388,13 +370,13 @@ def delete_patient(patient_id: int, request: Request, session=Depends(get_sessio
 
 @router.get("/new", response_class=HTMLResponse)
 def new_patient(request: Request, session=Depends(get_session)):
-    """Affiche le formulaire de création d'un patient (conforme RGPD France)."""
+    # Affiche le formulaire de création d'un patient (conforme RGPD France)
     # L'identifiant sera généré automatiquement basé sur le timestamp
     # Pas besoin de pré-générer un numéro de séquence
     next_seq = None
     
     # Générer des données de démonstration pré-remplies
-    sample_data = generate_sample_patient_data()
+    sample_data = {}
     
     # HL7 Table 0445 - Identity Reliability Code (IHE PAM France)
     identity_opts = get_vocabulary_options("identity-reliability-rniv") or [
@@ -470,7 +452,7 @@ async def create_patient(
     primary_care_provider: str = Form(None),
     session=Depends(get_session)
 ):
-    """Crée un nouveau patient (conforme RGPD - pas de race/religion) et redirige."""
+    # Crée un nouveau patient (conforme RGPD - pas de race/religion) et redirige
     is_ajax = request.headers.get('accept') == 'application/json'
 
     try:

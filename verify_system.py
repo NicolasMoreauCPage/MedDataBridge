@@ -38,8 +38,8 @@ def verify_system(verbose: bool):
         init_db()
         with Session(engine) as session:
             # Compter les GHT
-            ght_count = session.query(GHTContext).count()
-            ej_count = session.query(EntiteJuridique).count()
+            ght_count = session.exec(select(GHTContext)).count()
+            ej_count = session.exec(select(EntiteJuridique)).count()
             
             print(f"  ✓ Base de données accessible")
             print(f"  ✓ {ght_count} GHT configuré(s)")

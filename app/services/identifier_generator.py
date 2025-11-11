@@ -227,16 +227,9 @@ def generate_identifier(
     # → selon config du namespace
     ```
     """
-    # Cas spéciaux: IPP et NDA utilisent la génération basée sur timestamp
-    if identifier_type == IdentifierType.IPP:
-        return str(generate_patient_seq())
-    elif identifier_type == IdentifierType.NDA:
-        return str(generate_dossier_seq())
-    
-    # Pour les autres types (VN, etc.), utiliser la configuration du namespace
     pattern = prefix_override if prefix_override else namespace.prefix_pattern
     mode = namespace.prefix_mode or "fixed"
-    
+
     # Cas 1: Pattern de préfixe (mode par défaut)
     if pattern:
         with _GEN_LOCK:
@@ -246,7 +239,7 @@ def generate_identifier(
                 identifier_type=identifier_type,
                 namespace_system=namespace.system,
             )
-    
+
     # Cas 2: Plage numérique (mode range)
     if mode == "range" and namespace.prefix_min is not None and namespace.prefix_max is not None:
         with _GEN_LOCK:
@@ -257,9 +250,17 @@ def generate_identifier(
                 identifier_type=identifier_type,
                 namespace_system=namespace.system,
             )
-    
-    # Cas 3: Pas de configuration = génération séquentielle simple
-    # Trouver le dernier identifiant de ce type dans ce namespace
+
+    # Cas 3: Timestamp (optionnel, si explicitement demandé)
+    if mode == "timestamp":
+        if identifier_type == IdentifierType.IPP:
+            return str(generate_patient_seq())
+        elif identifier_type == IdentifierType.NDA:
+            return str(generate_dossier_seq())
+        else:
+            raise IdentifierGenerationError("Mode timestamp non supporté pour ce type d'identifiant")
+
+    # Cas 4: Pas de configuration = génération séquentielle simple
     with _GEN_LOCK:
         last_ident = session.exec(
             select(Identifier)
@@ -269,12 +270,11 @@ def generate_identifier(
             )
             .order_by(Identifier.id.desc())
         ).first()
-    
+
     if last_ident and last_ident.value.isdigit():
-        with _GEN_LOCK:
-            next_val = int(last_ident.value) + 1
-            return str(next_val)
-    
+        next_val = int(last_ident.value) + 1
+        return str(next_val)
+
     # Fallback: commencer à 1000 pour ce namespace
     return "1000"
 

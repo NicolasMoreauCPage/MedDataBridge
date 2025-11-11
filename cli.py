@@ -12,6 +12,7 @@ import click
 import json
 import sys
 from pathlib import Path
+from sqlmodel import select
 
 # Ajouter le répertoire parent au path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -193,8 +194,8 @@ def stats(ej_id: int):
         click.echo(f"📊 Statistiques pour {ej.name} (ID: {ej_id})\n")
         
         # Compter les structures
-        eg_count = session.query(EntiteGeographique).filter(
-            EntiteGeographique.entite_juridique_id == ej_id
+        eg_count = session.exec(
+            select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)
         ).count()
         
         click.echo(f"🏢 Structure:")

@@ -29,7 +29,7 @@ _pending_emissions: Dict[int, Set[tuple]] = {}
 _emission_context = threading.local()
 
 # Semaphore to limit concurrent emissions (prevent pool exhaustion)
-_emission_semaphore = asyncio.Semaphore(5)  # Max 5 concurrent emissions
+_emission_semaphore = threading.Semaphore(5)  # Max 5 concurrent emissions
 
 
 def _get_session_id(session: Session) -> int:
@@ -128,7 +128,7 @@ async def _emit_in_new_session(entity_class: type, entity_id: int, entity_type: 
     from sqlmodel import Session as SQLModelSession
     
     # Acquire semaphore to limit concurrent emissions
-    async with _emission_semaphore:
+    with _emission_semaphore:
         # Mark that we're currently emitting (prevent recursive loop)
         _emission_context.active = True
         

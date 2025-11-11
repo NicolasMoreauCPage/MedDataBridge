@@ -7,10 +7,10 @@
             <div>
                 <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}"
                    class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-3">
-                    &larr; Retour à {{ geo.name }}
+                                        &larr; Retour à {{ geo.name if geo.name is not none else '' }}
                 </a>
                 <h1 class="text-3xl font-bold text-slate-900">{{ uf.name }}</h1>
-                <p class="text-slate-600 mt-1">Identifiant : <span class="font-mono">{{ uf.identifier }}</span></p>
+                <p class="text-slate-600 mt-1">Identifiant : <span class="font-mono">{{ uf.identifier if uf.identifier is not none else '' }}</span></p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
                 <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/edit"
@@ -31,17 +31,17 @@
             </div>
             <div class="rounded-xl border border-purple-100 bg-purple-50 px-5 py-4 shadow-sm">
                 <p class="text-xs uppercase tracking-wide text-purple-600 font-semibold">Chambres</p>
-                <p class="mt-2 text-3xl font-bold text-purple-700">{{ counts.chambres }}</p>
+                <p class="mt-2 text-3xl font-bold text-purple-700">{{ counts.chambres if counts.chambres is not none else '' }}</p>
             </div>
             <div class="rounded-xl border border-amber-100 bg-amber-50 px-5 py-4 shadow-sm">
                 <p class="text-xs uppercase tracking-wide text-amber-600 font-semibold">Lits</p>
-                <p class="mt-2 text-3xl font-bold text-amber-700">{{ counts.lits }}</p>
+                <p class="mt-2 text-3xl font-bold text-amber-700">{{ counts.lits if counts.lits is not none else '' }}</p>
             </div>
             {% if top_operational %}
             <div class="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
                 <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Statut opérationnel principal</p>
                 <p class="mt-2 text-2xl font-bold text-slate-800">{{ top_operational[1] }}</p>
-                <p class="text-xs text-slate-500 mt-1">{{ top_operational[0]|replace('_',' ')|title }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ top_operational[0]|replace('_',' ')|title if top_operational[0] is not none else '' }}</p>
             </div>
             {% endif %}
         </div>
@@ -74,7 +74,7 @@
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 border-b border-slate-200 bg-slate-50">
                         <div>
                             <h3 class="text-lg font-semibold text-slate-900">{{ uh.name }}</h3>
-                            <p class="text-xs text-slate-500 font-mono">{{ uh.identifier }}</p>
+                            <p class="text-xs text-slate-500 font-mono">{{ uh.identifier if uh.identifier is not none else '' }}</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
                             <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/edit"
@@ -93,7 +93,7 @@
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                                     <div>
                                         <p class="font-semibold text-amber-700">{{ chambre.name }}</p>
-                                        <p class="text-xs text-amber-500 font-mono">{{ chambre.identifier }}</p>
+                                        <p class="text-xs text-amber-500 font-mono">{{ chambre.identifier if chambre.identifier is not none else '' }}</p>
                                     </div>
                                     <div class="flex flex-wrap items-center gap-3">
                                         <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/chambres/{{ chambre.id }}/edit"
@@ -110,7 +110,7 @@
                                     <div class="border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between text-sm">
                                         <div>
                                             <p class="font-medium text-slate-700">{{ lit.name }}</p>
-                                            <p class="text-xs text-slate-500 font-mono">{{ lit.identifier }}</p>
+                                            <p class="text-xs text-slate-500 font-mono">{{ lit.identifier if lit.identifier is not none else '' }}</p>
                                         </div>
                                         <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/chambres/{{ chambre.id }}/lits/{{ lit.id }}/edit"
                                            class="text-xs text-blue-600 hover:text-blue-800">

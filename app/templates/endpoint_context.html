@@ -3,7 +3,7 @@
 {% block content %}
 <div class="max-w-content mx-auto py-8 px-4">
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-primary">Contexte de l'endpoint {{ endpoint.name }}</h2>
+    <h2 class="text-2xl font-bold text-primary">Contexte de l'endpoint {{ endpoint.name|default('', true) }}</h2>
         <a href="/endpoints/{{ endpoint.id }}/clone-structure" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V7M8 7a4 4 0 0 1 4-4v0a4 4 0 0 1 4 4M8 7h8" />
@@ -13,9 +13,9 @@
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <h4 class="text-lg font-semibold mb-2">Informations du contexte</h4>
-        <p><strong>Dernière séquence :</strong> {{ context.last_sequence_value }}</p>
-        <p><strong>Créé le :</strong> {{ context.created_at }}</p>
-        <p><strong>Mis à jour le :</strong> {{ context.updated_at }}</p>
+    <p><strong>Dernière séquence :</strong> {{ context.last_sequence_value|default('-', true) }}</p>
+    <p><strong>Créé le :</strong> {{ context.created_at|default('-', true) }}</p>
+    <p><strong>Mis à jour le :</strong> {{ context.updated_at|default('-', true) }}</p>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <h4 class="text-lg font-semibold mb-2">Mappings Patients</h4>
@@ -30,9 +30,9 @@
             <tbody class="bg-white divide-y divide-slate-200">
                 {% for mapping in patient_mappings %}
                 <tr class="hover:bg-slate-50">
-                    <td class="px-4 py-2">{{ mapping.external_id }}</td>
-                    <td class="px-4 py-2">{{ mapping.patient.patient_seq }}</td>
-                    <td class="px-4 py-2">{{ mapping.patient.family }}, {{ mapping.patient.given }}</td>
+                    <td class="px-4 py-2">{{ mapping.external_id|default('-', true) }}</td>
+                    <td class="px-4 py-2">{{ mapping.patient.patient_seq|default('-', true) }}</td>
+                    <td class="px-4 py-2">{{ mapping.patient.family|default('', true) }}, {{ mapping.patient.given|default('', true) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -58,10 +58,10 @@
                 <tbody>
                     {% for mapping in dossier_mappings %}
                     <tr>
-                        <td>{{ mapping.external_id }}</td>
-                        <td>{{ mapping.dossier.dossier_seq }}</td>
-                        <td>{{ mapping.dossier.patient.family }}, {{ mapping.dossier.patient.given }}</td>
-                        <td>{{ mapping.dossier.uf_responsabilite }}</td>
+                        <td>{{ mapping.external_id|default('-', true) }}</td>
+                        <td>{{ mapping.dossier.dossier_seq|default('-', true) }}</td>
+                        <td>{{ mapping.dossier.patient.family|default('', true) }}, {{ mapping.dossier.patient.given|default('', true) }}</td>
+                        <td>{{ mapping.dossier.uf_responsabilite|default('', true) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -86,10 +86,10 @@
                 <tbody>
                     {% for mapping in venue_mappings %}
                     <tr>
-                        <td>{{ mapping.external_id }}</td>
-                        <td>{{ mapping.venue.venue_seq }}</td>
-                        <td>{{ mapping.venue.dossier.dossier_seq }}</td>
-                        <td>{{ mapping.venue.type }}</td>
+                        <td>{{ mapping.external_id|default('-', true) }}</td>
+                        <td>{{ mapping.venue.venue_seq|default('-', true) }}</td>
+                        <td>{{ mapping.venue.dossier.dossier_seq|default('-', true) }}</td>
+                        <td>{{ mapping.venue.type|default('', true) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -115,11 +115,11 @@
                 <tbody>
                     {% for mapping in mouvement_mappings %}
                     <tr>
-                        <td>{{ mapping.external_id }}</td>
-                        <td>{{ mapping.mouvement.mouvement_seq }}</td>
-                        <td>{{ mapping.mouvement.venue.venue_seq }}</td>
-                        <td>{{ mapping.mouvement.type }}</td>
-                        <td>{{ mapping.mouvement.uf }}</td>
+                        <td>{{ mapping.external_id|default('-', true) }}</td>
+                        <td>{{ mapping.mouvement.mouvement_seq|default('-', true) }}</td>
+                        <td>{{ mapping.mouvement.venue.venue_seq|default('-', true) }}</td>
+                        <td>{{ mapping.mouvement.type|default('', true) }}</td>
+                        <td>{{ mapping.mouvement.uf|default('', true) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

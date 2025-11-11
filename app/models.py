@@ -56,6 +56,7 @@ class Patient(SQLModel, table=True):
     patient_seq: Optional[int] = Field(default=None, index=True, unique=True)  # Identifiant métier séquentiel (unique)
     external_id: Optional[str] = None  # Identifiant du système source externe
     identifier: Optional[str] = Field(default=None, index=True)  # Identifiant principal (peut être NIR ou autre)
+    ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id")  # Association au contexte GHT
     
     # Identité
     family: str = Field(alias="nom")  # Nom de famille (obligatoire)

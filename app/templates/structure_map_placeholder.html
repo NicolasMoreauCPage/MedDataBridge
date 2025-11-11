@@ -3,8 +3,8 @@
 <section class="space-y-6">
   <div class="flex items-center justify-between">
     <div>
-      <h2 class="text-2xl font-semibold text-slate-800">Plan de {{ entity.name }}</h2>
-      <p class="text-sm text-slate-500 mt-1">{{ type_label }} #{{ entity.id }}</p>
+  <h2 class="text-2xl font-semibold text-slate-800">Plan de {{ entity.name if entity.name is not none else '' }}</h2>
+  <p class="text-sm text-slate-500 mt-1">{{ type_label if type_label is not none else '' }} #{{ entity.id if entity.id is not none else '' }}</p>
     </div>
     <a href="/structure" class="inline-flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,22 +35,22 @@
         <dl class="grid grid-cols-1 gap-3 text-sm">
           <div class="flex justify-between">
             <dt class="text-slate-500">Nom :</dt>
-            <dd class="font-medium text-slate-800">{{ entity.name }}</dd>
+            <dd class="font-medium text-slate-800">{{ entity.name if entity.name is not none else '' }}</dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-slate-500">Type :</dt>
-            <dd class="font-medium text-slate-800">{{ type_label }}</dd>
+            <dd class="font-medium text-slate-800">{{ type_label if type_label is not none else '' }}</dd>
           </div>
           {% if entity.identifier %}
           <div class="flex justify-between">
             <dt class="text-slate-500">Identifiant :</dt>
-            <dd class="font-medium text-slate-800">{{ entity.identifier }}</dd>
+            <dd class="font-medium text-slate-800">{{ entity.identifier if entity.identifier is not none else '' }}</dd>
           </div>
           {% endif %}
           {% if entity.finess %}
           <div class="flex justify-between">
             <dt class="text-slate-500">FINESS :</dt>
-            <dd class="font-medium text-slate-800">{{ entity.finess }}</dd>
+            <dd class="font-medium text-slate-800">{{ entity.finess if entity.finess is not none else '' }}</dd>
           </div>
           {% endif %}
         </dl>

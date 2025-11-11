@@ -10,15 +10,15 @@
     <tbody>
     {% for c in patient_contacts %}
         <tr>
-            <td>{{ c.id }}</td>
-            <td>{{ c.patient_id }}</td>
-            <td>{{ c.family_name }} {{ c.given_name }}</td>
-            <td>{{ c.relationship_code }}</td>
-            <td>{{ c.phone_number }}</td>
-            <td>{{ c.business_phone }}</td>
-            <td>{{ c.email }}</td>
-            <td>{{ c.address_line1 }}{% if c.address_line2 %}, {{ c.address_line2 }}{% endif %}, {{ c.address_city }} {{ c.address_postalcode }} {{ c.address_country }}</td>
-            <td>{{ c.contact_role }}</td>
+            <td>{{ c.id|default('', true) }}</td>
+            <td>{{ c.patient_id|default('', true) }}</td>
+            <td>{{ c.family_name|default('', true) }} {{ c.given_name|default('', true) }}</td>
+                <td>{{ c.relationship_code|default('', true) }}</td>
+            <td>{{ c.phone_number|default('', true) }}</td>
+            <td>{{ c.business_phone|default('', true) }}</td>
+                <td>{{ c.email|default('', true) }}</td>
+            <td>{{ c.address_line1|default('', true) }}{% if c.address_line2 %}, {{ c.address_line2|default('', true) }}{% endif %}, {{ c.address_city|default('', true) }} {{ c.address_postalcode|default('', true) }} {{ c.address_country|default('', true) }}</td>
+            <td>{{ c.contact_role|default('', true) }}</td>
             <td>
                 <a href="/contacts/{{ c.id }}/edit" class="btn btn-sm btn-secondary">Éditer</a>
                 <form method="post" action="/contacts/{{ c.id }}/delete" style="display:inline">
@@ -37,15 +37,15 @@
     <tbody>
     {% for c in venue_contacts %}
         <tr>
-            <td>{{ c.id }}</td>
-            <td>{{ c.venue_id }}</td>
-            <td>{{ c.family_name }} {{ c.given_name }}</td>
-            <td>{{ c.relationship_code }}</td>
-            <td>{{ c.phone_number }}</td>
-            <td>{{ c.business_phone }}</td>
-            <td>{{ c.email }}</td>
-            <td>{{ c.address_line1 }}{% if c.address_line2 %}, {{ c.address_line2 }}{% endif %}, {{ c.address_city }} {{ c.address_postalcode }} {{ c.address_country }}</td>
-            <td>{{ c.contact_role }}</td>
+            <td>{{ c.id|default('', true) }}</td>
+            <td>{{ c.venue_id|default('', true) }}</td>
+            <td>{{ c.family_name|default('', true) }} {{ c.given_name|default('', true) }}</td>
+                <td>{{ c.relationship_code|default('', true) }}</td>
+            <td>{{ c.phone_number|default('', true) }}</td>
+            <td>{{ c.business_phone|default('', true) }}</td>
+                <td>{{ c.email|default('', true) }}</td>
+            <td>{{ c.address_line1|default('', true) }}{% if c.address_line2 %}, {{ c.address_line2|default('', true) }}{% endif %}, {{ c.address_city|default('', true) }} {{ c.address_postalcode|default('', true) }} {{ c.address_country|default('', true) }}</td>
+            <td>{{ c.contact_role|default('', true) }}</td>
             <td>
                 <a href="/contacts/{{ c.id }}/edit" class="btn btn-sm btn-secondary">Éditer</a>
                 <form method="post" action="/contacts/{{ c.id }}/delete" style="display:inline">

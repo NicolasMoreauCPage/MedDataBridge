@@ -19,12 +19,12 @@
                   action="{% if geo %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/edit{% else %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/new{% endif %}">
                 <div class="space-y-8">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {{ components.form_field('Identifiant global', 'identifier', value=(form.identifier if form else ''), required=True, help='Identifiant unique (ID_GLBL) de l\'entité') }}
-                        {{ components.form_field('FINESS', 'finess', value=(form.finess if form else ''), required=True, help='Identifiant FINESS de l\'établissement géographique') }}
+                        {{ components.form_field('Identifiant global', 'identifier', value=(form.identifier if form and form.identifier is not none else ''), required=True, help='Identifiant unique (ID_GLBL) de l\'entité') }}
+                        {{ components.form_field('FINESS', 'finess', value=(form.finess if form and form.finess is not none else ''), required=True, help='Identifiant FINESS de l\'établissement géographique') }}
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {{ components.form_field('Nom', 'name', value=(form.name if form else ''), required=True) }}
+                        {{ components.form_field('Nom', 'name', value=(form.name if form and form.name is not none else ''), required=True) }}
                         {{ components.form_field('Nom court', 'short_name', value=(form.short_name if form else '')) }}
                     </div>
 

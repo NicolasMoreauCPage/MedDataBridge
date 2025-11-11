@@ -1,9 +1,19 @@
 """Tests UI pour Patients et Dossiers: list, new, create, detail, edit, delete (si supporté).
 """
+
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 from app.models import Patient, Dossier
-from app.db import get_next_sequence
+from app.db import get_next_sequence, init_db
+
+import pytest
+
+@pytest.fixture(autouse=True, scope="module")
+def setup_db():
+    from app.db import engine
+    from sqlmodel import SQLModel
+    SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.create_all(engine)
 
 
 def test_patient_new_form_loads_full(client: TestClient):
@@ -21,20 +31,23 @@ def test_create_patient_and_view(client: TestClient, session: Session):
     if not ctx:
         ctx = GHTContext(name="GHT Démo Interop", code="GHT-DEMO-INTEROP", is_active=True)
         session.add(ctx); session.commit(); session.refresh(ctx)
-    client.get(f"/admin/ght/{ctx.id}", follow_redirects=True)
+
+    resp = client.get(f"/admin/ght/{ctx.id}", follow_redirects=True)
+    print("DEBUG: TestClient cookies after GHT context set:", client.cookies)
 
     payload = {
         "family": "TESTUI",
         "given": "John",
-        "gender": "M",
+        "gender": "male",
         "birth_date": "1980-01-01",
     }
-    r = client.post("/patients/new", data=payload, follow_redirects=False)
-    assert r.status_code in (303, 302)
+    r = client.post("/patients/new", data=payload, follow_redirects=True)
+    assert r.status_code == 200
 
     # Vérifier via la page de liste (évite collision de sessions)
     r2 = client.get("/patients")
     assert r2.status_code == 200
+    print("DEBUG: /patients HTML output:\n", r2.text)
     assert "TESTUI" in r2.text
 
 

@@ -5,7 +5,7 @@
 <div class="container">
     <div class="my-8">
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-3xl font-bold">{{ namespace.name }}</h1>
+            <h1 class="text-3xl font-bold">{{ namespace.name|default('', true) }}</h1>
             <div class="flex gap-4">
                 <a href="/admin/ght/{{ context.id }}/namespaces/{{ namespace.id }}/edit" 
                    class="px-4 py-2 text-blue-600 hover:text-blue-800">
@@ -18,7 +18,7 @@
             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                     <dt class="text-sm font-medium text-slate-500">URI du système</dt>
-                    <dd class="mt-1 text-lg text-slate-900">{{ namespace.system }}</dd>
+                    <dd class="mt-1 text-lg text-slate-900">{{ namespace.system|default('-', true) }}</dd>
                 </div>
 
                 <div>
@@ -72,10 +72,10 @@
                         {% for id in identifiers %}
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                                {{ id.value }}
+                                {{ id.value|default('-', true) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                {{ id.type.name }}
+                                {{ id.type.name|default('-', true) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 {% if id.patient_id %}

@@ -7,7 +7,7 @@
 
 {# Header avec titre et actions #}
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-semibold text-slate-900">{{ title }}</h1>
+  <h1 class="text-2xl font-semibold text-slate-900">{{ title|default('', true) }}</h1>
   
   <div class="flex items-center gap-4">
     {% if filters %}
@@ -86,9 +86,9 @@
             {% for cell in row.cells %}
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                 {% if row.detail_url and loop.first %}
-                  <a href="{{ row.detail_url }}" class="hover:text-blue-600">{{ cell }}</a>
+                  <a href="{{ row.detail_url }}" class="hover:text-blue-600">{{ cell if cell is not none else '' }}</a>
                 {% else %}
-                  {{ cell|safe }}
+                  {{ cell if cell is not none else '' }}
                 {% endif %}
               </td>
             {% endfor %}

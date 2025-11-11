@@ -1446,85 +1446,126 @@ def seed_demo_population(
         return lit_cycle[idx % len(lit_cycle)]
 
     for i in range(to_create):
-        fn = random.choice(first_names)
-        ln = random.choice(last_names)
-        birth_year = random.randint(1935, 2023)
-        birth_date = f"{birth_year}-" + f"{random.randint(1,12):02d}-{random.randint(1,28):02d}"
-        patient = Patient(
-            patient_seq=get_next_sequence(session, "patient"),
-            family=ln,
-            given=fn,
-            birth_date=birth_date,
-            gender=random.choice(["male", "female"]),
-            postal_code=f"69{random.randint(100,999)}",
-            city="Lyon",
-            identity_reliability_code=random.choice(["PROV", "QUAL", "VALI"]),
-        )
-        session.add(patient)
-        created_patients += 1
-        # Déterminer type dossier
-        r = random.random()
-        if r < admit_ratio:
-            dossier_type = DossierType.HOSPITALISE
-        elif r < admit_ratio + urgence_ratio:
-            dossier_type = DossierType.URGENCE
-        else:
-            dossier_type = DossierType.EXTERNE
 
-        dossier = Dossier(
-            dossier_seq=get_next_sequence(session, "dossier"),
-            patient_id=patient.id if patient.id else None,  # assigned after flush
-            admit_time=datetime.utcnow(),
-            dossier_type=dossier_type,
-        )
-        session.add(dossier)
-        session.flush()  # ensure IDs
-        created_dossiers += 1
+            fn = random.choice(first_names)
+            ln = random.choice(last_names)
+            birth_year = random.randint(1935, 2023)
+            birth_date = f"{birth_year}-" + f"{random.randint(1,12):02d}-{random.randint(1,28):02d}"
 
-        # Venue & mouvements selon type
-        venue = Venue(
-            venue_seq=get_next_sequence(session, "venue"),
-            dossier_id=dossier.id,
-            start_time=datetime.utcnow(),
-            assigned_location=_pick_lit(i),
-            hospital_service="MED",
-        )
-        session.add(venue)
-        session.flush()
-        created_venues += 1
+            # Générer un IPP comme identifiant externe
+            from app.models_structure_fhir import IdentifierNamespace
+            from app.models_identifiers import Identifier, IdentifierType
+            # Sélectionner le namespace IPP principal (premier trouvé)
+            ipp_namespace = session.exec(select(IdentifierNamespace).where(IdentifierNamespace.type == "IPP")).first()
+            ipp_value = None
+            if ipp_namespace:
+                from app.services.identifier_generator import generate_identifier
+                ipp_value = generate_identifier(session, ipp_namespace, IdentifierType.IPP)
 
-        # Admission mouvement
-        m_adm = Mouvement(
-            mouvement_seq=get_next_sequence(session, "mouvement"),
-            venue_id=venue.id,
-            type="ADT^A01",
-            trigger_event="A01",
-            when=datetime.utcnow(),
-            to_location=venue.assigned_location,
-            movement_type="admission",
-        )
-        session.add(m_adm)
-        created_mouvements += 1
+            patient = Patient(
+                patient_seq=get_next_sequence(session, "patient"),
+                family=ln,
+                given=fn,
+                birth_date=birth_date,
+                gender=random.choice(["male", "female"]),
+                postal_code=f"69{random.randint(100,999)}",
+                city="Lyon",
+                identity_reliability_code=random.choice(["PROV", "QUAL", "VALI"]),
+                external_id=ipp_value,
+            )
+            session.add(patient)
+            session.flush()  # ensure patient.id
+            created_patients += 1
 
-        if dossier_type == DossierType.HOSPITALISE:
-            # Optionnel transfert vers un autre lit
-            if random.random() < 0.3:
-                new_loc = _pick_lit(i + 17)
-                m_tx = Mouvement(
-                    mouvement_seq=get_next_sequence(session, "mouvement"),
-                    venue_id=venue.id,
-                    type="ADT^A02",
-                    trigger_event="A02",
-                    when=datetime.utcnow(),
-                    from_location=venue.assigned_location,
-                    to_location=new_loc,
-                    movement_type="transfer",
+            # Créer l'objet Identifier lié au patient
+            if ipp_value and ipp_namespace:
+                identifier = Identifier(
+                    value=ipp_value,
+                    type=IdentifierType.IPP,
+                    system=ipp_namespace.system,
+                    status="active",
+                    assigned_date=datetime.utcnow(),
+                    last_updated=datetime.utcnow(),
+                    patient_id=patient.id
                 )
-                session.add(m_tx)
-                created_mouvements += 1
-                venue.assigned_location = new_loc
-            # Discharge
-            if random.random() < 0.9:  # la majorité sont sortis
+                session.add(identifier)
+
+            # Déterminer type dossier
+            r = random.random()
+            if r < admit_ratio:
+                dossier_type = DossierType.HOSPITALISE
+            elif r < admit_ratio + urgence_ratio:
+                dossier_type = DossierType.URGENCE
+            else:
+                dossier_type = DossierType.EXTERNE
+
+            dossier = Dossier(
+                dossier_seq=get_next_sequence(session, "dossier"),
+                patient_id=patient.id,
+                admit_time=datetime.utcnow(),
+                dossier_type=dossier_type,
+            )
+            session.add(dossier)
+            session.flush()  # ensure IDs
+            created_dossiers += 1
+
+            # Venue & mouvements selon type
+            venue = Venue(
+                venue_seq=get_next_sequence(session, "venue"),
+                dossier_id=dossier.id,
+                start_time=datetime.utcnow(),
+                assigned_location=_pick_lit(i),
+                hospital_service="MED",
+            )
+            session.add(venue)
+            session.flush()
+            created_venues += 1
+
+            # Admission mouvement
+            m_adm = Mouvement(
+                mouvement_seq=get_next_sequence(session, "mouvement"),
+                venue_id=venue.id,
+                type="ADT^A01",
+                trigger_event="A01",
+                when=datetime.utcnow(),
+                to_location=venue.assigned_location,
+                movement_type="admission",
+            )
+            session.add(m_adm)
+            created_mouvements += 1
+
+            if dossier_type == DossierType.HOSPITALISE:
+                # Optionnel transfert vers un autre lit
+                if random.random() < 0.3:
+                    new_loc = _pick_lit(i + 17)
+                    m_tx = Mouvement(
+                        mouvement_seq=get_next_sequence(session, "mouvement"),
+                        venue_id=venue.id,
+                        type="ADT^A02",
+                        trigger_event="A02",
+                        when=datetime.utcnow(),
+                        from_location=venue.assigned_location,
+                        to_location=new_loc,
+                        movement_type="transfer",
+                    )
+                    session.add(m_tx)
+                    created_mouvements += 1
+                    venue.assigned_location = new_loc
+                # Discharge
+                if random.random() < 0.9:  # la majorité sont sortis
+                    m_dis = Mouvement(
+                        mouvement_seq=get_next_sequence(session, "mouvement"),
+                        venue_id=venue.id,
+                        type="ADT^A03",
+                        trigger_event="A03",
+                        when=datetime.utcnow(),
+                        from_location=venue.assigned_location,
+                        movement_type="discharge",
+                    )
+                    session.add(m_dis)
+                    created_mouvements += 1
+            elif dossier_type == DossierType.URGENCE:
+                # Sortie rapide
                 m_dis = Mouvement(
                     mouvement_seq=get_next_sequence(session, "mouvement"),
                     venue_id=venue.id,
@@ -1536,22 +1577,9 @@ def seed_demo_population(
                 )
                 session.add(m_dis)
                 created_mouvements += 1
-        elif dossier_type == DossierType.URGENCE:
-            # Sortie rapide
-            m_dis = Mouvement(
-                mouvement_seq=get_next_sequence(session, "mouvement"),
-                venue_id=venue.id,
-                type="ADT^A03",
-                trigger_event="A03",
-                when=datetime.utcnow(),
-                from_location=venue.assigned_location,
-                movement_type="discharge",
-            )
-            session.add(m_dis)
-            created_mouvements += 1
-        else:
-            # EXTERNE : pas de mouvement supplémentaire
-            pass
+            else:
+                # EXTERNE : pas de mouvement supplémentaire
+                pass
 
     session.commit()
     return {

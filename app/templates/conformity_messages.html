@@ -6,14 +6,14 @@
   <nav class="mb-6 flex items-center space-x-2 text-sm">
     <a href="/conformity" class="text-blue-600 hover:text-blue-700">Conformité</a>
     <span class="text-slate-400">→</span>
-    <a href="/conformity/ej/{{ ej.id }}" class="text-blue-600 hover:text-blue-700">{{ ej.name }}</a>
+  <a href="/conformity/ej/{{ ej.id }}" class="text-blue-600 hover:text-blue-700">{{ ej.name|default('', true) }}</a>
     <span class="text-slate-400">→</span>
     <span class="text-slate-900">Messages</span>
   </nav>
 
   <!-- En-tête -->
   <div class="mb-8">
-    <h1 class="text-3xl font-bold text-slate-900">Messages - {{ ej.name }}</h1>
+  <h1 class="text-3xl font-bold text-slate-900">Messages - {{ ej.name|default('', true) }}</h1>
     <p class="mt-2 text-slate-600">Liste des messages HL7 des 30 derniers jours</p>
   </div>
 
@@ -49,23 +49,23 @@
         {% for msg in messages %}
         <tr class="hover:bg-slate-50">
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-            #{{ msg.log.id }}
+          #{{ msg.log.id|default('', true) }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-            {{ msg.log.created_at.strftime('%Y-%m-%d %H:%M') if msg.log.created_at else 'N/A' }}
+            {{ msg.log.created_at.strftime('%Y-%m-%d %H:%M') if msg.log.created_at is not none else 'N/A' }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             <span class="px-2 py-1 rounded text-xs font-medium
                          {% if msg.log.direction == 'inbound' %}bg-blue-100 text-blue-800
                          {% else %}bg-green-100 text-green-800{% endif %}">
-              {{ msg.log.direction or 'N/A' }}
+              {{ msg.log.direction|default('N/A', true) }}
             </span>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-            <code>{{ msg.log.message_type or 'N/A' }}</code>
+            <code>{{ msg.log.message_type|default('N/A', true) }}</code>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-            {{ msg.log.endpoint_id or '-' }}
+            {{ msg.log.endpoint_id|default('-', true) }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             {% if msg.is_valid %}

@@ -166,7 +166,11 @@ def get_field_config(model_name: str, field_name: str) -> Dict[str, Any]:
     if field_name in MODEL_FIELDS[model_name]["select"]:
         enum_class = MODEL_FIELDS[model_name]["select"][field_name]
         config["type"] = "select"
-        config["options"] = enum_class.choices()
+        # Use choices() if available, else fallback to list of values
+        if hasattr(enum_class, "choices"):
+            config["options"] = enum_class.choices()
+        else:
+            config["options"] = [{"value": e.value, "label": str(e.value).capitalize()} for e in enum_class]
     
     if field_name in MODEL_FIELDS[model_name]["help"]:
         config["help"] = MODEL_FIELDS[model_name]["help"][field_name]

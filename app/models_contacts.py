@@ -74,6 +74,9 @@ from datetime import datetime, date
 from typing import Optional
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models import Patient, Venue
 
 
 class ContactRelationship(str, Enum):

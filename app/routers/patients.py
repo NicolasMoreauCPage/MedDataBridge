@@ -123,7 +123,11 @@ async def api_create_patient(
 @router.get("", response_class=HTMLResponse)
 def list_patients(request: Request, session=Depends(get_session)):
     # Liste paginée des patients (vue HTML)
-    patients = session.exec(select(Patient)).all()
+    ght_context = getattr(request.state, "ght_context", None)
+    if ght_context:
+        patients = session.exec(select(Patient).where(Patient.ght_context_id == ght_context.id)).all()
+    else:
+        patients = session.exec(select(Patient)).all()
     rows = [
         {
             "cells": [p.patient_seq, p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
@@ -460,6 +464,7 @@ async def create_patient(
         if patient_seq is None:
             patient_seq = generate_patient_seq()
         
+        ght_context = getattr(request.state, "ght_context", None)
         patient = Patient(
             patient_seq=patient_seq,
             external_id=external_id,
@@ -490,7 +495,8 @@ async def create_patient(
             nationality=nationality,
             identity_reliability_code=identity_reliability_code,
             mothers_maiden_name=mothers_maiden_name,
-            primary_care_provider=primary_care_provider
+            primary_care_provider=primary_care_provider,
+            ght_context_id=getattr(ght_context, "id", None)
         )
         session.add(patient)
         session.commit()

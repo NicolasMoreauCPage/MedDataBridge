@@ -30,16 +30,26 @@ except Exception:  # pragma: no cover
     init_scenario_templates = None  # type: ignore
 from app import models_workflows  # ensure workflow models are registered
 
-# Moteur SQLite local. Par défaut, fichier `medbridge.db` au répertoire courant.
-# Pool size increased to handle concurrent emissions
-engine = create_engine(
-    "sqlite:///./medbridge.db",
-    echo=False,
-    pool_size=20,  # Increased from default 5
-    max_overflow=30,  # Increased from default 10
-    pool_timeout=60,  # Increased from default 30
-    pool_pre_ping=True  # Check connections before using
-)
+
+# Use in-memory SQLite for tests, file-based otherwise
+import os
+from sqlalchemy.pool import StaticPool
+if os.getenv("TESTING", "0") in ("1", "true", "True"):
+    engine = create_engine(
+        "sqlite:///:memory:",
+        echo=False,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    engine = create_engine(
+        "sqlite:///./medbridge.db",
+        echo=False,
+        pool_size=20,  # Increased from default 5
+        max_overflow=30,  # Increased from default 10
+        pool_timeout=60,  # Increased from default 30
+        pool_pre_ping=True  # Check connections before using
+    )
 
 def init_db() -> None:
     """Crée les tables si elles n'existent pas (idempotent)."""

@@ -20,7 +20,7 @@
     <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-slate-800">{{ ctx.name }}</h3>
+             <h3 class="text-lg font-semibold text-slate-800">{{ ctx.name if ctx.name is not none else '' }}</h3>
           <p class="text-xs text-slate-500">Code : {{ ctx.code }}</p>
         </div>
         {% if ctx.is_active %}
@@ -29,7 +29,7 @@
         <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500">Inactif</span>
         {% endif %}
       </div>
-      <p class="mt-4 text-sm text-slate-600">{{ ctx.description or "Aucune description fournie." }}</p>
+         <p class="mt-4 text-sm text-slate-600">{{ ctx.description if ctx.description is not none else "Aucune description fournie." }}</p>
       <div class="mt-5 flex gap-2 text-xs">
         <a href="/admin/ght/{{ ctx.id }}/edit" class="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-100">Modifier</a>
         <a href="/admin/ght/{{ ctx.id }}"

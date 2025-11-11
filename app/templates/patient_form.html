@@ -2,7 +2,7 @@
 {% block content %}
 <div class="max-w-4xl mx-auto">
   <div class="flex items-center justify-between mb-6">
-    <h2 class="text-2xl font-bold text-slate-800">{{ title }}</h2>
+  <h2 class="text-2xl font-bold text-slate-800">{{ title|default('', true) }}</h2>
     <a href="/patients" class="btn btn-secondary">← Retour</a>
   </div>
 
@@ -20,13 +20,13 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">
               Numéro de séquence <span class="text-red-500">*</span>
             </label>
-            <input type="number" name="patient_seq" value="{{ patient.patient_seq if patient else next_seq }}" 
+            <input type="number" name="patient_seq" value="{{ patient.patient_seq|default(next_seq, true) if patient else next_seq }}" 
                    required class="input-field" placeholder="Auto">
             <p class="text-xs text-slate-500 mt-1">Identifiant séquentiel unique</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">External ID (SI source)</label>
-            <input type="text" name="external_id" value="{{ (patient.external_id if patient else (sample_data.external_id if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="external_id" value="{{ (patient.external_id|default(sample_data.external_id, true) if patient and patient.external_id is not none else (sample_data.external_id|default('', true) if sample_data and sample_data.external_id is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Ex: PAT123456">
             <p class="text-xs text-slate-500 mt-1">Identifiant du système externe</p>
           </div>
@@ -52,7 +52,7 @@
             <label class="block text-sm font-medium text-slate-700 mb-1" for="family">
               Nom <span class="text-red-500">*</span>
             </label>
-            <input type="text" id="family" name="family" value="{{ (patient.family if patient else (sample_data.family if sample_data else '')) | default('', true) }}"
+            <input type="text" id="family" name="family" value="{{ (patient.family if patient and patient.family is not none else (sample_data.family if sample_data is defined and sample_data and sample_data.family is not none else '')) | default('', true) }}"
                    required aria-required="true" data-required="true" aria-invalid="{{ 'true' if not patient or not patient.family }}"
                    class="input-field{% if not patient or not patient.family %} border-red-500{% endif %}"
                    placeholder="MARTIN">
@@ -69,7 +69,7 @@
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Nom de naissance (nom de jeune fille)
             </label>
-            <input type="text" name="birth_family" value="{{ (patient.birth_family if patient else (sample_data.birth_family if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="birth_family" value="{{ (patient.birth_family if patient and patient.birth_family is not none else (sample_data.birth_family if sample_data and sample_data.birth_family is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="DUPONT">
             <p class="text-xs text-slate-500 mt-1">PID-5 type L - Si différent du nom actuel</p>
           </div>
@@ -80,7 +80,7 @@
             <label class="block text-sm font-medium text-slate-700 mb-1" for="given">
               Prénom <span class="text-red-500">*</span>
             </label>
-            <input type="text" id="given" name="given" value="{{ (patient.given if patient else (sample_data.given if sample_data else '')) | default('', true) }}"
+            <input type="text" id="given" name="given" value="{{ (patient.given if patient and patient.given is not none else (sample_data.given if sample_data and sample_data.given is not none else '')) | default('', true) }}"
                    required aria-required="true" data-required="true" aria-invalid="{{ 'true' if not patient or not patient.given }}"
                    class="input-field{% if not patient or not patient.given %} border-red-500{% endif %}"
                    placeholder="Sophie">
@@ -97,14 +97,14 @@
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Deuxième prénom
             </label>
-            <input type="text" name="middle" value="{{ (patient.middle if patient else (sample_data.middle if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="middle" value="{{ (patient.middle if patient and patient.middle is not none else (sample_data.middle if sample_data and sample_data.middle is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Marie">
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Suffixe
             </label>
-            <input type="text" name="suffix" value="{{ (patient.suffix if patient else (sample_data.suffix if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="suffix" value="{{ (patient.suffix if patient and patient.suffix is not none else (sample_data.suffix if sample_data and sample_data.suffix is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Jr., III, etc.">
           </div>
         </div>
@@ -114,7 +114,7 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">
               Date de naissance
             </label>
-            <input type="date" name="birth_date" value="{{ (patient.birth_date if patient else (sample_data.birth_date if sample_data else '')) | default('', true) }}" 
+            <input type="date" name="birth_date" value="{{ (patient.birth_date if patient and patient.birth_date is not none else (sample_data.birth_date if sample_data and sample_data.birth_date is not none else '')) | default('', true) }}" 
                    class="input-field">
           </div>
           <div>
@@ -142,7 +142,7 @@
       <div class="p-6 space-y-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Adresse</label>
-          <input type="text" name="address" value="{{ (patient.address if patient else (sample_data.address if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="address" value="{{ (patient.address if patient and patient.address is not none else (sample_data.address if sample_data and sample_data.address is not none else '')) | default('', true) }}" 
                  class="input-field" placeholder="15 rue Victor Hugo">
           <p class="text-xs text-slate-500 mt-1">Numéro et rue - PID-11.1</p>
         </div>
@@ -150,17 +150,17 @@
         <div class="grid grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Ville</label>
-            <input type="text" name="city" value="{{ (patient.city if patient else (sample_data.city if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="city" value="{{ (patient.city if patient and patient.city is not none else (sample_data.city if sample_data and sample_data.city is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Paris">
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Code postal</label>
-            <input type="text" name="postal_code" value="{{ (patient.postal_code if patient else (sample_data.postal_code if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="postal_code" value="{{ (patient.postal_code if patient and patient.postal_code is not none else (sample_data.postal_code if sample_data and sample_data.postal_code is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="75001">
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Département/État</label>
-            <input type="text" name="state" value="{{ (patient.state if patient else (sample_data.state if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="state" value="{{ (patient.state if patient and patient.state is not none else (sample_data.state if sample_data and sample_data.state is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Île-de-France">
           </div>
         </div>
@@ -186,19 +186,19 @@
           <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Téléphone fixe</label>
-              <input type="tel" name="phone" value="{{ (patient.phone if patient else (sample_data.phone if sample_data else '')) | default('', true) }}" 
+              <input type="tel" name="phone" value="{{ (patient.phone if patient and patient.phone is not none else (sample_data.phone if sample_data and sample_data.phone is not none else '')) | default('', true) }}" 
                      class="input-field" placeholder="0123456789">
               <p class="text-xs text-slate-500 mt-1">Principal</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Mobile</label>
-              <input type="tel" name="mobile" value="{{ (patient.mobile if patient else (sample_data.mobile if sample_data else '')) | default('', true) }}" 
+              <input type="tel" name="mobile" value="{{ (patient.mobile if patient and patient.mobile is not none else (sample_data.mobile if sample_data and sample_data.mobile is not none else '')) | default('', true) }}" 
                      class="input-field" placeholder="0612345678">
               <p class="text-xs text-slate-500 mt-1">Type CP/CELL</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Téléphone pro</label>
-              <input type="tel" name="work_phone" value="{{ (patient.work_phone if patient else (sample_data.work_phone if sample_data else '')) | default('', true) }}" 
+              <input type="tel" name="work_phone" value="{{ (patient.work_phone if patient and patient.work_phone is not none else (sample_data.work_phone if sample_data and sample_data.work_phone is not none else '')) | default('', true) }}" 
                      class="input-field" placeholder="0498765432">
               <p class="text-xs text-slate-500 mt-1">Type WP/WORK</p>
             </div>
@@ -207,7 +207,7 @@
 
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1" for="email">Email</label>
-          <input type="email" id="email" name="email" value="{{ (patient.email if patient else (sample_data.email if sample_data else '')) | default('', true) }}"
+            <input type="email" id="email" name="email" value="{{ (patient.email if patient and patient.email is not none else (sample_data.email if sample_data and sample_data.email is not none else '')) | default('', true) }}"
                  class="input-field" placeholder="sophie.martin@example.com"
                  aria-describedby="email_help">
           <p id="email_help" class="text-xs text-slate-500 mt-1">Adresse email du patient (optionnelle)</p>
@@ -223,7 +223,7 @@
       <div class="p-6 space-y-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Adresse de naissance</label>
-          <input type="text" name="birth_address" value="{{ (patient.birth_address if patient else (sample_data.birth_address if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="birth_address" value="{{ (patient.birth_address if patient and patient.birth_address is not none else (sample_data.birth_address if sample_data and sample_data.birth_address is not none else '')) | default('', true) }}" 
                  class="input-field" placeholder="Maternité de la Croix-Rousse">
           <p class="text-xs text-slate-500 mt-1">Établissement/Rue - PID-11 répétition 2</p>
         </div>
@@ -231,18 +231,18 @@
         <div class="grid grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Ville de naissance</label>
-            <input type="text" name="birth_city" value="{{ (patient.birth_city if patient else (sample_data.birth_city if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="birth_city" value="{{ (patient.birth_city if patient and patient.birth_city is not none else (sample_data.birth_city if sample_data and sample_data.birth_city is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Lyon">
             <p class="text-xs text-slate-500 mt-1">PID-23</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Département/Région</label>
-            <input type="text" name="birth_state" value="{{ (patient.birth_state if patient else (sample_data.birth_state if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="birth_state" value="{{ (patient.birth_state if patient and patient.birth_state is not none else (sample_data.birth_state if sample_data and sample_data.birth_state is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Rhône">
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Code postal</label>
-            <input type="text" name="birth_postal_code" value="{{ (patient.birth_postal_code if patient else (sample_data.birth_postal_code if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="birth_postal_code" value="{{ (patient.birth_postal_code if patient and patient.birth_postal_code is not none else (sample_data.birth_postal_code if sample_data and sample_data.birth_postal_code is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="69004">
           </div>
         </div>
@@ -273,7 +273,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">NIR (Numéro de sécurité sociale)</label>
-            <input type="text" name="nir" value="{{ (patient.nir if patient else (sample_data.nir if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="nir" value="{{ (patient.nir if patient and patient.nir is not none else (sample_data.nir if sample_data and sample_data.nir is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="1 85 06 75 123 456 78" maxlength="21">
             <p class="text-xs text-slate-500 mt-1">15 chiffres - PID-3 type NH</p>
           </div>
@@ -295,7 +295,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Nationalité</label>
-            <input type="text" name="nationality" value="{{ (patient.nationality if patient else (sample_data.nationality if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="nationality" value="{{ (patient.nationality if patient and patient.nationality is not none else (sample_data.nationality if sample_data and sample_data.nationality is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="FRA">
             <p class="text-xs text-slate-500 mt-1">Code pays ISO (ex: FRA, BEL, CHE)</p>
           </div>
@@ -322,13 +322,13 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Nom de jeune fille de la mère</label>
-            <input type="text" name="mothers_maiden_name" value="{{ (patient.mothers_maiden_name if patient else (sample_data.mothers_maiden_name if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="mothers_maiden_name" value="{{ (patient.mothers_maiden_name if patient and patient.mothers_maiden_name is not none else (sample_data.mothers_maiden_name if sample_data and sample_data.mothers_maiden_name is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="LEFEBVRE">
             <p class="text-xs text-slate-500 mt-1">Utilisé pour vérification d'identité</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Médecin traitant</label>
-            <input type="text" name="primary_care_provider" value="{{ (patient.primary_care_provider if patient else (sample_data.primary_care_provider if sample_data else '')) | default('', true) }}" 
+            <input type="text" name="primary_care_provider" value="{{ (patient.primary_care_provider if patient and patient.primary_care_provider is not none else (sample_data.primary_care_provider if sample_data and sample_data.primary_care_provider is not none else '')) | default('', true) }}" 
                    class="input-field" placeholder="Dr. DURAND">
           </div>
         </div>

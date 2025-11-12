@@ -3,7 +3,7 @@
 <h2 class="text-lg font-semibold mb-4">Patient #{{ patient.id|default('', true) }}</h2>
 <div class="bg-white rounded-xl border border-slate-200 p-6 max-w-2xl">
   <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
-  <dt class="text-slate-500">Numéro séquence</dt><dd class="font-medium">{{ patient.patient_seq|default('', true) }}</dd>
+  <dt class="text-slate-500">Identifiant patient (ID)</dt><dd class="font-medium">{{ patient.id|default('', true) }}</dd>
   <dt class="text-slate-500">External ID</dt><dd>{{ patient.external_id|default('-', true) }}</dd>
     
     <dt class="text-slate-500 col-span-2 font-semibold mt-2 border-t pt-2">Identité</dt>

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 from app.db import get_session
@@ -123,18 +124,23 @@ def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any
     """Get all events for a dossier"""
     events = []
     
-    dossier = session.get(Dossier, dossier_id)
+    dossier = session.exec(select(Dossier).where(Dossier.id == dossier_id).options(selectinload(Dossier.venues))).first()
     if not dossier:
         return events
     
     # Admission
     if dossier.admit_time:
+        # Récupérer l'UF depuis la première venue du dossier
+        uf_resp = "N/A"
+        if dossier.venues and dossier.venues[0].uf_responsabilite:
+            uf_resp = dossier.venues[0].uf_responsabilite
+        
         events.append({
             "type": "admission",
             "icon": "login",
             "color": "green",
             "title": f"Admission",
-            "description": f"UF: {dossier.uf_responsabilite or 'N/A'}",
+            "description": f"UF: {uf_resp}",
             "datetime": dossier.admit_time,
             "entity_id": dossier.id,
             "entity_type": "dossier"
@@ -150,7 +156,7 @@ def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any
                 "icon": "map-pin",
                 "color": "purple",
                 "title": f"Venue #{venue.venue_seq}",
-                "description": f"Location: {venue.code or venue.label or 'N/A'}",
+                "description": f"UF: {venue.uf_responsabilite or 'N/A'}",
                 "datetime": venue.start_time,
                 "entity_id": venue.id,
                 "entity_type": "venue"
@@ -160,14 +166,13 @@ def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any
         mouvements = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
         for mouv in mouvements:
             if mouv.when:
+                # Simplifier le titre sans movement_type_options
+                title = mouv.movement_type or mouv.trigger_event or "Mouvement"
                 events.append({
                     "type": "mouvement",
                     "icon": "activity",
                     "color": "orange",
-                    "title": (
-                        next((opt['label'] for opt in movement_type_options if opt['value'] == mouv.movement_type), mouv.movement_type)
-                        if mouv.movement_type and movement_type_options else mouv.movement_type or mouv.trigger_event
-                    ),
+                    "title": title,
                     "description": f"Location: {mouv.location or 'N/A'}",
                     "datetime": mouv.when,
                     "entity_id": mouv.id,
@@ -341,7 +346,7 @@ def dossier_timeline(
             "entity_name": f"Dossier #{dossier.dossier_seq}",
             "dossier": dossier,
             "venues": venues,
-            "mouvements": mouvements
+            "mouvements": mouvements,
             "movement_type_options": movement_type_options
         }
     )

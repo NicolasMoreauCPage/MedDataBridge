@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
+from sqlalchemy.orm import selectinload
 from datetime import datetime
 from typing import List, Optional
 from app.db import get_session, get_next_sequence, peek_next_sequence
@@ -34,11 +35,12 @@ def list_dossiers(
     session=Depends(get_session)
 ):
     # Construction de la requête de base
-    stmt = select(Dossier)
+    stmt = select(Dossier).options(selectinload(Dossier.venues))
     # Filtrer par contexte EJ si présent
     ej_context = getattr(request.state, "ej_context", None)
     if ej_context and getattr(ej_context, "id", None):
-        stmt = stmt.where(Dossier.entite_juridique_id == ej_context.id)
+        # Filtrer via la relation Patient -> entite_juridique_id
+        stmt = stmt.join(Patient).where(Patient.entite_juridique_id == ej_context.id)
 
     if patient_id:
         stmt = stmt.where(Dossier.patient_id == patient_id)
@@ -67,7 +69,8 @@ def list_dossiers(
                 d.dossier_seq, 
                 d.id, 
                 d.patient_id, 
-                d.uf_responsabilite, 
+                # Récupérer l'UF depuis la première venue du dossier
+                (d.venues[0].uf_responsabilite if d.venues and d.venues[0].uf_responsabilite else "N/A"),
                 getattr(d, 'dossier_type', DossierType.HOSPITALISE).value.capitalize(),
                 d.admit_time.strftime("%d/%m/%Y %H:%M") if d.admit_time else None,
                 d.discharge_time.strftime("%d/%m/%Y %H:%M") if d.discharge_time else None
@@ -284,7 +287,7 @@ def create_dossier(
 @router.get("/{dossier_id}", response_class=HTMLResponse)
 def dossier_detail(dossier_id: int, request: Request, session=Depends(get_session)):
 
-    d = session.get(Dossier, dossier_id)
+    d = session.exec(select(Dossier).where(Dossier.id == dossier_id).options(selectinload(Dossier.venues))).first()
     if not d:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Dossier introuvable"}, status_code=404)
     # Définir le contexte dossier en session
@@ -340,6 +343,8 @@ def edit_dossier(dossier_id: int, request: Request, session=Depends(get_session)
     if not d:
         return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
     
+    session.refresh(d, attribute_names=["venues"])
+    
     # Récupérer les UF de l'EJ en contexte (via jointures)
     uf_options = []
     if hasattr(request.state, "ej_context") and request.state.ej_context:
@@ -362,9 +367,14 @@ def edit_dossier(dossier_id: int, request: Request, session=Depends(get_session)
         {"value": "urgence", "label": "Urgence"}
     ]
     
+    # Get uf_responsabilite value safely
+    uf_responsabilite_value = None
+    if d.venues and len(d.venues) > 0:
+        uf_responsabilite_value = d.venues[0].uf_responsabilite
+    
     fields = [
         {"label": "Patient ID", "name": "patient_id", "type": "number", "value": d.patient_id},
-        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "options": uf_options, "value": d.uf_responsabilite},
+        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "options": uf_options, "value": uf_responsabilite_value},
         {"label": "Type de dossier", "name": "dossier_type", "type": "select", "options": dossier_type_opts, "value": d.dossier_type.value if d.dossier_type else "hospitalise"},
         {"label": "Source d'admission", "name": "admission_source", "type": "text", "value": getattr(d, "admission_source", None), "placeholder": "Domicile, Transfert, etc."},
         {"label": "Médecin responsable", "name": "attending_provider", "type": "text", "value": getattr(d,'attending_provider',None)},
@@ -391,8 +401,12 @@ def update_dossier(
     d = session.get(Dossier, dossier_id)
     if not d:
         return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
+    
+    session.refresh(d, attribute_names=["venues"])
     d.patient_id = patient_id
-    d.uf_responsabilite = uf_responsabilite
+    # Update the first venue's uf_responsabilite
+    if d.venues:
+        d.venues[0].uf_responsabilite = uf_responsabilite
     d.dossier_type = DossierType(dossier_type)
     d.admission_source = admission_source
     d.attending_provider = attending_provider

@@ -31,7 +31,7 @@
                 {% for mapping in patient_mappings %}
                 <tr class="hover:bg-slate-50">
                     <td class="px-4 py-2">{{ mapping.external_id|default('-', true) }}</td>
-                    <td class="px-4 py-2">{{ mapping.patient.patient_seq|default('-', true) }}</td>
+                    <td class="px-4 py-2">{{ mapping.patient.id|default('-', true) }}</td>
                     <td class="px-4 py-2">{{ mapping.patient.family|default('', true) }}, {{ mapping.patient.given|default('', true) }}</td>
                 </tr>
                 {% endfor %}

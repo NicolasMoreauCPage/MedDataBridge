@@ -72,7 +72,7 @@ def generate_encounter_resource_for_venue(venue: Venue, session: Optional[Sessio
         "AMB": "ambulatory",
         "EMER": "emergency"
     }
-    if venue.discharge_disposition:
+    if getattr(dossier, "discharge_time", None) or getattr(venue, "discharge_disposition", None):
         status = "finished"
     else:
         status = "in-progress"

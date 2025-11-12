@@ -45,6 +45,7 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 # de toutes les routes (seules 9 routes sur 45 sont chargées sinon)
 import app.routers.ght as ght
 import app.routers.ght_ej_min as ght_ej_min
+import app.routers.ght_ej_edit as ght_ej_edit
 """Application composition module.
 
 NOTE (Fallback Router Removal): The previous temporary fallback router
@@ -208,6 +209,8 @@ def create_app() -> FastAPI:
     app.include_router(ght.router, prefix="/admin")
     # Minimal EJ detail router (guarantee availability even if ght incomplete)
     app.include_router(ght_ej_min.router, prefix="/admin")
+    # EJ edit router (provides missing edit routes)
+    app.include_router(ght_ej_edit.router, prefix="/admin")
     print(" - Admin routers mounted under /admin")
     
     # 5. Integration and transport
@@ -327,6 +330,7 @@ def create_app() -> FastAPI:
         # Réenregistrer principal + minimal EJ route
         app.include_router(ght.router, prefix="/admin")
         app.include_router(ght_ej_min.router, prefix="/admin")
+        app.include_router(ght_ej_edit.router, prefix="/admin")
         ght_routes_count = len([r for r in app.routes if hasattr(r, 'path') and r.path.startswith('/admin/ght')])
         print(f" → BUGFIX: Module ght rechargé ({ght_routes_count} routes /admin/ght)")
     except Exception as e:

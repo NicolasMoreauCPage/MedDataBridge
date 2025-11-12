@@ -53,7 +53,7 @@ class Patient(SQLModel, table=True):
     - gender : sexe administratif unique (pas de duplication avec administrative_gender)
     """
     id: Optional[int] = Field(default=None, primary_key=True)
-    patient_seq: Optional[int] = Field(default=None, index=True, unique=True)  # Identifiant métier séquentiel (unique)
+    # patient_seq supprimé, utiliser id comme identifiant métier unique
     external_id: Optional[str] = None  # Identifiant du système source externe
     identifier: Optional[str] = Field(default=None, index=True)  # Identifiant principal (peut être NIR ou autre)
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id")  # Association au contexte GHT
@@ -144,10 +144,10 @@ class Dossier(SQLModel, table=True):
     admit_time: datetime
     discharge_time: Optional[datetime] = None
     dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
-        entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
-        admit_time: datetime
-        discharge_time: Optional[datetime] = None
-        dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
+    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
+    admit_time: datetime
+    discharge_time: Optional[datetime] = None
+    dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
 
     def update_type(self, new_type: DossierType, session: Session | None = None) -> None:
         """
@@ -179,9 +179,9 @@ class Dossier(SQLModel, table=True):
     admission_type: Optional[str] = None
     admission_source: Optional[str] = None  # Source d'admission
     attending_provider: Optional[str] = None
-        # Champs métier
-        reason: Optional[str] = None  # Motif d'admission (utiliser vocabulaire FR)
-        current_state: Optional[str] = None  # État actuel du dossier (utiliser vocabulaire FR)
+    # Champs métier
+    reason: Optional[str] = None  # Motif d'admission (utiliser vocabulaire FR)
+    current_state: Optional[str] = None  # État actuel du dossier (utiliser vocabulaire FR)
     patient: Patient = Relationship(back_populates="dossiers")
     venues: List["Venue"] = Relationship(back_populates="dossier")
     identifiers: List["Identifier"] = Relationship(back_populates="dossier")
@@ -192,34 +192,12 @@ class Venue(SQLModel, table=True):
     venue_seq: int = Field(index=True, unique=True)         # identifiant métier unique
     dossier_id: int = Field(foreign_key="dossier.id")
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
-    # Optionnel pour permettre création avant résolution de l'UF réelle (ex: préadmission partielle).
     uf_responsabilite: Optional[str] = None
     start_time: datetime
-    code: Optional[str] = None
-    label: Optional[str] = None
-    # Extensions
-    assigned_location: Optional[str] = None
-    attending_provider: Optional[str] = None
-    hospital_service: Optional[str] = None
-    bed: Optional[str] = None
-    room: Optional[str] = None
-    discharge_disposition: Optional[str] = None
-    managing_department: Optional[str] = None  # Département gestionnaire
-    physical_type: Optional[str] = None  # Type physique de l'emplacement
-    operational_status: Optional[str] = None  # Statut opérationnel
     dossier: Dossier = Relationship(back_populates="venues")
     mouvements: List["Mouvement"] = Relationship(back_populates="venue")
     identifiers: List["Identifier"] = Relationship(back_populates="venue")
     contacts: List["VenueContact"] = Relationship(back_populates="venue")
-
-    # Backwards-compat property expected by tests/templates
-    @property
-    def status(self) -> Optional[str]:
-        return self.operational_status
-
-    @status.setter
-    def status(self, value: str) -> None:
-        self.operational_status = value
 
  # --- Mouvement (appartient à une Venue) ---
 # ...existing code...
@@ -257,6 +235,8 @@ class Mouvement(SQLModel, table=True):
     uf_medicale_label: Optional[str] = Field(default=None, description="ZBE-7 XON component 1 UF médicale label")
     uf_soins_code: Optional[str] = Field(default=None, description="ZBE-8 XON component 10 UF soins code")
     uf_soins_label: Optional[str] = Field(default=None, description="ZBE-8 XON component 1 UF soins label")
+    uf_hebergement_code: Optional[str] = Field(default=None, description="Code UF hébergement")
+    uf_hebergement_label: Optional[str] = Field(default=None, description="Libellé UF hébergement")
     movement_ids: Optional[str] = Field(default=None, description="JSON array of all ZBE-1 identifiers if repetition")
     venue: Venue = Relationship(back_populates="mouvements")
     identifiers: List["Identifier"] = Relationship(back_populates="mouvement")

@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 from datetime import datetime
 from app.db import get_session, get_next_sequence, peek_next_sequence
-from app.models import Venue, Dossier
+from app.models import Venue, Dossier, Patient
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
 
@@ -43,7 +43,6 @@ def list_venues(
         venues = session.exec(select(Venue).where(Venue.dossier_id == dossier_id)).all()
         patient = dossier.patient if hasattr(dossier, 'patient') else None
     elif patient_id:
-        from app.models import Patient
         patient = session.get(Patient, patient_id)
         if not patient:
             return templates.TemplateResponse(
@@ -66,7 +65,6 @@ def list_venues(
         ej_context = getattr(request.state, "ej_context", None)
         if ej_context and getattr(ej_context, "id", None):
             # Récupérer tous les dossiers de l'EJ
-            from app.models import Dossier
             dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id)).all()]
             if dossier_ids:
                 venues = session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids))).all()
@@ -82,10 +80,7 @@ def list_venues(
                 v.id,
                 v.dossier_id,
                 v.uf_responsabilite,
-                getattr(v, 'hospital_service', None),
-                v.start_time.strftime("%d/%m/%Y %H:%M") if v.start_time else None,
-                v.code,
-                v.label
+                v.start_time.strftime("%d/%m/%Y %H:%M") if v.start_time else None
             ],
             "detail_url": f"/venues/{v.id}",
             "timeline_url": f"/timeline/venue/{v.id}",
@@ -187,40 +182,37 @@ def new_venue(
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Impossible de créer une venue : aucun dossier n'est spécifié.")
     
+    # Récupérer la liste des UF disponibles pour l'EJ du dossier
+    uf_options = []
+    if prefill_dossier_id:
+        dossier = session.get(Dossier, prefill_dossier_id)
+        if dossier and dossier.entite_juridique_id:
+            from app.models_structure_fhir import EntiteJuridique
+            ej = session.get(EntiteJuridique, dossier.entite_juridique_id)
+            if ej:
+                # Récupérer toutes les UF de la structure
+                from app.models_structure import UniteFonctionnelle
+                ufs = session.exec(
+                    select(UniteFonctionnelle).where(UniteFonctionnelle.service_id.is_not(None))
+                ).all()
+                # Filtrer les UF de l'EJ
+                ufs_ej = [uf for uf in ufs if getattr(uf.service, 'pole', None) and getattr(uf.service.pole, 'entite_geo', None) and getattr(uf.service.pole.entite_geo, 'entite_juridique_id', None) == ej.id]
+                uf_options = [
+                    {"value": uf.um_code, "label": f"{uf.um_code} - {uf.name}"} for uf in ufs_ej if uf.um_code
+                ]
     fields = [
         {"label": "Dossier ID", "name": "dossier_id", "type": "number", "required": True,
          "value": prefill_dossier_id or '',
          "help": "ID du dossier existant dans la base"},
-        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "text", "required": True,
-         "help": "Unité fonctionnelle responsable de la venue"},
+        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "required": True,
+         "options": uf_options,
+         "help": "Unité fonctionnelle responsable de la venue (choix dynamique selon l'établissement)"},
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", 
          "value": now_str, "required": True,
          "help": "Date et heure de début de la venue"},
-        {"label": "Service hospitalier", "name": "hospital_service", "type": "select",
-         "options": ["cardiology", "neurology", "oncology", "pediatrics", "other"],
-         "help": "Service médical responsable"},
-        {"label": "Local assigné", "name": "assigned_location", "type": "text",
-         "help": "Localisation physique du patient"},
-        {"label": "Médecin responsable", "name": "attending_provider", "type": "text",
-         "help": "Médecin responsable de la venue"},
-        {"label": "Lit", "name": "bed", "type": "text",
-         "help": "Numéro ou identifiant du lit"},
-        {"label": "Chambre", "name": "room", "type": "text",
-         "help": "Numéro ou identifiant de la chambre"},
-        {"label": "Code", "name": "code", "type": "text",
-         "help": "Code optionnel de la venue"},
-        {"label": "Libellé", "name": "label", "type": "text",
-         "help": "Description libre de la venue"},
         {"label": "Numéro de séquence", "name": "venue_seq", "type": "number", 
          "value": next_seq,
          "help": "Généré automatiquement si non renseigné"},
-        {"label": "Département gestionnaire", "name": "managing_department", "type": "text",
-         "help": "Département administratif responsable"},
-        {"label": "Type physique", "name": "physical_type", "type": "text",
-         "help": "Nature du lieu physique (chambre, box, etc.)"},
-        {"label": "Statut opérationnel", "name": "operational_status", "type": "select",
-         "options": ["active", "suspended", "inactive"],
-         "help": "État opérationnel de la venue"},
     ]
     return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Nouvelle venue", "fields": fields})
 
@@ -249,19 +241,15 @@ def create_venue(
         dossier_id=dossier_id,
         uf_responsabilite=uf_responsabilite,
         start_time=start_dt,
-        hospital_service=hospital_service,
-        assigned_location=assigned_location,
-        attending_provider=attending_provider,
-        bed=bed,
-        room=room,
-        code=code,
-        label=label,
         venue_seq=seq,
-        managing_department=managing_department,
-        physical_type=physical_type,
-        operational_status=operational_status,
     )
     session.add(v); session.commit()
+    
+    # Refresh with relationships for emit_to_senders
+    session.refresh(v, ["dossier"])
+    if v.dossier:
+        session.refresh(v.dossier, ["patient"])
+    
     emit_to_senders(v, "venue", session)
     return RedirectResponse(url="/venues", status_code=303)
 
@@ -294,34 +282,9 @@ def edit_venue(venue_id: int, request: Request, session=Depends(get_session)):
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", 
          "value": v.start_time.strftime('%Y-%m-%dT%H:%M') if v.start_time else '', "required": True,
          "help": "Date et heure de début de la venue"},
-        {"label": "Service hospitalier", "name": "hospital_service", "type": "select", 
-         "options": ["cardiology", "neurology", "oncology", "pediatrics", "other"], 
-         "value": getattr(v,'hospital_service',None),
-         "help": "Service médical responsable"},
-        {"label": "Local assigné", "name": "assigned_location", "type": "text", 
-         "value": getattr(v,'assigned_location',None),
-         "help": "Localisation physique du patient"},
-        {"label": "Médecin responsable", "name": "attending_provider", "type": "text", 
-         "value": getattr(v,'attending_provider',None),
-         "help": "Médecin responsable de la venue"},
-        {"label": "Lit", "name": "bed", "type": "text", 
-         "value": getattr(v,'bed',None),
-         "help": "Numéro ou identifiant du lit"},
-        {"label": "Chambre", "name": "room", "type": "text", 
-         "value": getattr(v,'room',None),
-         "help": "Numéro ou identifiant de la chambre"},
-        {"label": "Code", "name": "code", "type": "text", 
-         "value": v.code,
-         "help": "Code optionnel de la venue"},
-        {"label": "Libellé", "name": "label", "type": "text", 
-         "value": v.label,
-         "help": "Description libre de la venue"},
         {"label": "Numéro de séquence", "name": "venue_seq", "type": "number", 
          "value": v.venue_seq,
          "help": "Numéro de séquence unique de la venue"},
-        {"label": "Département gestionnaire", "name": "managing_department", "type": "text", "value": getattr(v, "managing_department", None)},
-        {"label": "Type physique", "name": "physical_type", "type": "text", "value": getattr(v, "physical_type", None)},
-        {"label": "Statut opérationnel", "name": "operational_status", "type": "text", "value": getattr(v, "operational_status", None)},
     ]
     return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Modifier venue", "fields": fields, "action_url": f"/venues/{venue_id}/edit"})
 
@@ -352,18 +315,14 @@ def update_venue(
     v.dossier_id = dossier_id
     v.uf_responsabilite = uf_responsabilite
     v.start_time = datetime.fromisoformat(start_time)
-    v.hospital_service = hospital_service
-    v.assigned_location = assigned_location
-    v.attending_provider = attending_provider
-    v.bed = bed
-    v.room = room
-    v.code = code
-    v.label = label
     v.venue_seq = venue_seq
-    v.managing_department = managing_department
-    v.physical_type = physical_type
-    v.operational_status = operational_status
     session.add(v); session.commit()
+    
+    # Refresh with relationships for emit_to_senders
+    session.refresh(v, ["dossier"])
+    if v.dossier:
+        session.refresh(v.dossier, ["patient"])
+    
     emit_to_senders(v, "venue", session)
     return RedirectResponse(url="/venues", status_code=303)
 
@@ -374,6 +333,12 @@ def delete_venue(venue_id: int, request: Request, session=Depends(get_session)):
     if not v:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
     dossier_id = v.dossier_id  # Capture l'ID du dossier avant de supprimer
+    
+    # Refresh with relationships for emit_to_senders before deletion
+    session.refresh(v, ["dossier"])
+    if v.dossier:
+        session.refresh(v.dossier, ["patient"])
+    
     session.delete(v); session.commit()
     emit_to_senders(v, "venue", session)
     return RedirectResponse(url=f"/venues?dossier_id={dossier_id}", status_code=303)

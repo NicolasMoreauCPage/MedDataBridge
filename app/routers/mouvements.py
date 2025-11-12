@@ -762,8 +762,8 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
     # Affichage uniquement du badge métier (movement_type)
     type_badge = get_type_badge(getattr(m, 'movement_type', None))
     status_badge = get_status_badge(getattr(m, 'status', 'pending'))
-        from app.services.vocabulary_lookup import get_vocabulary_options
-        movement_type_options = get_vocabulary_options("movement-nature") or []
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    movement_type_options = get_vocabulary_options("movement-nature") or []
     return templates.TemplateResponse(
         request,
         "mouvement_detail.html",

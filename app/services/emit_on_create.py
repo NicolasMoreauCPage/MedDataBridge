@@ -63,9 +63,7 @@ def build_pid3_identifiers(
     
     # 1. IPP (patient_seq) - générer si absent pour éviter 'None'
     # 1. IPP (patient_seq) - si absent ne pas persister, utiliser fallback éphémère pour PID-3
-    ipp_value = getattr(patient, "patient_seq", None)
-    if not ipp_value:
-        ipp_value = patient.id or "TEMP"
+    ipp_value = patient.id or "TEMP"
     system = forced_system or "HOSP"
     identifiers.append(f"{_c(ipp_value)}^^^{_auth(system, forced_oid)}^PI")
     
@@ -96,10 +94,10 @@ def build_pid3_identifiers(
         identifiers.append(f"{nir_clean}^^^INS-NIR^NH")
     
     # 4. Tous les autres identifiants actifs
-    # Exclure ceux déjà ajoutés (patient_seq, external_id, nir)
+    # Exclure ceux déjà ajoutés (id, external_id, nir)
     already_added_values = set()
-    if patient.patient_seq:
-        already_added_values.add(str(patient.patient_seq))
+    if patient.id:
+        already_added_values.add(str(patient.id))
     if patient.external_id:
         already_added_values.add(patient.external_id)
     if patient.nir:
@@ -435,8 +433,8 @@ def generate_pam_hl7(
         
         location = entity.uf_responsabilite or ""
         admission_type = getattr(dossier, "admission_type", "") or ""
-        attending = entity.attending_provider or dossier.attending_provider or ""
-        hospital_service = entity.hospital_service or ""
+        attending = getattr(entity, "attending_provider", None) or getattr(dossier, "attending_provider", "") or ""
+        hospital_service = getattr(entity, "hospital_service", "") or ""
         admit_source = getattr(dossier, "admission_source", "") or ""
         
         pv1 = (
@@ -865,7 +863,7 @@ async def emit_to_senders_async(
 ) -> None:
     """Emit HL7/FHIR notifications for newly created or updated entities."""
 
-    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.role == "sender")).all()
+    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.role.in_(["sender", "both"]))).all()
     sent_logs: list[MessageLog] = []
 
     for endpoint in endpoints:

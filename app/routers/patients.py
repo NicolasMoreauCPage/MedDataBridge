@@ -134,7 +134,7 @@ def list_patients(request: Request, session=Depends(get_session)):
     patients = session.exec(query).all()
     rows = [
         {
-            "cells": [p.patient_seq, p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
+            "cells": [p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
             "detail_url": f"/patients/{p.id}",
             "context_url": f"/context/patient/{p.id}",
             "timeline_url": f"/timeline/patient/{p.id}",
@@ -229,8 +229,8 @@ def patient_detail(patient_id: int, request: Request, session=Depends(get_sessio
     return templates.TemplateResponse(request, "patient_detail.html", {
         "patient": p,
         "dossiers": dossiers,
-        "dossier_type_options": dossier_type_options
-            "discharge_disp_options": discharge_disp_options
+        "dossier_type_options": dossier_type_options,
+        "discharge_disp_options": discharge_disp_options
     })
 
 
@@ -284,7 +284,6 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
 @router.post("/{patient_id:int}/edit")
 def update_patient(
     patient_id: int,
-    patient_seq: int = Form(...),
     external_id: str = Form(None),
     family: str = Form(...),
     given: str = Form(...),
@@ -324,7 +323,6 @@ def update_patient(
         if not p:
             return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
     # Mise à jour des champs - Identité
-    p.patient_seq = patient_seq
     p.external_id = external_id or p.external_id
     p.family = family
     p.given = given

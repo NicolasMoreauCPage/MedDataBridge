@@ -218,15 +218,16 @@ def patient_detail(patient_id: int, request: Request, session=Depends(get_sessio
 
     # Charger la hiérarchie dossiers > venues > mouvements
     dossiers = session.exec(select(type(p.dossiers[0])).where(type(p.dossiers[0]).patient_id == p.id)).all() if p.dossiers else []
+    
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    dossier_type_options = get_vocabulary_options("dossier-type") or [
+        {"value": t.value, "label": t.value.capitalize()} for t in DossierType] if dossiers else []
+    discharge_disp_options = get_vocabulary_options("discharge-disposition") or []
+    
     for dossier in dossiers:
         dossier.venues = session.exec(select(type(dossier.venues[0])).where(type(dossier.venues[0]).dossier_id == dossier.id)).all() if dossier.venues else []
         for venue in dossier.venues:
             venue.mouvements = session.exec(select(type(venue.mouvements[0])).where(type(venue.mouvements[0]).venue_id == venue.id)).all() if venue.mouvements else []
-
-        from app.services.vocabulary_lookup import get_vocabulary_options
-        dossier_type_options = get_vocabulary_options("dossier-type") or [
-            {"value": t.value, "label": t.value.capitalize()} for t in DossierType] if dossiers else []
-        discharge_disp_options = get_vocabulary_options("discharge-disposition") or []
     return templates.TemplateResponse(request, "patient_detail.html", {
         "patient": p,
         "dossiers": dossiers,

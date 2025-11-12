@@ -203,14 +203,11 @@ def new_dossier(request: Request, session=Depends(get_session)):
         {"value": v, "label": v} for v in ["Pas de venue courante", "Pré-admis consult.ext.", "Pré-admis hospit.", "Hospitalisé", "Absence temporaire", "Consultant externe"]
     ]
     base_fields = [
-        {"name": "patient_id_display", "label": "Patient", "type": "text", "readonly": True, "value": f"{patient_context.family} {patient_context.given} (ID: {patient_context.id})"},
         {"name": "uf_responsabilite", "label": "UF de responsabilité", "type": "select", "options": uf_options},
         {"name": "dossier_type", "label": "Type de dossier", "type": "select", "options": dossier_type_opts},
         {"name": "admission_source", "label": "Source d'admission", "type": "text", "placeholder": "Domicile, Transfert, etc."},
         {"name": "attending_provider", "label": "Médecin responsable", "type": "text"},
         {"name": "admit_time", "label": "Date d'admission", "type": "datetime-local"},
-        {"name": "dossier_seq", "label": "Numéro de dossier", "type": "text", "readonly": True, "value": "Auto-généré"},
-        # État courant fixé à "Pas de venue courante" et non éditable
         {"name": "current_state", "label": "État courant", "type": "select", "options": current_state_opts, "value": "Pas de venue courante", "readonly": True},
     ]
     
@@ -241,6 +238,15 @@ def create_dossier(
     attending_provider: str = Form(None),
     admit_time: str = Form(...),
     dossier_seq: int | None = Form(None),
+    current_state: str = Form("Pas de venue courante"),  # État initial du dossier
+    # Champs supplémentaires du formulaire (ignorés)
+    description: str = Form(None),
+    from_location: str = Form(None),
+    location: str = Form(None),
+    to_location: str = Form(None),
+    type: str = Form(None),
+    viewport: str = Form(None),
+    when: str = Form(None),
     session=Depends(get_session),
 ):
     # Utiliser le patient du contexte
@@ -251,8 +257,26 @@ def create_dossier(
     
     patient_id = patient_context.id
     admit_dt = datetime.fromisoformat(admit_time)
-    # Générer l'identifiant dossier basé sur timestamp (9 chiffres, préfixe '9')
-    seq = dossier_seq or generate_dossier_seq()
+    # Générer l'identifiant dossier via identifier_generator (NDA logic)
+    from app.services.identifier_generator import generate_identifier
+    from app.models_identifiers import IdentifierType
+    from app.models_structure_fhir import IdentifierNamespace
+    # Récupérer le namespace NDA actif pour l'entité juridique du patient
+    ej_id = patient_context.entite_juridique_id if hasattr(patient_context, 'entite_juridique_id') else None
+    nda_namespace = None
+    if ej_id:
+        nda_namespace = session.exec(
+            select(IdentifierNamespace)
+            .where(IdentifierNamespace.entite_juridique_id == ej_id)
+            .where(IdentifierNamespace.type == "NDA")
+            .where(IdentifierNamespace.is_active == True)
+        ).first()
+    if nda_namespace:
+        seq = dossier_seq or generate_identifier(session, nda_namespace, IdentifierType.NDA)
+    else:
+        # Fallback: use old logic if no namespace found
+        from app.utils.seq_generator import generate_dossier_seq
+        seq = dossier_seq or generate_dossier_seq()
     d = Dossier(
         patient_id=patient_id,
         uf_responsabilite=uf_responsabilite,
@@ -261,7 +285,8 @@ def create_dossier(
         attending_provider=attending_provider,
         admit_time=admit_dt,
         dossier_seq=seq,
-        current_state="Pas de venue courante",  # État initial en création
+        current_state=current_state,  # Utiliser la valeur du formulaire
+        entite_juridique_id=getattr(patient_context, 'entite_juridique_id', None)
     )
     session.add(d)
     session.commit()

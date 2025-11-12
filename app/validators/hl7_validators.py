@@ -171,11 +171,28 @@ class PAMValidator(HL7Validator):
                 field="F3",
                 line_number=line
             ))
-            # Synchroniser la liste exposée pour tests segmentaires
             self.errors = list(self._raw_errors)
             self.warnings = list(self._raw_warnings)
             return
-            
+        # PID-18: Account Number (CX)
+        pid18, pid18_components = self.get_field(segment, 18)
+        if not pid18 or pid18.isspace():
+            self._raw_errors.append(ValidationError(
+                message="PID-18 (Account Number) manquant",
+                segment="PID",
+                field="F18",
+                line_number=line
+            ))
+        else:
+            # Check CX format: at least 5 components (ID^^^authority^AN)
+            if len(pid18_components) < 5:
+                self._raw_warnings.append(ValidationError(
+                    message="PID-18 n'est pas au format CX complet",
+                    segment="PID",
+                    field="F18",
+                    value=pid18,
+                    line_number=line
+                ))
         # Nom/Prénom (champ 5)
         name, name_components = self.get_field(segment, 5)
         if name and not name.isspace():
@@ -199,11 +216,10 @@ class PAMValidator(HL7Validator):
     
     def validate_pv1_segment(self, segment: str, line: int):
         """Valide un segment PV1."""
-        # Numéro de venue (champ 19)
-        visit_nb, _ = self.get_field(segment, 19)
+        # PV1-19 (Visit Number) as CX
+        visit_nb, visit_nb_components = self.get_field(segment, 19)
         if not visit_nb:
             if getattr(self, '_in_message_context', False):
-                # Contexte intégration: tolérer comme avertissement
                 self._raw_warnings.append(ValidationError(
                     message="Champ Numéro de venue vide",
                     segment="PV1",
@@ -211,11 +227,20 @@ class PAMValidator(HL7Validator):
                     line_number=line
                 ))
             else:
-                # Contexte test unitaire segmentaire: erreur
                 self._raw_errors.append(ValidationError(
                     message="Champ Numéro de venue vide",
                     segment="PV1",
                     field="F19",
+                    line_number=line
+                ))
+        else:
+            # Check CX format: at least 5 components (ID^^^authority^VN)
+            if len(visit_nb_components) < 5:
+                self._raw_warnings.append(ValidationError(
+                    message="PV1-19 n'est pas au format CX complet",
+                    segment="PV1",
+                    field="F19",
+                    value=visit_nb,
                     line_number=line
                 ))
         # UF (champ 3)
@@ -273,7 +298,6 @@ class PAMValidator(HL7Validator):
                 line_number=line
             ))
         elif mvt_code not in allowed_codes:
-            # Avertissement si inconnu (tests unitaires attendent warning pour INVALID)
             self._raw_warnings.append(ValidationError(
                 message=f"Code mouvement inconnu: {mvt_code}",
                 segment="ZBE",
@@ -290,6 +314,18 @@ class PAMValidator(HL7Validator):
                 value=date_value,
                 line_number=line
             ))
+        # ZBE-9: validate CX format if present
+        zbe9 = fields[9] if len(fields) > 9 else ""
+        zbe9_components = zbe9.split("^") if zbe9 else []
+        if zbe9:
+            if len(zbe9_components) < 5:
+                self._raw_warnings.append(ValidationError(
+                    message="ZBE-9 n'est pas au format CX complet",
+                    segment="ZBE",
+                    field="F9",
+                    value=zbe9,
+                    line_number=line
+                ))
         self.errors = list(self._raw_errors)
         self.warnings = list(self._raw_warnings)
 

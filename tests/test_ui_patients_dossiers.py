@@ -78,12 +78,15 @@ def test_create_dossier_and_detail(client: TestClient, session: Session):
     patient = Patient(patient_seq=seq, identifier=str(seq), family="DOS2", given="UI", gender="F")
     session.add(patient); session.commit(); session.refresh(patient)
 
+    # Définir le contexte patient
+    client.get(f"/context/patient/{patient.id}", follow_redirects=True)
+
     from datetime import datetime
     now_iso = datetime.now().strftime("%Y-%m-%dT%H:%M")
     payload = {
         "patient_id": str(patient.id),
-        "uf_responsabilite": "HDJ-ONCO",
         "admit_time": now_iso,
+        "admission_source": "RD",  # Domicile
     }
     r = client.post("/dossiers/new", data=payload, follow_redirects=False)
     assert r.status_code in (303,302)

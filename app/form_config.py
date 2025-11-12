@@ -102,16 +102,18 @@ MODEL_FIELDS = {
         }
     },
     "Dossier": {
-        "required": ["patient_id", "uf_responsabilite", "admit_time"],
+        "required": ["patient_id", "admit_time"],
         "select": {
             "admission_type": AdmissionType,
+            "admission_source": "encounter-admission-fr",  # Vocabulaire pour source d'admission
             "dossier_type": DossierType,
         },
         "help": {
             "patient_id": "ID du patient existant dans la base",
-            "uf_responsabilite": "Unité fonctionnelle responsable du dossier",
+            "uf_responsabilite": "Unité fonctionnelle responsable du dossier (optionnel)",
             "admit_time": "Date et heure d'admission",
             "admission_type": "Type d'admission du patient",
+            "admission_source": "Source d'admission (Domicile, Transfert, etc.)",
             "dossier_type": "Type de dossier (hospitalisé/externe/urgence)",
         }
     },
@@ -164,13 +166,21 @@ def get_field_config(model_name: str, field_name: str) -> Dict[str, Any]:
     config = {"required": field_name in MODEL_FIELDS[model_name]["required"]}
     
     if field_name in MODEL_FIELDS[model_name]["select"]:
-        enum_class = MODEL_FIELDS[model_name]["select"][field_name]
+        select_value = MODEL_FIELDS[model_name]["select"][field_name]
         config["type"] = "select"
-        # Use choices() if available, else fallback to list of values
-        if hasattr(enum_class, "choices"):
-            config["options"] = enum_class.choices()
+        
+        # Si c'est une chaîne, c'est un nom de vocabulaire
+        if isinstance(select_value, str):
+            from app.services.vocabulary_lookup import get_vocabulary_options
+            config["options"] = get_vocabulary_options(select_value)
+        # Sinon c'est une classe Enum
         else:
-            config["options"] = [{"value": e.value, "label": str(e.value).capitalize()} for e in enum_class]
+            enum_class = select_value
+            # Use choices() if available, else fallback to list of values
+            if hasattr(enum_class, "choices"):
+                config["options"] = enum_class.choices()
+            else:
+                config["options"] = [{"value": e.value, "label": str(e.value).capitalize()} for e in enum_class]
     
     if field_name in MODEL_FIELDS[model_name]["help"]:
         config["help"] = MODEL_FIELDS[model_name]["help"][field_name]

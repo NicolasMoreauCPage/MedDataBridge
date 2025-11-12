@@ -200,14 +200,21 @@ def new_venue(
                 uf_options = [
                     {"value": uf.um_code, "label": f"{uf.um_code} - {uf.name}"} for uf in ufs_ej if uf.um_code
                 ]
+    # Afficher le numéro de dossier (dossier_seq) si possible
+    dossier_seq_value = ''
+    if prefill_dossier_id:
+        dossier = session.get(Dossier, prefill_dossier_id)
+        if dossier:
+            dossier_seq_value = dossier.dossier_seq
     fields = [
-        {"label": "Dossier ID", "name": "dossier_id", "type": "number", "required": True,
-         "value": prefill_dossier_id or '',
+        {"label": "Numéro de dossier", "name": "dossier_seq", "type": "number", "required": True,
+         "value": dossier_seq_value or '',
          "readonly": True,
-         "help": "ID du dossier existant dans la base"},
-        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "required": True,
-         "options": uf_options,
-         "help": "Unité fonctionnelle responsable de la venue (choix dynamique selon l'établissement)"},
+         "help": "Numéro de dossier métier (dossier_seq)"},
+        {"name": "dossier_id", "type": "hidden", "value": prefill_dossier_id or ''},
+    {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "required": True,
+     "options": uf_options if uf_options else [{"value": "", "label": "Aucune UF disponible"}],
+     "help": "Unité fonctionnelle responsable de la venue (choix dynamique selon l'établissement)"},
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", 
          "value": now_str, "required": True,
          "help": "Date et heure de début de la venue"},

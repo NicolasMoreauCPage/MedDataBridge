@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Optional
 from sqlmodel import Session, select
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
+from app.services.vocabulary_fallback import get_default_value
 
 
 def map_code(
@@ -115,3 +116,40 @@ def safe_map(
     if mapped:
         return mapped
     return code if fallback_same else None
+
+
+def map_code_with_fallback(
+    session: Session,
+    source_system: str,
+    source_code: str,
+    target_system: str,
+    fallback_to_default: bool = True
+) -> Optional[str]:
+    """
+    Map a code with fallback to default values if mapping not found.
+
+    Args:
+        session: DB session
+        source_system: system name of the source code
+        source_code: code in the source system to translate
+        target_system: target system name
+        fallback_to_default: if True, use default values when no mapping found
+
+    Returns:
+        Mapped target code, default value, or None if no mapping and no default
+    """
+    if not source_code:
+        return None
+
+    # Essayer d'abord le mapping normal
+    mapped = map_code(session, source_system, source_code, target_system)
+    if mapped:
+        return mapped
+
+    # Si pas de mapping et fallback activé, essayer les valeurs par défaut
+    if fallback_to_default:
+        default_value = get_default_value(target_system, source_code)
+        if default_value:
+            return default_value
+
+    return None

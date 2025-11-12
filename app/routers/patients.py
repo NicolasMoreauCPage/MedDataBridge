@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Form, Body
 from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse, RedirectResponse
-from app.models import Patient
+from app.models import Patient, DossierType
 from app.db import get_session
 from app.dependencies.ght import require_ght_context
 from sqlmodel import select
@@ -134,14 +134,14 @@ def list_patients(request: Request, session=Depends(get_session)):
     patients = session.exec(query).all()
     rows = [
         {
-            "cells": [i+1, p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
+            "cells": [p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
             "detail_url": f"/patients/{p.id}",
             "context_url": f"/context/patient/{p.id}",
             "timeline_url": f"/timeline/patient/{p.id}",
             "edit_url": f"/patients/{p.id}/edit",
             "delete_url": f"/patients/{p.id}/delete"
         }
-        for i, p in enumerate(patients)
+        for p in patients
     ]
 
     # Définir le fil d'Ariane
@@ -190,7 +190,7 @@ def list_patients(request: Request, session=Depends(get_session)):
         "request": request,
         "title": "Patients",
         "breadcrumbs": breadcrumbs,
-        "headers": ["Seq", "ID", "ExtID", "Nom", "Date naiss.", "Genre"],
+        "headers": ["ID", "ExtID", "Nom", "Date naiss.", "Genre"],
         "rows": rows,
         "new_url": "/patients/new",
         "filters": filters,
@@ -224,7 +224,7 @@ def patient_detail(patient_id: int, request: Request, session=Depends(get_sessio
 
         from app.services.vocabulary_lookup import get_vocabulary_options
         dossier_type_options = get_vocabulary_options("dossier-type") or [
-            {"value": t.value, "label": t.value.capitalize()} for t in dossiers[0].__class__.dossier_type.__class__] if dossiers else []
+            {"value": t.value, "label": t.value.capitalize()} for t in DossierType] if dossiers else []
         discharge_disp_options = get_vocabulary_options("discharge-disposition") or []
     return templates.TemplateResponse(request, "patient_detail.html", {
         "patient": p,
@@ -270,6 +270,13 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
             ("M", "Masculin"), ("F", "Féminin"), ("O", "Autre"), ("U", "Indéterminé")
         ]
     ]
+    country_opts = get_vocabulary_options("country-codes") or [
+        {"value": c, "label": l} for c, l in [
+            ("FRA", "🇫🇷 France"), ("BEL", "🇧🇪 Belgique"), ("CHE", "🇨🇭 Suisse"),
+            ("LUX", "🇱🇺 Luxembourg"), ("DEU", "🇩🇪 Allemagne"), ("ITA", "🇮🇹 Italie"),
+            ("ESP", "🇪🇸 Espagne"), ("GBR", "🇬🇧 Royaume-Uni")
+        ]
+    ]
     return templates.TemplateResponse(request, "patient_form.html", {
         "title": "Modifier patient",
         "patient": p,
@@ -278,6 +285,7 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
         "marital_status_options": marital_opts,
         "ins_type_options": ins_type_opts,
         "gender_options": gender_opts,
+        "country_options": country_opts,
     })
 
 
@@ -419,6 +427,13 @@ def new_patient(request: Request, session=Depends(get_session)):
             ("M", "Masculin"), ("F", "Féminin"), ("O", "Autre"), ("U", "Indéterminé")
         ]
     ]
+    country_opts = get_vocabulary_options("country-codes") or [
+        {"value": c, "label": l} for c, l in [
+            ("FRA", "🇫🇷 France"), ("BEL", "🇧🇪 Belgique"), ("CHE", "🇨🇭 Suisse"),
+            ("LUX", "🇱🇺 Luxembourg"), ("DEU", "🇩🇪 Allemagne"), ("ITA", "🇮🇹 Italie"),
+            ("ESP", "🇪🇸 Espagne"), ("GBR", "🇬🇧 Royaume-Uni")
+        ]
+    ]
     templates = get_templates(request)
     return templates.TemplateResponse(request, "patient_form.html", {
         "title": "Nouveau patient",
@@ -430,6 +445,7 @@ def new_patient(request: Request, session=Depends(get_session)):
         "marital_status_options": marital_opts,
         "ins_type_options": ins_type_opts,
         "gender_options": gender_opts,
+        "country_options": country_opts,
     })
 
 @router.post("/new")

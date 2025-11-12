@@ -219,6 +219,7 @@ def new_dossier(request: Request, session=Depends(get_session)):
             field["value"] = now_str
         elif field_name == "dossier_seq":
             field["value"] = next_seq
+            field["readonly"] = True
             
         # Fusionner la configuration avec les valeurs de base
         field.update(config)
@@ -379,7 +380,7 @@ def edit_dossier(dossier_id: int, request: Request, session=Depends(get_session)
         {"label": "Source d'admission", "name": "admission_source", "type": "text", "value": getattr(d, "admission_source", None), "placeholder": "Domicile, Transfert, etc."},
         {"label": "Médecin responsable", "name": "attending_provider", "type": "text", "value": getattr(d,'attending_provider',None)},
         {"label": "Date d'admission", "name": "admit_time", "type": "datetime-local", "value": d.admit_time.strftime('%Y-%m-%dT%H:%M') if d.admit_time else ''},
-        {"label": "Numéro de séquence", "name": "dossier_seq", "type": "number", "value": d.dossier_seq},
+        {"label": "Numéro de séquence", "name": "dossier_seq", "type": "number", "value": d.dossier_seq, "readonly": True},
     ]
     return templates.TemplateResponse(request, "form.html", {"title": "Modifier dossier", "fields": fields, "action_url": f"/dossiers/{dossier_id}/edit"})
 

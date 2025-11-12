@@ -14,15 +14,15 @@ if TYPE_CHECKING:
 class IdentifierType(str, Enum):
     IPP = "IPP"  # Identifiant Patient Permanent
     NDA = "NDA"  # Numéro de Dossier Administratif
-    AN = "AN"   # Account Number (PID-18)
-    VN = "VN"   # Visit Number
-    PI = "PI"   # Patient Internal
-    PG = "PG"   # Patient Global
-    SNS = "SNS" # Social Security
-    PN = "PN"   # Person to notify / Contact
-    NDP = "NDP" # Numéro dossier patient (table 203 complément FR)
-    MVT = "MVT" # Identifiant de mouvement (ZBE-1)
-    FINESS = "FINESS"  # Numéro FINESS établissement
+    NA = "NA"    # Numéro d'Admission (Account Number PID-18)
+    VN = "VN"    # Numéro de Venue
+    PI = "PI"    # Patient Interne
+    PG = "PG"    # Patient Global
+    SS = "SS"    # Sécurité Sociale
+    PC = "PC"    # Personne à Contacter
+    NDP = "NDP"  # Numéro Dossier Patient
+    MVT = "MVT"  # Identifiant de Mouvement
+    FINESS = "FINESS"  # Numéro FINESS Établissement
 
 
 class Identifier(SQLModel, table=True):

@@ -17,8 +17,9 @@
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1">Type de message</label>
         <select name="kind" class="block w-full rounded border px-2 py-2 focus:ring-primary focus:border-primary">
-          <option value="MLLP">MLLP (HL7 v2)</option>
-          <option value="FHIR">FHIR (JSON)</option>
+          {% for option in transport_options %}
+          <option value="{{ option.value }}">{{ option.label }}</option>
+          {% endfor %}
         </select>
       </div>
       <div>

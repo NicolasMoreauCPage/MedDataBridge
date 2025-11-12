@@ -300,6 +300,9 @@ class FHIRToPatientConverter:
         self.session.commit()
         self.session.refresh(patient)
         
+        # Traiter les extensions FRCore
+        self._process_fr_core_extensions(fhir_patient, patient)
+        
         # Ajouter les identifiants
         for ident_data in identifiers:
             system = ident_data.get("system", "")
@@ -351,12 +354,70 @@ class FHIRToPatientConverter:
 
     def _map_system_to_type(self, system: str) -> str:
         """Mappe un system FHIR vers un IdentifierType."""
-        if "ipp" in system.lower():
+        system_lower = system.lower()
+        
+        # Systèmes FRCore et standards français
+        if "ipp" in system_lower or "urn:oid:1.2.250.1.71.4.2.1" in system:
             return IdentifierType.IPP.value
-        elif "ins" in system.lower():
-            return IdentifierType.INS.value
+        elif "ins" in system_lower or "urn:oid:1.2.250.1.71.4.2.2" in system:
+            return IdentifierType.IPP.value  # INS est aussi un IPP en France
+        elif "nir" in system_lower:
+            return IdentifierType.SS.value  # NIR = numéro sécurité sociale
+        elif "ssn" in system_lower or "us-ssn" in system_lower:
+            return IdentifierType.SS.value
+        elif "nda" in system_lower:
+            return IdentifierType.NDA.value
         else:
+            # Par défaut, considérer comme IPP
             return IdentifierType.IPP.value
+
+    def _process_fr_core_extensions(self, fhir_patient: Dict[str, Any], patient: Patient):
+        """Traite les extensions FRCore du patient FHIR."""
+        extensions = fhir_patient.get("extension", [])
+        
+        for extension in extensions:
+            url = extension.get("url", "")
+            
+            # Extension FRCore fiabilité d'identité
+            if url == "http://interopsante.org/fhir/StructureDefinition/fr-core-patient-identity-reliability":
+                self._process_identity_reliability_extension(extension, patient)
+            
+            # Extension FRCore lieu de naissance
+            elif url == "http://interopsante.org/fhir/StructureDefinition/fr-core-patient-birth-place":
+                self._process_birth_place_extension(extension, patient)
+
+    def _process_identity_reliability_extension(self, extension: Dict[str, Any], patient: Patient):
+        """Traite l'extension FRCore de fiabilité d'identité."""
+        sub_extensions = extension.get("extension", [])
+        
+        for sub_ext in sub_extensions:
+            sub_url = sub_ext.get("url", "")
+            
+            if sub_url == "identityReliability":
+                coding = sub_ext.get("valueCoding", {})
+                patient.identity_reliability_code = coding.get("code")
+            
+            elif sub_url == "identityReliabilityDate":
+                patient.identity_reliability_date = sub_ext.get("valueDate")
+            
+            elif sub_url == "identityReliabilitySource":
+                patient.identity_reliability_source = sub_ext.get("valueString")
+        
+        # Commit les changements
+        self.session.commit()
+
+    def _process_birth_place_extension(self, extension: Dict[str, Any], patient: Patient):
+        """Traite l'extension FRCore de lieu de naissance."""
+        address = extension.get("valueAddress", {})
+        
+        if address:
+            patient.birth_city = address.get("city")
+            patient.birth_state = address.get("state")
+            patient.birth_postal_code = address.get("postalCode")
+            patient.birth_country = address.get("country")
+            
+            # Commit les changements
+            self.session.commit()
 
 
 class FHIRToEncounterConverter:
@@ -522,6 +583,9 @@ class FHIRBundleImporter:
             resource = entry.get("resource", {})
             resource_type = resource.get("resourceType")
             
+            # Valider les profils FRCore
+            self._validate_fr_core_profiles(resource)
+            
             try:
                 if resource_type == "Location":
                     self.location_converter.convert_location(resource)
@@ -545,3 +609,27 @@ class FHIRBundleImporter:
                 })
         
         return results
+
+    def _validate_fr_core_profiles(self, resource: Dict[str, Any]):
+        """Valide que les ressources utilisent les profils FRCore appropriés."""
+        resource_type = resource.get("resourceType")
+        meta = resource.get("meta", {})
+        profiles = meta.get("profile", [])
+        
+        # Profils FRCore attendus par type de ressource
+        expected_profiles = {
+            "Patient": ["http://interopsante.org/fhir/StructureDefinition/fr-core-patient"],
+            "Encounter": ["http://interopsante.org/fhir/StructureDefinition/fr-encounter"],
+            "Location": ["http://interopsante.org/fhir/StructureDefinition/fr-location"],
+            "Organization": ["http://interopsante.org/fhir/StructureDefinition/fr-organization"]
+        }
+        
+        if resource_type in expected_profiles:
+            expected = expected_profiles[resource_type]
+            # Vérifier qu'au moins un profil FRCore est présent
+            has_fr_profile = any(profile in profiles for profile in expected)
+            
+            if not has_fr_profile:
+                # Ne pas lever d'erreur, juste un avertissement dans les logs
+                print(f"⚠️  Ressource {resource_type} sans profil FRCore. Profils attendus: {expected}, profils trouvés: {profiles}")
+

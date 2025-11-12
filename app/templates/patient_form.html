@@ -169,14 +169,9 @@
           <label class="block text-sm font-medium text-slate-700 mb-1">Pays</label>
           <select name="country" class="input-field">
             <option value="">-- Choisir --</option>
-            <option value="FRA" {% if (patient and patient.country == 'FRA') or (sample_data and sample_data.get('country') == 'FRA') %}selected{% endif %}>🇫🇷 France (FRA)</option>
-            <option value="BEL" {% if (patient and patient.country == 'BEL') or (sample_data and sample_data.get('country') == 'BEL') %}selected{% endif %}>🇧🇪 Belgique (BEL)</option>
-            <option value="CHE" {% if (patient and patient.country == 'CHE') or (sample_data and sample_data.get('country') == 'CHE') %}selected{% endif %}>🇨🇭 Suisse (CHE)</option>
-            <option value="LUX" {% if (patient and patient.country == 'LUX') or (sample_data and sample_data.get('country') == 'LUX') %}selected{% endif %}>🇱🇺 Luxembourg (LUX)</option>
-            <option value="DEU" {% if (patient and patient.country == 'DEU') or (sample_data and sample_data.get('country') == 'DEU') %}selected{% endif %}>🇩🇪 Allemagne (DEU)</option>
-            <option value="ITA" {% if (patient and patient.country == 'ITA') or (sample_data and sample_data.get('country') == 'ITA') %}selected{% endif %}>🇮🇹 Italie (ITA)</option>
-            <option value="ESP" {% if (patient and patient.country == 'ESP') or (sample_data and sample_data.get('country') == 'ESP') %}selected{% endif %}>🇪🇸 Espagne (ESP)</option>
-            <option value="GBR" {% if (patient and patient.country == 'GBR') or (sample_data and sample_data.get('country') == 'GBR') %}selected{% endif %}>🇬🇧 Royaume-Uni (GBR)</option>
+            {% for option in country_options %}
+            <option value="{{ option.value }}" {% if (patient and patient.country == option.value) or (sample_data and sample_data.get('country') == option.value) %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
           </select>
           <p class="text-xs text-slate-500 mt-1">Code ISO 3 lettres - PID-11.6</p>
         </div>
@@ -251,14 +246,9 @@
           <label class="block text-sm font-medium text-slate-700 mb-1">Pays de naissance</label>
           <select name="birth_country" class="input-field">
             <option value="">-- Choisir --</option>
-            <option value="FRA" {% if (patient and patient.birth_country == 'FRA') or (sample_data and sample_data.get('birth_country') == 'FRA') %}selected{% endif %}>🇫🇷 France (FRA)</option>
-            <option value="BEL" {% if (patient and patient.birth_country == 'BEL') or (sample_data and sample_data.get('birth_country') == 'BEL') %}selected{% endif %}>🇧🇪 Belgique (BEL)</option>
-            <option value="CHE" {% if (patient and patient.birth_country == 'CHE') or (sample_data and sample_data.get('birth_country') == 'CHE') %}selected{% endif %}>🇨🇭 Suisse (CHE)</option>
-            <option value="LUX" {% if (patient and patient.birth_country == 'LUX') or (sample_data and sample_data.get('birth_country') == 'LUX') %}selected{% endif %}>🇱🇺 Luxembourg (LUX)</option>
-            <option value="DEU" {% if (patient and patient.birth_country == 'DEU') or (sample_data and sample_data.get('birth_country') == 'DEU') %}selected{% endif %}>🇩🇪 Allemagne (DEU)</option>
-            <option value="ITA" {% if (patient and patient.birth_country == 'ITA') or (sample_data and sample_data.get('birth_country') == 'ITA') %}selected{% endif %}>🇮🇹 Italie (ITA)</option>
-            <option value="ESP" {% if (patient and patient.birth_country == 'ESP') or (sample_data and sample_data.get('birth_country') == 'ESP') %}selected{% endif %}>🇪🇸 Espagne (ESP)</option>
-            <option value="GBR" {% if (patient and patient.birth_country == 'GBR') or (sample_data and sample_data.get('birth_country') == 'GBR') %}selected{% endif %}>🇬🇧 Royaume-Uni (GBR)</option>
+            {% for option in country_options %}
+            <option value="{{ option.value }}" {% if (patient and patient.birth_country == option.value) or (sample_data and sample_data.get('birth_country') == option.value) %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
           </select>
         </div>
       </div>

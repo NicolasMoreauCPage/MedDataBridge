@@ -25,41 +25,41 @@ if TYPE_CHECKING:
 class ScenarioType(str, Enum):
     """Types de scénarios cliniques."""
     ADMISSION = "ADMISSION"
-    TRANSFER = "TRANSFER"
-    DISCHARGE = "DISCHARGE"
-    UPDATE = "UPDATE"
-    ADMISSION_WITH_TRANSFER = "ADMISSION_WITH_TRANSFER"
-    ADMISSION_WITH_DISCHARGE = "ADMISSION_WITH_DISCHARGE"
-    MERGE_PATIENTS = "MERGE_PATIENTS"
-    CANCEL_ADMISSION = "CANCEL_ADMISSION"
-    OTHER = "OTHER"
+    TRANSFERT = "TRANSFERT"
+    SORTIE = "SORTIE"
+    MISE_A_JOUR = "MISE_A_JOUR"
+    ADMISSION_AVEC_TRANSFERT = "ADMISSION_AVEC_TRANSFERT"
+    ADMISSION_AVEC_SORTIE = "ADMISSION_AVEC_SORTIE"
+    FUSION_PATIENTS = "FUSION_PATIENTS"
+    ANNULATION_ADMISSION = "ANNULATION_ADMISSION"
+    AUTRE = "AUTRE"
 
 
 class ActionType(str, Enum):
     """Types d'actions dans un workflow."""
-    CREATE_PATIENT = "CREATE_PATIENT"
-    UPDATE_PATIENT = "UPDATE_PATIENT"
-    MERGE_PATIENTS = "MERGE_PATIENTS"
-    CREATE_DOSSIER = "CREATE_DOSSIER"
-    UPDATE_DOSSIER = "UPDATE_DOSSIER"
-    CLOSE_DOSSIER = "CLOSE_DOSSIER"
-    CANCEL_DOSSIER = "CANCEL_DOSSIER"
-    CREATE_VENUE = "CREATE_VENUE"
-    UPDATE_VENUE = "UPDATE_VENUE"
-    END_VENUE = "END_VENUE"
-    CREATE_MOVEMENT = "CREATE_MOVEMENT"
-    CANCEL_MOVEMENT = "CANCEL_MOVEMENT"
-    EMIT_HL7 = "EMIT_HL7"
-    EMIT_FHIR = "EMIT_FHIR"
+    CREER_PATIENT = "CREER_PATIENT"
+    METTRE_A_JOUR_PATIENT = "METTRE_A_JOUR_PATIENT"
+    FUSIONNER_PATIENTS = "FUSIONNER_PATIENTS"
+    CREER_DOSSIER = "CREER_DOSSIER"
+    METTRE_A_JOUR_DOSSIER = "METTRE_A_JOUR_DOSSIER"
+    CLOTURER_DOSSIER = "CLOTURER_DOSSIER"
+    ANNULER_DOSSIER = "ANNULER_DOSSIER"
+    CREER_VENUE = "CREER_VENUE"
+    METTRE_A_JOUR_VENUE = "METTRE_A_JOUR_VENUE"
+    TERMINER_VENUE = "TERMINER_VENUE"
+    CREER_MOUVEMENT = "CREER_MOUVEMENT"
+    ANNULER_MOUVEMENT = "ANNULER_MOUVEMENT"
+    EMETTRE_HL7 = "EMETTRE_HL7"
+    EMETTRE_FHIR = "EMETTRE_FHIR"
 
 
 class ExecutionStatus(str, Enum):
     """Statut d'exécution d'un scénario ou d'une étape."""
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
+    EN_ATTENTE = "EN_ATTENTE"
+    EN_COURS = "EN_COURS"
+    TERMINE = "TERMINE"
+    ECHEC = "ECHEC"
+    ANNULE = "ANNULE"
 
 
 class EntityType(str, Enum):
@@ -68,8 +68,8 @@ class EntityType(str, Enum):
     DOSSIER = "DOSSIER"
     VENUE = "VENUE"
     MOUVEMENT = "MOUVEMENT"
-    HL7_MESSAGE = "HL7_MESSAGE"
-    FHIR_RESOURCE = "FHIR_RESOURCE"
+    MESSAGE_HL7 = "MESSAGE_HL7"
+    RESSOURCE_FHIR = "RESSOURCE_FHIR"
 
 
 class WorkflowScenario(SQLModel, table=True):
@@ -154,7 +154,7 @@ class WorkflowScenarioExecution(SQLModel, table=True):
     dossier_id: Optional[int] = Field(default=None, foreign_key="dossier.id")
     
     # Statut
-    status: ExecutionStatus = Field(default=ExecutionStatus.PENDING, index=True)
+    status: ExecutionStatus = Field(default=ExecutionStatus.EN_ATTENTE, index=True)
     error_message: Optional[str] = Field(default=None, sa_column=Column(Text))
     
     # Dates
@@ -203,7 +203,7 @@ class WorkflowExecutionStep(SQLModel, table=True):
     )
     
     # Statut
-    status: ExecutionStatus = Field(default=ExecutionStatus.PENDING, index=True)
+    status: ExecutionStatus = Field(default=ExecutionStatus.EN_ATTENTE, index=True)
     error_message: Optional[str] = Field(default=None, sa_column=Column(Text))
     
     # Dates

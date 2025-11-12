@@ -61,12 +61,15 @@
           </label>
 
           {% if field.type == 'select' %}
-                <select name="{{ field.name }}" id="{{ field.name }}" class="form-control" {% if field.required %}required{% endif %}>
+                <select name="{{ field.name }}" id="{{ field.name }}" class="form-control" {% if field.required %}required{% endif %} {% if field.readonly %}disabled{% endif %}>
                     <option value="">-- Sélectionner --</option>
                     {% for option in field.options %}
                         <option value="{{ option.value }}" {% if option.value == field.value %}selected{% endif %}>{{ option.label }}</option>
                     {% endfor %}
                 </select>
+                {% if field.readonly %}
+                <input type="hidden" name="{{ field.name }}" value="{{ field.value or '' }}" />
+                {% endif %}
             {% elif field.type == "text" or field.type == "number" or field.type == "datetime-local" %}
                 <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}" value="{{ field.value|default('') }}" {% if field.required %}required{% endif %} class="form-control">
             {% else %}

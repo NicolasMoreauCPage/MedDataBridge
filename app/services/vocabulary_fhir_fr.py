@@ -207,3 +207,85 @@ def create_fr_encounter_priority() -> List[VocabularySystem]:
     systems.append(priority)
     
     return systems
+
+def create_fr_patient_identity_reliability() -> List[VocabularySystem]:
+    """Crée le vocabulaire FRCore pour la fiabilité d'identité patient"""
+    systems = []
+    
+    # FRCore Patient Identity Reliability
+    reliability = VocabularySystem(
+        name="fr-core-patient-identity-reliability",
+        label="Fiabilité d'identité patient (FRCore)",
+        uri="http://interopsante.org/fhir/CodeSystem/fr-core-cs-patient-identity-reliability",
+        system_type=VocabularySystemType.FHIR,
+        is_user_defined=False,
+        description="Codes de fiabilité d'identité selon FRCore"
+    )
+    
+    reliability_values = [
+        VocabularyValue(code="VALI", display="Validée", definition="Identité validée", order=1),
+        VocabularyValue(code="QUAL", display="Qualifiée", definition="Identité qualifiée", order=2),
+        VocabularyValue(code="PROV", display="Provisoire", definition="Identité provisoire", order=3),
+        VocabularyValue(code="VIDE", display="Vide", definition="Champ vide", order=4),
+        VocabularyValue(code="DOUT", display="Douteuse", definition="Identité douteuse", order=5),
+        VocabularyValue(code="FICT", display="Fictive", definition="Identité fictive", order=6),
+        VocabularyValue(code="DOUB", display="Doublon", definition="Doublon détecté", order=7)
+    ]
+    reliability.values = reliability_values
+    systems.append(reliability)
+    
+    return systems
+
+def create_fr_identity_method_collection() -> List[VocabularySystem]:
+    """Crée le vocabulaire FRCore pour les méthodes de collecte d'identité"""
+    systems = []
+    
+    # FRCore Identity Method Collection
+    method = VocabularySystem(
+        name="fr-core-identity-method-collection",
+        label="Méthodes de collecte d'identité (FRCore)",
+        uri="http://interopsante.org/fhir/CodeSystem/fr-core-cs-identity-method-collection",
+        system_type=VocabularySystemType.FHIR,
+        is_user_defined=False,
+        description="Méthodes de collecte d'identité selon FRCore"
+    )
+    
+    method_values = [
+        VocabularyValue(code="SM", display="Saisie manuelle", definition="Saisie manuelle des données d'identité", order=1),
+        VocabularyValue(code="CV", display="Carte vitale", definition="Collecte via carte vitale", order=2),
+        VocabularyValue(code="INSI", display="INSI", definition="Collecte via INSI (Identifiant National de Santé)", order=3),
+        VocabularyValue(code="CB", display="Carte bancaire", definition="Collecte via carte bancaire", order=4),
+        VocabularyValue(code="RFID", display="RFID", definition="Collecte via technologie RFID", order=5)
+    ]
+    method.values = method_values
+    systems.append(method)
+    
+    return systems
+
+def create_fr_encounter_discharge_circumstances() -> List[VocabularySystem]:
+    """Crée le vocabulaire FRCore pour les circonstances de sortie"""
+    systems = []
+    
+    # FRCore Encounter Discharge Circumstances
+    circumstances = VocabularySystem(
+        name="fr-core-encounter-discharge-circumstances",
+        label="Circonstances de sortie (FRCore)",
+        uri="http://interopsante.org/fhir/CodeSystem/fr-core-cs-encounter-discharge-circumstances",
+        system_type=VocabularySystemType.FHIR,
+        is_user_defined=False,
+        description="Circonstances de sortie selon FRCore"
+    )
+    
+    circumstances_values = [
+        VocabularyValue(code="D", display="Décès", definition="Sortie par décès", order=1),
+        VocabularyValue(code="T", display="Transfert", definition="Transfert vers un autre établissement", order=2),
+        VocabularyValue(code="G", display="Guérison", definition="Guérison", order=3),
+        VocabularyValue(code="A", display="Amélioration", definition="Amélioration de l'état", order=4),
+        VocabularyValue(code="E", display="Évasion", definition="Évasion", order=5),
+        VocabularyValue(code="R", display="Refus de soins", definition="Refus de soins", order=6),
+        VocabularyValue(code="O", display="Autre", definition="Autre circonstance", order=7)
+    ]
+    circumstances.values = circumstances_values
+    systems.append(circumstances)
+    
+    return systems

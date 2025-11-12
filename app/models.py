@@ -32,9 +32,11 @@ class INSType(str, Enum):
 
 class DossierType(str, Enum):
     """Type de dossier patient"""
-    HOSPITALISE = "hospitalise"  # Hospitalisation complète
-    EXTERNE = "externe"         # Consultation externe
-    URGENCE = "urgence"        # Passage aux urgences
+    HOSPITALISE = "hospitalise"        # Hospitalisation complète
+    HOSPITALISATION_MIXTE = "hospitalisation_mixte"  # Hospitalisation mixte (jour + nuit)
+    HOSPITALISATION_PARTIELLE = "hospitalisation_partielle"  # Hospitalisation partielle
+    EXTERNE = "externe"               # Consultation externe
+    URGENCE = "urgence"              # Passage aux urgences
     
 # --- Générateur de séquences générique ---
 class Sequence(SQLModel, table=True):
@@ -145,9 +147,7 @@ class Dossier(SQLModel, table=True):
     discharge_time: Optional[datetime] = None
     dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
-    admit_time: datetime
-    discharge_time: Optional[datetime] = None
-    dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
+    uf_responsabilite: Optional[str] = None                 # UF responsable du dossier
 
     def update_type(self, new_type: DossierType, session: Session | None = None) -> None:
         """
@@ -190,6 +190,9 @@ class Dossier(SQLModel, table=True):
 class Venue(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     venue_seq: int = Field(index=True, unique=True)         # identifiant métier unique
+    code: Optional[str] = None                               # code de localisation (PV1-3)
+    label: Optional[str] = None                              # libellé descriptif de la venue
+    assigned_location: Optional[str] = None                  # localisation assignée (lit/chambre)
     dossier_id: int = Field(foreign_key="dossier.id")
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     uf_responsabilite: Optional[str] = None

@@ -14,6 +14,9 @@ from app.services.vocabulary_fhir_fr import (
     create_fr_patient_contact_role,
     create_fr_encounter_hospitalization,
     create_fr_encounter_priority,
+    create_fr_patient_identity_reliability,
+    create_fr_identity_method_collection,
+    create_fr_encounter_discharge_circumstances,
 )
 from app.services.vocabulary_mappings import init_vocabulary_mappings
 from app.models_vocabulary import VocabularySystemType
@@ -167,6 +170,79 @@ def create_marital_status_vocab() -> List[VocabularySystem]:
         ("W", "Veuf"), ("P", "Partenaire"), ("A", "Séparé"), ("U", "Inconnu")
     ]
     system.values = [VocabularyValue(code=c, display=lbl, order=i+1) for i, (c, lbl) in enumerate(codes)]
+    return [system]
+
+def create_country_vocab() -> List[VocabularySystem]:
+    system = VocabularySystem(
+        name="country-codes",
+        label="Codes pays",
+        system_type=VocabularySystemType.LOCAL,
+        description="Codes ISO 3 lettres pour les pays (conformité FHIR France)"
+    )
+    system.values = [
+        VocabularyValue(code="FRA", display="🇫🇷 France", order=1),
+        VocabularyValue(code="BEL", display="🇧🇪 Belgique", order=2),
+        VocabularyValue(code="CHE", display="🇨🇭 Suisse", order=3),
+        VocabularyValue(code="LUX", display="🇱🇺 Luxembourg", order=4),
+        VocabularyValue(code="DEU", display="🇩🇪 Allemagne", order=5),
+        VocabularyValue(code="ITA", display="🇮🇹 Italie", order=6),
+        VocabularyValue(code="ESP", display="🇪🇸 Espagne", order=7),
+        VocabularyValue(code="GBR", display="🇬🇧 Royaume-Uni", order=8),
+    ]
+    return [system]
+
+def create_transport_type_vocab() -> List[VocabularySystem]:
+    system = VocabularySystem(
+        name="transport-type",
+        label="Type de transport",
+        system_type=VocabularySystemType.LOCAL,
+        description="Types de transport pour les messages (MLLP, FHIR, etc.)"
+    )
+    system.values = [
+        VocabularyValue(code="MLLP", display="MLLP (HL7 v2)", order=1),
+        VocabularyValue(code="FHIR", display="FHIR (JSON)", order=2),
+    ]
+    return [system]
+
+def create_structure_type_vocab() -> List[VocabularySystem]:
+    system = VocabularySystem(
+        name="structure-type",
+        label="Type de structure",
+        system_type=VocabularySystemType.LOCAL,
+        description="Types de structures hospitalières (pole, service, uf, uh)"
+    )
+    system.values = [
+        VocabularyValue(code="pole", display="Pôles", order=1),
+        VocabularyValue(code="service", display="Services", order=2),
+        VocabularyValue(code="uf", display="Unités Fonctionnelles", order=3),
+        VocabularyValue(code="uh", display="Unités d'Hébergement", order=4),
+    ]
+    return [system]
+
+def create_structure_status_vocab() -> List[VocabularySystem]:
+    system = VocabularySystem(
+        name="structure-status",
+        label="Statut de structure",
+        system_type=VocabularySystemType.LOCAL,
+        description="Statuts des structures (active, inactive)"
+    )
+    system.values = [
+        VocabularyValue(code="active", display="Actif", order=1),
+        VocabularyValue(code="inactive", display="Inactif", order=2),
+    ]
+    return [system]
+
+def create_message_direction_vocab() -> List[VocabularySystem]:
+    system = VocabularySystem(
+        name="message-direction",
+        label="Direction des messages",
+        system_type=VocabularySystemType.LOCAL,
+        description="Directions des messages (entrante, sortante)"
+    )
+    system.values = [
+        VocabularyValue(code="in", display="Entrante", order=1),
+        VocabularyValue(code="out", display="Sortante", order=2),
+    ]
     return [system]
 
 def _create_contact_relationship_and_role_vocab() -> List[VocabularySystem]:
@@ -377,6 +453,9 @@ def init_vocabularies(session):
     all_systems.extend(create_fr_patient_contact_role())
     all_systems.extend(create_fr_encounter_hospitalization())
     all_systems.extend(create_fr_encounter_priority())
+    all_systems.extend(create_fr_patient_identity_reliability())
+    all_systems.extend(create_fr_identity_method_collection())
+    all_systems.extend(create_fr_encounter_discharge_circumstances())
     
     # Vocabulaires MFN pour structures
     all_systems.extend(create_mfn_segment_fields())
@@ -391,6 +470,11 @@ def init_vocabularies(session):
     all_systems.extend(create_identity_reliability_vocab())
     all_systems.extend(create_ins_type_vocab())
     all_systems.extend(create_marital_status_vocab())
+    all_systems.extend(create_country_vocab())
+    all_systems.extend(create_transport_type_vocab())
+    all_systems.extend(create_structure_type_vocab())
+    all_systems.extend(create_structure_status_vocab())
+    all_systems.extend(create_message_direction_vocab())
     # --- Nouveau: Vocabulaire des relations et rôles de contact (HL7 NK1) ---
     # Ajout séparé pour éviter collision avec create_fr_patient_contact_role (spécifique NOS FHIR)
     all_systems.extend(_create_contact_relationship_and_role_vocab())

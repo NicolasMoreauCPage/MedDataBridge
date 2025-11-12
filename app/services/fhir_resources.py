@@ -33,6 +33,18 @@ def generate_patient_resource(patient: Patient, forced_identifier_system=None, f
             },
             "value": str(patient.patient_seq)
         })
+    # Always include patient ID as identifier
+    if patient.id:
+        identifiers.append({
+            "system": "http://hospital.local/patient-id",
+            "type": {
+                "coding": [{
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                    "code": "MR"
+                }]
+            },
+            "value": str(patient.id)
+        })
     if getattr(patient, "ssn", None):
         identifiers.append({
             "system": "http://hl7.org/fhir/sid/us-ssn",

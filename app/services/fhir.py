@@ -88,8 +88,67 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
         "gender": p.gender,
         "birthDate": p.birth_date,
         "maritalStatus": {"text": p.marital_status} if getattr(p, "marital_status", None) else None,
-        "extension": [{"url": "http://example.org/fhir/StructureDefinition/primary-care-provider", "valueString": p.primary_care_provider}] if getattr(p, "primary_care_provider", None) else [],
     }
+
+    # Extensions FRCore pour conformité FHIR France
+    extensions = []
+    
+    # Extension FRCore pour fiabilité d'identité
+    if getattr(p, "identity_reliability_code", None):
+        identity_extension = {
+            "url": "http://interopsante.org/fhir/StructureDefinition/fr-core-patient-identity-reliability",
+            "extension": []
+        }
+        
+        # Code de fiabilité d'identité
+        identity_extension["extension"].append({
+            "url": "identityReliability",
+            "valueCoding": {
+                "system": "http://interopsante.org/fhir/CodeSystem/fr-core-cs-patient-identity-reliability",
+                "code": p.identity_reliability_code,
+                "display": p.identity_reliability_code  # TODO: mapping vers display approprié
+            }
+        })
+        
+        # Date de validation si disponible
+        if getattr(p, "identity_reliability_date", None):
+            identity_extension["extension"].append({
+                "url": "identityReliabilityDate",
+                "valueDate": p.identity_reliability_date
+            })
+        
+        # Source de validation si disponible
+        if getattr(p, "identity_reliability_source", None):
+            identity_extension["extension"].append({
+                "url": "identityReliabilitySource",
+                "valueString": p.identity_reliability_source
+            })
+        
+    # Extension FRCore pour lieu de naissance
+    if getattr(p, "birth_city", None) or getattr(p, "birth_country", None):
+        birth_place_extension = {
+            "url": "http://interopsante.org/fhir/StructureDefinition/fr-core-patient-birth-place",
+            "valueAddress": {}
+        }
+        
+        if getattr(p, "birth_city", None):
+            birth_place_extension["valueAddress"]["city"] = p.birth_city
+        if getattr(p, "birth_state", None):
+            birth_place_extension["valueAddress"]["state"] = p.birth_state
+        if getattr(p, "birth_postal_code", None):
+            birth_place_extension["valueAddress"]["postalCode"] = p.birth_postal_code
+        if getattr(p, "birth_country", None):
+            birth_place_extension["valueAddress"]["country"] = p.birth_country
+        
+        extensions.append(birth_place_extension)
+    if getattr(p, "primary_care_provider", None):
+        extensions.append({
+            "url": "http://example.org/fhir/StructureDefinition/primary-care-provider", 
+            "valueString": p.primary_care_provider
+        })
+
+    if extensions:
+        patient_res["extension"] = extensions
 
     # Use encounter_class if present, else derive from dossier_type
     encounter_class_code = getattr(dossier, "encounter_class", None)

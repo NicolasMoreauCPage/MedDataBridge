@@ -26,6 +26,7 @@ from app.models_structure import (
 )
 from app.utils.flash import flash
 from app.services.structure_seed import ensure_demo_structure
+from app.services.vocabulary_lookup import get_vocabulary_options
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/ght", tags=["ght"])
@@ -1408,6 +1409,11 @@ async def new_entite_geographique_form(
 ):
     context = _get_context_or_404(session, context_id)
     entite = _get_ej_or_404(session, context, ej_id)
+    
+    activity_status_opts = get_vocabulary_options("structure-status") or [
+        {"value": "active", "label": "Actif"},
+        {"value": "inactive", "label": "Inactif"}
+    ]
 
     return templates.TemplateResponse(
         request,
@@ -1415,7 +1421,9 @@ async def new_entite_geographique_form(
         {
             "context": context,
             "entite": entite,
-            "geo": None},
+            "geo": None,
+            "activity_status_options": activity_status_opts,
+        },
     )
 
 

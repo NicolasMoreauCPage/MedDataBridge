@@ -203,6 +203,7 @@ def new_venue(
     fields = [
         {"label": "Dossier ID", "name": "dossier_id", "type": "number", "required": True,
          "value": prefill_dossier_id or '',
+         "readonly": True,
          "help": "ID du dossier existant dans la base"},
         {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "required": True,
          "options": uf_options,
@@ -212,6 +213,7 @@ def new_venue(
          "help": "Date et heure de début de la venue"},
         {"label": "Numéro de séquence", "name": "venue_seq", "type": "number", 
          "value": next_seq,
+         "readonly": True,
          "help": "Généré automatiquement si non renseigné"},
     ]
     return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Nouvelle venue", "fields": fields})

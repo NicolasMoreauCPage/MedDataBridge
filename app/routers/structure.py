@@ -17,6 +17,7 @@ from app.services.structure_schedule import (
 )
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
+from app.services.vocabulary_lookup import get_vocabulary_options
 
 logger = logging.getLogger(__name__)
 from app.models_structure import (
@@ -232,9 +233,21 @@ async def structure_dashboard(
     session: Session = Depends(get_session),
     ej: Optional[int] = Query(None, description="ID de l'établissement juridique à filtrer")
 ):
+    structure_type_opts = get_vocabulary_options("structure-type") or [
+        {"value": "pole", "label": "Pôles"},
+        {"value": "service", "label": "Services"},
+        {"value": "uf", "label": "Unités Fonctionnelles"},
+        {"value": "uh", "label": "Unités d'Hébergement"}
+    ]
+    structure_status_opts = get_vocabulary_options("structure-status") or [
+        {"value": "active", "label": "Actif"},
+        {"value": "inactive", "label": "Inactif"}
+    ]
     context = {
         "request": request,
         "service_types": [stype.value for stype in LocationServiceType],
+        "structure_type_options": structure_type_opts,
+        "structure_status_options": structure_status_opts,
     }
     
     if ej:

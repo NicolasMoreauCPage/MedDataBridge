@@ -32,10 +32,9 @@
                 <label class="block text-sm font-medium text-slate-700 mb-1">Type de structure</label>
                 <select id="structureTypeFilter" class="w-full rounded-lg border-slate-200">
                     <option value="">Tous les types</option>
-                    <option value="pole">Pôles</option>
-                    <option value="service">Services</option>
-                    <option value="uf">Unités Fonctionnelles</option>
-                    <option value="uh">Unités d'Hébergement</option>
+                    {% for option in structure_type_options %}
+                    <option value="{{ option.value }}">{{ option.label }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div>
@@ -48,8 +47,9 @@
                 <label class="block text-sm font-medium text-slate-700 mb-1">Statut</label>
                 <select id="statusFilter" class="w-full rounded-lg border-slate-200">
                     <option value="">Tous les statuts</option>
-                    <option value="active">Actif</option>
-                    <option value="inactive">Inactif</option>
+                    {% for option in structure_status_options %}
+                    <option value="{{ option.value }}">{{ option.label }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>

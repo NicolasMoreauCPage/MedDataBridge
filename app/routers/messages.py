@@ -16,6 +16,7 @@ from app.db_session_factory import session_factory
 from app.services.transport_inbound import on_message_inbound_async
 from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.scenario_validation import validate_scenario
+from app.services.vocabulary_lookup import get_vocabulary_options
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -365,6 +366,11 @@ def list_by_dossier(
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     ep_name = {e.id: e.name for e in endpoints}
     
+    direction_opts = get_vocabulary_options("message-direction") or [
+        {"value": "in", "label": "Entrante"},
+        {"value": "out", "label": "Sortante"}
+    ]
+    
     return templates.TemplateResponse(
         request,
         "messages_by_dossier.html",
@@ -373,6 +379,7 @@ def list_by_dossier(
             "dossiers": dossiers_list,
             "endpoints": endpoints,
             "ep_name": ep_name,
+            "direction_options": direction_opts,
             "filters": {
                 "endpoint_id": endpoint_id or "",
                 "date_start": date_start or "",
@@ -540,7 +547,15 @@ def dossier_export(
 @router.get("/send", response_class=HTMLResponse)
 def send_message_form(request: Request, session: Session = Depends(get_session)):
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
-    return templates.TemplateResponse(request, "send_message.html", {"request": request, "endpoints": endpoints})
+    transport_opts = get_vocabulary_options("transport-type") or [
+        {"value": "MLLP", "label": "MLLP (HL7 v2)"},
+        {"value": "FHIR", "label": "FHIR (JSON)"}
+    ]
+    return templates.TemplateResponse(request, "send_message.html", {
+        "request": request, 
+        "endpoints": endpoints,
+        "transport_options": transport_opts
+    })
 
 @router.post("/send")
 async def send_message(request: Request):

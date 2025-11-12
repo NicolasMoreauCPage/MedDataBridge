@@ -1418,6 +1418,18 @@ def seed_demo_population(
     """
     from app.models import Patient, Dossier, Venue, Mouvement, DossierType
     from app.db import get_next_sequence
+    from app.models_vocabulary import VocabularySystem, VocabularyValue
+    from sqlmodel import select
+
+    # Fonction helper pour récupérer une valeur aléatoire depuis un vocabulaire
+    def _get_random_vocab_value(system_name: str) -> str:
+        """Récupère une valeur aléatoire depuis un système de vocabulaire."""
+        system = session.exec(
+            select(VocabularySystem).where(VocabularySystem.name == system_name)
+        ).first()
+        if system and system.values:
+            return random.choice(system.values).code
+        return None
 
     existing_count = len(session.exec(select(Patient.id)).all())
     if existing_count >= target_patients:
@@ -1475,10 +1487,10 @@ def seed_demo_population(
             family=ln,
             given=fn,
             birth_date=birth_date,
-            gender=random.choice(["male", "female"]),
+            gender=_get_random_vocab_value("administrative-gender"),
             postal_code=f"69{random.randint(100,999)}",
             city="Lyon",
-            identity_reliability_code=random.choice(["PROV", "QUAL", "VALI"]),
+            identity_reliability_code=_get_random_vocab_value("identity-reliability-rniv"),
             external_id=ipp_value,
             ght_context_id=context.id,
             entite_juridique_id=ej_id,
@@ -1538,7 +1550,6 @@ def seed_demo_population(
                 dossier_id=dossier.id,
                 start_time=venue_start,
                 assigned_location=_pick_lit(i),
-                hospital_service="MED",
                 entite_juridique_id=ej_id,
             )
             session.add(venue)

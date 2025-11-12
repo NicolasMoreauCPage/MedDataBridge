@@ -6,7 +6,7 @@ from app.services.emit_on_create import generate_pam_hl7, generate_fhir
 
 def test_hl7_pid3_override(session: Session):
     # create patient
-    patient = Patient(family="TEST", given="TOTO", patient_seq=777, birth_date="19800101", gender="M")
+    patient = Patient(family="TEST", given="TOTO", birth_date="19800101", gender="M")
     session.add(patient)
     session.commit()
     session.refresh(patient)
@@ -16,19 +16,20 @@ def test_hl7_pid3_override(session: Session):
     # Find PID line
     pid_line = next((l for l in hl7.splitlines() if l.startswith("PID")), "")
     assert pid_line, "PID segment missing"
-    # Expect CX value like 777^^^HOSP&1.2.250.1.71.1.2.2&ISO^PI (with assigning authority)
-    assert re.search(rf"{patient.patient_seq}\^\^\^[^&]+&1\.2\.250\.1\.71\.1\.2\.2&ISO\^PI", pid_line)
+    # Expect CX value like {patient.id}^^^HOSP&1.2.250.1.71.1.2.2&ISO^PI (with assigning authority)
+    assert re.search(rf"{patient.id}\^\^\^[^&]+&1\.2\.250\.1\.71\.1\.2\.2&ISO\^PI", pid_line)
 
 
 def test_fhir_identifier_override(session: Session):
-    patient = Patient(family="DUPONT", given="JEAN", patient_seq=888)
+    patient = Patient(family="DUPONT", given="JEAN")
     session.add(patient)
     session.commit()
     session.refresh(patient)
 
     fhir = generate_fhir(patient, "patient", session, forced_identifier_system="urn:oid:1.2.250.1.71.1.2.2", forced_identifier_oid="1.2.250.1.71.1.2.2")
-    # fhir is a Patient resource dict
-    ids = fhir.get("identifier", [])
+    # fhir is a FHIR Bundle, get the patient resource from the first entry
+    patient_resource = fhir["entry"][0]["resource"]
+    ids = patient_resource.get("identifier", [])
     assert ids, "No identifiers generated"
     # All identifiers should have the forced system applied
     for iid in ids:

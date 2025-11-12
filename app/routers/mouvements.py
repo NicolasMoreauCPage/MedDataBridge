@@ -639,6 +639,7 @@ def new_mouvement(
             "name": "mouvement_seq",
             "type": "number",
             "value": next_seq,
+            "readonly": True,
             "help": "Généré automatiquement - ne modifier que si nécessaire"
         },
     ]
@@ -799,7 +800,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
         {"label": "Intervenant", "name": "performer", "type": "text", "value": getattr(m,'performer',None)},
         {"label": "Statut", "name": "status", "type": "select", "options": ["active", "completed", "cancelled", "pending"], "value": getattr(m,'status',None)},
         {"label": "Note", "name": "note", "type": "text", "value": getattr(m,'note',None)},
-        {"label": "Numéro de séquence", "name": "mouvement_seq", "type": "number", "value": m.mouvement_seq},
+        {"label": "Numéro de séquence", "name": "mouvement_seq", "type": "number", "value": m.mouvement_seq, "readonly": True},
         {"label": "Type de mouvement", "name": "movement_type", "type": "select", "options": [o["value"] for o in movement_nature_options], "value": getattr(m, "movement_type", None)},
         {"label": "Raison du mouvement", "name": "movement_reason", "type": "text", "value": getattr(m, "movement_reason", None)},
         {"label": "Rôle de l'intervenant", "name": "performer_role", "type": "text", "value": getattr(m, "performer_role", None)},

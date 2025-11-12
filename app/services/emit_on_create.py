@@ -360,7 +360,7 @@ def generate_pam_hl7(
         # Timestamp et identifiants
         admit_time = entity.start_time.strftime("%Y%m%d%H%M%S") if entity.start_time else ""
         control_id = str(entity.venue_seq)
-        visit_number = str(dossier.dossier_seq)  # NDA = numéro du dossier
+        visit_number = str(dossier.dossier_seq)  # NDA = numéro du dossier pour PID-18
         
         # Authority pour identifiants
         authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
@@ -561,20 +561,16 @@ def generate_pam_hl7(
         else:
             uf_resp = ""
         
-        # PV1-19 (Visit Number) - use dossier_seq (NDA)
-        visit_number = ""
-        if dossier:
-            visit_number = str(dossier.dossier_seq)
-        elif venue:
-            visit_number = str(venue.venue_seq)
+        # PV1-19 (Visit Number) - use venue_seq (numéro de venue)
+        visit_number_pv1 = str(entity.venue_seq)
         
-        pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{visit_number}||||||||||||||||||||{uf_resp}||||||{timestamp}"
+        pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{visit_number_pv1}||||||||||||||||||||{uf_resp}||||||{timestamp}"
         
         # ZBE segment
         zbe_id = control_id
         action = "UPDATE" if event_code in ["A08", "A31"] else "TRANSFER" if event_code == "A02" else "DISCHARGE" if event_code == "A03" else "INSERT"
         historic = "N"
-        zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|^^^^^^UF^^^{uf_resp}" if uf_resp else f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
+        zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}||||{uf_resp}" if uf_resp else f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
         
         # Combine all segments with \r separator (HL7 standard)
         return "\r".join([msh, evn, pid, pv1, zbe])

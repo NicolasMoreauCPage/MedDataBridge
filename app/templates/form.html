@@ -71,7 +71,7 @@
                 <input type="hidden" name="{{ field.name }}" value="{{ field.value or '' }}" />
                 {% endif %}
             {% elif field.type == "text" or field.type == "number" or field.type == "datetime-local" %}
-                <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}" value="{{ field.value|default('') }}" {% if field.required %}required{% endif %} class="form-control">
+                <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}" value="{{ field.value|default('') }}" {% if field.required %}required{% endif %} class="form-control" {% if field.readonly %}readonly{% endif %}>
             {% else %}
             <input
               id="{{ field_id }}"

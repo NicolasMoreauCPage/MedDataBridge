@@ -7,6 +7,7 @@ from app.dependencies.ght import require_ght_context
 from sqlmodel import select
 from app.routers.contacts import get_templates
 from app.services.vocabulary_lookup import get_vocabulary_options
+from app.utils.seq_generator import generate_patient_seq
 
 router = APIRouter(
     prefix="/patients",
@@ -281,6 +282,7 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
         "title": "Modifier patient",
         "patient": p,
         "action_url": f"/patients/{patient_id}/edit",
+        "sample_data": {},
         "identity_reliability_options": identity_opts,
         "marital_status_options": marital_opts,
         "ins_type_options": ins_type_opts,
@@ -491,10 +493,15 @@ async def create_patient(
         if patient_seq is None:
             patient_seq = generate_patient_seq()
         
+        # Générer l'IPP automatiquement si non fourni
+        if not identifier:
+            identifier = str(generate_patient_seq())
+        
         ght_context = getattr(request.state, "ght_context", None)
         patient = Patient(
             patient_seq=patient_seq,
             external_id=external_id,
+            identifier=identifier,
             family=family,
             given=given,
             middle=middle,

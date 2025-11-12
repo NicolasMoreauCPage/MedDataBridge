@@ -165,6 +165,12 @@ def list_dossiers(
 
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(request: Request, session=Depends(get_session)):
+    # Vérifier qu'il y a un patient en contexte
+    patient_context = getattr(request.state, "patient_context", None)
+    if not patient_context:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/patients", status_code=303)
+    
     # L'identifiant sera généré automatiquement basé sur le timestamp
     next_seq = None
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M")  # valeur par défaut = maintenant
@@ -197,16 +203,15 @@ def new_dossier(request: Request, session=Depends(get_session)):
         {"value": v, "label": v} for v in ["Pas de venue courante", "Pré-admis consult.ext.", "Pré-admis hospit.", "Hospitalisé", "Absence temporaire", "Consultant externe"]
     ]
     base_fields = [
-        {"name": "patient_id", "label": "Patient ID", "type": "number"},
+        {"name": "patient_id_display", "label": "Patient", "type": "text", "readonly": True, "value": f"{patient_context.family} {patient_context.given} (ID: {patient_context.id})"},
         {"name": "uf_responsabilite", "label": "UF de responsabilité", "type": "select", "options": uf_options},
         {"name": "dossier_type", "label": "Type de dossier", "type": "select", "options": dossier_type_opts},
         {"name": "admission_source", "label": "Source d'admission", "type": "text", "placeholder": "Domicile, Transfert, etc."},
         {"name": "attending_provider", "label": "Médecin responsable", "type": "text"},
         {"name": "admit_time", "label": "Date d'admission", "type": "datetime-local"},
-        {"name": "dossier_seq", "label": "Numéro de séquence", "type": "number"},
-        # Add state transition fields so client-side validation can hook into them
-        {"name": "current_state", "label": "État courant", "type": "select", "options": current_state_opts},
-        {"name": "event_code", "label": "Code événement", "type": "select", "options": ["A01","A03","A04","A05","A06","A07","A11","A13","A21","A22","A38","A52","A53"]},
+        {"name": "dossier_seq", "label": "Numéro de dossier", "type": "text", "readonly": True, "value": "Auto-généré"},
+        # État courant fixé à "Pas de venue courante" et non éditable
+        {"name": "current_state", "label": "État courant", "type": "select", "options": current_state_opts, "value": "Pas de venue courante", "readonly": True},
     ]
     
     # Enrichir les champs avec la configuration
@@ -218,7 +223,7 @@ def new_dossier(request: Request, session=Depends(get_session)):
         if field_name == "admit_time":
             field["value"] = now_str
         elif field_name == "dossier_seq":
-            field["value"] = next_seq
+            field["value"] = "Auto-généré"
             field["readonly"] = True
             
         # Fusionner la configuration avec les valeurs de base
@@ -229,8 +234,8 @@ def new_dossier(request: Request, session=Depends(get_session)):
 @router.post("/new")
 def create_dossier(
     request: Request,
-    patient_id: int = Form(...),
-    uf_responsabilite: str = Form(...),
+    patient_id_display: str = Form(None),  # Gardé pour compatibilité template, ignoré
+    uf_responsabilite: str = Form(None),
     dossier_type: str = Form("hospitalise"),
     admission_source: str = Form(None),
     attending_provider: str = Form(None),
@@ -238,6 +243,13 @@ def create_dossier(
     dossier_seq: int | None = Form(None),
     session=Depends(get_session),
 ):
+    # Utiliser le patient du contexte
+    patient_context = getattr(request.state, "patient_context", None)
+    if not patient_context:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/patients", status_code=303)
+    
+    patient_id = patient_context.id
     admit_dt = datetime.fromisoformat(admit_time)
     # Générer l'identifiant dossier basé sur timestamp (9 chiffres, préfixe '9')
     seq = dossier_seq or generate_dossier_seq()
@@ -249,13 +261,16 @@ def create_dossier(
         attending_provider=attending_provider,
         admit_time=admit_dt,
         dossier_seq=seq,
+        current_state="Pas de venue courante",  # État initial en création
     )
     session.add(d)
     session.commit()
     session.refresh(d)  # Assurer que l'ID est disponible
     
-    # ⚠️ IMPORTANT : La création d'un dossier ne génère PAS de message IHE PAM directement.
-    # emit_to_senders(d, "dossier", session)  # ← Désactivé (retourne None maintenant)
+    # ⚠️ IMPORTANT : La création d'un dossier génère un message FHIR EpisodeOfCare
+    # et PAS de message IHE PAM
+    from app.services.emit_on_create import generate_fhir
+    generate_fhir(d, "dossier", session)
     
     # À la place, on crée automatiquement une VENUE qui génère le message ADT^A05 (Pre-admit)
     from app.models import Venue
@@ -282,9 +297,8 @@ def create_dossier(
     # Support AJAX/JSON and HTML responses
     if request.headers.get("Accept") == "application/json":
         return {"message": "Enregistrement réussi", "redirect": "/dossiers"}
+    from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/dossiers", status_code=303)
-
-
 @router.get("/{dossier_id}", response_class=HTMLResponse)
 def dossier_detail(dossier_id: int, request: Request, session=Depends(get_session)):
 

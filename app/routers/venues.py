@@ -211,7 +211,7 @@ def new_venue(
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", 
          "value": now_str, "required": True,
          "help": "Date et heure de début de la venue"},
-        {"label": "Numéro de séquence", "name": "venue_seq", "type": "number", 
+        {"label": "Numéro de venue", "name": "venue_seq", "type": "number", 
          "value": next_seq,
          "readonly": True,
          "help": "Généré automatiquement si non renseigné"},
@@ -276,11 +276,32 @@ def edit_venue(venue_id: int, request: Request, session=Depends(get_session)):
     v = session.get(Venue, venue_id)
     if not v:
             return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
+    
+    # Récupérer la liste des UF disponibles pour l'EJ du dossier
+    uf_options = []
+    if v.dossier_id:
+        dossier = session.get(Dossier, v.dossier_id)
+        if dossier and dossier.entite_juridique_id:
+            from app.models_structure_fhir import EntiteJuridique
+            ej = session.get(EntiteJuridique, dossier.entite_juridique_id)
+            if ej:
+                # Récupérer toutes les UF de la structure
+                from app.models_structure import UniteFonctionnelle
+                ufs = session.exec(
+                    select(UniteFonctionnelle).where(UniteFonctionnelle.service_id.is_not(None))
+                ).all()
+                # Filtrer les UF de l'EJ
+                ufs_ej = [uf for uf in ufs if getattr(uf.service, 'pole', None) and getattr(uf.service.pole, 'entite_geo', None) and getattr(uf.service.pole.entite_geo, 'entite_juridique_id', None) == ej.id]
+                uf_options = [
+                    {"value": uf.um_code, "label": f"{uf.um_code} - {uf.name}"} for uf in ufs_ej if uf.um_code
+                ]
+    
     fields = [
         {"label": "Dossier ID", "name": "dossier_id", "type": "number", "value": v.dossier_id, "required": True,
          "help": "ID du dossier existant dans la base"},
-        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "text", "value": v.uf_responsabilite, "required": True,
-         "help": "Unité fonctionnelle responsable de la venue"},
+        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "value": v.uf_responsabilite, "required": True,
+         "options": uf_options,
+         "help": "Unité fonctionnelle responsable de la venue (choix dynamique selon l'établissement)"},
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", 
          "value": v.start_time.strftime('%Y-%m-%dT%H:%M') if v.start_time else '', "required": True,
          "help": "Date et heure de début de la venue"},

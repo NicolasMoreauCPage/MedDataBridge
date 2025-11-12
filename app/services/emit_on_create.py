@@ -502,11 +502,11 @@ def generate_pam_hl7(
             # Fallback pour codes non standard
             msg_structure = f"ADT_{event_code}"
         
-        # MSH-9: ADT^{event_code}^{structure}
-        # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
-        # MSH-16: FRA (pays)
-        # MSH-17: 8859/1 (encodage ISO-8859-1)
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+        # Correction structure Z99 : ADT^Z99^ADT_A01
+        if event_code == "Z99":
+            msh = f"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+        else:
+            msh = f"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         
         # Build EVN segment
         evn = f"EVN|{event_code}|{timestamp}"
@@ -575,12 +575,16 @@ def generate_pam_hl7(
         action = "UPDATE" if event_code in ["A08", "A31"] else "TRANSFER" if event_code == "A02" else "DISCHARGE" if event_code == "A03" else "INSERT"
         historic = "N"
         from app.services.nature_mapping import derive_nature
-        # ZBE-8: UF de soins
-        zbe_8 = f"^^^^^^UF^^^{uf_resp}" if uf_resp else ""
+        # ZBE-8: UF de soins (doit contenir le code UF de soins, pas le numéro de venue)
+        uf_soins = getattr(entity, "uf_soins", None) or getattr(venue, "uf_soins", None) or getattr(dossier, "uf_soins", None) or ""
+        zbe_8 = f"^^^^^^UF^^^{uf_soins}" if uf_soins else ""
         # ZBE-9: nature du mouvement (responsabilité modifiée, selon vocabulaire)
         nature = getattr(entity, "nature", None)
         zbe_9 = derive_nature(event_code, nature)
-        zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|{zbe_8}|{zbe_9}" if uf_resp else f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
+        if zbe_8:
+            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|{zbe_8}|{zbe_9}"
+        else:
+            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
         # Combine all segments with \r separator (HL7 standard)
         return "\r".join([msh, evn, pid, pv1, zbe])
     

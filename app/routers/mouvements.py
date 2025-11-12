@@ -113,6 +113,7 @@ def list_mouvements(
     
     # Si dossier_id est fourni (et pas de venue_id), on filtre par dossier
     elif dossier_id:
+        # Ensure Dossier refers to the imported model, not a local variable
         dossier = session.get(Dossier, dossier_id)
         if not dossier:
             return templates.TemplateResponse(

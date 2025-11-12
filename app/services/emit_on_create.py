@@ -314,19 +314,20 @@ def generate_pam_hl7(
         return None  # Pas de message généré pour un dossier seul
     
     if entity_type == "venue":
-        # ADT^A05 (Pre-admit) pour création de venue
-        # La venue correspond à une admission/encounter en IHE PAM
+        # HL7 event type: A05 for creation, Z99 for update
+        event_type = "A05" if operation == "insert" else "Z99"
+        msg_structure = "ADT_A01" if event_type == "A05" else "ADT_Z99"
         assigning_system = forced_identifier_system or "HOSP"
         assigning_oid = forced_identifier_oid
-        
+
         # Charger le dossier et le patient
         dossier = entity.dossier if hasattr(entity, "dossier") else None
         patient = dossier.patient if dossier and hasattr(dossier, "patient") else None
-        
+
         if not dossier:
             # Impossible de générer un message sans dossier
             return None
-        
+
         # Patient info
         if patient:
             patient_seq_val = getattr(patient, "patient_seq", None) or (patient.id or "TEMP")
@@ -356,32 +357,29 @@ def generate_pam_hl7(
             given = ""
             birth_date = ""
             gender = ""
-        
+
         # Timestamp et identifiants
         admit_time = entity.start_time.strftime("%Y%m%d%H%M%S") if entity.start_time else ""
         control_id = str(entity.venue_seq)
         visit_number = str(dossier.dossier_seq)  # NDA = numéro du dossier pour PID-18
-        
         # Authority pour identifiants
         authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
         pid3 = f"{patient_id}^^^{authority}^PI"
-        
+        # PID-18: Account Number (NDA) as full CX
+        pid18 = f"{visit_number}^^^{authority}^AN"
+
         # MSH / EVN avec structure de message et version IHE PAM France
-        # MSH-8-3: ADT_A01 (structure pour A05)
-        # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
-        # MSH-16: FRA (pays)
-        # MSH-17: 8859/1 (encodage ISO-8859-1)
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^A05^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
-        evn = f"EVN|A05|{admit_time}"
-        
+        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+        evn = f"EVN|{event_type}|{admit_time}"
+
         # PID segment
         pid_fields = [
             "PID", "1", "", pid3, "", f"{family}^{given}", "", birth_date, gender
         ]
         while len(pid_fields) < 19:
             pid_fields.append("")
-        pid_fields[18] = visit_number  # PID-18 = Account Number (NDA)
-        
+        pid_fields[18] = pid18  # PID-18 = Account Number (NDA) as CX
+
         # Enrichir adresse et télécom si patient disponible
         if patient:
             # PID-11: address
@@ -394,7 +392,7 @@ def generate_pam_hl7(
             addr.append(patient.country or "")
             addr.append("H")  # type Home
             pid_fields[11] = "^".join(addr)
-            
+
             # PID-13: phones/email (XTN)
             xtn_parts = []
             if getattr(patient, "phone", None):
@@ -405,17 +403,16 @@ def generate_pam_hl7(
                 xtn_parts.append(f"^NET^Internet^{patient.email}")
             if xtn_parts:
                 pid_fields[13] = "~".join(xtn_parts)
-        
+
         pid = "|".join(pid_fields)
-        
+
         # PV1 segment avec mapping du patient_class via vocabulary
-        # Récupérer encounter_class depuis le dossier pour utiliser le mapping
         from app.services.vocabulary_translate import map_code
-        
+
         dossier_type_val = getattr(dossier, "dossier_type", None)
         if hasattr(dossier_type_val, "value"):
             dossier_type_val = dossier_type_val.value
-        
+
         # Le dossier_type correspond à encounter_class dans notre modèle
         # Utiliser le mapping vocabulaire pour obtenir patient_class (PV1-2)
         encounter_class = str(dossier_type_val) if dossier_type_val else "IMP"
@@ -425,34 +422,39 @@ def generate_pam_hl7(
             source_code=encounter_class,
             target_system_name="patient-class"
         )
-        
+
         # Fallback si pas de mapping trouvé
         if not patient_class:
             patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E", "IMP": "I", "AMB": "O", "EMER": "E"}
             patient_class = patient_class_map.get(encounter_class, "I")
-        
+
         location = entity.uf_responsabilite or ""
         admission_type = getattr(dossier, "admission_type", "") or ""
         attending = getattr(entity, "attending_provider", None) or getattr(dossier, "attending_provider", "") or ""
         hospital_service = getattr(entity, "hospital_service", "") or ""
         admit_source = getattr(dossier, "admission_source", "") or ""
-        
+
+        # PV1-19: Visit Number as full CX
+        pv1_19 = f"{visit_number}^^^{authority}^VN"
         pv1 = (
-            f"PV1|1|{patient_class}|{location}|{admission_type}|||{attending}|||{hospital_service}||||{admit_source}|||||{visit_number}"
+            f"PV1|1|{patient_class}|{location}|{admission_type}|||{attending}|||{hospital_service}||||{admit_source}|||||{pv1_19}"
             f"|||||||||||||||||||||||||{admit_time}"
         )
-        
+
         # ZBE segment (mouvement/UF)
         zbe_id = control_id
-        action = "INSERT"
+        action = "INSERT" if operation == "insert" else "UPDATE"
         historic = "N"
-        original_trigger = "A05"
+        original_trigger = event_type
+        # ZBE-8: UF de soins, ZBE-9: venue_seq as CX
+        zbe_8 = f"^^^^^^UF^^^{location}" if location else ""
+        zbe_9 = f"{visit_number}^^^{authority}^VN"
         zbe = (
-            f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|^^^^^^UF^^^{location}"
+            f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|{zbe_8}|{zbe_9}"
             if location
-            else f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|"
+            else f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|"  # ZBE-9 omitted if no location
         )
-        
+
         return "\r".join([msh, evn, pid, pv1, zbe])
     if entity_type == "mouvement":
         # Extract event type from mouvement.type (format: "ADT^A01" or "ADT^A01^ADT_A01")
@@ -564,14 +566,21 @@ def generate_pam_hl7(
         # PV1-19 (Visit Number) - use venue_seq (numéro de venue)
         visit_number_pv1 = str(entity.venue_seq)
         
-        pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{visit_number_pv1}||||||||||||||||||||{uf_resp}||||||{timestamp}"
-        
-        # ZBE segment
+        # PV1-19 (Visit Number) - use venue_seq (numéro de venue) as full CX
+        pv1_19 = f"{visit_number_pv1}^^^{authority}^VN"
+        pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{pv1_19}||||||||||||||||||||{uf_resp}||||||{timestamp}"
+
+        # ZBE-8: UF de soins, ZBE-9: venue_seq as CX
         zbe_id = control_id
         action = "UPDATE" if event_code in ["A08", "A31"] else "TRANSFER" if event_code == "A02" else "DISCHARGE" if event_code == "A03" else "INSERT"
         historic = "N"
-        zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}||||{uf_resp}" if uf_resp else f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
-        
+        from app.services.nature_mapping import derive_nature
+        # ZBE-8: UF de soins
+        zbe_8 = f"^^^^^^UF^^^{uf_resp}" if uf_resp else ""
+        # ZBE-9: nature du mouvement (responsabilité modifiée, selon vocabulaire)
+        nature = getattr(entity, "nature", None)
+        zbe_9 = derive_nature(event_code, nature)
+        zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|{zbe_8}|{zbe_9}" if uf_resp else f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
         # Combine all segments with \r separator (HL7 standard)
         return "\r".join([msh, evn, pid, pv1, zbe])
     

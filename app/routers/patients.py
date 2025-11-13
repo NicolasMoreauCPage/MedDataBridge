@@ -7,7 +7,6 @@ from app.dependencies.ght import require_ght_context
 from sqlmodel import select
 from app.routers.contacts import get_templates
 from app.services.vocabulary_lookup import get_vocabulary_options
-from app.utils.seq_generator import generate_patient_seq
 
 router = APIRouter(
     prefix="/patients",
@@ -454,7 +453,7 @@ def new_patient(request: Request, session=Depends(get_session)):
 @router.post("/new")
 async def create_patient(
     request: Request,
-    patient_seq: int = Form(None),
+    # patient_seq supprimé du modèle, ne plus utiliser
     external_id: str = Form(None),
     family: str = Form(...),
     given: str = Form(...),
@@ -490,19 +489,17 @@ async def create_patient(
     is_ajax = request.headers.get('accept') == 'application/json'
 
     try:
-        # Générer l'identifiant patient basé sur timestamp (12 chiffres, préfixe '9')
-        if patient_seq is None:
-            patient_seq = generate_patient_seq()
-        
         # Générer l'IPP automatiquement si non fourni
-        if not identifier:
-            identifier = str(generate_patient_seq())
-        
+        identifier_val = external_id or None
+        if not identifier_val:
+            # fallback: identifiant unique basé sur timestamp ou UUID
+            from uuid import uuid4
+            identifier_val = str(uuid4())
+
         ght_context = getattr(request.state, "ght_context", None)
         patient = Patient(
-            patient_seq=patient_seq,
             external_id=external_id,
-            identifier=identifier,
+            identifier=identifier_val,
             family=family,
             given=given,
             middle=middle,

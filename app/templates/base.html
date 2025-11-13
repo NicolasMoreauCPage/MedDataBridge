@@ -246,7 +246,22 @@
                   </span>
                 {% endif %}
                 {% if request.state and request.state.dossier_context %}
-                  <a href="/mouvements?venue_id={{ request.state.venue_context.id if request.state.venue_context else '' }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">Mouvements</a>
+                  {# Patch: link to first venue of dossier if no venue_context #}
+                  {% set first_venue_id = None %}
+                  {% if not request.state.venue_context %}
+                    {% set _venues = dossier_venues if dossier_venues is defined else [] %}
+                    {% if _venues|length > 0 %}
+                      {% set first_venue_id = _venues[0].id %}
+                    {% endif %}
+                  {% endif %}
+                  {% if (request.state.venue_context and request.state.venue_context.id) or (first_venue_id) %}
+                    <a href="/mouvements?venue_id={{ request.state.venue_context.id if request.state.venue_context else first_venue_id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">Mouvements</a>
+                  {% else %}
+                    <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Aucune venue disponible pour ce dossier" data-test-link="mouvements-disabled">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
+                      Mouvements
+                    </span>
+                  {% endif %}
                 {% else %}
                   <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier pour voir les mouvements" data-test-link="mouvements-disabled">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>

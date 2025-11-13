@@ -128,7 +128,6 @@ def display_message_details(msg_log: MessageLog, index: int):
     if msg_log.kind == "MLLP" and msg_log.payload:
         print(f"\n📋 Analyse HL7:")
         validation = validate_hl7_message(msg_log.payload)
-        
         print(f"  Type message:    {validation['message_type'] or 'N/A'}")
         print(f"  Trigger event:   {validation['trigger_event'] or 'N/A'}")
         print(f"  Segments:        {', '.join(validation['segments'])}")
@@ -136,23 +135,23 @@ def display_message_details(msg_log: MessageLog, index: int):
         print(f"  Patient Class:   {validation['patient_class'] or 'N/A'}")
         print(f"  Dossier ID:      {validation['dossier_id'] or 'N/A'}")
         print(f"  Venue ID:        {validation['venue_id'] or 'N/A'}")
-        
+
         # Validation IHE PAM
         if validation['valid']:
             print(f"\n  ✅ Message VALIDE selon IHE PAM")
         else:
             print(f"\n  ❌ Message INVALIDE")
-        
-        if validation['errors']:
-            print(f"\n  ⚠️  Erreurs:")
-            for error in validation['errors']:
-                print(f"      - {error}")
-        
+            if validation['errors']:
+                print(f"\n  ⚠️  Erreurs détaillées du validateur IHE PAM:")
+                for error in validation['errors']:
+                    print(f"      - {error}")
+            else:
+                print(f"\n  ⚠️  Aucune erreur détaillée n'a été remontée par le validateur.")
         if validation['warnings']:
             print(f"\n  ⚠️  Avertissements:")
             for warning in validation['warnings']:
                 print(f"      - {warning}")
-        
+
         # Vérifier le mapping de vocabulaire pour PV1-2
         if validation['patient_class']:
             from app.services.vocabulary_translate import reverse_map_code
@@ -163,12 +162,10 @@ def display_message_details(msg_log: MessageLog, index: int):
                     if validation['patient_class'] == hl7:
                         fhir_code = fhir
                         break
-                
                 if fhir_code:
                     print(f"\n  🔄 Mapping vocabulaire:")
                     print(f"      PV1-2 (HL7v2): {validation['patient_class']}")
                     print(f"      encounter_class (FHIR): {fhir_code}")
-                    
                     # Vérifier que le mapping est correct
                     expected_hl7 = reverse_map_code(session, "encounter-class", fhir_code, "patient-class")
                     if expected_hl7 == validation['patient_class']:

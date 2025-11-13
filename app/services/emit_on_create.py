@@ -314,18 +314,19 @@ def generate_pam_hl7(
         return None  # Pas de message généré pour un dossier seul
     
     if entity_type == "venue":
-        # HL7 event type: A05 for creation, Z99 for update
-        event_type = "A05" if operation == "insert" else "Z99"
-        msg_structure = "ADT_A01" if event_type == "A05" else "ADT_Z99"
+        # Création = ADT^A05^ADT_A01, modification = ADT^Z99^ADT_Z99
+        if operation == "insert":
+            event_type = "A05"
+            msg_structure = "ADT_A05"
+        else:
+            event_type = "Z99"
+            msg_structure = "ADT_A01"
         assigning_system = forced_identifier_system or "HOSP"
         assigning_oid = forced_identifier_oid
 
-        # Charger le dossier et le patient
         dossier = entity.dossier if hasattr(entity, "dossier") else None
         patient = dossier.patient if dossier and hasattr(dossier, "patient") else None
-
         if not dossier:
-            # Impossible de générer un message sans dossier
             return None
 
         # Patient info
@@ -334,7 +335,6 @@ def generate_pam_hl7(
             patient_id = patient.identifier or patient.external_id or str(patient_seq_val)
             family = patient.family or ""
             given = patient.given or ""
-            # Gérer birth_date comme string ou date object
             if patient.birth_date:
                 if hasattr(patient.birth_date, 'strftime'):
                     birth_date = patient.birth_date.strftime("%Y%m%d")
@@ -342,7 +342,6 @@ def generate_pam_hl7(
                     birth_date = str(patient.birth_date).replace("-", "")
             else:
                 birth_date = ""
-            # Map HL7 gender codes
             raw_gender = (patient.gender or "").strip()
             gender_map_hl7 = {
                 "m": "M", "male": "M",
@@ -358,42 +357,33 @@ def generate_pam_hl7(
             birth_date = ""
             gender = ""
 
-        # Timestamp et identifiants
         admit_time = entity.start_time.strftime("%Y%m%d%H%M%S") if entity.start_time else ""
         control_id = str(entity.venue_seq)
-        visit_number = str(dossier.dossier_seq)  # NDA = numéro du dossier pour PID-18
-        # Authority pour identifiants
+        visit_number = str(dossier.dossier_seq)
         authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
         pid3 = f"{patient_id}^^^{authority}^PI"
-        # PID-18: Account Number (NDA) as full CX
         pid18 = f"{visit_number}^^^{authority}^AN"
 
-        # MSH / EVN avec structure de message et version IHE PAM France
         msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         evn = f"EVN|{event_type}|{admit_time}"
 
-        # PID segment
         pid_fields = [
             "PID", "1", "", pid3, "", f"{family}^{given}", "", birth_date, gender
         ]
         while len(pid_fields) < 19:
             pid_fields.append("")
-        pid_fields[18] = pid18  # PID-18 = Account Number (NDA) as CX
+        pid_fields[18] = pid18
 
-        # Enrichir adresse et télécom si patient disponible
         if patient:
-            # PID-11: address
             addr = []
             addr.append(patient.address or "")
-            addr.append("")  # other designation
+            addr.append("")
             addr.append(patient.city or "")
             addr.append(patient.state or "")
             addr.append(patient.postal_code or "")
             addr.append(patient.country or "")
-            addr.append("H")  # type Home
+            addr.append("H")
             pid_fields[11] = "^".join(addr)
-
-            # PID-13: phones/email (XTN)
             xtn_parts = []
             if getattr(patient, "phone", None):
                 xtn_parts.append(f"^PRN^PH^^^^{patient.phone}")
@@ -406,15 +396,10 @@ def generate_pam_hl7(
 
         pid = "|".join(pid_fields)
 
-        # PV1 segment avec mapping du patient_class via vocabulary
         from app.services.vocabulary_translate import map_code
-
         dossier_type_val = getattr(dossier, "dossier_type", None)
         if hasattr(dossier_type_val, "value"):
             dossier_type_val = dossier_type_val.value
-
-        # Le dossier_type correspond à encounter_class dans notre modèle
-        # Utiliser le mapping vocabulaire pour obtenir patient_class (PV1-2)
         encounter_class = str(dossier_type_val) if dossier_type_val else "IMP"
         patient_class = map_code(
             session,
@@ -422,8 +407,6 @@ def generate_pam_hl7(
             source_code=encounter_class,
             target_system_name="patient-class"
         )
-
-        # Fallback si pas de mapping trouvé
         if not patient_class:
             patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E", "IMP": "I", "AMB": "O", "EMER": "E"}
             patient_class = patient_class_map.get(encounter_class, "I")
@@ -433,76 +416,60 @@ def generate_pam_hl7(
         attending = getattr(entity, "attending_provider", None) or getattr(dossier, "attending_provider", "") or ""
         hospital_service = getattr(entity, "hospital_service", "") or ""
         admit_source = getattr(dossier, "admission_source", "") or ""
-
-        # PV1-19: Visit Number as full CX
         pv1_19 = f"{visit_number}^^^{authority}^VN"
         pv1 = (
             f"PV1|1|{patient_class}|{location}|{admission_type}|||{attending}|||{hospital_service}||||{admit_source}|||||{pv1_19}"
             f"|||||||||||||||||||||||||{admit_time}"
         )
 
-        # ZBE segment (mouvement/UF)
         zbe_id = control_id
-        action = "INSERT" if operation == "insert" else "UPDATE"
+        action = "INSERT"
         historic = "N"
         original_trigger = event_type
-        # ZBE-8: UF de soins, ZBE-9: venue_seq as CX
         zbe_8 = f"^^^^^^UF^^^{location}" if location else ""
         zbe_9 = f"{visit_number}^^^{authority}^VN"
         zbe = (
             f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|{zbe_8}|{zbe_9}"
             if location
-            else f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|"  # ZBE-9 omitted if no location
+            else f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|"
         )
 
         return "\r".join([msh, evn, pid, pv1, zbe])
     if entity_type == "mouvement":
-        # Extract event type from mouvement.type (format: "ADT^A01" or "ADT^A01^ADT_A01")
-        msg_type = entity.type if entity.type else "ADT^A99"
-        
+        # Utiliser le mapping métier <-> HL7 pour déterminer le code HL7 à partir du type métier
+        from app.movement_type_mapping import to_standard_movement_code
+        metier_type = getattr(entity, "movement_type", None)
+        hl7_code = to_standard_movement_code(metier_type, "hl7") or "ADT^A99"
+        msg_type = hl7_code
         # Get venue and patient info
         venue = entity.venue if hasattr(entity, 'venue') else None
         dossier = venue.dossier if venue and hasattr(venue, 'dossier') else None
         patient = dossier.patient if dossier and hasattr(dossier, 'patient') else None
-        
         # Build timestamp
         timestamp = entity.when.strftime("%Y%m%d%H%M%S") if entity.when else ""
-        
         # Build MSH segment avec structure de message et version IHE PAM France
         control_id = str(entity.mouvement_seq)
-        # Extract event code (A01, A02, A03, A21, A22, A11, A12, A13, A52, A53, Z99, etc.)
+        # Extract event code (A01, A02, A03, etc.)
         event_code = msg_type.split("^")[1] if "^" in msg_type else "A99"
         # Determine message structure based on event code (IHE PAM France)
-        # Référence: HL7 v2.5 Table 0354 - Message Structure
         if event_code in ["A01", "A04", "A05", "A08", "A13", "A28", "A31", "Z99"]:
-            # Admissions, enregistrements, mises à jour
             msg_structure = "ADT_A01"
         elif event_code == "A02":
-            # Transfert
             msg_structure = "ADT_A02"
         elif event_code == "A03":
-            # Sortie définitive
             msg_structure = "ADT_A03"
         elif event_code in ["A06", "A07"]:
-            # Changement ambulatoire/hospitalisation
             msg_structure = "ADT_A06"
         elif event_code in ["A09", "A10", "A11"]:
-            # Suivi patient, annulation admission
             msg_structure = "ADT_A09"
         elif event_code in ["A12", "A15"]:
-            # Annulation transfert, sortie en attente
             msg_structure = "ADT_A12"
         elif event_code in ["A21", "A22", "A52", "A53"]:
-            # Sorties temporaires et retours
             msg_structure = "ADT_A21"
         elif event_code in ["A38", "A40"]:
-            # Annulation préadmission, fusion patients
             msg_structure = "ADT_A38"
         else:
-            # Fallback pour codes non standard
             msg_structure = f"ADT_{event_code}"
-        
-        # Correction structure Z99 : ADT^Z99^ADT_A01
         if event_code == "Z99":
             msh = f"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         else:
@@ -581,6 +548,10 @@ def generate_pam_hl7(
         # ZBE-9: nature du mouvement (responsabilité modifiée, selon vocabulaire)
         nature = getattr(entity, "nature", None)
         zbe_9 = derive_nature(event_code, nature)
+        # Correction : garantir que zbe_9 est toujours une valeur valide
+        valid_natures = {"S", "H", "M", "L", "D", "SM"}
+        if not zbe_9 or zbe_9 not in valid_natures:
+            zbe_9 = derive_nature(event_code, None) or "H"  # fallback sur H (hospitalisation)
         if zbe_8:
             zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|{zbe_8}|{zbe_9}"
         else:
@@ -909,10 +880,12 @@ async def emit_to_senders_async(
                 pam_status = "warn"
                 pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
             try:
-                if not endpoint.host or not endpoint.port:
-                    raise ValueError("Endpoint MLLP host/port non configuré")
-                ack_payload = await send_mllp(endpoint.host, endpoint.port, hl7_message)
-                status = "sent"
+                if endpoint.host and endpoint.port:
+                    ack_payload = await send_mllp(endpoint.host, endpoint.port, hl7_message)
+                    status = "sent"
+                else:
+                    ack_payload = "[No host/port configured]"
+                    status = "error"
             except Exception as exc:  # noqa: BLE001 - we want to log the failure
                 status = "error"
                 ack_payload = str(exc)
@@ -1021,8 +994,8 @@ class _EmitToSendersWrapper:
     def __init__(self, async_callable):
         self._async = async_callable
 
-    def __call__(self, entity, entity_type, session: Session):
-        coro = self._async(entity, entity_type, session)
+    def __call__(self, entity, entity_type, session: Session, **kwargs):
+        coro = self._async(entity, entity_type, session, **kwargs)
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:

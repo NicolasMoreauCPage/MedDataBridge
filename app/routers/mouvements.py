@@ -145,7 +145,7 @@ def list_mouvements(
         ej_context = getattr(request.state, "ej_context", None)
         if ej_context and getattr(ej_context, "id", None):
             # Récupérer tous les dossiers de l'EJ
-            from app.models import Dossier, Venue
+            from app.models import Dossier
             dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id)).all()]
             if dossier_ids:
                 venue_ids = [v.id for v in session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids)).all())]
@@ -423,17 +423,40 @@ def new_mouvement(
             status_code=404
         )
     
-    # Déterminer la venue présélectionnée
+
+    # --- Automatisation des pré-remplissages et restrictions ---
+    # Pré-remplir venue
     prefill_venue_id = venue_id
     if prefill_venue_id is None and hasattr(request.state, 'venue_context') and request.state.venue_context:
         prefill_venue_id = request.state.venue_context.id
     if prefill_venue_id is None:
-        prefill_venue_id = venues[0].id  # Première venue par défaut
-    
+        prefill_venue_id = venues[0].id
+
     next_seq = peek_next_sequence(session, "mouvement")
 
-    # Déterminer le dernier événement et la date par défaut en fonction de la venue présélectionnée
-    # ainsi que la liste des événements autorisés à proposer dans le sélecteur
+    # Récupérer la venue sélectionnée
+    selected_venue = session.get(Venue, prefill_venue_id)
+    selected_dossier = selected_venue.dossier if selected_venue else None
+    selected_uf_id = None
+    selected_uh_id = None
+    # Pré-remplir UF depuis la venue ou le dossier
+    if selected_venue and selected_venue.uf_responsabilite:
+        # Si venue a une UF, chercher son id
+        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
+        if uf_obj:
+            selected_uf_id = uf_obj.id
+    elif selected_dossier and selected_dossier.uf_responsabilite:
+        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
+        if uf_obj:
+            selected_uf_id = uf_obj.id
+
+    # Pré-remplir UH si UF connue
+    if selected_uf_id:
+        uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).first()
+        if uh_obj:
+            selected_uh_id = uh_obj.id
+
+    # Déterminer le dernier événement et la date par défaut
     allowed_events_codes = None
     default_when_str = None
     try:
@@ -446,21 +469,17 @@ def new_mouvement(
             if last:
                 last_event = last[-1].type.split('^')[-1] if last[-1].type else None
                 allowed_events_codes = ALLOWED_TRANSITIONS.get(last_event, set())
-                # 1 minute après le dernier mouvement
                 from datetime import timedelta
                 default_when_str = (last[-1].when + timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M")
             else:
-                # État initial
                 allowed_events_codes = {e for e in INITIAL_EVENTS if e != "A38"}
                 default_when_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
         else:
-            # Si pas de venue présélectionnée, ne filtre pas (l'utilisateur choisira une venue)
             default_when_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
     except Exception:
-        # En cas de problème, fallback raisonnable
         allowed_events_codes = None
         default_when_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
-    
+
     # Préparer la liste déroulante des venues
     venue_options = []
     for v in venues:
@@ -472,7 +491,7 @@ def new_mouvement(
                 label += f" - {v.dossier.patient.family} {v.dossier.patient.given}"
             label += f" (Dossier #{v.dossier.dossier_seq})"
         venue_options.append({"value": str(v.id), "label": label})
-    
+
     # Récupérer les Unités Fonctionnelles disponibles
     uf_options = []
     try:
@@ -481,12 +500,43 @@ def new_mouvement(
             label = f"{uf.identifier} — {uf.name}"
             uf_options.append({"value": str(uf.id), "label": label})
     except Exception:
-        # En cas d'erreur de lecture, on laisse la liste vide
         uf_options = []
-    # Construire les options de type en filtrant par transitions autorisées si connues
+
+    # Récupérer les UH pour l'UF pré-remplie
+    uh_options = []
+    if selected_uf_id:
+        uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).all()
+        for uh in uhs:
+            label = f"{uh.identifier} — {uh.name}"
+            uh_options.append({"value": str(uh.id), "label": label})
+
+    # Filtrer les types de mouvement selon le type de venue
     from app.form_config import MovementType
     all_type_options = MovementType.choices()
-    # Mapping aligné avec le workflow pour déterminer les exigences de localisation
+    # Mapping dossier_type -> types autorisés
+    type_map = {
+        "hospitalise": ["ADT^A01", "ADT^A02", "ADT^A03", "ADT^A06", "ADT^A11", "ADT^A12", "ADT^A13", "ADT^A21"],
+        "externe": ["ADT^A04", "ADT^A07"],
+        "urgence": ["ADT^A04", "ADT^A05", "ADT^A07", "ADT^A21"],
+    }
+    allowed_types = None
+    if selected_dossier:
+        dt = str(selected_dossier.dossier_type)
+        allowed_types = type_map.get(dt, None)
+    def _opt_allowed(opt):
+        try:
+            code = str(opt.get("value"))
+            event = code.split("^")[-1]
+            if allowed_events_codes and event not in allowed_events_codes:
+                return False
+            if allowed_types and code not in allowed_types:
+                return False
+            return True
+        except Exception:
+            return True
+    filtered = [opt for opt in all_type_options if _opt_allowed(opt)]
+
+    # Ajouter un indicateur requires_location aux options
     event_mapping = {
         "A01": ("admission", True),
         "A02": ("transfer", True),
@@ -502,21 +552,6 @@ def new_mouvement(
         "A22": ("return", True),
         "A38": ("cancel_preadmission", False),
     }
-
-    if allowed_events_codes:
-        def _opt_allowed(opt):
-            try:
-                code = str(opt.get("value"))
-                # opt like "ADT^A01" -> keep if trailing code in allowed
-                event = code.split("^")[-1]
-                return event in allowed_events_codes
-            except Exception:
-                return True
-        filtered = [opt for opt in all_type_options if _opt_allowed(opt)]
-    else:
-        filtered = all_type_options
-
-    # Ajouter un indicateur requires_location aux options (pour pilotage JS en template générique)
     type_options = []
     for opt in filtered:
         if isinstance(opt, dict):
@@ -526,8 +561,11 @@ def new_mouvement(
             enriched = {**opt, "requires_location": requires}
             type_options.append(enriched)
         else:
-            # fallback, should not happen with MovementType.choices
             type_options.append(opt)
+
+    # Motif/raison en dropdownlist vocabulaire
+    from app.services.vocabulary_lookup import get_vocabulary_options
+    reason_options = get_vocabulary_options("movement-reason")
 
     fields = [
         {
@@ -545,7 +583,7 @@ def new_mouvement(
             "type": "select",
             "options": type_options,
             "required": True,
-            "help": "Options filtrées selon l'état actuel de la venue"
+            "help": "Options filtrées selon l'état actuel de la venue et le type de séjour"
         },
         {
             "label": "Date et heure *",
@@ -560,15 +598,16 @@ def new_mouvement(
             "name": "uf_id",
             "type": "select",
             "options": uf_options,
-            "help": "Sélectionnez l'UF concernée"
+            "value": str(selected_uf_id) if selected_uf_id else None,
+            "help": "Sélectionnez l'UF concernée (pré-remplie si venue/dossier)"
         },
         {
             "label": "Unité d'Hébergement (UH)",
             "name": "uh_id",
             "type": "select",
-            "options": [],
-            "help": "Sélectionnez d'abord une UF",
-            "depends_on": "uf_id"
+            "options": uh_options,
+            "value": str(selected_uh_id) if selected_uh_id else None,
+            "help": "Sélectionnez l'unité d'hébergement liée à l'UF"
         },
         {
             "label": "Chambre",
@@ -607,8 +646,9 @@ def new_mouvement(
         {
             "label": "Raison / Motif",
             "name": "reason",
-            "type": "text",
-            "help": "Motif du mouvement"
+            "type": "select" if reason_options else "text",
+            "options": reason_options,
+            "help": "Motif du mouvement (issu du vocabulaire)"
         },
         {
             "label": "Intervenant",
@@ -623,13 +663,6 @@ def new_mouvement(
             "help": "Fonction de l'intervenant (ex: IDE, Médecin)"
         },
         {
-            "label": "Statut",
-            "name": "status",
-            "type": "select",
-            "options": MouvementStatus.choices(),
-            "help": "État actuel du mouvement"
-        },
-        {
             "label": "Note / Commentaire",
             "name": "note",
             "type": "textarea",
@@ -642,6 +675,16 @@ def new_mouvement(
             "value": next_seq,
             "readonly": True,
             "help": "Généré automatiquement - ne modifier que si nécessaire"
+        },
+        {
+            "label": "Statut du mouvement",
+            "name": "status",
+            "type": "select",
+            "options": MouvementStatus.choices(),
+            "value": "pending",
+            "readonly": True,
+            "hidden": True,
+            "help": "Indicateur interne, non modifiable."
         },
     ]
 
@@ -783,36 +826,158 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
     m = session.get(Mouvement, mouvement_id)
     if not m:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-    # Fallback: derive display value if legacy 'type' is missing
+
+    # --- Venue options (single, readonly) ---
+    venue_options = []
+    if m.venue:
+        venue_options = [{"value": str(m.venue_id), "label": m.venue.label or f"Venue #{m.venue_id}"}]
+
+    # --- Type options (same as create) ---
+    type_options = [
+        {"value": "ADT^A01", "label": "Admission"},
+        {"value": "ADT^A02", "label": "Transfert"},
+        {"value": "ADT^A03", "label": "Sortie"},
+        {"value": "ADT^A04", "label": "Consultation"},
+    ]
     type_value = m.type if getattr(m, 'type', None) else (f"ADT^{m.trigger_event}" if getattr(m, 'trigger_event', None) else None)
+
+    # --- Reason options (dropdown if available) ---
+    reason_options = get_vocabulary_options("movement-reason")
+    reason_field_type = "select" if reason_options else "text"
+
+    # --- Movement nature options ---
     movement_nature_options = get_vocabulary_options("movement-nature") or [
         {"value": c, "label": l} for c, l in [
             ("S", "Séjour"), ("H", "Hospitalisation"), ("M", "Mouvement"), ("L", "Localisation"), ("D", "Diagnostic"), ("SM", "Sous-mouvement")
         ]
     ]
+
+    # --- Build fields (same order and structure as create) ---
     fields = [
-        {"label": "Venue ID", "name": "venue_id", "type": "number", "value": m.venue_id},
-        {"label": "Type (ex: ADT^A01)", "name": "type", "type": "select", "options": ["ADT^A01", "ADT^A02", "ADT^A03", "ADT^A04"], "value": type_value},
-        {"label": "Quand", "name": "when", "type": "datetime-local", "value": m.when.strftime('%Y-%m-%dT%H:%M') if m.when else ''},
-        {"label": "Localisation", "name": "location", "type": "text", "value": m.location},
-        {"label": "Depuis (from_location)", "name": "from_location", "type": "text", "value": getattr(m,'from_location',None)},
-        {"label": "Vers (to_location)", "name": "to_location", "type": "text", "value": getattr(m,'to_location',None)},
-        {"label": "Raison", "name": "reason", "type": "text", "value": getattr(m,'reason',None)},
-        {"label": "Intervenant", "name": "performer", "type": "text", "value": getattr(m,'performer',None)},
-        {"label": "Statut", "name": "status", "type": "select", "options": ["active", "completed", "cancelled", "pending"], "value": getattr(m,'status',None)},
-        {"label": "Note", "name": "note", "type": "text", "value": getattr(m,'note',None)},
-        {"label": "Numéro de séquence", "name": "mouvement_seq", "type": "number", "value": m.mouvement_seq, "readonly": True},
-        {"label": "Type de mouvement", "name": "movement_type", "type": "select", "options": [o["value"] for o in movement_nature_options], "value": getattr(m, "movement_type", None)},
-        {"label": "Raison du mouvement", "name": "movement_reason", "type": "text", "value": getattr(m, "movement_reason", None)},
-        {"label": "Rôle de l'intervenant", "name": "performer_role", "type": "text", "value": getattr(m, "performer_role", None)},
+        {
+            "label": "Venue (Séjour) *",
+            "name": "venue_id",
+            "type": "select",
+            "options": venue_options,
+            "value": str(m.venue_id),
+            "required": True,
+            "readonly": True,
+            "help": "Sélectionnez la venue concernée par ce mouvement"
+        },
+        {
+            "label": "Type de mouvement *",
+            "name": "type",
+            "type": "select",
+            "options": type_options,
+            "value": type_value,
+            "required": True,
+            "help": "Options filtrées selon l'état actuel de la venue et le type de séjour"
+        },
+        {
+            "label": "Date et heure *",
+            "name": "when",
+            "type": "datetime-local",
+            "value": m.when.strftime('%Y-%m-%dT%H:%M') if m.when else '',
+            "required": True,
+            "help": "Date et heure du mouvement"
+        },
+        {
+            "label": "Localisation complète",
+            "name": "location",
+            "type": "text",
+            "value": m.location,
+            "help": "Code de localisation (ex: SERV-A^LIT-101) - généré automatiquement si structure sélectionnée"
+        },
+        {
+            "label": "Depuis (départ)",
+            "name": "from_location",
+            "type": "text",
+            "value": getattr(m, 'from_location', None),
+            "help": "Pour les transferts : lieu de départ"
+        },
+        {
+            "label": "Vers (arrivée)",
+            "name": "to_location",
+            "type": "text",
+            "value": getattr(m, 'to_location', None),
+            "help": "Pour les transferts : lieu d'arrivée"
+        },
+        {
+            "label": "Raison / Motif",
+            "name": "reason",
+            "type": reason_field_type,
+            "options": reason_options,
+            "value": getattr(m, 'reason', None),
+            "help": "Motif du mouvement (issu du vocabulaire)"
+        },
+        {
+            "label": "Intervenant",
+            "name": "performer",
+            "type": "text",
+            "value": getattr(m, 'performer', None),
+            "help": "Nom de la personne ayant effectué le mouvement"
+        },
+        {
+            "label": "Rôle de l'intervenant",
+            "name": "performer_role",
+            "type": "text",
+            "value": getattr(m, 'performer_role', None),
+            "help": "Fonction de l'intervenant (ex: IDE, Médecin)"
+        },
+        {
+            "label": "Note / Commentaire",
+            "name": "note",
+            "type": "textarea",
+            "value": getattr(m, 'note', None),
+            "help": "Remarque libre"
+        },
+        {
+            "label": "Numéro de séquence",
+            "name": "mouvement_seq",
+            "type": "number",
+            "value": m.mouvement_seq,
+            "readonly": True,
+            "help": "Généré automatiquement - ne modifier que si nécessaire"
+        },
+        {
+            "label": "Type de mouvement (nature)",
+            "name": "movement_type",
+            "type": "select",
+            "options": movement_nature_options,
+            "value": getattr(m, 'movement_type', None),
+            "help": "Nature du mouvement (vocabulaire)"
+        },
+        {
+            "label": "Raison du mouvement",
+            "name": "movement_reason",
+            "type": "text",
+            "value": getattr(m, 'movement_reason', None),
+            "help": "Raison détaillée du mouvement"
+        },
+        {
+            "label": "Statut du mouvement",
+            "name": "status",
+            "type": "select",
+            "options": [
+                {"value": "active", "label": "Actif"},
+                {"value": "completed", "label": "Terminé"},
+                {"value": "cancelled", "label": "Annulé"},
+                {"value": "pending", "label": "En attente"},
+            ],
+            "value": getattr(m, 'status', None),
+            "readonly": True,
+            "hidden": True,
+            "help": "Indicateur interne, non modifiable."
+        },
     ]
+
     session.refresh(m, ["venue"])
     return templates.TemplateResponse(
-        request, 
-        "form.html", 
+        request,
+        "form.html",
         {
-            "title": "Modifier mouvement", 
-            "fields": fields, 
+            "title": "Modifier mouvement",
+            "fields": fields,
             "action_url": f"/mouvements/{mouvement_id}/edit",
             "back_url": f"/mouvements?venue_id={m.venue_id}",
         }

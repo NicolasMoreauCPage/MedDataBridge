@@ -374,6 +374,7 @@ def dossier_detail(dossier_id: int, request: Request, session=Depends(get_sessio
             "dossier_type_options": dossier_type_options,
             "admission_type_options": admission_type_options,
             "discharge_disp_options": discharge_disp_options,
+            "dossier_venues": d.venues if hasattr(d, 'venues') and d.venues is not None else [],
         })
 
 

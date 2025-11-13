@@ -46,12 +46,8 @@ def create_test_patient(session):
     """Crée un patient de test directement en base."""
     print_header("CRÉATION PATIENT")
     
-    # Récupérer le prochain numéro de séquence
-    last_patient = session.exec(select(Patient).order_by(Patient.patient_seq.desc())).first()
-    next_seq = (last_patient.patient_seq + 1) if last_patient and last_patient.patient_seq else 1
-    
+    # Créer un patient de test (utilise id auto-incrémenté comme identifiant unique)
     patient = Patient(
-        patient_seq=next_seq,
         family="DUPONT_TEST",
         given="Jean",
         birth_date="1980-05-15",
@@ -59,12 +55,10 @@ def create_test_patient(session):
         identity_reliability_code="VALI",
         country="FR"
     )
-    
     session.add(patient)
     session.commit()
     session.refresh(patient)
-    
-    print(f"✓ Patient créé: ID={patient.id}, Seq={patient.patient_seq}, Identifier={patient.identifier}")
+    print(f"✓ Patient créé: ID={patient.id}, Identifier={patient.identifier}")
     return patient
 
 
@@ -76,30 +70,21 @@ def create_test_admission(session, patient):
     last_dossier = session.exec(select(Dossier).order_by(Dossier.dossier_seq.desc())).first()
     next_seq = (last_dossier.dossier_seq + 1) if last_dossier and last_dossier.dossier_seq else 1
     
-    # Créer un dossier avec encounter_class FHIR
+    # Créer un dossier avec le type métier (hospitalisé, externe, urgence)
     dossier = Dossier(
         dossier_seq=next_seq,
         patient_id=patient.id,
         dossier_type="hospitalise",
-        encounter_class="IMP",  # FHIR code pour hospitalisation
         uf_responsabilite="MCO-CARDIO",
         admit_time=datetime.now()
     )
-    
     session.add(dossier)
     session.commit()
     session.refresh(dossier)
-    
-    print(f"✓ Dossier créé: ID={dossier.id}, Seq={dossier.dossier_seq}")
-    print(f"  encounter_class={dossier.encounter_class} (FHIR)")
-    
-    # Vérifier le mapping HL7v2
-    expected_hl7_code = reverse_map_code(session, "encounter-class", dossier.encounter_class, "patient-class")
-    print(f"  Mapping attendu pour message HL7: {dossier.encounter_class} (FHIR) -> {expected_hl7_code} (HL7v2)")
-    
-    # Note: Les messages sont générés uniquement via les événements FastAPI/entity_events
-    # Pour tester la génération, il faut passer par l'interface web ou l'API
-    
+    print(f"✓ Dossier créé: ID={dossier.id}, Seq={dossier.dossier_seq}, Type={dossier.dossier_type}")
+    # Vérifier le mapping HL7v2 attendu (si besoin, à adapter selon la logique métier)
+    # expected_hl7_code = reverse_map_code(session, "dossier_type", dossier.dossier_type, "patient-class")
+    # print(f"  Mapping attendu pour message HL7: {dossier.dossier_type} (métier) -> {expected_hl7_code} (HL7v2)")
     return dossier
 
 

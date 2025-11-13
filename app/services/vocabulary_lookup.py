@@ -1,3 +1,17 @@
+def init_standard_movement_reason_vocabulary():
+    """Initialise le vocabulaire 'movement-reason' avec des valeurs standard."""
+    standard_reasons = [
+        {"value": "admission", "label": "Admission"},
+        {"value": "transfert", "label": "Transfert"},
+        {"value": "sortie", "label": "Sortie"},
+        {"value": "consultation", "label": "Consultation"},
+        {"value": "mutation", "label": "Mutation"},
+        {"value": "urgence", "label": "Urgence"},
+        {"value": "naissance", "label": "Naissance"},
+        {"value": "deces", "label": "Décès"},
+        {"value": "autre", "label": "Autre"},
+    ]
+    ensure_system_exists("movement-reason", standard_reasons)
 """Service utilitaire pour récupérer dynamiquement les options de vocabulaire.
 
 Objectif : centraliser les listes de valeurs aujourd'hui dupliquées dans

@@ -41,33 +41,36 @@ class AuthKind(str, Enum):
         return [{"value": e.value, "label": e.value.capitalize()} for e in cls]
 
 class MovementType(str, Enum):
-    """Types de mouvements ADT (Admission/Discharge/Transfer) selon IHE PAM"""
-    ADT_A01 = "ADT^A01"  # Admission
-    ADT_A02 = "ADT^A02"  # Transfert
-    ADT_A03 = "ADT^A03"  # Sortie définitive
-    ADT_A04 = "ADT^A04"  # Admission aux urgences / consultation externe
-    ADT_A05 = "ADT^A05"  # Pré-admission
-    ADT_A06 = "ADT^A06"  # Changement de statut ambulatoire vers hospitalisé
-    ADT_A07 = "ADT^A07"  # Changement de statut hospitalisé vers ambulatoire
-    ADT_A11 = "ADT^A11"  # Annulation d'admission
-    ADT_A12 = "ADT^A12"  # Annulation de transfert
-    ADT_A13 = "ADT^A13"  # Annulation de sortie
-    ADT_A21 = "ADT^A21"  # Permission de sortie (patient absent temporairement)
-    
+    """
+    Types de mouvements métier propres au modèle (français, indépendants des standards HL7/FHIR).
+    Les correspondances avec les standards doivent être gérées dans des tables de mapping séparées.
+    """
+    ADMISSION = "admission"  # Admission en hospitalisation
+    TRANSFERT = "transfert"  # Transfert du patient
+    SORTIE = "sortie"        # Sortie définitive
+    CONSULTATION = "consultation"  # Admission urgences / consultation externe
+    PRE_ADMISSION = "pre_admission"  # Pré-admission
+    MUTATION = "mutation"    # Mutation vers consultation / urgence
+    RETOUR = "retour"        # Retour de consultation
+    ANNUL_ADMISSION = "annulation_admission"  # Annulation d'admission
+    ANNUL_TRANSFERT = "annulation_transfert"  # Annulation de transfert
+    ANNUL_SORTIE = "annulation_sortie"        # Annulation de sortie
+    PERMISSION = "permission"  # Permission de sortie (patient absent temporairement)
+
     @classmethod
     def choices(cls) -> List[Dict[str, str]]:
         labels = {
-            "ADT^A01": "Admission en hospitalisation",
-            "ADT^A02": "Transfert du patient",
-            "ADT^A03": "Sortie définitive",
-            "ADT^A04": "Admission urgences / consultation externe",
-            "ADT^A05": "Pré-admission",
-            "ADT^A06": "Mutation vers consultation / urgence",
-            "ADT^A07": "Retour de consultation",
-            "ADT^A11": "Annulation d'admission",
-            "ADT^A12": "Annulation de transfert",
-            "ADT^A13": "Annulation de sortie",
-            "ADT^A21": "Permission de sortie",
+            "admission": "Admission en hospitalisation",
+            "transfert": "Transfert du patient",
+            "sortie": "Sortie définitive",
+            "consultation": "Consultation / urgences",
+            "pre_admission": "Pré-admission",
+            "mutation": "Mutation",
+            "retour": "Retour de consultation",
+            "annulation_admission": "Annulation d'admission",
+            "annulation_transfert": "Annulation de transfert",
+            "annulation_sortie": "Annulation de sortie",
+            "permission": "Permission de sortie",
         }
         return [{"value": e.value, "label": labels.get(e.value, e.value)} for e in cls]
 

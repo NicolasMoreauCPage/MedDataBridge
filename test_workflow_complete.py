@@ -23,7 +23,7 @@ def test_workflow():
     
     with Session(engine) as session:
         # 1. Créer un patient de test
-        print("📝 Étape 1/5 : Création d'un patient de test...")
+        print("📝 Étape 1/6 : Création d'un patient de test...")
         from datetime import date
         patient_seq = generate_patient_seq()
         patient = Patient(
@@ -37,7 +37,45 @@ def test_workflow():
         session.add(patient)
         session.commit()
         session.refresh(patient)
-        print(f"   ✅ Patient créé : ID={patient.id}, patient_seq={patient.patient_seq}")
+        print(f"   ✅ Patient créé : ID={patient.id}")
+
+        # 1b. Modifier le patient et valider les messages
+        print("\n📝 Étape 2/6 : Modification du patient...")
+        patient.given = "Jean-Édité"
+        patient.family = "TestWorkflowModif"
+        session.add(patient)
+        session.commit()
+        session.refresh(patient)
+        print(f"   ✅ Patient modifié : ID={patient.id}, Nom={patient.family}, Prénom={patient.given}")
+        # Émettre le message de modification (si logique métier le permet)
+        try:
+            emit_to_senders(patient, "patient", session, operation="update")
+            session.commit()  # Force la persistance du MessageLog A31 uniquement pour le test
+            print(f"   ✅ Message de modification patient émis (A31)")
+        except Exception as e:
+            print(f"   ⚠️  Impossible d'émettre le message de modification patient : {e}")
+
+        # Vérifier explicitement la présence d'un message A31 pour le patient modifié
+        messages_modif = session.exec(
+            select(MessageLog)
+            .where(MessageLog.kind == "MLLP")
+            .order_by(MessageLog.created_at.desc())
+            .limit(20)
+        ).all()
+        a31_msgs = []
+        ipp = str(patient.id)
+        for msg in messages_modif:
+            if msg.payload and ipp in msg.payload:
+                msh = next((s for s in msg.payload.split('\r') if s.startswith('MSH')), None)
+                msg_type = msh.split('|')[8] if msh and len(msh.split('|')) > 8 else 'N/A'
+                if msg_type.startswith("ADT^A31"):
+                    a31_msgs.append((msg, msg_type))
+        if a31_msgs:
+            print(f"   ✅ {len(a31_msgs)} message(s) HL7 A31 généré(s) pour le patient modifié (IPP={ipp})")
+            for msg, msg_type in a31_msgs:
+                print(f"      - Message ID={msg.id}, Status={msg.status}, MSH-9={msg_type}")
+        else:
+            print(f"   ❌ Aucun message HL7 A31 généré pour le patient modifié (IPP={ipp})")
         
         # 2. Compter messages avant création dossier
         msg_count_before = session.exec(select(MessageLog)).all()
@@ -107,19 +145,18 @@ def test_workflow():
             
             if msg.kind == "MLLP" and msg.payload:
                 segments = msg.payload.split('\r')
-                
                 # MSH
                 msh = next((s for s in segments if s.startswith('MSH')), None)
                 if msh:
                     fields = msh.split('|')
                     msg_type = fields[8] if len(fields) > 8 else 'N/A'
                     print(f"      Message Type: {msg_type}")
-                    
-                    if msg_type != "ADT^A05":
-                        print(f"      ❌ ERREUR : Attendu ADT^A05, obtenu {msg_type}")
+                    # Accepte ADT^A05 ou ADT^A05^ADT_A05
+                    if not (msg_type == "ADT^A05" or msg_type == "ADT^A05^ADT_A05"):
+                        print(f"      ❌ ERREUR : Attendu ADT^A05 ou ADT^A05^ADT_A05, obtenu {msg_type}")
                         return False
                     else:
-                        print(f"      ✅ Type correct : ADT^A05")
+                        print(f"      ✅ Type correct : {msg_type}")
                 
                 # PID
                 pid = next((s for s in segments if s.startswith('PID')), None)
@@ -225,6 +262,11 @@ def test_workflow():
         print()
         
         return True
+        print("\n--- Scan global des 50 derniers messages HL7 (tous statuts) ---")
+        for msg in MessageLog.select().order_by(MessageLog.id.desc()).limit(50):
+            if msg.hl7_message:
+                msh9 = extract_msh9(msg.hl7_message)
+                print(f"Global id={msg.id} status={msg.status} MSH-9={msh9}")
 
 if __name__ == "__main__":
     try:

@@ -1048,8 +1048,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                         logger.info("Mouvement annulé", extra={"movement_seq": existing_mvt.mouvement_seq})
                     elif action == "UPDATE" and existing_mvt:
                         if zbe_data.get("uf_medicale_code"):
-                            existing_mvt.uf_medicale_code = zbe_data.get("uf_medicale_code")
-                            existing_mvt.uf_medicale_label = zbe_data.get("uf_medicale_label") or existing_mvt.uf_medicale_code
+                            existing_mvt.uf_responsabilite = zbe_data.get("uf_medicale_code")
                         if zbe_data.get("uf_soins_code"):
                             existing_mvt.uf_soins_code = zbe_data.get("uf_soins_code")
                             existing_mvt.uf_soins_label = zbe_data.get("uf_soins_label") or existing_mvt.uf_soins_code
@@ -1065,8 +1064,6 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             if is_historic:
                 logger.info("Historic movement ingested", extra={"movement_id": zbe_data.get("movement_id"), "trigger": trigger})
 
-            # Correction UnboundLocalError: import local de select
-            from sqlmodel import select
             # Validation des transitions IHE PAM
             # Récupérer le dernier événement du dossier/venue si applicable
             previous_event = None
@@ -1170,7 +1167,6 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                     if pid_data.get("identifiers"):
                         first_ident_raw = pid_data["identifiers"][0][0]
                         ident_value = first_ident_raw.split("^")[0]
-                        from sqlmodel import select
                         patient_obj = session.exec(select(Patient).where(Patient.identifier == ident_value)).first()
 
                     # Récupérer venue si mouvement (présence ZBE ou trigger mouvement) pour VenueContact

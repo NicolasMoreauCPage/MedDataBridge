@@ -189,6 +189,30 @@ def import_mouvement_from_hl7(hl7_message: str, venue, session) -> Optional[Mouv
     # ✅ NOUVEAU: Extraire la nature (S/H/O/U)
     nature = extract_nature_from_hl7(pv1, zbe)
 
+    # ✅ NOUVEAU: Synchroniser dossier_type pour A06/A07
+    # A06/A07 changent le type de dossier en fonction de PV1-2
+    if hl7_code in ["ADT^A06", "ADT^A07"] and pv1 and venue.dossier:
+        from app.services.dossier_type_mapping import patient_class_to_dossier_type
+        
+        pv1_fields = pv1.split('|')
+        if len(pv1_fields) > 2 and pv1_fields[2]:
+            patient_class = pv1_fields[2].strip()
+            new_dossier_type = patient_class_to_dossier_type(patient_class)
+            
+            old_type = venue.dossier.dossier_type
+            old_type_str = old_type.value if hasattr(old_type, "value") else str(old_type)
+            
+            if old_type_str != new_dossier_type:
+                # Log synchronization
+                import logging
+                logging.info(
+                    f"{hl7_code} synchronization: dossier_type {old_type_str} → {new_dossier_type} "
+                    f"(PV1-2={patient_class})"
+                )
+                # Update dossier_type
+                venue.dossier.dossier_type = new_dossier_type
+                session.add(venue.dossier)  # Mark for update
+
     # Création du Mouvement
     m = Mouvement(
         venue_id=venue.id,

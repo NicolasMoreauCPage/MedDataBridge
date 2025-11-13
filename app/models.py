@@ -147,7 +147,8 @@ class Dossier(SQLModel, table=True):
     discharge_time: Optional[datetime] = None
     dossier_type: DossierType = Field(default=DossierType.HOSPITALISE, description="Type de dossier (hospitalisé, externe, urgence)")
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
-    uf_responsabilite: Optional[str] = None                 # UF responsable du dossier
+    # UF responsable du dossier (= UF médicale = UF de responsabilité médicale)
+    uf_responsabilite: Optional[str] = None                 # Code UF responsable/médicale (ex: "CARDIO")
 
     def update_type(self, new_type: DossierType, session: Session | None = None) -> None:
         """
@@ -196,6 +197,11 @@ class Venue(SQLModel, table=True):
     dossier_id: int = Field(foreign_key="dossier.id")
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     uf_responsabilite: Optional[str] = None
+    # ZBE segment fields (IHE PAM France)
+    # uf_responsabilite (above) = UF médicale (ZBE-7), uf_soins (below) = UF de soins (ZBE-8)
+    uf_soins_code: Optional[str] = None
+    uf_soins_label: Optional[str] = None
+    nature: Optional[str] = None  # Movement nature code (S,H,M,L,D,SM)
     start_time: datetime
     dossier: Dossier = Relationship(back_populates="venues")
     mouvements: List["Mouvement"] = Relationship(back_populates="venue")
@@ -234,13 +240,9 @@ class Mouvement(SQLModel, table=True):
     is_historic: bool = Field(default=False, description="ZBE-5 Historic flag (true if Y)")
     original_trigger: Optional[str] = Field(default=None, description="ZBE-6 Original trigger event for UPDATE/CANCEL")
     nature: Optional[str] = Field(default=None, description="ZBE-9 Movement nature code (S,H,M,L,D,SM)")
-    uf_medicale_code: Optional[str] = Field(default=None, description="ZBE-7 XON component 10 UF médicale code")
-    uf_medicale_label: Optional[str] = Field(default=None, description="ZBE-7 XON component 1 UF médicale label")
+    uf_responsabilite: Optional[str] = Field(default=None, description="ZBE-7 UF médicale (= UF de responsabilité)")
     uf_soins_code: Optional[str] = Field(default=None, description="ZBE-8 XON component 10 UF soins code")
     uf_soins_label: Optional[str] = Field(default=None, description="ZBE-8 XON component 1 UF soins label")
-    uf_hebergement_code: Optional[str] = Field(default=None, description="Code UF hébergement")
-    uf_hebergement_label: Optional[str] = Field(default=None, description="Libellé UF hébergement")
-    movement_ids: Optional[str] = Field(default=None, description="JSON array of all ZBE-1 identifiers if repetition")
     venue: Venue = Relationship(back_populates="mouvements")
     identifiers: List["Identifier"] = Relationship(back_populates="mouvement")
 

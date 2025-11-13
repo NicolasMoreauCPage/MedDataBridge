@@ -66,6 +66,7 @@ def build_pid3_identifiers(
     ipp_value = patient.id or "TEMP"
     system = forced_system or "HOSP"
     identifiers.append(f"{_c(ipp_value)}^^^{_auth(system, forced_oid)}^PI")
+        
     
     # 2. External ID si présent - chercher dans Identifier pour avoir system/oid
     external_id_clean = _c(getattr(patient, "external_id", None))
@@ -425,32 +426,141 @@ def generate_pam_hl7(
         zbe_id = control_id
         action = "INSERT"
         historic = "N"
-        original_trigger = event_type
-        zbe_8 = f"^^^^^^UF^^^{location}" if location else ""
-        zbe_9 = f"{visit_number}^^^{authority}^VN"
-        zbe = (
-            f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|{zbe_8}|{zbe_9}"
-            if location
-            else f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}|{original_trigger}|"
-        )
+        # ZBE-7: UF médicale = UF de responsabilité (XON format: label^code^code_type^^^id^^^id_type^assigning_authority^component10=code)
+        uf_responsabilite = getattr(entity, "uf_responsabilite", None) or getattr(dossier, "uf_responsabilite", None) or ""
+        # XON format: name (1) ^ code (2) ^ type (3) ^ ... ^ code (10)
+        # We need at least component 10 filled with the code
+        if uf_responsabilite:
+            zbe_7_comps = [""] * 10
+            zbe_7_comps[0] = uf_responsabilite  # Component 1: label/code
+            zbe_7_comps[9] = uf_responsabilite  # Component 10: code
+            zbe_7 = "^".join(zbe_7_comps)
+        else:
+            zbe_7 = ""
+        # ZBE-8: UF de soins (XON format - same as ZBE-7)
+        uf_soins_code = getattr(entity, "uf_soins_code", None) or getattr(dossier, "uf_soins_code", None) or ""
+        uf_soins_label = getattr(entity, "uf_soins_label", None) or getattr(dossier, "uf_soins_label", None) or ""
+        if uf_soins_code:
+            zbe_8_comps = [""] * 10
+            zbe_8_comps[0] = uf_soins_label  # Component 1: label
+            zbe_8_comps[9] = uf_soins_code  # Component 10: code
+            zbe_8 = "^".join(zbe_8_comps)
+        else:
+            zbe_8 = ""
+        # ZBE-9: nature du mouvement (S,H,M,L,D,SM)
+        from app.services.nature_mapping import derive_nature
+        nature = getattr(entity, "nature", None)
+        zbe_9 = derive_nature(event_type, nature)
+        valid_natures = {"S", "H", "M", "L", "D", "SM"}
+        if not zbe_9 or zbe_9 not in valid_natures:
+            zbe_9 = "H"  # Default to hospitalisation
+        # ZBE for A05 (venue creation): no ZBE-6 for INSERT
+        zbe = f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}||{zbe_7}|{zbe_8}|{zbe_9}"
 
         return "\r".join([msh, evn, pid, pv1, zbe])
     if entity_type == "mouvement":
         # Utiliser le mapping métier <-> HL7 pour déterminer le code HL7 à partir du type métier
         from app.movement_type_mapping import to_standard_movement_code
-        metier_type = getattr(entity, "movement_type", None)
-        hl7_code = to_standard_movement_code(metier_type, "hl7") or "ADT^A99"
-        msg_type = hl7_code
+        
+        # Helper function to detect A06/A07 based on movement history
+        def detect_a06_a07_from_history(entity, session, operation):
+            """
+            Detect A06 or A07 based on venue movement history.
+            - A06: Outpatient → Inpatient (S → H)
+            - A07: Inpatient → Outpatient (H → S)
+            Returns: ("A06"|"A07"|None, previous_nature)
+            """
+            # Only consider detection for new insert movements
+            if operation != "insert":
+                return None, None
+            if not getattr(entity, "venue_id", None):
+                return None, None
+            current_nature = getattr(entity, "nature", None)
+            if not current_nature or current_nature not in ["H", "S"]:
+                return None, None
+
+            previous_movements = session.exec(
+                select(Mouvement)
+                .where(Mouvement.venue_id == entity.venue_id)
+                .where(Mouvement.when < entity.when)
+                .order_by(Mouvement.when.desc())
+            ).all()
+            if not previous_movements:
+                return None, None
+            last_nature = None
+            for prev in previous_movements:
+                if getattr(prev, "nature", None) in ["H", "S"]:
+                    last_nature = getattr(prev, "nature")
+                    break
+            if not last_nature:
+                return None, None
+            if last_nature == "S" and current_nature == "H":
+                return "A06", last_nature
+            if last_nature == "H" and current_nature == "S":
+                return "A07", last_nature
+            return None, None
+
+        # Priority 1: Use explicit trigger_event if provided
+        trigger_event = getattr(entity, "trigger_event", None)
+        if trigger_event:
+            event_code = trigger_event
+            msg_type = f"ADT^{trigger_event}"
+        else:
+            # Priority 1.5: Auto-detect A06/A07 based on movement history
+            a0607_code, _prev = detect_a06_a07_from_history(entity, session, operation)
+            if a0607_code:
+                event_code = a0607_code
+                msg_type = f"ADT^{a0607_code}"
+            else:
+                # Priority 2: Use movement_type mapping
+                metier_type = getattr(entity, "movement_type", None)
+                hl7_code = to_standard_movement_code(metier_type, "hl7")
+                
+                if hl7_code:
+                    msg_type = hl7_code
+                    event_code = hl7_code.split("^")[1] if "^" in hl7_code else "A99"
+                else:
+                    # Priority 3: Use operation to determine event
+                    action = getattr(entity, "action", None)
+                    if action == "CANCEL":
+                        # For cancellations, use the appropriate cancel code
+                        original_trigger = getattr(entity, "original_trigger", None)
+                        if original_trigger == "A01":
+                            event_code = "A12"  # Cancel Admission
+                        elif original_trigger == "A03":
+                            event_code = "A13"  # Cancel Discharge
+                        else:
+                            event_code = "A12"  # Default to cancel admission
+                        msg_type = f"ADT^{event_code}"
+                    elif operation == "update":
+                        event_code = "Z99"  # Generic/Custom event for modifications
+                        msg_type = "ADT^Z99"
+                    else:
+                        event_code = "A01"  # Admit Patient for new movements (default)
+                        msg_type = "ADT^A01"
+        
         # Get venue and patient info
-        venue = entity.venue if hasattr(entity, 'venue') else None
-        dossier = venue.dossier if venue and hasattr(venue, 'dossier') else None
-        patient = dossier.patient if dossier and hasattr(dossier, 'patient') else None
+        # Explicitly load venue if not already loaded
+        if hasattr(entity, 'venue_id') and entity.venue_id and not getattr(entity, 'venue', None):
+            venue = session.exec(select(Venue).where(Venue.id == entity.venue_id)).first()
+        else:
+            venue = entity.venue if hasattr(entity, 'venue') else None
+        
+        # Load dossier from venue
+        if venue and hasattr(venue, 'dossier_id') and venue.dossier_id and not getattr(venue, 'dossier', None):
+            dossier = session.exec(select(Dossier).where(Dossier.id == venue.dossier_id)).first()
+        else:
+            dossier = venue.dossier if venue and hasattr(venue, 'dossier') else None
+        
+        # Load patient from dossier
+        if dossier and hasattr(dossier, 'patient_id') and dossier.patient_id and not getattr(dossier, 'patient', None):
+            patient = session.exec(select(Patient).where(Patient.id == dossier.patient_id)).first()
+        else:
+            patient = dossier.patient if dossier and hasattr(dossier, 'patient') else None
         # Build timestamp
         timestamp = entity.when.strftime("%Y%m%d%H%M%S") if entity.when else ""
         # Build MSH segment avec structure de message et version IHE PAM France
         control_id = str(entity.mouvement_seq)
-        # Extract event code (A01, A02, A03, etc.)
-        event_code = msg_type.split("^")[1] if "^" in msg_type else "A99"
         # Determine message structure based on event code (IHE PAM France)
         if event_code in ["A01", "A04", "A05", "A08", "A13", "A28", "A31", "Z99"]:
             msg_structure = "ADT_A01"
@@ -531,31 +641,65 @@ def generate_pam_hl7(
             uf_resp = ""
         
         # PV1-19 (Visit Number) - use venue_seq (numéro de venue)
-        visit_number_pv1 = str(entity.venue_seq)
+        visit_number_pv1 = str(venue.venue_seq) if venue else str(entity.mouvement_seq)
         
         # PV1-19 (Visit Number) - use venue_seq (numéro de venue) as full CX
         pv1_19 = f"{visit_number_pv1}^^^{authority}^VN"
         pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{pv1_19}||||||||||||||||||||{uf_resp}||||||{timestamp}"
 
-        # ZBE-8: UF de soins, ZBE-9: venue_seq as CX
+        # ZBE segment generation for mouvement (same format as venue)
         zbe_id = control_id
-        action = "UPDATE" if event_code in ["A08", "A31"] else "TRANSFER" if event_code == "A02" else "DISCHARGE" if event_code == "A03" else "INSERT"
+        
+        # ZBE-4: Action (INSERT, UPDATE, CANCEL)
+        action = getattr(entity, "action", None) or "INSERT"
+        if not action:
+            # Determine action based on event code if not explicitly set
+            action = "UPDATE" if event_code in ["A08", "A31"] else "TRANSFER" if event_code == "A02" else "DISCHARGE" if event_code == "A03" else "INSERT"
+        
         historic = "N"
+        
+        # ZBE-6: Original trigger (for CANCEL actions)
+        original_trigger = getattr(entity, "original_trigger", None) or ""
+        
+        # ZBE-7: UF médicale = UF de responsabilité (XON format: label^code^code_type^^^id^^^id_type^assigning_authority^component10=code)
+        uf_responsabilite = getattr(entity, "uf_responsabilite", None) or getattr(venue, "uf_responsabilite", None) or getattr(dossier, "uf_responsabilite", None) or ""
+        # XON format: name (1) ^ code (2) ^ type (3) ^ ... ^ code (10)
+        # We need at least component 10 filled with the code
+        if uf_responsabilite:
+            zbe_7_comps = [""] * 10
+            zbe_7_comps[0] = uf_responsabilite  # Component 1: label/code
+            zbe_7_comps[9] = uf_responsabilite  # Component 10: code
+            zbe_7 = "^".join(zbe_7_comps)
+        else:
+            zbe_7 = ""
+        
+        # ZBE-8: UF de soins (XON format - same as ZBE-7)
+        uf_soins_code = getattr(entity, "uf_soins_code", None) or getattr(venue, "uf_soins_code", None) or getattr(dossier, "uf_soins_code", None) or ""
+        uf_soins_label = getattr(entity, "uf_soins_label", None) or getattr(venue, "uf_soins_label", None) or getattr(dossier, "uf_soins_label", None) or ""
+        if uf_soins_code:
+            zbe_8_comps = [""] * 10
+            zbe_8_comps[0] = uf_soins_label  # Component 1: label
+            zbe_8_comps[9] = uf_soins_code  # Component 10: code
+            zbe_8 = "^".join(zbe_8_comps)
+        else:
+            zbe_8 = ""
+        
+        # ZBE-9: nature du mouvement (S,H,M,L,D,SM)
         from app.services.nature_mapping import derive_nature
-        # ZBE-8: UF de soins (doit contenir le code UF de soins, pas le numéro de venue)
-        uf_soins = getattr(entity, "uf_soins", None) or getattr(venue, "uf_soins", None) or getattr(dossier, "uf_soins", None) or ""
-        zbe_8 = f"^^^^^^UF^^^{uf_soins}" if uf_soins else ""
-        # ZBE-9: nature du mouvement (responsabilité modifiée, selon vocabulaire)
         nature = getattr(entity, "nature", None)
         zbe_9 = derive_nature(event_code, nature)
-        # Correction : garantir que zbe_9 est toujours une valeur valide
         valid_natures = {"S", "H", "M", "L", "D", "SM"}
         if not zbe_9 or zbe_9 not in valid_natures:
-            zbe_9 = derive_nature(event_code, None) or "H"  # fallback sur H (hospitalisation)
-        if zbe_8:
-            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|{zbe_8}|{zbe_9}"
+            zbe_9 = "H"  # Default to hospitalisation
+        
+        # Build complete ZBE segment with conditional ZBE-6
+        # ZBE-6 (original_trigger) is required for CANCEL and UPDATE actions (per IHE PAM France)
+        # Format: ZBE|1|2||4|5|6|7|8|9 when CANCEL/UPDATE, ZBE|1|2||4|5||7|8|9 when INSERT
+        if (action in ["CANCEL", "UPDATE"]) and original_trigger:
+            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{original_trigger}|{zbe_7}|{zbe_8}|{zbe_9}"
         else:
-            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{event_code}|"
+            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}||{zbe_7}|{zbe_8}|{zbe_9}"
+        
         # Combine all segments with \r separator (HL7 standard)
         return "\r".join([msh, evn, pid, pv1, zbe])
     

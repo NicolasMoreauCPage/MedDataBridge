@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 from datetime import datetime
@@ -626,12 +626,6 @@ def new_mouvement(
             "depends_on": "chambre_id"
         },
         {
-            "label": "Localisation complète",
-            "name": "location",
-            "type": "text",
-            "help": "Code de localisation (ex: SERV-A^LIT-101) - généré automatiquement si structure sélectionnée"
-        },
-        {
             "label": "Depuis (départ)",
             "name": "from_location",
             "type": "text",
@@ -731,6 +725,30 @@ def create_mouvement(
 ):
     # Parse date/time
     when_dt = datetime.fromisoformat(when)
+    
+    # Validation: prevent retroactive movements (before venue start_time or last movement)
+    venue = session.get(Venue, venue_id)
+    if venue:
+        # Check against venue start_time
+        if venue.start_time and when_dt < venue.start_time:
+            raise HTTPException(
+                status_code=400,
+                detail=f"La date du mouvement ({when_dt.strftime('%d/%m/%Y %H:%M')}) ne peut pas être antérieure au début de la venue ({venue.start_time.strftime('%d/%m/%Y %H:%M')})"
+            )
+        
+        # Check against last movement's when
+        last_movements = session.exec(
+            select(Mouvement)
+            .where(Mouvement.venue_id == venue_id)
+            .order_by(Mouvement.when.desc())
+        ).all()
+        if last_movements and last_movements[0].when:
+            if when_dt < last_movements[0].when:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"La date du mouvement ({when_dt.strftime('%d/%m/%Y %H:%M')}) ne peut pas être antérieure au dernier mouvement ({last_movements[0].when.strftime('%d/%m/%Y %H:%M')})"
+                )
+    
     # Determine event code (A01, A02, ...)
     trigger_event = None
     if type:
@@ -1063,4 +1081,63 @@ def delete_mouvement(mouvement_id: int, request: Request, session=Depends(get_se
     session.delete(m); session.commit()
     emit_to_senders(m, "mouvement", session)
     return RedirectResponse(url="/mouvements", status_code=303)
+
+
+# ============================================================================
+# AJAX API Endpoints for Dynamic Form Updates
+# ============================================================================
+
+@router.get("/api/mouvements/chambres/{uh_id}")
+def get_chambres_for_uh(uh_id: int, session=Depends(get_session)):
+    """Return list of Chambres for a given UniteHebergement."""
+    from app.models_structure import Chambre
+    
+    try:
+        chambres = session.exec(
+            select(Chambre).where(Chambre.unite_hebergement_id == uh_id)
+        ).all()
+        
+        options = [
+            {"value": str(c.id), "label": f"{c.label} ({c.code})"} 
+            for c in chambres
+        ]
+        return JSONResponse({"success": True, "options": options})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+
+
+@router.get("/api/mouvements/lits/{chambre_id}")
+def get_lits_for_chambre(chambre_id: int, session=Depends(get_session)):
+    """Return list of Lits for a given Chambre."""
+    from app.models_structure import Lit
+    
+    try:
+        lits = session.exec(
+            select(Lit).where(Lit.chambre_id == chambre_id)
+        ).all()
+        
+        options = [
+            {"value": str(l.id), "label": f"{l.label} ({l.code})"} 
+            for l in lits
+        ]
+        return JSONResponse({"success": True, "options": options})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+
+
+@router.get("/api/mouvements/reasons/{movement_type}")
+def get_reasons_for_movement_type(movement_type: str, session=Depends(get_session)):
+    """Return list of possible reasons/motifs for a given movement type."""
+    try:
+        # Get all movement reasons from vocabulary
+        reason_options = get_vocabulary_options("movement-reason") or []
+        
+        # Filter based on movement_type if needed
+        # For now, return all available reasons
+        # Future: implement type-specific reason filtering based on IHE PAM spec
+        
+        return JSONResponse({"success": True, "options": reason_options})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+
 

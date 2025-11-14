@@ -124,7 +124,8 @@ def create_patient_from_pid_data(
     pid_data: Dict,
     session: Session,
     identifier: Optional[str] = None,
-    external_id: Optional[str] = None
+    external_id: Optional[str] = None,
+    ej_id: Optional[int] = None
 ) -> Patient:
     """
     Crée un nouveau Patient depuis les données PID parsées.
@@ -134,30 +135,70 @@ def create_patient_from_pid_data(
         session: Session DB
         identifier: Identifiant principal (si None, extrait de pid_data)
         external_id: ID externe (si None, extrait de pid_data)
+        ej_id: ID de l'Entité Juridique pour classification des namespaces
     
     Returns:
         Nouveau Patient (non encore ajouté à la session)
     """
     from app.db import get_next_sequence
+    from app.services.identifier_namespace_classifier import classify_incoming_identifiers
+    from app.models_identifiers import IdentifierType
     
-    # Extraire identifier si non fourni
-    if not identifier:
-        identifiers = pid_data.get("identifiers", [])
-        if identifiers:
-            raw = identifiers[0][0]
-            identifier = raw.split("^")[0]
+    # Si identifier et external_id sont fournis explicitement, les utiliser
+    if identifier is not None and external_id is not None:
+        patient = Patient(
+            patient_seq=get_next_sequence(session, "patient"),
+            identifier=identifier,
+            external_id=external_id,
+            family=pid_data.get("family") or "",
+            given=pid_data.get("given") or ""
+        )
+        
+        # Mettre à jour tous les autres champs via la fonction commune
+        update_patient_from_pid_data(patient, pid_data, session, create_mode=True)
+        return patient
     
-    if not external_id:
-        external_id = pid_data.get("external_id") or identifier
+    # Sinon, classifier les identifiants selon les namespaces EJ
+    identifiers_data = pid_data.get("identifiers", [])
     
-    # Créer patient
+    # Convertir les données d'identifiants pour le classifier
+    classifier_input = []
+    for cx_value, system, type_code in identifiers_data:
+        try:
+            id_type = IdentifierType(type_code)
+        except ValueError:
+            id_type = IdentifierType.IPP  # Par défaut
+        
+        # Extraire la valeur de l'identifiant du CX
+        value = cx_value.split("^")[0] if "^" in cx_value else cx_value
+        classifier_input.append((value, system, id_type))
+    
+    # Classifier les identifiants
+    classification = classify_incoming_identifiers(
+        session, classifier_input, 'patient', ej_id
+    )
+    
+    # Créer le patient avec les identifiants classifiés
     patient = Patient(
         patient_seq=get_next_sequence(session, "patient"),
-        identifier=identifier,
-        external_id=external_id,
+        identifier=classification.get('main_identifier'),
+        external_id=classification.get('external_id'),
         family=pid_data.get("family") or "",
-        given=pid_data.get("given") or ""
+        given=pid_data.get("given") or "",
+        entite_juridique_id=ej_id
     )
+    
+    # Créer les identifiants externes dans la table Identifier
+    from app.models_identifiers import Identifier
+    for ext_id in classification.get('external_identifiers', []):
+        identifier_obj = Identifier(
+            value=ext_id['value'],
+            system=ext_id['system'],
+            type=ext_id['type'],
+            status="active"
+        )
+        identifier_obj.patient_id = patient.id  # Sera défini après ajout à la session
+        session.add(identifier_obj)
     
     # Mettre à jour tous les autres champs via la fonction commune
     update_patient_from_pid_data(patient, pid_data, session, create_mode=True)

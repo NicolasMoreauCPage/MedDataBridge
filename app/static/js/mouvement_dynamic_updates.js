@@ -97,7 +97,7 @@
           return;
         }
         
-        const options = await fetchOptions(`/api/mouvements/chambres/${this.value}`);
+        const options = await fetchOptions(`/mouvements/api/chambres/${this.value}`);
         updateSelectOptions(chambreSelect, options, '-- Sélectionner une chambre --');
       });
     }
@@ -110,7 +110,7 @@
           return;
         }
         
-        const options = await fetchOptions(`/api/mouvements/lits/${this.value}`);
+        const options = await fetchOptions(`/mouvements/api/lits/${this.value}`);
         updateSelectOptions(litSelect, options, '-- Sélectionner un lit --');
       });
     }
@@ -127,7 +127,7 @@
         const typeValue = this.value;
         const typeCode = typeValue.includes('^') ? typeValue.split('^')[1] : typeValue;
         
-        const options = await fetchOptions(`/api/mouvements/reasons/${typeCode}`);
+        const options = await fetchOptions(`/mouvements/api/reasons/${typeCode}`);
         updateSelectOptions(reasonSelect, options, '-- Sélectionner une raison --');
       });
     }

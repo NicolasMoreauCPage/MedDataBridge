@@ -58,10 +58,13 @@ logger = logging.getLogger("transport_inbound")
 # DEPRECATED: Old inline parsing functions below - use infrastructure.hl7.parsing instead
 # These are kept temporarily for compatibility during migration (Phase 1)
 # Will be removed in Phase 4 cleanup
-def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str]]:
-    """Parse les identifiants patients du segment PID"""
+def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str, str]]:
+    """Parse les identifiants patients du segment PID
+    
+    Returns:
+        Liste de tuples (cx_value, system, type_code)
+    """
     identifiers = []
-    from sqlmodel import select
     try:
         parts = pid_segment.split("|")
         if len(parts) <= 3:
@@ -72,13 +75,14 @@ def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str]]:
         for cx in id_list:
             if not cx:
                 continue
-            # Détecter le type d'identifiant
-            id_type = "PI"  # Par défaut Patient Internal
-            if "^" in cx:
-                cx_parts = cx.split("^")
-                if len(cx_parts) > 4:
-                    id_type = cx_parts[4]
-            identifiers.append((cx, id_type))
+            
+            # Parser le CX pour extraire value, system, type
+            cx_parts = cx.split("^")
+            value = cx_parts[0] if len(cx_parts) > 0 else ""
+            system = cx_parts[3] if len(cx_parts) > 3 else ""
+            type_code = cx_parts[4] if len(cx_parts) > 4 else "PI"  # Par défaut Patient Internal
+            
+            identifiers.append((cx, system, type_code))
             
     except Exception as e:
         logger.error(f"Erreur parsing identifiants PID: {str(e)}")
@@ -1157,7 +1161,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 "Routing ADT message",
                 extra={"trigger": trigger, "patient_identifiers": pid_data.get("identifiers")},
             )
-            success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg)
+            success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg, ej_id=None)
 
             # --- Persistance des contacts après succès routage ---
             if success:

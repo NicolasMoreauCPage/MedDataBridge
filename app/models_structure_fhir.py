@@ -1,8 +1,11 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models_shared import SystemEndpoint
+
+if TYPE_CHECKING:
+    from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 
 class GHTContext(SQLModel, table=True):
     """Contexte d'un Groupement Hospitalier de Territoire (GHT)"""
@@ -26,7 +29,7 @@ class GHTContext(SQLModel, table=True):
 class IdentifierNamespace(SQLModel, table=True):
     """Espace de noms pour les identifiants au sein d'un GHT ou d'une EJ"""
     id: Optional[int] = Field(default=None, primary_key=True)
-    name: str  # Nom descriptif (ex: "IPP EJ Principal")
+    name: Optional[str] = Field(default=None, description="Nom descriptif (ex: 'IPP EJ Principal')", nullable=True)
     system: str  # URI de l'espace de noms (ex: "urn:oid:1.2.250.1.71.1.2.2")
     oid: Optional[str] = None  # OID associé si différent de l'URI
     type: str  # Type d'identifiant (ex: "IPP", "NDA", "FINESS", etc.)
@@ -59,6 +62,28 @@ class IdentifierNamespace(SQLModel, table=True):
     # Namespace peut être lié à une EJ spécifique (IPP, NDA, etc.) ou au niveau GHT (structure)
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     entite_juridique: Optional["EntiteJuridique"] = Relationship(back_populates="namespaces")
+    
+    # Relations hiérarchiques pour namespaces spécifiques à des niveaux structurels
+    entite_geographique_id: Optional[int] = Field(default=None, foreign_key="entitegeographique.id")
+    entite_geographique: Optional["EntiteGeographique"] = Relationship(back_populates="namespaces")
+    
+    pole_id: Optional[int] = Field(default=None, foreign_key="pole.id")
+    pole: Optional["Pole"] = Relationship(back_populates="namespaces")
+    
+    service_id: Optional[int] = Field(default=None, foreign_key="service.id")
+    service: Optional["Service"] = Relationship(back_populates="namespaces")
+    
+    unite_fonctionnelle_id: Optional[int] = Field(default=None, foreign_key="unitefonctionnelle.id")
+    unite_fonctionnelle: Optional["UniteFonctionnelle"] = Relationship(back_populates="namespaces")
+    
+    unite_hebergement_id: Optional[int] = Field(default=None, foreign_key="unitehebergement.id")
+    unite_hebergement: Optional["UniteHebergement"] = Relationship(back_populates="namespaces")
+    
+    chambre_id: Optional[int] = Field(default=None, foreign_key="chambre.id")
+    chambre: Optional["Chambre"] = Relationship(back_populates="namespaces")
+    
+    lit_id: Optional[int] = Field(default=None, foreign_key="lit.id")
+    lit: Optional["Lit"] = Relationship(back_populates="namespaces")
 
     @property
     def code(self) -> Optional[str]:
@@ -187,10 +212,8 @@ class EntiteGeographique(SQLModel, table=True):
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     entite_juridique: Optional[EntiteJuridique] = Relationship(back_populates="entites_geographiques")
     poles: List["Pole"] = Relationship(back_populates="entite_geo")
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="entite_geographique")
 
-# Re-use canonical structural models from app.models_structure to avoid
-# duplicate class definitions in multiple modules which breaks SQLAlchemy
-# declarative registry. This file keeps FHIR-specific models (GHTContext,
-# IdentifierNamespace, EntiteJuridique, EntiteGeographique) and imports
-# structural classes from the central `models_structure` module.
-from app.models_structure import Pole, Service, UniteHebergement, Chambre, Lit
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models_structure import Pole, Service, UniteHebergement, Chambre, Lit

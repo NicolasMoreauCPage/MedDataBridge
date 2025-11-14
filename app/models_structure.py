@@ -5,11 +5,10 @@ from enum import Enum
 
 if TYPE_CHECKING:
     # Import for type checking only to avoid runtime circular imports
+    from app.models_structure_fhir import EntiteGeographique, IdentifierNamespace
+else:
+    # Only import EntiteGeographique at runtime, not the other structural classes
     from app.models_structure_fhir import EntiteGeographique
-
-# Re-export EntiteGeographique from models_structure_fhir so other modules
-# importing it from app.models_structure keep working (single canonical class)
-from app.models_structure_fhir import EntiteGeographique
 
 class LocationStatus(str, Enum):
     """https://hl7.org/fhir/R4/valueset-location-status.html"""
@@ -153,6 +152,7 @@ class Pole(BaseLocation, table=True):
     entite_geo_id: int = Field(foreign_key="entitegeographique.id")
     entite_geo: "EntiteGeographique" = Relationship(back_populates="poles")
     services: List["Service"] = Relationship(back_populates="pole")
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="pole")
     # Virtual marker (créé automatiquement pour combler un saut hiérarchique)
     is_virtual: bool = Field(default=False, index=True)
 
@@ -175,6 +175,7 @@ class Service(BaseLocation, table=True):
     pole_id: int = Field(foreign_key="pole.id")
     pole: Pole = Relationship(back_populates="services")
     unites_fonctionnelles: List["UniteFonctionnelle"] = Relationship(back_populates="service")
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="service")
     # Virtual marker (créé automatiquement pour combler un saut hiérarchique)
     is_virtual: bool = Field(default=False, index=True)
 
@@ -219,6 +220,7 @@ class UniteFonctionnelle(BaseLocation, table=True):
         back_populates="unites_fonctionnelles",
         link_model=UniteFonctionnelleActivityLink,
     )
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="unite_fonctionnelle")
     # Marqueur virtuel (aligné sur Pole/Service) pour UF créées automatiquement
     is_virtual: bool = Field(default=False, index=True)
 
@@ -229,6 +231,7 @@ class UniteHebergement(BaseLocation, table=True):
     unite_fonctionnelle_id: int = Field(foreign_key="unitefonctionnelle.id")
     unite_fonctionnelle: UniteFonctionnelle = Relationship(back_populates="unites_hebergement")
     chambres: List["Chambre"] = Relationship(back_populates="unite_hebergement")
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="unite_hebergement")
 
 class Chambre(BaseLocation, table=True):
     """Représente une chambre"""
@@ -237,12 +240,14 @@ class Chambre(BaseLocation, table=True):
     unite_hebergement_id: int = Field(foreign_key="unitehebergement.id")
     unite_hebergement: UniteHebergement = Relationship(back_populates="chambres")
     lits: List["Lit"] = Relationship(back_populates="chambre")
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="chambre")
 
 class Lit(BaseLocation, table=True):
     """Représente un lit"""
     operational_status: Optional[str] = None  # Statut opérationnel: libre, occupé, maintenance, etc.
     chambre_id: int = Field(foreign_key="chambre.id")
     chambre: Chambre = Relationship(back_populates="lits")
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="lit")
 
     # Pydantic v2 migration: remplacer inner Config par model_config
     model_config = {

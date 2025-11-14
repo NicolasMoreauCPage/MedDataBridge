@@ -248,15 +248,19 @@ class FHIRToLocationConverter:
 
     def _map_system_to_type(self, system: str) -> str:
         """Mappe un system FHIR vers un IdentifierType."""
-        # Mapping basique
-        if "finess" in system.lower():
-            return IdentifierType.FINESS.value
-        elif "ej" in system.lower():
-            return IdentifierType.EJ.value
-        elif "eg" in system.lower():
-            return IdentifierType.EG.value
+        # Mapping simplifié - un seul type par entité
+        system_lower = system.lower()
+        if "ipp" in system_lower or "urn:oid:1.2.250.1.71.4.2.1" in system:
+            return IdentifierType.IPP.value
+        elif "nda" in system_lower:
+            return IdentifierType.NDA.value
+        elif "vn" in system_lower:
+            return IdentifierType.VN.value
+        elif "mvt" in system_lower:
+            return IdentifierType.MVT.value
         else:
-            return IdentifierType.EG.value  # Par défaut
+            # Par défaut, considérer comme IPP (patient)
+            return IdentifierType.IPP.value
 
 
 class FHIRToPatientConverter:
@@ -354,21 +358,18 @@ class FHIRToPatientConverter:
 
     def _map_system_to_type(self, system: str) -> str:
         """Mappe un system FHIR vers un IdentifierType."""
+        # Mapping simplifié - un seul type par entité
         system_lower = system.lower()
-        
-        # Systèmes FRCore et standards français
         if "ipp" in system_lower or "urn:oid:1.2.250.1.71.4.2.1" in system:
             return IdentifierType.IPP.value
-        elif "ins" in system_lower or "urn:oid:1.2.250.1.71.4.2.2" in system:
-            return IdentifierType.IPP.value  # INS est aussi un IPP en France
-        elif "nir" in system_lower:
-            return IdentifierType.SS.value  # NIR = numéro sécurité sociale
-        elif "ssn" in system_lower or "us-ssn" in system_lower:
-            return IdentifierType.SS.value
         elif "nda" in system_lower:
             return IdentifierType.NDA.value
+        elif "vn" in system_lower:
+            return IdentifierType.VN.value
+        elif "mvt" in system_lower:
+            return IdentifierType.MVT.value
         else:
-            # Par défaut, considérer comme IPP
+            # Par défaut, considérer comme IPP (patient)
             return IdentifierType.IPP.value
 
     def _process_fr_core_extensions(self, fhir_patient: Dict[str, Any], patient: Patient):

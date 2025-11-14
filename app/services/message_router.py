@@ -67,7 +67,8 @@ class IHEMessageRouter:
         trigger: str,
         pid_data: Dict,
         pv1_data: Dict,
-        message: Optional[str] = None
+        message: Optional[str] = None,
+        ej_id: Optional[int] = None
     ) -> Tuple[bool, Optional[str]]:
         """
         Route un message vers son handler approprié
@@ -102,7 +103,7 @@ class IHEMessageRouter:
             
             # Tous les handlers IHE PAM reçoivent le message complet pour parser ZBE
             # (segment ZBE TOUJOURS présent dans les messages IHE PAM mouvements)
-            return await handler(session, trigger, pid_data, pv1_data, message)
+            return await handler(session, trigger, pid_data, pv1_data, message, ej_id)
             
         except Exception as e:
             logger.error(f"Erreur routage message: {str(e)}")

@@ -12,34 +12,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "interopscenario",
-        sa.Column("time_anchor_mode", sa.String(), nullable=True)
-    )
-    op.add_column(
-        "interopscenario",
-        sa.Column("time_anchor_days_offset", sa.Integer(), nullable=True)
-    )
-    op.add_column(
-        "interopscenario",
-        sa.Column("time_fixed_start_iso", sa.String(), nullable=True)
-    )
-    op.add_column(
-        "interopscenario",
-        sa.Column("preserve_intervals", sa.Boolean(), nullable=False, server_default="1")
-    )
-    op.add_column(
-        "interopscenario",
-        sa.Column("jitter_min_minutes", sa.Integer(), nullable=True)
-    )
-    op.add_column(
-        "interopscenario",
-        sa.Column("jitter_max_minutes", sa.Integer(), nullable=True)
-    )
-    op.add_column(
-        "interopscenario",
-        sa.Column("apply_jitter_on_events", sa.String(), nullable=True)
-    )
+    # Columns already exist, skip adding to avoid duplicate error
+    pass
+    # Column already exists, skip adding to avoid duplicate error
+    pass
 
 
 def downgrade() -> None:

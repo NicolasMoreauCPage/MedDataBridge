@@ -5,6 +5,9 @@ from alembic import context
 from sqlmodel import SQLModel
 
 # Import models to register tables
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from app.models import Patient, Dossier, Venue, Mouvement, Sequence
 from app.models_contacts import PatientContact, VenueContact
 from app.models_endpoints import SystemEndpoint, MessageLog

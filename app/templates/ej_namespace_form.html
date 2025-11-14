@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="my-8">
+        <h1 class="text-3xl font-bold mb-6">
+            {% if namespace %}Modifier{% else %}Nouveau{% endif %} espace de noms pour l'EJ
+        </h1>
+        <form method="POST" action="{{ action_url }}">
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Le champ 'Nom' est supprimé car il est redondant avec 'Type' -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Type</label>
+                        <select name="type" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                            <option value="" disabled {% if not namespace or not namespace.type %}selected{% endif %}>-- Sélectionner --</option>
+                            {% set identifier_types = [
+                                ('IPP', 'Identifiant Patient Permanent'),
+                                ('NDA', 'Numéro de Dossier Administratif'),
+                                ('NA', 'Numéro d\'Admission'),
+                                ('VN', 'Numéro de Venue'),
+                                ('PI', 'Patient Interne'),
+                                ('PG', 'Patient Global'),
+                                ('SS', 'Sécurité Sociale'),
+                                ('PC', 'Personne à Contacter'),
+                                ('NDP', 'Numéro Dossier Patient'),
+                                ('MVT', 'Identifiant de Mouvement'),
+                                ('FINESS', 'Numéro FINESS Établissement'),
+                            ] %}
+                            {% for code, label in identifier_types %}
+                                <option value="{{ code }}" {% if namespace and namespace.type == code %}selected{% endif %}>{{ code }} - {{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">System (URI)</label>
+                        <input type="text" name="system" value="{{ namespace.system if namespace else '' }}" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">OID</label>
+                        <input type="text" name="oid" value="{{ namespace.oid if namespace else '' }}" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Description</label>
+                    <textarea name="description" rows="2" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm">{{ namespace.description if namespace else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="is_active" value="true" {% if namespace and namespace.is_active %}checked{% endif %} class="form-checkbox">
+                        <span class="ml-2">Actif</span>
+                    </label>
+                </div>
+            </div>
+            <div class="mt-8 flex gap-4">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enregistrer</button>
+                <a href="{{ back_url }}" class="px-6 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -15,10 +15,8 @@ depends_on = None
 
 def upgrade() -> None:
     # Add column with server default '1' so existing rows become strict.
-    op.add_column(
-        "entitejuridique",
-        sa.Column("strict_pam_fr", sa.Boolean(), nullable=False, server_default="1")
-    )
+    # Column already exists, skip adding to avoid duplicate error
+    pass
     # Optional: normalize default (SQLite keeps server_default); no data backfill needed.
 
 

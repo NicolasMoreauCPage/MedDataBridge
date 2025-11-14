@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models import Patient, Dossier
@@ -92,4 +92,28 @@ def set_ej_context(ej_id: int, request: Request, session: Session = Depends(get_
     request.session["ej_context_id"] = ej_id
     if ej.ght_context_id:
         request.session["ght_context_id"] = ej.ght_context_id
+    
+    # Nettoyer les contextes patient/dossier s'ils n'appartiennent pas à la nouvelle EJ
+    current_dossier_id = request.session.get("dossier_id")
+    if current_dossier_id:
+        dossier = session.get(Dossier, current_dossier_id)
+        if dossier and dossier.entite_juridique_id != ej_id:
+            # Le dossier n'appartient pas à la nouvelle EJ, le nettoyer
+            request.session.pop("dossier_id", None)
+            request.session.pop("patient_id", None)  # Nettoyer aussi le patient
+    
+    # Vérifier aussi le contexte patient seul
+    current_patient_id = request.session.get("patient_id")
+    if current_patient_id and not request.session.get("dossier_id"):
+        # Si on a un patient mais pas de dossier, vérifier s'il a des dossiers dans la nouvelle EJ
+        patient_dossiers_in_ej = session.exec(
+            select(Dossier).where(
+                Dossier.patient_id == current_patient_id,
+                Dossier.entite_juridique_id == ej_id
+            )
+        ).first()
+        if not patient_dossiers_in_ej:
+            # Le patient n'a pas de dossiers dans la nouvelle EJ
+            request.session.pop("patient_id", None)
+    
     return _redirect_back(request, fallback=f"/admin/ght/{ej.ght_context_id}")

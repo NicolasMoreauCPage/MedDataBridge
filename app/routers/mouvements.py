@@ -397,6 +397,7 @@ def new_mouvement(
 ):
     from app.form_config import MovementType, MouvementStatus
     from app.models_structure import UniteHebergement, Chambre, Lit, UniteFonctionnelle
+    from app.models import Dossier
     
     # Déterminer le dossier de filtrage
     filter_dossier_id = dossier_id
@@ -405,9 +406,11 @@ def new_mouvement(
     
     # Récupérer les venues disponibles (filtrées par dossier si fourni)
     if filter_dossier_id:
-        stmt = select(Venue).where(Venue.dossier_id == filter_dossier_id).order_by(Venue.venue_seq.desc())
+        stmt = select(Venue).where(Venue.dossier_id == filter_dossier_id).order_by(Venue.venue_seq.asc())
     else:
-        stmt = select(Venue).order_by(Venue.venue_seq.desc()).limit(100)
+        # Filtrer les venues qui ont un dossier avec une EJ valide
+        from app.models import Dossier
+        stmt = select(Venue).join(Dossier).where(Dossier.entite_juridique_id.is_not(None)).order_by(Venue.venue_seq.asc()).limit(100)
     
     venues = session.exec(stmt).all()
     
@@ -442,13 +445,13 @@ def new_mouvement(
     # Pré-remplir UF depuis la venue ou le dossier
     if selected_venue and selected_venue.uf_responsabilite:
         # Si venue a une UF, chercher son id
-        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
-        if uf_obj:
-            selected_uf_id = uf_obj.id
-    elif selected_dossier and selected_dossier.uf_responsabilite:
-        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
-        if uf_obj:
-            selected_uf_id = uf_obj.id
+            uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
+            if uf_obj:
+                selected_uf_id = uf_obj.id
+    elif selected_dossier and selected_dossier.uf_responsabilite and selected_dossier.uf_responsabilite.strip():
+            uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
+            if uf_obj:
+                selected_uf_id = uf_obj.id
 
     # Pré-remplir UH si UF connue
     if selected_uf_id:
@@ -492,15 +495,63 @@ def new_mouvement(
             label += f" (Dossier #{v.dossier.dossier_seq})"
         venue_options.append({"value": str(v.id), "label": label})
 
-    # Récupérer les Unités Fonctionnelles disponibles
-    uf_options = []
-    try:
-        ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
-        for uf in ufs:
-            label = f"{uf.identifier} — {uf.name}"
-            uf_options.append({"value": str(uf.id), "label": label})
-    except Exception:
+    # Récupérer l'UF de responsabilité médicale et les UF d'hébergement liées à la venue
         uf_options = []
+        try:
+            from app.models_structure import UniteFonctionnelle, UniteHebergement
+            ufs = set()
+
+            # Récupérer l'EJ de la venue sélectionnée pour filtrer les UF
+            ej_id = None
+            if selected_venue and selected_venue.dossier:
+                ej_id = selected_venue.dossier.entite_juridique_id
+
+            # UF de responsabilité médicale
+            if selected_venue and selected_venue.uf_responsabilite and selected_venue.uf_responsabilite.strip():
+                uf_med = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
+                if uf_med:
+                    ufs.add(uf_med)
+
+            # UF d'hébergement via UH de la venue
+            if selected_venue:
+                uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id.is_not(None))).all()
+                for uh in uhs:
+                    if hasattr(uh, 'venue_id') and uh.venue_id == selected_venue.id:
+                        uf_heberg = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id == uh.unite_fonctionnelle_id)).first()
+                        if uf_heberg:
+                            ufs.add(uf_heberg)
+
+            # Toujours ajouter les UF de l'EJ de la venue (même si on a trouvé des UF spécifiques)
+            if ej_id:
+                # Récupérer toutes les UF de l'EJ via la hiérarchie EG -> Pole -> Service -> UF
+                from app.models_structure_fhir import EntiteGeographique
+                from app.models_structure import Pole, Service
+
+                # EJ -> Entites Geographiques
+                entites_geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()
+
+                for eg in entites_geo:
+                    # EG -> Poles
+                    poles = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).all()
+
+                    for pole in poles:
+                        # Pole -> Services
+                        services = session.exec(select(Service).where(Service.pole_id == pole.id)).all()
+
+                        for service in services:
+                            # Service -> UF
+                            service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
+                            ufs.update(service_ufs)
+
+            # Fallback: si toujours aucune UF, utiliser toutes les UF (pour compatibilité)
+            if not ufs:
+                ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
+
+            for uf in ufs:
+                label = uf.short_name if getattr(uf, 'short_name', None) and uf.short_name and uf.short_name.strip() else uf.name
+                uf_options.append({"value": uf.identifier, "label": label})
+        except Exception:
+            uf_options = []
 
     # Récupérer les UH pour l'UF pré-remplie
     uh_options = []
@@ -598,7 +649,7 @@ def new_mouvement(
             "name": "uf_id",
             "type": "select",
             "options": uf_options,
-            "value": str(selected_uf_id) if selected_uf_id else None,
+            "value": selected_venue.uf_responsabilite if (selected_venue and selected_venue.uf_responsabilite) else None,
             "help": "Sélectionnez l'UF concernée (pré-remplie si venue/dossier)"
         },
         {
@@ -1084,10 +1135,13 @@ def delete_mouvement(mouvement_id: int, request: Request, session=Depends(get_se
 
 
 # ============================================================================
-# AJAX API Endpoints for Dynamic Form Updates
+# AJAX API Endpoints for Dynamic Form Updates (NO AUTH REQUIRED)
 # ============================================================================
+# These endpoints are accessible without GHT context since they're called by JavaScript
 
-@router.get("/api/mouvements/chambres/{uh_id}")
+ajax_router = APIRouter(prefix="/mouvements/api", tags=["mouvements-ajax"])
+
+@ajax_router.get("/chambres/{uh_id}")
 def get_chambres_for_uh(uh_id: int, session=Depends(get_session)):
     """Return list of Chambres for a given UniteHebergement."""
     from app.models_structure import Chambre
@@ -1106,7 +1160,7 @@ def get_chambres_for_uh(uh_id: int, session=Depends(get_session)):
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
 
 
-@router.get("/api/mouvements/lits/{chambre_id}")
+@ajax_router.get("/lits/{chambre_id}")
 def get_lits_for_chambre(chambre_id: int, session=Depends(get_session)):
     """Return list of Lits for a given Chambre."""
     from app.models_structure import Lit
@@ -1125,7 +1179,7 @@ def get_lits_for_chambre(chambre_id: int, session=Depends(get_session)):
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
 
 
-@router.get("/api/mouvements/reasons/{movement_type}")
+@ajax_router.get("/reasons/{movement_type}")
 def get_reasons_for_movement_type(movement_type: str, session=Depends(get_session)):
     """Return list of possible reasons/motifs for a given movement type."""
     try:
@@ -1139,5 +1193,63 @@ def get_reasons_for_movement_type(movement_type: str, session=Depends(get_sessio
         return JSONResponse({"success": True, "options": reason_options})
     except Exception as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+
+# Edition UF
+from app.models_structure import UniteFonctionnelle
+
+@router.get("/uf/{uf_id}/edit", response_class=HTMLResponse)
+def edit_uf_form(uf_id: int, request: Request, session=Depends(get_session)):
+    uf = session.get(UniteFonctionnelle, uf_id)
+    if not uf:
+        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+    fields = [
+        {"label": "Identifiant UF", "name": "identifier", "type": "text", "value": uf.identifier, "required": True},
+        {"label": "Nom", "name": "name", "type": "text", "value": uf.name, "required": True},
+        {"label": "Nom court", "name": "short_name", "type": "text", "value": uf.short_name},
+    ]
+    return templates.TemplateResponse(request, "form.html", {
+        "title": f"Éditer UF {uf.identifier}",
+        "fields": fields,
+        "action_url": f"/mouvements/uf/{uf_id}/edit",
+        "back_url": "/mouvements/new"
+    })
+
+@router.post("/uf/{uf_id}/edit")
+def update_uf(uf_id: int, identifier: str = Form(...), name: str = Form(...), short_name: str = Form(None), session=Depends(get_session), request: Request = None):
+    uf = session.get(UniteFonctionnelle, uf_id)
+    if not uf:
+        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+    uf.identifier = identifier
+    uf.name = name
+    uf.short_name = short_name
+    session.add(uf)
+    session.commit()
+    return RedirectResponse(url="/mouvements/new", status_code=303)
+
+# Suppression UF
+@router.get("/uf/{uf_id}/delete", response_class=HTMLResponse)
+def confirm_delete_uf(uf_id: int, request: Request, session=Depends(get_session)):
+    uf = session.get(UniteFonctionnelle, uf_id)
+    if not uf:
+        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+    return templates.TemplateResponse(request, "confirm_delete.html", {
+        "title": f"Supprimer UF {uf.identifier}",
+        "object_label": uf.name,
+        "action_url": f"/mouvements/uf/{uf_id}/delete",
+        "back_url": "/mouvements/new"
+    })
+
+@router.post("/uf/{uf_id}/delete")
+def delete_uf(uf_id: int, session=Depends(get_session), request: Request = None):
+    uf = session.get(UniteFonctionnelle, uf_id)
+    if not uf:
+        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+    session.delete(uf)
+    session.commit()
+    return RedirectResponse(url="/mouvements/new", status_code=303)
+
+
+
+
 
 

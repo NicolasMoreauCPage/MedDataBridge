@@ -187,6 +187,10 @@ def create_app() -> FastAPI:
     app.include_router(venues.router)
     app.include_router(mouvements.router)
     print(" - Core entity routers mounted with their prefixes")
+
+    # Register AJAX endpoints for mouvements (no GHT dependency)
+    app.include_router(mouvements.ajax_router)
+    print(" - Mouvements AJAX router mounted at /mouvements/api")
     
     # 2b. Timeline views
     from app.routers import timeline

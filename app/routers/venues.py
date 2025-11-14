@@ -197,9 +197,10 @@ def new_venue(
                 ).all()
                 # Filtrer les UF de l'EJ
                 ufs_ej = [uf for uf in ufs if getattr(uf.service, 'pole', None) and getattr(uf.service.pole, 'entite_geo', None) and getattr(uf.service.pole.entite_geo, 'entite_juridique_id', None) == ej.id]
-                uf_options = [
-                    {"value": uf.um_code, "label": f"{uf.um_code} - {uf.name}"} for uf in ufs_ej if uf.um_code
-                ]
+                uf_options = []
+                for uf in ufs_ej:
+                    label = uf.short_name if uf.short_name else uf.name
+                    uf_options.append({"value": uf.identifier, "label": label})
     # Afficher le numéro de dossier (dossier_seq) si possible
     dossier_seq_value = ''
     if prefill_dossier_id:

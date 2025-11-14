@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p>Êtes-vous sûr de vouloir supprimer <strong>{{ object_label }}</strong> ?</p>
+  <form method="post" action="{{ action_url }}">
+    <button type="submit" class="btn btn-danger">Confirmer la suppression</button>
+    <a href="{{ back_url }}" class="btn btn-secondary">Annuler</a>
+  </form>
+{% endblock %}

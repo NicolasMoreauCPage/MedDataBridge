@@ -55,9 +55,9 @@ async def create_namespace(
 
     form = await request.form()
     
-    # Validation basique
-    if not form.get("name") or not form.get("system"):
-        raise HTTPException(status_code=400, detail="Name and system are required")
+    # Validation basique - system est requis, name est optionnel
+    if not form.get("system"):
+        raise HTTPException(status_code=400, detail="System is required")
     
     # Check system uniqueness
     exists = session.exec(
@@ -85,7 +85,7 @@ async def create_namespace(
             raise HTTPException(status_code=400, detail="prefix_min and prefix_max must be integers")
     
     namespace = IdentifierNamespace(
-        name=form["name"],
+        name=form.get("name"),  # Peut être None maintenant
         system=form["system"],
         oid=form.get("oid"),
         type=form.get("type", "PI"),

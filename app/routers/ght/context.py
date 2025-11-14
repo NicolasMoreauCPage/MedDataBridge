@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models import Dossier
 from app.utils.flash import flash
 from app.services.structure_seed import ensure_demo_structure
 from .helpers import get_context_or_404, get_ej_or_404
@@ -58,11 +59,39 @@ async def set_ej_for_ght(
         # Définir aussi les contextes globaux pour cohérence de l'UI et des filtres
         request.session["ej_context_id"] = ej_id
         request.session["ght_context_id"] = context_id
+        
+        # Nettoyer les contextes patient/dossier s'ils n'appartiennent pas à la nouvelle EJ
+        current_dossier_id = request.session.get("dossier_id")
+        if current_dossier_id:
+            dossier = session.get(Dossier, current_dossier_id)
+            if dossier and dossier.entite_juridique_id != ej_id:
+                # Le dossier n'appartient pas à la nouvelle EJ, le nettoyer
+                request.session.pop("dossier_id", None)
+                request.session.pop("patient_id", None)  # Nettoyer aussi le patient
+        
+        # Vérifier aussi le contexte patient seul
+        current_patient_id = request.session.get("patient_id")
+        if current_patient_id and not request.session.get("dossier_id"):
+            # Si on a un patient mais pas de dossier, vérifier s'il a des dossiers dans la nouvelle EJ
+            from app.models import Dossier
+            patient_dossiers_in_ej = session.exec(
+                select(Dossier).where(
+                    Dossier.patient_id == current_patient_id,
+                    Dossier.entite_juridique_id == ej_id
+                )
+            ).first()
+            if not patient_dossiers_in_ej:
+                # Le patient n'a pas de dossiers dans la nouvelle EJ
+                request.session.pop("patient_id", None)
+        
     else:
         request.session.pop(f"ght_{context_id}_ej_id", None)
         request.session.pop(f"ght_{context_id}_ej_name", None)
         # Si on désélectionne l'EJ, effacer le contexte global EJ mais conserver le GHT courant
         request.session.pop("ej_context_id", None)
+        # Nettoyer aussi les contextes patient/dossier car ils ne sont plus valides sans EJ
+        request.session.pop("dossier_id", None)
+        request.session.pop("patient_id", None)
     return RedirectResponse(f"/admin/ght/{context_id}", status_code=303)
 
 

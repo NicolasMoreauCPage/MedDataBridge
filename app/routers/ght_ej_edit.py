@@ -1,19 +1,72 @@
-"""EJ edit router to provide missing edit routes for /admin/ght/{context_id}/ej/{ej_id}/edit.
-
-This router provides the edit functionality that is missing from the main ght router.
-"""
-from typing import Optional
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
-
+from typing import Optional
 from app.db import get_session
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure_fhir import IdentifierNamespace, GHTContext, EntiteJuridique
 from app.utils.flash import flash
-
-router = APIRouter(prefix="/ght", tags=["ght-ej-edit"])
+router = APIRouter(prefix="/ght", tags=["admin-ght"])
 templates = Jinja2Templates(directory="app/templates")
+# Route GET pour afficher le formulaire de création de namespace pour une EJ
+# (placé après la définition de 'router')
+
+# ...existing code...
+
+
+# Route GET pour afficher le formulaire de création de namespace pour une EJ
+@router.get("/{context_id}/ej/{ej_id}/namespaces/new")
+async def new_namespace_form(
+    request: Request,
+    context_id: int,
+    ej_id: int,
+    session: Session = Depends(get_session),
+):
+    context = _ctx(session, context_id)
+    entite = _ej(session, context, ej_id)
+    back_url = f"/admin/ght/{context_id}/ej/{ej_id}"
+    return templates.TemplateResponse(
+        request,
+        "ej_namespace_form.html",
+        {
+            "context": context,
+            "entite": entite,
+            "namespace": None,
+            "action_url": f"/admin/ght/{context_id}/ej/{ej_id}/namespaces/new",
+            "back_url": back_url,
+        },
+    )
+
+# Route POST pour enregistrer le nouveau namespace
+@router.post("/{context_id}/ej/{ej_id}/namespaces/new")
+async def create_namespace(
+    request: Request,
+    context_id: int,
+    ej_id: int,
+    # name: str = Form(...),
+    type: str = Form(...),
+    system: str = Form(...),
+    oid: str = Form(None),
+    description: str = Form(None),
+    is_active: str = Form("true"),
+    session: Session = Depends(get_session),
+):
+    context = _ctx(session, context_id)
+    entite = _ej(session, context, ej_id)
+    namespace = IdentifierNamespace(
+        type=type,
+        system=system,
+        oid=oid,
+        description=description,
+        is_active=str(is_active).lower() in ("1", "true", "yes", "on"),
+        ght_context_id=context.id,
+        entite_juridique_id=entite.id,
+    )
+    session.add(namespace)
+    session.commit()
+    from app.utils.flash import flash
+    flash(request, f"Namespace '{type}' créé avec succès.", "success")
+    return RedirectResponse(f"/admin/ght/{context_id}/ej/{ej_id}", status_code=303)
 
 
 def _ctx(session: Session, ctx_id: int) -> GHTContext:

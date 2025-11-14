@@ -7,7 +7,7 @@ import re
 
 from app.models import Dossier, Patient, Venue, Mouvement
 from app.db import get_next_sequence
-from app.services.identifier_manager import create_identifier_from_hl7
+from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check, parse_hl7_cx_identifier
 from app.services.vocabulary_translate import map_code
 
 logger = logging.getLogger(__name__)
@@ -702,7 +702,8 @@ async def handle_admission_message(
     trigger: str, 
     pid_data: dict, 
     pv1_data: dict, 
-    message: Optional[str] = None
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None
 ) -> Tuple[bool, Optional[str]]:
     """Traitement des messages d'admission et d'annulation.
 
@@ -742,6 +743,37 @@ async def handle_admission_message(
         else:
             identifier = None
 
+        # Extraire les identifiants supplémentaires selon les segments HL7
+        dossier_identifiers = []
+        venue_identifiers = []
+        mouvement_identifiers = []
+        
+        # PID-18: Account Number (identifiant dossier)
+        account_number = pid_data.get("account_number")
+        if account_number:
+            # Parser comme identifiant HL7 CX
+            cx_parsed = parse_hl7_cx_identifier(account_number)
+            dossier_identifiers.append((account_number, cx_parsed[1], IdentifierType.NDA))
+        
+        # PV1-19: Visit Number (identifiant venue)
+        visit_number = pv1_data.get("visit_number")
+        if visit_number:
+            # Parser comme identifiant HL7 CX
+            cx_parsed = parse_hl7_cx_identifier(visit_number)
+            venue_identifiers.append((visit_number, cx_parsed[1], IdentifierType.VN))
+        
+        # ZBE-1: Movement ID (identifiant mouvement) - si ZBE présent
+        if zbe_data and zbe_data.get("movement_id"):
+            movement_id = zbe_data["movement_id"]
+            # Pour ZBE-1, le format peut être ID^NAMESPACE^OID^ISO ou simple ID
+            # Si c'est un format complexe, extraire le namespace
+            system = ""
+            if "^" in movement_id:
+                parts = movement_id.split("^")
+                if len(parts) > 1:
+                    system = parts[1]  # NAMESPACE
+            mouvement_identifiers.append((movement_id, system, IdentifierType.MVT))
+
         # Nom / prénom
         family = pid_data.get("family") or ""
         given = pid_data.get("given") or ""
@@ -761,10 +793,20 @@ async def handle_admission_message(
                 session.add(existing)
                 session.flush()
                 print(f"[pam] Updated patient id={existing.id} identifier={existing.identifier} family={existing.family} given={existing.given}")
-                # Persist all PID-3 identifiers (avoid duplicates)
+                # Persist all PID-3 identifiers with namespace classification
                 try:
-                    from sqlmodel import select
-                    from app.models_identifiers import Identifier as IdModel
+                    from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
+                    identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
+                        identifiers, "patient", session, ej_id
+                    )
+                    for ident in identifiers_list:
+                        ident.patient_id = existing.id
+                        exists_dup = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                        if not exists_dup:
+                            session.add(ident)
+                except Exception as e:
+                    logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
+                    # Fallback to old method
                     for raw_cx, _ in identifiers:
                         try:
                             ident = create_identifier_from_hl7(raw_cx, "patient", existing.id)
@@ -773,9 +815,6 @@ async def handle_admission_message(
                                 session.add(ident)
                         except Exception:
                             continue
-                    session.flush()
-                except Exception:
-                    pass
                 reused_patient = existing
                 if trigger in ("A28", "A31"):
                     # Identity-only update: no new dossier/venue/mouvement. Return early.
@@ -787,15 +826,26 @@ async def handle_admission_message(
             patient = reused_patient
         else:
             from app.services.patient_update_helper import create_patient_from_pid_data
-            patient = create_patient_from_pid_data(pid_data, session, identifier, identifier)
+            patient = create_patient_from_pid_data(pid_data, session, identifier, identifier, ej_id)
             session.add(patient)
             session.flush()
             print(f"[pam] Created patient id={patient.id} identifier={patient.identifier} family={patient.family} given={patient.given}")
 
-        # Persist all identifiers from PID-3 as Identifier records
+        # Persist all identifiers from PID-3 with namespace classification
         try:
-            from sqlmodel import select
-            from app.models_identifiers import Identifier as IdModel
+            from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
+            identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
+                identifiers, "patient", session, ej_id
+            )
+            for ident in identifiers_list:
+                ident.patient_id = patient.id
+                # Check duplicate by (system,value)
+                exists = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                if not exists:
+                    session.add(ident)
+        except Exception as e:
+            logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
+            # Fallback to old method
             for raw_cx, _ in identifiers:
                 try:
                     ident = create_identifier_from_hl7(raw_cx, "patient", patient.id)
@@ -805,10 +855,6 @@ async def handle_admission_message(
                         session.add(ident)
                 except Exception:
                     continue
-            session.flush()
-        except Exception:
-            # if identifiers persistence fails, continue; not fatal
-            pass
         # Créer un dossier et une venue
         d_seq = get_next_sequence(session, "dossier")
         # Use parsed datetime if available (pid parser provides birth_date_dt),
@@ -1072,6 +1118,31 @@ async def handle_admission_message(
             f"location={mouvement.location} uf_responsable={uf_resp}"
         )
 
+        # Traiter les identifiants supplémentaires avec classification EJ
+        # Dossier identifiers (PID-18)
+        if account_number:
+            dossier_identifiers = parse_hl7_cx_identifier(account_number)
+            if dossier_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, dossier_identifiers, dossier, "dossier"
+                )
+
+        # Venue identifiers (PV1-19)
+        if visit_number:
+            venue_identifiers = parse_hl7_cx_identifier(visit_number)
+            if venue_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, venue_identifiers, venue, "venue"
+                )
+
+        # Mouvement identifiers (ZBE-1)
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, mouvement_identifiers, mouvement, "mouvement"
+                )
+
         # Note: Message emission is now automatic via entity_events.py listeners
 
         return True, None
@@ -1164,6 +1235,31 @@ async def handle_transfer_message(
         session.flush()
         print(f"[pam][transfer] Created mouvement id={mouvement.id} seq={mouvement.mouvement_seq} from={previous_location} to={new_location}")
         
+        # Traiter les identifiants supplémentaires avec classification EJ
+        # Dossier identifiers (PID-18)
+        if account_number:
+            dossier_identifiers = parse_hl7_cx_identifier(account_number)
+            if dossier_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, dossier_identifiers, dossier, "dossier"
+                )
+
+        # Venue identifiers (PV1-19)
+        if visit_number:
+            venue_identifiers = parse_hl7_cx_identifier(visit_number)
+            if venue_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, venue_identifiers, venue, "venue"
+                )
+
+        # Mouvement identifiers (ZBE-1)
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, mouvement_identifiers, mouvement, "mouvement"
+                )
+        
         # Note: Message emission is now automatic via entity_events.py listeners
         
         return True, None
@@ -1189,6 +1285,11 @@ async def handle_discharge_message(
         zbe_data = _parse_zbe_segment(message) if message else None
         if zbe_data:
             logger.info(f"[pam][discharge] ZBE parsed: {zbe_data}")
+        
+        # Extraire les identifiants supplémentaires pour classification EJ
+        account_number = pid_data.get("account_number")
+        visit_number = pv1_data.get("visit_number") 
+        movement_id = zbe_data.get("movement_id") if zbe_data else None
         
         # Gestion de l'annulation de sortie (A13)
         if trigger == "A13":
@@ -1255,6 +1356,31 @@ async def handle_discharge_message(
         session.flush()
         print(f"[pam][discharge] Created sortie mouvement seq={mouvement.mouvement_seq} and set venue {venue.id} status=completed")
         
+        # Traiter les identifiants supplémentaires avec classification EJ
+        # Dossier identifiers (PID-18)
+        if account_number:
+            dossier_identifiers = parse_hl7_cx_identifier(account_number)
+            if dossier_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, dossier_identifiers, dossier, "dossier"
+                )
+
+        # Venue identifiers (PV1-19)
+        if visit_number:
+            venue_identifiers = parse_hl7_cx_identifier(visit_number)
+            if venue_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, venue_identifiers, venue, "venue"
+                )
+
+        # Mouvement identifiers (ZBE-1)
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, mouvement_identifiers, mouvement, "mouvement"
+                )
+        
         # Note: Message emission is now automatic via entity_events.py listeners
         
         return True, None
@@ -1281,6 +1407,11 @@ async def handle_leave_message(
         zbe_data = _parse_zbe_segment(message) if message else None
         if zbe_data:
             logger.info(f"[pam][leave] ZBE parsed: {zbe_data}")
+        
+        # Extraire les identifiants supplémentaires pour classification EJ
+        account_number = pid_data.get("account_number")
+        visit_number = pv1_data.get("visit_number") 
+        movement_id = zbe_data.get("movement_id") if zbe_data else None
         
         identifiers = pid_data.get("identifiers", [])
         if not identifiers:
@@ -1351,6 +1482,31 @@ async def handle_leave_message(
         
         logger.info(f"[pam][leave] Created mouvement id={mouvement.id} seq={mouvement.mouvement_seq} type={movement_type}")
         
+        # Traiter les identifiants supplémentaires avec classification EJ
+        # Dossier identifiers (PID-18)
+        if account_number:
+            dossier_identifiers = parse_hl7_cx_identifier(account_number)
+            if dossier_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, dossier_identifiers, dossier, "dossier"
+                )
+
+        # Venue identifiers (PV1-19)
+        if visit_number:
+            venue_identifiers = parse_hl7_cx_identifier(visit_number)
+            if venue_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, venue_identifiers, venue, "venue"
+                )
+
+        # Mouvement identifiers (ZBE-1)
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, mouvement_identifiers, mouvement, "mouvement"
+                )
+        
         # Note: Message emission is now automatic via entity_events.py listeners
         
         return True, None
@@ -1378,6 +1534,11 @@ async def handle_doctor_message(
         zbe_data = _parse_zbe_segment(message) if message else None
         if zbe_data:
             logger.info(f"[pam][doctor] ZBE parsed: {zbe_data}")
+        
+        # Extraire les identifiants supplémentaires pour classification EJ
+        account_number = pid_data.get("account_number")
+        visit_number = pv1_data.get("visit_number") 
+        movement_id = zbe_data.get("movement_id") if zbe_data else None
         
         identifiers = pid_data.get("identifiers", [])
         if not identifiers:
@@ -1458,6 +1619,31 @@ async def handle_doctor_message(
         session.flush()
         
         logger.info(f"[pam][doctor] Processed {trigger} for venue_id={venue.id}")
+        
+        # Traiter les identifiants supplémentaires avec classification EJ
+        # Dossier identifiers (PID-18)
+        if account_number:
+            dossier_identifiers = parse_hl7_cx_identifier(account_number)
+            if dossier_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, dossier_identifiers, dossier, "dossier"
+                )
+
+        # Venue identifiers (PV1-19)
+        if visit_number:
+            venue_identifiers = parse_hl7_cx_identifier(visit_number)
+            if venue_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, venue_identifiers, venue, "venue"
+                )
+
+        # Mouvement identifiers (ZBE-1)
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, mouvement_identifiers, mouvement, "mouvement"
+                )
         
         # Note: Message emission is now automatic via entity_events.py listeners
         

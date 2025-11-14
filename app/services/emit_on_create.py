@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_endpoints import SystemEndpoint, MessageLog, FHIRConfig
 from app.models_identifiers import Identifier, IdentifierType
+from app.models_structure_fhir import IdentifierNamespace
 from app.services.fhir import generate_fhir_bundle_for_dossier
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.fhir_transport import post_fhir_bundle as send_fhir
@@ -648,7 +649,33 @@ def generate_pam_hl7(
         pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{pv1_19}||||||||||||||||||||{uf_resp}||||||{timestamp}"
 
         # ZBE segment generation for mouvement (same format as venue)
+        # Prefer a movement identifier (Identifier.type == MVT) with namespace when available
         zbe_id = control_id
+        try:
+            mv_ident = None
+            if session:
+                mv_ident = session.exec(
+                    select(Identifier)
+                    .where(Identifier.mouvement_id == entity.id)
+                    .where(Identifier.type == IdentifierType.MVT)
+                    .where(Identifier.status == "active")
+                ).first()
+            if mv_ident:
+                # Try to resolve a matching IdentifierNamespace for the identifier system
+                ns = None
+                if session and mv_ident.system:
+                    ns = session.exec(
+                        select(IdentifierNamespace).where(IdentifierNamespace.system == mv_ident.system)
+                    ).first()
+                if ns:
+                    # Use the namespace-aware ZBE-1 format (movementId ^ namespace.name ^ namespace.oid ^ ISO)
+                    zbe_id = f"{mv_ident.value}^{ns.name}^{ns.oid or ns.system}^ISO"
+                else:
+                    # Fallback to the raw identifier value
+                    zbe_id = str(mv_ident.value)
+        except Exception:
+            # Keep control_id as fallback on any error
+            zbe_id = control_id
         
         # ZBE-4: Action (INSERT, UPDATE, CANCEL)
         action = getattr(entity, "action", None) or "INSERT"

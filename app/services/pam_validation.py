@@ -613,6 +613,18 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
         # ZBE-1 identifiant mouvement
         if not zbe_1:
             issues.append(ValidationIssue("ZBE1_MISSING", "ZBE-1 identifiant mouvement requis", severity="error"))
+        else:
+            # Vérifier la présence d'un namespace dans ZBE-1 (composant 2 ou 3 attendu)
+            # Format attendu produit par l'émetteur: id^namespace_name^namespace_oid^ISO
+            comps1 = zbe_1.split("^")
+            comp_ns_name = comps1[1].strip() if len(comps1) > 1 else ""
+            comp_ns_oid = comps1[2].strip() if len(comps1) > 2 else ""
+            if not comp_ns_name and not comp_ns_oid:
+                issues.append(ValidationIssue(
+                    "ZBE1_NAMESPACE_MISSING",
+                    "ZBE-1 doit contenir un namespace (composant 2 ou 3) pour l'identifiant de mouvement",
+                    severity="error"
+                ))
 
         # ZBE-2 date/heure
         if not zbe_2:

@@ -917,6 +917,14 @@ def create_mouvement(
             uf_soins_code = uf_soins_obj.identifier
             uf_soins_label = uf_soins_obj.short_name if getattr(uf_soins_obj, 'short_name', None) and uf_soins_obj.short_name and uf_soins_obj.short_name.strip() else uf_soins_obj.name
     
+    # Récupérer les informations de l'UF responsable si fournie
+    uf_responsabilite = None
+    if uf_id:
+        from app.models_structure import UniteFonctionnelle
+        uf_resp_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id == uf_id)).first()
+        if uf_resp_obj:
+            uf_responsabilite = uf_resp_obj.identifier
+    
     m = Mouvement(
         venue_id=venue_id,
         type=type,
@@ -933,6 +941,7 @@ def create_mouvement(
         movement_reason=movement_reason,
         performer_role=performer_role,
         trigger_event=trigger_event,
+        uf_responsabilite=uf_responsabilite,
         uf_soins_code=uf_soins_code,
         uf_soins_label=uf_soins_label,
     )
@@ -1285,13 +1294,41 @@ def get_reasons_for_movement_type(movement_type: str, session=Depends(get_sessio
     """Return list of possible reasons/motifs for a given movement type."""
     try:
         # Get all movement reasons from vocabulary
-        reason_options = get_vocabulary_options("movement-reason") or []
+        all_reason_options = get_vocabulary_options("movement-reason") or []
         
-        # Filter based on movement_type if needed
-        # For now, return all available reasons
-        # Future: implement type-specific reason filtering based on IHE PAM spec
+        # Filter based on movement_type according to IHE PAM specifications
+        # Extract event code (e.g., "A01^Admission" -> "A01")
+        event_code = movement_type.split('^')[0] if '^' in movement_type else movement_type
         
-        return JSONResponse({"success": True, "options": reason_options})
+        # Mapping of IHE PAM event codes to appropriate reasons
+        reason_mapping = {
+            'A01': ['urgence', 'programmee', 'transfert_entrant', 'naissance'],  # Admission
+            'A02': ['transfert_interne', 'mutation_service', 'changement_lit'],  # Transfer
+            'A03': ['guerison', 'transfert_sortant', 'deces', 'contre_avis', 'domicile'],  # Discharge
+            'A04': ['consultation', 'visite'],  # Registration
+            'A05': ['preadmission', 'programmation'],  # Pre-admission
+            'A06': ['mutation', 'reclassement'],  # Class change
+            'A07': ['retour_consultation'],  # From consultation
+            'A08': ['erreur'],  # Error
+            'A11': ['annulation_admission'],  # Cancel admission
+            'A12': ['annulation_transfert'],  # Cancel transfer
+            'A13': ['annulation_sortie'],  # Cancel discharge
+            'A21': ['permission_sortie'],  # Leave of absence
+            'A22': ['retour_permission'],  # Return from leave
+            'A38': ['annulation_preadmission']  # Cancel pre-admission
+        }
+        
+        # Get appropriate reasons for this event, or return all if unknown event
+        appropriate_codes = reason_mapping.get(event_code, [])
+        
+        if appropriate_codes:
+            # Filter options to only include appropriate reasons
+            filtered_options = [opt for opt in all_reason_options if opt.get('value') in appropriate_codes]
+        else:
+            # Unknown event type, return all options
+            filtered_options = all_reason_options
+        
+        return JSONResponse({"success": True, "options": filtered_options})
     except Exception as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
 

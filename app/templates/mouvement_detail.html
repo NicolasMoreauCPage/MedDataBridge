@@ -25,6 +25,8 @@
     <dt class="text-slate-500">Vers</dt><dd>{{ mouvement.to_location }}</dd>
     <dt class="text-slate-500">Raison</dt><dd>{{ mouvement.reason }}</dd>
     <dt class="text-slate-500">Intervenant</dt><dd>{{ mouvement.performer }}</dd>
+    <dt class="text-slate-500">UF Responsable</dt><dd>{{ mouvement.uf_responsabilite or "Non spécifié" }}</dd>
+    <dt class="text-slate-500">UF Soins</dt><dd>{{ mouvement.uf_soins_label or "Non spécifié" }}{% if mouvement.uf_soins_code %} ({{ mouvement.uf_soins_code }}){% endif %}</dd>
     <dt class="text-slate-500">Note</dt><dd>{{ mouvement.note }}</dd>
   </dl>
   <div class="mt-6 flex gap-3">

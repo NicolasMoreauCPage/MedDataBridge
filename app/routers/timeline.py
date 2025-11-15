@@ -221,11 +221,34 @@ def _get_venue_events(session: Session, venue_id: int) -> List[Dict[str, Any]]:
     mouvements = session.exec(select(Mouvement).where(Mouvement.venue_id == venue_id)).all()
     for mouv in mouvements:
         if mouv.when:
+            # Déterminer le titre du mouvement
+            title = mouv.movement_type or mouv.trigger_event or "Mouvement"
+            if mouv.trigger_event and mouv.trigger_event.startswith(mouv.trigger_event.split('^')[0]):
+                # Si c'est un code IHE PAM, utiliser une description plus lisible
+                event_code = mouv.trigger_event.split('^')[0]
+                event_descriptions = {
+                    'A01': 'Admission',
+                    'A02': 'Transfert',
+                    'A03': 'Sortie',
+                    'A04': 'Consultation',
+                    'A05': 'Pré-admission',
+                    'A06': 'Mutation',
+                    'A07': 'Retour consultation',
+                    'A08': 'Erreur',
+                    'A11': 'Annulation admission',
+                    'A12': 'Annulation transfert',
+                    'A13': 'Annulation sortie',
+                    'A21': 'Permission sortie',
+                    'A22': 'Retour permission',
+                    'A38': 'Annulation pré-admission'
+                }
+                title = event_descriptions.get(event_code, f"Événement {event_code}")
+            
             events.append({
                 "type": "mouvement",
                 "icon": "activity",
                 "color": "orange",
-                "title": f"{mouv.movement_type or mouv.trigger_event}",
+                "title": title,
                 "description": f"Location: {mouv.location or 'N/A'}",
                 "datetime": mouv.when,
                 "entity_id": mouv.id,

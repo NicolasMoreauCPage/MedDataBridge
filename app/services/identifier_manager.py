@@ -8,13 +8,13 @@ from app.models_identifiers import Identifier, IdentifierType
 from app.services.identifier_namespace_classifier import classify_incoming_identifiers
 
 
-def parse_hl7_cx_identifier(cx_value: str) -> Tuple[str, str, Optional[str], Optional[str]]:
+def parse_hl7_cx_identifier(cx_value: str) -> Tuple[str, str, Optional[str]]:
     """
     Parse un identifiant au format HL7 CX (Component/Subcomponent Separator: ^)
     Format HL7 standard: ID^Check Digit^Check Digit Scheme^Assigning Authority^Identifier Type Code
     Pour simplifier, on extrait: value (pos 0), system (assigning authority à pos 3), type_code (pos 4)
     Support des OID: Assigning Authority peut être "SYSTEM&OID&ISO"
-    Retourne: (value, system, authority_oid, type_code)
+    Retourne: (value, system, type_code)
     """
     parts = cx_value.split("^")
     value = parts[0] if len(parts) > 0 else ""
@@ -25,14 +25,13 @@ def parse_hl7_cx_identifier(cx_value: str) -> Tuple[str, str, Optional[str], Opt
 
     # Extraire l'OID si présent dans le format "SYSTEM&OID&ISO"
     system = system_full
-    authority_oid = None
     if "&" in system_full:
         system_parts = system_full.split("&")
         if len(system_parts) >= 2:
             system = system_parts[0]
-            authority_oid = system_parts[1]
+            # authority_oid = system_parts[1]  # Ignoré pour simplification
 
-    return value, system, authority_oid, type_code
+    return value, system, type_code
 
 
 def create_identifier_from_hl7(
@@ -80,7 +79,7 @@ def create_identifier_from_hl7(
 
 
 def create_identifiers_from_hl7_with_namespace_check(
-    identifiers_data: List[Tuple[str, str]],
+    identifiers_data: List[Tuple[str, str, Optional[str]]],
     entity_type: str,
     session,
     ej_id: Optional[int] = None
@@ -105,13 +104,8 @@ def create_identifiers_from_hl7_with_namespace_check(
     
     # Convertir les données pour le classifier
     classifier_data = []
-    for cx_value, id_type_str in identifiers_data:
-        # Extraire le système depuis le CX value
-        system = ""
-        if "^" in cx_value:
-            cx_parts = cx_value.split("^")
-            if len(cx_parts) > 3:
-                system = cx_parts[3]
+    for cx_value, system, id_type_str in identifiers_data:
+        # Utiliser le système passé (déjà extrait du CX)
         
         # Convertir le type string en enum
         id_type = None

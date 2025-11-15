@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Tuple, Any
-from sqlmodel import Session
+from sqlmodel import Session, select
 from datetime import datetime
 import importlib
 import logging
@@ -7,7 +7,9 @@ import re
 
 from app.models import Dossier, Patient, Venue, Mouvement
 from app.db import get_next_sequence
-from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check, parse_hl7_cx_identifier
+from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check, parse_hl7_cx_identifier, create_identifier_from_hl7
+from app.models_identifiers import Identifier, IdentifierType
+from app.services.vocabulary_translate import map_code
 from app.services.vocabulary_translate import map_code
 
 logger = logging.getLogger(__name__)
@@ -20,6 +22,38 @@ except ModuleNotFoundError:
     build_message_for_movement = None  # pragma: no cover
 else:
     build_message_for_movement = getattr(_adapter_module, "build_message_for_movement", None)
+
+
+def validate_movement_timing(session: Session, venue_id: int, movement_datetime: datetime) -> None:
+    """
+    Valide qu'il y a au moins 1 minute d'écart entre le nouveau mouvement et le dernier mouvement de la venue.
+    
+    Args:
+        session: Session de base de données
+        venue_id: ID de la venue
+        movement_datetime: Date/heure du nouveau mouvement
+        
+    Raises:
+        ValueError: Si la validation échoue
+    """
+    from datetime import timedelta
+    
+    # Récupérer le dernier mouvement de cette venue
+    last_movement = session.exec(
+        select(Mouvement)
+        .where(Mouvement.venue_id == venue_id)
+        .order_by(Mouvement.when.desc())
+    ).first()
+    
+    if last_movement and last_movement.when:
+        # Vérifier qu'il y a au moins 1 minute d'écart
+        if movement_datetime < last_movement.when + timedelta(minutes=1):
+            raise ValueError(
+                f"Il doit y avoir au moins 1 minute d'écart entre deux mouvements consécutifs. "
+                f"Dernier mouvement: {last_movement.when.strftime('%d/%m/%Y %H:%M')}, "
+                f"nouveau mouvement: {movement_datetime.strftime('%d/%m/%Y %H:%M')}"
+            )
+
 
 MOVEMENT_KIND_BY_TRIGGER = {
     # Événements Patient (pas de mouvement)
@@ -730,7 +764,12 @@ async def handle_admission_message(
             if zbe_data:
                 logger.info(f"[pam][admission] ZBE parsed: {zbe_data}")
         
-        # Gestion des annulations (A11, A23, A38)
+        # Extraire les identifiants supplémentaires pour classification EJ
+        account_number = pid_data.get("account_number")
+        visit_number = pv1_data.get("visit_number") 
+        movement_id = zbe_data.get("movement_id") if zbe_data else None
+        
+        logger.info(f"[pam][admission] Variables: account_number={account_number}, visit_number={visit_number}, movement_id={movement_id}, trigger={trigger}")
         if trigger in ["A11", "A23", "A38"]:
             return await _handle_cancel_admission(session, trigger, pid_data, pv1_data, message)
         
@@ -801,7 +840,7 @@ async def handle_admission_message(
                     )
                     for ident in identifiers_list:
                         ident.patient_id = existing.id
-                        exists_dup = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                        exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
                         if not exists_dup:
                             session.add(ident)
                 except Exception as e:
@@ -810,7 +849,7 @@ async def handle_admission_message(
                     for raw_cx, _ in identifiers:
                         try:
                             ident = create_identifier_from_hl7(raw_cx, "patient", existing.id)
-                            exists_dup = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                            exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
                             if not exists_dup:
                                 session.add(ident)
                         except Exception:
@@ -840,7 +879,7 @@ async def handle_admission_message(
             for ident in identifiers_list:
                 ident.patient_id = patient.id
                 # Check duplicate by (system,value)
-                exists = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
                 if not exists:
                     session.add(ident)
         except Exception as e:
@@ -850,13 +889,32 @@ async def handle_admission_message(
                 try:
                     ident = create_identifier_from_hl7(raw_cx, "patient", patient.id)
                     # Check duplicate by (system,value)
-                    exists = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                    exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
                     if not exists:
                         session.add(ident)
                 except Exception:
                     continue
+        
+        # Pour les messages d'identité (A28, A31), ne pas créer de dossier/venue/mouvement
+        if trigger in ("A28", "A31"):
+            # Identity-only update: no new dossier/venue/mouvement. Return early.
+            return True, None
+            
         # Créer un dossier et une venue
-        d_seq = get_next_sequence(session, "dossier")
+        # Utiliser l'identifiant dossier fourni dans PID-18 si disponible, sinon générer une séquence
+        d_seq = None
+        if account_number:
+            try:
+                # Extraire le numéro de dossier du format HL7 CX (peut contenir namespace)
+                cx_parts = account_number.split("^")
+                d_seq = int(cx_parts[0])
+                logger.info(f"[pam][admission] Using provided dossier sequence: {d_seq} from PID-18")
+            except (ValueError, IndexError) as e:
+                logger.warning(f"[pam][admission] Invalid dossier sequence in PID-18 '{account_number}': {e}")
+        
+        if d_seq is None:
+            d_seq = get_next_sequence(session, "dossier")
+            logger.info(f"[pam][admission] Generated new dossier sequence: {d_seq}")
         # Use parsed datetime if available (pid parser provides birth_date_dt),
         # otherwise attempt to parse HL7 YYYYMMDD string, or fallback to now.
         admit_time = pv1_data.get("admit_time")
@@ -891,7 +949,7 @@ async def handle_admission_message(
             acc_raw = pid_data.get("account_number")
             if acc_raw:
                 from sqlmodel import select
-                from app.models_identifiers import Identifier as IdModel
+                from app.models_identifiers import Identifier as Identifier
                 try:
                     ident = create_identifier_from_hl7(acc_raw, "dossier", dossier.id)
                     # Ensure PID-18 is recorded as AN (Account Number) when no explicit type present
@@ -901,7 +959,7 @@ async def handle_admission_message(
                             ident.type = _IdType.AN
                     except Exception:
                         pass
-                    exists = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                    exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
                     if not exists:
                         session.add(ident)
                         session.flush()
@@ -912,6 +970,17 @@ async def handle_admission_message(
             pass
 
         v_seq = get_next_sequence(session, "venue")
+        
+        # Utiliser l'identifiant venue fourni dans PV1-19 si disponible
+        if visit_number:
+            try:
+                # Extraire le numéro de venue du format HL7 CX (peut contenir namespace)
+                cx_parts = visit_number.split("^")
+                v_seq = int(cx_parts[0])
+                logger.info(f"[pam][admission] Using provided venue sequence: {v_seq} from PV1-19")
+            except (ValueError, IndexError) as e:
+                logger.warning(f"[pam][admission] Invalid venue sequence in PV1-19 '{visit_number}': {e}")
+                v_seq = get_next_sequence(session, "venue")
         location_raw = (pv1_data.get("location") or "").strip()
         location_value = location_raw or None
         previous_location = (pv1_data.get("previous_location") or "").strip() or None
@@ -944,7 +1013,7 @@ async def handle_admission_message(
             visit_raw = pv1_data.get("visit_number")
             if visit_raw:
                 from sqlmodel import select
-                from app.models_identifiers import Identifier as IdModel
+                from app.models_identifiers import Identifier as Identifier
                 try:
                     ident = create_identifier_from_hl7(visit_raw, "venue", venue.id)
                     # Ensure PV1-19 is recorded as VN (Visit Number) when no explicit type present
@@ -954,7 +1023,7 @@ async def handle_admission_message(
                             ident.type = _IdType.VN
                     except Exception:
                         pass
-                    exists = session.exec(select(IdModel).where(IdModel.system == ident.system, IdModel.value == ident.value)).first()
+                    exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
                     if not exists:
                         session.add(ident)
                         session.flush()
@@ -1091,6 +1160,24 @@ async def handle_admission_message(
         session.add(venue)
         
         m_seq = get_next_sequence(session, "mouvement")
+        
+        # Utiliser l'identifiant mouvement fourni dans ZBE-1 si disponible
+        if movement_id:
+            try:
+                # Extraire le numéro de mouvement du format HL7 CX (peut contenir namespace)
+                cx_parts = movement_id.split("^")
+                m_seq = int(cx_parts[0])
+                logger.info(f"[pam][admission] Using provided mouvement sequence: {m_seq} from ZBE-1")
+            except (ValueError, IndexError) as e:
+                logger.warning(f"[pam][admission] Invalid mouvement sequence in ZBE-1 '{movement_id}': {e}")
+                m_seq = get_next_sequence(session, "mouvement")
+        
+        # Valider l'écart temporel avec le dernier mouvement
+        try:
+            validate_movement_timing(session, venue.id, movement_datetime)
+        except ValueError as e:
+            return False, str(e)
+        
         # Inject UF codes from ZBE if available (ZBE-7 / ZBE-8)
         uf_medicale_code = zbe_data.get("uf_medicale") if zbe_data else None
         uf_soins_code = zbe_data.get("uf_soins") if zbe_data else None
@@ -1124,7 +1211,7 @@ async def handle_admission_message(
             dossier_identifiers = parse_hl7_cx_identifier(account_number)
             if dossier_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, dossier_identifiers, dossier, "dossier"
+                    session, [dossier_identifiers], dossier, "dossier"
                 )
 
         # Venue identifiers (PV1-19)
@@ -1132,7 +1219,7 @@ async def handle_admission_message(
             venue_identifiers = parse_hl7_cx_identifier(visit_number)
             if venue_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, venue_identifiers, venue, "venue"
+                    session, [venue_identifiers], venue, "venue"
                 )
 
         # Mouvement identifiers (ZBE-1)
@@ -1140,7 +1227,7 @@ async def handle_admission_message(
             mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
             if mouvement_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, mouvement_identifiers, mouvement, "mouvement"
+                    session, [mouvement_identifiers], mouvement, "mouvement"
                 )
 
         # Note: Message emission is now automatic via entity_events.py listeners
@@ -1169,7 +1256,10 @@ async def handle_transfer_message(
         if zbe_data:
             logger.info(f"[pam][transfer] ZBE parsed: {zbe_data}")
         
-        # Gestion de l'annulation de transfert (A12)
+        # Extraire les identifiants supplémentaires pour classification EJ
+        account_number = pid_data.get("account_number")
+        visit_number = pv1_data.get("visit_number") 
+        movement_id = zbe_data.get("movement_id") if zbe_data else None
         if trigger == "A12":
             return await _handle_cancel_transfer(session, trigger, pid_data, pv1_data, message)
         
@@ -1211,6 +1301,13 @@ async def handle_transfer_message(
         
         print(f"[pam][transfer] patient_id={patient.id} venue_id={venue.id} creating mouvement")
         m_seq = get_next_sequence(session, "mouvement")
+        
+        # Valider l'écart temporel avec le dernier mouvement
+        try:
+            validate_movement_timing(session, venue.id, movement_datetime)
+        except ValueError as e:
+            return False, str(e)
+        
         mouvement = Mouvement(
             mouvement_seq=m_seq,
             venue_id=venue.id,
@@ -1241,7 +1338,7 @@ async def handle_transfer_message(
             dossier_identifiers = parse_hl7_cx_identifier(account_number)
             if dossier_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, dossier_identifiers, dossier, "dossier"
+                    session, [dossier_identifiers], dossier, "dossier"
                 )
 
         # Venue identifiers (PV1-19)
@@ -1249,7 +1346,7 @@ async def handle_transfer_message(
             venue_identifiers = parse_hl7_cx_identifier(visit_number)
             if venue_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, venue_identifiers, venue, "venue"
+                    session, [venue_identifiers], venue, "venue"
                 )
 
         # Mouvement identifiers (ZBE-1)
@@ -1257,7 +1354,7 @@ async def handle_transfer_message(
             mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
             if mouvement_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, mouvement_identifiers, mouvement, "mouvement"
+                    session, [mouvement_identifiers], mouvement, "mouvement"
                 )
         
         # Note: Message emission is now automatic via entity_events.py listeners
@@ -1272,7 +1369,8 @@ async def handle_discharge_message(
     trigger: str, 
     pid_data: dict, 
     pv1_data: dict, 
-    message: Optional[str] = None
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None
 ) -> Tuple[bool, Optional[str]]:
     """
     Gère les messages de sortie et d'annulation de sortie.
@@ -1332,6 +1430,13 @@ async def handle_discharge_message(
         
         # Create a sortie mouvement and mark venue completed
         m_seq = get_next_sequence(session, "mouvement")
+        
+        # Valider l'écart temporel avec le dernier mouvement
+        try:
+            validate_movement_timing(session, venue.id, movement_datetime)
+        except ValueError as e:
+            return False, str(e)
+        
         mouvement = Mouvement(
             mouvement_seq=m_seq,
             venue_id=venue.id,
@@ -1361,24 +1466,24 @@ async def handle_discharge_message(
         if account_number:
             dossier_identifiers = parse_hl7_cx_identifier(account_number)
             if dossier_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
-                    session, dossier_identifiers, dossier, "dossier"
+                create_identifiers_from_hl7_with_namespace_check(
+                    [dossier_identifiers], "dossier", session, ej_id
                 )
 
         # Venue identifiers (PV1-19)
         if visit_number:
             venue_identifiers = parse_hl7_cx_identifier(visit_number)
             if venue_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
-                    session, venue_identifiers, venue, "venue"
+                create_identifiers_from_hl7_with_namespace_check(
+                    [venue_identifiers], "venue", session, ej_id
                 )
 
         # Mouvement identifiers (ZBE-1)
         if movement_id:
             mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
             if mouvement_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
-                    session, mouvement_identifiers, mouvement, "mouvement"
+                create_identifiers_from_hl7_with_namespace_check(
+                    [mouvement_identifiers], "mouvement", session, ej_id
                 )
         
         # Note: Message emission is now automatic via entity_events.py listeners
@@ -1453,6 +1558,13 @@ async def handle_leave_message(
         
         # Create mouvement for leave of absence
         m_seq = get_next_sequence(session, "mouvement")
+        
+        # Valider l'écart temporel avec le dernier mouvement
+        try:
+            validate_movement_timing(session, venue.id, movement_datetime)
+        except ValueError as e:
+            return False, str(e)
+        
         movement_type = "leave-out" if trigger in ["A21", "A52"] else "leave-return"
         status = "leave" if trigger in ["A21", "A52"] else "completed"
         
@@ -1488,7 +1600,7 @@ async def handle_leave_message(
             dossier_identifiers = parse_hl7_cx_identifier(account_number)
             if dossier_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, dossier_identifiers, dossier, "dossier"
+                    session, [dossier_identifiers], dossier, "dossier"
                 )
 
         # Venue identifiers (PV1-19)
@@ -1496,7 +1608,7 @@ async def handle_leave_message(
             venue_identifiers = parse_hl7_cx_identifier(visit_number)
             if venue_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, venue_identifiers, venue, "venue"
+                    session, [venue_identifiers], venue, "venue"
                 )
 
         # Mouvement identifiers (ZBE-1)
@@ -1504,7 +1616,7 @@ async def handle_leave_message(
             mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
             if mouvement_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, mouvement_identifiers, mouvement, "mouvement"
+                    session, [mouvement_identifiers], mouvement, "mouvement"
                 )
         
         # Note: Message emission is now automatic via entity_events.py listeners
@@ -1585,6 +1697,13 @@ async def handle_doctor_message(
             
             # Create mouvement for doctor change
             m_seq = get_next_sequence(session, "mouvement")
+            
+            # Valider l'écart temporel avec le dernier mouvement
+            try:
+                validate_movement_timing(session, venue.id, movement_datetime)
+            except ValueError as e:
+                return False, str(e)
+            
             mouvement = Mouvement(
                 mouvement_seq=m_seq,
                 venue_id=venue.id,
@@ -1626,7 +1745,7 @@ async def handle_doctor_message(
             dossier_identifiers = parse_hl7_cx_identifier(account_number)
             if dossier_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, dossier_identifiers, dossier, "dossier"
+                    session, [dossier_identifiers], dossier, "dossier"
                 )
 
         # Venue identifiers (PV1-19)
@@ -1634,7 +1753,7 @@ async def handle_doctor_message(
             venue_identifiers = parse_hl7_cx_identifier(visit_number)
             if venue_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, venue_identifiers, venue, "venue"
+                    session, [venue_identifiers], venue, "venue"
                 )
 
         # Mouvement identifiers (ZBE-1)
@@ -1642,7 +1761,7 @@ async def handle_doctor_message(
             mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
             if mouvement_identifiers:
                 await create_identifiers_from_hl7_with_namespace_check(
-                    session, mouvement_identifiers, mouvement, "mouvement"
+                    session, [mouvement_identifiers], mouvement, "mouvement"
                 )
         
         # Note: Message emission is now automatic via entity_events.py listeners
@@ -1650,4 +1769,417 @@ async def handle_doctor_message(
         return True, None
     except Exception as e:
         logger.error(f"[pam][doctor] Error: {e}", exc_info=True)
+        return False, str(e)
+
+
+# -------------------------------------------------------------
+# HANDLER POUR LES TRANSFERTS (A02, A12)
+# -------------------------------------------------------------
+async def handle_transfer_message(
+    session: Session,
+    trigger: str,
+    pid_data: Dict,
+    pv1_data: Dict,
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None
+) -> Tuple[bool, Optional[str]]:
+    """
+    Traitement des messages de transfert patient (A02) et d'annulation de transfert (A12).
+    
+    Pour A02 : Crée un nouveau mouvement sur une venue existante
+    Pour A12 : Annule un mouvement de transfert existant
+    
+    Args:
+        session: Session DB
+        trigger: Code trigger (A02 ou A12)
+        pid_data: Données PID parsées
+        pv1_data: Données PV1 parsées
+        message: Message HL7 complet (requis pour parser ZBE)
+        ej_id: ID de l'entité juridique
+        
+    Returns:
+        Tuple[bool, Optional[str]]: (succès, message d'erreur)
+    """
+    try:
+        logger.info(f"[pam][transfer] Processing {trigger} message")
+        
+        # Parser le segment ZBE (obligatoire pour les mouvements)
+        zbe_data = _parse_zbe_segment(message) if message else {}
+        if not zbe_data:
+            return False, f"Segment ZBE obligatoire manquant pour {trigger}"
+        
+        # Pour A12 (annulation), vérifier qu'on a un mouvement à annuler
+        if trigger == "A12":
+            movement_id = zbe_data.get("movement_id")
+            if not movement_id:
+                return False, "ZBE-1 (movement_id) requis pour annulation A12"
+            
+            # Trouver et annuler le mouvement
+            mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == int(movement_id))).first()
+            if not mouvement:
+                return False, f"Mouvement {movement_id} introuvable pour annulation"
+            
+            mouvement.status = "cancelled"
+            session.add(mouvement)
+            session.flush()
+            logger.info(f"[pam][transfer] Cancelled movement {movement_id}")
+            return True, None
+        
+        # Pour A02 (transfert), créer un nouveau mouvement sur venue existante
+        
+        # Identifier la venue existante via PV1-19 (visit_number)
+        visit_number = pv1_data.get("visit_number")
+        if not visit_number:
+            return False, "PV1-19 (visit_number) requis pour identifier la venue de transfert"
+        
+        # Extraire l'ID de la venue
+        venue_id_str = visit_number.split("^")[0] if "^" in visit_number else visit_number
+        try:
+            venue_seq = int(venue_id_str)
+        except ValueError:
+            return False, f"Format visit_number invalide: {visit_number}"
+        
+        # Trouver la venue existante
+        venue = session.exec(select(Venue).where(Venue.venue_seq == venue_seq)).first()
+        if not venue:
+            return False, f"Venue {venue_seq} introuvable pour transfert"
+        
+        # Créer le mouvement de transfert
+        m_seq = get_next_sequence(session, "mouvement")
+        
+        # Déterminer la date du mouvement
+        movement_datetime = datetime.utcnow()
+        if zbe_data and zbe_data.get("movement_datetime"):
+            try:
+                dt_str = zbe_data["movement_datetime"]
+                movement_datetime = datetime.strptime(dt_str, "%Y%m%d%H%M%S")
+            except Exception as e:
+                logger.warning(f"[pam][transfer] Failed to parse ZBE-2 datetime '{dt_str}': {e}")
+        
+        # Valider l'écart temporel avec le dernier mouvement
+        try:
+            validate_movement_timing(session, venue.id, movement_datetime)
+        except ValueError as e:
+            return False, str(e)
+        
+        # Déterminer les localisations de/vers
+        from_location = pv1_data.get("previous_location") or ""
+        to_location = pv1_data.get("location") or ""
+        
+        # Créer le mouvement
+        mouvement = Mouvement(
+            mouvement_seq=m_seq,
+            venue_id=venue.id,
+            entite_juridique_id=ej_id,
+            type=f"ADT^{trigger}",
+            when=movement_datetime,
+            location=to_location,
+            from_location=from_location,
+            to_location=to_location,
+            status="completed",
+            trigger_event=trigger,
+            movement_type="transfert",
+            # UF depuis ZBE
+            uf_responsabilite=zbe_data.get("uf_medicale"),
+            uf_soins_code=zbe_data.get("uf_soins_code"),
+            uf_soins_label=zbe_data.get("uf_soins_label"),
+            nature=zbe_data.get("nature"),
+            # Métadonnées ZBE
+            action=zbe_data.get("action"),
+            is_historic=bool(zbe_data.get("is_historic")),
+            original_trigger=zbe_data.get("original_trigger")
+        )
+        
+        session.add(mouvement)
+        session.flush()
+        logger.info(f"[pam][transfer] Created transfer movement id={mouvement.id} mouvement_seq={mouvement.mouvement_seq} on venue {venue.venue_seq}")
+        
+        # Créer les identifiants pour le mouvement (ZBE-1)
+        movement_id = zbe_data.get("movement_id")
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                # Créer l'identifiant directement depuis la valeur CX
+                identifier = create_identifier_from_hl7(movement_id, "mouvement", mouvement.id)
+                session.add(identifier)
+        
+        return True, None
+        
+    except Exception as e:
+        logger.error(f"[pam][transfer] Error: {e}", exc_info=True)
+        return False, str(e)
+
+
+# -------------------------------------------------------------
+# HANDLER POUR LES SORTIES (A03, A13)
+# -------------------------------------------------------------
+async def handle_discharge_message(
+    session: Session,
+    trigger: str,
+    pid_data: Dict,
+    pv1_data: Dict,
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None
+) -> Tuple[bool, Optional[str]]:
+    """
+    Traitement des messages de sortie patient (A03) et d'annulation de sortie (A13).
+    
+    Pour A03 : Crée un mouvement de sortie sur une venue existante
+    Pour A13 : Annule un mouvement de sortie existant
+    
+    Args:
+        session: Session DB
+        trigger: Code trigger (A03 ou A13)
+        pid_data: Données PID parsées
+        pv1_data: Données PV1 parsées
+        message: Message HL7 complet (requis pour parser ZBE)
+        ej_id: ID de l'entité juridique
+        
+    Returns:
+        Tuple[bool, Optional[str]]: (succès, message d'erreur)
+    """
+    try:
+        logger.info(f"[pam][discharge] Processing {trigger} message")
+        
+        # Parser le segment ZBE (obligatoire pour les mouvements)
+        zbe_data = _parse_zbe_segment(message) if message else {}
+        if not zbe_data:
+            return False, f"Segment ZBE obligatoire manquant pour {trigger}"
+        
+        # Pour A13 (annulation), vérifier qu'on a un mouvement à annuler
+        if trigger == "A13":
+            movement_id = zbe_data.get("movement_id")
+            if not movement_id:
+                return False, "ZBE-1 (movement_id) requis pour annulation A13"
+            
+            # Trouver et annuler le mouvement
+            mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == int(movement_id))).first()
+            if not mouvement:
+                return False, f"Mouvement {movement_id} introuvable pour annulation"
+            
+            mouvement.status = "cancelled"
+            session.add(mouvement)
+            session.flush()
+            logger.info(f"[pam][discharge] Cancelled movement {movement_id}")
+            return True, None
+        
+        # Pour A03 (sortie), créer un mouvement de sortie sur venue existante
+        
+        # Identifier la venue existante via PV1-19 (visit_number)
+        visit_number = pv1_data.get("visit_number")
+        if not visit_number:
+            return False, "PV1-19 (visit_number) requis pour identifier la venue de sortie"
+        
+        # Extraire l'ID de la venue
+        venue_id_str = visit_number.split("^")[0] if "^" in visit_number else visit_number
+        try:
+            venue_seq = int(venue_id_str)
+        except ValueError:
+            return False, f"Format visit_number invalide: {visit_number}"
+        
+        # Trouver la venue existante
+        venue = session.exec(select(Venue).where(Venue.venue_seq == venue_seq)).first()
+        if not venue:
+            return False, f"Venue {venue_seq} introuvable pour sortie"
+        
+        # Créer le mouvement de sortie
+        m_seq = get_next_sequence(session, "mouvement")
+        
+        # Déterminer la date du mouvement
+        movement_datetime = datetime.utcnow()
+        if zbe_data and zbe_data.get("movement_datetime"):
+            try:
+                dt_str = zbe_data["movement_datetime"]
+                movement_datetime = datetime.strptime(dt_str, "%Y%m%d%H%M%S")
+            except Exception as e:
+                logger.warning(f"[pam][discharge] Failed to parse ZBE-2 datetime '{dt_str}': {e}")
+        
+        # Valider l'écart temporel avec le dernier mouvement
+        try:
+            validate_movement_timing(session, venue.id, movement_datetime)
+        except ValueError as e:
+            return False, str(e)
+        
+        # Créer le mouvement
+        mouvement = Mouvement(
+            mouvement_seq=m_seq,
+            venue_id=venue.id,
+            entite_juridique_id=ej_id,
+            type=f"ADT^{trigger}",
+            when=movement_datetime,
+            status="completed",
+            trigger_event=trigger,
+            movement_type="sortie",
+            # UF depuis ZBE
+            uf_responsabilite=zbe_data.get("uf_medicale"),
+            uf_soins_code=zbe_data.get("uf_soins_code"),
+            uf_soins_label=zbe_data.get("uf_soins_label"),
+            nature=zbe_data.get("nature"),
+            # Métadonnées ZBE
+            action=zbe_data.get("action"),
+            is_historic=bool(zbe_data.get("is_historic")),
+            original_trigger=zbe_data.get("original_trigger")
+        )
+        
+        session.add(mouvement)
+        session.flush()
+        logger.info(f"[pam][discharge] Created discharge movement id={mouvement.id} mouvement_seq={mouvement.mouvement_seq} on venue {venue.venue_seq}")
+        
+        # Créer les identifiants pour le mouvement (ZBE-1)
+        movement_id = zbe_data.get("movement_id")
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                create_identifiers_from_hl7_with_namespace_check(
+                    [mouvement_identifiers], "mouvement", session, ej_id
+                )
+        
+        return True, None
+        
+    except Exception as e:
+        logger.error(f"[pam][discharge] Error: {e}", exc_info=True)
+        return False, str(e)
+
+
+# -------------------------------------------------------------
+# HANDLER POUR LES PERMISSIONS (A21, A22, A52, A53)
+# -------------------------------------------------------------
+async def handle_leave_message(
+    session: Session,
+    trigger: str,
+    pid_data: Dict,
+    pv1_data: Dict,
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None
+) -> Tuple[bool, Optional[str]]:
+    """
+    Traitement des messages de permission/absence patient.
+    
+    A21 : Début d'absence (leave out)
+    A22 : Retour d'absence (leave return)  
+    A52 : Annulation début d'absence
+    A53 : Annulation retour d'absence
+    
+    Args:
+        session: Session DB
+        trigger: Code trigger (A21, A22, A52, A53)
+        pid_data: Données PID parsées
+        pv1_data: Données PV1 parsées
+        message: Message HL7 complet (requis pour parser ZBE)
+        ej_id: ID de l'entité juridique
+        
+    Returns:
+        Tuple[bool, Optional[str]]: (succès, message d'erreur)
+    """
+    try:
+        logger.info(f"[pam][leave] Processing {trigger} message")
+        
+        # Parser le segment ZBE (obligatoire pour les mouvements)
+        zbe_data = _parse_zbe_segment(message) if message else {}
+        if not zbe_data:
+            return False, f"Segment ZBE obligatoire manquant pour {trigger}"
+        
+        # Pour les annulations A52/A53, vérifier qu'on a un mouvement à annuler
+        if trigger in ("A52", "A53"):
+            movement_id = zbe_data.get("movement_id")
+            if not movement_id:
+                return False, f"ZBE-1 (movement_id) requis pour annulation {trigger}"
+            
+            # Trouver et annuler le mouvement
+            mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == int(movement_id))).first()
+            if not mouvement:
+                return False, f"Mouvement {movement_id} introuvable pour annulation"
+            
+            mouvement.status = "cancelled"
+            session.add(mouvement)
+            session.flush()
+            logger.info(f"[pam][leave] Cancelled movement {movement_id}")
+            return True, None
+        
+        # Pour A21/A22, créer un mouvement sur venue existante
+        
+        # Identifier la venue existante via PV1-19 (visit_number)
+        visit_number = pv1_data.get("visit_number")
+        if not visit_number:
+            return False, f"PV1-19 (visit_number) requis pour {trigger}"
+        
+        # Extraire l'ID de la venue
+        venue_id_str = visit_number.split("^")[0] if "^" in visit_number else visit_number
+        try:
+            venue_seq = int(venue_id_str)
+        except ValueError:
+            return False, f"Format visit_number invalide: {visit_number}"
+        
+        # Trouver la venue existante
+        venue = session.exec(select(Venue).where(Venue.venue_seq == venue_seq)).first()
+        if not venue:
+            return False, f"Venue {venue_seq} introuvable pour {trigger}"
+        
+        # Créer le mouvement
+        m_seq = get_next_sequence(session, "mouvement")
+        
+        # Déterminer la date du mouvement
+        movement_datetime = datetime.utcnow()
+        if zbe_data and zbe_data.get("movement_datetime"):
+            try:
+                dt_str = zbe_data["movement_datetime"]
+                movement_datetime = datetime.strptime(dt_str, "%Y%m%d%H%M%S")
+            except Exception as e:
+                logger.warning(f"[pam][leave] Failed to parse ZBE-2 datetime '{dt_str}': {e}")
+        
+        # Valider l'écart temporel avec le dernier mouvement
+        try:
+            validate_movement_timing(session, venue.id, movement_datetime)
+        except ValueError as e:
+            return False, str(e)
+        
+        # Déterminer le type de mouvement
+        if trigger == "A21":
+            movement_type = "permission_debut"
+            status = "leave"
+        elif trigger == "A22":
+            movement_type = "permission_retour"
+            status = "completed"
+        else:
+            movement_type = "permission"
+            status = "completed"
+        
+        # Créer le mouvement
+        mouvement = Mouvement(
+            mouvement_seq=m_seq,
+            venue_id=venue.id,
+            entite_juridique_id=ej_id,
+            type=f"ADT^{trigger}",
+            when=movement_datetime,
+            status=status,
+            trigger_event=trigger,
+            movement_type=movement_type,
+            # UF depuis ZBE
+            uf_responsabilite=zbe_data.get("uf_medicale"),
+            uf_soins_code=zbe_data.get("uf_soins_code"),
+            uf_soins_label=zbe_data.get("uf_soins_label"),
+            nature=zbe_data.get("nature"),
+            # Métadonnées ZBE
+            action=zbe_data.get("action"),
+            is_historic=bool(zbe_data.get("is_historic")),
+            original_trigger=zbe_data.get("original_trigger")
+        )
+        
+        session.add(mouvement)
+        session.flush()
+        logger.info(f"[pam][leave] Created leave movement id={mouvement.id} mouvement_seq={mouvement.mouvement_seq} on venue {venue.venue_seq}")
+        
+        # Créer les identifiants pour le mouvement (ZBE-1)
+        movement_id = zbe_data.get("movement_id")
+        if movement_id:
+            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            if mouvement_identifiers:
+                await create_identifiers_from_hl7_with_namespace_check(
+                    session, mouvement_identifiers, mouvement, "mouvement"
+                )
+        
+        return True, None
+        
+    except Exception as e:
+        logger.error(f"[pam][leave] Error: {e}", exc_info=True)
         return False, str(e)

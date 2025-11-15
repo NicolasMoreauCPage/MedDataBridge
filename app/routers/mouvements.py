@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import select
 from datetime import datetime
 from typing import Optional
+import logging
 from app.db import get_session, get_next_sequence, peek_next_sequence
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier
@@ -410,9 +411,21 @@ def new_mouvement(
     else:
         # Filtrer les venues qui ont un dossier avec une EJ valide
         from app.models import Dossier
-        stmt = select(Venue).join(Dossier).where(Dossier.entite_juridique_id.is_not(None)).order_by(Venue.venue_seq.asc()).limit(100)
+        stmt = select(Venue).join(Dossier).where(Dossier.entite_juridique_id.is_not(None)).order_by(Venue.venue_seq.asc())
     
     venues = session.exec(stmt).all()
+    
+    # Si une venue spécifique est demandée mais n'est pas dans la liste (à cause de la limit), l'ajouter
+    if venue_id and not any(v.id == venue_id for v in venues):
+        requested_venue = session.get(Venue, venue_id)
+        if requested_venue:
+            # Vérifier qu'elle satisfait les critères (dossier avec EJ si pas de filter_dossier_id)
+            if filter_dossier_id:
+                if requested_venue.dossier_id == filter_dossier_id:
+                    venues.append(requested_venue)
+            else:
+                if requested_venue.dossier and requested_venue.dossier.entite_juridique_id:
+                    venues.append(requested_venue)
     
     if not venues:
         return templates.TemplateResponse(
@@ -499,7 +512,7 @@ def new_mouvement(
         uf_options = []
         try:
             from app.models_structure import UniteFonctionnelle, UniteHebergement
-            ufs = set()
+            uf_ids = set()
 
             # Récupérer l'EJ de la venue sélectionnée pour filtrer les UF
             ej_id = None
@@ -510,7 +523,7 @@ def new_mouvement(
             if selected_venue and selected_venue.uf_responsabilite and selected_venue.uf_responsabilite.strip():
                 uf_med = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
                 if uf_med:
-                    ufs.add(uf_med)
+                    uf_ids.add(uf_med.id)
 
             # UF d'hébergement via UH de la venue
             if selected_venue:
@@ -541,16 +554,20 @@ def new_mouvement(
                         for service in services:
                             # Service -> UF
                             service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
-                            ufs.update(service_ufs)
+                            uf_ids.update(uf.id for uf in service_ufs)
 
             # Fallback: si toujours aucune UF, utiliser toutes les UF (pour compatibilité)
-            if not ufs:
-                ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
+            if not uf_ids:
+                all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
+                uf_ids.update(uf.id for uf in all_ufs)
+            
+            # Récupérer les objets UF et créer les options
+            ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id.in_(uf_ids))).all()
 
             for uf in ufs:
                 label = uf.short_name if getattr(uf, 'short_name', None) and uf.short_name and uf.short_name.strip() else uf.name
                 uf_options.append({"value": uf.identifier, "label": label})
-        except Exception:
+        except Exception as e:
             uf_options = []
 
     # Récupérer les UH pour l'UF pré-remplie
@@ -560,11 +577,19 @@ def new_mouvement(
         for uh in uhs:
             label = f"{uh.identifier} — {uh.name}"
             uh_options.append({"value": str(uh.id), "label": label})
+    else:
+        # Fallback: utiliser toutes les UH disponibles
+        uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
+        for uh in uhs:
+            label = f"{uh.identifier} — {uh.name}"
+            uh_options.append({"value": str(uh.id), "label": label})
+    
 
     # Filtrer les types de mouvement selon le type de venue
     from app.form_config import MovementType
+    from app.movement_type_mapping import from_standard_movement_code, to_standard_movement_code
     all_type_options = MovementType.choices()
-    # Mapping dossier_type -> types autorisés
+    # Mapping dossier_type -> types autorisés (codes HL7)
     type_map = {
         "hospitalise": ["ADT^A01", "ADT^A02", "ADT^A03", "ADT^A06", "ADT^A11", "ADT^A12", "ADT^A13", "ADT^A21"],
         "externe": ["ADT^A04", "ADT^A07"],
@@ -572,15 +597,21 @@ def new_mouvement(
     }
     allowed_types = None
     if selected_dossier:
-        dt = str(selected_dossier.dossier_type)
-        allowed_types = type_map.get(dt, None)
+        dt = selected_dossier.dossier_type.value if hasattr(selected_dossier.dossier_type, 'value') else str(selected_dossier.dossier_type)
+        hl7_codes = type_map.get(dt, None)
+        if hl7_codes:
+            # Convertir les codes HL7 en types métier
+            allowed_types = [from_standard_movement_code(code, "hl7") for code in hl7_codes if from_standard_movement_code(code, "hl7")]
     def _opt_allowed(opt):
         try:
-            code = str(opt.get("value"))
-            event = code.split("^")[-1]
-            if allowed_events_codes and event not in allowed_events_codes:
-                return False
-            if allowed_types and code not in allowed_types:
+            metier_code = str(opt.get("value"))
+            # Convertir le type métier en code HL7 pour vérifier allowed_events_codes
+            hl7_code = to_standard_movement_code(metier_code, "hl7")
+            if hl7_code:
+                event = hl7_code.split("^")[-1]
+                if allowed_events_codes and event not in allowed_events_codes:
+                    return False
+            if allowed_types and metier_code not in allowed_types:
                 return False
             return True
         except Exception:

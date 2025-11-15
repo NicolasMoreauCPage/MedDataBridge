@@ -82,7 +82,7 @@
     const form = document.querySelector('form[role="form"]');
     if (!form) return;
 
-    const uhSelect = form.querySelector('select[name="unite_hebergement_id"]');
+    const uhSelect = form.querySelector('select[name="uh_id"]');
     const chambreSelect = form.querySelector('select[name="chambre_id"]');
     const litSelect = form.querySelector('select[name="lit_id"]');
     const typeSelect = form.querySelector('select[name="type"]');
@@ -104,15 +104,22 @@
 
     // 2. Chambre -> Lit
     if (chambreSelect && litSelect) {
+      console.log('Setting up chambre -> lit listener');
       chambreSelect.addEventListener('change', async function() {
+        console.log('Chambre changed to:', this.value);
         if (!this.value) {
+          console.log('No chambre selected, clearing lits');
           updateSelectOptions(litSelect, [], '-- Sélectionner un lit --');
           return;
         }
-        
+
+        console.log('Fetching lits for chambre:', this.value);
         const options = await fetchOptions(`/mouvements/api/lits/${this.value}`);
+        console.log('Received lits options:', options);
         updateSelectOptions(litSelect, options, '-- Sélectionner un lit --');
       });
+    } else {
+      console.log('Chambre or lit select not found:', { chambreSelect, litSelect });
     }
 
     // 3. Type (movement) -> Reason

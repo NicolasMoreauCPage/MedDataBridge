@@ -696,12 +696,20 @@ def new_mouvement(
             "help": "Date et heure du mouvement"
         },
         {
-            "label": "Unité Fonctionnelle (UF)",
+            "label": "Unité médicale (UF)",
             "name": "uf_id",
             "type": "select",
             "options": uf_options,
             "value": selected_venue.uf_responsabilite if (selected_venue and selected_venue.uf_responsabilite) else None,
-            "help": "Sélectionnez l'UF concernée (pré-remplie si venue/dossier)"
+            "help": "Sélectionnez l'UF médicale concernée (pré-remplie si venue/dossier)"
+        },
+        {
+            "label": "Unité de Soins (UF Soins)",
+            "name": "uf_soins_id",
+            "type": "select",
+            "options": uf_options,  # Même options que l'UF principale
+            "value": selected_venue.uf_soins_code if (selected_venue and selected_venue.uf_soins_code) else None,
+            "help": "Sélectionnez l'unité de soins (optionnel)"
         },
         {
             "label": "Unité d'Hébergement (UH)",
@@ -809,6 +817,7 @@ def create_mouvement(
     type: str = Form(...),
     when: str = Form(...),
     uf_id: int = Form(None),
+    uf_soins_id: str = Form(None),
     uh_id: int = Form(None),
     chambre_id: int = Form(None),
     lit_id: int = Form(None),
@@ -897,6 +906,17 @@ def create_mouvement(
     mapped_movement_type = movement_type
     if trigger_event in event_mapping:
         mapped_movement_type = event_mapping[trigger_event][0]
+    
+    # Récupérer les informations de l'UF de soins si fournie
+    uf_soins_code = None
+    uf_soins_label = None
+    if uf_soins_id:
+        from app.models_structure import UniteFonctionnelle
+        uf_soins_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_soins_id)).first()
+        if uf_soins_obj:
+            uf_soins_code = uf_soins_obj.identifier
+            uf_soins_label = uf_soins_obj.short_name if getattr(uf_soins_obj, 'short_name', None) and uf_soins_obj.short_name and uf_soins_obj.short_name.strip() else uf_soins_obj.name
+    
     m = Mouvement(
         venue_id=venue_id,
         type=type,
@@ -913,6 +933,8 @@ def create_mouvement(
         movement_reason=movement_reason,
         performer_role=performer_role,
         trigger_event=trigger_event,
+        uf_soins_code=uf_soins_code,
+        uf_soins_label=uf_soins_label,
     )
     session.add(m)
     session.commit()

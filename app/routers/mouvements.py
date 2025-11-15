@@ -452,25 +452,41 @@ def new_mouvement(
 
     # Récupérer la venue sélectionnée
     selected_venue = session.get(Venue, prefill_venue_id)
+    logging.info(f"prefill_venue_id: {prefill_venue_id}")
+    logging.info(f"selected_venue: {selected_venue}")
+    if selected_venue:
+        logging.info(f"selected_venue.uf_responsabilite: {selected_venue.uf_responsabilite}")
     selected_dossier = selected_venue.dossier if selected_venue else None
     selected_uf_id = None
     selected_uh_id = None
     # Pré-remplir UF depuis la venue ou le dossier
     if selected_venue and selected_venue.uf_responsabilite:
+        logging.info(f"Selected venue {selected_venue.id} has uf_responsabilite: {selected_venue.uf_responsabilite}")
         # Si venue a une UF, chercher son id
-            uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
-            if uf_obj:
-                selected_uf_id = uf_obj.id
+        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
+        if uf_obj:
+            selected_uf_id = uf_obj.id
+            logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for venue")
+        else:
+            logging.warning(f"UF not found for identifier {selected_venue.uf_responsabilite}")
     elif selected_dossier and selected_dossier.uf_responsabilite and selected_dossier.uf_responsabilite.strip():
-            uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
-            if uf_obj:
-                selected_uf_id = uf_obj.id
+        logging.info(f"Selected dossier {selected_dossier.id} has uf_responsabilite: {selected_dossier.uf_responsabilite}")
+        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
+        if uf_obj:
+            selected_uf_id = uf_obj.id
+            logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for dossier")
+        else:
+            logging.warning(f"UF not found for identifier {selected_dossier.uf_responsabilite}")
 
     # Pré-remplir UH si UF connue
     if selected_uf_id:
+        logging.info(f"Looking for UH for UF {selected_uf_id}")
         uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).first()
         if uh_obj:
             selected_uh_id = uh_obj.id
+            logging.info(f"Found UH {uh_obj.name} (ID: {uh_obj.id}) for UF")
+        else:
+            logging.warning(f"No UH found for UF {selected_uf_id}")
 
     # Déterminer le dernier événement et la date par défaut
     allowed_events_codes = None
@@ -532,7 +548,7 @@ def new_mouvement(
                     if hasattr(uh, 'venue_id') and uh.venue_id == selected_venue.id:
                         uf_heberg = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id == uh.unite_fonctionnelle_id)).first()
                         if uf_heberg:
-                            ufs.add(uf_heberg)
+                            uf_ids.add(uf_heberg.id)
 
             # Toujours ajouter les UF de l'EJ de la venue (même si on a trouvé des UF spécifiques)
             if ej_id:
@@ -573,13 +589,17 @@ def new_mouvement(
     # Récupérer les UH pour l'UF pré-remplie
     uh_options = []
     if selected_uf_id:
+        logging.info(f"Getting UH options for UF {selected_uf_id}")
         uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).all()
+        logging.info(f"Found {len(uhs)} UH for UF {selected_uf_id}")
         for uh in uhs:
             label = f"{uh.identifier} — {uh.name}"
             uh_options.append({"value": str(uh.id), "label": label})
     else:
+        logging.info("No selected_uf_id, using fallback UH options")
         # Fallback: utiliser toutes les UH disponibles
         uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
+        logging.info(f"Found {len(uhs)} UH in fallback")
         for uh in uhs:
             label = f"{uh.identifier} — {uh.name}"
             uh_options.append({"value": str(uh.id), "label": label})

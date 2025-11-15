@@ -1203,8 +1203,36 @@ def get_chambres_for_uh(uh_id: int, session=Depends(get_session)):
         ).all()
         
         options = [
-            {"value": str(c.id), "label": f"{c.label} ({c.code})"} 
+            {"value": str(c.id), "label": f"{c.identifier} — {c.name}"} 
             for c in chambres
+        ]
+        return JSONResponse({"success": True, "options": options})
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        logging.error(f"Error getting chambres for UH {uh_id}: {str(e)}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+
+
+@ajax_router.get("/unites_hebergement/{uf_id}")
+def get_unites_hebergement_for_uf(uf_id: str, session=Depends(get_session)):
+    """Return list of UniteHebergement for a given UniteFonctionnelle identifier."""
+    from app.models_structure import UniteHebergement, UniteFonctionnelle
+    
+    try:
+        # First get the UF object by identifier
+        uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_id)).first()
+        if not uf:
+            return JSONResponse({"success": False, "error": f"UF with identifier {uf_id} not found"}, status_code=404)
+        
+        # Get UH for this UF
+        uhs = session.exec(
+            select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == uf.id)
+        ).all()
+        
+        options = [
+            {"value": str(uh.id), "label": f"{uh.identifier} — {uh.name}"}
+            for uh in uhs
         ]
         return JSONResponse({"success": True, "options": options})
     except Exception as e:
@@ -1222,7 +1250,7 @@ def get_lits_for_chambre(chambre_id: int, session=Depends(get_session)):
         ).all()
         
         options = [
-            {"value": str(l.id), "label": f"{l.label} ({l.code})"} 
+            {"value": str(l.id), "label": f"{l.identifier} — {l.name}"} 
             for l in lits
         ]
         return JSONResponse({"success": True, "options": options})

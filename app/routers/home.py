@@ -5,7 +5,7 @@ from sqlmodel import select
 from app.db import get_session
 from app.models import Patient, Dossier, Venue
 from app.models_endpoints import MessageLog
-from app.models_structure_fhir import GHTContext
+from app.models_structure_fhir import GHTContext, EntiteJuridique
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["home"])
@@ -33,6 +33,11 @@ def home(request: Request, session=Depends(get_session)):
         select(Venue).where(Venue.ght_context_id == ght_context.id) if hasattr(Venue, "ght_context_id") else select(Venue)
     ).all()
     recent_messages = session.exec(select(MessageLog).order_by(MessageLog.created_at.desc()).limit(10)).all()
+    
+    # Récupérer les EJ du GHT
+    entites_juridiques = session.exec(
+        select(EntiteJuridique).where(EntiteJuridique.ght_context_id == ght_context.id).order_by(EntiteJuridique.name)
+    ).all()
 
     stats = {
         "patients": len(patients),
@@ -47,6 +52,7 @@ def home(request: Request, session=Depends(get_session)):
             "stats": stats,
             "message_logs": recent_messages,
             "ght_context": ght_context,
+            "entites_juridiques": entites_juridiques,
         },
     )
 

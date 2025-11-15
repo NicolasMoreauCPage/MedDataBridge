@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Optional
 
 from sqlmodel import Session, select
+from sqlalchemy import or_
 
 from app.models_structure_fhir import IdentifierNamespace, GHTContext
 from app.models_shared import SystemEndpoint
@@ -67,18 +68,28 @@ def _remap_pid_identifiers(pid_line: str, new_system: Optional[str]) -> str:
     return "|".join(parts)
 
 
-def _select_namespace_system(session: Session, ght_context_id: Optional[int]) -> Optional[str]:
+def _select_namespace_system(session: Session, ght_context_id: Optional[int], ej_context_id: Optional[int] = None) -> Optional[str]:
     if not ght_context_id:
         return None
-    # Prefer IPP-type namespace; else first active namespace
+    
+    # Priorité aux namespaces EJ si EJ context disponible
+    context_conditions = []
+    if ej_context_id:
+        context_conditions.append(IdentifierNamespace.entite_juridique_id == ej_context_id)
+    context_conditions.append(IdentifierNamespace.ght_context_id == ght_context_id)
+    
+    # Récupérer les namespaces actifs selon la hiérarchie (EJ d'abord, puis GHT)
     ns = session.exec(
         select(IdentifierNamespace)
-        .where(IdentifierNamespace.ght_context_id == ght_context_id)
+        .where(or_(*context_conditions))
         .where(IdentifierNamespace.is_active == True)
+        .order_by(IdentifierNamespace.entite_juridique_id.isnot(None).desc())  # EJ namespaces first
         .order_by(IdentifierNamespace.type == "IPP").order_by(IdentifierNamespace.id)
     ).all()
+    
     if not ns:
         return None
+    
     # Try to find IPP first
     for n in ns:
         if (n.type or "").upper() == "IPP":
@@ -94,6 +105,7 @@ def transform_hl7_for_context(
     *,
     endpoint: SystemEndpoint,
     ght_context_id: Optional[int] = None,
+    ej_context_id: Optional[int] = None,
     remap_pid3: bool = True,
 ) -> str:
     """
@@ -105,7 +117,7 @@ def transform_hl7_for_context(
     """
     lines = payload.split("\r")
     out_lines = []
-    new_system = _select_namespace_system(session, ght_context_id) if remap_pid3 else None
+    new_system = _select_namespace_system(session, ght_context_id, ej_context_id) if remap_pid3 else None
     for line in lines:
         if line.startswith("MSH|"):
             out_lines.append(_remap_msh(line, endpoint))

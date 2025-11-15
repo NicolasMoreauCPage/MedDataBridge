@@ -92,19 +92,25 @@ async def _send_hl7_step(
     try:
         # Privilégier le contexte du scénario, sinon celui de l'endpoint
         ght_context_id = None
+        ej_context_id = None
         try:
             # Relationship lazy; safe in this session
             if step.scenario and step.scenario.ght_context_id:
                 ght_context_id = step.scenario.ght_context_id
+            if step.scenario and step.scenario.entite_juridique_id:
+                ej_context_id = step.scenario.entite_juridique_id
         except Exception:
-            ght_context_id = None
+            pass
         if not ght_context_id:
             ght_context_id = getattr(endpoint, "ght_context_id", None)
+        if not ej_context_id:
+            ej_context_id = getattr(endpoint, "entite_juridique_id", None)
         payload_to_send = transform_hl7_for_context(
             session,
             working_payload,
             endpoint=endpoint,
             ght_context_id=ght_context_id,
+            ej_context_id=ej_context_id,
             remap_pid3=True,
         )
     except Exception:

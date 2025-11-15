@@ -600,13 +600,19 @@ def generate_pam_hl7(
             given = patient.given or ""
             birth_date = patient.birth_date or ""
             gender = patient.gender or ""
-            pid = f"PID|1||{pid3}||{family}^{given}||{birth_date}|{gender}"
+            
+            # PID-18: Patient Account Number (numéro de dossier pour IHE PAM France)
+            account_number = str(dossier.dossier_seq) if dossier and hasattr(dossier, 'dossier_seq') else ""
+            
+            # Build complete PID segment with PID-18 (Patient Account Number)
+            # Format: PID|1||PID3||Name||DOB|Gender||||||||||||Marital||||BirthPlace||||Nationality||||||IdentityCode
+            pid = f"PID|1||{pid3}||{family}^{given}||{birth_date}|{gender}||||||||||||||{account_number}||||||||||||||||||||"
         else:
             # If only OID is provided without system, fallback to HOSP system
             authority = (
                 f"HOSP&{forced_identifier_oid}&ISO" if forced_identifier_oid else "HOSP"
             )
-            pid = f"PID|1||UNKNOWN^^^{authority}^PI||UNKNOWN^UNKNOWN||||"
+            pid = f"PID|1||UNKNOWN^^^{authority}^PI||UNKNOWN^UNKNOWN||||||||||||||||||||"
         
         # Build PV1 segment avec mapping vocabulaire
         from app.services.vocabulary_translate import map_code
@@ -673,6 +679,25 @@ def generate_pam_hl7(
                 else:
                     # Fallback to the raw identifier value
                     zbe_id = str(mv_ident.value)
+            else:
+                # No MVT identifier found, use mouvement_seq with default MVT namespace
+                if session and dossier and hasattr(dossier, 'entite_juridique_id') and dossier.entite_juridique_id:
+                    # Try to find MVT namespace for the entity's EJ
+                    mvt_ns = session.exec(
+                        select(IdentifierNamespace)
+                        .where(IdentifierNamespace.entite_juridique_id == dossier.entite_juridique_id)
+                        .where(IdentifierNamespace.type == "MVT")
+                        .where(IdentifierNamespace.is_active == True)
+                    ).first()
+                    if mvt_ns:
+                        # Use mouvement_seq with MVT namespace
+                        zbe_id = f"{entity.mouvement_seq}^{mvt_ns.name}^{mvt_ns.oid or mvt_ns.system}^ISO"
+                    else:
+                        # Fallback to mouvement_seq without namespace
+                        zbe_id = str(entity.mouvement_seq)
+                else:
+                    # Fallback to mouvement_seq without namespace
+                    zbe_id = str(entity.mouvement_seq)
         except Exception:
             # Keep control_id as fallback on any error
             zbe_id = control_id

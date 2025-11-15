@@ -4,30 +4,45 @@
 <div class="bg-white rounded-xl border border-slate-200 p-6 max-w-2xl">
   <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
     <dt class="text-slate-500">Venue ID</dt><dd>{{ mouvement.venue_id }}</dd>
-    <dt class="text-slate-500">Type</dt>
-      <dd>
-        <div class="inline-block">
-          {% if mouvement.movement_type and movement_type_options %}
-            {% set mt_label = None %}
-            {% for opt in movement_type_options %}
-              {% if opt.value == mouvement.movement_type %}{% set mt_label = opt.label %}{% endif %}
-            {% endfor %}
-            {{ mt_label or mouvement.movement_type }}
-          {% else %}
-            {{ type_badge | safe }}
-          {% endif %}
-        </div>
-      </dd>
-    <dt class="text-slate-500">Quand</dt><dd>{{ mouvement.when }}</dd>
+    <dt class="text-slate-500">Type</dt><dd>{{ type_label }}</dd>
+    <dt class="text-slate-500">Quand</dt><dd>{{ mouvement.when.strftime('%d/%m/%Y %H:%M') if mouvement.when else 'Non spécifié' }}</dd>
     <dt class="text-slate-500">Statut</dt><dd>{{ status_badge | safe }}</dd>
-    <dt class="text-slate-500">Localisation</dt><dd>{{ mouvement.location }}</dd>
+    
+    {# Regrouper les UFs #}
+    <dt class="text-slate-500">UF Responsable</dt><dd>{{ uf_responsable_label or 'Non spécifié' }}</dd>
+    <dt class="text-slate-500">UF Soins</dt><dd>{{ uf_soins_label or 'Non spécifié' }}</dd>
+    {% if uf_hebergement_label %}
+    <dt class="text-slate-500">UF Hébergement</dt><dd>{{ uf_hebergement_label }}</dd>
+    {% endif %}
+    
+    {# Localisation détaillée #}
+    {% if uf_hebergement_label or chambre_info or lit_info %}
+    <dt class="text-slate-500">Localisation</dt>
+    <dd>
+      {% if uf_hebergement_label %}{{ uf_hebergement_label }}{% endif %}
+      {% if chambre_info %}{% if uf_hebergement_label %} - {% endif %}{{ chambre_info }}{% endif %}
+      {% if lit_info %}{% if uf_hebergement_label or chambre_info %} - {% endif %}{{ lit_info }}{% endif %}
+    </dd>
+    {% else %}
+    <dt class="text-slate-500">Localisation</dt><dd>{{ mouvement.location or 'Non spécifié' }}</dd>
+    {% endif %}
+    
+    {# Autres informations #}
+    {% if mouvement.from_location %}
     <dt class="text-slate-500">Depuis</dt><dd>{{ mouvement.from_location }}</dd>
+    {% endif %}
+    {% if mouvement.to_location %}
     <dt class="text-slate-500">Vers</dt><dd>{{ mouvement.to_location }}</dd>
+    {% endif %}
+    {% if mouvement.reason %}
     <dt class="text-slate-500">Raison</dt><dd>{{ mouvement.reason }}</dd>
+    {% endif %}
+    {% if mouvement.performer %}
     <dt class="text-slate-500">Intervenant</dt><dd>{{ mouvement.performer }}</dd>
-    <dt class="text-slate-500">UF Responsable</dt><dd>{{ mouvement.uf_responsabilite or "Non spécifié" }}</dd>
-    <dt class="text-slate-500">UF Soins</dt><dd>{{ mouvement.uf_soins_label or "Non spécifié" }}{% if mouvement.uf_soins_code %} ({{ mouvement.uf_soins_code }}){% endif %}</dd>
+    {% endif %}
+    {% if mouvement.note %}
     <dt class="text-slate-500">Note</dt><dd>{{ mouvement.note }}</dd>
+    {% endif %}
   </dl>
   <div class="mt-6 flex gap-3">
     <a href="/mouvements/{{ mouvement.id }}/edit" class="bg-blue-600 text-white px-4 py-2 rounded">Modifier</a>

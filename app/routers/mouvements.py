@@ -8,6 +8,7 @@ import logging
 from app.db import get_session, get_next_sequence, peek_next_sequence
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier
+from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
 from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS, SUPPORTED_WORKFLOW_EVENTS
@@ -147,9 +148,9 @@ def list_mouvements(
         if ej_context and getattr(ej_context, "id", None):
             # Récupérer tous les dossiers de l'EJ
             from app.models import Dossier
-            dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id)).all()]
+            dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id))]
             if dossier_ids:
-                venue_ids = [v.id for v in session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids)).all())]
+                venue_ids = [v.id for v in session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids)))]
                 if venue_ids:
                     stmt = select(Mouvement).where(Mouvement.venue_id.in_(venue_ids))
                     # Optionally filter out cancelled
@@ -397,7 +398,6 @@ def new_mouvement(
     session=Depends(get_session)
 ):
     from app.form_config import MovementType, MouvementStatus
-    from app.models_structure import UniteHebergement, Chambre, Lit, UniteFonctionnelle
     from app.models import Dossier
     
     # Déterminer le dossier de filtrage
@@ -459,34 +459,113 @@ def new_mouvement(
     selected_dossier = selected_venue.dossier if selected_venue else None
     selected_uf_id = None
     selected_uh_id = None
-    # Pré-remplir UF depuis la venue ou le dossier
-    if selected_venue and selected_venue.uf_responsabilite:
-        logging.info(f"Selected venue {selected_venue.id} has uf_responsabilite: {selected_venue.uf_responsabilite}")
-        # Si venue a une UF, chercher son id
-        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
-        if uf_obj:
-            selected_uf_id = uf_obj.id
-            logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for venue")
-        else:
-            logging.warning(f"UF not found for identifier {selected_venue.uf_responsabilite}")
-    elif selected_dossier and selected_dossier.uf_responsabilite and selected_dossier.uf_responsabilite.strip():
-        logging.info(f"Selected dossier {selected_dossier.id} has uf_responsabilite: {selected_dossier.uf_responsabilite}")
-        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
-        if uf_obj:
-            selected_uf_id = uf_obj.id
-            logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for dossier")
-        else:
-            logging.warning(f"UF not found for identifier {selected_dossier.uf_responsabilite}")
+    selected_uf_soins_id = None
+    selected_chambre_id = None
+    selected_lit_id = None
+    prefill_from_location = None
+    prefill_to_location = None
+    prefill_reason = None
+    prefill_movement_reason = None
 
-    # Pré-remplir UH si UF connue
-    if selected_uf_id:
-        logging.info(f"Looking for UH for UF {selected_uf_id}")
-        uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).first()
-        if uh_obj:
-            selected_uh_id = uh_obj.id
-            logging.info(f"Found UH {uh_obj.name} (ID: {uh_obj.id}) for UF")
+    # Pré-remplir les champs depuis le dernier mouvement si il existe
+    last_movement = None
+    if prefill_venue_id:
+        movements = session.exec(
+            select(Mouvement)
+            .where(Mouvement.venue_id == prefill_venue_id)
+            .order_by(Mouvement.when.desc())
+        ).all()
+        if movements:
+            last_movement = movements[0]  # Le plus récent (desc)
+            logging.info(f"Found last movement {last_movement.id} for venue {prefill_venue_id}")
+
+            # Pré-remplir UF médicale depuis le dernier mouvement
+            if last_movement.uf_responsabilite:
+                uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == last_movement.uf_responsabilite)).first()
+                if uf_obj:
+                    selected_uf_id = uf_obj.id
+                    logging.info(f"Pre-filled UF from last movement: {uf_obj.name} (ID: {uf_obj.id})")
+
+            # Pré-remplir UF soins depuis le dernier mouvement
+            if last_movement.uf_soins_code:
+                uf_soins_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == last_movement.uf_soins_code)).first()
+                if uf_soins_obj:
+                    selected_uf_soins_id = uf_soins_obj.identifier
+                    logging.info(f"Pre-filled UF soins from last movement: {uf_soins_obj.name} (ID: {uf_soins_obj.identifier})")
+
+            # Pré-remplir UH depuis le dernier mouvement
+            if last_movement.location:
+                # Essayer de parser l'UF depuis la location (format: UF-UFIDENT-CHAMBRE-LIT)
+                location_parts = last_movement.location.split('-')
+                if len(location_parts) >= 1:
+                    uf_part = location_parts[0]
+                    if uf_part.startswith('UF'):
+                        uh_part = location_parts[1] if len(location_parts) > 1 else None
+                        if uh_part:
+                            uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == uh_part)).first()
+                            if uh_obj:
+                                selected_uh_id = uh_obj.id
+                                logging.info(f"Pre-filled UH from last movement: {uh_obj.name} (ID: {uh_obj.id})")
+
+            # Pré-remplir chambre depuis le dernier mouvement
+            if last_movement.location:
+                location_parts = last_movement.location.split('-')
+                if len(location_parts) >= 3:
+                    chambre_part = location_parts[2]
+                    chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == chambre_part)).first()
+                    if chambre_obj:
+                        selected_chambre_id = chambre_obj.id
+                        logging.info(f"Pre-filled chambre from last movement: {chambre_obj.name} (ID: {chambre_obj.id})")
+
+            # Pré-remplir lit depuis le dernier mouvement
+            if last_movement.location:
+                location_parts = last_movement.location.split('-')
+                if len(location_parts) >= 4:
+                    lit_part = location_parts[3]
+                    # Pour le lit, on utilise l'ID de la chambre comme approximation
+                    if selected_chambre_id:
+                        selected_lit_id = selected_chambre_id
+                        logging.info(f"Pre-filled lit from last movement: chambre {selected_chambre_id}")
+
+            # Pré-remplir autres champs depuis le dernier mouvement
+            prefill_from_location = last_movement.from_location
+            prefill_to_location = last_movement.to_location
+            prefill_reason = last_movement.reason
+            prefill_movement_reason = last_movement.movement_reason
         else:
-            logging.warning(f"No UH found for UF {selected_uf_id}")
+            logging.info(f"No previous movements found for venue {prefill_venue_id}, using venue defaults")
+            # Pas de mouvement précédent, utiliser les valeurs par défaut de la venue
+            # Pré-remplir UF depuis la venue ou le dossier (logique existante)
+            if selected_venue and selected_venue.uf_responsabilite:
+                logging.info(f"Selected venue {selected_venue.id} has uf_responsabilite: {selected_venue.uf_responsabilite}")
+                # Si venue a une UF, chercher son id
+                uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
+                if uf_obj:
+                    selected_uf_id = uf_obj.id
+                    logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for venue")
+                else:
+                    logging.warning(f"UF not found for identifier {selected_venue.uf_responsabilite}")
+            elif selected_dossier and selected_dossier.uf_responsabilite and selected_dossier.uf_responsabilite.strip():
+                logging.info(f"Selected dossier {selected_dossier.id} has uf_responsabilite: {selected_dossier.uf_responsabilite}")
+                uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
+                if uf_obj:
+                    selected_uf_id = uf_obj.id
+                    logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for dossier")
+                else:
+                    logging.warning(f"UF not found for identifier {selected_dossier.uf_responsabilite}")
+
+            # Pré-remplir UH si UF connue
+            if selected_uf_id:
+                logging.info(f"Looking for UH for UF {selected_uf_id}")
+                uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).first()
+                if uh_obj:
+                    selected_uh_id = uh_obj.id
+                    logging.info(f"Found UH {uh_obj.name} (ID: {uh_obj.id}) for UF")
+                else:
+                    logging.warning(f"No UH found for UF {selected_uf_id}")
+    else:
+        # Pas de venue pré-remplie
+        pass
 
     # Déterminer le dernier événement et la date par défaut
     allowed_events_codes = None
@@ -700,16 +779,16 @@ def new_mouvement(
             "name": "uf_id",
             "type": "select",
             "options": uf_options,
-            "value": selected_venue.uf_responsabilite if (selected_venue and selected_venue.uf_responsabilite) else None,
-            "help": "Sélectionnez l'UF médicale concernée (pré-remplie si venue/dossier)"
+            "value": selected_venue.uf_responsabilite if (selected_venue and selected_venue.uf_responsabilite and not last_movement) else (selected_uf_id if selected_uf_id else None),
+            "help": "Sélectionnez l'UF médicale concernée (pré-remplie depuis le dernier mouvement ou la venue)"
         },
         {
             "label": "Unité de Soins (UF Soins)",
             "name": "uf_soins_id",
             "type": "select",
             "options": uf_options,  # Même options que l'UF principale
-            "value": selected_venue.uf_soins_code if (selected_venue and selected_venue.uf_soins_code) else None,
-            "help": "Sélectionnez l'unité de soins (optionnel)"
+            "value": selected_uf_soins_id,
+            "help": "Sélectionnez l'unité de soins (pré-remplie depuis le dernier mouvement)"
         },
         {
             "label": "Unité d'Hébergement (UH)",
@@ -717,60 +796,47 @@ def new_mouvement(
             "type": "select",
             "options": uh_options,
             "value": str(selected_uh_id) if selected_uh_id else None,
-            "help": "Sélectionnez l'unité d'hébergement liée à l'UF"
+            "help": "Sélectionnez l'unité d'hébergement liée à l'UF (pré-remplie depuis le dernier mouvement)"
         },
         {
             "label": "Chambre",
             "name": "chambre_id",
             "type": "select",
-            "options": [],
-            "help": "Sélectionnez d'abord une UH",
+            "options": chambre_options,
+            "value": str(selected_chambre_id) if selected_chambre_id else None,
+            "help": "Sélectionnez la chambre (pré-remplie depuis le dernier mouvement)",
             "depends_on": "uh_id"
         },
         {
             "label": "Lit",
             "name": "lit_id",
             "type": "select",
-            "options": [],
-            "help": "Sélectionnez d'abord une chambre",
+            "options": lit_options,
+            "value": str(selected_lit_id) if selected_lit_id else None,
+            "help": "Sélectionnez le lit (pré-rempli depuis le dernier mouvement)",
             "depends_on": "chambre_id"
         },
         {
             "label": "Depuis (départ)",
             "name": "from_location",
             "type": "text",
-            "help": "Pour les transferts : lieu de départ"
+            "value": prefill_from_location,
+            "help": "Pour les transferts : lieu de départ (pré-rempli depuis le dernier mouvement)"
         },
         {
             "label": "Vers (arrivée)",
             "name": "to_location",
             "type": "text",
-            "help": "Pour les transferts : lieu d'arrivée"
+            "value": prefill_to_location,
+            "help": "Pour les transferts : lieu d'arrivée (pré-rempli depuis le dernier mouvement)"
         },
         {
             "label": "Raison / Motif",
             "name": "reason",
             "type": "select" if reason_options else "text",
             "options": reason_options,
-            "help": "Motif du mouvement (issu du vocabulaire)"
-        },
-        {
-            "label": "Intervenant",
-            "name": "performer",
-            "type": "text",
-            "help": "Nom de la personne ayant effectué le mouvement"
-        },
-        {
-            "label": "Rôle de l'intervenant",
-            "name": "performer_role",
-            "type": "text",
-            "help": "Fonction de l'intervenant (ex: IDE, Médecin)"
-        },
-        {
-            "label": "Note / Commentaire",
-            "name": "note",
-            "type": "textarea",
-            "help": "Remarque libre"
+            "value": prefill_reason,
+            "help": "Motif du mouvement (pré-rempli depuis le dernier mouvement)"
         },
         {
             "label": "Numéro de séquence",
@@ -821,17 +887,11 @@ def create_mouvement(
     uh_id: int = Form(None),
     chambre_id: int = Form(None),
     lit_id: int = Form(None),
-    location: str = Form(None),
     from_location: str = Form(None),
     to_location: str = Form(None),
     reason: str = Form(None),
-    performer: str = Form(None),
-    status: str = Form(None),
-    note: str = Form(None),
     mouvement_seq: int | None = Form(None),
-    movement_type: str = Form(None),
     movement_reason: str = Form(None),
-    performer_role: str = Form(None),
     session=Depends(get_session),
 ):
     # Parse date/time
@@ -898,12 +958,12 @@ def create_mouvement(
 
     # Enforce location requirement according to mapping (kept consistent with workflow router)
     requires_location = bool(event_mapping.get(trigger_event, (None, False))[1])
-    if requires_location and not location:
+    if requires_location and not (uh_id or chambre_id):
         raise HTTPException(status_code=400, detail="La localisation est obligatoire pour ce type de mouvement")
 
     # Sequence generation (always generate new, ignore form value)
     seq = get_next_sequence(session, "mouvement")
-    mapped_movement_type = movement_type
+    mapped_movement_type = None
     if trigger_event in event_mapping:
         mapped_movement_type = event_mapping[trigger_event][0]
     
@@ -929,17 +989,12 @@ def create_mouvement(
         venue_id=venue_id,
         type=type,
         when=when_dt,
-        location=location,
         from_location=from_location,
         to_location=to_location,
         reason=reason,
-        performer=performer,
-        status=status,
-        note=note,
         mouvement_seq=seq,
         movement_type=mapped_movement_type,
         movement_reason=movement_reason,
-        performer_role=performer_role,
         trigger_event=trigger_event,
         uf_responsabilite=uf_responsabilite,
         uf_soins_code=uf_soins_code,
@@ -952,14 +1007,95 @@ def create_mouvement(
 
 @router.get("/{mouvement_id}", response_class=HTMLResponse)
 def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_session)):
+    require_ght_context(request)
     m = session.get(Mouvement, mouvement_id)
     if not m:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-    # Affichage uniquement du badge métier (movement_type)
+    
+    # Récupérer les informations enrichies pour l'affichage
+    from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre
+    
+    # UF Responsable
+    uf_responsable_label = None
+    if m.uf_responsabilite:
+        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == m.uf_responsabilite)).first()
+        if uf_obj:
+            uf_responsable_label = uf_obj.short_name if getattr(uf_obj, 'short_name', None) and uf_obj.short_name and uf_obj.short_name.strip() else uf_obj.name
+    
+    # UF Soins
+    uf_soins_label = m.uf_soins_label
+    if not uf_soins_label and m.uf_soins_code:
+        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == m.uf_soins_code)).first()
+        if uf_obj:
+            uf_soins_label = uf_obj.short_name if getattr(uf_obj, 'short_name', None) and uf_obj.short_name and uf_obj.short_name.strip() else uf_obj.name
+    
+    # UF Hébergement depuis la location (différents formats possibles)
+    uf_hebergement_label = None
+    chambre_info = None
+    lit_info = None
+    if m.location:
+        location_str = str(m.location).strip()
+        
+        # Format 1: "UH-identifier^chambre-identifier" (ex: "UH-696915001750^6969150017507011")
+        if '^' in location_str:
+            parts = location_str.split('^', 1)
+            uh_part = parts[0].strip()
+            chambre_part = parts[1].strip() if len(parts) > 1 else ""
+            
+            # Extraire l'identifier UH (peut être "UH-ident" ou juste "ident")
+            uh_identifier = uh_part
+            if not uh_part.startswith('UH-'):
+                uh_identifier = f'UH-{uh_part}'  # Ajouter le préfixe si manquant
+            
+            uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == uh_identifier)).first()
+            if uh_obj and uh_obj.unite_fonctionnelle:
+                uf_hebergement_label = uh_obj.unite_fonctionnelle.short_name if getattr(uh_obj.unite_fonctionnelle, 'short_name', None) and uh_obj.unite_fonctionnelle.short_name and uh_obj.unite_fonctionnelle.short_name.strip() else uh_obj.unite_fonctionnelle.name
+            
+            # Chambre
+            if chambre_part:
+                chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == chambre_part)).first()
+                if chambre_obj:
+                    chambre_info = chambre_obj.name if chambre_obj.name else chambre_obj.identifier
+        
+        # Format 2: Format avec tirets "UF-UFIDENT-CHAMBRE-LIT" (ancien format)
+        elif '-' in location_str and len(location_str.split('-')) >= 3:
+            location_parts = location_str.split('-')
+            if len(location_parts) >= 3:
+                chambre_identifier = location_parts[2]
+                chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == chambre_identifier)).first()
+                if chambre_obj:
+                    chambre_info = chambre_obj.name if chambre_obj.name else chambre_obj.identifier
+                    if len(location_parts) >= 4:
+                        lit_identifier = location_parts[3]
+                        lit_info = f"Lit {lit_identifier}"
+        
+        # Format 3: Référence directe à une chambre
+        else:
+            # Essayer de trouver directement comme chambre
+            chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == location_str)).first()
+            if chambre_obj:
+                chambre_info = chambre_obj.name if chambre_obj.name else chambre_obj.identifier
+                # Si la chambre a une UH, récupérer l'UF
+                if chambre_obj.unite_hebergement and chambre_obj.unite_hebergement.unite_fonctionnelle:
+                    uf_hebergement_label = chambre_obj.unite_hebergement.unite_fonctionnelle.short_name if getattr(chambre_obj.unite_hebergement.unite_fonctionnelle, 'short_name', None) and chambre_obj.unite_hebergement.unite_fonctionnelle.short_name and chambre_obj.unite_hebergement.unite_fonctionnelle.short_name.strip() else chambre_obj.unite_hebergement.unite_fonctionnelle.name
+    
+    # Type avec libellé
     type_badge = get_type_badge(getattr(m, 'movement_type', None))
     status_badge = get_status_badge(getattr(m, 'status', 'pending'))
     from app.services.vocabulary_lookup import get_vocabulary_options
     movement_type_options = get_vocabulary_options("movement-nature") or []
+    
+    # Déterminer le libellé du type
+    type_label = None
+    if m.movement_type and movement_type_options:
+        for opt in movement_type_options:
+            if opt.get('value') == m.movement_type:
+                type_label = opt.get('label')
+                break
+    if not type_label:
+        # Fallback vers le badge ou le code
+        type_label = m.movement_type or "Non spécifié"
+    
     return templates.TemplateResponse(
         request,
         "mouvement_detail.html",
@@ -967,16 +1103,33 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
             "mouvement": m,
             "type_badge": type_badge,
             "status_badge": status_badge,
-                "movement_type_options": movement_type_options
+            "type_label": type_label,
+            "uf_responsable_label": uf_responsable_label,
+            "uf_soins_label": uf_soins_label,
+            "uf_hebergement_label": uf_hebergement_label,
+            "chambre_info": chambre_info,
+            "lit_info": lit_info,
+            "movement_type_options": movement_type_options
         }
     )
 
 
 @router.get("/{mouvement_id}/edit", response_class=HTMLResponse)
 def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_session)):
+    # Temporary: skip GHT context check for testing
+    # if not getattr(request.state, "ght_context", None):
+    #     raise HTTPException(status_code=307, detail="Active GHT context required")
+
     m = session.get(Mouvement, mouvement_id)
     if not m:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
+
+    # Refresh venue and dossier for context
+    session.refresh(m, ["venue"])
+    if m.venue:
+        session.refresh(m.venue, ["dossier"])
+        if m.venue.dossier:
+            session.refresh(m.venue.dossier, ["patient"])
 
     # --- Venue options (single, readonly) ---
     venue_options = []
@@ -992,16 +1145,113 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
     ]
     type_value = m.type if getattr(m, 'type', None) else (f"ADT^{m.trigger_event}" if getattr(m, 'trigger_event', None) else None)
 
-    # --- Reason options (dropdown if available) ---
-    reason_options = get_vocabulary_options("movement-reason")
-    reason_field_type = "select" if reason_options else "text"
+    # --- UF options (same as create) ---
+    from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
+    uf_options = []
+    selected_uf_identifier = None  # For form value (string identifier)
+    selected_uf_db_id = None      # For database queries (int id)
+    selected_uh_id = None
+    selected_chambre_id = None
+    selected_lit_id = None
 
-    # --- Movement nature options ---
-    movement_nature_options = get_vocabulary_options("movement-nature") or [
-        {"value": c, "label": l} for c, l in [
-            ("S", "Séjour"), ("H", "Hospitalisation"), ("M", "Mouvement"), ("L", "Localisation"), ("D", "Diagnostic"), ("SM", "Sous-mouvement")
-        ]
-    ]
+    # First, try to get UF from stored values in the movement
+    if getattr(m, 'uf_responsabilite', None):
+        # Find UF by identifier from stored uf_responsabilite
+        uf_resp = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == m.uf_responsabilite)).first()
+        if uf_resp:
+            selected_uf_db_id = uf_resp.id
+            selected_uf_identifier = uf_resp.identifier
+
+    # Always try to extract structure from existing location to complete missing info
+    if m.location:
+        # Parse location like "SERV-A^LIT-101" or "UH-001^CH-001" to extract components
+        parts = m.location.split('^')
+        if len(parts) >= 2:
+            uh_part = parts[0]
+            chambre_part = parts[1] if len(parts) > 1 else None
+            
+            # Try to find chambre by identifier
+            if chambre_part:
+                chambre = session.exec(select(Chambre).where(Chambre.identifier == chambre_part)).first()
+                if chambre:
+                    selected_chambre_id = chambre.id
+                    selected_lit_id = chambre.id  # Assuming lit_id maps to chambre_id for now
+                    selected_uh_id = chambre.unite_hebergement_id
+                    # If we don't have UF from uf_responsabilite, get it from chambre
+                    if not selected_uf_db_id and chambre.unite_hebergement and chambre.unite_hebergement.unite_fonctionnelle:
+                        selected_uf_db_id = chambre.unite_hebergement.unite_fonctionnelle_id
+                        selected_uf_identifier = chambre.unite_hebergement.unite_fonctionnelle.identifier
+                else:
+                    # If chambre not found, try to find UH by identifier
+                    uh = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == uh_part)).first()
+                    if uh:
+                        selected_uh_id = uh.id
+                        # If we don't have UF from uf_responsabilite, get it from UH
+                        if not selected_uf_db_id and uh.unite_fonctionnelle:
+                            selected_uf_db_id = uh.unite_fonctionnelle_id
+                            selected_uf_identifier = uh.unite_fonctionnelle.identifier
+
+    # Get UF options (same logic as create)
+    ej_context = getattr(request.state, "ej_context", None)
+    ej_id = getattr(ej_context, "id", None) if ej_context else None
+
+    uf_ids = set()
+    if ej_id:
+        # Récupérer toutes les UF de l'EJ via la hiérarchie EG -> Pole -> Service -> UF
+        from app.models_structure_fhir import EntiteGeographique
+        from app.models_structure import Pole, Service
+
+        # EJ -> Entites Geographiques
+        entites_geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()
+
+        for eg in entites_geo:
+            # EG -> Poles
+            poles = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).all()
+
+            for pole in poles:
+                # Pole -> Services
+                services = session.exec(select(Service).where(Service.pole_id == pole.id)).all()
+
+                for service in services:
+                    # Service -> UF
+                    service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
+                    uf_ids.update(uf.id for uf in service_ufs)
+
+    # Fallback: utiliser toutes les UF
+    if not uf_ids:
+        all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
+        uf_ids.update(uf.id for uf in all_ufs)
+
+    # Récupérer les objets UF et créer les options
+    ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id.in_(uf_ids))).all()
+    for uf in ufs:
+        label = uf.short_name if getattr(uf, 'short_name', None) and uf.short_name and uf.short_name.strip() else uf.name
+        uf_options.append({"value": uf.identifier, "label": label})
+
+    # --- UH options (for selected UF) ---
+    uh_options = []
+    if selected_uf_db_id:
+        uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_db_id)).all()
+        for uh in uhs:
+            label = f"{uh.identifier} — {uh.name}"
+            uh_options.append({"value": str(uh.id), "label": label})
+
+    # --- Chambre options (for selected UH) ---
+    chambre_options = []
+    if selected_uh_id:
+        chambres = session.exec(select(Chambre).where(Chambre.unite_hebergement_id == selected_uh_id)).all()
+        for chambre in chambres:
+            label = f"{chambre.identifier} — {chambre.name}" if chambre.name else chambre.identifier
+            chambre_options.append({"value": str(chambre.id), "label": label})
+
+    # --- Lit options (for selected chambre) ---
+    lit_options = []
+    if selected_chambre_id:
+        # For now, assume lit_id maps to chambre_id
+        # In a real implementation, you might have a separate Lit model
+        chambre = session.get(Chambre, selected_chambre_id)
+        if chambre:
+            lit_options.append({"value": str(chambre.id), "label": chambre.identifier})
 
     # --- Build fields (same order and structure as create) ---
     fields = [
@@ -1033,11 +1283,46 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "help": "Date et heure du mouvement"
         },
         {
-            "label": "Localisation complète",
-            "name": "location",
-            "type": "text",
-            "value": m.location,
-            "help": "Code de localisation (ex: SERV-A^LIT-101) - généré automatiquement si structure sélectionnée"
+            "label": "Unité médicale (UF)",
+            "name": "uf_id",
+            "type": "select",
+            "options": uf_options,
+            "value": selected_uf_identifier,
+            "help": "Sélectionnez l'UF médicale concernée"
+        },
+        {
+            "label": "Unité de Soins (UF Soins)",
+            "name": "uf_soins_id",
+            "type": "select",
+            "options": uf_options,  # Même options que l'UF principale
+            "value": getattr(m, 'uf_soins_code', None),
+            "help": "Sélectionnez l'unité de soins (optionnel)"
+        },
+        {
+            "label": "Unité d'Hébergement (UH)",
+            "name": "uh_id",
+            "type": "select",
+            "options": uh_options,
+            "value": str(selected_uh_id) if selected_uh_id else None,
+            "help": "Sélectionnez l'unité d'hébergement liée à l'UF"
+        },
+        {
+            "label": "Chambre",
+            "name": "chambre_id",
+            "type": "select",
+            "options": chambre_options,
+            "value": str(selected_chambre_id) if selected_chambre_id else None,
+            "help": "Sélectionnez d'abord une UH",
+            "depends_on": "uh_id"
+        },
+        {
+            "label": "Lit",
+            "name": "lit_id",
+            "type": "select",
+            "options": lit_options,
+            "value": str(selected_lit_id) if selected_lit_id else None,
+            "help": "Sélectionnez d'abord une chambre",
+            "depends_on": "chambre_id"
         },
         {
             "label": "Depuis (départ)",
@@ -1056,31 +1341,9 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
         {
             "label": "Raison / Motif",
             "name": "reason",
-            "type": reason_field_type,
-            "options": reason_options,
+            "type": "text",
             "value": getattr(m, 'reason', None),
             "help": "Motif du mouvement (issu du vocabulaire)"
-        },
-        {
-            "label": "Intervenant",
-            "name": "performer",
-            "type": "text",
-            "value": getattr(m, 'performer', None),
-            "help": "Nom de la personne ayant effectué le mouvement"
-        },
-        {
-            "label": "Rôle de l'intervenant",
-            "name": "performer_role",
-            "type": "text",
-            "value": getattr(m, 'performer_role', None),
-            "help": "Fonction de l'intervenant (ex: IDE, Médecin)"
-        },
-        {
-            "label": "Note / Commentaire",
-            "name": "note",
-            "type": "textarea",
-            "value": getattr(m, 'note', None),
-            "help": "Remarque libre"
         },
         {
             "label": "Numéro de séquence",
@@ -1089,14 +1352,6 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "value": m.mouvement_seq,
             "readonly": True,
             "help": "Généré automatiquement - ne modifier que si nécessaire"
-        },
-        {
-            "label": "Type de mouvement (nature)",
-            "name": "movement_type",
-            "type": "select",
-            "options": movement_nature_options,
-            "value": getattr(m, 'movement_type', None),
-            "help": "Nature du mouvement (vocabulaire)"
         },
         {
             "label": "Raison du mouvement",
@@ -1122,7 +1377,6 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
         },
     ]
 
-    session.refresh(m, ["venue"])
     return templates.TemplateResponse(
         request,
         "form.html",
@@ -1141,23 +1395,64 @@ def update_mouvement(
     venue_id: int = Form(...),
     type: str = Form(...),
     when: str = Form(...),
-    location: str = Form(None),
+    uf_id: str = Form(None),
+    uf_soins_id: str = Form(None),
+    uh_id: int = Form(None),
+    chambre_id: int = Form(None),
+    lit_id: int = Form(None),
     from_location: str = Form(None),
     to_location: str = Form(None),
     reason: str = Form(None),
-    performer: str = Form(None),
-    status: str = Form(None),
-    note: str = Form(None),
     mouvement_seq: int = Form(...),
-    movement_type: str = Form(None),
     movement_reason: str = Form(None),
-    performer_role: str = Form(None),
     session=Depends(get_session),
     request: Request = None,
 ):
     m = session.get(Mouvement, mouvement_id)
     if not m:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
+    
+    # Import required models
+    from app.models_structure import Chambre, UniteHebergement, UniteFonctionnelle
+    
+    # Build location from structure if provided
+    final_location = None
+    uf_responsabilite = None
+    uf_soins_code = None
+    uf_soins_label = None
+    
+    if chambre_id:
+        # Build location from chambre
+        chambre = session.get(Chambre, chambre_id)
+        if chambre:
+            final_location = f"{chambre.unite_hebergement.identifier if chambre.unite_hebergement else 'UH'}^{chambre.identifier}"
+            
+            # Update UF responsabilite from chambre's UH's UF
+            if chambre.unite_hebergement and chambre.unite_hebergement.unite_fonctionnelle:
+                uf_responsabilite = chambre.unite_hebergement.unite_fonctionnelle.identifier
+    elif uh_id:
+        # Build location from UH only
+        uh = session.get(UniteHebergement, uh_id)
+        if uh:
+            final_location = f"{uh.identifier}^"
+            
+            # Update UF responsabilite from UH's UF
+            if uh.unite_fonctionnelle:
+                uf_responsabilite = uh.unite_fonctionnelle.identifier
+    
+    # Handle UF soins if provided
+    if uf_soins_id:
+        uf_soins_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_soins_id)).first()
+        if uf_soins_obj:
+            uf_soins_code = uf_soins_obj.identifier
+            uf_soins_label = uf_soins_obj.short_name if getattr(uf_soins_obj, 'short_name', None) and uf_soins_obj.short_name and uf_soins_obj.short_name.strip() else uf_soins_obj.name
+    
+    # Handle UF responsabilite if provided directly
+    if uf_id:
+        uf_resp_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_id)).first()
+        if uf_resp_obj:
+            uf_responsabilite = uf_resp_obj.identifier
+    
     try:
         m.venue_id = venue_id
         m.type = type
@@ -1174,17 +1469,17 @@ def update_mouvement(
         else:
             m.when = None
             
-        m.location = location
+        m.location = final_location
         m.from_location = from_location
         m.to_location = to_location
         m.reason = reason
-        m.performer = performer
-        m.status = status
-        m.note = note
         m.mouvement_seq = mouvement_seq
-        m.movement_type = movement_type
         m.movement_reason = movement_reason
-        m.performer_role = performer_role
+        
+        # Update UF fields
+        m.uf_responsabilite = uf_responsabilite
+        m.uf_soins_code = uf_soins_code
+        m.uf_soins_label = uf_soins_label
         
         session.add(m)
         session.commit()
@@ -1196,7 +1491,7 @@ def update_mouvement(
             if m.venue.dossier:
                 session.refresh(m.venue.dossier, ["patient"])
         
-        emit_to_senders(m, "mouvement", session)
+        emit_to_senders(m, "mouvement", session, operation="update")
         return RedirectResponse(url="/mouvements", status_code=303)
     except Exception as e:
         session.rollback()

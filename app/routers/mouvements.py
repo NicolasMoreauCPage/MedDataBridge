@@ -892,8 +892,8 @@ def create_mouvement(
     if requires_location and not location:
         raise HTTPException(status_code=400, detail="La localisation est obligatoire pour ce type de mouvement")
 
-    # Sequence generation (fallback when not provided)
-    seq = mouvement_seq or get_next_sequence(session, "mouvement")
+    # Sequence generation (always generate new, ignore form value)
+    seq = get_next_sequence(session, "mouvement")
     mapped_movement_type = movement_type
     if trigger_event in event_mapping:
         mapped_movement_type = event_mapping[trigger_event][0]

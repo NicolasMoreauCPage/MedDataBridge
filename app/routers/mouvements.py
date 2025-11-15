@@ -1203,7 +1203,7 @@ def get_chambres_for_uh(uh_id: int, session=Depends(get_session)):
         ).all()
         
         options = [
-            {"value": str(c.id), "label": f"{c.identifier} — {c.name}"} 
+            {"value": str(c.id), "label": c.name} 
             for c in chambres
         ]
         return JSONResponse({"success": True, "options": options})
@@ -1231,7 +1231,7 @@ def get_unites_hebergement_for_uf(uf_id: str, session=Depends(get_session)):
         ).all()
         
         options = [
-            {"value": str(uh.id), "label": f"{uh.identifier} — {uh.name}"}
+            {"value": str(uh.id), "label": uh.name}
             for uh in uhs
         ]
         return JSONResponse({"success": True, "options": options})
@@ -1250,7 +1250,7 @@ def get_lits_for_chambre(chambre_id: int, session=Depends(get_session)):
         ).all()
         
         options = [
-            {"value": str(l.id), "label": f"{l.identifier} — {l.name}"} 
+            {"value": str(l.id), "label": l.name} 
             for l in lits
         ]
         return JSONResponse({"success": True, "options": options})

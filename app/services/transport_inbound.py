@@ -626,10 +626,13 @@ def _handle_z99_updates(message: str, session: Session) -> None:
         logger.info("Created placeholder patient for Z99 update", extra={"identifier": identifier})
         return patient
 
+    class DossierAlreadyExistsError(Exception):
+        pass
+
     def _ensure_dossier(seq_value: int, updates: dict) -> Dossier:
         dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == seq_value)).first()
         if dossier:
-            return dossier
+            raise DossierAlreadyExistsError(f"Un dossier avec le numéro {seq_value} existe déjà.")
 
         patient = _ensure_patient(seq_value, updates)
         dossier = Dossier(
@@ -718,17 +721,23 @@ def _handle_z99_updates(message: str, session: Session) -> None:
 
             obj = None
             entity_lc = entity.lower()
-            if entity_lc.startswith("doss"):
-                obj = _ensure_dossier(seq_value, updates)
-            elif entity_lc.startswith("ven"):
-                obj = _ensure_venue(seq_value, updates)
-            elif entity_lc.startswith("mouv") or entity_lc.startswith("mvt"):
-                obj = _ensure_mouvement(seq_value, updates)
-            elif entity_lc.startswith("pat"):
-                obj = _ensure_patient(seq_value, updates)
-            else:
-                logger.warning("Unsupported Z99 entity encountered", extra={"entity": entity})
-                continue
+            try:
+                if entity_lc.startswith("doss"):
+                    obj = _ensure_dossier(seq_value, updates)
+                elif entity_lc.startswith("ven"):
+                    obj = _ensure_venue(seq_value, updates)
+                elif entity_lc.startswith("mouv") or entity_lc.startswith("mvt"):
+                    obj = _ensure_mouvement(seq_value, updates)
+                elif entity_lc.startswith("pat"):
+                    obj = _ensure_patient(seq_value, updates)
+                else:
+                    logger.warning("Unsupported Z99 entity encountered", extra={"entity": entity})
+                    continue
+            except DossierAlreadyExistsError as e:
+                # Générer acquittement négatif avec libellé d'erreur compréhensible
+                ack = build_ack(message, code="AE", text=str(e))
+                logger.error(f"Rejet applicatif: {str(e)}")
+                return ack
 
             if not obj:
                 continue
@@ -957,11 +966,18 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                     return ack
                 
                 try:
-                    _handle_z99_updates(msg, session)
+                    ack_or_none = _handle_z99_updates(msg, session)
+                    if ack_or_none is not None:
+                        # Rejet applicatif, rollback session
+                        session.rollback()
+                        log.status = "rejected"
+                        log.ack_payload = ack_or_none
+                        return ack_or_none
                     log.status = "processed"
                     ack = build_ack(msg, ack_code="AA", text="Z99 updates applied")
                 except Exception as exc:
                     logger.exception("Error processing Z99 message")
+                    session.rollback()
                     log.status = "error"
                     ack = build_ack(msg, ack_code="AE", text=f"Z99 processing failed: {str(exc)[:80]}")
                 log.ack_payload = ack

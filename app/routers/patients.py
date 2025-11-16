@@ -125,13 +125,27 @@ def list_patients(request: Request, session=Depends(get_session)):
     # Liste paginée des patients (vue HTML)
     ght_context = getattr(request.state, "ght_context", None)
     ej_context = getattr(request.state, "ej_context", None)
+    
+    # Debug temporaire
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[list_patients] EJ context: {ej_context} (id: {getattr(ej_context, 'id', None)})")
+    logger.info(f"[list_patients] GHT context: {ght_context} (id: {getattr(ght_context, 'id', None)})")
+    
     query = select(Patient)
     # Si EJ sélectionné, filtrer uniquement par EJ
     if ej_context and getattr(ej_context, "id", None):
+        logger.info(f"[list_patients] Filtering by EJ: {ej_context.id}")
         query = query.where(Patient.entite_juridique_id == ej_context.id)
     elif ght_context and getattr(ght_context, "id", None):
+        logger.info(f"[list_patients] Filtering by GHT: {ght_context.id}")
         query = query.where(Patient.ght_context_id == ght_context.id)
+    else:
+        logger.info("[list_patients] No context filtering")
+        
     patients = session.exec(query).all()
+    logger.info(f"[list_patients] Found {len(patients)} patients")
+    
     rows = [
         {
             "cells": [p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],

@@ -178,7 +178,7 @@ def import_mouvement_from_hl7(hl7_message: str, venue, session) -> Optional[Mouv
                 mouvement_seq = int(zbe_fields[1])
             except Exception:
                 pass
-    if not mouvement_seq and pv1:
+    if mouvement_seq is None and pv1:
         pv1_fields = pv1.split('|')
         if len(pv1_fields) > 19 and pv1_fields[19]:
             try:

@@ -1043,6 +1043,8 @@ async def emit_to_senders_async(
     sent_logs: list[MessageLog] = []
 
     for endpoint in endpoints:
+        import time
+        from datetime import datetime
         hl7_message = generate_pam_hl7(
             entity,
             entity_type,
@@ -1051,11 +1053,17 @@ async def emit_to_senders_async(
             forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
             operation=operation,
         )
-        # Ensure hl7_message is always a non-empty string
         if hl7_message is None or (isinstance(hl7_message, str) and hl7_message.strip() == ""):
             hl7_message = "[Emission error: HL7 message not generated]"
-
-        # Generate FHIR payload
+        # Extract MSH-10 control_id from HL7 message for deduplication
+        try:
+            from app.services.mllp import parse_msh_fields
+            hl7_fields = parse_msh_fields(hl7_message)
+            control_id = hl7_fields.get("control_id")
+        except Exception:
+            control_id = None
+        # Use control_id for correlation_id if available, else fallback to entity.correlation_id
+        correlation_id = control_id or getattr(entity, "correlation_id", None)
         fhir_payload = generate_fhir(
             entity,
             entity_type,
@@ -1063,89 +1071,188 @@ async def emit_to_senders_async(
             forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
             forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
         )
-
+        # ...existing code...
+        max_retry = 3
+        retry = 0
         if endpoint.kind == "MLLP":
-            status = "generated"
-            ack_payload = ""
-            # Run PAM validation for outbound HL7 and store on log
-            try:
-                val = validate_pam(hl7_message, direction="out")
-                pam_status = val.level
-                pam_issues = json.dumps([i.__dict__ for i in val.issues], ensure_ascii=False)
-            except Exception:
-                pam_status = "warn"
-                pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
-            try:
-                if endpoint.host and endpoint.port:
-                    ack_payload = await send_mllp(endpoint.host, endpoint.port, hl7_message)
-                    status = "sent"
-                else:
-                    ack_payload = "[No host/port configured]"
-                    status = "error"
-            except Exception as exc:  # noqa: BLE001 - we want to log the failure
-                status = "error"
-                ack_payload = str(exc)
-            # Ensure payload is always a non-empty string
-            payload_str = hl7_message if hl7_message else "[Emission error: HL7 message missing]"
-            sent_logs.append(
-                MessageLog(
-                    direction="out",
-                    kind="MLLP",
-                    endpoint_id=endpoint.id,
-                    payload=payload_str,
-                    ack_payload=ack_payload or "",
-                    status=status,
-                    pam_validation_status=pam_status,
-                    pam_validation_issues=pam_issues,
-                )
-            )
+            while retry < max_retry:
+                while retry < max_retry:
+                    status = "generated"
+                    ack_payload = ""
+                    try:
+                        val = validate_pam(hl7_message, direction="out")
+                        pam_status = val.level
+                        pam_issues = json.dumps([i.__dict__ for i in val.issues], ensure_ascii=False)
+                    except Exception:
+                        pam_status = "warn"
+                        pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
+                    try:
+                        if endpoint.host and endpoint.port:
+                            ack_payload = await send_mllp(endpoint.host, endpoint.port, hl7_message)
+                            # Generalize ACK parsing for all HL7 emission formats
+                            from app.services.mllp import parse_msh_fields
+                            ack_lines = ack_payload.split("\r") if ack_payload else []
+                            msa_line = next((l for l in ack_lines if l.startswith("MSA|")), None)
+                            ack_code = None
+                            if msa_line:
+                                msa_parts = msa_line.split("|")
+                                if len(msa_parts) > 1:
+                                    ack_code = msa_parts[1]
+                                if ack_code in ("AE", "AR"):
+                                    status = "error"
+                                else:
+                                    status = "sent"
+                            else:
+                                ack_payload = "[No host/port configured]"
+                                status = "error"
+                    except Exception as exc:
+                        status = "error"
+                        ack_payload = str(exc)
+                    payload_str = hl7_message if hl7_message else "[Emission error: HL7 message missing]"
+                    # Deduplication: check for existing log by correlation_id if available
+                    if correlation_id:
+                        existing_log = session.exec(
+                            select(MessageLog)
+                            .where(MessageLog.endpoint_id == endpoint.id)
+                            .where(MessageLog.direction == "out")
+                            .where(MessageLog.correlation_id == correlation_id)
+                        ).first()
+                    else:
+                        existing_log = session.exec(
+                            select(MessageLog)
+                            .where(MessageLog.endpoint_id == endpoint.id)
+                            .where(MessageLog.kind == "MLLP")
+                            .where(MessageLog.status.in_(["error", "pending"]))
+                            .order_by(MessageLog.created_at.desc())
+                        ).first()
+                    if existing_log:
+                        existing_log.payload = payload_str
+                        existing_log.ack_payload = ack_payload or ""
+                        existing_log.status = status
+                        existing_log.pam_validation_status = pam_status
+                        existing_log.pam_validation_issues = pam_issues
+                        existing_log.created_at = datetime.utcnow()
+                        session.commit()
+                    else:
+                        log = MessageLog(
+                            direction="out",
+                            kind="MLLP",
+                            endpoint_id=endpoint.id,
+                            payload=payload_str,
+                            ack_payload=ack_payload or "",
+                            status=status,
+                            pam_validation_status=pam_status,
+                            pam_validation_issues=pam_issues,
+                            correlation_id=correlation_id,
+                        )
+                        session.add(log)
+                        session.commit()
+                    if status == "sent":
+                        break
+                    retry += 1
+                    if retry < max_retry:
+                        time.sleep(60)
+            # End of MLLP loop
             continue
-
         if endpoint.kind == "FHIR":
             targets = _build_fhir_targets(endpoint)
             if not targets:
                 payload_str = json.dumps(fhir_payload, default=str)
-                sent_logs.append(
-                    MessageLog(
+                # Deduplication: check for existing log by correlation_id if available
+                if correlation_id:
+                    existing_log = session.exec(
+                        select(MessageLog)
+                        .where(MessageLog.endpoint_id == endpoint.id)
+                        .where(MessageLog.direction == "out")
+                        .where(MessageLog.correlation_id == correlation_id)
+                    ).first()
+                else:
+                    existing_log = session.exec(
+                        select(MessageLog)
+                        .where(MessageLog.endpoint_id == endpoint.id)
+                        .where(MessageLog.kind == "FHIR")
+                        .where(MessageLog.status.in_(["error", "pending"]))
+                        .order_by(MessageLog.created_at.desc())
+                    ).first()
+                if existing_log:
+                    existing_log.payload = payload_str
+                    existing_log.ack_payload = "Endpoint FHIR non configuré"
+                    existing_log.status = "error"
+                    existing_log.created_at = datetime.utcnow()
+                    session.commit()
+                else:
+                    log = MessageLog(
                         direction="out",
                         kind="FHIR",
                         endpoint_id=endpoint.id,
                         payload=payload_str,
                         ack_payload="Endpoint FHIR non configuré",
                         status="error",
+                        correlation_id=correlation_id,
                     )
-                )
+                    session.add(log)
+                    session.commit()
                 continue
-
             for base_url, auth_kind, auth_token in targets:
-                status = "generated"
-                ack_payload = ""
-                payload_str = json.dumps(fhir_payload, default=str)
-                try:
-                    status_code, response_body = await send_fhir(
-                        base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
-                    )
-                    status = "sent" if 200 <= status_code < 300 else "error"
-                    ack_payload = json.dumps(response_body or {}, default=str)
-                except Exception as exc:  # noqa: BLE001
-                    status = "error"
-                    ack_payload = str(exc)
-                sent_logs.append(
-                    MessageLog(
-                        direction="out",
-                        kind="FHIR",
-                        endpoint_id=endpoint.id,
-                        payload=payload_str,
-                        ack_payload=ack_payload,
-                        status=status,
-                    )
-                )
+                retry = 0
+                while retry < max_retry:
+                    status = "generated"
+                    ack_payload = ""
+                    payload_str = json.dumps(fhir_payload, default=str)
+                    try:
+                        status_code, response_body = await send_fhir(
+                            base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
+                        )
+                        status = "sent" if 200 <= status_code < 300 else "error"
+                        ack_payload = json.dumps(response_body or {}, default=str)
+                    except Exception as exc:
+                        status = "error"
+                        ack_payload = str(exc)
+                    # Deduplication: check for existing log by correlation_id if available
+                    if correlation_id:
+                        existing_log = session.exec(
+                            select(MessageLog)
+                            .where(MessageLog.endpoint_id == endpoint.id)
+                            .where(MessageLog.direction == "out")
+                            .where(MessageLog.correlation_id == correlation_id)
+                        ).first()
+                    else:
+                        existing_log = session.exec(
+                            select(MessageLog)
+                            .where(MessageLog.endpoint_id == endpoint.id)
+                            .where(MessageLog.kind == "FHIR")
+                            .where(MessageLog.status.in_(["error", "pending"]))
+                            .order_by(MessageLog.created_at.desc())
+                        ).first()
+                    if existing_log:
+                        existing_log.payload = payload_str
+                        existing_log.ack_payload = ack_payload
+                        existing_log.status = status
+                        existing_log.created_at = datetime.utcnow()
+                        session.commit()
+                    else:
+                        log = MessageLog(
+                            direction="out",
+                            kind="FHIR",
+                            endpoint_id=endpoint.id,
+                            payload=payload_str,
+                            ack_payload=ack_payload,
+                            status=status,
+                            correlation_id=correlation_id,
+                        )
+                        session.add(log)
+                        session.commit()
+                    if status == "sent":
+                        break
+                    retry += 1
+                    if retry < max_retry:
+                        time.sleep(60)
+            # End of FHIR loop
             continue
 
     if not endpoints:
         # No sender configured: store generated payloads for audit trail.
         hl7_message = generate_pam_hl7(entity, entity_type, session)
-        # Validate PAM for audit
         try:
             val = validate_pam(hl7_message, direction="out")
             pam_status = val.level
@@ -1154,33 +1261,26 @@ async def emit_to_senders_async(
             pam_status = "warn"
             pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
         fhir_payload = generate_fhir(entity, entity_type, session)
-        sent_logs.append(
-            MessageLog(
-                direction="out",
-                kind="MLLP",
-                endpoint_id=None,
-                payload=hl7_message,
-                ack_payload="",
-                status="generated",
-                pam_validation_status=pam_status,
-                pam_validation_issues=pam_issues,
-            )
+        log1 = MessageLog(
+            direction="out",
+            kind="MLLP",
+            endpoint_id=None,
+            payload=hl7_message,
+            ack_payload="",
+            status="generated",
+            pam_validation_status=pam_status,
+            pam_validation_issues=pam_issues,
         )
-        sent_logs.append(
-            MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=None,
-                payload=json.dumps(fhir_payload, default=str),
-                ack_payload="",
-                status="generated",
-            )
+        log2 = MessageLog(
+            direction="out",
+            kind="FHIR",
+            endpoint_id=None,
+            payload=json.dumps(fhir_payload, default=str),
+            ack_payload="",
+            status="generated",
         )
-
-    for log in sent_logs:
-        session.add(log)
-
-    if sent_logs:
+        session.add(log1)
+        session.add(log2)
         session.commit()
 
 

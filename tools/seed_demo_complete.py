@@ -22,7 +22,7 @@ from sqlmodel import Session, select
 from app.db import engine, init_db, get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_structure import LocationPhysicalType, LocationServiceType
 
@@ -357,7 +357,7 @@ def _create_patients_and_movements(session: Session):
     ]
     
     # Récupérer toutes les EJ et leur structure
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
     ejs = session.exec(select(EntiteJuridique)).all()
     # Pour chaque patient, répartir sur les EJ
     for idx, ps in enumerate(patient_specs, start=1):

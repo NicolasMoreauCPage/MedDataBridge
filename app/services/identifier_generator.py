@@ -16,7 +16,7 @@ from typing import Optional, Tuple
 from sqlmodel import Session, select, func
 
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure_fhir import IdentifierNamespace
+from app.models_structure import IdentifierNamespace
 from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq
 
 

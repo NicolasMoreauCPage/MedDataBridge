@@ -29,7 +29,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.db import engine
 from app.db_session_factory import session_factory
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_shared import SystemEndpoint
 from app.services.file_poller import FilePollerService
 from app.models import Patient, Dossier, Venue, Mouvement

@@ -12,7 +12,7 @@ from app.models import Patient, Dossier, Venue, Mouvement, Sequence
 from app.models_contacts import PatientContact, VenueContact
 from app.models_endpoints import SystemEndpoint, MessageLog
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_identifiers import Identifier
 from app import models_scenarios  # ensure scenario models are registered

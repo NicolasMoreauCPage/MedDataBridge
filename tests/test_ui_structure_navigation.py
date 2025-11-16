@@ -3,7 +3,7 @@
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 
 
 def _ensure_context(client: TestClient, session: Session):

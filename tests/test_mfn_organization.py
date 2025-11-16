@@ -10,7 +10,7 @@ Objectifs:
 import pytest
 from datetime import datetime
 from sqlmodel import Session, create_engine, select
-from app.models_structure_fhir import EntiteJuridique, GHTContext
+from app.models_structure import EntiteJuridique, GHTContext
 from app.services.mfn_organization import generate_mfn_organization_message
 
 
@@ -18,7 +18,7 @@ from app.services.mfn_organization import generate_mfn_organization_message
 def memory_session():
     """Session en mémoire pour tests isolés avec un GHT par défaut"""
     engine = create_engine("sqlite:///:memory:")
-    from app.models_structure_fhir import SQLModel
+    from sqlmodel import SQLModel
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         # Créer un GHT par défaut pour tous les tests

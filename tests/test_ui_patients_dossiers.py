@@ -26,7 +26,7 @@ def test_patient_new_form_loads_full(client: TestClient):
 
 def test_create_patient_and_view(client: TestClient, session: Session):
     # Un contexte GHT est requis par le routeur patients, simuler sélection via admin GHT si présent
-    from app.models_structure_fhir import GHTContext
+    from app.models_structure import GHTContext
     ctx = session.exec(select(GHTContext).where(GHTContext.code=="GHT-DEMO-INTEROP")).first()
     if not ctx:
         ctx = GHTContext(name="GHT Démo Interop", code="GHT-DEMO-INTEROP", is_active=True)
@@ -67,7 +67,7 @@ def test_dossiers_list_and_new(client: TestClient, session: Session):
 
 def test_create_dossier_and_detail(client: TestClient, session: Session):
     # Sélection contexte GHT requis
-    from app.models_structure_fhir import GHTContext
+    from app.models_structure import GHTContext
     ctx = session.exec(select(GHTContext).where(GHTContext.code=="GHT-DEMO-INTEROP")).first()
     if not ctx:
         ctx = GHTContext(name="GHT Démo Interop", code="GHT-DEMO-INTEROP", is_active=True)

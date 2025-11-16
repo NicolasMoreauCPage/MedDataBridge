@@ -12,7 +12,7 @@ from sqlmodel import Session, select, func, and_
 from collections import Counter
 
 from app.models_endpoints import MessageLog
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 
 
 def compute_conformity_rate(

@@ -8,9 +8,16 @@ Utilisation (depuis la racine du projet, venv activé):
 """
 from __future__ import annotations
 
+
+import sys
+import os
 from sqlmodel import Session, select
+# Ajout du dossier racine au sys.path si nécessaire pour les imports 'app.*'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 from app.db import engine, init_db
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.structure_seed import (
     ensure_extended_demo_ght,
     ensure_endpoints_for_context,
@@ -43,6 +50,22 @@ def main():
         print("[ENDPOINTS] Ensuring endpoints for each EJ...")
         stats_ep = ensure_endpoints_for_context(session, context, finess_list)
         print("  -> done", stats_ep)
+
+        # Ajout endpoint de lecture MFN pour le GHT de démo
+        from app.models_shared import SystemEndpoint, EndpointKind, EndpointRole
+        mfn_inbox_path = "/home/nico/Travail/Fhir_MedBridgeData/Interfaces/Entrant/MFN/In/"
+        endpoint_mfn = SystemEndpoint(
+            name="MFN File Reader Demo GHT",
+            kind=EndpointKind.FILE,
+            role=EndpointRole.RECEIVER,
+            is_enabled=True,
+            ght_context_id=context.id,
+            inbox_path=mfn_inbox_path,
+            file_extensions=".hl7,.txt",
+        )
+        session.add(endpoint_mfn)
+        session.commit()
+        print(f"[ENDPOINT] MFN file reader created for demo GHT: {mfn_inbox_path}")
 
         print("[NAMESPACES] Ensuring identifier namespaces for each EJ...")
         stats_ns = ensure_namespaces_for_context(session, context, finess_list)

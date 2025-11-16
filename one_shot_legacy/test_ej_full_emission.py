@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlmodel import Session, select
 
 from app.db import engine
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_shared import MessageLog
 from app.services.entity_events_structure import register_structure_entity_events
 

@@ -3,7 +3,7 @@ Test de la route detail_endpoint pour identifier l'erreur
 """
 from sqlmodel import Session, create_engine, select
 from app.models_transport import SystemEndpoint
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.routers.endpoints import registry
 
 engine = create_engine("sqlite:///poc.db")

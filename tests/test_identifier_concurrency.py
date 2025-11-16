@@ -1,7 +1,7 @@
 import threading
 from sqlmodel import SQLModel, Session, create_engine
 from sqlalchemy.pool import StaticPool
-from app.models_structure_fhir import IdentifierNamespace
+from app.models_structure import IdentifierNamespace
 from app.models_identifiers import IdentifierType
 from app.services.identifier_generator import generate_and_persist_identifier
 

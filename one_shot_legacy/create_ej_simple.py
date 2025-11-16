@@ -2,7 +2,7 @@
 from datetime import datetime
 from sqlmodel import Session
 from app.db import engine
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from sqlmodel import select
 
 with Session(engine) as session:

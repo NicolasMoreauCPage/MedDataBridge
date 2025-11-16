@@ -3,7 +3,7 @@
 
 from sqlmodel import Session, select
 from app.db import engine
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from app.models_structure import Pole, Service
 
 s = Session(engine)

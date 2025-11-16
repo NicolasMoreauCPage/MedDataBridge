@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from app.db import engine
 from app.models_shared import SystemEndpoint
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 
 def print_endpoints():
     with Session(engine) as session:

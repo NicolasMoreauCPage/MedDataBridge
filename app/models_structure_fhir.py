@@ -5,117 +5,15 @@ from sqlmodel import Field, Relationship, SQLModel
 from app.models_shared import SystemEndpoint
 
 if TYPE_CHECKING:
-    from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
+    from app.models_structure import EntiteJuridique, GHTContext, IdentifierNamespace, EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 
-class GHTContext(SQLModel, table=True):
-    """Contexte d'un Groupement Hospitalier de Territoire (GHT)"""
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(index=True)  # Nom du GHT
-    code: str = Field(index=True, default="")  # Code unique du GHT
-    description: Optional[str] = None
-    is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
-    # Configuration FHIR
-    oid_racine: Optional[str] = None  # OID racine pour le GHT
-    fhir_server_url: Optional[str] = None  # URL du serveur FHIR
 
-    # Relations
-    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="ght_context")
-    entites_juridiques: List["EntiteJuridique"] = Relationship(back_populates="ght_context")
-    endpoints: List["SystemEndpoint"] = Relationship(back_populates="ght_context")
-
-class IdentifierNamespace(SQLModel, table=True):
-    """Espace de noms pour les identifiants au sein d'un GHT ou d'une EJ"""
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: Optional[str] = Field(default=None, description="Nom descriptif (ex: 'IPP EJ Principal')", nullable=True)
-    system: str  # URI de l'espace de noms (ex: "urn:oid:1.2.250.1.71.1.2.2")
-    oid: Optional[str] = None  # OID associé si différent de l'URI
-    type: str  # Type d'identifiant (ex: "IPP", "NDA", "FINESS", etc.)
-    description: Optional[str] = None
-    is_active: bool = Field(default=True)
-    
-    # Configuration des préfixes pour génération d'identifiants de test
-    prefix_pattern: Optional[str] = Field(
-        default=None,
-        description="Pattern de préfixe pour génération (ex: '9...', '91...', '501...'). Les '.' représentent des chiffres générés."
-    )
-    prefix_mode: Optional[str] = Field(
-        default="fixed",
-        description="Mode de génération: 'fixed' (préfixe fixe + séquence), 'range' (plage min-max)"
-    )
-    prefix_min: Optional[int] = Field(
-        default=None,
-        description="Valeur minimale pour mode 'range' (ex: 9000000 pour plage 9000000-9999999)"
-    )
-    prefix_max: Optional[int] = Field(
-        default=None,
-        description="Valeur maximale pour mode 'range' (ex: 9999999)"
-    )
-    updated_at: Optional[datetime] = Field(default=None, description="Date de dernière mise à jour du namespace")
-
-    # Relations
-    ght_context_id: int = Field(foreign_key="ghtcontext.id")
-    ght_context: GHTContext = Relationship(back_populates="namespaces")
-    
-    # Namespace peut être lié à une EJ spécifique (IPP, NDA, etc.) ou au niveau GHT (structure)
-    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
-    entite_juridique: Optional["EntiteJuridique"] = Relationship(back_populates="namespaces")
-    
-    # Relations hiérarchiques pour namespaces spécifiques à des niveaux structurels
-    entite_geographique_id: Optional[int] = Field(default=None, foreign_key="entitegeographique.id")
-    entite_geographique: Optional["EntiteGeographique"] = Relationship(back_populates="namespaces")
-    
-    pole_id: Optional[int] = Field(default=None, foreign_key="pole.id")
-    pole: Optional["Pole"] = Relationship(back_populates="namespaces")
-    
-    service_id: Optional[int] = Field(default=None, foreign_key="service.id")
-    service: Optional["Service"] = Relationship(back_populates="namespaces")
-    
-    unite_fonctionnelle_id: Optional[int] = Field(default=None, foreign_key="unitefonctionnelle.id")
-    unite_fonctionnelle: Optional["UniteFonctionnelle"] = Relationship(back_populates="namespaces")
-    
-    unite_hebergement_id: Optional[int] = Field(default=None, foreign_key="unitehebergement.id")
-    unite_hebergement: Optional["UniteHebergement"] = Relationship(back_populates="namespaces")
-    
-    chambre_id: Optional[int] = Field(default=None, foreign_key="chambre.id")
-    chambre: Optional["Chambre"] = Relationship(back_populates="namespaces")
-    
-    lit_id: Optional[int] = Field(default=None, foreign_key="lit.id")
-    lit: Optional["Lit"] = Relationship(back_populates="namespaces")
 
     @property
     def code(self) -> Optional[str]:
         """Compatibility property: return oid if present, otherwise system."""
         return getattr(self, "oid", None) or getattr(self, "system", None)
 
-class EntiteJuridique(SQLModel, table=True):
-    """Structure juridique (ES_JURIDIQUE) - niveau 1"""
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
-    short_name: Optional[str] = None
-    description: Optional[str] = None
-    
-    # Identifiants officiels
-    finess_ej: str = Field(index=True)  # FINESS entité juridique
-    siren: Optional[str] = None
-    siret: Optional[str] = None
-    
-    # Adresse
-    address_line: Optional[str] = None
-    postal_code: Optional[str] = None
-    city: Optional[str] = None
-    country: str = "FR"
-    
-    # État
-    is_active: bool = Field(default=True)
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    
-    # Métadonnées
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
     # Conformité stricte IHE PAM France (désactive A08). Active par défaut.
     strict_pam_fr: bool = Field(default=True, description="Si vrai, événements A08 interdits (émission/réception).")
 
@@ -145,33 +43,6 @@ class EntiteJuridique(SQLModel, table=True):
         """
         return getattr(self, "finess_ej", None)
 
-class EntiteGeographique(SQLModel, table=True):
-    """Structure géographique (ES_GEOGRAPHIQUE) - niveau 2"""
-    id: Optional[int] = Field(default=None, primary_key=True)
-    # Identifier may be omitted in some tests/imports; generate a default
-    # identifier based on timestamp to ensure uniqueness for in-memory DB.
-    identifier: str = Field(default_factory=lambda: f"eg-{int(datetime.utcnow().timestamp()*1000)}", index=True, unique=True)  # ID_GLBL
-    name: str
-    short_name: Optional[str] = None
-    description: Optional[str] = None
-
-    # Statut/location (aligné sur BaseLocation)
-    status: str = Field(default="active")
-    mode: str = Field(default="instance")
-    physical_type: Optional[str] = Field(default="si")
-
-    # Identifiants officiels
-    # Accept both `finess` and legacy `finess_eg` in tests/imports
-    finess: Optional[str] = Field(default=None, index=True)  # FINESS entité géographique
-    finess_eg: Optional[str] = Field(default=None, description="Legacy alias for finess")
-    siren: Optional[str] = None
-    siret: Optional[str] = None
-
-    # Adresse
-    address_text: Optional[str] = None
-    address_line1: Optional[str] = None
-    address_line2: Optional[str] = None
-    address_line3: Optional[str] = None
     address_postalcode: Optional[str] = None
     address_city: Optional[str] = None
     address_country: Optional[str] = "FR"

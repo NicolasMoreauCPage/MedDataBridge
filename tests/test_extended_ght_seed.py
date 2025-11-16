@@ -8,7 +8,7 @@ Objectifs:
 """
 from sqlmodel import Session, select
 from app.db import engine, init_db
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.models_shared import SystemEndpoint
 from app.models import Patient, Mouvement, Venue
 from app.services.structure_seed import EXTENDED_GHT_DATA, ensure_extended_demo_ght, ensure_endpoints_for_context, seed_demo_population
@@ -17,7 +17,7 @@ from app.services.structure_seed import EXTENDED_GHT_DATA, ensure_extended_demo_
 def test_extended_seed_basics():
     init_db()
     with Session(engine) as session:
-        from app.models_structure_fhir import GHTContext
+        from app.models_structure import GHTContext
         existing_ctx = session.exec(select(GHTContext)).first()
         if not existing_ctx:
             existing_ctx = GHTContext(name="DEMO GHT", code="GHT-DEMO")

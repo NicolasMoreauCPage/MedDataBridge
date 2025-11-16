@@ -23,7 +23,7 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.db import get_session
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models import Patient, Dossier
 from app.models_endpoints import MessageLog
 from sqlalchemy import select, func
@@ -141,7 +141,7 @@ async def get_error_message_count(request: Request) -> int:
                         ght_id = request.session.get("ght_context_id")
                         if ght_id:
                             # Filtrer par EJs du GHT
-                            from app.models_structure_fhir import EntiteJuridique
+                            from app.models_structure import EntiteJuridique
                             ej_ids = [ej.id for ej in session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == ght_id)).all()]
                             if ej_ids:
                                 query = query.where(MessageLog.ej_emetteur_id.in_(ej_ids))

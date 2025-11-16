@@ -1,7 +1,7 @@
 """Script pour réimporter un message MFN spécifique."""
 from app.db import get_session
 from app.models_shared import MessageLog
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.mfn_importer import import_mfn
 from sqlmodel import select
 

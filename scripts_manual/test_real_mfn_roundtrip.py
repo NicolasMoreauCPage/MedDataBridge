@@ -9,7 +9,7 @@ sys.path.insert(0, str(project_root))
 
 from app.db import init_db, engine
 from app.db_session_factory import session_factory
-from app.models_structure_fhir import GHTContext, EntiteJuridique, IdentifierNamespace
+from app.models_structure import GHTContext, EntiteJuridique, IdentifierNamespace
 from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services.mfn_structure import process_mfn_message, generate_mfn_message
 

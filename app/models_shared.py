@@ -5,7 +5,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 # Forward-declare types for static analysis without creating import cycles
 if TYPE_CHECKING:  # pragma: no cover - import only for type checkers
-    from app.models_structure_fhir import GHTContext, EntiteJuridique
+    from app.models_structure import GHTContext, EntiteJuridique
     from app.models_endpoints import MLLPConfig, FHIRConfig
 
 class MessageLog(SQLModel, table=True):

@@ -10,7 +10,8 @@
 L'ensemble complet du workflow IHMS (Identité, Hospitalisation, Mouvement, Séjour) a été implémenté et validé avec succès. **Tous les messages HL7 v2.5 générés conforment à la spécification IHE PAM France** avec ZBE segments correctement formatés. **Détection automatique A06/A07** basée sur l'historique des mouvements sur la venue.
 
 ### 🎯 Objectif Initial
-```
+
+```text
 "Génère un ensemble de tests où tu va manipuler les IHMS [...] 
 et tu vérifie que les messages émis dans les différents standards 
 sont conforme en utilisant le moteur de validation"
@@ -20,6 +21,7 @@ déja un passage [...] en externe/urgence"
 ```
 
 ### ✅ État Final
+
 - **7 entités IHMS testées** (Patient, Dossier, Venue×2, Mouvement×3+)
 - **0 erreur de validation HL7**
 - **ZBE segments**: Tous conformes (ZBE-7, ZBE-8, ZBE-9)
@@ -32,7 +34,7 @@ déja un passage [...] en externe/urgence"
 
 ### Test Suite 1: `test_ihms_workflow.py`
 
-```
+```text
 ✅ PASSED - test_ihms_workflow
    - Patient creation: VALID
    - Patient modification: VALID
@@ -46,7 +48,7 @@ déja un passage [...] en externe/urgence"
 
 ### Test Suite 2: `test_validation_details.py`
 
-```
+```text
 ✅ PASSED - test_all_messages_validate_without_error
    - Comprehensive validation report with detailed ZBE segments
    - All 7 entities show validation level: OK
@@ -55,7 +57,7 @@ déja un passage [...] en externe/urgence"
 
 ### Test Suite 3: `test_ihe_pam_movements.py`
 
-```
+```text
 ✅ PASSED - test_ihe_pam_movement_message_types
    - A01: Admit Patient (new admission) ✓
    - A02: Transfer Patient (within facility) ✓
@@ -69,15 +71,15 @@ déja un passage [...] en externe/urgence"
 
 ### Test Suite 4: `test_a06_a07_auto_detection.py` (NEW)
 
-```
+```text
 ✅ PASSED - test_a06_external_to_hospitalized_auto_detection
    - Automatically generates A06 when nature changes S → H
    - Validates against IHE PAM France rules
-   
+
 ✅ PASSED - test_a07_hospitalized_to_external_auto_detection
    - Automatically generates A07 when nature changes H → S
    - Validates against IHE PAM France rules
-   
+
 ✅ PASSED - test_no_a06_a07_without_history
    - Correctly generates A01 (not A06) when no previous history
 ```
@@ -89,7 +91,8 @@ déja un passage [...] en externe/urgence"
 ## 📊 DÉTAILS DE VALIDATION PAR ENTITÉ
 
 ### 1️⃣ Patient Creation (ADT^A28)
-```
+
+```text
 Message Type: ADT^A28 (Patient Record - Add)
 Validation Level: ✅ OK
 Valid: True
@@ -97,21 +100,24 @@ Patient: Test Patient
 ```
 
 ### 2️⃣ Patient Modification (ADT^A31)
-```
+
+```text
 Message Type: ADT^A31 (Update Person Information)
 Validation Level: ✅ OK
 Valid: True
 ```
 
 ### 3️⃣ Dossier Creation (Episode of Care)
-```
+
+```text
 Type: Hospitalisé
 HL7 Generation: Expected (no HL7 for dossier)
 Dossier Sequence: 100001
 ```
 
 ### 4️⃣ Venue Hospitalized (ADT^A05)
-```
+
+```text
 Message Type: ADT^A05 (Preadmit Patient)
 Validation Level: ✅ OK
 Valid: True
@@ -125,7 +131,8 @@ ZBE Segment: ✅ Present with proper XON formatting
 ```
 
 ### 5️⃣ Venue External (ADT^A05)
-```
+
+```text
 Message Type: ADT^A05 (Preadmit Patient)
 Validation Level: ✅ OK
 Valid: True
@@ -136,7 +143,8 @@ ZBE Segment: ✅ Present with proper XON formatting
 ```
 
 ### 6️⃣ Mouvement Admission (ADT^A01)
-```
+
+```text
 Message Type: ADT^A01 (Admit Patient)
 Validation Level: ✅ OK
 Valid: True
@@ -148,7 +156,8 @@ ZBE-9 (Nature): ✅ Present with code H
 ```
 
 ### 7️⃣ Mouvement Transfer (ADT^Z99)
-```
+
+```text
 Message Type: ADT^Z99 (Generic Custom Event - Modification)
 Validation Level: ✅ OK
 Valid: True
@@ -157,7 +166,8 @@ ZBE Segment: ✅ Present with proper structure
 ```
 
 ### ➕ Mouvement Discharge (Validé)
-```
+
+```text
 Validation Level: ✅ OK
 Valid: True
 Nature: S (Sortie)
@@ -167,7 +177,7 @@ Nature: S (Sortie)
 
 ## 🏗️ ARCHITECTURE IHMS VALIDÉE
 
-```
+```text
 Patient (Identité)
     │
     └─→ Dossier (Épisode de soins)
@@ -188,24 +198,28 @@ Patient (Identité)
 ## 🔧 CORRECTIONS ET AMÉLIORATIONS APPORTÉES
 
 ### 1. Consolidation des Champs UF
+
 - ✅ Remplacé `uf_medicale_code/label` par `uf_responsabilite`
 - ✅ Alignement cohérent sur tous les modèles (Dossier, Venue, Mouvement)
 - ✅ Champs harmonisés: `uf_soins_code`, `uf_soins_label`
 
 ### 2. Génération ZBE Segments
+
 - ✅ **ZBE-7**: UF médicale en format XON (composante 10 = code)
 - ✅ **ZBE-8**: UF soins en format XON (composante 10 = code)
 - ✅ **ZBE-9**: Code nature (S, H, M, L, D, SM) dérivé de la fonction `derive_nature()`
 - ✅ **ZBE-6**: Correctement omis pour les actions INSERT (conforme IHE PAM France)
 
 ### 3. Format XON Correct
-```
+
+```text
 Composante 1: Label/Libellé
 Composante 10: Code identifiant
 Séparateurs: ^ entre composantes, ~ entre répétitions
 ```
 
 ### 4. Auto-détection A06/A07 (NOUVEAU)
+
 - ✅ **A06 automatique**: Généré quand nature change de S (externe) → H (hospitalisé)
 - ✅ **A07 automatique**: Généré quand nature change de H (hospitalisé) → S (externe)
 - ✅ **Historique**: Regarde les mouvements précédents sur la même venue
@@ -213,6 +227,7 @@ Séparateurs: ^ entre composantes, ~ entre répétitions
 - ✅ **Validation**: Tous les messages passent validation IHE PAM France
 
 ### 5. Validation Complète
+
 - ✅ Tous les messages passent `validate_pam()` avec `level="ok"`
 - ✅ Validation stricte: `is_valid=True` et `level=="ok"`
 - ✅ Aucune erreur, aucun warning non acceptable
@@ -222,15 +237,18 @@ Séparateurs: ^ entre composantes, ~ entre répétitions
 ## 📁 FICHIERS CLÉS
 
 ### Tests
+
 - `tests/test_ihms_workflow.py` - Test workflow principal
 - `tests/test_validation_details.py` - Test avec rapport détaillé
 
 ### Services
+
 - `app/services/emit_on_create.py` - Génération HL7/FHIR
 - `app/services/pam_validation.py` - Validation PAM interne
 - `app/services/nature_mapping.py` - Dérivation codes nature
 
 ### Modèles
+
 - `app/models.py`:
   - Patient (identity)
   - Dossier (episode of care)
@@ -242,17 +260,20 @@ Séparateurs: ^ entre composantes, ~ entre répétitions
 ## 🎓 CONFORMITÉS
 
 ### ✅ IHE PAM France
+
 - Segment ZBE avec composantes obligatoires
 - ZBE-7: UF médicale requise
 - ZBE-9: Code nature requis
 - Format XON pour UF identifiers
 
 ### ✅ HL7 v2.5
+
 - Segments: MSH, EVN, PID, PV1, ZBE
 - Encodage: 8859/1 (Latin-1)
 - Version: 2.5^FRA^2.11
 
 ### ✅ FHIR R4
+
 - Bundle resources
 - Patient resource
 - EpisodeOfCare

@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Optional
 from sqlmodel import Session, select
 
-from app.models_structure_fhir import EntiteJuridique, GHTContext
+from app.models_structure import EntiteJuridique, GHTContext
 
 logger = logging.getLogger(__name__)
 

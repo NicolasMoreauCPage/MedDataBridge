@@ -2,7 +2,7 @@
 """Script rapide de vérification des namespaces créés."""
 from sqlmodel import Session, select
 from app.db import engine
-from app.models_structure_fhir import IdentifierNamespace, EntiteJuridique
+from app.models_structure import EntiteJuridique
 
 with Session(engine) as s:
     ns_list = s.exec(select(IdentifierNamespace)).all()

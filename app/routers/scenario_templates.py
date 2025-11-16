@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep, InteropScenario, InteropScenarioStep
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.services.scenario_template_materializer import materialize_template, MaterializationOptions
 from app.services.scenario_runner import send_scenario, ScenarioExecutionError
 from app.models_endpoints import SystemEndpoint

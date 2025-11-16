@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from app.app import app
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models import Patient, Dossier
 from app.db import get_session
 

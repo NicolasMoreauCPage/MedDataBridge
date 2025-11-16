@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure_fhir import IdentifierNamespace
+from app.models_structure import IdentifierNamespace
 from adapters.hl7_pam_fr import build_message_for_movement
 
 

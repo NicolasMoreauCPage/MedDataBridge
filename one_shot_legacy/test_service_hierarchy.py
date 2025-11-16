@@ -4,7 +4,7 @@ sys.path.insert(0, str("c:/Travail/Fhir_Tester/MedData_Bridge"))
 
 from sqlmodel import Session, create_engine, select
 from sqlalchemy.orm import selectinload
-from app.models_structure_fhir import EntiteGeographique, Pole
+from app.models_structure import EntiteGeographique, Pole
 from app.models_structure import Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 
 DATABASE_URL = "sqlite:///./poc.db"

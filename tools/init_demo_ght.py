@@ -9,7 +9,7 @@ if parent_dir not in sys.path:
 
 from sqlmodel import Session, select, SQLModel
 from app.db import engine
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 
 def init_demo_ght():
     # Drop et recréer la base

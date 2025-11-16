@@ -187,7 +187,7 @@ def new_venue(
     if prefill_dossier_id:
         dossier = session.get(Dossier, prefill_dossier_id)
         if dossier and dossier.entite_juridique_id:
-            from app.models_structure_fhir import EntiteJuridique
+            from app.models_structure import EntiteJuridique
             ej = session.get(EntiteJuridique, dossier.entite_juridique_id)
             if ej:
                 # Récupérer toutes les UF de la structure
@@ -290,7 +290,7 @@ def edit_venue(venue_id: int, request: Request, session=Depends(get_session)):
     if v.dossier_id:
         dossier = session.get(Dossier, v.dossier_id)
         if dossier and dossier.entite_juridique_id:
-            from app.models_structure_fhir import EntiteJuridique
+            from app.models_structure import EntiteJuridique
             ej = session.get(EntiteJuridique, dossier.entite_juridique_id)
             if ej:
                 # Récupérer toutes les UF de la structure

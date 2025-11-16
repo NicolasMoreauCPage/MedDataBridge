@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from sqlmodel import Session, create_engine, select
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
 from app.models import Dossier, Venue, Mouvement, Patient
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.services.scenario_capture import capture_dossier_as_template
 
 
@@ -21,7 +21,7 @@ def test_session():
     """Session de test en mémoire (isolée)."""
     engine = create_engine("sqlite:///:memory:")
     from app.models import SQLModel
-    from app.models_structure_fhir import GHTContext
+    from app.models_structure import GHTContext
     SQLModel.metadata.create_all(engine)
     
     with Session(engine) as session:

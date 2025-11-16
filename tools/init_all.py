@@ -14,7 +14,7 @@ Ce script :
 
 from sqlmodel import Session, select, SQLModel
 from app.db import engine
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.models_shared import SystemEndpoint
 # Ajout des imports manquants
 import argparse

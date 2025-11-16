@@ -17,7 +17,7 @@ from sqlalchemy import Text
 # Import only for type checking to avoid circular imports
 if TYPE_CHECKING:
     from app.models import Patient, Dossier
-    from app.models_structure_fhir import GHTContext
+    from app.models_structure import GHTContext
     from app.models_endpoints import SystemEndpoint
     from app.models_scenarios import InteropScenario
 

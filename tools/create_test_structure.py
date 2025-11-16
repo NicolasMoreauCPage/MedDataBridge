@@ -9,7 +9,7 @@ from typing import Optional
 from sqlmodel import Session, SQLModel, select
 
 from app.db import engine
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.structure_seed import DEMO_STRUCTURE, ensure_demo_structure
 
 

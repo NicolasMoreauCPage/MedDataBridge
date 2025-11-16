@@ -7,7 +7,7 @@ from sqlmodel import Session, create_engine, SQLModel
 from sqlmodel.pool import StaticPool
 
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.scenario_import import (
     import_scenario_from_json,
     validate_scenario_json,

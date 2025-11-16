@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from sqlmodel import Session, create_engine, select
 from app.models_transport import SystemEndpoint
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.routers.endpoints import registry
 
 templates = Jinja2Templates(directory="app/templates")

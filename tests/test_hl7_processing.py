@@ -2,7 +2,7 @@
 import pytest
 from datetime import datetime
 from sqlmodel import Session, SQLModel, create_engine
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models import Patient, Dossier, Venue
 from app.services.pam import process_pam_message
 from app.services.mfn_importer import import_mfn_structure

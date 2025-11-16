@@ -20,7 +20,7 @@ from sqlmodel import Session, SQLModel, select
 from app.db import engine
 from app.models import Dossier, Patient, Venue
 from app.models_scenarios import InteropScenario, ScenarioBinding
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.scenario_loader import discover_hl7_files, load_hl7_files
 
 

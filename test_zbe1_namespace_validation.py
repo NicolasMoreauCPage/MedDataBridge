@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.services.emit_on_create import generate_pam_hl7
 from app.services.pam_validation import validate_pam
 

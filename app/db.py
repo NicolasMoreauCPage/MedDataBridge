@@ -20,8 +20,7 @@ from typing import Optional
 from app.models import Sequence, Patient, Dossier, Venue, Mouvement
 from app.models_endpoints import SystemEndpoint, MessageLog
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
-from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
+from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique, EntiteGeographique
 from app.models_identifiers import Identifier
 from app import models_scenarios  # ensure scenario models are registered
 try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)

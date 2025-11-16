@@ -1,6 +1,6 @@
 """Vérifier quelles EG sont retournées pour l'EJ #6."""
 from app.db import get_session
-from app.models_structure_fhir import EntiteJuridique, EntiteGeographique
+from app.models_structure import EntiteJuridique, EntiteGeographique
 from sqlmodel import select
 
 s = next(get_session())

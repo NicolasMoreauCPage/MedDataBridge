@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.services.scenario_capture import capture_dossier_as_scenario
 from app.services.scenario_import import import_scenario_from_json
 

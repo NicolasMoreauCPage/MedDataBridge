@@ -24,7 +24,7 @@ from app.models_structure import (
     Chambre,
     Lit,
 )
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.services.structure_emit import emit_structure_change, emit_structure_delete
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ _pending: Dict[int, Set[Tuple[str, int, str, tuple]]] = {}
 _emitting_flag = threading.local()
 
 # Limit concurrency of background emissions
-_sem = asyncio.Semaphore(5)
+_sem = asyncio.Semaphore(1)
 
 
 def _sess_id(session: Session) -> int:
@@ -78,6 +78,7 @@ def _after_commit(session: Session):
 
 
 async def _emit_background(model_name: str, entity_id: int, op: str, metadata: Dict[str, Any]):
+
     from app.db import engine
     from sqlmodel import Session as SQLModelSession
     from app.models_structure import (
@@ -89,7 +90,9 @@ async def _emit_background(model_name: str, entity_id: int, op: str, metadata: D
         Chambre,
         Lit,
     )
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
+    import asyncio
+    import time
 
     model_map = {
         "EntiteJuridique": EntiteJuridique,
@@ -106,23 +109,36 @@ async def _emit_background(model_name: str, entity_id: int, op: str, metadata: D
     if not model:
         return
 
+    max_attempts = 3
+    base_delay = 2.0
+    attempt = 0
     async with _sem:
         _emitting_flag.active = True
-        try:
-            with SQLModelSession(engine) as s:
-                if op == "delete":
-                    # Entity is gone; emit delete using id and metadata
-                    await emit_structure_delete(entity_id, s, entity_type=model_name, **metadata)
+        while attempt < max_attempts:
+            try:
+                with SQLModelSession(engine) as s:
+                    if op == "delete":
+                        await emit_structure_delete(entity_id, s, entity_type=model_name, **metadata)
+                    else:
+                        entity = s.get(model, entity_id)
+                        if not entity:
+                            logger.warning("[structure_events] %s id=%s not found for op=%s", model_name, entity_id, op)
+                            return
+                        await emit_structure_change(entity, s, operation=op)
+                break  # Success, exit loop
+            except Exception as exc:
+                attempt += 1
+                logger.error(
+                    f"[structure_events] Emission failed for {model_name} id={entity_id} op={op} (attempt {attempt}/{max_attempts}): {exc}",
+                    exc_info=True
+                )
+                if attempt < max_attempts:
+                    delay = base_delay * (2 ** (attempt - 1))
+                    logger.warning(f"[structure_events] Retry in {delay:.1f}s...")
+                    await asyncio.sleep(delay)
                 else:
-                    entity = s.get(model, entity_id)
-                    if not entity:
-                        logger.warning("[structure_events] %s id=%s not found for op=%s", model_name, entity_id, op)
-                        return
-                    await emit_structure_change(entity, s, operation=op)
-        except Exception as exc:
-            logger.error("[structure_events] Emission failed for %s id=%s op=%s: %s", model_name, entity_id, op, exc, exc_info=True)
-        finally:
-            _emitting_flag.active = False
+                    logger.error(f"[structure_events] Max attempts reached for {model_name} id={entity_id} op={op}. Giving up.")
+        _emitting_flag.active = False
 
 
 def _after_insert(mapper, connection, target):
@@ -146,7 +162,7 @@ def _after_delete(mapper, connection, target):
     # id is still available on target in after_delete
     # For EntiteJuridique, capture finess_ej for delete emission
     metadata = {}
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
     if isinstance(target, EntiteJuridique):
         metadata["finess_ej"] = target.finess_ej
     _schedule(session, type(target).__name__, target.id, "delete", metadata)

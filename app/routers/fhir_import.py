@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlmodel import Session
 from typing import Dict, Any
 from app.db import get_session
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.converters.fhir_import_converter import (
     FHIRBundleImporter,
     FHIRToPatientConverter,

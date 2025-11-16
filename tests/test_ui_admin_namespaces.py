@@ -2,7 +2,7 @@
 """
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
-from app.models_structure_fhir import IdentifierNamespace, GHTContext
+from app.models_structure import IdentifierNamespace, GHTContext
 
 
 def _ensure_context(client: TestClient, session: Session):

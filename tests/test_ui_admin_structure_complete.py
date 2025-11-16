@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models_structure import Pole, Service, UniteHebergement
 
 

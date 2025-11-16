@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Optional
 from app.db import get_session
-from app.models_structure_fhir import IdentifierNamespace, GHTContext, EntiteJuridique
+from app.models_structure import EntiteJuridique, GHTContext, IdentifierNamespace
 from app.utils.flash import flash
 router = APIRouter(prefix="/ght", tags=["admin-ght"])
 templates = Jinja2Templates(directory="app/templates")

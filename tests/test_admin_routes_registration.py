@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.app import create_app
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 
 
 def test_all_critical_admin_routes_registered():

@@ -1,0 +1,444 @@
+MSH|^~\&|STR|STR|RECEPTEUR|RECEPTEUR|20251116132522||MFN^M05^MFN_M05|20251116132522|P|2.5^FRA^2.11|||||FRA|8859/1
+MFI|LOC|CPAGE_LOC_FRA|REP||20251116132522|AL
+MFE|MAD|||^^^^^M^^^^CHU-LYON-SITE-CENTRAL|PL
+LOC|^^^^^M^^^^CHU-LYON-SITE-CENTRAL||M|Etablissement juridique
+LCH|^^^^^M^^^^CHU-LYON-SITE-CENTRAL|||CD^Code^L|^CHU-LYON-SITE-CENTRAL
+LCH|^^^^^M^^^^CHU-LYON-SITE-CENTRAL|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-SITE-CENTRAL
+LCH|^^^^^M^^^^CHU-LYON-SITE-CENTRAL|||LBL^Libelle^L|^CHU-LYON-SITE-CENTRAL
+LCH|^^^^^M^^^^CHU-LYON-SITE-CENTRAL|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CHU-LYON-SITE-SSR|PL
+LOC|^^^^^M^^^^CHU-LYON-SITE-SSR||M|Etablissement juridique
+LCH|^^^^^M^^^^CHU-LYON-SITE-SSR|||CD^Code^L|^CHU-LYON-SITE-SSR
+LCH|^^^^^M^^^^CHU-LYON-SITE-SSR|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-SITE-SSR
+LCH|^^^^^M^^^^CHU-LYON-SITE-SSR|||LBL^Libelle^L|^CHU-LYON-SITE-SSR
+LCH|^^^^^M^^^^CHU-LYON-SITE-SSR|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CH-VIENNE-SITE-UNIQUE|PL
+LOC|^^^^^M^^^^CH-VIENNE-SITE-UNIQUE||M|Etablissement juridique
+LCH|^^^^^M^^^^CH-VIENNE-SITE-UNIQUE|||CD^Code^L|^CH-VIENNE-SITE-UNIQUE
+LCH|^^^^^M^^^^CH-VIENNE-SITE-UNIQUE|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-SITE-UNIQUE
+LCH|^^^^^M^^^^CH-VIENNE-SITE-UNIQUE|||LBL^Libelle^L|^CH-VIENNE-SITE-UNIQUE
+LCH|^^^^^M^^^^CH-VIENNE-SITE-UNIQUE|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^EHPAD-JARDINS-SITE-UNIQUE|PL
+LOC|^^^^^M^^^^EHPAD-JARDINS-SITE-UNIQUE||M|Etablissement juridique
+LCH|^^^^^M^^^^EHPAD-JARDINS-SITE-UNIQUE|||CD^Code^L|^EHPAD-JARDINS-SITE-UNIQUE
+LCH|^^^^^M^^^^EHPAD-JARDINS-SITE-UNIQUE|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-SITE-UNIQUE
+LCH|^^^^^M^^^^EHPAD-JARDINS-SITE-UNIQUE|||LBL^Libelle^L|^EHPAD-JARDINS-SITE-UNIQUE
+LCH|^^^^^M^^^^EHPAD-JARDINS-SITE-UNIQUE|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^PSY-RHONE-SITE-UNIQUE|PL
+LOC|^^^^^M^^^^PSY-RHONE-SITE-UNIQUE||M|Etablissement juridique
+LCH|^^^^^M^^^^PSY-RHONE-SITE-UNIQUE|||CD^Code^L|^PSY-RHONE-SITE-UNIQUE
+LCH|^^^^^M^^^^PSY-RHONE-SITE-UNIQUE|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-SITE-UNIQUE
+LCH|^^^^^M^^^^PSY-RHONE-SITE-UNIQUE|||LBL^Libelle^L|^PSY-RHONE-SITE-UNIQUE
+LCH|^^^^^M^^^^PSY-RHONE-SITE-UNIQUE|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CHU-LYON-UH-URG-ZA|PL
+LOC|^^^^^M^^^^CHU-LYON-UH-URG-ZA||M|Etablissement juridique
+LCH|^^^^^M^^^^CHU-LYON-UH-URG-ZA|||CD^Code^L|^CHU-LYON-UH-URG-ZA
+LCH|^^^^^M^^^^CHU-LYON-UH-URG-ZA|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-URG-ZA
+LCH|^^^^^M^^^^CHU-LYON-UH-URG-ZA|||LBL^Libelle^L|^CHU-LYON-UH-URG-ZA
+LCH|^^^^^M^^^^CHU-LYON-UH-URG-ZA|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CHU-LYON-UH-UHCD-1|PL
+LOC|^^^^^M^^^^CHU-LYON-UH-UHCD-1||M|Etablissement juridique
+LCH|^^^^^M^^^^CHU-LYON-UH-UHCD-1|||CD^Code^L|^CHU-LYON-UH-UHCD-1
+LCH|^^^^^M^^^^CHU-LYON-UH-UHCD-1|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-UHCD-1
+LCH|^^^^^M^^^^CHU-LYON-UH-UHCD-1|||LBL^Libelle^L|^CHU-LYON-UH-UHCD-1
+LCH|^^^^^M^^^^CHU-LYON-UH-UHCD-1|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CHU-LYON-UH-MAT-ET2|PL
+LOC|^^^^^M^^^^CHU-LYON-UH-MAT-ET2||M|Etablissement juridique
+LCH|^^^^^M^^^^CHU-LYON-UH-MAT-ET2|||CD^Code^L|^CHU-LYON-UH-MAT-ET2
+LCH|^^^^^M^^^^CHU-LYON-UH-MAT-ET2|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-MAT-ET2
+LCH|^^^^^M^^^^CHU-LYON-UH-MAT-ET2|||LBL^Libelle^L|^CHU-LYON-UH-MAT-ET2
+LCH|^^^^^M^^^^CHU-LYON-UH-MAT-ET2|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CHU-LYON-UH-READ-PAV1|PL
+LOC|^^^^^M^^^^CHU-LYON-UH-READ-PAV1||M|Etablissement juridique
+LCH|^^^^^M^^^^CHU-LYON-UH-READ-PAV1|||CD^Code^L|^CHU-LYON-UH-READ-PAV1
+LCH|^^^^^M^^^^CHU-LYON-UH-READ-PAV1|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-READ-PAV1
+LCH|^^^^^M^^^^CHU-LYON-UH-READ-PAV1|||LBL^Libelle^L|^CHU-LYON-UH-READ-PAV1
+LCH|^^^^^M^^^^CHU-LYON-UH-READ-PAV1|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CH-VIENNE-UH-MED-1|PL
+LOC|^^^^^M^^^^CH-VIENNE-UH-MED-1||M|Etablissement juridique
+LCH|^^^^^M^^^^CH-VIENNE-UH-MED-1|||CD^Code^L|^CH-VIENNE-UH-MED-1
+LCH|^^^^^M^^^^CH-VIENNE-UH-MED-1|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-UH-MED-1
+LCH|^^^^^M^^^^CH-VIENNE-UH-MED-1|||LBL^Libelle^L|^CH-VIENNE-UH-MED-1
+LCH|^^^^^M^^^^CH-VIENNE-UH-MED-1|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^CH-VIENNE-UH-BLOC-AMB|PL
+LOC|^^^^^M^^^^CH-VIENNE-UH-BLOC-AMB||M|Etablissement juridique
+LCH|^^^^^M^^^^CH-VIENNE-UH-BLOC-AMB|||CD^Code^L|^CH-VIENNE-UH-BLOC-AMB
+LCH|^^^^^M^^^^CH-VIENNE-UH-BLOC-AMB|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-UH-BLOC-AMB
+LCH|^^^^^M^^^^CH-VIENNE-UH-BLOC-AMB|||LBL^Libelle^L|^CH-VIENNE-UH-BLOC-AMB
+LCH|^^^^^M^^^^CH-VIENNE-UH-BLOC-AMB|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^EHPAD-JARDINS-UH-AILE-A1|PL
+LOC|^^^^^M^^^^EHPAD-JARDINS-UH-AILE-A1||M|Etablissement juridique
+LCH|^^^^^M^^^^EHPAD-JARDINS-UH-AILE-A1|||CD^Code^L|^EHPAD-JARDINS-UH-AILE-A1
+LCH|^^^^^M^^^^EHPAD-JARDINS-UH-AILE-A1|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-UH-AILE-A1
+LCH|^^^^^M^^^^EHPAD-JARDINS-UH-AILE-A1|||LBL^Libelle^L|^EHPAD-JARDINS-UH-AILE-A1
+LCH|^^^^^M^^^^EHPAD-JARDINS-UH-AILE-A1|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^M^^^^PSY-RHONE-UH-A1|PL
+LOC|^^^^^M^^^^PSY-RHONE-UH-A1||M|Etablissement juridique
+LCH|^^^^^M^^^^PSY-RHONE-UH-A1|||CD^Code^L|^PSY-RHONE-UH-A1
+LCH|^^^^^M^^^^PSY-RHONE-UH-A1|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-UH-A1
+LCH|^^^^^M^^^^PSY-RHONE-UH-A1|||LBL^Libelle^L|^PSY-RHONE-UH-A1
+LCH|^^^^^M^^^^PSY-RHONE-UH-A1|||LBL_CRT^Libelle court^L|^
+MFE|MAD|||^^^^^D^^^^CHU-LYON-SRV-URG-ADU|PL
+LOC|^^^^^D^^^^CHU-LYON-SRV-URG-ADU||D|Service
+LCH|^^^^^D^^^^CHU-LYON-SRV-URG-ADU|||CD^Code^L|^CHU-LYON-SRV-URG-ADU
+LCH|^^^^^D^^^^CHU-LYON-SRV-URG-ADU|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-SRV-URG-ADU
+LCH|^^^^^D^^^^CHU-LYON-SRV-URG-ADU|||LBL^Libelle^L|^Service Urgences Adultes
+LCH|^^^^^D^^^^CHU-LYON-SRV-URG-ADU|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^CHU-LYON-SRV-URG-ADU|||LCLSTN^Relation de localisation^L||^^^^^P^^^^CHU-LYON-POLE-URG
+MFE|MAD|||^^^^^D^^^^CHU-LYON-SRV-MAT|PL
+LOC|^^^^^D^^^^CHU-LYON-SRV-MAT||D|Service
+LCH|^^^^^D^^^^CHU-LYON-SRV-MAT|||CD^Code^L|^CHU-LYON-SRV-MAT
+LCH|^^^^^D^^^^CHU-LYON-SRV-MAT|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-SRV-MAT
+LCH|^^^^^D^^^^CHU-LYON-SRV-MAT|||LBL^Libelle^L|^Service Maternité
+LCH|^^^^^D^^^^CHU-LYON-SRV-MAT|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^CHU-LYON-SRV-MAT|||LCLSTN^Relation de localisation^L||^^^^^P^^^^CHU-LYON-POLE-MAT
+MFE|MAD|||^^^^^D^^^^CHU-LYON-SRV-READ-FONC|PL
+LOC|^^^^^D^^^^CHU-LYON-SRV-READ-FONC||D|Service
+LCH|^^^^^D^^^^CHU-LYON-SRV-READ-FONC|||CD^Code^L|^CHU-LYON-SRV-READ-FONC
+LCH|^^^^^D^^^^CHU-LYON-SRV-READ-FONC|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-SRV-READ-FONC
+LCH|^^^^^D^^^^CHU-LYON-SRV-READ-FONC|||LBL^Libelle^L|^Service Rééducation Fonctionnelle
+LCH|^^^^^D^^^^CHU-LYON-SRV-READ-FONC|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^CHU-LYON-SRV-READ-FONC|||LCLSTN^Relation de localisation^L||^^^^^P^^^^CHU-LYON-POLE-READ
+MFE|MAD|||^^^^^D^^^^CH-VIENNE-SRV-MED-GEN|PL
+LOC|^^^^^D^^^^CH-VIENNE-SRV-MED-GEN||D|Service
+LCH|^^^^^D^^^^CH-VIENNE-SRV-MED-GEN|||CD^Code^L|^CH-VIENNE-SRV-MED-GEN
+LCH|^^^^^D^^^^CH-VIENNE-SRV-MED-GEN|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-SRV-MED-GEN
+LCH|^^^^^D^^^^CH-VIENNE-SRV-MED-GEN|||LBL^Libelle^L|^Service Médecine Générale
+LCH|^^^^^D^^^^CH-VIENNE-SRV-MED-GEN|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^CH-VIENNE-SRV-MED-GEN|||LCLSTN^Relation de localisation^L||^^^^^P^^^^CH-VIENNE-POLE-MED
+MFE|MAD|||^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB|PL
+LOC|^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB||D|Service
+LCH|^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB|||CD^Code^L|^CH-VIENNE-SRV-CHIR-AMB
+LCH|^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-SRV-CHIR-AMB
+LCH|^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB|||LBL^Libelle^L|^Service Chirurgie Ambulatoire
+LCH|^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB|||LCLSTN^Relation de localisation^L||^^^^^P^^^^CH-VIENNE-POLE-CHIR
+MFE|MAD|||^^^^^D^^^^EHPAD-JARDINS-SRV-GER|PL
+LOC|^^^^^D^^^^EHPAD-JARDINS-SRV-GER||D|Service
+LCH|^^^^^D^^^^EHPAD-JARDINS-SRV-GER|||CD^Code^L|^EHPAD-JARDINS-SRV-GER
+LCH|^^^^^D^^^^EHPAD-JARDINS-SRV-GER|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-SRV-GER
+LCH|^^^^^D^^^^EHPAD-JARDINS-SRV-GER|||LBL^Libelle^L|^Service Gériatrie Résidentielle
+LCH|^^^^^D^^^^EHPAD-JARDINS-SRV-GER|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^EHPAD-JARDINS-SRV-GER|||LCLSTN^Relation de localisation^L||^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS
+MFE|MAD|||^^^^^D^^^^PSY-RHONE-SRV-ADU|PL
+LOC|^^^^^D^^^^PSY-RHONE-SRV-ADU||D|Service
+LCH|^^^^^D^^^^PSY-RHONE-SRV-ADU|||CD^Code^L|^PSY-RHONE-SRV-ADU
+LCH|^^^^^D^^^^PSY-RHONE-SRV-ADU|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-SRV-ADU
+LCH|^^^^^D^^^^PSY-RHONE-SRV-ADU|||LBL^Libelle^L|^Service Hospitalisation Adulte
+LCH|^^^^^D^^^^PSY-RHONE-SRV-ADU|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^PSY-RHONE-SRV-ADU|||LCLSTN^Relation de localisation^L||^^^^^P^^^^PSY-RHONE-POLE-ADULT
+MFE|MAD|||^^^^^D^^^^PSY-RHONE-SRV-CMP|PL
+LOC|^^^^^D^^^^PSY-RHONE-SRV-CMP||D|Service
+LCH|^^^^^D^^^^PSY-RHONE-SRV-CMP|||CD^Code^L|^PSY-RHONE-SRV-CMP
+LCH|^^^^^D^^^^PSY-RHONE-SRV-CMP|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-SRV-CMP
+LCH|^^^^^D^^^^PSY-RHONE-SRV-CMP|||LBL^Libelle^L|^Service CMP Consultations
+LCH|^^^^^D^^^^PSY-RHONE-SRV-CMP|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^PSY-RHONE-SRV-CMP|||LCLSTN^Relation de localisation^L||^^^^^P^^^^PSY-RHONE-POLE-ADULT
+MFE|MAD|||^^^^^P^^^^CHU-LYON-POLE-URG|PL
+LOC|^^^^^P^^^^CHU-LYON-POLE-URG||P|Pole
+LCH|^^^^^P^^^^CHU-LYON-POLE-URG|||CD^Code^L|^CHU-LYON-POLE-URG
+LCH|^^^^^P^^^^CHU-LYON-POLE-URG|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-POLE-URG
+LCH|^^^^^P^^^^CHU-LYON-POLE-URG|||LBL^Libelle^L|^Pôle Urgences / SAMU
+LCH|^^^^^P^^^^CHU-LYON-POLE-URG|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^CHU-LYON-POLE-URG|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^CHU-LYON-SITE-CENTRAL
+MFE|MAD|||^^^^^P^^^^CHU-LYON-POLE-MAT|PL
+LOC|^^^^^P^^^^CHU-LYON-POLE-MAT||P|Pole
+LCH|^^^^^P^^^^CHU-LYON-POLE-MAT|||CD^Code^L|^CHU-LYON-POLE-MAT
+LCH|^^^^^P^^^^CHU-LYON-POLE-MAT|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-POLE-MAT
+LCH|^^^^^P^^^^CHU-LYON-POLE-MAT|||LBL^Libelle^L|^Pôle Mère-Enfant
+LCH|^^^^^P^^^^CHU-LYON-POLE-MAT|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^CHU-LYON-POLE-MAT|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^CHU-LYON-SITE-CENTRAL
+MFE|MAD|||^^^^^P^^^^CHU-LYON-POLE-READ|PL
+LOC|^^^^^P^^^^CHU-LYON-POLE-READ||P|Pole
+LCH|^^^^^P^^^^CHU-LYON-POLE-READ|||CD^Code^L|^CHU-LYON-POLE-READ
+LCH|^^^^^P^^^^CHU-LYON-POLE-READ|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-POLE-READ
+LCH|^^^^^P^^^^CHU-LYON-POLE-READ|||LBL^Libelle^L|^Pôle Réadaptation
+LCH|^^^^^P^^^^CHU-LYON-POLE-READ|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^CHU-LYON-POLE-READ|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^CHU-LYON-SITE-SSR
+MFE|MAD|||^^^^^P^^^^CH-VIENNE-POLE-MED|PL
+LOC|^^^^^P^^^^CH-VIENNE-POLE-MED||P|Pole
+LCH|^^^^^P^^^^CH-VIENNE-POLE-MED|||CD^Code^L|^CH-VIENNE-POLE-MED
+LCH|^^^^^P^^^^CH-VIENNE-POLE-MED|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-POLE-MED
+LCH|^^^^^P^^^^CH-VIENNE-POLE-MED|||LBL^Libelle^L|^Pôle Médecine
+LCH|^^^^^P^^^^CH-VIENNE-POLE-MED|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^CH-VIENNE-POLE-MED|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^CH-VIENNE-SITE-UNIQUE
+MFE|MAD|||^^^^^P^^^^CH-VIENNE-POLE-CHIR|PL
+LOC|^^^^^P^^^^CH-VIENNE-POLE-CHIR||P|Pole
+LCH|^^^^^P^^^^CH-VIENNE-POLE-CHIR|||CD^Code^L|^CH-VIENNE-POLE-CHIR
+LCH|^^^^^P^^^^CH-VIENNE-POLE-CHIR|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-POLE-CHIR
+LCH|^^^^^P^^^^CH-VIENNE-POLE-CHIR|||LBL^Libelle^L|^Pôle Chirurgie Ambulatoire
+LCH|^^^^^P^^^^CH-VIENNE-POLE-CHIR|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^CH-VIENNE-POLE-CHIR|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^CH-VIENNE-SITE-UNIQUE
+MFE|MAD|||^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS|PL
+LOC|^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS||P|Pole
+LCH|^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS|||CD^Code^L|^EHPAD-JARDINS-POLE-SOINS
+LCH|^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-POLE-SOINS
+LCH|^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS|||LBL^Libelle^L|^Pôle Soins et Vie
+LCH|^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^EHPAD-JARDINS-POLE-SOINS|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^EHPAD-JARDINS-SITE-UNIQUE
+MFE|MAD|||^^^^^P^^^^PSY-RHONE-POLE-ADULT|PL
+LOC|^^^^^P^^^^PSY-RHONE-POLE-ADULT||P|Pole
+LCH|^^^^^P^^^^PSY-RHONE-POLE-ADULT|||CD^Code^L|^PSY-RHONE-POLE-ADULT
+LCH|^^^^^P^^^^PSY-RHONE-POLE-ADULT|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-POLE-ADULT
+LCH|^^^^^P^^^^PSY-RHONE-POLE-ADULT|||LBL^Libelle^L|^Pôle Psychiatrie Adulte
+LCH|^^^^^P^^^^PSY-RHONE-POLE-ADULT|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^PSY-RHONE-POLE-ADULT|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^PSY-RHONE-SITE-UNIQUE
+MFE|MAD|||^^^^^UF^^^^CHU-LYON-UF-URG-ACC|PL
+LOC|^^^^^UF^^^^CHU-LYON-UF-URG-ACC||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-ACC|||CD^Code^L|^CHU-LYON-UF-URG-ACC
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-ACC|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UF-URG-ACC
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-ACC|||LBL^Libelle^L|^UF Accueil-Tria ge
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-ACC|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^CHU-LYON-UF-URG-ACC|||LCLSTN^Relation de localisation^L||^^^^^D^^^^CHU-LYON-SRV-URG-ADU
+MFE|MAD|||^^^^^UF^^^^CHU-LYON-UF-URG-SHORT|PL
+LOC|^^^^^UF^^^^CHU-LYON-UF-URG-SHORT||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-SHORT|||CD^Code^L|^CHU-LYON-UF-URG-SHORT
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-SHORT|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UF-URG-SHORT
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-SHORT|||LBL^Libelle^L|^UF UHCD / courte durée
+LCH|^^^^^UF^^^^CHU-LYON-UF-URG-SHORT|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^CHU-LYON-UF-URG-SHORT|||LCLSTN^Relation de localisation^L||^^^^^D^^^^CHU-LYON-SRV-URG-ADU
+MFE|MAD|||^^^^^UF^^^^CHU-LYON-UF-MAT-SC|PL
+LOC|^^^^^UF^^^^CHU-LYON-UF-MAT-SC||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^CHU-LYON-UF-MAT-SC|||CD^Code^L|^CHU-LYON-UF-MAT-SC
+LCH|^^^^^UF^^^^CHU-LYON-UF-MAT-SC|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UF-MAT-SC
+LCH|^^^^^UF^^^^CHU-LYON-UF-MAT-SC|||LBL^Libelle^L|^UF Suites de couches
+LCH|^^^^^UF^^^^CHU-LYON-UF-MAT-SC|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^CHU-LYON-UF-MAT-SC|||LCLSTN^Relation de localisation^L||^^^^^D^^^^CHU-LYON-SRV-MAT
+MFE|MAD|||^^^^^UF^^^^CHU-LYON-UF-READ-NEURO|PL
+LOC|^^^^^UF^^^^CHU-LYON-UF-READ-NEURO||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^CHU-LYON-UF-READ-NEURO|||CD^Code^L|^CHU-LYON-UF-READ-NEURO
+LCH|^^^^^UF^^^^CHU-LYON-UF-READ-NEURO|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UF-READ-NEURO
+LCH|^^^^^UF^^^^CHU-LYON-UF-READ-NEURO|||LBL^Libelle^L|^UF Réadaptation Neuro
+LCH|^^^^^UF^^^^CHU-LYON-UF-READ-NEURO|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^CHU-LYON-UF-READ-NEURO|||LCLSTN^Relation de localisation^L||^^^^^D^^^^CHU-LYON-SRV-READ-FONC
+MFE|MAD|||^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP|PL
+LOC|^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP|||CD^Code^L|^CH-VIENNE-UF-MED-HOSP
+LCH|^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-UF-MED-HOSP
+LCH|^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP|||LBL^Libelle^L|^UF Hospitalisation Médecine
+LCH|^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP|||LCLSTN^Relation de localisation^L||^^^^^D^^^^CH-VIENNE-SRV-MED-GEN
+MFE|MAD|||^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC|PL
+LOC|^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC|||CD^Code^L|^CH-VIENNE-UF-CHIR-BLOC
+LCH|^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-UF-CHIR-BLOC
+LCH|^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC|||LBL^Libelle^L|^UF Bloc Ambulatoire
+LCH|^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC|||LCLSTN^Relation de localisation^L||^^^^^D^^^^CH-VIENNE-SRV-CHIR-AMB
+MFE|MAD|||^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A|PL
+LOC|^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A|||CD^Code^L|^EHPAD-JARDINS-UF-HEB-A
+LCH|^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-UF-HEB-A
+LCH|^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A|||LBL^Libelle^L|^UF Hébergement Aile A
+LCH|^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A|||LCLSTN^Relation de localisation^L||^^^^^D^^^^EHPAD-JARDINS-SRV-GER
+MFE|MAD|||^^^^^UF^^^^PSY-RHONE-UF-HOSP-A|PL
+LOC|^^^^^UF^^^^PSY-RHONE-UF-HOSP-A||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^PSY-RHONE-UF-HOSP-A|||CD^Code^L|^PSY-RHONE-UF-HOSP-A
+LCH|^^^^^UF^^^^PSY-RHONE-UF-HOSP-A|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-UF-HOSP-A
+LCH|^^^^^UF^^^^PSY-RHONE-UF-HOSP-A|||LBL^Libelle^L|^UF Hospitalisation Secteur A
+LCH|^^^^^UF^^^^PSY-RHONE-UF-HOSP-A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^PSY-RHONE-UF-HOSP-A|||LCLSTN^Relation de localisation^L||^^^^^D^^^^PSY-RHONE-SRV-ADU
+MFE|MAD|||^^^^^UF^^^^PSY-RHONE-UF-CMP|PL
+LOC|^^^^^UF^^^^PSY-RHONE-UF-CMP||UF|Unite Fonctionnelle
+LCH|^^^^^UF^^^^PSY-RHONE-UF-CMP|||CD^Code^L|^PSY-RHONE-UF-CMP
+LCH|^^^^^UF^^^^PSY-RHONE-UF-CMP|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-UF-CMP
+LCH|^^^^^UF^^^^PSY-RHONE-UF-CMP|||LBL^Libelle^L|^UF Centre Médico-Psychologique
+LCH|^^^^^UF^^^^PSY-RHONE-UF-CMP|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UF^^^^PSY-RHONE-UF-CMP|||LCLSTN^Relation de localisation^L||^^^^^D^^^^PSY-RHONE-SRV-CMP
+MFE|MAD|||^^^^^UH^^^^CHU-LYON-UH-URG-ZA|PL
+LOC|^^^^^UH^^^^CHU-LYON-UH-URG-ZA||UH|Unite Hebergement
+LCH|^^^^^UH^^^^CHU-LYON-UH-URG-ZA|||CD^Code^L|^CHU-LYON-UH-URG-ZA
+LCH|^^^^^UH^^^^CHU-LYON-UH-URG-ZA|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-URG-ZA
+LCH|^^^^^UH^^^^CHU-LYON-UH-URG-ZA|||LBL^Libelle^L|^UH Zone Accueil
+LCH|^^^^^UH^^^^CHU-LYON-UH-URG-ZA|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^CHU-LYON-UH-URG-ZA|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^CHU-LYON-UF-URG-ACC
+MFE|MAD|||^^^^^UH^^^^CHU-LYON-UH-UHCD-1|PL
+LOC|^^^^^UH^^^^CHU-LYON-UH-UHCD-1||UH|Unite Hebergement
+LCH|^^^^^UH^^^^CHU-LYON-UH-UHCD-1|||CD^Code^L|^CHU-LYON-UH-UHCD-1
+LCH|^^^^^UH^^^^CHU-LYON-UH-UHCD-1|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-UHCD-1
+LCH|^^^^^UH^^^^CHU-LYON-UH-UHCD-1|||LBL^Libelle^L|^UHCD Niveau 1
+LCH|^^^^^UH^^^^CHU-LYON-UH-UHCD-1|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^CHU-LYON-UH-UHCD-1|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^CHU-LYON-UF-URG-SHORT
+MFE|MAD|||^^^^^UH^^^^CHU-LYON-UH-MAT-ET2|PL
+LOC|^^^^^UH^^^^CHU-LYON-UH-MAT-ET2||UH|Unite Hebergement
+LCH|^^^^^UH^^^^CHU-LYON-UH-MAT-ET2|||CD^Code^L|^CHU-LYON-UH-MAT-ET2
+LCH|^^^^^UH^^^^CHU-LYON-UH-MAT-ET2|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-MAT-ET2
+LCH|^^^^^UH^^^^CHU-LYON-UH-MAT-ET2|||LBL^Libelle^L|^UH Maternité 2e
+LCH|^^^^^UH^^^^CHU-LYON-UH-MAT-ET2|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^CHU-LYON-UH-MAT-ET2|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^CHU-LYON-UF-MAT-SC
+MFE|MAD|||^^^^^UH^^^^CHU-LYON-UH-READ-PAV1|PL
+LOC|^^^^^UH^^^^CHU-LYON-UH-READ-PAV1||UH|Unite Hebergement
+LCH|^^^^^UH^^^^CHU-LYON-UH-READ-PAV1|||CD^Code^L|^CHU-LYON-UH-READ-PAV1
+LCH|^^^^^UH^^^^CHU-LYON-UH-READ-PAV1|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-UH-READ-PAV1
+LCH|^^^^^UH^^^^CHU-LYON-UH-READ-PAV1|||LBL^Libelle^L|^Pavillon Réadaptation 1
+LCH|^^^^^UH^^^^CHU-LYON-UH-READ-PAV1|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^CHU-LYON-UH-READ-PAV1|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^CHU-LYON-UF-READ-NEURO
+MFE|MAD|||^^^^^UH^^^^CH-VIENNE-UH-MED-1|PL
+LOC|^^^^^UH^^^^CH-VIENNE-UH-MED-1||UH|Unite Hebergement
+LCH|^^^^^UH^^^^CH-VIENNE-UH-MED-1|||CD^Code^L|^CH-VIENNE-UH-MED-1
+LCH|^^^^^UH^^^^CH-VIENNE-UH-MED-1|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-UH-MED-1
+LCH|^^^^^UH^^^^CH-VIENNE-UH-MED-1|||LBL^Libelle^L|^UH Médecine Niveau 1
+LCH|^^^^^UH^^^^CH-VIENNE-UH-MED-1|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^CH-VIENNE-UH-MED-1|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^CH-VIENNE-UF-MED-HOSP
+MFE|MAD|||^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB|PL
+LOC|^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB||UH|Unite Hebergement
+LCH|^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB|||CD^Code^L|^CH-VIENNE-UH-BLOC-AMB
+LCH|^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-UH-BLOC-AMB
+LCH|^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB|||LBL^Libelle^L|^Zone Chirurgie Ambu
+LCH|^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^CH-VIENNE-UF-CHIR-BLOC
+MFE|MAD|||^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1|PL
+LOC|^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1||UH|Unite Hebergement
+LCH|^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1|||CD^Code^L|^EHPAD-JARDINS-UH-AILE-A1
+LCH|^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-UH-AILE-A1
+LCH|^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1|||LBL^Libelle^L|^UH Aile A Niveau 1
+LCH|^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^EHPAD-JARDINS-UF-HEB-A
+MFE|MAD|||^^^^^UH^^^^PSY-RHONE-UH-A1|PL
+LOC|^^^^^UH^^^^PSY-RHONE-UH-A1||UH|Unite Hebergement
+LCH|^^^^^UH^^^^PSY-RHONE-UH-A1|||CD^Code^L|^PSY-RHONE-UH-A1
+LCH|^^^^^UH^^^^PSY-RHONE-UH-A1|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-UH-A1
+LCH|^^^^^UH^^^^PSY-RHONE-UH-A1|||LBL^Libelle^L|^UH Secteur A Niveau 1
+LCH|^^^^^UH^^^^PSY-RHONE-UH-A1|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^UH^^^^PSY-RHONE-UH-A1|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^PSY-RHONE-UF-HOSP-A
+MFE|MAD|||^^^^^CH^^^^CHU-LYON-CH-URG-A01|PL
+LOC|^^^^^CH^^^^CHU-LYON-CH-URG-A01||CH|Chambre
+LCH|^^^^^CH^^^^CHU-LYON-CH-URG-A01|||CD^Code^L|^CHU-LYON-CH-URG-A01
+LCH|^^^^^CH^^^^CHU-LYON-CH-URG-A01|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-CH-URG-A01
+LCH|^^^^^CH^^^^CHU-LYON-CH-URG-A01|||LBL^Libelle^L|^Box A01
+LCH|^^^^^CH^^^^CHU-LYON-CH-URG-A01|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^CHU-LYON-CH-URG-A01|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^CHU-LYON-UH-URG-ZA
+MFE|MAD|||^^^^^CH^^^^CHU-LYON-CH-UHCD-101|PL
+LOC|^^^^^CH^^^^CHU-LYON-CH-UHCD-101||CH|Chambre
+LCH|^^^^^CH^^^^CHU-LYON-CH-UHCD-101|||CD^Code^L|^CHU-LYON-CH-UHCD-101
+LCH|^^^^^CH^^^^CHU-LYON-CH-UHCD-101|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-CH-UHCD-101
+LCH|^^^^^CH^^^^CHU-LYON-CH-UHCD-101|||LBL^Libelle^L|^Chambre UHCD 101
+LCH|^^^^^CH^^^^CHU-LYON-CH-UHCD-101|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^CHU-LYON-CH-UHCD-101|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^CHU-LYON-UH-UHCD-1
+MFE|MAD|||^^^^^CH^^^^CHU-LYON-CH-MAT-201|PL
+LOC|^^^^^CH^^^^CHU-LYON-CH-MAT-201||CH|Chambre
+LCH|^^^^^CH^^^^CHU-LYON-CH-MAT-201|||CD^Code^L|^CHU-LYON-CH-MAT-201
+LCH|^^^^^CH^^^^CHU-LYON-CH-MAT-201|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-CH-MAT-201
+LCH|^^^^^CH^^^^CHU-LYON-CH-MAT-201|||LBL^Libelle^L|^Chambre 201
+LCH|^^^^^CH^^^^CHU-LYON-CH-MAT-201|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^CHU-LYON-CH-MAT-201|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^CHU-LYON-UH-MAT-ET2
+MFE|MAD|||^^^^^CH^^^^CHU-LYON-CH-READ-101|PL
+LOC|^^^^^CH^^^^CHU-LYON-CH-READ-101||CH|Chambre
+LCH|^^^^^CH^^^^CHU-LYON-CH-READ-101|||CD^Code^L|^CHU-LYON-CH-READ-101
+LCH|^^^^^CH^^^^CHU-LYON-CH-READ-101|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-CH-READ-101
+LCH|^^^^^CH^^^^CHU-LYON-CH-READ-101|||LBL^Libelle^L|^Chambre 101
+LCH|^^^^^CH^^^^CHU-LYON-CH-READ-101|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^CHU-LYON-CH-READ-101|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^CHU-LYON-UH-READ-PAV1
+MFE|MAD|||^^^^^CH^^^^CH-VIENNE-CH-MED-101|PL
+LOC|^^^^^CH^^^^CH-VIENNE-CH-MED-101||CH|Chambre
+LCH|^^^^^CH^^^^CH-VIENNE-CH-MED-101|||CD^Code^L|^CH-VIENNE-CH-MED-101
+LCH|^^^^^CH^^^^CH-VIENNE-CH-MED-101|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-CH-MED-101
+LCH|^^^^^CH^^^^CH-VIENNE-CH-MED-101|||LBL^Libelle^L|^Chambre 101
+LCH|^^^^^CH^^^^CH-VIENNE-CH-MED-101|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^CH-VIENNE-CH-MED-101|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^CH-VIENNE-UH-MED-1
+MFE|MAD|||^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE|PL
+LOC|^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE||CH|Chambre
+LCH|^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE|||CD^Code^L|^CH-VIENNE-CH-BLOC-PRE
+LCH|^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-CH-BLOC-PRE
+LCH|^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE|||LBL^Libelle^L|^Salle Pré-op 1
+LCH|^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^CH-VIENNE-UH-BLOC-AMB
+MFE|MAD|||^^^^^CH^^^^EHPAD-JARDINS-CH-A101|PL
+LOC|^^^^^CH^^^^EHPAD-JARDINS-CH-A101||CH|Chambre
+LCH|^^^^^CH^^^^EHPAD-JARDINS-CH-A101|||CD^Code^L|^EHPAD-JARDINS-CH-A101
+LCH|^^^^^CH^^^^EHPAD-JARDINS-CH-A101|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-CH-A101
+LCH|^^^^^CH^^^^EHPAD-JARDINS-CH-A101|||LBL^Libelle^L|^Chambre A101
+LCH|^^^^^CH^^^^EHPAD-JARDINS-CH-A101|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^EHPAD-JARDINS-CH-A101|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^EHPAD-JARDINS-UH-AILE-A1
+MFE|MAD|||^^^^^CH^^^^PSY-RHONE-CH-A101|PL
+LOC|^^^^^CH^^^^PSY-RHONE-CH-A101||CH|Chambre
+LCH|^^^^^CH^^^^PSY-RHONE-CH-A101|||CD^Code^L|^PSY-RHONE-CH-A101
+LCH|^^^^^CH^^^^PSY-RHONE-CH-A101|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-CH-A101
+LCH|^^^^^CH^^^^PSY-RHONE-CH-A101|||LBL^Libelle^L|^Chambre A101
+LCH|^^^^^CH^^^^PSY-RHONE-CH-A101|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^CH^^^^PSY-RHONE-CH-A101|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^PSY-RHONE-UH-A1
+MFE|MAD|||^^^^^LIT^^^^CHU-LYON-LIT-URG-A0101|PL
+LOC|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0101||LIT|Lit
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0101|||CD^Code^L|^CHU-LYON-LIT-URG-A0101
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0101|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-LIT-URG-A0101
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0101|||LBL^Libelle^L|^Lit A01
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0101|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0101|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CHU-LYON-CH-URG-A01
+MFE|MAD|||^^^^^LIT^^^^CHU-LYON-LIT-URG-A0102|PL
+LOC|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0102||LIT|Lit
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0102|||CD^Code^L|^CHU-LYON-LIT-URG-A0102
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0102|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-LIT-URG-A0102
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0102|||LBL^Libelle^L|^Lit A02
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0102|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CHU-LYON-LIT-URG-A0102|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CHU-LYON-CH-URG-A01
+MFE|MAD|||^^^^^LIT^^^^CHU-LYON-LIT-UHCD-101A|PL
+LOC|^^^^^LIT^^^^CHU-LYON-LIT-UHCD-101A||LIT|Lit
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-UHCD-101A|||CD^Code^L|^CHU-LYON-LIT-UHCD-101A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-UHCD-101A|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-LIT-UHCD-101A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-UHCD-101A|||LBL^Libelle^L|^Lit UHCD 101A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-UHCD-101A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CHU-LYON-LIT-UHCD-101A|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CHU-LYON-CH-UHCD-101
+MFE|MAD|||^^^^^LIT^^^^CHU-LYON-LIT-MAT-201A|PL
+LOC|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201A||LIT|Lit
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201A|||CD^Code^L|^CHU-LYON-LIT-MAT-201A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201A|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-LIT-MAT-201A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201A|||LBL^Libelle^L|^Lit Mère 201
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201A|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CHU-LYON-CH-MAT-201
+MFE|MAD|||^^^^^LIT^^^^CHU-LYON-LIT-MAT-201B|PL
+LOC|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201B||LIT|Lit
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201B|||CD^Code^L|^CHU-LYON-LIT-MAT-201B
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201B|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-LIT-MAT-201B
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201B|||LBL^Libelle^L|^Lit Bébé 201
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201B|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CHU-LYON-LIT-MAT-201B|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CHU-LYON-CH-MAT-201
+MFE|MAD|||^^^^^LIT^^^^CHU-LYON-LIT-READ-101A|PL
+LOC|^^^^^LIT^^^^CHU-LYON-LIT-READ-101A||LIT|Lit
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101A|||CD^Code^L|^CHU-LYON-LIT-READ-101A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101A|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-LIT-READ-101A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101A|||LBL^Libelle^L|^Lit 101A
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CHU-LYON-LIT-READ-101A|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CHU-LYON-CH-READ-101
+MFE|MAD|||^^^^^LIT^^^^CHU-LYON-LIT-READ-101B|PL
+LOC|^^^^^LIT^^^^CHU-LYON-LIT-READ-101B||LIT|Lit
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101B|||CD^Code^L|^CHU-LYON-LIT-READ-101B
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101B|||ID_GLBL^Identifiant unique global^L|^CHU-LYON-LIT-READ-101B
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101B|||LBL^Libelle^L|^Lit 101B
+LCH|^^^^^LIT^^^^CHU-LYON-LIT-READ-101B|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CHU-LYON-LIT-READ-101B|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CHU-LYON-CH-READ-101
+MFE|MAD|||^^^^^LIT^^^^CH-VIENNE-LIT-MED-101A|PL
+LOC|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101A||LIT|Lit
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101A|||CD^Code^L|^CH-VIENNE-LIT-MED-101A
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101A|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-LIT-MED-101A
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101A|||LBL^Libelle^L|^Lit 101A
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101A|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CH-VIENNE-CH-MED-101
+MFE|MAD|||^^^^^LIT^^^^CH-VIENNE-LIT-MED-101B|PL
+LOC|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101B||LIT|Lit
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101B|||CD^Code^L|^CH-VIENNE-LIT-MED-101B
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101B|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-LIT-MED-101B
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101B|||LBL^Libelle^L|^Lit 101B
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101B|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CH-VIENNE-LIT-MED-101B|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CH-VIENNE-CH-MED-101
+MFE|MAD|||^^^^^LIT^^^^CH-VIENNE-LIT-BLOC-PRE1|PL
+LOC|^^^^^LIT^^^^CH-VIENNE-LIT-BLOC-PRE1||LIT|Lit
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-BLOC-PRE1|||CD^Code^L|^CH-VIENNE-LIT-BLOC-PRE1
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-BLOC-PRE1|||ID_GLBL^Identifiant unique global^L|^CH-VIENNE-LIT-BLOC-PRE1
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-BLOC-PRE1|||LBL^Libelle^L|^Lit Pré1
+LCH|^^^^^LIT^^^^CH-VIENNE-LIT-BLOC-PRE1|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^CH-VIENNE-LIT-BLOC-PRE1|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^CH-VIENNE-CH-BLOC-PRE
+MFE|MAD|||^^^^^LIT^^^^EHPAD-JARDINS-LIT-A101A|PL
+LOC|^^^^^LIT^^^^EHPAD-JARDINS-LIT-A101A||LIT|Lit
+LCH|^^^^^LIT^^^^EHPAD-JARDINS-LIT-A101A|||CD^Code^L|^EHPAD-JARDINS-LIT-A101A
+LCH|^^^^^LIT^^^^EHPAD-JARDINS-LIT-A101A|||ID_GLBL^Identifiant unique global^L|^EHPAD-JARDINS-LIT-A101A
+LCH|^^^^^LIT^^^^EHPAD-JARDINS-LIT-A101A|||LBL^Libelle^L|^Lit A101
+LCH|^^^^^LIT^^^^EHPAD-JARDINS-LIT-A101A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^EHPAD-JARDINS-LIT-A101A|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^EHPAD-JARDINS-CH-A101
+MFE|MAD|||^^^^^LIT^^^^PSY-RHONE-LIT-A101A|PL
+LOC|^^^^^LIT^^^^PSY-RHONE-LIT-A101A||LIT|Lit
+LCH|^^^^^LIT^^^^PSY-RHONE-LIT-A101A|||CD^Code^L|^PSY-RHONE-LIT-A101A
+LCH|^^^^^LIT^^^^PSY-RHONE-LIT-A101A|||ID_GLBL^Identifiant unique global^L|^PSY-RHONE-LIT-A101A
+LCH|^^^^^LIT^^^^PSY-RHONE-LIT-A101A|||LBL^Libelle^L|^Lit A101
+LCH|^^^^^LIT^^^^PSY-RHONE-LIT-A101A|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^LIT^^^^PSY-RHONE-LIT-A101A|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^PSY-RHONE-CH-A101

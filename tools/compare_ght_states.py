@@ -19,7 +19,7 @@ import argparse, json
 from collections import defaultdict, Counter
 from sqlmodel import Session, select
 from app.db import engine
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.models import Patient, Dossier, Venue, Mouvement
 
 

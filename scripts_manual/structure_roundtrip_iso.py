@@ -18,7 +18,7 @@ from app.services.mfn_structure import generate_mfn_message
 from app.services.fhir_structure_export import generate_fhir_bundle_structure
 from app.services.file_poller import FilePollerService
 from app.models_shared import SystemEndpoint
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.models_structure import EntiteGeographique, Pole, Service
 
 SOURCE_FILE = Path(__file__).parent.parent / "tests" / "exemples" / "ExempleExtractionStructure.txt"

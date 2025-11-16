@@ -14,7 +14,7 @@ from app.models_context import (
     EndpointContext, PatientContextMapping, DossierContextMapping,
     VenueContextMapping, MouvementContextMapping
 )
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.runners import registry
 from sqlmodel.sql.expression import select as sqlmodel_select
 from sqlalchemy.orm import selectinload
@@ -198,7 +198,7 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
 @router.get("/new", response_class=HTMLResponse)
 def new_endpoint(request: Request, session=Depends(get_session)):
     from app.form_config import EndpointKind, EndpointRole, AuthKind
-    from app.models_structure_fhir import GHTContext, EntiteJuridique
+    from app.models_structure import GHTContext, EntiteJuridique
     from sqlmodel import select
     
     # Récupérer les GHT et EJ disponibles
@@ -277,12 +277,12 @@ def create_endpoint(
 
     # Cohérence GHT/EJ: si EJ fourni et GHT absent, déduire le GHT depuis l'EJ
     if ej_id and not ght_id:
-        from app.models_structure_fhir import EntiteJuridique
+        from app.models_structure import EntiteJuridique
         ej_obj = session.get(EntiteJuridique, ej_id)
         ght_id = ej_obj.ght_context_id if ej_obj else None
     # Si les deux sont fournis, vérifier l'appartenance
     if ej_id and ght_id:
-        from app.models_structure_fhir import EntiteJuridique
+        from app.models_structure import EntiteJuridique
         ej_obj = session.get(EntiteJuridique, ej_id)
         if ej_obj and ej_obj.ght_context_id != ght_id:
             raise HTTPException(status_code=400, detail="L'établissement choisi n'appartient pas au GHT sélectionné")
@@ -309,7 +309,7 @@ def create_endpoint(
 
 @router.get("/{endpoint_id}", response_class=HTMLResponse)
 def detail_endpoint(endpoint_id: int, request: Request, session=Depends(get_session)):
-    from app.models_structure_fhir import GHTContext, EntiteJuridique
+    from app.models_structure import GHTContext, EntiteJuridique
     
     e = session.get(SystemEndpoint, endpoint_id)
     if not e:
@@ -385,11 +385,11 @@ def update_endpoint(
 
     # Cohérence GHT/EJ
     if ej_id and not ght_id:
-        from app.models_structure_fhir import EntiteJuridique
+        from app.models_structure import EntiteJuridique
         ej_obj = session.get(EntiteJuridique, ej_id)
         ght_id = ej_obj.ght_context_id if ej_obj else None
     if ej_id and ght_id:
-        from app.models_structure_fhir import EntiteJuridique
+        from app.models_structure import EntiteJuridique
         ej_obj = session.get(EntiteJuridique, ej_id)
         if ej_obj and ej_obj.ght_context_id != ght_id:
             # Re-render form with error message

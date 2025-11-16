@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 
 from app.db import engine, init_db
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_shared import SystemEndpoint
 from app.services.hl7_generator import generate_update_message
 

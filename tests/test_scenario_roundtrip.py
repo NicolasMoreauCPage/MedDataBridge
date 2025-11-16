@@ -5,7 +5,7 @@ from sqlmodel import SQLModel, Session, create_engine, select
 from sqlalchemy.pool import StaticPool
 
 from app.models import Patient, Dossier, Venue, Mouvement
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.services.scenario_capture import capture_dossier_as_scenario
 

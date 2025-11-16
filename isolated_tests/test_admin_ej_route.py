@@ -10,7 +10,7 @@ from sqlmodel import SQLModel, create_engine, Session
 from fastapi import FastAPI, Depends
 from fastapi.routing import APIRouter
 from fastapi.templating import Jinja2Templates
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 
 def create_minimal_app() -> FastAPI:
     app = FastAPI(title="Minimal MedDataBridge for EJ route test")
@@ -32,7 +32,7 @@ def create_minimal_app() -> FastAPI:
 
     # No need for dependency override of global get_session; using local Depends
     return app
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 
 engine = create_engine("sqlite:///:memory:")
 SQLModel.metadata.create_all(engine)

@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlmodel import Session
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep, InteropScenario, InteropScenarioStep
-from app.models_structure_fhir import EntiteJuridique  # si disponible
+from app.models_structure import EntiteJuridique  # si disponible
 from app.db import get_next_sequence
 
 

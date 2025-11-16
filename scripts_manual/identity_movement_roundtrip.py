@@ -28,7 +28,7 @@ from sqlmodel import Session, select
 from app.db_session_factory import session_factory
 from app.db import get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
-from app.models_structure_fhir import GHTContext, EntiteJuridique, IdentifierNamespace
+from app.models_structure import GHTContext, EntiteJuridique, IdentifierNamespace
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.hl7_generator import generate_adt_message
 from app.services.fhir import generate_fhir_bundle_for_dossier

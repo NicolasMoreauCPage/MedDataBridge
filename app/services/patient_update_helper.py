@@ -149,7 +149,7 @@ def create_patient_from_pid_data(
         # Récupérer le contexte GHT depuis l'EJ si fournie
         ght_context_id = None
         if ej_id:
-            from app.models_structure_fhir import EntiteJuridique
+            from app.models_structure import EntiteJuridique
             ej = session.get(EntiteJuridique, ej_id)
             if ej:
                 ght_context_id = ej.ght_context_id
@@ -192,7 +192,7 @@ def create_patient_from_pid_data(
     # Récupérer le contexte GHT depuis l'EJ si fournie
     ght_context_id = None
     if ej_id:
-        from app.models_structure_fhir import EntiteJuridique
+        from app.models_structure import EntiteJuridique
         ej = session.get(EntiteJuridique, ej_id)
         if ej:
             ght_context_id = ej.ght_context_id

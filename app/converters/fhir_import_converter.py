@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 from sqlmodel import Session, select
 
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit, LocationPhysicalType

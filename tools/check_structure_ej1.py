@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from app.db import engine
-from app.models_structure_fhir import EntiteGeographique
+from app.models_structure import EntiteGeographique
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 
 with Session(engine) as s:

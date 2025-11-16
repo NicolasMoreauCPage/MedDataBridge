@@ -23,7 +23,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.db import engine
-from app.models_structure_fhir import EntiteJuridique, EntiteGeographique
+from app.models_structure import EntiteJuridique, EntiteGeographique
 from app.models_structure import Service
 from app.models import Patient, Dossier, Mouvement, Venue
 from app.models_identifiers import Identifier, IdentifierType

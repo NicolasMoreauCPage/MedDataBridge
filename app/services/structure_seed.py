@@ -41,7 +41,7 @@ from app.models_structure import (
     LocationServiceType,
     LocationStatus,
 )
-from app.models_structure_fhir import EntiteGeographique, EntiteJuridique, GHTContext
+from app.models_structure import EntiteGeographique, EntiteJuridique, GHTContext
 
 
 def _enum_value(value: Any) -> Any:
@@ -1330,7 +1330,7 @@ def ensure_namespaces_for_context(
     
     Idempotent : recherche par name unique.
     """
-    from app.models_structure_fhir import IdentifierNamespace
+    from app.models_structure import IdentifierNamespace
     stats = Counter()
     
     # OID racine du contexte (fallback si absent)
@@ -1359,7 +1359,7 @@ def ensure_namespaces_for_context(
     # Namespaces par EJ
     for idx, finess_ej in enumerate(ej_finess_list, start=1):
         # Récupérer l'EJ pour l'associer
-        from app.models_structure_fhir import EntiteJuridique
+        from app.models_structure import EntiteJuridique
         ej = session.exec(
             select(EntiteJuridique).where(EntiteJuridique.finess_ej == finess_ej)
         ).first()
@@ -1458,7 +1458,7 @@ def seed_demo_population(
         return lit_cycle[idx % len(lit_cycle)]
 
     # Sélectionner toutes les EJ du contexte
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
     ej_list = session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == context.id)).all()
     num_ej = len(ej_list)
 
@@ -1473,7 +1473,7 @@ def seed_demo_population(
         ej_id = ej.id if ej else None
 
         # Générer un IPP comme identifiant externe
-        from app.models_structure_fhir import IdentifierNamespace
+        from app.models_structure import IdentifierNamespace
         from app.models_identifiers import Identifier, IdentifierType
         # Sélectionner le namespace IPP principal pour cette EJ
         ipp_namespace = session.exec(select(IdentifierNamespace).where(IdentifierNamespace.type == "IPP").where(IdentifierNamespace.entite_juridique_id == ej_id)).first()

@@ -21,7 +21,7 @@ from app.services.nature_mapping import derive_nature
 from app.services.vocabulary_translate import reverse_map_code, map_code
 from app.models_shared import SystemEndpoint
 from app.models_identifiers import Identifier
-from app.models_structure_fhir import IdentifierNamespace
+from app.models_structure import IdentifierNamespace
 from sqlmodel import Session, select
 
 

@@ -6,7 +6,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from sqlmodel import select
 from sqlmodel import Session, create_engine
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, 
     Chambre, Lit, LocationPhysicalType, LocationServiceType

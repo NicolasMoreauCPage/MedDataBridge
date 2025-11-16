@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 from sqlmodel import Session, select
 import hashlib
 
-from app.models_structure_fhir import EntiteJuridique, EntiteGeographique
+from app.models_structure import EntiteJuridique, EntiteGeographique
 from app.utils.structured_logging import StructuredLogger, log_operation, metrics
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit

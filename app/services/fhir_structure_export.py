@@ -2,7 +2,7 @@ import logging
 from typing import Optional, List, Dict, Any
 from sqlmodel import Session, select
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
-from app.models_structure_fhir import EntiteGeographique
+from app.models_structure import EntiteGeographique
 
 logger = logging.getLogger(__name__)
 

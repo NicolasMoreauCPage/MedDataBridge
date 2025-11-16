@@ -3,7 +3,7 @@ import pytest
 import time
 from datetime import datetime, timedelta
 from sqlmodel import Session, SQLModel, create_engine
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 )

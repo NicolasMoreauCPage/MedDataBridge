@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from sqlmodel import Session
 from app.db import engine, init_db
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.services.fhir_export_service import FHIRExportService
 from app.validators.hl7_validators import PAMValidator, MFNValidator
 from app.utils.structured_logging import metrics

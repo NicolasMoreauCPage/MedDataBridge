@@ -33,7 +33,7 @@ def _create_test_message(trigger: str, identifiers: list, name: str = "TEST^TEST
 @pytest.mark.asyncio
 async def test_ihe_pam_end_to_end(session: Session):
     # Créer la hiérarchie EG/Pôle/Service avec les bons identifiants
-    from app.models_structure_fhir import EntiteGeographique
+    from app.models_structure import EntiteGeographique
     from app.models_structure import Pole, Service, LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType
 
     from sqlmodel import select
@@ -76,7 +76,7 @@ async def test_ihe_pam_end_to_end(session: Session):
     
 
     # 0. Injecter la hiérarchie structurelle minimale attendue (EG > Pôle > Service > UF)
-    from app.models_structure_fhir import EntiteGeographique
+    from app.models_structure import EntiteGeographique
     from app.models_structure import Pole, Service, UniteFonctionnelle, LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType
 
     eg = EntiteGeographique(identifier="EG001", name="EG Test", finess="123456789")

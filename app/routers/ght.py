@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from sqlalchemy import func
 from app.db import get_session
-from app.models_structure_fhir import (
+from app.models_structure import (
     EntiteJuridique,
     GHTContext,
     IdentifierNamespace,

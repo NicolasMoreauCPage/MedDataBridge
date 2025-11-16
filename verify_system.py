@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import click
 from sqlmodel import Session, select
 from app.db import engine, init_db
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 
 
 @click.command()

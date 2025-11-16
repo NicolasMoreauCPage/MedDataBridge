@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlmodel import Session, select
 from app.db import engine, init_db
-from app.models_structure_fhir import (
+from app.models_structure import (
     GHTContext, EntiteJuridique, IdentifierNamespace, EntiteGeographique
 )
 from app.models import Patient, Dossier, Venue, Mouvement

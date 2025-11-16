@@ -14,11 +14,14 @@ Hypothèses (POC):
 """
 from __future__ import annotations
 
+
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 from sqlmodel import Session, select
 
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique
+from app.models_structure import EntiteGeographique
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit,
     LocationServiceType, LocationStatus, LocationMode, LocationPhysicalType
@@ -241,7 +244,6 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     break
         elif t in {"D", "SERV"}:
             # Créer Service sous EG parent (via LRL LCLSTN)
-            # Chercher un parent EntiteGeographique parmi tous les parents possibles
             parent_eg = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
@@ -251,20 +253,21 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             if not parent_eg:
                 continue
             pole = _get_or_create_default_pole(session, parent_eg)
-            identifier = ent.get("ID_GLBL") or f"SRV-{code}"
-            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"Service {code}"
+            identifier = ent.get("CD")
+            global_identifier = ent.get("ID_GLBL") or f"SRV-{identifier}"
+            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"Service {identifier}"
             short = ent.get("LBL_CRT") or None
-            # Déterminer service_type (par défaut MCO)
             service_type = LocationServiceType.MCO
             srv = session.exec(select(Service).where(Service.identifier == identifier)).first()
             if srv:
-                # Update minimal fields
                 srv.name = name
                 srv.short_name = short
                 srv.pole_id = pole.id
+                srv.global_identifier = global_identifier
             else:
                 srv = Service(
                     identifier=identifier,
+                    global_identifier=global_identifier,
                     name=name,
                     short_name=short,
                     status=LocationStatus.ACTIVE,
@@ -275,11 +278,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 )
             session.add(srv); session.commit(); session.refresh(srv)
             created["service"] += 1
-            # Indexer le service pour les enfants
             index[(t, code)] = srv
         elif t in {"N", "UF"}:
             # Créer UniteFonctionnelle sous Service parent
-            # Chercher un parent Service parmi tous les parents possibles
             parent_srv = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
@@ -288,17 +289,20 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     break
             if not parent_srv:
                 continue
-            identifier = ent.get("ID_GLBL") or f"UF-{code}"
-            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"UF {code}"
+            identifier = ent.get("CD")
+            global_identifier = ent.get("ID_GLBL") or f"UF-{identifier}"
+            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"UF {identifier}"
             short = ent.get("LBL_CRT") or None
             uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == identifier)).first()
             if uf:
                 uf.name = name
                 uf.short_name = short
                 uf.service_id = parent_srv.id
+                uf.global_identifier = global_identifier
             else:
                 uf = UniteFonctionnelle(
                     identifier=identifier,
+                    global_identifier=global_identifier,
                     name=name,
                     short_name=short,
                     status=LocationStatus.ACTIVE,
@@ -310,7 +314,6 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             index[(t, code)] = uf
         elif t in {"R", "CHAMBRE"}:
             # Créer Chambre - parent peut être UF ou UniteHebergement
-            # Chercher un parent UF ou UH parmi tous les parents possibles
             parent_obj = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
@@ -319,9 +322,7 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     break
             if not parent_obj:
                 continue
-            # Si parent est UF, créer UniteHebergement intermédiaire
             if isinstance(parent_obj, UniteFonctionnelle):
-                # Créer ou récupérer UH par défaut pour cette UF
                 uh_identifier = f"UH-{parent_obj.identifier}"
                 uh = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == uh_identifier)).first()
                 if not uh:
@@ -339,17 +340,20 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 parent_uh = parent_obj
             else:
                 continue
-            identifier = ent.get("ID_GLBL") or f"CH-{code}"
-            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"Chambre {code}"
+            identifier = ent.get("CD")
+            global_identifier = ent.get("ID_GLBL") or f"CH-{identifier}"
+            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"Chambre {identifier}"
             short = ent.get("LBL_CRT") or None
             chambre = session.exec(select(Chambre).where(Chambre.identifier == identifier)).first()
             if chambre:
                 chambre.name = name
                 chambre.short_name = short
                 chambre.unite_hebergement_id = parent_uh.id
+                chambre.global_identifier = global_identifier
             else:
                 chambre = Chambre(
                     identifier=identifier,
+                    global_identifier=global_identifier,
                     name=name,
                     short_name=short,
                     status=LocationStatus.ACTIVE,
@@ -361,7 +365,6 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             index[(t, code)] = chambre
         elif t in {"B", "LIT"}:
             # Créer Lit sous Chambre parent
-            # Chercher un parent Chambre parmi tous les parents possibles
             parent_ch = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
@@ -370,17 +373,20 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     break
             if not parent_ch:
                 continue
-            identifier = ent.get("ID_GLBL") or f"LIT-{code}"
-            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"Lit {code}"
+            identifier = ent.get("CD")
+            global_identifier = ent.get("ID_GLBL") or f"LIT-{identifier}"
+            name = ent.get("LBL") or ent.get("TYPE_LABEL") or f"Lit {identifier}"
             short = ent.get("LBL_CRT") or None
             lit = session.exec(select(Lit).where(Lit.identifier == identifier)).first()
             if lit:
                 lit.name = name
                 lit.short_name = short
                 lit.chambre_id = parent_ch.id
+                lit.global_identifier = global_identifier
             else:
                 lit = Lit(
                     identifier=identifier,
+                    global_identifier=global_identifier,
                     name=name,
                     short_name=short,
                     status=LocationStatus.ACTIVE,

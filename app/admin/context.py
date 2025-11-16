@@ -1,6 +1,7 @@
 """Vues admin pour le contexte GHT"""
 from sqladmin import ModelView
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique
+from app.models_structure import EntiteGeographique
 
 
 class GHTContextAdmin(ModelView, model=GHTContext):

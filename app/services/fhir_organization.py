@@ -10,7 +10,7 @@ Références:
 
 from typing import Any, Dict, List, Optional
 from sqlmodel import Session
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 
 
 def _format_telecom(phone: Optional[str] = None, email: Optional[str] = None) -> List[Dict[str, str]]:
@@ -150,7 +150,7 @@ def entity_to_fhir_organization(ej: EntiteJuridique, session: Session) -> Dict[s
     
     # Référence au GHT parent (partOf)
     if ej.ght_context_id:
-        from app.models_structure_fhir import GHTContext
+        from app.models_structure import GHTContext
         ght = session.get(GHTContext, ej.ght_context_id)
         if ght:
             organization["partOf"] = {

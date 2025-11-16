@@ -8,7 +8,7 @@ import logging
 from app.db import get_session, get_next_sequence, peek_next_sequence
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier
-from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre
+from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
 from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS, SUPPORTED_WORKFLOW_EVENTS
@@ -632,7 +632,7 @@ def new_mouvement(
             # Toujours ajouter les UF de l'EJ de la venue (même si on a trouvé des UF spécifiques)
             if ej_id:
                 # Récupérer toutes les UF de l'EJ via la hiérarchie EG -> Pole -> Service -> UF
-                from app.models_structure_fhir import EntiteGeographique
+                from app.models_structure import EntiteGeographique
                 from app.models_structure import Pole, Service
 
                 # EJ -> Entites Geographiques
@@ -683,6 +683,30 @@ def new_mouvement(
             label = f"{uh.identifier} — {uh.name}"
             uh_options.append({"value": str(uh.id), "label": label})
     
+
+    # Récupérer les chambres pour l'UH pré-remplie
+    chambre_options = []
+    if selected_uh_id:
+        logging.info(f"Getting chambre options for UH {selected_uh_id}")
+        chambres = session.exec(select(Chambre).where(Chambre.unite_hebergement_id == selected_uh_id)).all()
+        logging.info(f"Found {len(chambres)} chambres for UH {selected_uh_id}")
+        for chambre in chambres:
+            label = f"{chambre.identifier} — {chambre.name}"
+            chambre_options.append({"value": str(chambre.id), "label": label})
+    else:
+        logging.info("No selected_uh_id, chambre_options will be empty")
+
+    # Récupérer les lits pour la chambre pré-remplie
+    lit_options = []
+    if selected_chambre_id:
+        logging.info(f"Getting lit options for chambre {selected_chambre_id}")
+        lits = session.exec(select(Lit).where(Lit.chambre_id == selected_chambre_id)).all()
+        logging.info(f"Found {len(lits)} lits for chambre {selected_chambre_id}")
+        for lit in lits:
+            label = f"{lit.identifier} — {lit.name}"
+            lit_options.append({"value": str(lit.id), "label": label})
+    else:
+        logging.info("No selected_chambre_id, lit_options will be empty")
 
     # Filtrer les types de mouvement selon le type de venue
     from app.form_config import MovementType
@@ -1198,7 +1222,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
     uf_ids = set()
     if ej_id:
         # Récupérer toutes les UF de l'EJ via la hiérarchie EG -> Pole -> Service -> UF
-        from app.models_structure_fhir import EntiteGeographique
+        from app.models_structure import EntiteGeographique
         from app.models_structure import Pole, Service
 
         # EJ -> Entites Geographiques

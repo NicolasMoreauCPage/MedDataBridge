@@ -6,7 +6,7 @@ import asyncio
 from sqlmodel import Session, select
 from app.db import engine
 from app.services.mfn_importer import import_mfn
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models_structure import Pole, Service, UniteFonctionnelle, Chambre, Lit
 
 # MFN complet avec tous les niveaux de structure (format CPAGE compatible)

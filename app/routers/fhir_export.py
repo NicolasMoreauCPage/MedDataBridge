@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 from typing import Optional
 from app.db import get_session
-from app.models_structure_fhir import EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.services.fhir_export_service import FHIRExportService
 from app.converters.fhir_converter import FHIRBundle
 

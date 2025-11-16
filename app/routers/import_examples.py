@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, Depends
 from sqlmodel import Session
 from app.db import get_session
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models import Patient
 from pathlib import Path
 import tempfile

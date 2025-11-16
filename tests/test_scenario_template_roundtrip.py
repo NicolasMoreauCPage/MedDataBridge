@@ -12,7 +12,7 @@ from datetime import datetime
 from sqlmodel import Session, create_engine, select
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
-from app.models_structure_fhir import EntiteJuridique, EntiteGeographique
+from app.models_structure import EntiteJuridique, EntiteGeographique
 # UniteFonctionnelle non utilisé dans ces tests
 from app.services.scenario_template_materializer import materialize_template, MaterializationOptions
 from app.db import get_next_sequence
@@ -27,7 +27,7 @@ def test_db():
     
     with Session(engine) as session:
         # Créer GHT context
-        from app.models_structure_fhir import GHTContext, IdentifierNamespace
+        from app.models_structure import GHTContext, IdentifierNamespace
         
         ght = GHTContext(
             name="GHT Test Roundtrip",

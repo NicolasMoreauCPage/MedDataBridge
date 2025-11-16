@@ -4,7 +4,7 @@ Script pour vérifier si le message MFN a créé des structures
 from app.db import get_session
 from app.models_shared import MessageLog
 from app.models_transport import SystemEndpoint
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from sqlmodel import select
 
 def main():

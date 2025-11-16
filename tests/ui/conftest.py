@@ -136,7 +136,7 @@ def page(browser, test_server):
     try:
         from sqlmodel import Session as DBSession, select
         from app.db import engine as db_engine
-        from app.models_structure_fhir import GHTContext
+        from app.models_structure import GHTContext
 
         with DBSession(db_engine) as s:
             ctx = s.exec(select(GHTContext)).first()

@@ -933,6 +933,11 @@ async def handle_admission_message(
         encounter_class_code = map_code(session, "patient-class", hl7_patient_class, "encounter-class") or (
             {"I": "IMP", "O": "AMB", "E": "EMER"}.get(hl7_patient_class, "IMP")
         )
+        # Vérifier si le dossier_seq existe déjà
+        existing_dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == d_seq)).first()
+        if existing_dossier:
+            logger.error(f"[pam][admission] Doublon dossier_seq détecté: {d_seq}. Import annulé.")
+            raise Exception(f"Un dossier avec le numéro {d_seq} existe déjà. Import ADT/PAM annulé.")
         dossier = Dossier(
             dossier_seq=d_seq,
             patient_id=patient.id,
@@ -1062,7 +1067,7 @@ async def handle_admission_message(
             try:
                 from sqlmodel import select
                 from app.models_structure import UniteFonctionnelle
-                from app.models_structure_fhir import EntiteJuridique
+                from app.models_structure import EntiteJuridique
                 
                 # Chercher l'UF dans la structure
                 uf_found = session.exec(
@@ -1078,7 +1083,7 @@ async def handle_admission_message(
                             from app.models_structure import (
                                 UniteFonctionnelle, Service, Pole, LocationPhysicalType
                             )
-                            from app.models_structure_fhir import EntiteGeographique
+                            from app.models_structure import EntiteGeographique
                             from sqlmodel import select
 
                             # Récupérer/Créer une entité géographique (placeholder si absente)

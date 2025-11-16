@@ -3,7 +3,7 @@ Script pour vérifier l'état de la session et identifier l'erreur avec ej_conte
 """
 from sqlmodel import Session, create_engine, select
 from sqlalchemy.orm import selectinload
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_transport import SystemEndpoint
 
 # Connexion à la base de données

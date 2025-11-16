@@ -12,7 +12,7 @@ from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 from app.models import Dossier
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.scenario_runner import ScenarioExecutionError, get_scenario, send_scenario, send_step
 from app.services.scenario_capture import capture_dossier_as_scenario
 from app.services.scenario_import import import_scenario_from_json, validate_scenario_json, ScenarioImportError

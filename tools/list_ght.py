@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from app.db import engine
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 
 with Session(engine) as s:
     ghts = s.exec(select(GHTContext)).all()

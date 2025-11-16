@@ -7,7 +7,7 @@ os.environ["TESTING"] = "1"
 
 from sqlmodel import SQLModel, create_engine, select, Session
 
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_transport import SystemEndpoint
 from app.models import Patient, Venue, Mouvement
 from app.services.structure_seed import (

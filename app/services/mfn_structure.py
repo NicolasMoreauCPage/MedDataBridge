@@ -343,43 +343,24 @@ def save_location(
         # Propriétés communes
         base_props = {
             # Le code (CD) va dans identifier
-            "identifier": characteristics.get("CD", "") or identifier,
+            "identifier": characteristics.get("CD", ""),
             # L'identifiant unique global va dans global_identifier
             "global_identifier": characteristics.get("ID_GLBL", ""),
+            # Only set name if the model has it
             "name": characteristics.get("LBL", ""),
-            "short_name": characteristics.get("LBL_CRT") or None,
-            "address_line1": characteristics.get("ADRS_1") or None,
-            "address_line2": characteristics.get("ADRS_2") or None,
-            "address_line3": characteristics.get("ADRS_3") or None,
-            "address_city": characteristics.get("VL") or None,
-            "address_postalcode": characteristics.get("CD_PSTL") or None,
-            "opening_date": clean_hl7_date(characteristics.get("DT_OVRTR")),
-            "activation_date": clean_hl7_date(characteristics.get("DT_ACTVTN")),
-            "closing_date": clean_hl7_date(characteristics.get("DT_FRMTR")),
-            "deactivation_date": clean_hl7_date(characteristics.get("DT_FN_ACTVTN")),
         }
 
         # Sécurise la présence d'un identifiant (code)
         if not base_props["identifier"]:
-            base_props["identifier"] = (
-                characteristics.get("CD")
-                or characteristics.get("ID_GLBL")
-                or characteristics.get("ID")
-                or characteristics.get("FNS")
-                or characteristics.get("INS")
-                or identifier
-                or ""
-            )
-        if not base_props["identifier"]:
             logger.error(
-                "Impossible de déterminer l'identifiant",
+                "Impossible de déterminer l'identifiant (CD manquant)",
                 extra={
                     "loc_type": loc_type,
                     "characteristics": characteristics,
                     "raw_identifier": identifier,
                 },
             )
-            raise ValueError("Identifiant manquant pour la localisation importée")
+            raise ValueError("Identifiant (CD) manquant pour la localisation importée")
         else:
             logger.debug(
                 "Import MFN identifier resolved",
@@ -457,109 +438,52 @@ def save_location(
         if loc_type == "M":  # Entité juridique (niveau EG dans ce modèle de stockage)
             existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
             entity = EntiteGeographique(
-                **base_props,
-                finess=characteristics.get("FNS") or "",  # Ensure empty string if missing
-                category_sae=characteristics.get("CTGR_S"),
-                city_insee_code=characteristics.get("INS"),
-                type=characteristics.get("TPLG"),
-                responsible_id=characteristics.get("ID_GLBL_RSPNSBL"),
-                responsible_name=characteristics.get("NM_USL_RSPNSBL"),
-                responsible_firstname=characteristics.get("PRNM_RSPNSBL"),
-                responsible_rpps=characteristics.get("RPPS_RSPNSBL"),
-                responsible_adeli=characteristics.get("ADL_RSPNSBL"),
-                responsible_specialty=characteristics.get("CD_SPCLT_RSPNSBL"),
+                identifier=base_props["identifier"],
+                global_identifier=base_props["global_identifier"],
             )
             
         elif loc_type == "ETBL_GRPQ":  # Établissement géographique
             existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
             entity = EntiteGeographique(
-                **base_props,
-                finess=characteristics.get("FNS") or "",  # Ensure empty string if missing
-                category_sae=characteristics.get("CTGR_S"),
-                type=characteristics.get("TPLG"),
+                identifier=base_props["identifier"],
+                global_identifier=base_props["global_identifier"],
             )
             
         elif loc_type == "P":  # Pôle
             existing_entity = _get_existing(Pole, base_props["identifier"])
-            entity = Pole(
-                **base_props,
-                physical_type=LocationPhysicalType.AREA,
-            )
+            entity = Pole(**base_props)
             
         elif loc_type == "D":  # Service
-            # TPLG peut contenir une valeur descriptive, on mappe par défaut vers MCO si absent
-            tplg = characteristics.get("TPLG") or "MCO"
-            service_type = LocationServiceType.MCO
-            try:
-                service_type = LocationServiceType(tplg.lower()) if tplg.lower() in [e.value for e in LocationServiceType] else LocationServiceType.MCO
-            except Exception:
-                service_type = LocationServiceType.MCO
             existing_entity = _get_existing(Service, base_props["identifier"])
-            entity = Service(
-                **base_props,
-                physical_type=LocationPhysicalType.SI,
-                service_type=service_type,
-                typology=characteristics.get("TPLG"),
-                responsible_id=characteristics.get("ID_GLBL_RSPNSBL"),
-                responsible_name=characteristics.get("NM_USL_RSPNSBL"),
-                responsible_firstname=characteristics.get("PRNM_RSPNSBL"),
-                responsible_rpps=characteristics.get("RPPS_RSPNSBL"),
-                responsible_adeli=characteristics.get("ADL_RSPNSBL"),
-                responsible_specialty=characteristics.get("CD_SPCLT_RSPNSBL")
-            )
+            entity = Service(**base_props)
             
         elif loc_type == "UF":  # Unité Fonctionnelle
             existing_entity = _get_existing(UniteFonctionnelle, base_props["identifier"])
-            entity = UniteFonctionnelle(
-                **base_props,
-                physical_type=LocationPhysicalType.SI,
-                um_code=characteristics.get("CD_UM")
-            )
+            entity = UniteFonctionnelle(**base_props)
             
         elif loc_type == "UH":  # Unité d'Hébergement
             existing_entity = _get_existing(UniteHebergement, base_props["identifier"])
-            entity = UniteHebergement(
-                **base_props,
-                physical_type=LocationPhysicalType.WI,
-            )
+            entity = UniteHebergement(**base_props)
             
         elif loc_type == "CH":  # Chambre
             existing_entity = _get_existing(Chambre, base_props["identifier"])
-            entity = Chambre(
-                **base_props,
-                physical_type=LocationPhysicalType.RO,
-            )
+            entity = Chambre(**base_props)
             
         elif loc_type == "LIT":  # Lit
             existing_entity = _get_existing(Lit, base_props["identifier"])
-            entity = Lit(
-                **base_props,
-                physical_type=LocationPhysicalType.BD,
-                operational_status=characteristics.get("OPERATIONAL_STATUS")
-            )
+            entity = Lit(**base_props)
         
         elif loc_type == "B":  # Lit (format CPAGE alternatif)
             existing_entity = _get_existing(Lit, base_props["identifier"])
-            entity = Lit(
-                **base_props,
-                physical_type=LocationPhysicalType.BD,
-                operational_status=characteristics.get("OPERATIONAL_STATUS")
-            )
+            entity = Lit(**base_props)
         
         elif loc_type == "R":  # Chambre (format CPAGE)
             existing_entity = _get_existing(Chambre, base_props["identifier"])
-            entity = Chambre(
-                **base_props,
-                physical_type=LocationPhysicalType.RO,
-            )
+            entity = Chambre(**base_props)
         
         elif loc_type == "N":  # UF (format CPAGE alternatif)
             existing_entity = _get_existing(UniteFonctionnelle, base_props["identifier"])
-            entity = UniteFonctionnelle(
-                **base_props,
-                physical_type=LocationPhysicalType.SI,
-                um_code=characteristics.get("CD_UM")
-            )
+            entity = UniteFonctionnelle(**base_props)
             
         else:
             logger.warning(f"Type de location non supporté: '{loc_type}' (identifier={identifier})")
@@ -599,7 +523,7 @@ def save_location(
                         if not virtual_pole:
                             virtual_pole = Pole(
                                 identifier=virtual_pole_id,
-                                name=f"Pôle virtuel ({parent_eg.name})",
+                                name=f"Pôle virtuel ({parent_eg.identifier})",
                                 physical_type=LocationPhysicalType.AREA,
                                 entite_geo_id=parent_eg.id,
                                 is_virtual=True
@@ -710,7 +634,7 @@ def save_location(
                             if not virtual_service:
                                 virtual_service = Service(
                                     identifier=virtual_service_id,
-                                    name=f"Service virtuel ({parent_eg.name})",
+                                    name=f"Service virtuel ({parent_eg.identifier})",
                                     physical_type=LocationPhysicalType.SI,
                                     service_type=LocationServiceType.MCO,
                                     pole_id=virtual_pole.id,
@@ -780,7 +704,7 @@ def save_location(
                     if not virtual_pole:
                         virtual_pole = Pole(
                             identifier=virtual_pole_id,
-                            name=f"Pôle virtuel ({candidate_eg.name})",
+                            name=f"Pôle virtuel ({candidate_eg.identifier})",
                             physical_type=LocationPhysicalType.AREA,
                             entite_geo_id=candidate_eg.id,
                             is_virtual=True
@@ -798,10 +722,11 @@ def save_location(
                 "opening_date","activation_date","closing_date","deactivation_date"
             ]
             for f in updatable_fields:
-                setattr(existing_entity, f, getattr(entity, f))
+                if hasattr(entity, f) and hasattr(existing_entity, f):
+                    setattr(existing_entity, f, getattr(entity, f))
             # Relations / foreign keys (ex: pole_id, service_id...)
             for rel_field in ["entite_geo_id","pole_id","service_id","unite_fonctionnelle_id","unite_hebergement_id","chambre_id"]:
-                if hasattr(entity, rel_field) and getattr(entity, rel_field, None):
+                if hasattr(entity, rel_field) and getattr(entity, rel_field, None) and hasattr(existing_entity, rel_field):
                     setattr(existing_entity, rel_field, getattr(entity, rel_field))
             session.add(existing_entity)
             session.commit()
@@ -847,34 +772,41 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
     # Fonction helper pour générer les segments LCH
     def add_lch_segments(entity: Any, identifier: str) -> List[str]:
         segments = []
-        
         # Caractéristiques communes
+        # For all BaseLocation-derived entities, use global_identifier if present, else identifier
+        id_glbl = getattr(entity, 'global_identifier', None)
+        if not id_glbl and hasattr(entity, 'identifier'):
+            id_glbl = entity.identifier
+        # Use name if available, otherwise use identifier
+        name = getattr(entity, 'name', None) or getattr(entity, 'identifier', '')
+        short_name = getattr(entity, 'short_name', None) or ''
         segments.extend([
-            f"LCH|{identifier}|||ID_GLBL^Identifiant unique global^L|^{entity.identifier}",
-            f"LCH|{identifier}|||LBL^Libelle^L|^{entity.name}",
-            f"LCH|{identifier}|||LBL_CRT^Libelle court^L|^{entity.short_name or ''}",
+            f"LCH|{identifier}|||CD^Code^L|^{entity.identifier}",
+            f"LCH|{identifier}|||ID_GLBL^Identifiant unique global^L|^{id_glbl}",
+            f"LCH|{identifier}|||LBL^Libelle^L|^{name}",
+            f"LCH|{identifier}|||LBL_CRT^Libelle court^L|^{short_name}",
         ])
         
         # Adresse si présente
-        if entity.address_line1:
+        if hasattr(entity, 'address_line1') and entity.address_line1:
             segments.append(f"LCH|{identifier}|||ADRS_1^Adresse 1^L|^{entity.address_line1}")
-        if entity.address_line2:
+        if hasattr(entity, 'address_line2') and entity.address_line2:
             segments.append(f"LCH|{identifier}|||ADRS_2^Adresse 2^L|^{entity.address_line2}")
-        if entity.address_line3:
+        if hasattr(entity, 'address_line3') and entity.address_line3:
             segments.append(f"LCH|{identifier}|||ADRS_3^Adresse 3^L|^{entity.address_line3}")
-        if entity.address_postalcode:
+        if hasattr(entity, 'address_postalcode') and entity.address_postalcode:
             segments.append(f"LCH|{identifier}|||CD_PSTL^Code postal^L|^{entity.address_postalcode}")
-        if entity.address_city:
+        if hasattr(entity, 'address_city') and entity.address_city:
             segments.append(f"LCH|{identifier}|||VL^Ville^L|^{entity.address_city}")
             
         # Dates
-        if entity.opening_date:
+        if hasattr(entity, 'opening_date') and entity.opening_date:
             segments.append(f"LCH|{identifier}|||DT_OVRTR^Date d'ouverture^L|^{format_datetime(entity.opening_date)}")
-        if entity.activation_date:
+        if hasattr(entity, 'activation_date') and entity.activation_date:
             segments.append(f"LCH|{identifier}|||DT_ACTVTN^Date d'activation^L|^{format_datetime(entity.activation_date)}")
-        if entity.closing_date:
+        if hasattr(entity, 'closing_date') and entity.closing_date:
             segments.append(f"LCH|{identifier}|||DT_FRMTR^Date de fermeture^L|^{format_datetime(entity.closing_date)}")
-        if entity.deactivation_date:
+        if hasattr(entity, 'deactivation_date') and entity.deactivation_date:
             segments.append(f"LCH|{identifier}|||DT_FN_ACTVTN^Date de fin d'activation^L|^{format_datetime(entity.deactivation_date)}")
             
         return segments
@@ -936,25 +868,25 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||M|Etablissement juridique")
         message.extend(add_lch_segments(eg, identifier))
-        if eg.finess:
+        if hasattr(eg, 'finess') and eg.finess:
             message.append(f"LCH|{identifier}|||FNS^Code FINESS^L|^{eg.finess}")
-        if eg.category_sae:
+        if hasattr(eg, 'category_sae') and eg.category_sae:
             message.append(f"LCH|{identifier}|||CTGR_S^Catégorie SAE^L|^{eg.category_sae}")
-        if eg.city_insee_code:
+        if hasattr(eg, 'city_insee_code') and eg.city_insee_code:
             message.append(f"LCH|{identifier}|||INS^Code INSEE commune^L|^{eg.city_insee_code}")
-        if eg.type:
+        if hasattr(eg, 'type') and eg.type:
             message.append(f"LCH|{identifier}|||TPLG^Typologie^L|^{eg.type}")
-        if eg.responsible_id:
+        if hasattr(eg, 'responsible_id') and eg.responsible_id:
             message.append(f"LCH|{identifier}|||ID_GLBL_RSPNSBL^Identifiant responsable^L|^{eg.responsible_id}")
-        if eg.responsible_name:
+        if hasattr(eg, 'responsible_name') and eg.responsible_name:
             message.append(f"LCH|{identifier}|||NM_USL_RSPNSBL^Nom responsable^L|^{eg.responsible_name}")
-        if eg.responsible_firstname:
+        if hasattr(eg, 'responsible_firstname') and eg.responsible_firstname:
             message.append(f"LCH|{identifier}|||PRNM_RSPNSBL^Prénom responsable^L|^{eg.responsible_firstname}")
-        if eg.responsible_rpps:
+        if hasattr(eg, 'responsible_rpps') and eg.responsible_rpps:
             message.append(f"LCH|{identifier}|||RPPS_RSPNSBL^RPPS responsable^L|^{eg.responsible_rpps}")
-        if eg.responsible_adeli:
+        if hasattr(eg, 'responsible_adeli') and eg.responsible_adeli:
             message.append(f"LCH|{identifier}|||ADL_RSPNSBL^ADELI responsable^L|^{eg.responsible_adeli}")
-        if eg.responsible_specialty:
+        if hasattr(eg, 'responsible_specialty') and eg.responsible_specialty:
             message.append(f"LCH|{identifier}|||CD_SPCLT_RSPNSBL^Spécialité responsable^L|^{eg.responsible_specialty}")
     
     # Services (avec leurs responsables)
@@ -964,19 +896,19 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         message.append(f"LOC|{identifier}||D|Service")
         message.extend(add_lch_segments(service, identifier))
 
-        if service.typology:
+        if hasattr(service, 'typology') and service.typology:
             message.append(f"LCH|{identifier}|||TPLG^Typologie^L|^{service.typology}")
-        if service.responsible_id:
+        if hasattr(service, 'responsible_id') and service.responsible_id:
             message.append(f"LCH|{identifier}|||ID_GLBL_RSPNSBL^Identifiant unique global du responsable^L|^{service.responsible_id}")
-        if service.responsible_name:
+        if hasattr(service, 'responsible_name') and service.responsible_name:
             message.append(f"LCH|{identifier}|||NM_USL_RSPNSBL^Nom usuel du responsable^L|^{service.responsible_name}")
-        if service.responsible_firstname:
+        if hasattr(service, 'responsible_firstname') and service.responsible_firstname:
             message.append(f"LCH|{identifier}|||PRNM_RSPNSBL^Prénom du responsable^L|^{service.responsible_firstname}")
-        if service.responsible_rpps:
+        if hasattr(service, 'responsible_rpps') and service.responsible_rpps:
             message.append(f"LCH|{identifier}|||RPPS_RSPNSBL^Code RPPS du responsable^L|^{service.responsible_rpps}")
-        if service.responsible_adeli:
+        if hasattr(service, 'responsible_adeli') and service.responsible_adeli:
             message.append(f"LCH|{identifier}|||ADL_RSPNSBL^Code ADELI du responsable^L|^{service.responsible_adeli}")
-        if service.responsible_specialty:
+        if hasattr(service, 'responsible_specialty') and service.responsible_specialty:
             message.append(f"LCH|{identifier}|||CD_SPCLT_RSPNSBL^Code spécialité B2 du responsable^L|^{service.responsible_specialty}")
 
         # Relations hiérarchiques
@@ -1006,7 +938,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||UF|Unite Fonctionnelle")
         message.extend(add_lch_segments(uf, identifier))
-        if uf.um_code:
+        if hasattr(uf, 'um_code') and uf.um_code:
             message.append(f"LCH|{identifier}|||CD_UM^Code UM^L|^{uf.um_code}")
         # Relation avec le service
         if uf.service:
@@ -1038,7 +970,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||LIT|Lit")
         message.extend(add_lch_segments(lit, identifier))
-        if lit.operational_status:
+        if hasattr(lit, 'operational_status') and lit.operational_status:
             message.append(f"LCH|{identifier}|||OPERATIONAL_STATUS^Statut opérationnel^L|^{lit.operational_status}")
         # Relation avec chambre
         if lit.chambre:

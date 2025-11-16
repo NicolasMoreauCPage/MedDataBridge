@@ -11,7 +11,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_structure_fhir import GHTContext, EntiteJuridique, IdentifierNamespace
+from app.models_structure import GHTContext, EntiteJuridique, IdentifierNamespace
 from app.models import Dossier
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 

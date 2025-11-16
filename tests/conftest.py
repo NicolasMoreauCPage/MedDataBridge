@@ -152,7 +152,7 @@ def client_fixture(session: Session):
     with TestClient(app, base_url="http://testserver") as c:
         # Auto-select a GHT context for routes protected by require_ght_context
         try:
-            from app.models_structure_fhir import GHTContext
+            from app.models_structure import GHTContext
             from sqlmodel import select as _select
             with Session(_engine) as s:
                 ctx = s.exec(_select(GHTContext)).first()

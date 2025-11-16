@@ -30,7 +30,7 @@ from sqlmodel import Session, select
 
 from app.db import engine, init_db, get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_shared import SystemEndpoint, MessageLog
 from app.services.transport_inbound import on_message_inbound_async
 from app.services.hl7_generator import (

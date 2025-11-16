@@ -5,7 +5,7 @@ sys.path.insert(0, '.')
 from sqlmodel import Session, select
 from app.db import engine
 from app.models_shared import SystemEndpoint
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 
 with Session(engine) as session:
     print("=== Test de la logique de groupement ===\n")

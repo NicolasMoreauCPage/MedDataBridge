@@ -2,7 +2,7 @@ from typing import Literal, Optional, List
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.models_shared import SystemEndpoint, MessageLog
 
 class MLLPConfig(SQLModel, table=True):

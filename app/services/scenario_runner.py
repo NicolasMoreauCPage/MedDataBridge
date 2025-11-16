@@ -13,7 +13,7 @@ from app.models_scenario_runs import (
     ScenarioExecutionRun,
     ScenarioExecutionStepLog,
 )
-from app.models_structure_fhir import IdentifierNamespace
+from app.models_structure import IdentifierNamespace
 from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import parse_msh_fields, send_mllp
 from app.services.scenario_date_updater import update_hl7_message_dates

@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.db_session_factory import session_factory
 from app.models_shared import SystemEndpoint
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.file_poller import FilePollerService
 from sqlmodel import select
 

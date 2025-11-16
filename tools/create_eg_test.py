@@ -1,6 +1,6 @@
 from sqlmodel import Session
 from app.db import engine
-from app.models_structure_fhir import EntiteGeographique, EntiteJuridique
+from app.models_structure import EntiteGeographique, EntiteJuridique
 
 with Session(engine) as s:
     ej = s.get(EntiteJuridique, 1)

@@ -7,7 +7,7 @@ from app.models_endpoints import SystemEndpoint
 
 
 def _ensure_context(client: TestClient, session: Session):
-    from app.models_structure_fhir import GHTContext
+    from app.models_structure import GHTContext
     ctx = session.exec(select(GHTContext).where(GHTContext.code=="GHT-DEMO-INTEROP")).first()
     if not ctx:
         ctx = GHTContext(name="GHT Démo Interop", code="GHT-DEMO-INTEROP", is_active=True)

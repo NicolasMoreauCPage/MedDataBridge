@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from sqlmodel import Session, select
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure_fhir import IdentifierNamespace
+from app.models_structure import IdentifierNamespace
 from app.db import get_next_sequence
 
 def parse_hl7_date(hl7_date: Optional[str]) -> Optional[str]:
@@ -204,8 +204,13 @@ def import_adt_into_ght(
     
     # Créer dossier si absent
     if not dossier:
+        # Vérifier si le dossier_seq généré existe déjà
+        new_seq = get_next_sequence(session, "dossier")
+        existing = session.exec(select(Dossier).where(Dossier.dossier_seq == new_seq)).first()
+        if existing:
+            raise Exception(f"Un dossier avec le numéro {new_seq} existe déjà. Import ADT annulé.")
         dossier = Dossier(
-            dossier_seq=get_next_sequence(session, "dossier"),
+            dossier_seq=new_seq,
             patient_id=patient.id,
             dossier_type=DossierType.HOSPITALISE,
             admit_time=pv1_data["admit_time"] or datetime.utcnow(),
@@ -214,7 +219,6 @@ def import_adt_into_ght(
         session.add(dossier)
         session.commit()
         session.refresh(dossier)
-        
         # Créer identifiant NDA
         nda_ns = ns_by_type.get("NDA") or ns_by_type.get("NDA-RT")
         if nda_ns and pv1_data["visit_number"]:

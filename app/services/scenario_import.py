@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 
 
 class ScenarioImportError(Exception):

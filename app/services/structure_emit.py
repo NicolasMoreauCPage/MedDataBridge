@@ -37,48 +37,87 @@ def _get_senders(session: Session):
 
 async def _emit_organization_upsert(entity, session: Session) -> None:
     """Émet FHIR Organization vers les endpoints sender."""
+    import time
+    from datetime import datetime
     bundle = organization_to_bundle(entity, session, method="PUT")
-
     fhir_senders, _ = _get_senders(session)
     for endpoint in fhir_senders:
-        # Pour FHIR, utiliser base_url au lieu de host
         base = endpoint.base_url or endpoint.host or ""
-        if not base:
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload="Endpoint sans host/base_url",
-                status="error",
-            )
-            session.add(log)
-            continue
-        try:
-            status_code, response = await post_fhir_bundle(base, bundle)
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=json.dumps(response or {}, ensure_ascii=False),
-                status="sent" if 200 <= status_code < 300 else "error",
-            )
-        except Exception as exc:  # noqa: BLE001
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=str(exc),
-                status="error",
-            )
-        session.add(log)
+        log = None
+        with session.no_autoflush:
+            # Recherche d'un log existant pour ce endpoint/message_type en erreur ou pending
+            existing_log = session.exec(
+                select(MessageLog)
+                .where(MessageLog.endpoint_id == endpoint.id)
+                .where(MessageLog.kind == "FHIR")
+                .where(MessageLog.status.in_(["error", "pending"]))
+                .order_by(MessageLog.created_at.desc())
+            ).first()
+            if not base:
+                if existing_log:
+                    existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                    existing_log.ack_payload = "Endpoint sans host/base_url"
+                    existing_log.status = "error"
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="FHIR",
+                        endpoint_id=endpoint.id,
+                        payload=json.dumps(bundle, ensure_ascii=False),
+                        ack_payload="Endpoint sans host/base_url",
+                        status="error",
+                    )
+                    session.add(log)
+                continue
+            retry = 0
+            max_retry = 3
+            while retry < max_retry:
+                try:
+                    status_code, response = await post_fhir_bundle(base, bundle)
+                    if existing_log:
+                        existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                        existing_log.ack_payload = json.dumps(response or {}, ensure_ascii=False)
+                        existing_log.status = "sent" if 200 <= status_code < 300 else "error"
+                        existing_log.created_at = datetime.utcnow()
+                        log = existing_log
+                    else:
+                        log = MessageLog(
+                            direction="out",
+                            kind="FHIR",
+                            endpoint_id=endpoint.id,
+                            payload=json.dumps(bundle, ensure_ascii=False),
+                            ack_payload=json.dumps(response or {}, ensure_ascii=False),
+                            status="sent" if 200 <= status_code < 300 else "error",
+                        )
+                        session.add(log)
+                    break
+                except Exception as exc:
+                    retry += 1
+                    if existing_log:
+                        existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                        existing_log.ack_payload = str(exc)
+                        existing_log.status = "error"
+                        existing_log.created_at = datetime.utcnow()
+                        log = existing_log
+                    else:
+                        log = MessageLog(
+                            direction="out",
+                            kind="FHIR",
+                            endpoint_id=endpoint.id,
+                            payload=json.dumps(bundle, ensure_ascii=False),
+                            ack_payload=str(exc),
+                            status="error",
+                        )
+                        session.add(log)
+                    if retry < max_retry:
+                        time.sleep(60)
 
 
 async def _emit_organization_delete(entity_id: int, finess_ej: str, session: Session) -> None:
     """Émet FHIR Organization DELETE vers les endpoints sender."""
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
     bundle = {
         "resourceType": "Bundle",
         "type": "transaction",
@@ -88,39 +127,39 @@ async def _emit_organization_delete(entity_id: int, finess_ej: str, session: Ses
     }
     fhir_senders, _ = _get_senders(session)
     for endpoint in fhir_senders:
-        # Pour FHIR, utiliser base_url au lieu de host
         base = endpoint.base_url or endpoint.host or ""
-        if not base:
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload="Endpoint sans host/base_url",
-                status="error",
-            )
+        with session.no_autoflush:
+            if not base:
+                log = MessageLog(
+                    direction="out",
+                    kind="FHIR",
+                    endpoint_id=endpoint.id,
+                    payload=json.dumps(bundle, ensure_ascii=False),
+                    ack_payload="Endpoint sans host/base_url",
+                    status="error",
+                )
+                session.add(log)
+                continue
+            try:
+                status_code, response = await post_fhir_bundle(base, bundle)
+                log = MessageLog(
+                    direction="out",
+                    kind="FHIR",
+                    endpoint_id=endpoint.id,
+                    payload=json.dumps(bundle, ensure_ascii=False),
+                    ack_payload=json.dumps(response or {}, ensure_ascii=False),
+                    status="sent" if 200 <= status_code < 300 else "error",
+                )
+            except Exception as exc:  # noqa: BLE001
+                log = MessageLog(
+                    direction="out",
+                    kind="FHIR",
+                    endpoint_id=endpoint.id,
+                    payload=json.dumps(bundle, ensure_ascii=False),
+                    ack_payload=str(exc),
+                    status="error",
+                )
             session.add(log)
-            continue
-        try:
-            status_code, response = await post_fhir_bundle(base, bundle)
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=json.dumps(response or {}, ensure_ascii=False),
-                status="sent" if 200 <= status_code < 300 else "error",
-            )
-        except Exception as exc:  # noqa: BLE001
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=str(exc),
-                status="error",
-            )
-        session.add(log)
 
 
 async def _emit_mfn_organization(entity, session: Session) -> None:
@@ -128,26 +167,33 @@ async def _emit_mfn_organization(entity, session: Session) -> None:
     mfn = generate_mfn_organization_message(session, ej=entity)
     _, mllp_senders = _get_senders(session)
     for endpoint in mllp_senders:
-        ack = ""
-        status = "generated"
-        try:
-            if not (endpoint.host and endpoint.port):
-                raise ValueError("Endpoint MLLP incomplet (host/port)")
-            ack = await send_mllp(endpoint.host, endpoint.port, mfn)
-            status = "sent"
-        except Exception as exc:  # noqa: BLE001
-            status = "error"
-            ack = str(exc)
-        log = MessageLog(
-            direction="out",
-            kind="MLLP",
-            endpoint_id=endpoint.id,
-            payload=mfn,
-            ack_payload=ack,
-            status=status,
-            message_type="MFN^M05"
-        )
-        session.add(log)
+        with session.no_autoflush:
+            ack = ""
+            status = "generated"
+            try:
+                if not (endpoint.host and endpoint.port):
+                    raise ValueError("Endpoint MLLP incomplet (host/port)")
+                ack = await send_mllp(endpoint.host, endpoint.port, mfn)
+                # Correction : parser l'ACK pour détecter AE/AR
+                msa = next((seg for seg in ack.split('\r') if seg.startswith('MSA|')), None)
+                ack_code = msa.split('|')[1] if msa and len(msa.split('|')) > 1 else "AA"
+                if ack_code in ("AE", "AR"):
+                    status = "error"
+                else:
+                    status = "sent"
+            except Exception as exc:  # noqa: BLE001
+                status = "error"
+                ack = str(exc)
+            log = MessageLog(
+                direction="out",
+                kind="MLLP",
+                endpoint_id=endpoint.id,
+                payload=mfn,
+                ack_payload=ack,
+                status=status,
+                message_type="MFN^M05"
+            )
+            session.add(log)
 
 
 async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session: Session) -> None:
@@ -155,29 +201,32 @@ async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session:
     mfn = generate_mfn_organization_delete(entity_id, finess_ej)
     _, mllp_senders = _get_senders(session)
     for endpoint in mllp_senders:
-        ack = ""
-        status = "generated"
-        try:
-            if not (endpoint.host and endpoint.port):
-                raise ValueError("Endpoint MLLP incomplet (host/port)")
-            ack = await send_mllp(endpoint.host, endpoint.port, mfn)
-            status = "sent"
-        except Exception as exc:  # noqa: BLE001
-            status = "error"
-            ack = str(exc)
-        log = MessageLog(
-            direction="out",
-            kind="MLLP",
-            endpoint_id=endpoint.id,
-            payload=mfn,
-            ack_payload=ack,
-            status=status,
-            message_type="MFN^M05"
-        )
-        session.add(log)
+        with session.no_autoflush:
+            ack = ""
+            status = "generated"
+            try:
+                if not (endpoint.host and endpoint.port):
+                    raise ValueError("Endpoint MLLP incomplet (host/port)")
+                ack = await send_mllp(endpoint.host, endpoint.port, mfn)
+                status = "sent"
+            except Exception as exc:  # noqa: BLE001
+                status = "error"
+                ack = str(exc)
+            log = MessageLog(
+                direction="out",
+                kind="MLLP",
+                endpoint_id=endpoint.id,
+                payload=mfn,
+                ack_payload=ack,
+                status=status,
+                message_type="MFN^M05"
+            )
+            session.add(log)
 
 
 async def _emit_fhir_upsert(entity, session: Session) -> None:
+    import time
+    from datetime import datetime
     resource = entity_to_fhir_location(entity, session)
     bundle = {
         "resourceType": "Bundle",
@@ -189,45 +238,82 @@ async def _emit_fhir_upsert(entity, session: Session) -> None:
             }
         ],
     }
-
     fhir_senders, _ = _get_senders(session)
     for endpoint in fhir_senders:
-        # Pour FHIR, utiliser base_url au lieu de host
         base = endpoint.base_url or endpoint.host or ""
+        log = None
+        existing_log = session.exec(
+            select(MessageLog)
+            .where(MessageLog.endpoint_id == endpoint.id)
+            .where(MessageLog.kind == "FHIR")
+            .where(MessageLog.status.in_(["error", "pending"]))
+            .order_by(MessageLog.created_at.desc())
+        ).first()
         if not base:
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload="Endpoint sans host/base_url",
-                status="error",
-            )
-            session.add(log)
+            if existing_log:
+                existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                existing_log.ack_payload = "Endpoint sans host/base_url"
+                existing_log.status = "error"
+                existing_log.created_at = datetime.utcnow()
+                log = existing_log
+            else:
+                log = MessageLog(
+                    direction="out",
+                    kind="FHIR",
+                    endpoint_id=endpoint.id,
+                    payload=json.dumps(bundle, ensure_ascii=False),
+                    ack_payload="Endpoint sans host/base_url",
+                    status="error",
+                )
+                session.add(log)
             continue
-        try:
-            status_code, response = await post_fhir_bundle(base, bundle)
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=json.dumps(response or {}, ensure_ascii=False),
-                status="sent" if 200 <= status_code < 300 else "error",
-            )
-        except Exception as exc:  # noqa: BLE001
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=str(exc),
-                status="error",
-            )
-        session.add(log)
+        retry = 0
+        max_retry = 3
+        while retry < max_retry:
+            try:
+                status_code, response = await post_fhir_bundle(base, bundle)
+                if existing_log:
+                    existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                    existing_log.ack_payload = json.dumps(response or {}, ensure_ascii=False)
+                    existing_log.status = "sent" if 200 <= status_code < 300 else "error"
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="FHIR",
+                        endpoint_id=endpoint.id,
+                        payload=json.dumps(bundle, ensure_ascii=False),
+                        ack_payload=json.dumps(response or {}, ensure_ascii=False),
+                        status="sent" if 200 <= status_code < 300 else "error",
+                    )
+                    session.add(log)
+                break
+            except Exception as exc:
+                retry += 1
+                if existing_log:
+                    existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                    existing_log.ack_payload = str(exc)
+                    existing_log.status = "error"
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="FHIR",
+                        endpoint_id=endpoint.id,
+                        payload=json.dumps(bundle, ensure_ascii=False),
+                        ack_payload=str(exc),
+                        status="error",
+                    )
+                    session.add(log)
+                if retry < max_retry:
+                    time.sleep(60)
 
 
 async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
+    import time
+    from datetime import datetime
     bundle = {
         "resourceType": "Bundle",
         "type": "transaction",
@@ -237,70 +323,145 @@ async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
     }
     fhir_senders, _ = _get_senders(session)
     for endpoint in fhir_senders:
-        # Pour FHIR, utiliser base_url au lieu de host
         base = endpoint.base_url or endpoint.host or ""
+        log = None
+        existing_log = session.exec(
+            select(MessageLog)
+            .where(MessageLog.endpoint_id == endpoint.id)
+            .where(MessageLog.kind == "FHIR")
+            .where(MessageLog.status.in_(["error", "pending"]))
+            .order_by(MessageLog.created_at.desc())
+        ).first()
         if not base:
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload="Endpoint sans host/base_url",
-                status="error",
-            )
-            session.add(log)
+            if existing_log:
+                existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                existing_log.ack_payload = "Endpoint sans host/base_url"
+                existing_log.status = "error"
+                existing_log.created_at = datetime.utcnow()
+                log = existing_log
+            else:
+                log = MessageLog(
+                    direction="out",
+                    kind="FHIR",
+                    endpoint_id=endpoint.id,
+                    payload=json.dumps(bundle, ensure_ascii=False),
+                    ack_payload="Endpoint sans host/base_url",
+                    status="error",
+                )
+                session.add(log)
             continue
-        try:
-            status_code, response = await post_fhir_bundle(base, bundle)
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=json.dumps(response or {}, ensure_ascii=False),
-                status="sent" if 200 <= status_code < 300 else "error",
-            )
-        except Exception as exc:  # noqa: BLE001
-            log = MessageLog(
-                direction="out",
-                kind="FHIR",
-                endpoint_id=endpoint.id,
-                payload=json.dumps(bundle, ensure_ascii=False),
-                ack_payload=str(exc),
-                status="error",
-            )
-        session.add(log)
+        retry = 0
+        max_retry = 3
+        while retry < max_retry:
+            try:
+                status_code, response = await post_fhir_bundle(base, bundle)
+                if existing_log:
+                    existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                    existing_log.ack_payload = json.dumps(response or {}, ensure_ascii=False)
+                    existing_log.status = "sent" if 200 <= status_code < 300 else "error"
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="FHIR",
+                        endpoint_id=endpoint.id,
+                        payload=json.dumps(bundle, ensure_ascii=False),
+                        ack_payload=json.dumps(response or {}, ensure_ascii=False),
+                        status="sent" if 200 <= status_code < 300 else "error",
+                    )
+                    session.add(log)
+                break
+            except Exception as exc:
+                retry += 1
+                if existing_log:
+                    existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                    existing_log.ack_payload = str(exc)
+                    existing_log.status = "error"
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="FHIR",
+                        endpoint_id=endpoint.id,
+                        payload=json.dumps(bundle, ensure_ascii=False),
+                        ack_payload=str(exc),
+                        status="error",
+                    )
+                    session.add(log)
+                if retry < max_retry:
+                    time.sleep(60)
 
 
 async def _emit_mfn_snapshot(session: Session) -> None:
-    """Génère et envoie un snapshot MFN M05 complet aux endpoints MLLP."""
+    import time
+    from datetime import datetime
     mfn = generate_mfn_message(session)
     _, mllp_senders = _get_senders(session)
     for endpoint in mllp_senders:
-        ack = ""
-        status = "generated"
-        try:
-            if not (endpoint.host and endpoint.port):
-                raise ValueError("Endpoint MLLP incomplet (host/port)")
-            ack = await send_mllp(endpoint.host, endpoint.port, mfn)
-            status = "sent"
-        except Exception as exc:  # noqa: BLE001
-            status = "error"
-            ack = str(exc)
-        log = MessageLog(
-            direction="out",
-            kind="MLLP",
-            endpoint_id=endpoint.id,
-            payload=mfn,
-            ack_payload=ack,
-            status=status,
-        )
-        session.add(log)
+        log = None
+        existing_log = session.exec(
+            select(MessageLog)
+            .where(MessageLog.endpoint_id == endpoint.id)
+            .where(MessageLog.kind == "MLLP")
+            .where(MessageLog.status.in_(["error", "pending"]))
+            .order_by(MessageLog.created_at.desc())
+        ).first()
+        retry = 0
+        max_retry = 3
+        while retry < max_retry:
+            ack = ""
+            status = "generated"
+            try:
+                if not (endpoint.host and endpoint.port):
+                    raise ValueError("Endpoint MLLP incomplet (host/port)")
+                ack = await send_mllp(endpoint.host, endpoint.port, mfn)
+                status = "sent"
+                if existing_log:
+                    existing_log.payload = mfn
+                    existing_log.ack_payload = ack
+                    existing_log.status = status
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="MLLP",
+                        endpoint_id=endpoint.id,
+                        payload=mfn,
+                        ack_payload=ack,
+                        status=status,
+                    )
+                    session.add(log)
+                break
+            except Exception as exc:
+                status = "error"
+                ack = str(exc)
+                retry += 1
+                if existing_log:
+                    existing_log.payload = mfn
+                    existing_log.ack_payload = ack
+                    existing_log.status = status
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="MLLP",
+                        endpoint_id=endpoint.id,
+                        payload=mfn,
+                        ack_payload=ack,
+                        status=status,
+                    )
+                    session.add(log)
+                if retry < max_retry:
+                    time.sleep(60)
 
 
 async def emit_structure_change(entity, session: Session, operation: str = "update") -> None:
     """Émet FHIR (PUT) + HL7 MFN snapshot après création/mise à jour d'une entité de structure."""
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
     
     # EntiteJuridique doit être émise comme Organization, pas Location
     if isinstance(entity, EntiteJuridique):
@@ -316,7 +477,7 @@ async def emit_structure_change(entity, session: Session, operation: str = "upda
 
 async def emit_structure_delete(entity_id: int, session: Session, entity_type: str = None, finess_ej: str = None) -> None:
     """Émet FHIR (DELETE) + HL7 MFN snapshot après suppression d'une entité de structure."""
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
     
     # Si c'est une EntiteJuridique, émettre Organization DELETE
     if entity_type == "EntiteJuridique":

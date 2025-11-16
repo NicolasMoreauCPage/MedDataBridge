@@ -12,7 +12,7 @@ from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
 
 from app.app import create_app  # use factory to avoid production side-effects
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 from app.services.structure_seed import ensure_extended_demo_ght, ensure_endpoints_for_context
 
 
@@ -52,7 +52,7 @@ def test_ej_detail_route_works():
         ensure_extended_demo_ght(session, ctx)
         # Seed endpoints so template has related context if needed
         from sqlmodel import select
-        from app.models_structure_fhir import EntiteJuridique
+        from app.models_structure import EntiteJuridique
         ej_list = session.exec(select(EntiteJuridique).where(EntiteJuridique.ght_context_id == ctx.id)).all()
         finess_list = [ej.finess_ej for ej in ej_list]
         ensure_endpoints_for_context(session, ctx, finess_list)

@@ -9,8 +9,9 @@ correspond à celui de l'Entité Juridique (EJ) ou non.
 from typing import Optional, Tuple, Dict, Any
 from sqlmodel import select, Session
 
-from app.models_structure_fhir import IdentifierNamespace, EntiteJuridique
+from app.models_structure import EntiteJuridique
 from app.models_structure import Lit, Chambre, UniteHebergement, UniteFonctionnelle, Service, Pole
+from app.models_structure import IdentifierNamespace
 from app.models_identifiers import IdentifierType
 
 

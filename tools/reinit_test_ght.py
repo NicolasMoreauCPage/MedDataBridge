@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlmodel import Session, select
 from app.db import engine
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.models_endpoints import SystemEndpoint
 from app.vocabulary_init import init_vocabularies
 from app.services.structure_seed import ensure_demo_structure

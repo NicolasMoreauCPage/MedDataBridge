@@ -1,6 +1,6 @@
 """Vérifier les structures créées pour le message 20250206141011."""
 from app.db import get_session
-from app.models_structure_fhir import EntiteJuridique, EntiteGeographique, Pole
+from app.models_structure import EntiteJuridique, EntiteGeographique, Pole
 from app.models_structure import Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from sqlmodel import select
 

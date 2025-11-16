@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from datetime import datetime
 
 from app.models_shared import SystemEndpoint, MessageLog
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 
 
 def test_create_system_endpoint(session: Session):

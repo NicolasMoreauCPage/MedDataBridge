@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlmodel import Session, create_engine, SQLModel
 from sqlalchemy.pool import StaticPool
 
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit, LocationPhysicalType

@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.models import Dossier
 from app.utils.flash import flash
 from app.services.structure_seed import ensure_demo_structure
@@ -277,7 +277,7 @@ async def view_ght_context(
     request.session["ght_context_id"] = context_id
     
     # Charger explicitement les entités juridiques pour éviter le lazy loading
-    from app.models_structure_fhir import EntiteJuridique
+    from app.models_structure import EntiteJuridique
     entites_juridiques = session.exec(
         select(EntiteJuridique).where(EntiteJuridique.ght_context_id == context_id)
     ).all()

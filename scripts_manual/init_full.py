@@ -24,7 +24,7 @@ from subprocess import CalledProcessError, run
 
 from app.db import init_db, engine, get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
-from app.models_structure_fhir import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from app.models_structure import (
     Pole,
     Service,

@@ -20,7 +20,7 @@ from typing import Optional
 from sqlmodel import Session, select
 from sqlalchemy import or_
 
-from app.models_structure_fhir import IdentifierNamespace, GHTContext
+from app.models_structure import IdentifierNamespace, GHTContext
 from app.models_shared import SystemEndpoint
 
 

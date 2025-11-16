@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models import Patient, Dossier
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 
 router = APIRouter()
 

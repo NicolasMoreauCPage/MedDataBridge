@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.models_endpoints import MessageLog, SystemEndpoint
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 
 
 def _select_ght_context(client: TestClient, ctx: GHTContext) -> None:

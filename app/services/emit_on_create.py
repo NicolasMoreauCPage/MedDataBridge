@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_endpoints import SystemEndpoint, MessageLog, FHIRConfig
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure_fhir import IdentifierNamespace
+from app.models_structure import IdentifierNamespace
 from app.services.fhir import generate_fhir_bundle_for_dossier
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.fhir_transport import post_fhir_bundle as send_fhir

@@ -13,7 +13,7 @@ from app.vocabulary_init import init_vocabularies
 from app.models_contacts import PatientContact, VenueContact
 from app.db import get_next_sequence
 from app.services.fhir_export_service import FHIRExportService
-from app.models_structure_fhir import EntiteJuridique, EntiteGeographique
+from app.models_structure import EntiteJuridique, EntiteGeographique
 from app.models_structure import Pole, Service, UniteFonctionnelle
 
 def setup_in_memory_db():

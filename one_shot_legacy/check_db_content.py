@@ -3,7 +3,7 @@ Vérification rapide du contenu de la base de données
 """
 from app.db import engine, Session
 from app.models import Patient, Dossier, Venue, Mouvement
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_structure import Service, UniteFonctionnelle
 from sqlmodel import select
 

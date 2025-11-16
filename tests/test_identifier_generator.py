@@ -6,7 +6,7 @@ import pytest
 from sqlmodel import Session, create_engine, SQLModel, select
 
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure_fhir import IdentifierNamespace, GHTContext
+from app.models_structure import IdentifierNamespace, GHTContext
 from app.services.identifier_generator import (
     _parse_prefix_pattern,
     _generate_with_prefix_pattern,

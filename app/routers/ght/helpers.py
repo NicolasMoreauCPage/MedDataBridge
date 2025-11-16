@@ -4,7 +4,7 @@ from fastapi import HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
-from app.models_structure_fhir import (
+from app.models_structure import (
     EntiteJuridique,
     GHTContext,
     EntiteGeographique,

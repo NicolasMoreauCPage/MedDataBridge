@@ -6,7 +6,7 @@ from datetime import datetime
 from app.db import engine, Session
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_structure import UniteFonctionnelle, Service
-from app.models_structure_fhir import EntiteJuridique, GHTContext
+from app.models_structure import EntiteJuridique, GHTContext
 from app.models_shared import SystemEndpoint
 from sqlmodel import select, delete
 from app.services.transport_inbound import on_message_inbound_async

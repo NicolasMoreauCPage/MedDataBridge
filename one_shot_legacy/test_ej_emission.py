@@ -4,7 +4,7 @@ Test de l'émission automatique pour EntiteJuridique
 import asyncio
 from datetime import datetime
 from app.db import engine, Session, init_db
-from app.models_structure_fhir import EntiteJuridique, GHTContext
+from app.models_structure import EntiteJuridique, GHTContext
 from app.models_structure import EntiteGeographique
 from sqlmodel import select, delete
 

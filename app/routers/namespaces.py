@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from starlette.responses import RedirectResponse
 
 from app.db import get_session
-from app.models_structure_fhir import GHTContext, IdentifierNamespace, EntiteJuridique
+from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
 from app.models_identifiers import Identifier
 from app.middleware.ght_context import get_active_ght_context
 

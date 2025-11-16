@@ -2,7 +2,7 @@
 import asyncio
 from app.db import engine
 from sqlmodel import Session, select
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 
 async def test():
     # Message MFN avec structure complète : EJ → Service → UF → Chambre → Lit
@@ -69,7 +69,7 @@ LRL|^^^^^ETBL_GRPQ^^^^GI&CPAGE&700004591&FINEJ|||ETBLSMNT^Relation établissemen
             print("✓ Session committed")
             
             # Vérifier ce qui a été créé
-            from app.models_structure_fhir import EntiteJuridique, EntiteGeographique
+            from app.models_structure import EntiteJuridique, EntiteGeographique
             
             ej = session.exec(select(EntiteJuridique).where(EntiteJuridique.finess_ej == "700004591")).first()
             if ej:

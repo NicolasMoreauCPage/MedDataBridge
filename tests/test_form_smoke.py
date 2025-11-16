@@ -4,7 +4,7 @@ from sqlmodel import select
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.models_structure_fhir import GHTContext
+from app.models_structure import GHTContext
 
 
 def test_create_ght_via_form(client: TestClient, session: Session):

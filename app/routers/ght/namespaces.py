@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from app.db import get_session
-from app.models_structure_fhir import GHTContext, IdentifierNamespace
+from app.models_structure import GHTContext, IdentifierNamespace
 from app.utils.flash import flash
 from .helpers import get_context_or_404
 

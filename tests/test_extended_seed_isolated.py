@@ -25,7 +25,7 @@ import os
 # Ensure TESTING flag to bypass side-effects in imported modules
 os.environ["TESTING"] = "1"
 
-from app.models_structure_fhir import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique
 from app.models_transport import SystemEndpoint
 from app.models import Patient, Venue, Mouvement
 from app.services.structure_seed import (

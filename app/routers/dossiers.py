@@ -17,7 +17,8 @@ from app.form_config import get_field_config, MODEL_FIELDS
 from app.utils.flash import flash
 from app.dependencies.ght import require_ght_context
 from app.models_structure import UniteFonctionnelle, Service, Pole
-from app.models_structure_fhir import EntiteGeographique, EntiteJuridique
+from app.models_structure import EntiteGeographique
+from app.models_structure import EntiteJuridique
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(
@@ -260,7 +261,7 @@ def create_dossier(
     # Générer l'identifiant dossier via identifier_generator (NDA logic)
     from app.services.identifier_generator import generate_identifier
     from app.models_identifiers import IdentifierType
-    from app.models_structure_fhir import IdentifierNamespace
+    from app.models_structure import IdentifierNamespace
     # Récupérer le namespace NDA actif pour l'entité juridique du patient
     ej_id = patient_context.entite_juridique_id if hasattr(patient_context, 'entite_juridique_id') else None
     nda_namespace = None

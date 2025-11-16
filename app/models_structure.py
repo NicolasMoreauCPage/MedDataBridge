@@ -182,6 +182,7 @@ class EntiteJuridique(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     endpoints: List["SystemEndpoint"] = Relationship(back_populates="entite_juridique")
+    entites_geographiques: List["EntiteGeographique"] = Relationship(back_populates="entite_juridique")
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="entite_juridique")
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id")
     ght_context: Optional["GHTContext"] = Relationship(back_populates="entites_juridiques")
@@ -263,6 +264,7 @@ class EntiteGeographique(SQLModel, table=True):
     responsible_adeli: Optional[str] = None
     responsible_specialty: Optional[str] = None
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
+    entite_juridique: Optional["EntiteJuridique"] = Relationship(back_populates="entites_geographiques")
     finess: Optional[str] = None
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="entite_geographique")
     poles: List["Pole"] = Relationship(back_populates="entite_geo")

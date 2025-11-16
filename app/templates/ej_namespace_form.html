@@ -16,15 +16,9 @@
                             {% set identifier_types = [
                                 ('IPP', 'Identifiant Patient Permanent'),
                                 ('NDA', 'Numéro de Dossier Administratif'),
-                                ('NA', 'Numéro d\'Admission'),
                                 ('VN', 'Numéro de Venue'),
-                                ('PI', 'Patient Interne'),
-                                ('PG', 'Patient Global'),
-                                ('SS', 'Sécurité Sociale'),
-                                ('PC', 'Personne à Contacter'),
-                                ('NDP', 'Numéro Dossier Patient'),
                                 ('MVT', 'Identifiant de Mouvement'),
-                                ('FINESS', 'Numéro FINESS Établissement'),
+                                ('PC', 'Personne à Contacter')
                             ] %}
                             {% for code, label in identifier_types %}
                                 <option value="{{ code }}" {% if namespace and namespace.type == code %}selected{% endif %}>{{ code }} - {{ label }}</option>

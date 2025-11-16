@@ -29,10 +29,11 @@
                 <div>
                     <dt class="text-sm font-medium text-slate-500">Type</dt>
                     <dd class="mt-1 text-lg text-slate-900">
-                        {% if namespace.type == 'PI' %}Patient Interne (PI)
-                        {% elif namespace.type == 'VN' %}Visite/Venue (VN)
-                        {% elif namespace.type == 'XX' %}Organisation (XX)
-                        {% elif namespace.type == 'RI' %}Resource ID (RI)
+                        {% if namespace.type == 'IPP' %}Identifiant Patient Permanent (IPP)
+                        {% elif namespace.type == 'NDA' %}Numéro de Dossier Administratif (NDA)
+                        {% elif namespace.type == 'VN' %}Numéro de Venue (VN)
+                        {% elif namespace.type == 'MVT' %}Identifiant de Mouvement (MVT)
+                        {% elif namespace.type == 'PC' %}Personne à Contacter (PC)
                         {% else %}{{ namespace.type }}{% endif %}
                     </dd>
                 </div>

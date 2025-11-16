@@ -38,12 +38,13 @@
                         <label class="block text-sm font-medium text-slate-700">Type</label>
                         <select name="type" required
                                 class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="PI" {% if not namespace or namespace.type == 'PI' %}selected{% endif %}>Patient Interne (PI)</option>
-                            <option value="VN" {% if namespace and namespace.type == 'VN' %}selected{% endif %}>Visite/Venue (VN)</option>
-                            <option value="XX" {% if namespace and namespace.type == 'XX' %}selected{% endif %}>Organisation (XX)</option>
-                            <option value="RI" {% if namespace and namespace.type == 'RI' %}selected{% endif %}>Resource ID (RI)</option>
+                            <option value="IPP" {% if not namespace or namespace.type == 'IPP' %}selected{% endif %}>Identifiant Patient Permanent (IPP)</option>
+                            <option value="NDA" {% if namespace and namespace.type == 'NDA' %}selected{% endif %}>Numéro de Dossier Administratif (NDA)</option>
+                            <option value="VN" {% if namespace and namespace.type == 'VN' %}selected{% endif %}>Numéro de Venue (VN)</option>
+                            <option value="MVT" {% if namespace and namespace.type == 'MVT' %}selected{% endif %}>Identifiant de Mouvement (MVT)</option>
+                            <option value="PC" {% if namespace and namespace.type == 'PC' %}selected{% endif %}>Personne à Contacter (PC)</option>
                         </select>
-                        <p class="mt-1 text-sm text-slate-500">Type d'identifiant selon HL7</p>
+                        <p class="mt-1 text-sm text-slate-500">Type d'identifiant selon le système standardisé</p>
                     </div>
 
                     <div>

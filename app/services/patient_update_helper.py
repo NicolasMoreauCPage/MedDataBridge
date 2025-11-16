@@ -146,12 +146,22 @@ def create_patient_from_pid_data(
     
     # Si identifier et external_id sont fournis explicitement, les utiliser
     if identifier is not None and external_id is not None:
+        # Récupérer le contexte GHT depuis l'EJ si fournie
+        ght_context_id = None
+        if ej_id:
+            from app.models_structure_fhir import EntiteJuridique
+            ej = session.get(EntiteJuridique, ej_id)
+            if ej:
+                ght_context_id = ej.ght_context_id
+        
         patient = Patient(
             patient_seq=get_next_sequence(session, "patient"),
             identifier=identifier,
             external_id=external_id,
             family=pid_data.get("family") or "",
-            given=pid_data.get("given") or ""
+            given=pid_data.get("given") or "",
+            ght_context_id=ght_context_id,
+            entite_juridique_id=ej_id
         )
         
         # Mettre à jour tous les autres champs via la fonction commune
@@ -179,12 +189,21 @@ def create_patient_from_pid_data(
     )
     
     # Créer le patient avec les identifiants classifiés
+    # Récupérer le contexte GHT depuis l'EJ si fournie
+    ght_context_id = None
+    if ej_id:
+        from app.models_structure_fhir import EntiteJuridique
+        ej = session.get(EntiteJuridique, ej_id)
+        if ej:
+            ght_context_id = ej.ght_context_id
+    
     patient = Patient(
         patient_seq=get_next_sequence(session, "patient"),
         identifier=classification.get('main_identifier'),
         external_id=classification.get('external_id'),
         family=pid_data.get("family") or "",
         given=pid_data.get("given") or "",
+        ght_context_id=ght_context_id,
         entite_juridique_id=ej_id
     )
     

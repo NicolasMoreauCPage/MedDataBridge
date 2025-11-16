@@ -1161,7 +1161,9 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 "Routing ADT message",
                 extra={"trigger": trigger, "patient_identifiers": pid_data.get("identifiers")},
             )
-            success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg, ej_id=None)
+            # Extract EJ ID from endpoint for proper patient association
+            ej_id = endpoint.entite_juridique_id if endpoint and hasattr(endpoint, 'entite_juridique_id') else None
+            success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg, ej_id=ej_id)
 
             # --- Persistance des contacts après succès routage ---
             if success:

@@ -123,7 +123,8 @@ class BaseLocation(SQLModel):
     """Classe de base pour tous les types de locations avec champs communs"""
     __table_args__ = {'extend_existing': True}  # Allow table redefinition for all subclasses
     id: Optional[int] = Field(default=None, primary_key=True)
-    identifier: str = Field(index=True, unique=True)  # ID_GLBL
+    identifier: str = Field(index=True, unique=True)  # Code (CD)
+    global_identifier: Optional[str] = Field(default=None, index=True)  # Identifiant unique global (ID_GLBL)
     name: str  # LBL
     short_name: Optional[str] = None  # LBL_CRT
     description: Optional[str] = None

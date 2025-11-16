@@ -342,7 +342,10 @@ def save_location(
         )
         # Propriétés communes
         base_props = {
-            "identifier": characteristics.get("ID_GLBL", ""),
+            # Le code (CD) va dans identifier
+            "identifier": characteristics.get("CD", "") or identifier,
+            # L'identifiant unique global va dans global_identifier
+            "global_identifier": characteristics.get("ID_GLBL", ""),
             "name": characteristics.get("LBL", ""),
             "short_name": characteristics.get("LBL_CRT") or None,
             "address_line1": characteristics.get("ADRS_1") or None,
@@ -356,15 +359,15 @@ def save_location(
             "deactivation_date": clean_hl7_date(characteristics.get("DT_FN_ACTVTN")),
         }
 
-        if not base_props["identifier"]:
-            base_props["identifier"] = identifier
+        # Sécurise la présence d'un identifiant (code)
         if not base_props["identifier"]:
             base_props["identifier"] = (
-                characteristics.get("ID_GLBL")
+                characteristics.get("CD")
+                or characteristics.get("ID_GLBL")
                 or characteristics.get("ID")
                 or characteristics.get("FNS")
                 or characteristics.get("INS")
-                or characteristics.get("CD")
+                or identifier
                 or ""
             )
         if not base_props["identifier"]:

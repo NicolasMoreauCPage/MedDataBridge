@@ -75,17 +75,29 @@ async def get_structure_tree(
     if changed:
         session.commit()
     
-    # Start with EGs (filtered by ej OR eg_ids, with eg_ids taking precedence)
+    # Strict EJ filtering: if EJ context is present, only return EGs for that EJ (never fallback to all EGs)
     query = select(EntiteGeographique)
+    ej_context = ej
+    import inspect
+    request = None
+    for frame in inspect.stack():
+        if "request" in frame.frame.f_locals:
+            request = frame.frame.f_locals["request"]
+            break
+    if not ej_context and request:
+        ght_ctx = getattr(request.state, "ght_context", None)
+        if ght_ctx and hasattr(ght_ctx, "ej_id"):
+            ej_context = getattr(ght_ctx, "ej_id")
+        elif ght_ctx and hasattr(ght_ctx, "ej") and hasattr(ght_ctx.ej, "id"):
+            ej_context = getattr(ght_ctx.ej, "id")
+    eg_id_list = None
     if eg_ids:
-        # Filter by specific EG IDs
         eg_id_list = [int(id_str) for id_str in eg_ids.split(',')]
         query = query.where(EntiteGeographique.id.in_(eg_id_list))
-    elif ej:
-        # Filter by entite juridique
-        query = query.where(EntiteGeographique.entite_juridique_id == ej)
-    
-    # Load full hierarchy
+    elif ej_context is not None:
+        query = query.where(EntiteGeographique.entite_juridique_id == ej_context)
+    # If strict EJ filtering is requested and no EGs match, return empty list
+    # (prevents fallback to all EGs)
     query = (query
         .options(selectinload(EntiteGeographique.poles)
             .selectinload(Pole.services)
@@ -93,9 +105,10 @@ async def get_structure_tree(
             .selectinload(UniteFonctionnelle.unites_hebergement)
             .selectinload(UniteHebergement.chambres)
             .selectinload(Chambre.lits)))
-    
     egs = session.exec(query).all()
-    
+    # If EJ context is present and no EGs match, return []
+    if (ej_context is not None or eg_id_list) and not egs:
+        return []
     # Build tree structure
     tree = []
     for eg in egs:
@@ -110,7 +123,6 @@ async def get_structure_tree(
             "chambres": [],
             "lits": []
         }
-        
         for pole in eg.poles:
             pole_node = {
                 "id": pole.id,
@@ -122,7 +134,6 @@ async def get_structure_tree(
                 "chambres": [],
                 "lits": []
             }
-            
             for service in pole.services:
                 service_node = {
                     "id": service.id,
@@ -133,7 +144,6 @@ async def get_structure_tree(
                     "chambres": [],
                     "lits": []
                 }
-                
                 for uf in service.unites_fonctionnelles:
                     uf_node = {
                         "id": uf.id,
@@ -143,7 +153,6 @@ async def get_structure_tree(
                         "chambres": [],
                         "lits": []
                     }
-                    
                     for uh in uf.unites_hebergement:
                         uh_node = {
                             "id": uh.id,
@@ -152,7 +161,6 @@ async def get_structure_tree(
                             "chambres": [],
                             "lits": []
                         }
-                        
                         for chambre in uh.chambres:
                             chambre_node = {
                                 "id": chambre.id,
@@ -160,7 +168,6 @@ async def get_structure_tree(
                                 "type": "chambre",
                                 "lits": []
                             }
-                            
                             for lit in chambre.lits:
                                 lit_node = {
                                     "id": lit.id,
@@ -168,19 +175,12 @@ async def get_structure_tree(
                                     "type": "lit"
                                 }
                                 chambre_node["lits"].append(lit_node)
-                            
                             uh_node["chambres"].append(chambre_node)
-                        
                         uf_node["unites_hebergement"].append(uh_node)
-                    
                     service_node["ufs"].append(uf_node)
-                
                 pole_node["services"].append(service_node)
-            
             eg_node["poles"].append(pole_node)
-        
         tree.append(eg_node)
-    
     return tree
 
 @api_router.get("/details/{type}/{id}")
@@ -250,15 +250,22 @@ async def structure_dashboard(
         "structure_status_options": structure_status_opts,
     }
     
-    if ej:
-        # Récupérer les EG de l'établissement et son nom
+    # Patch: always filter by EJ context if available
+    ej_context = ej
+    # Try to get EJ from GHT context if not provided
+    if not ej_context:
+        ght_ctx = getattr(request.state, "ght_context", None)
+        if ght_ctx and hasattr(ght_ctx, "ej_id"):
+            ej_context = getattr(ght_ctx, "ej_id")
+        elif ght_ctx and hasattr(ght_ctx, "ej") and hasattr(ght_ctx.ej, "id"):
+            ej_context = getattr(ght_ctx.ej, "id")
+    if ej_context:
         egs = session.exec(
             select(EntiteGeographique)
-            .where(EntiteGeographique.entite_juridique_id == ej)
+            .where(EntiteGeographique.entite_juridique_id == ej_context)
         ).all()
-        context["filtered_ej_id"] = ej
+        context["filtered_ej_id"] = ej_context
         context["filtered_egs"] = [eg.id for eg in egs]
-    
     return templates.TemplateResponse(request, "structure_new.html", context)
 
 @router.post("/import/hl7")

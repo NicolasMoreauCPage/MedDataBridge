@@ -2,6 +2,25 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
+    <!-- DEBUG CONTEXT -->
+    <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+        <strong>DEBUG Contexte EJ :</strong>
+        {% if filtered_ej_id %}
+            <span>ID: {{ filtered_ej_id }}</span>
+        {% else %}
+            <span>Aucun EJ dans le contexte</span>
+        {% endif %}<br>
+        <strong>DEBUG EG filtrés :</strong>
+        {% if filtered_egs and filtered_egs|length > 0 %}
+            <ul>
+            {% for eg_id in filtered_egs %}
+                <li>ID: {{ eg_id }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <span>Aucun EG trouvé pour cet EJ</span>
+        {% endif %}
+    </div>
     <!-- En-tête avec filtres -->
     <div class="mb-8 space-y-4">
         <div class="flex items-center justify-between">
@@ -146,19 +165,17 @@ function setupEventListeners() {
 
 // Initialisation de la structure
 async function initializeStructure() {
+    // Strict EJ filtering: if no EGs for current EJ, show message and do not call API
+    if (!FILTERED_EGS || FILTERED_EGS.length === 0) {
+        document.getElementById('treeView').innerHTML = '<div class="text-slate-500 py-8 text-center">Aucune structure disponible pour cet établissement juridique.</div>';
+        return;
+    }
     try {
         // Construire l'URL de l'API
-        let apiUrl = '/api/structure/tree';
-        
-        // Si on a des EG filtrés (passés depuis le backend), les utiliser
-        if (FILTERED_EGS && FILTERED_EGS.length > 0) {
-            apiUrl += `?eg_ids=${FILTERED_EGS.join(',')}`;
-        }
-        
+        let apiUrl = '/api/structure/tree?eg_ids=' + FILTERED_EGS.join(',');
         // Charger les données
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('Erreur lors du chargement de la structure');
-        
         currentStructure = await response.json();
         renderStructure();
     } catch (error) {

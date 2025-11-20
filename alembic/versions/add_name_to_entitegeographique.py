@@ -13,7 +13,11 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column('entitegeographique', sa.Column('name', sa.String(), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('entitegeographique')]
+    if 'name' not in columns:
+        op.add_column('entitegeographique', sa.Column('name', sa.String(), nullable=True))
 
 def downgrade():
     op.drop_column('entitegeographique', 'name')

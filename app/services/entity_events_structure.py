@@ -124,7 +124,9 @@ async def _emit_background(model_name: str, entity_id: int, op: str, metadata: D
                         if not entity:
                             logger.warning("[structure_events] %s id=%s not found for op=%s", model_name, entity_id, op)
                             return
-                        await emit_structure_change(entity, s, operation=op)
+                        # Transmet le GHT associé si présent
+                        ght_context_id = getattr(entity, 'ght_context_id', None)
+                        await emit_structure_change(entity, s, operation=op, ght_context_id=ght_context_id)
                 break  # Success, exit loop
             except Exception as exc:
                 attempt += 1

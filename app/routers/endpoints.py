@@ -213,29 +213,41 @@ def new_endpoint(request: Request, session=Depends(get_session)):
     ght_options = [{"value": "", "label": "(Aucun)"}] + [{"value": str(g.id), "label": g.name} for g in ghts]
     ej_options = [{"value": "", "label": "(Aucun)"}] + [{"value": str(e.id), "label": f"{e.name} (FINESS: {e.finess_ej})"} for e in ejs]
     
+    kind_value = request.query_params.get("kind") or "MLLP"
     fields = [
-        {"label":"Nom","name":"name","type":"text"},
-        {"label":"Type","name":"kind","type":"select","options":EndpointKind.choices(),"value":"MLLP"},
-        {"label":"Rôle","name":"role","type":"select","options":EndpointRole.choices(),"value":"both"},
-        {"label":"Actif","name":"is_enabled","type":"select","options":[{"value":"true","label":"Oui"},{"value":"false","label":"Non"}],"value":"true"},
-    {"label":"GHT Context","name":"ght_context_id","type":"select","options":ght_options,"help":"Obligatoire pour endpoints structure (MFN)",
-     "value": (str(ght_ctx.id) if ght_ctx else None), "hidden": (True if ght_ctx else False)},
-    {"label":"Établissement Juridique","name":"entite_juridique_id","type":"select","options":ej_options,"help":"Obligatoire pour endpoints identité/mouvements (ADT)",
-     "value": (str(ej_ctx.id) if ej_ctx else None), "hidden": (True if ej_ctx else False)},
-        {"label":"Host (MLLP)","name":"host","type":"text","placeholder":"0.0.0.0"},
-        {"label":"Port (MLLP)","name":"port","type":"number"},
-        {"label":"Sending App (MSH-3)","name":"sending_app","type":"text"},
-        {"label":"Sending Facility (MSH-4)","name":"sending_facility","type":"text"},
-        {"label":"Receiving App (MSH-5)","name":"receiving_app","type":"text"},
-        {"label":"Receiving Facility (MSH-6)","name":"receiving_facility","type":"text"},
-        {"label":"FHIR base URL","name":"base_url","type":"text"},
-        {"label":"Auth kind","name":"auth_kind","type":"select","options":AuthKind.choices(),"value":"none"},
-        {"label":"Auth token (si bearer)","name":"auth_token","type":"text"},
-        {"label":"Inbox Path (FILE)","name":"inbox_path","type":"text","placeholder":"C:/data/inbox"},
-        {"label":"Outbox Path (FILE)","name":"outbox_path","type":"text","placeholder":"C:/data/outbox"},
-        {"label":"Archive Path (FILE)","name":"archive_path","type":"text","placeholder":"C:/data/archive"},
-        {"label":"Error Path (FILE)","name":"error_path","type":"text","placeholder":"C:/data/error"},
-        {"label":"File Extensions (FILE)","name":"file_extensions","type":"text","placeholder":".hl7,.txt"},
+        {"type": "section", "label": "Configuration du Endpoint", "icon": "server", "help": "Paramétrez le système d'intégration à créer."},
+        {"label": "Nom du système", "name": "name", "type": "text", "required": True, "help": "Nom lisible du serveur ou du système cible."},
+        {"label": "Type de connexion", "name": "kind", "type": "select", "options": EndpointKind.choices(), "value": kind_value, "required": True, "help": "Protocole utilisé (MLLP, FHIR, FILE, etc.)."},
+        {"label": "Rôle du système", "name": "role", "type": "select", "options": EndpointRole.choices(), "value": "both", "required": True, "help": "Définissez le rôle (émission, réception, ou les deux)."},
+        {"label": "Actif", "name": "is_enabled", "type": "select", "options": [{"value": "true", "label": "Oui"}, {"value": "false", "label": "Non"}], "value": "true", "required": True, "help": "Le endpoint sera-t-il actif dès la création ?"},
+        {"type": "divider"},
+        {"type": "section", "label": "Type d'émission", "icon": "share", "help": "Sélectionnez les types de messages à émettre."},
+        {"type": "subsection", "label": "Identité / Mouvements", "icon": "user"},
+        {"label": "HL7 IHE PAM (Identité/Mouvements)", "name": "emit_hl7_pam", "type": "checkbox", "value": True, "help": "Émet les messages ADT (identité/mouvements) selon le standard IHE PAM."},
+        {"label": "FHIR Identité/Mouvements (Patient/Encounter)", "name": "emit_fhir_identity", "type": "checkbox", "value": True, "help": "Émet les ressources FHIR d'identité et mouvements (Patient, Encounter)."},
+        {"type": "subsection", "label": "Structure", "icon": "building"},
+        {"label": "HL7 MFN (Structure)", "name": "emit_hl7_mfn", "type": "checkbox", "value": True, "help": "Émet les messages MFN (structure) pour la gestion des structures."},
+        {"label": "FHIR Structure (Location/Organization)", "name": "emit_fhir_structure", "type": "checkbox", "value": True, "help": "Émet les ressources FHIR de structure (Location, Organization)."},
+        {"type": "divider"},
+        {"type": "section", "label": "Contexte d'établissement", "icon": "hospital", "help": "Associez le endpoint à un GHT ou à un établissement juridique."},
+        {"label": "GHT Context", "name": "ght_context_id", "type": "select", "options": ght_options, "help": "Obligatoire pour endpoints structure (MFN)", "value": (str(ght_ctx.id) if ght_ctx else None), "hidden": (True if ght_ctx else False)},
+        {"label": "Établissement Juridique", "name": "entite_juridique_id", "type": "select", "options": ej_options, "help": "Obligatoire pour endpoints identité/mouvements (ADT)", "value": (str(ej_ctx.id) if ej_ctx else None), "hidden": (True if ej_ctx else False)},
+        {"type": "divider"},
+        {"type": "section", "label": "Paramètres techniques", "icon": "cog", "help": "Renseignez les paramètres techniques selon le type de connexion."},
+    {"label": "Host (MLLP)", "name": "host", "type": "text", "placeholder": "0.0.0.0", "required": False, "help": "Adresse IP ou nom d'hôte pour MLLP."},
+    {"label": "Port (MLLP)", "name": "port", "type": "number", "required": False, "help": "Port TCP pour MLLP."},
+    {"label": "Sending App (MSH-3)", "name": "sending_app", "type": "text", "required": False, "help": "Champ MSH-3 pour HL7."},
+    {"label": "Sending Facility (MSH-4)", "name": "sending_facility", "type": "text", "required": False, "help": "Champ MSH-4 pour HL7."},
+    {"label": "Receiving App (MSH-5)", "name": "receiving_app", "type": "text", "required": False, "help": "Champ MSH-5 pour HL7."},
+    {"label": "Receiving Facility (MSH-6)", "name": "receiving_facility", "type": "text", "required": False, "help": "Champ MSH-6 pour HL7."},
+    {"label": "FHIR base URL", "name": "base_url", "type": "text", "required": False, "help": "URL de base pour les endpoints FHIR."},
+    {"label": "Auth kind", "name": "auth_kind", "type": "select", "options": AuthKind.choices(), "value": "none", "required": False, "help": "Type d'authentification pour FHIR."},
+    {"label": "Auth token (si bearer)", "name": "auth_token", "type": "text", "required": False, "help": "Jeton d'authentification pour FHIR."},
+    {"label": "Inbox Path (FILE)", "name": "inbox_path", "type": "text", "placeholder": "C:/data/inbox", "required": False, "help": "Répertoire d'entrée pour le mode FILE."},
+    {"label": "Outbox Path (FILE)", "name": "outbox_path", "type": "text", "placeholder": "C:/data/outbox", "required": False, "help": "Répertoire de sortie pour le mode FILE."},
+    {"label": "Archive Path (FILE)", "name": "archive_path", "type": "text", "placeholder": "C:/data/archive", "required": False, "help": "Répertoire d'archivage pour le mode FILE."},
+    {"label": "Error Path (FILE)", "name": "error_path", "type": "text", "placeholder": "C:/data/error", "required": False, "help": "Répertoire d'erreur pour le mode FILE."},
+    {"label": "File Extensions (FILE)", "name": "file_extensions", "type": "text", "placeholder": ".hl7,.txt", "required": False, "help": "Extensions de fichiers acceptées pour le mode FILE."},
     ]
     return templates.TemplateResponse(request, "form.html", {"request": request, "title":"Nouveau système", "fields":fields, "action_url": "/endpoints/new", "cancel_url": "/endpoints"})
 
@@ -262,9 +274,16 @@ def create_endpoint(
     archive_path: str = Form(None),
     error_path: str = Form(None),
     file_extensions: str = Form(None),
+    emit_hl7_pam: bool = Form(False),
+    emit_hl7_mfn: bool = Form(False),
+    emit_fhir_structure: bool = Form(False),
+    emit_fhir_identity: bool = Form(False),
     session=Depends(get_session),
 ):
-    # Validation: au moins GHT ou EJ doit être défini
+    # Debug: print all incoming form data
+    import logging
+    logger = logging.getLogger("endpoints_debug")
+    logger.warning(f"Form data received: name={name}, kind={kind}, role={role}, is_enabled={is_enabled}, ght_context_id={ght_context_id}, entite_juridique_id={entite_juridique_id}, host={host}, port={port}, sending_app={sending_app}, sending_facility={sending_facility}, receiving_app={receiving_app}, receiving_facility={receiving_facility}, base_url={base_url}, auth_kind={auth_kind}, auth_token={auth_token}, inbox_path={inbox_path}, outbox_path={outbox_path}, archive_path={archive_path}, error_path={error_path}, file_extensions={file_extensions}")
     ght_id = int(ght_context_id) if ght_context_id and str(ght_context_id).strip() else None
     ej_id = int(entite_juridique_id) if entite_juridique_id and str(entite_juridique_id).strip() else None
     # Fall back to active contexts if not provided by form (e.g., hidden by context)
@@ -304,7 +323,11 @@ def create_endpoint(
         receiving_app=receiving_app, receiving_facility=receiving_facility,
         base_url=base_url, auth_kind=auth_kind, auth_token=auth_token,
         inbox_path=inbox_path, outbox_path=outbox_path, archive_path=archive_path,
-        error_path=error_path, file_extensions=file_extensions
+        error_path=error_path, file_extensions=file_extensions,
+        emit_hl7_pam=bool(emit_hl7_pam),
+        emit_hl7_mfn=bool(emit_hl7_mfn),
+        emit_fhir_structure=bool(emit_fhir_structure),
+        emit_fhir_identity=bool(emit_fhir_identity)
     )
     session.add(e); session.commit()
     return RedirectResponse(url="/endpoints", status_code=status.HTTP_303_SEE_OTHER)

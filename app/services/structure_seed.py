@@ -1264,6 +1264,10 @@ def ensure_endpoints_for_context(
                 receiving_app="BRIDGE",
                 receiving_facility=context.code or context.name,
                 pam_validate_enabled=True,
+                   emit_hl7_pam=True,
+                   emit_hl7_mfn=False,
+                   emit_fhir_structure=False,
+                   emit_fhir_identity=True,
             )
             session.add(ep)
             stats["created"] += 1
@@ -1286,6 +1290,10 @@ def ensure_endpoints_for_context(
                 sending_facility=context.code or context.name,
                 receiving_app="EXT",
                 receiving_facility=finess_ej,
+                   emit_hl7_pam=True,
+                   emit_hl7_mfn=False,
+                   emit_fhir_structure=False,
+                   emit_fhir_identity=True,
             )
             session.add(ep)
             stats["created"] += 1
@@ -1303,6 +1311,10 @@ def ensure_endpoints_for_context(
                 ght_context_id=context.id,
                 base_url=f"https://fhir.demo/{finess_ej}",
                 auth_kind="none",
+                   emit_hl7_pam=False,
+                   emit_hl7_mfn=False,
+                   emit_fhir_structure=True,
+                   emit_fhir_identity=True,
             )
             session.add(ep)
             stats["created"] += 1

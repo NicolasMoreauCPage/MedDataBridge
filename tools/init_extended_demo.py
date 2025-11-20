@@ -62,6 +62,10 @@ def main():
             ght_context_id=context.id,
             inbox_path=mfn_inbox_path,
             file_extensions=".hl7,.txt",
+            emit_hl7_pam=False,
+            emit_hl7_mfn=True,
+            emit_fhir_structure=False,
+            emit_fhir_identity=False,
         )
         session.add(endpoint_mfn)
         session.commit()

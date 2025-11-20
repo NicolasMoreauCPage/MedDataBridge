@@ -46,16 +46,20 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
 
-    # Copy all data from old table to new table
-    op.execute('''
-        INSERT INTO identifiernamespace
-        (id, name, system, oid, type, description, is_active, prefix_pattern,
-         prefix_mode, prefix_min, prefix_max, created_at, updated_at,
-         ght_context_id, entite_juridique_id)
-        SELECT id, name, system, oid, type, description, is_active, prefix_pattern,
-               prefix_mode, prefix_min, prefix_max, created_at, updated_at,
-               ght_context_id, entite_juridique_id
-        FROM identifiernamespace_old
+    # Copy only columns that exist in identifiernamespace_old
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    old_columns = [col['name'] for col in inspector.get_columns('identifiernamespace_old')]
+    new_columns = [
+        'id', 'name', 'system', 'oid', 'type', 'description', 'is_active',
+        'prefix_pattern', 'prefix_mode', 'prefix_min', 'prefix_max',
+        'created_at', 'updated_at', 'ght_context_id', 'entite_juridique_id'
+    ]
+    copy_columns = [col for col in new_columns if col in old_columns]
+    cols_str = ', '.join(copy_columns)
+    op.execute(f'''
+        INSERT INTO identifiernamespace ({cols_str})
+        SELECT {cols_str} FROM identifiernamespace_old
     ''')
 
     # Drop the old table

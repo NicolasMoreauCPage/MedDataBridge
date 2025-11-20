@@ -28,31 +28,44 @@ from app.services.mfn_organization import generate_mfn_organization_message, gen
 logger = logging.getLogger(__name__)
 
 
-def _get_senders(session: Session):
-    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.role == "sender")).all()
-    fhir_senders = [e for e in endpoints if (e.kind or "").lower() == "fhir" and e.is_enabled]
-    mllp_senders = [e for e in endpoints if (e.kind or "").upper() == "MLLP" and e.is_enabled]
+def _get_senders(session: Session, ght_context_id=None):
+    query = select(SystemEndpoint).where(SystemEndpoint.role == "sender")
+    if ght_context_id is not None:
+        query = query.where(SystemEndpoint.ght_context_id == ght_context_id)
+    endpoints = session.exec(query).all()
+    fhir_senders = [e for e in endpoints if (e.kind or "").lower() == "fhir" and e.is_enabled and getattr(e, "emit_fhir_structure", True)]
+    mllp_senders = [e for e in endpoints if (e.kind or "").upper() == "MLLP" and e.is_enabled and getattr(e, "emit_hl7_mfn", True)]
     return fhir_senders, mllp_senders
 
 
-async def _emit_organization_upsert(entity, session: Session) -> None:
+async def _emit_organization_upsert(entity, session: Session, ght_context_id=None) -> None:
     """Émet FHIR Organization vers les endpoints sender."""
     import time
     from datetime import datetime
     bundle = organization_to_bundle(entity, session, method="PUT")
-    fhir_senders, _ = _get_senders(session)
+    fhir_senders, _ = _get_senders(session, ght_context_id=ght_context_id)
     for endpoint in fhir_senders:
         base = endpoint.base_url or endpoint.host or ""
         log = None
+        # Use correlation_id for deduplication if available
+        correlation_id = getattr(entity, "correlation_id", None)
         with session.no_autoflush:
-            # Recherche d'un log existant pour ce endpoint/message_type en erreur ou pending
-            existing_log = session.exec(
-                select(MessageLog)
-                .where(MessageLog.endpoint_id == endpoint.id)
-                .where(MessageLog.kind == "FHIR")
-                .where(MessageLog.status.in_(["error", "pending"]))
-                .order_by(MessageLog.created_at.desc())
-            ).first()
+            if correlation_id:
+                existing_log = session.exec(
+                    select(MessageLog)
+                    .where(MessageLog.endpoint_id == endpoint.id)
+                    .where(MessageLog.kind == "FHIR")
+                    .where(MessageLog.direction == "out")
+                    .where(MessageLog.correlation_id == correlation_id)
+                ).first()
+            else:
+                existing_log = session.exec(
+                    select(MessageLog)
+                    .where(MessageLog.endpoint_id == endpoint.id)
+                    .where(MessageLog.kind == "FHIR")
+                    .where(MessageLog.status.in_(["error", "pending"]))
+                    .order_by(MessageLog.created_at.desc())
+                ).first()
             if not base:
                 if existing_log:
                     existing_log.payload = json.dumps(bundle, ensure_ascii=False)
@@ -68,6 +81,7 @@ async def _emit_organization_upsert(entity, session: Session) -> None:
                         payload=json.dumps(bundle, ensure_ascii=False),
                         ack_payload="Endpoint sans host/base_url",
                         status="error",
+                        correlation_id=correlation_id,
                     )
                     session.add(log)
                 continue
@@ -90,6 +104,7 @@ async def _emit_organization_upsert(entity, session: Session) -> None:
                             payload=json.dumps(bundle, ensure_ascii=False),
                             ack_payload=json.dumps(response or {}, ensure_ascii=False),
                             status="sent" if 200 <= status_code < 300 else "error",
+                            correlation_id=correlation_id,
                         )
                         session.add(log)
                     break
@@ -109,6 +124,7 @@ async def _emit_organization_upsert(entity, session: Session) -> None:
                             payload=json.dumps(bundle, ensure_ascii=False),
                             ack_payload=str(exc),
                             status="error",
+                            correlation_id=correlation_id,
                         )
                         session.add(log)
                     if retry < max_retry:
@@ -162,14 +178,27 @@ async def _emit_organization_delete(entity_id: int, finess_ej: str, session: Ses
             session.add(log)
 
 
-async def _emit_mfn_organization(entity, session: Session) -> None:
+async def _emit_mfn_organization(entity, session: Session, ght_context_id=None) -> None:
     """Génère et envoie un message MFN M05 pour Organization aux endpoints MLLP."""
     mfn = generate_mfn_organization_message(session, ej=entity)
-    _, mllp_senders = _get_senders(session)
+    if ght_context_id is None:
+        ght_context_id = getattr(entity, "ght_context_id", None)
+    _, mllp_senders = _get_senders(session, ght_context_id=ght_context_id)
     for endpoint in mllp_senders:
+        correlation_id = getattr(entity, "correlation_id", None)
         with session.no_autoflush:
             ack = ""
             status = "generated"
+            if correlation_id:
+                existing_log = session.exec(
+                    select(MessageLog)
+                    .where(MessageLog.endpoint_id == endpoint.id)
+                    .where(MessageLog.kind == "MLLP")
+                    .where(MessageLog.direction == "out")
+                    .where(MessageLog.correlation_id == correlation_id)
+                ).first()
+            else:
+                existing_log = None
             try:
                 if not (endpoint.host and endpoint.port):
                     raise ValueError("Endpoint MLLP incomplet (host/port)")
@@ -184,16 +213,24 @@ async def _emit_mfn_organization(entity, session: Session) -> None:
             except Exception as exc:  # noqa: BLE001
                 status = "error"
                 ack = str(exc)
-            log = MessageLog(
-                direction="out",
-                kind="MLLP",
-                endpoint_id=endpoint.id,
-                payload=mfn,
-                ack_payload=ack,
-                status=status,
-                message_type="MFN^M05"
-            )
-            session.add(log)
+            if existing_log:
+                existing_log.payload = mfn
+                existing_log.ack_payload = ack
+                existing_log.status = status
+                existing_log.message_type = "MFN^M05"
+                existing_log.created_at = datetime.utcnow()
+            else:
+                log = MessageLog(
+                    direction="out",
+                    kind="MLLP",
+                    endpoint_id=endpoint.id,
+                    payload=mfn,
+                    ack_payload=ack,
+                    status=status,
+                    message_type="MFN^M05",
+                    correlation_id=correlation_id,
+                )
+                session.add(log)
 
 
 async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session: Session) -> None:
@@ -201,9 +238,19 @@ async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session:
     mfn = generate_mfn_organization_delete(entity_id, finess_ej)
     _, mllp_senders = _get_senders(session)
     for endpoint in mllp_senders:
+        correlation_id = None  # MFN delete may not have entity.correlation_id
         with session.no_autoflush:
             ack = ""
             status = "generated"
+            # Try to deduplicate by entity_id if possible (for delete, correlation_id may not exist)
+            existing_log = session.exec(
+                select(MessageLog)
+                .where(MessageLog.endpoint_id == endpoint.id)
+                .where(MessageLog.kind == "MLLP")
+                .where(MessageLog.direction == "out")
+                .where(MessageLog.message_type == "MFN^M05")
+                .where(MessageLog.payload.contains(str(entity_id)))
+            ).first()
             try:
                 if not (endpoint.host and endpoint.port):
                     raise ValueError("Endpoint MLLP incomplet (host/port)")
@@ -212,19 +259,26 @@ async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session:
             except Exception as exc:  # noqa: BLE001
                 status = "error"
                 ack = str(exc)
-            log = MessageLog(
-                direction="out",
-                kind="MLLP",
-                endpoint_id=endpoint.id,
-                payload=mfn,
-                ack_payload=ack,
-                status=status,
-                message_type="MFN^M05"
-            )
-            session.add(log)
+            if existing_log:
+                existing_log.payload = mfn
+                existing_log.ack_payload = ack
+                existing_log.status = status
+                existing_log.message_type = "MFN^M05"
+                existing_log.created_at = datetime.utcnow()
+            else:
+                log = MessageLog(
+                    direction="out",
+                    kind="MLLP",
+                    endpoint_id=endpoint.id,
+                    payload=mfn,
+                    ack_payload=ack,
+                    status=status,
+                    message_type="MFN^M05",
+                )
+                session.add(log)
 
 
-async def _emit_fhir_upsert(entity, session: Session) -> None:
+async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> None:
     import time
     from datetime import datetime
     resource = entity_to_fhir_location(entity, session)
@@ -238,17 +292,27 @@ async def _emit_fhir_upsert(entity, session: Session) -> None:
             }
         ],
     }
-    fhir_senders, _ = _get_senders(session)
+    fhir_senders, _ = _get_senders(session, ght_context_id=ght_context_id)
     for endpoint in fhir_senders:
         base = endpoint.base_url or endpoint.host or ""
         log = None
-        existing_log = session.exec(
-            select(MessageLog)
-            .where(MessageLog.endpoint_id == endpoint.id)
-            .where(MessageLog.kind == "FHIR")
-            .where(MessageLog.status.in_(["error", "pending"]))
-            .order_by(MessageLog.created_at.desc())
-        ).first()
+        correlation_id = getattr(entity, "correlation_id", None)
+        if correlation_id:
+            existing_log = session.exec(
+                select(MessageLog)
+                .where(MessageLog.endpoint_id == endpoint.id)
+                .where(MessageLog.kind == "FHIR")
+                .where(MessageLog.direction == "out")
+                .where(MessageLog.correlation_id == correlation_id)
+            ).first()
+        else:
+            existing_log = session.exec(
+                select(MessageLog)
+                .where(MessageLog.endpoint_id == endpoint.id)
+                .where(MessageLog.kind == "FHIR")
+                .where(MessageLog.status.in_(["error", "pending"]))
+                .order_by(MessageLog.created_at.desc())
+            ).first()
         if not base:
             if existing_log:
                 existing_log.payload = json.dumps(bundle, ensure_ascii=False)
@@ -264,6 +328,7 @@ async def _emit_fhir_upsert(entity, session: Session) -> None:
                     payload=json.dumps(bundle, ensure_ascii=False),
                     ack_payload="Endpoint sans host/base_url",
                     status="error",
+                    correlation_id=correlation_id,
                 )
                 session.add(log)
             continue
@@ -286,6 +351,7 @@ async def _emit_fhir_upsert(entity, session: Session) -> None:
                         payload=json.dumps(bundle, ensure_ascii=False),
                         ack_payload=json.dumps(response or {}, ensure_ascii=False),
                         status="sent" if 200 <= status_code < 300 else "error",
+                        correlation_id=correlation_id,
                     )
                     session.add(log)
                 break
@@ -305,6 +371,7 @@ async def _emit_fhir_upsert(entity, session: Session) -> None:
                         payload=json.dumps(bundle, ensure_ascii=False),
                         ack_payload=str(exc),
                         status="error",
+                        correlation_id=correlation_id,
                     )
                     session.add(log)
                 if retry < max_retry:
@@ -394,19 +461,20 @@ async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
                     time.sleep(60)
 
 
-async def _emit_mfn_snapshot(session: Session) -> None:
+async def _emit_mfn_snapshot(session: Session, ght_context_id=None) -> None:
     import time
     from datetime import datetime
     mfn = generate_mfn_message(session)
-    _, mllp_senders = _get_senders(session)
+    _, mllp_senders = _get_senders(session, ght_context_id=ght_context_id)
     for endpoint in mllp_senders:
-        log = None
+        correlation_id = None  # MFN snapshot may not have correlation_id
+        # Try to deduplicate by endpoint and message_type
         existing_log = session.exec(
             select(MessageLog)
             .where(MessageLog.endpoint_id == endpoint.id)
             .where(MessageLog.kind == "MLLP")
-            .where(MessageLog.status.in_(["error", "pending"]))
-            .order_by(MessageLog.created_at.desc())
+            .where(MessageLog.direction == "out")
+            .where(MessageLog.message_type == "MFN^M05")
         ).first()
         retry = 0
         max_retry = 3
@@ -422,8 +490,8 @@ async def _emit_mfn_snapshot(session: Session) -> None:
                     existing_log.payload = mfn
                     existing_log.ack_payload = ack
                     existing_log.status = status
+                    existing_log.message_type = "MFN^M05"
                     existing_log.created_at = datetime.utcnow()
-                    log = existing_log
                 else:
                     log = MessageLog(
                         direction="out",
@@ -432,6 +500,7 @@ async def _emit_mfn_snapshot(session: Session) -> None:
                         payload=mfn,
                         ack_payload=ack,
                         status=status,
+                        message_type="MFN^M05",
                     )
                     session.add(log)
                 break
@@ -443,8 +512,8 @@ async def _emit_mfn_snapshot(session: Session) -> None:
                     existing_log.payload = mfn
                     existing_log.ack_payload = ack
                     existing_log.status = status
+                    existing_log.message_type = "MFN^M05"
                     existing_log.created_at = datetime.utcnow()
-                    log = existing_log
                 else:
                     log = MessageLog(
                         direction="out",
@@ -453,25 +522,25 @@ async def _emit_mfn_snapshot(session: Session) -> None:
                         payload=mfn,
                         ack_payload=ack,
                         status=status,
+                        message_type="MFN^M05",
                     )
                     session.add(log)
                 if retry < max_retry:
                     time.sleep(60)
 
 
-async def emit_structure_change(entity, session: Session, operation: str = "update") -> None:
+async def emit_structure_change(entity, session: Session, operation: str = "update", ght_context_id=None) -> None:
     """Émet FHIR (PUT) + HL7 MFN snapshot après création/mise à jour d'une entité de structure."""
     from app.models_structure import EntiteJuridique
     
     # EntiteJuridique doit être émise comme Organization, pas Location
     if isinstance(entity, EntiteJuridique):
-        await _emit_organization_upsert(entity, session)
-        await _emit_mfn_organization(entity, session)
+        await _emit_organization_upsert(entity, session, ght_context_id=ght_context_id)
+        await _emit_mfn_organization(entity, session, ght_context_id=ght_context_id)
         session.commit()
         return
-    
-    await _emit_fhir_upsert(entity, session)
-    await _emit_mfn_snapshot(session)
+    await _emit_fhir_upsert(entity, session, ght_context_id=ght_context_id)
+    await _emit_mfn_snapshot(session, ght_context_id=ght_context_id)
     session.commit()
 
 

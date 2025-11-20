@@ -80,6 +80,12 @@ class SystemEndpoint(SQLModel, table=True):
     error_path: Optional[str] = None  # Directory for failed messages
     file_extensions: Optional[str] = None  # Comma-separated list (e.g., ".hl7,.txt")
 
+    # Emission type configuration
+    emit_hl7_pam: bool = Field(default=True, description="Émet HL7 IHE PAM (identité/mouvements)")
+    emit_hl7_mfn: bool = Field(default=True, description="Émet HL7 MFN (structure)")
+    emit_fhir_structure: bool = Field(default=True, description="Émet FHIR structure (Location/Organization)")
+    emit_fhir_identity: bool = Field(default=True, description="Émet FHIR identité/mouvements (Patient/Encounter)")
+
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -435,18 +435,28 @@ def save_location(
             except Exception:
                 return None
 
-        if loc_type == "M":  # Entité juridique (niveau EG dans ce modèle de stockage)
-            existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
-            entity = EntiteGeographique(
+        if loc_type == "M":  # Entité juridique
+            from app.models_structure import EntiteJuridique
+            existing_entity = _get_existing(EntiteJuridique, base_props["identifier"])
+            entity = EntiteJuridique(
                 identifier=base_props["identifier"],
                 global_identifier=base_props["global_identifier"],
+                name=characteristics.get("LBL", ""),
+                finess_ej=characteristics.get("FNS", ""),
+                category_code=characteristics.get("CTGR_S", None),
+                start_date=characteristics.get("DT_OVRTR", None),
+                end_date=characteristics.get("DT_FRMTR", None),
             )
-            
         elif loc_type == "ETBL_GRPQ":  # Établissement géographique
             existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
             entity = EntiteGeographique(
                 identifier=base_props["identifier"],
                 global_identifier=base_props["global_identifier"],
+                name=characteristics.get("LBL", ""),
+                finess=characteristics.get("FNS", ""),
+                category_code=characteristics.get("CTGR_S", None),
+                start_date=characteristics.get("DT_OVRTR", None),
+                end_date=characteristics.get("DT_FRMTR", None),
             )
             
         elif loc_type == "P":  # Pôle
@@ -497,154 +507,161 @@ def save_location(
         if isinstance(entity, Service) and len(relations) > 0:
             logger.info(f"  Service relations: {relations}")
         
-        # Gestion des relations
+        # Gestion des relations et rattachement à l'EJ
         logger.info(f"Entity {entity.__class__.__name__} ID={entity.identifier} has {len(relations)} relations")
+        ej_id = None
         for relation in relations:
             logger.info(f"  Relation type='{relation.get('type')}' target={relation.get('target', '')[:80]}")
-            if relation["type"] == "ETBLSMNT":
-                # Relation vers l'établissement parent (nettoyage identifiant)
+            # Rattachement à l'EJ via ETBLSMNT ou LCLSTN
+            if relation["type"] in ("ETBLSMNT", "LCLSTN"):
                 target_clean = _extract_identifier_from_loc(relation["target"])
-                if isinstance(entity, Pole):
-                    parent = session.exec(
-                        select(EntiteGeographique)
-                        .where(EntiteGeographique.identifier == target_clean)
-                    ).first()
-                    if parent:
-                        entity.entite_geo_id = parent.id
-                elif isinstance(entity, Service):
-                    # Certains messages sources lient directement le Service à l'EG via ETBLSMNT sans LCLSTN.
-                    # On crée alors (ou réutilise) un Pôle virtuel intermédiaire.
-                    parent_eg = session.exec(
-                        select(EntiteGeographique).where(EntiteGeographique.identifier == target_clean)
-                    ).first()
-                    if parent_eg and not getattr(entity, "pole_id", None):
-                        virtual_pole_id = f"VIRTUAL-POLE-{parent_eg.identifier}"
-                        virtual_pole = session.exec(select(Pole).where(Pole.identifier == virtual_pole_id)).first()
+                # Recherche d'un EJ parent
+                from app.models_structure import EntiteJuridique
+                ej_parent = session.exec(select(EntiteJuridique).where(EntiteJuridique.identifier == target_clean)).first()
+                if ej_parent:
+                    ej_id = ej_parent.id
+                # Recherche d'un EG parent si pas d'EJ
+                if not ej_id:
+                    parent_eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.identifier == target_clean)).first()
+                    if parent_eg:
+                        if hasattr(entity, 'entite_geo_id'):
+                            entity.entite_geo_id = parent_eg.id
+            # Rattachement à un pôle pour Service
+            if relation["type"] == "ETBLSMNT" and isinstance(entity, Pole):
+                parent = session.exec(
+                    select(EntiteGeographique)
+                    .where(EntiteGeographique.identifier == target_clean)
+                ).first()
+                if parent:
+                    entity.entite_geo_id = parent.id
+            # Rattachement à un pôle virtuel pour Service
+            if relation["type"] == "ETBLSMNT" and isinstance(entity, Service):
+                parent_eg = session.exec(
+                    select(EntiteGeographique).where(EntiteGeographique.identifier == target_clean)
+                ).first()
+                if parent_eg and not getattr(entity, "pole_id", None):
+                    virtual_pole_id = f"VIRTUAL-POLE-{parent_eg.identifier}"
+                    virtual_pole = session.exec(select(Pole).where(Pole.identifier == virtual_pole_id)).first()
+                    if not virtual_pole:
+                        virtual_pole = Pole(
+                            identifier=virtual_pole_id,
+                            name=f"Pôle virtuel ({parent_eg.identifier})",
+                            physical_type=LocationPhysicalType.AREA,
+                            entite_geo_id=parent_eg.id,
+                            is_virtual=True
+                        )
+                        session.add(virtual_pole)
+                        session.flush()
+                        logger.info(f"Création d'un Pôle virtuel {virtual_pole.identifier} (relation ETBLSMNT) pour Service {entity.identifier}")
+                    entity.pole_id = virtual_pole.id
+        # Si on a trouvé un EJ parent, rattacher l'entité
+        if ej_id and hasattr(entity, 'entite_juridique_id'):
+            entity.entite_juridique_id = ej_id
+        # Gestion des relations de localisation (LCLSTN)
+        if relation["type"] == "LCLSTN":
+            # Relation de localisation (tous les niveaux hiérarchiques)
+            # Utilise le type du parent pour gérer automatiquement les sauts de hiérarchie
+            parent_type, parent_identifier = _extract_type_and_identifier_from_loc(relation["target"])
+            logger.info(f"LCLSTN pour {entity.__class__.__name__} ID={entity.identifier}: parent_type='{parent_type}', parent_id='{parent_identifier}', raw_target={relation['target'][:80]}")
+            
+            if isinstance(entity, Service):
+                # Service.pole_id requis
+                if parent_type == "P":
+                    # Parent normal: Pôle
+                    parent_pole = _find_by_identifier(Pole, parent_identifier)
+                    if parent_pole:
+                        entity.pole_id = parent_pole.id
+                
+                elif parent_type == "ETBL_GRPQ":
+                    # Saut de hiérarchie: Service → EG directement
+                    parent_eg = _find_by_identifier(EntiteGeographique, parent_identifier)
+                    if parent_eg:
+                        # Chercher ou créer un Pôle virtuel intermédiaire
+                        virtual_pole_id = f"VIRTUAL-POLE-{parent_identifier}"
+                        virtual_pole = session.exec(
+                            select(Pole).where(Pole.identifier == virtual_pole_id)
+                        ).first()
+                        
                         if not virtual_pole:
                             virtual_pole = Pole(
                                 identifier=virtual_pole_id,
-                                name=f"Pôle virtuel ({parent_eg.identifier})",
+                                name=f"Pôle virtuel ({parent_eg.name})",
                                 physical_type=LocationPhysicalType.AREA,
                                 entite_geo_id=parent_eg.id,
                                 is_virtual=True
                             )
                             session.add(virtual_pole)
                             session.flush()
-                            logger.info(f"Création d'un Pôle virtuel {virtual_pole.identifier} (relation ETBLSMNT) pour Service {entity.identifier}")
+                            logger.info(f"Création d'un Pôle virtuel {virtual_pole.identifier} pour Service {entity.identifier}")
+                        
                         entity.pole_id = virtual_pole.id
-                        
-            elif relation["type"] == "LCLSTN":
-                # Relation de localisation (tous les niveaux hiérarchiques)
-                # Utilise le type du parent pour gérer automatiquement les sauts de hiérarchie
-                parent_type, parent_identifier = _extract_type_and_identifier_from_loc(relation["target"])
-                logger.info(f"LCLSTN pour {entity.__class__.__name__} ID={entity.identifier}: parent_type='{parent_type}', parent_id='{parent_identifier}', raw_target={relation['target'][:80]}")
-                
-                if isinstance(entity, Service):
-                    # Service.pole_id requis
-                    if parent_type == "P":
-                        # Parent normal: Pôle
-                        parent_pole = _find_by_identifier(Pole, parent_identifier)
-                        if parent_pole:
-                            entity.pole_id = parent_pole.id
-                    
-                    elif parent_type == "ETBL_GRPQ":
-                        # Saut de hiérarchie: Service → EG directement
-                        parent_eg = _find_by_identifier(EntiteGeographique, parent_identifier)
-                        if parent_eg:
-                            # Chercher ou créer un Pôle virtuel intermédiaire
-                            virtual_pole_id = f"VIRTUAL-POLE-{parent_identifier}"
-                            virtual_pole = session.exec(
-                                select(Pole).where(Pole.identifier == virtual_pole_id)
-                            ).first()
-                            
-                            if not virtual_pole:
-                                virtual_pole = Pole(
-                                    identifier=virtual_pole_id,
-                                    name=f"Pôle virtuel ({parent_eg.name})",
-                                    physical_type=LocationPhysicalType.AREA,
-                                    entite_geo_id=parent_eg.id,
-                                    is_virtual=True
-                                )
-                                session.add(virtual_pole)
-                                session.flush()
-                                logger.info(f"Création d'un Pôle virtuel {virtual_pole.identifier} pour Service {entity.identifier}")
-                            
-                            entity.pole_id = virtual_pole.id
-                        
-                elif isinstance(entity, UniteFonctionnelle):
-                    # UniteFonctionnelle.service_id requis
-                    if parent_type == "D":
-                        # Parent normal: Service
-                        parent_service = _find_by_identifier(Service, parent_identifier)
-                        if parent_service:
-                            entity.service_id = parent_service.id
-                    
-                    elif parent_type == "P":
-                        # Saut: UF → Pôle (créer Service virtuel)
-                        parent_pole = _find_by_identifier(Pole, parent_identifier)
-                        if parent_pole:
-                            # Get or create Service virtuel
-                            virtual_service_id = f"VIRTUAL-SERVICE-{parent_identifier}"
-                            virtual_service = session.exec(
-                                select(Service).where(Service.identifier == virtual_service_id)
-                            ).first()
-                            
-                            if not virtual_service:
-                                virtual_service = Service(
-                                    identifier=virtual_service_id,
-                                    name=f"Service virtuel ({parent_pole.name})",
-                                    physical_type=LocationPhysicalType.SI,
-                                    service_type=LocationServiceType.MCO,
-                                    pole_id=parent_pole.id,
-                                    is_virtual=True
-                                )
-                                session.add(virtual_service)
-                                session.flush()
-                                logger.info(f"Création d'un Service virtuel {virtual_service.identifier} pour UF {entity.identifier}")
-                            
-                            entity.service_id = virtual_service.id
-                    
-                    elif parent_type == "ETBL_GRPQ":
-                        # Double saut: UF → EG (créer Pôle + Service virtuels)
-                        parent_eg = _find_by_identifier(EntiteGeographique, parent_identifier)
-                        if parent_eg:
-                            # Get or create virtual Pole
-                            virtual_pole_id = f"VIRTUAL-POLE-{parent_identifier}"
-                            virtual_pole = session.exec(
-                                select(Pole).where(Pole.identifier == virtual_pole_id)
-                            ).first()
-                            
-                            if not virtual_pole:
-                                virtual_pole = Pole(
-                                    identifier=virtual_pole_id,
-                                    name=f"Pôle virtuel ({parent_eg.name})",
-                                    physical_type=LocationPhysicalType.AREA,
-                                    entite_geo_id=parent_eg.id,
-                                    is_virtual=True
-                                )
-                                session.add(virtual_pole)
-                                session.flush()
-                            
-                            # Get or create virtual Service
-                            virtual_service_id = f"VIRTUAL-SERVICE-{parent_identifier}"
-                            virtual_service = session.exec(
-                                select(Service).where(Service.identifier == virtual_service_id)
-                            ).first()
-                            
-                            if not virtual_service:
-                                virtual_service = Service(
-                                    identifier=virtual_service_id,
-                                    name=f"Service virtuel ({parent_eg.identifier})",
-                                    physical_type=LocationPhysicalType.SI,
-                                    service_type=LocationServiceType.MCO,
-                                    pole_id=virtual_pole.id,
-                                    is_virtual=True
-                                )
-                                session.add(virtual_service)
-                                session.flush()
-                                logger.info(f"Création Pôle+Service virtuels pour UF {entity.identifier}")
-                            
-                            entity.service_id = virtual_service.id
+            
+            elif isinstance(entity, UniteFonctionnelle):
+                # UniteFonctionnelle.service_id requis
+                if parent_type == "D":
+                    # Parent normal: Service
+                    parent_service = _find_by_identifier(Service, parent_identifier)
+                    if parent_service:
+                        entity.service_id = parent_service.id
+                elif parent_type == "P":
+                    # Saut: UF → Pôle (créer Service virtuel)
+                    parent_pole = _find_by_identifier(Pole, parent_identifier)
+                    if parent_pole:
+                        # Get or create Service virtuel
+                        virtual_service_id = f"VIRTUAL-SERVICE-{parent_identifier}"
+                        virtual_service = session.exec(
+                            select(Service).where(Service.identifier == virtual_service_id)
+                        ).first()
+                        if not virtual_service:
+                            virtual_service = Service(
+                                identifier=virtual_service_id,
+                                name=f"Service virtuel ({parent_pole.name})",
+                                physical_type=LocationPhysicalType.SI,
+                                service_type=LocationServiceType.MCO,
+                                pole_id=parent_pole.id,
+                                is_virtual=True
+                            )
+                            session.add(virtual_service)
+                            session.flush()
+                            logger.info(f"Création d'un Service virtuel {virtual_service.identifier} pour UF {entity.identifier}")
+                        entity.service_id = virtual_service.id
+                elif parent_type == "ETBL_GRPQ":
+                    # Double saut: UF → EG (créer Pôle + Service virtuels)
+                    parent_eg = _find_by_identifier(EntiteGeographique, parent_identifier)
+                    if parent_eg:
+                        # Get or create virtual Pole
+                        virtual_pole_id = f"VIRTUAL-POLE-{parent_identifier}"
+                        virtual_pole = session.exec(
+                            select(Pole).where(Pole.identifier == virtual_pole_id)
+                        ).first()
+                        if not virtual_pole:
+                            virtual_pole = Pole(
+                                identifier=virtual_pole_id,
+                                name=f"Pôle virtuel ({parent_eg.name})",
+                                physical_type=LocationPhysicalType.AREA,
+                                entite_geo_id=parent_eg.id,
+                                is_virtual=True
+                            )
+                            session.add(virtual_pole)
+                            session.flush()
+                        # Get or create virtual Service
+                        virtual_service_id = f"VIRTUAL-SERVICE-{parent_identifier}"
+                        virtual_service = session.exec(
+                            select(Service).where(Service.identifier == virtual_service_id)
+                        ).first()
+                        if not virtual_service:
+                            virtual_service = Service(
+                                identifier=virtual_service_id,
+                                name=f"Service virtuel ({parent_eg.identifier})",
+                                physical_type=LocationPhysicalType.SI,
+                                service_type=LocationServiceType.MCO,
+                                pole_id=virtual_pole.id,
+                                is_virtual=True
+                            )
+                            session.add(virtual_service)
+                            session.flush()
+                            logger.info(f"Création Pôle+Service virtuels pour UF {entity.identifier}")
+                        entity.service_id = virtual_service.id
                         
                 elif isinstance(entity, UniteHebergement):
                     # UH.unite_fonctionnelle_id requis

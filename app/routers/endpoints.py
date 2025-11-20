@@ -46,12 +46,12 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
     # Récupérer le contexte actif
     ght_context = getattr(request.state, 'ght_context', None)
     ej_context_id = request.session.get('ej_context_id')
-    
+
     # Si pas de contexte et pas en mode admin, rediriger vers la sélection GHT
     if not admin and not ght_context and not ej_context_id:
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/context/select", status_code=303)
-    
+
     # Load endpoints with GHT context and EJ (including GHT via EJ)
     stmt = (
         sqlmodel_select(SystemEndpoint)
@@ -60,7 +60,7 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
             selectinload(SystemEndpoint.entite_juridique).selectinload(EntiteJuridique.ght_context)
         )
     )
-    
+
     # Filtrer selon le contexte si on n'est pas en mode admin
     if not admin:
         if ej_context_id:
@@ -68,15 +68,17 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
             stmt = stmt.where(SystemEndpoint.entite_juridique_id == ej_context_id)
         elif ght_context:
             # Contexte GHT : afficher les endpoints de ce GHT (directement ou via EJ)
-            ej_ids = [ej.id for ej in ght_context.entites_juridiques]
+            # Recharger le contexte GHT depuis la session pour éviter DetachedInstanceError
+            db_ght_context = session.get(GHTContext, ght_context.id) if ght_context else None
+            ej_ids = [ej.id for ej in db_ght_context.entites_juridiques] if db_ght_context else []
             from sqlalchemy import or_
             stmt = stmt.where(
                 or_(
-                    SystemEndpoint.ght_context_id == ght_context.id,
+                    SystemEndpoint.ght_context_id == db_ght_context.id if db_ght_context else False,
                     SystemEndpoint.entite_juridique_id.in_(ej_ids) if ej_ids else False
                 )
             )
-    
+
     eps = session.exec(stmt).unique().all()
     running_ids = set(registry.running_ids())
     

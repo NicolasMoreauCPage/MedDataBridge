@@ -144,13 +144,15 @@
         <button type="submit" class="btn btn-primary rounded-lg bg-blue-600 text-white px-4 py-2 hover:bg-blue-700">Enregistrer</button>
         <a href="/endpoints" class="btn btn-secondary rounded-lg border border-slate-200 px-4 py-2 hover:bg-slate-50">Retour</a>
       </div>
-      <div class="flex gap-2">
-        {% if e.kind != 'FILE' %}
-          <form method="post" action="/endpoints/{{ e.id }}/start"><button type="submit" class="rounded-lg border border-slate-200 px-3 py-1 text-sm hover:bg-slate-50" {% if is_running %}disabled{% endif %}>Démarrer</button></form>
-          <form method="post" action="/endpoints/{{ e.id }}/stop"><button type="submit" class="rounded-lg border border-slate-200 px-3 py-1 text-sm hover:bg-slate-50" {% if not is_running %}disabled{% endif %}>Arrêter</button></form>
-        {% endif %}
-        <form method="post" action="/endpoints/{{ e.id }}/delete" onsubmit="return confirm('Supprimer cet endpoint ?');"><button type="submit" class="rounded-lg border border-red-300 text-red-600 px-3 py-1 text-sm hover:bg-red-50">Supprimer</button></form>
       </div>
+    </form>
+    <div class="flex gap-2 mt-4">
+      {% if e.kind != 'FILE' %}
+        <form method="post" action="/endpoints/{{ e.id }}/start" style="display:inline;"><button type="submit" class="rounded-lg border border-slate-200 px-3 py-1 text-sm hover:bg-slate-50" {% if is_running %}disabled{% endif %}>Démarrer</button></form>
+        <form method="post" action="/endpoints/{{ e.id }}/stop" style="display:inline;"><button type="submit" class="rounded-lg border border-slate-200 px-3 py-1 text-sm hover:bg-slate-50" {% if not is_running %}disabled{% endif %}>Arrêter</button></form>
+      {% endif %}
+      <form method="post" action="/endpoints/{{ e.id }}/delete" onsubmit="return confirm('Supprimer cet endpoint ?');" style="display:inline;"><button type="submit" class="rounded-lg border border-red-300 text-red-600 px-3 py-1 text-sm hover:bg-red-50">Supprimer</button></form>
+    </div>
     </div>
   </form>
 

@@ -20,10 +20,16 @@ class Pole(SQLModel, table=True):
     deactivation_date: Optional[datetime] = None
     entite_geo_id: Optional[int] = Field(default=None, foreign_key="entitegeographique.id")
     entite_geo: Optional["EntiteGeographique"] = Relationship(back_populates="poles")
+    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
+    entite_juridique: Optional["EntiteJuridique"] = Relationship(back_populates="poles")
     services: List["Service"] = Relationship(back_populates="pole")
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="pole")
+    status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
+    responsible_id: Optional[str] = None
+    mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
 
 class Service(SQLModel, table=True):
+    service_type: Optional[str] = Field(default=None, description="Type de service FHIR (MCO, SSR, etc.)")
     id: Optional[int] = Field(default=None, primary_key=True)
     identifier: Optional[str] = Field(default=None, index=True, unique=True)
     global_identifier: Optional[str] = Field(default=None, index=True)
@@ -43,6 +49,16 @@ class Service(SQLModel, table=True):
     pole: Optional["Pole"] = Relationship(back_populates="services")
     unites_fonctionnelles: List["UniteFonctionnelle"] = Relationship(back_populates="service")
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="service")
+    status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
+    mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
+    responsible_id: Optional[str] = None
+    typology: Optional[str] = Field(default=None, description="Typologie du service")
+    uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
+    etage: Optional[str] = Field(default=None, description="Étage du service")
+    aile: Optional[str] = Field(default=None, description="Aile du service")
+    type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
+    gender_usage: Optional[str] = Field(default=None, description="Genre d'usage du service")
+    operational_status: Optional[str] = Field(default=None, description="Statut opérationnel du service")
 
 class UniteFonctionnelleActivityLink(SQLModel, table=True):
     """Table de liaison UF <-> UFActivity (many-to-many)."""
@@ -92,6 +108,13 @@ class UniteFonctionnelle(SQLModel, table=True):
         link_model=UniteFonctionnelleActivityLink,
     )
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="unite_fonctionnelle")
+    typology: Optional[str] = Field(default=None, description="Typologie de l'unité fonctionnelle")
+    uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
+    etage: Optional[str] = Field(default=None, description="Étage de l'unité fonctionnelle")
+    aile: Optional[str] = Field(default=None, description="Aile de l'unité fonctionnelle")
+    type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
+    gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de l'unité fonctionnelle")
+    operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de l'unité fonctionnelle")
 
 class UniteHebergement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -113,6 +136,13 @@ class UniteHebergement(SQLModel, table=True):
     unite_fonctionnelle: Optional["UniteFonctionnelle"] = Relationship(back_populates="unites_hebergement")
     chambres: List["Chambre"] = Relationship(back_populates="unite_hebergement")
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="unite_hebergement")
+    typology: Optional[str] = Field(default=None, description="Typologie de l'unité d'hébergement")
+    uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
+    etage: Optional[str] = Field(default=None, description="Étage de l'unité d'hébergement")
+    aile: Optional[str] = Field(default=None, description="Aile de l'unité d'hébergement")
+    type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
+    gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de l'unité d'hébergement")
+    operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de l'unité d'hébergement")
 
 class Chambre(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -134,6 +164,13 @@ class Chambre(SQLModel, table=True):
     unite_hebergement: Optional["UniteHebergement"] = Relationship(back_populates="chambres")
     lits: List["Lit"] = Relationship(back_populates="chambre")
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="chambre")
+    typology: Optional[str] = Field(default=None, description="Typologie de la chambre")
+    uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
+    etage: Optional[str] = Field(default=None, description="Étage de la chambre")
+    aile: Optional[str] = Field(default=None, description="Aile de la chambre")
+    type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
+    gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de la chambre")
+    operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de la chambre")
 
 class Lit(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -154,6 +191,13 @@ class Lit(SQLModel, table=True):
     chambre_id: Optional[int] = Field(default=None, foreign_key="chambre.id")
     chambre: Optional["Chambre"] = Relationship(back_populates="lits")
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="lit")
+    typology: Optional[str] = Field(default=None, description="Typologie du lit")
+    uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
+    etage: Optional[str] = Field(default=None, description="Étage du lit")
+    aile: Optional[str] = Field(default=None, description="Aile du lit")
+    type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
+    gender_usage: Optional[str] = Field(default=None, description="Genre d'usage du lit")
+    operational_status: Optional[str] = Field(default=None, description="Statut opérationnel du lit")
 
 from datetime import datetime
 from typing import Optional, List
@@ -164,28 +208,35 @@ from app.models_shared import SystemEndpoint
 class EntiteJuridique(SQLModel, table=True):
     """Structure juridique (ES_JURIDIQUE) - niveau 1"""
     id: Optional[int] = Field(default=None, primary_key=True)
-    identifier: Optional[str] = Field(default=None, index=True, unique=True)  # CD
-    global_identifier: Optional[str] = Field(default=None, index=True)  # ID_GLBL
-    name: str
+    identifier: Optional[str] = Field(default=None, index=True, unique=True)
+    global_identifier: Optional[str] = Field(default=None, index=True)
+    name: Optional[str] = None
     short_name: Optional[str] = None
     description: Optional[str] = None
-    finess_ej: str = Field(index=True)  # FINESS entité juridique
-    siren: Optional[str] = None
-    siret: Optional[str] = None
-    address_line: Optional[str] = None
-    postal_code: Optional[str] = None
-    city: Optional[str] = None
-    country: str = "FR"
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    address_line3: Optional[str] = None
+    address_city: Optional[str] = None
+    address_postalcode: Optional[str] = None
+    opening_date: Optional[datetime] = None
+    activation_date: Optional[datetime] = None
+    start_date: Optional[datetime] = Field(default=None)
+    end_date: Optional[datetime] = Field(default=None)
+    closing_date: Optional[datetime] = None
+    deactivation_date: Optional[datetime] = None
+    category_code: Optional[str] = Field(default=None)
+    finess_ej: Optional[str] = Field(default=None)
+    siren: Optional[str] = Field(default=None, description="Numéro SIREN de l'entité juridique")
+    siret: Optional[str] = Field(default=None, description="Numéro SIRET de l'entité juridique")
     is_active: bool = Field(default=True)
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    endpoints: List["SystemEndpoint"] = Relationship(back_populates="entite_juridique")
+    is_active: bool = Field(default=True)
+    entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
+    poles: List["Pole"] = Relationship(back_populates="entite_juridique")
     entites_geographiques: List["EntiteGeographique"] = Relationship(back_populates="entite_juridique")
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="entite_juridique")
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id")
     ght_context: Optional["GHTContext"] = Relationship(back_populates="entites_juridiques")
+    endpoints: List["SystemEndpoint"] = Relationship(back_populates="entite_juridique")
 
 class GHTContext(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -268,6 +319,13 @@ class EntiteGeographique(SQLModel, table=True):
     finess: Optional[str] = None
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="entite_geographique")
     poles: List["Pole"] = Relationship(back_populates="entite_geo")
+    typology: Optional[str] = Field(default=None, description="Typologie de l'entité géographique")
+    uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
+    etage: Optional[str] = Field(default=None, description="Étage de la structure")
+    aile: Optional[str] = Field(default=None, description="Aile de la structure")
+    type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
+    gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de la structure")
+    operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de la structure")
 
 class IdentifierNamespace(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

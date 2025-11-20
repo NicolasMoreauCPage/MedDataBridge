@@ -53,6 +53,14 @@ else:
 def init_db() -> None:
     """Crée les tables si elles n'existent pas (idempotent)."""
     SQLModel.metadata.create_all(engine)
+    # Active le mode WAL pour SQLite afin d'améliorer la gestion des accès concurrents
+    try:
+        import sqlite3
+        conn = sqlite3.connect("medbridge.db")
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.close()
+    except Exception as e:
+        print(f"[WARN] Impossible d'activer WAL: {e}")
     # Initialisation idempotente des templates de scénarios abstraits (IHE, démo...)
     if init_scenario_templates:
         with Session(engine) as _s:

@@ -15,7 +15,7 @@ from app.models_structure import GHTContext, EntiteJuridique, IdentifierNamespac
 from app.models import Dossier
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 
-router = APIRouter(prefix="/ght", tags=["ght-ej-min"])
+router = APIRouter(tags=["ght-ej-min"])
 templates = Jinja2Templates(directory="app/templates")
 
 

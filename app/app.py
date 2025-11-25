@@ -1,3 +1,7 @@
+# Import ght router first to avoid circular imports
+import app.routers.ght as ght
+import app.routers.ght_ej_min as ght_ej_min
+import app.routers.ght_ej_edit as ght_ej_edit
 """
 Composition de l'application FastAPI (MedData Bridge)
 
@@ -40,12 +44,10 @@ from app.services.entity_events import register_entity_events
 from app.services.entity_events_structure import register_structure_entity_events
 from app.services.scheduler import start_scheduler, stop_scheduler
 
-# BUGFIX: Le module ght doit être importé AVANT le __init__.py des routers
-# car il y a un problème d'import circulaire qui empêche le chargement complet
-# de toutes les routes (seules 9 routes sur 45 sont chargées sinon)
+
+# Import ght router first to avoid circular imports
 import app.routers.ght as ght
-import app.routers.ght_ej_min as ght_ej_min
-import app.routers.ght_ej_edit as ght_ej_edit
+
 """Application composition module.
 
 NOTE (Fallback Router Removal): The previous temporary fallback router
@@ -54,7 +56,6 @@ removed now that the main `ght` router consistently loads all routes after the
 import/reload bugfix sequence. If future partial-load regressions occur, prefer
 modularizing `app/routers/ght.py` instead of reintroducing a fallback.
 """
-import app.routers.ght_ej_fallback as _deprecated_ght_ej_fallback  # Deprecated (kept only if reactivation needed)
 
 from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
@@ -63,6 +64,9 @@ from app.routers import (
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth
 )
+
+from app.routers.ght.ej import router as ej_router
+from app.routers.ght.structure import router as structure_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -212,9 +216,10 @@ def create_app() -> FastAPI:
     app.include_router(admin_gateway.router)
     app.include_router(ght.router, prefix="/admin")
     # Minimal EJ detail router (guarantee availability even if ght incomplete)
-    app.include_router(ght_ej_min.router, prefix="/admin")
+    app.include_router(ght_ej_min.router, prefix="/admin/ght")
     # EJ edit router (provides missing edit routes)
-    app.include_router(ght_ej_edit.router, prefix="/admin")
+    app.include_router(ght_ej_edit.router, prefix="/admin/ght")
+    # Les sub-routers sont inclus dans ght.py, on ne les inclut pas directement ici
     print(" - Admin routers mounted under /admin")
     
     # 5. Integration and transport
@@ -320,70 +325,49 @@ def create_app() -> FastAPI:
     
     print("All routes registered.")
     
-    # BUGFIX TEMPORAIRE: Forcer le rechargement du module ght pour obtenir toutes les routes
-    # Le module ght.py ne charge que 9 routes sur 45+ lors de l'import normal à cause
-    # d'un problème d'import circulaire ou de taille de fichier (3464 lignes).
-    # Cette solution force le rechargement après que toutes les dépendances soient chargées.
-    try:
-        import importlib
-        importlib.reload(ght)
-        # Remplacer le router existant par le router complet
-        for route in app.routes[:]:
-            if hasattr(route, 'path') and route.path.startswith('/admin/ght'):
-                app.routes.remove(route)
-        # Réenregistrer principal + minimal EJ route
-        app.include_router(ght.router, prefix="/admin")
-        app.include_router(ght_ej_min.router, prefix="/admin")
-        app.include_router(ght_ej_edit.router, prefix="/admin")
-        ght_routes_count = len([r for r in app.routes if hasattr(r, 'path') and r.path.startswith('/admin/ght')])
-        print(f" → BUGFIX: Module ght rechargé ({ght_routes_count} routes /admin/ght)")
-    except Exception as e:
-        print(f" → BUGFIX WARNING: Échec du rechargement de ght: {e}")
-
-    # Initialize the admin interface (SQLAdmin) only when not running
-    # tests. In test runs a separate test engine/session is used and
-    # creating Admin against the production engine can cause Operational
-    # errors when the production DB file is absent or schema differs.
-    testing = os.getenv("TESTING", "0") in ("1", "true", "True")
-    if not testing:
-        # We do this after route registration so SQLAdmin's mounting at
-        # /admin doesn't intercept our custom /admin/ght pages.
-        # Mount SQLAdmin under /sqladmin to avoid conflict with our admin pages.
-        # Configure SQLAdmin with no authentication (internal use only)
-        # Access via /admin gateway page which provides navigation context
-        from sqladmin.authentication import AuthenticationBackend
-        from starlette.requests import Request
-        
-        class NoAuthBackend(AuthenticationBackend):
-            """Backend d'authentification désactivé pour usage interne."""
-            async def login(self, request: Request) -> bool:
-                return True
-            
-            async def logout(self, request: Request) -> bool:
-                return True
-            
-            async def authenticate(self, request: Request) -> bool:
-                return True
-        
-        templates_path = os.path.join(os.path.dirname(__file__), "templates")
-        
-        admin = Admin(
-            app, 
-            engine, 
-            base_url="/sqladmin",
-            title="MedData Bridge - Admin SQL",
-            templates_dir=templates_path,
-            authentication_backend=NoAuthBackend(secret_key="not-used-for-internal-app")
-        )
-        
-        # Register all admin views from app.admin module
-        register_admin_views(admin)
-
     return app
 
-# Create module-level `app` only when not running tests. Tests call
-# `create_app()` directly after preparing the test database so we avoid
-# side-effects (like initializing the production DB or starting MLLP
-# managers) at import time which can interfere with test setup.
 app = create_app()
-# reload trigger lun. 03 nov. 2025 08:00:19 CET
+
+# Initialize the admin interface (SQLAdmin) only when not running
+# tests. In test runs a separate test engine/session is used and
+# creating Admin against the production engine can cause Operational
+# errors when the production DB file is absent or schema differs.
+testing = os.getenv("TESTING", "0") in ("1", "true", "True")
+if not testing:
+    # We do this after route registration so SQLAdmin's mounting at
+    # /admin doesn't intercept our custom /admin/ght pages.
+    # Mount SQLAdmin under /sqladmin to avoid conflict with our admin pages.
+    # Configure SQLAdmin with no authentication (internal use only)
+    # Access via /admin gateway page which provides navigation context
+    from sqladmin.authentication import AuthenticationBackend
+    from starlette.requests import Request
+    
+    class NoAuthBackend(AuthenticationBackend):
+        """Backend d'authentification désactivé pour usage interne."""
+        async def login(self, request: Request) -> bool:
+            return True
+        
+        async def logout(self, request: Request) -> bool:
+            return True
+        
+        async def authenticate(self, request: Request) -> bool:
+            return True
+    
+    templates_path = os.path.join(os.path.dirname(__file__), "templates")
+    
+    admin = Admin(
+        app,
+        engine,
+        base_url="/sqladmin",
+        title="MedData Bridge - Admin SQL",
+        templates_dir=templates_path,
+        authentication_backend=NoAuthBackend(secret_key="not-used-for-internal-app")
+    )
+    
+    # Register all admin views
+    register_admin_views(admin)
+    
+    print("SQLAdmin interface initialized at /sqladmin")
+
+print(f"Application ready with {len(app.routes)} routes")

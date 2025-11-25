@@ -582,9 +582,9 @@ def generate_pam_hl7(
         else:
             msg_structure = f"ADT_{event_code}"
         if event_code == "Z99":
-            msh = f"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+            msh = rf"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         else:
-            msh = f"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+            msh = rf"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         
         # Build EVN segment
         evn = f"EVN|{event_code}|{timestamp}"

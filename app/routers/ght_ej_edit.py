@@ -6,7 +6,7 @@ from typing import Optional
 from app.db import get_session
 from app.models_structure import EntiteJuridique, GHTContext, IdentifierNamespace
 from app.utils.flash import flash
-router = APIRouter(prefix="/ght", tags=["admin-ght"])
+router = APIRouter(tags=["admin-ght"])
 templates = Jinja2Templates(directory="app/templates")
 # Route GET pour afficher le formulaire de création de namespace pour une EJ
 # (placé après la définition de 'router')

@@ -116,4 +116,4 @@ def set_ej_context(ej_id: int, request: Request, session: Session = Depends(get_
             # Le patient n'a pas de dossiers dans la nouvelle EJ
             request.session.pop("patient_id", None)
     
-    return _redirect_back(request, fallback=f"/admin/ght/{ej.ght_context_id}")
+    return _redirect_back(request, fallback=f"/admin/ght/{ej.ght_context_id}/ej/{ej_id}")

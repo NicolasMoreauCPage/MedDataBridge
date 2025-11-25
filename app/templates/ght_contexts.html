@@ -32,8 +32,8 @@
          <p class="mt-4 text-sm text-slate-600">{{ ctx.description if ctx.description is not none else "Aucune description fournie." }}</p>
       <div class="mt-5 flex gap-2 text-xs">
         <a href="/admin/ght/{{ ctx.id }}/edit" class="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-100">Modifier</a>
-        <a href="/admin/ght/{{ ctx.id }}"
-           class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1.5 text-blue-600 hover:bg-blue-100">Sélectionner</a>
+          <a href="/context/ght/{{ ctx.id }}"
+            class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1.5 text-blue-600 hover:bg-blue-100">Sélectionner</a>
       </div>
     </div>
     {% endfor %}

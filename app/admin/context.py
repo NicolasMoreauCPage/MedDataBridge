@@ -7,7 +7,7 @@ from app.models_structure import EntiteGeographique
 class GHTContextAdmin(ModelView, model=GHTContext):
     name = "GHT"
     name_plural = "GHTs"
-    icon = "fa-solid fa-network-wired"
+    icon = "fa fa-database"
     column_list = ["id", "name", "code", "description", "is_active", "created_at"]
     column_searchable_list = ["name", "code"]
     column_sortable_list = ["id", "name", "code", "created_at"]

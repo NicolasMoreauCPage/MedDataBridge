@@ -6,7 +6,7 @@
     <div class="my-8 space-y-10">
         <div class="flex items-start justify-between gap-6">
             <div>
-                <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}"
+                <a href="/context/ght/{{ context.id }}?next=/admin/ght/{{ context.id }}/ej/{{ entite.id }}"
                    class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-3">
                     &larr; Retour à {{ entite.name }}
                 </a>
@@ -57,7 +57,7 @@
                         Créer un pôle
                         <span aria-hidden="true">+</span>
                     </a>
-                    <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}"
+                    <a href="/context/ght/{{ context.id }}?next=/admin/ght/{{ context.id }}/ej/{{ entite.id }}"
                        class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">
                         Gérer les entités juridiques
                         <span aria-hidden="true">&rarr;</span>

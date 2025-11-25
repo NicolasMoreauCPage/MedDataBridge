@@ -28,7 +28,7 @@ def register_admin_views(admin):
     admin.add_view(GHTContextAdmin)
     admin.add_view(EntiteJuridiqueAdmin)
     admin.add_view(EntiteGeographiqueAdmin)
-    
+
     # === 2. STRUCTURE ORGANISATIONNELLE (hiérarchie) ===
     admin.add_view(PoleAdmin)
     admin.add_view(ServiceAdmin)
@@ -38,28 +38,29 @@ def register_admin_views(admin):
     admin.add_view(ChambreAdmin)
     admin.add_view(LitAdmin)
 
-    # === 3. PATIENTS & PARCOURS DE SOINS ===
+    # === 3. CLINIQUE ===
     admin.add_view(PatientAdmin)
     admin.add_view(DossierAdmin)
     admin.add_view(VenueAdmin)
     admin.add_view(MouvementAdmin)
 
-    # === 4. IDENTIFIANTS & ESPACES DE NOMS ===
-    admin.add_view(NamespaceAdmin)
+    # === 4. IDENTIFIANTS ===
     admin.add_view(IdentifierAdmin)
+    admin.add_view(NamespaceAdmin)
 
-    # === 5. INTEROPÉRABILITÉ ===
+    # === 5. VOCABULAIRES ===
+    admin.add_view(VocabularySystemAdmin)
+    admin.add_view(VocabularyValueAdmin)
+
+    # === 6. CONNECTIVITÉ ===
     admin.add_view(SystemEndpointAdmin)
     admin.add_view(MessageLogAdmin)
+
+    # === 7. SCÉNARIOS ===
     admin.add_view(InteropScenarioAdmin)
     admin.add_view(InteropScenarioStepAdmin)
     admin.add_view(ScenarioTemplateAdmin)
     admin.add_view(ScenarioTemplateStepAdmin)
-
-    # === 6. VOCABULAIRES & RÉFÉRENTIELS ===
-    admin.add_view(VocabularySystemAdmin)
-    admin.add_view(VocabularyValueAdmin)
-
 
 __all__ = [
     'register_admin_views',

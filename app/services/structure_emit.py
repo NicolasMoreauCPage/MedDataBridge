@@ -1,3 +1,5 @@
+from sqlmodel import Session
+
 import time
 
 async def _emit_mfn_entity(entity, session: Session, ght_context_id=None) -> None:
@@ -73,7 +75,6 @@ Utilisation:
 - await emit_structure_delete(entity_id, session)
 """
 
-from __future__ import annotations
 
 import json
 import logging

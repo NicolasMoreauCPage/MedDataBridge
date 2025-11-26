@@ -55,44 +55,16 @@ def get_dossiers(
     dossier_seq: Optional[int] = None,
 ) -> List[Dossier]:
     """Récupère une liste de dossiers filtrée."""
-        if nda_namespace:
-            dossier_seq = generate_identifier(session, nda_namespace, IdentifierType.NDA)
-        else:
-            logger.warning(f"Aucun namespace NDA actif trouvé pour l'EJ {ej_id}. Utilisation de l'ancienne logique de séquence.")
-            from app.utils.seq_generator import generate_dossier_seq
-            dossier_seq = generate_dossier_seq()
-
-        dossier = Dossier(
-            **dossier_data.dict(),
-            patient_id=patient.id,
-            dossier_seq=dossier_seq,
-            entite_juridique_id=ej_id
-        )
-        session.add(dossier)
-        session.flush() 
-
-        venue_seq = get_next_sequence(session, "venue")
-        venue = Venue(
-            dossier_id=dossier.id,
-            uf_responsabilite=dossier_data.uf_responsabilite,
-            start_time=dossier_data.admit_time,
-            attending_provider=dossier_data.attending_provider,
-            venue_seq=venue_seq,
-            code="PRE_ADMIT",
-            label="Pré-admission automatique"
-        )
-        session.add(venue)
-
-        session.commit()
-        session.refresh(dossier)
-        
-        logger.info(f"Dossier {dossier.id} et Venue {venue.id} créés avec succès.")
-        return dossier
-
-    except Exception as e:
-        logger.error(f"Erreur lors de la création du dossier et de la venue: {e}", exc_info=True)
-        session.rollback()
-        raise
+    query = select(Dossier)
+    if ej_id:
+        query = query.where(Dossier.entite_juridique_id == ej_id)
+    if patient_id:
+        query = query.where(Dossier.patient_id == patient_id)
+    if dossier_type:
+        query = query.where(Dossier.dossier_type == dossier_type)
+    if dossier_seq:
+        query = query.where(Dossier.dossier_seq == dossier_seq)
+    return session.exec(query).all()
 
 def update_dossier(
     session: Session,

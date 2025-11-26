@@ -212,13 +212,9 @@ def create_app() -> FastAPI:
     # /admin/ght work as expected)
     from app.routers import admin_gateway
     app.include_router(admin_gateway.router)
-    app.include_router(ght.router, prefix="/admin")
-    # Minimal EJ detail router (guarantee availability even if ght incomplete)
-    app.include_router(ght_ej_min.router, prefix="/admin/ght")
-    # EJ edit router (provides missing edit routes)
-    app.include_router(ght_ej_edit.router, prefix="/admin/ght")
+    app.include_router(ght.router, prefix="/admin/ght")
     # Les sub-routers sont inclus dans ght.py, on ne les inclut pas directement ici
-    print(" - Admin routers mounted under /admin")
+    print(" - Admin routers mounted under /admin/ght")
     
     # 5. Integration and transport
     app.include_router(messages.router)

@@ -22,7 +22,7 @@ async def new_entite_juridique_form(
     request.session["ght_context_id"] = context.id
     return templates.TemplateResponse(
         request,
-        "ght/ej_form.html",
+        "ej_form.html",
         {"context": context, "entite": None},
     )
 
@@ -48,7 +48,7 @@ async def create_entite_juridique(
     if existing:
         flash(request, "Une entité juridique avec ce FINESS existe déjà.", "error")
         return templates.TemplateResponse(
-            request, "ght/ej_form.html",
+            request, "ej_form.html",
             {"context": context, "entite": None, "form_data": await request.form()},
             status_code=400,
         )
@@ -96,7 +96,7 @@ async def view_entite_juridique(
     namespaces = session.exec(select(IdentifierNamespace).where(IdentifierNamespace.entite_juridique_id == ej_id).order_by(IdentifierNamespace.type, IdentifierNamespace.name)).all()
 
     return templates.TemplateResponse(
-        request, "ght/ej_detail.html",
+        request, "ej_detail.html",
         {"context": context, "entite": entite, "entites_geographiques": entite.entites_geographiques, "namespaces": namespaces, "counts": counts},
     )
 
@@ -110,7 +110,7 @@ async def edit_entite_juridique_form(
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     return templates.TemplateResponse(
-        request, "ght/ej_form.html",
+        request, "ej_form.html",
         {"context": context, "entite": entite},
     )
 
@@ -140,7 +140,7 @@ async def update_entite_juridique(
         if exists:
             flash(request, "Une entité juridique avec ce FINESS existe déjà.", "error")
             return templates.TemplateResponse(
-                request, "ght/ej_form.html",
+                request, "ej_form.html",
                 {"context": context, "entite": entite, "form_data": await request.form()},
                 status_code=400,
             )

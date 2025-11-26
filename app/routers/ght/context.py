@@ -14,10 +14,9 @@ from app.services.structure_seed import ensure_demo_structure
 from .helpers import get_context_or_404, get_ej_or_404
 
 templates = Jinja2Templates(directory="app/templates")
-router = APIRouter(prefix="/ght", tags=["ght"])
+router = APIRouter(tags=["ght"])
 
 
-@router.get("")
 @router.get("/")
 async def list_ght_contexts(
     request: Request,

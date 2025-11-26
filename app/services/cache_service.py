@@ -206,10 +206,21 @@ class CacheService:
         Récupère les statistiques Redis.
         
         Returns:
-            Dictionnaire avec les stats (ou dict vide si erreur)
+            Dictionnaire avec les stats (ou stats par défaut si Redis indisponible)
         """
         if not self.enabled:
-            return {"enabled": False}
+            return {
+                "enabled": False,
+                "used_memory": "N/A",
+                "total_connections": 0,
+                "total_commands": 0,
+                "keyspace_hits": 0,
+                "keyspace_misses": 0,
+                "hit_rate": 0.0,
+                "total_operations": 0,
+                "hits_percentage": 0.0,
+                "misses_percentage": 100.0
+            }
         
         try:
             info = self.client.info()

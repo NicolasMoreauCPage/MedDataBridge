@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 from sqlmodel import Session, select
 from app.models import Dossier, DossierType, Venue, Mouvement
+from app.services import dossier_service
 from app.utils.dossier_validators import validate_dossier_type_change, check_movements_compatibility
 
 @pytest.fixture
@@ -96,13 +97,13 @@ def test_urgence_to_hospitalise(session: Session, dossier: Dossier, venue: Venue
     assert can_change
     assert not warnings
 
-def test_model_dossier_type_validation(session: Session, dossier: Dossier, venue: Venue):
-    """Test que le modèle Dossier valide les changements de type"""
+def test_service_dossier_type_validation(session: Session, dossier: Dossier, venue: Venue):
+    """Test que le service Dossier valide les changements de type"""
     # Créer un mouvement incompatible
     create_movement(session, venue, "A02")
     
     # Le changement devrait lever une exception
     with pytest.raises(ValueError) as exc:
-        dossier.update_type(DossierType.EXTERNE, session)
+        dossier_service.update_dossier_type(dossier=dossier, new_type=DossierType.EXTERNE, session=session)
     
     assert "incompatible" in str(exc.value)

@@ -116,7 +116,12 @@ def parse_mfn_message(text: str) -> List[RawEntity]:
             # fields[4] contient RELAT^...^L, fields[6] contient le composite parent
             relation = fields[4] if len(fields) > 4 else ""
             parent_comp = fields[6] if len(fields) > 6 else ""
+            import logging
+            logger = logging.getLogger("app.services.mfn_importer")
+            logger.info(f"[MFN-IMPORTER] Parsing LRL: ent_type={getattr(current, 'type_code', None)}, ent_code={current.props.get('CD', None)}, parent_comp='{parent_comp}'")
             p_type, p_code = _parse_loc_composite(parent_comp)
+            if not p_type or not p_code:
+                logger.warning(f"[MFN-IMPORTER] LRL parent non reconnu: composite='{parent_comp}', extrait: type='{p_type}', code='{p_code}' (ent_type={getattr(current, 'type_code', None)}, ent_code={current.props.get('CD', None)})")
             if p_type and p_code:
                 current.parent_refs.append((p_type, p_code))
         # autres segments ignorés (MSH/MFI/NTE)
@@ -149,12 +154,19 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
     """Importe le message MFN dans la base pour le GHT donné.
     Retourne un résumé des entités créées/trouvées.
     """
+    print("[MFN-IMPORTER] import_mfn called (print test)")
+    import logging
+    logger = logging.getLogger("app.services.mfn_importer")
     raw = parse_mfn_message(text)
 
     # Index existants par (type_code, code)
     index: Dict[Tuple[str, str], object] = {}
 
-    created = {"ej": 0, "eg": 0, "service": 0}
+    created = {"ej": 0, "eg": 0, "service": 0, "uf": 0, "uh": 0, "chambre": 0, "lit": 0}
+    updated = {"ej": 0, "eg": 0, "service": 0, "uf": 0, "uh": 0, "chambre": 0, "lit": 0}
+    ignored = 0
+    created_ids = {"ej": [], "eg": [], "service": [], "uf": [], "uh": [], "chambre": [], "lit": []}
+    updated_ids = {"ej": [], "eg": [], "service": [], "uf": [], "uh": [], "chambre": [], "lit": []}
 
     # 1ère passe: créer EJ / EG sans relations
     # On itère pour créer EJ et EG, et indexer par (type, code)
@@ -162,6 +174,7 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
         t = (ent.type_code or "").upper()
         code = ent.get("CD")
         if not t or not code:
+            ignored += 1
             continue
         if t == "M":
             # Entité Juridique
@@ -177,7 +190,11 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             ).first() if finess_ej else None
             if existing:
                 ej = existing
+                updated["ej"] += 1
+                updated_ids["ej"].append(code)
             else:
+                created["ej"] += 1
+                created_ids["ej"].append(code)
                 ej = EntiteJuridique(
                     name=name,
                     short_name=short,
@@ -188,7 +205,6 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     ght_context_id=ght.id,
                 )
                 session.add(ej); session.commit(); session.refresh(ej)
-                created["ej"] += 1
             index[(t, code)] = ej
         elif t in {"ETBL_GRPQ"}:
             # Entité géographique
@@ -208,7 +224,11 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 session.add(eg)
                 session.commit()
                 session.refresh(eg)
+                updated["eg"] += 1
+                updated_ids["eg"].append(identifier)
             else:
+                created["eg"] += 1
+                created_ids["eg"].append(identifier)
                 eg = EntiteGeographique(
                     identifier=identifier,
                     name=name,
@@ -238,6 +258,10 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             # Chercher un parent EntiteJuridique parmi tous les parents possibles
             for p_type, p_code in ent.parent_refs:
                 parent_ej = index.get((p_type, p_code))
+                if not parent_ej and p_type == "M":
+                    parent_ej = session.exec(select(EntiteJuridique).where(EntiteJuridique.identifier == p_code)).first()
+                    if parent_ej:
+                        logger.info(f"[MFN-IMPORTER] Parent EJ trouvé en BDD pour EG: code={code}, parent_code={p_code}")
                 if isinstance(parent_ej, EntiteJuridique):
                     eg.entite_juridique_id = parent_ej.id
                     session.add(eg); session.commit(); session.refresh(eg)
@@ -247,6 +271,11 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             parent_eg = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
+                if not obj and p_type == "ETBL_GRPQ":
+                    db_eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.identifier == p_code)).first()
+                    if db_eg:
+                        logger.info(f"[MFN-IMPORTER] Parent EG trouvé en BDD pour Service: code={code}, parent_code={p_code}")
+                        obj = db_eg
                 if isinstance(obj, EntiteGeographique):
                     parent_eg = obj
                     break
@@ -264,7 +293,11 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 srv.short_name = short
                 srv.pole_id = pole.id
                 srv.global_identifier = global_identifier
+                updated["service"] += 1
+                updated_ids["service"].append(identifier)
             else:
+                created["service"] += 1
+                created_ids["service"].append(identifier)
                 srv = Service(
                     identifier=identifier,
                     global_identifier=global_identifier,
@@ -277,17 +310,20 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     pole_id=pole.id,
                 )
             session.add(srv); session.commit(); session.refresh(srv)
-            created["service"] += 1
             index[(t, code)] = srv
         elif t in {"N", "UF"}:
             # Créer UniteFonctionnelle sous Service parent
             parent_srv = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
+                # Log détaillé sur la recherche du parent Service
+                logger.info(f"[MFN-IMPORTER] Recherche parent Service pour UF: code={ent.get('CD')}, parent_type={p_type}, parent_code={p_code}, index_result={'FOUND' if isinstance(obj, Service) else 'None'}")
                 if isinstance(obj, Service):
                     parent_srv = obj
                     break
             if not parent_srv:
+                logger.warning(f"[MFN-IMPORTER] UF ignorée: code={ent.get('CD')}, type={t}, parent Service absent (codes parents: {[pr for pr in ent.parent_refs]})")
+                ignored += 1
                 continue
             identifier = ent.get("CD")
             global_identifier = ent.get("ID_GLBL") or f"UF-{identifier}"
@@ -312,15 +348,36 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 )
             session.add(uf); session.commit(); session.refresh(uf)
             index[(t, code)] = uf
+        # Si absent de l'index, chercher dans la base
+        if t in {"N", "UF"} and not parent_srv:
+            for p_type, p_code in ent.parent_refs:
+                if p_type == "D":
+                    db_srv = session.exec(select(Service).where(Service.identifier == p_code)).first()
+                    if db_srv:
+                        logger.info(f"[MFN-IMPORTER] Parent Service trouvé en BDD pour UF: code={ent.get('CD')}, parent_code={p_code}")
+                        parent_srv = db_srv
+                        break
         elif t in {"R", "CHAMBRE"}:
             # Créer Chambre - parent peut être UF ou UniteHebergement
             parent_obj = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
+                if not obj and p_type in {"N", "UF"}:
+                    db_uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == p_code)).first()
+                    if db_uf:
+                        logger.info(f"[MFN-IMPORTER] Parent UF trouvé en BDD pour Chambre: code={code}, parent_code={p_code}")
+                        obj = db_uf
+                if not obj and p_type == "UH":
+                    db_uh = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == p_code)).first()
+                    if db_uh:
+                        logger.info(f"[MFN-IMPORTER] Parent UH trouvé en BDD pour Chambre: code={code}, parent_code={p_code}")
+                        obj = db_uh
                 if isinstance(obj, (UniteFonctionnelle, UniteHebergement)):
                     parent_obj = obj
                     break
             if not parent_obj:
+                logger.warning(f"[MFN-IMPORTER] Chambre ignorée: code={code}, type={t}, parent absent (codes parents: {[pr for pr in ent.parent_refs]})")
+                ignored += 1
                 continue
             if isinstance(parent_obj, UniteFonctionnelle):
                 uh_identifier = f"UH-{parent_obj.identifier}"
@@ -335,6 +392,8 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                         unite_fonctionnelle_id=parent_obj.id,
                     )
                     session.add(uh); session.commit(); session.refresh(uh)
+                    created["uh"] += 1
+                    created_ids["uh"].append(uh_identifier)
                 parent_uh = uh
             elif isinstance(parent_obj, UniteHebergement):
                 parent_uh = parent_obj
@@ -348,8 +407,10 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             if chambre:
                 chambre.name = name
                 chambre.short_name = short
-                chambre.unite_hebergement_id = parent_uh.id
                 chambre.global_identifier = global_identifier
+                chambre.unite_hebergement_id = parent_uh.id if parent_uh else None
+                updated["chambre"] += 1
+                updated_ids["chambre"].append(identifier)
             else:
                 chambre = Chambre(
                     identifier=identifier,
@@ -359,8 +420,10 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     status=LocationStatus.ACTIVE,
                     mode=LocationMode.INSTANCE,
                     physical_type=LocationPhysicalType.RO,  # Room
-                    unite_hebergement_id=parent_uh.id,
+                    unite_hebergement_id=parent_uh.id if parent_uh else None,
                 )
+                created["chambre"] += 1
+                created_ids["chambre"].append(identifier)
             session.add(chambre); session.commit(); session.refresh(chambre)
             index[(t, code)] = chambre
         elif t in {"B", "LIT"}:
@@ -368,10 +431,17 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
             parent_ch = None
             for p_type, p_code in ent.parent_refs:
                 obj = index.get((p_type, p_code))
+                if not obj and p_type == "R":
+                    db_ch = session.exec(select(Chambre).where(Chambre.identifier == p_code)).first()
+                    if db_ch:
+                        logger.info(f"[MFN-IMPORTER] Parent Chambre trouvé en BDD pour Lit: code={code}, parent_code={p_code}")
+                        obj = db_ch
                 if isinstance(obj, Chambre):
                     parent_ch = obj
                     break
             if not parent_ch:
+                logger.warning(f"[MFN-IMPORTER] Lit ignoré: code={code}, type={t}, parent absent (codes parents: {[pr for pr in ent.parent_refs]})")
+                ignored += 1
                 continue
             identifier = ent.get("CD")
             global_identifier = ent.get("ID_GLBL") or f"LIT-{identifier}"
@@ -383,6 +453,8 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 lit.short_name = short
                 lit.chambre_id = parent_ch.id
                 lit.global_identifier = global_identifier
+                updated["lit"] += 1
+                updated_ids["lit"].append(identifier)
             else:
                 lit = Lit(
                     identifier=identifier,
@@ -394,9 +466,14 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     physical_type=LocationPhysicalType.BD,  # Bed
                     chambre_id=parent_ch.id,
                 )
+                created["lit"] += 1
+                created_ids["lit"].append(identifier)
             session.add(lit); session.commit(); session.refresh(lit)
             index[(t, code)] = lit
 
+    logger.info(f"[MFN-IMPORTER] Résumé: Créés: {created}, Mis à jour: {updated}, Ignorés: {ignored}")
+    logger.info(f"[MFN-IMPORTER] Identifiants créés: {created_ids}")
+    logger.info(f"[MFN-IMPORTER] Identifiants mis à jour: {updated_ids}")
     return created
 
 

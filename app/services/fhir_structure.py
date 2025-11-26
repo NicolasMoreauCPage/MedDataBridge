@@ -477,6 +477,12 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
     """
     
     # Base commune
+    # Gestion du champ status : fallback sur operational_status pour UniteFonctionnelle
+    status = getattr(entity, "status", None)
+    if status is None and isinstance(entity, UniteFonctionnelle):
+        status = getattr(entity, "operational_status", None)
+    # Gestion du champ mode : fallback None pour UniteFonctionnelle si absent
+    mode = getattr(entity, "mode", None)
     location = {
         "resourceType": "Location",
         "id": str(entity.id),
@@ -484,8 +490,8 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
             "profile": ["http://interop-sante.fr/fhir/StructureDefinition/fr-location"]
         },
         "name": entity.name,
-        "status": entity.status,
-        "mode": entity.mode,
+        "status": status,
+        "mode": mode,
         "identifier": [{
             "system": "urn:oid:1.2.250.1.71.4.2.2",
             "value": entity.identifier

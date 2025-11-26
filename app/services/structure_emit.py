@@ -1,3 +1,67 @@
+import time
+
+async def _emit_mfn_entity(entity, session: Session, ght_context_id=None) -> None:
+    """Émet un message MFN^M05 pour une entité individuelle vers les endpoints MLLP."""
+    from app.services.mfn_structure import generate_mfn_message_for_entity
+    mfn = generate_mfn_message_for_entity(session, entity)
+    _, mllp_senders = _get_senders(session, ght_context_id=ght_context_id)
+    for endpoint in mllp_senders:
+        correlation_id = getattr(entity, "correlation_id", None)
+        existing_log = session.exec(
+            select(MessageLog)
+            .where(MessageLog.endpoint_id == endpoint.id)
+            .where(MessageLog.kind == "MLLP")
+            .where(MessageLog.direction == "out")
+            .where(MessageLog.correlation_id == correlation_id)
+        ).first() if correlation_id else None
+        retry = 0
+        max_retry = 3
+        while retry < max_retry:
+            ack = ""
+            status = "generated"
+            try:
+                ack, status = await send_mllp(endpoint, mfn)
+                if existing_log:
+                    existing_log.payload = mfn
+                    existing_log.ack_payload = ack
+                    existing_log.status = status
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="MLLP",
+                        endpoint_id=endpoint.id,
+                        payload=mfn,
+                        ack_payload=ack,
+                        status=status,
+                        message_type="MFN^M05",
+                        correlation_id=correlation_id,
+                    )
+                    session.add(log)
+                break
+            except Exception as exc:
+                retry += 1
+                if existing_log:
+                    existing_log.payload = mfn
+                    existing_log.ack_payload = str(exc)
+                    existing_log.status = "error"
+                    existing_log.created_at = datetime.utcnow()
+                    log = existing_log
+                else:
+                    log = MessageLog(
+                        direction="out",
+                        kind="MLLP",
+                        endpoint_id=endpoint.id,
+                        payload=mfn,
+                        ack_payload=str(exc),
+                        status="error",
+                        message_type="MFN^M05",
+                        correlation_id=correlation_id,
+                    )
+                    session.add(log)
+                if retry < max_retry:
+                    time.sleep(60)
 """Emission des messages Structure (FHIR Location et HL7 MFN) après modifications.
 
 Cette couche envoie:
@@ -295,6 +359,9 @@ async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> No
         ],
     }
     fhir_senders, _ = _get_senders(session, ght_context_id=ght_context_id)
+    if not fhir_senders:
+        logger.info(f"[structure_emit] Aucun endpoint FHIR configuré/activé pour GHT/EJ (ght_context_id={ght_context_id}), émission ignorée.")
+        return
     for endpoint in fhir_senders:
         base = endpoint.base_url or endpoint.host or ""
         log = None
@@ -315,53 +382,10 @@ async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> No
                 .where(MessageLog.status.in_(["error", "pending"]))
                 .order_by(MessageLog.created_at.desc())
             ).first()
-        if not base:
-            if existing_log:
-                existing_log.payload = json.dumps(bundle, ensure_ascii=False)
-                existing_log.ack_payload = "Endpoint sans host/base_url"
-                existing_log.status = "error"
-                existing_log.created_at = datetime.utcnow()
-                log = existing_log
-            else:
-                log = MessageLog(
-                    direction="out",
-                    kind="FHIR",
-                    endpoint_id=endpoint.id,
-                    payload=json.dumps(bundle, ensure_ascii=False),
-                    ack_payload="Endpoint sans host/base_url",
-                    status="error",
-                    correlation_id=correlation_id,
-                )
-                session.add(log)
-            continue
-        retry = 0
-        max_retry = 3
-        while retry < max_retry:
-            try:
-                status_code, response = await post_fhir_bundle(base, bundle)
+            if not base:
                 if existing_log:
                     existing_log.payload = json.dumps(bundle, ensure_ascii=False)
-                    existing_log.ack_payload = json.dumps(response or {}, ensure_ascii=False)
-                    existing_log.status = "sent" if 200 <= status_code < 300 else "error"
-                    existing_log.created_at = datetime.utcnow()
-                    log = existing_log
-                else:
-                    log = MessageLog(
-                        direction="out",
-                        kind="FHIR",
-                        endpoint_id=endpoint.id,
-                        payload=json.dumps(bundle, ensure_ascii=False),
-                        ack_payload=json.dumps(response or {}, ensure_ascii=False),
-                        status="sent" if 200 <= status_code < 300 else "error",
-                        correlation_id=correlation_id,
-                    )
-                    session.add(log)
-                break
-            except Exception as exc:
-                retry += 1
-                if existing_log:
-                    existing_log.payload = json.dumps(bundle, ensure_ascii=False)
-                    existing_log.ack_payload = str(exc)
+                    existing_log.ack_payload = "Endpoint sans host/base_url"
                     existing_log.status = "error"
                     existing_log.created_at = datetime.utcnow()
                     log = existing_log
@@ -371,13 +395,56 @@ async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> No
                         kind="FHIR",
                         endpoint_id=endpoint.id,
                         payload=json.dumps(bundle, ensure_ascii=False),
-                        ack_payload=str(exc),
+                        ack_payload="Endpoint sans host/base_url",
                         status="error",
                         correlation_id=correlation_id,
                     )
                     session.add(log)
-                if retry < max_retry:
-                    time.sleep(60)
+                continue
+            retry = 0
+            max_retry = 3
+            while retry < max_retry:
+                try:
+                    status_code, response = await post_fhir_bundle(base, bundle)
+                    if existing_log:
+                        existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                        existing_log.ack_payload = json.dumps(response or {}, ensure_ascii=False)
+                        existing_log.status = "sent" if 200 <= status_code < 300 else "error"
+                        existing_log.created_at = datetime.utcnow()
+                        log = existing_log
+                    else:
+                        log = MessageLog(
+                            direction="out",
+                            kind="FHIR",
+                            endpoint_id=endpoint.id,
+                            payload=json.dumps(bundle, ensure_ascii=False),
+                            ack_payload=json.dumps(response or {}, ensure_ascii=False),
+                            status="sent" if 200 <= status_code < 300 else "error",
+                            correlation_id=correlation_id,
+                        )
+                        session.add(log)
+                    break
+                except Exception as exc:
+                    retry += 1
+                    if existing_log:
+                        existing_log.payload = json.dumps(bundle, ensure_ascii=False)
+                        existing_log.ack_payload = str(exc)
+                        existing_log.status = "error"
+                        existing_log.created_at = datetime.utcnow()
+                        log = existing_log
+                    else:
+                        log = MessageLog(
+                            direction="out",
+                            kind="FHIR",
+                            endpoint_id=endpoint.id,
+                            payload=json.dumps(bundle, ensure_ascii=False),
+                            ack_payload=str(exc),
+                            status="error",
+                            correlation_id=correlation_id,
+                        )
+                        session.add(log)
+                    if retry < max_retry:
+                        time.sleep(60)
 
 
 async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
@@ -542,7 +609,18 @@ async def emit_structure_change(entity, session: Session, operation: str = "upda
         session.commit()
         return
     await _emit_fhir_upsert(entity, session, ght_context_id=ght_context_id)
-    await _emit_mfn_snapshot(session, ght_context_id=ght_context_id)
+    await _emit_mfn_entity(entity, session, ght_context_id=ght_context_id)
+    session.commit()
+async def emit_structure_snapshot_ej(ej_id: int, session: Session) -> None:
+    """Émet le snapshot complet de la structure de l'EJ (FHIR + MFN) vers tous les endpoints."""
+    from app.models_structure import EntiteJuridique
+    ej = session.get(EntiteJuridique, ej_id)
+    if not ej:
+        logger.error(f"[structure_emit] EJ id={ej_id} introuvable pour émission snapshot.")
+        return
+    await _emit_organization_upsert(ej, session, ght_context_id=ej.ght_context_id)
+    await _emit_mfn_organization(ej, session, ght_context_id=ej.ght_context_id)
+    await _emit_mfn_snapshot(session, ght_context_id=ej.ght_context_id)
     session.commit()
 
 

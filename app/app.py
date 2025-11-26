@@ -1,7 +1,5 @@
 # Import ght router first to avoid circular imports
 import app.routers.ght as ght
-import app.routers.ght_ej_min as ght_ej_min
-import app.routers.ght_ej_edit as ght_ej_edit
 """
 Composition de l'application FastAPI (MedData Bridge)
 

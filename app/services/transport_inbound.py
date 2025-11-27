@@ -612,6 +612,13 @@ def _handle_z99_updates(message: str, session: Session) -> None:
         if patient:
             return patient
 
+        birth_date_raw = updates.get("date_naissance")
+        birth_date_obj = None
+        if birth_date_raw:
+            try:
+                birth_date_obj = datetime.strptime(birth_date_raw, "%Y%m%d").date()
+            except Exception:
+                birth_date_obj = None
         patient = Patient(
             patient_seq=get_next_sequence(session, "patient"),
             identifier=identifier,
@@ -619,7 +626,7 @@ def _handle_z99_updates(message: str, session: Session) -> None:
             family=updates.get("nom") or f"Patient Z99 {seq_hint}",
             given=updates.get("prenom") or "Auto",
             gender=updates.get("sexe") or "unknown",
-            birth_date=updates.get("date_naissance"),
+            birth_date=birth_date_obj,
         )
         session.add(patient)
         session.flush()

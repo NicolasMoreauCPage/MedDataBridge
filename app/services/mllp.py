@@ -176,7 +176,7 @@ async def start_mllp_server(
     try:
         server = await asyncio.start_server(handle, host=host, port=port)
         sockname = server.sockets[0].getsockname() if server.sockets else (host, port)
-        logger.info(f"✅ MLLP {endpoint.name} listening on {sockname[0]}:{sockname[1]}")
+        # logger.info(f"✅ MLLP {endpoint.name} listening on {sockname[0]}:{sockname[1]}")
         return server
     except OSError as e:
         logger.error(f"❌ Cannot bind MLLP {endpoint.name} on {host}:{port} — {e}")

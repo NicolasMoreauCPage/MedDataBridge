@@ -66,9 +66,16 @@ from app.routers import (
 from app.routers.ght.ej import router as ej_router
 from app.routers.ght.structure import router as structure_router
 
+
+# --- PATCH: Logging to file and console, DEBUG level ---
+LOG_FILE = os.getenv("MEDDATA_LOG_FILE", "meddata.log")
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler()
+    ]
 )
 if os.getenv("MLLP_TRACE", "0") in ("1","true","True"):
     logging.getLogger("mllp").setLevel(logging.DEBUG)

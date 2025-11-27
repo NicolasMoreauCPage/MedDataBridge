@@ -62,7 +62,6 @@ MOVEMENT_KIND_BY_TRIGGER = {
     "A40": "patient-merge",     # Fusion de patients
     
     # Événements Admission
-    "A01": "admission",         # Admission hospitalisation
     "A04": "admission",         # Admission ambulatoire (consultation externe)
     "A05": "preadmission",      # Pré-admission
     "A06": "class-change",      # Changement classe ambulatoire → hospitalisation
@@ -322,7 +321,7 @@ async def _handle_cancel_admission(
                 return False, "No patient identifier found"
             identifier = identifiers[0][0].split("^")[0]
             
-            from sqlmodel import select
+            # use global select
             patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
             if not patient:
                 return False, "Patient not found"
@@ -351,7 +350,7 @@ async def _handle_cancel_admission(
             movement_id_str = zbe_data["movement_id"]
             logger.info(f"[pam][cancel] {trigger}: Looking for movement with seq={movement_id_str}")
             
-            from sqlmodel import select
+            # use global select
             original_mouvement = session.exec(
                 select(Mouvement)
                 .where(Mouvement.mouvement_seq == int(movement_id_str))
@@ -460,7 +459,7 @@ async def _handle_cancel_discharge(
                 return False, "No patient identifier found"
             identifier = identifiers[0][0].split("^")[0]
             
-            from sqlmodel import select
+            # use global select
             patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
             if not patient:
                 return False, "Patient not found"
@@ -488,7 +487,7 @@ async def _handle_cancel_discharge(
             movement_id_str = zbe_data["movement_id"]
             logger.info(f"[pam][cancel-discharge] Looking for movement seq={movement_id_str}")
             
-            from sqlmodel import select
+            # use global select
             original_mouvement = session.exec(
                 select(Mouvement)
                 .where(Mouvement.mouvement_seq == int(movement_id_str))
@@ -609,7 +608,7 @@ async def _handle_cancel_transfer(
                 return False, "No patient identifier found"
             identifier = identifiers[0][0].split("^")[0]
             
-            from sqlmodel import select
+            # use global select
             patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
             if not patient:
                 return False, "Patient not found"
@@ -637,7 +636,7 @@ async def _handle_cancel_transfer(
             movement_id_str = zbe_data["movement_id"]
             logger.info(f"[pam][cancel-transfer] Looking for movement seq={movement_id_str}")
             
-            from sqlmodel import select
+            # use global select
             original_mouvement = session.exec(
                 select(Mouvement)
                 .where(Mouvement.mouvement_seq == int(movement_id_str))
@@ -770,68 +769,51 @@ async def handle_admission_message(
         movement_id = zbe_data.get("movement_id") if zbe_data else None
         
         logger.info(f"[pam][admission] Variables: account_number={account_number}, visit_number={visit_number}, movement_id={movement_id}, trigger={trigger}")
+        logger.debug(f"[pam][admission] PID data keys: {list(pid_data.keys())}")
         if trigger in ["A11", "A23", "A38"]:
             return await _handle_cancel_admission(session, trigger, pid_data, pv1_data, message)
         
         # Gestion normale des admissions
         # Identifier patient (prendre le premier identifiant PID-3)
-        identifiers = pid_data.get("identifiers", [])
-        if identifiers:
-            raw = identifiers[0][0]
-            identifier = raw.split("^")[0]
-        else:
-            identifier = None
+        logger.info("[pam][admission] Entering patient identification block")
 
-        # Extraire les identifiants supplémentaires selon les segments HL7
-        dossier_identifiers = []
-        venue_identifiers = []
-        mouvement_identifiers = []
-        
-        # PID-18: Account Number (identifiant dossier)
-        account_number = pid_data.get("account_number")
-        if account_number:
-            # Parser comme identifiant HL7 CX
-            cx_parsed = parse_hl7_cx_identifier(account_number)
-            dossier_identifiers.append((account_number, cx_parsed[1], IdentifierType.NDA))
-        
-        # PV1-19: Visit Number (identifiant venue)
-        visit_number = pv1_data.get("visit_number")
-        if visit_number:
-            # Parser comme identifiant HL7 CX
-            cx_parsed = parse_hl7_cx_identifier(visit_number)
-            venue_identifiers.append((visit_number, cx_parsed[1], IdentifierType.VN))
-        
-        # ZBE-1: Movement ID (identifiant mouvement) - si ZBE présent
-        if zbe_data and zbe_data.get("movement_id"):
-            movement_id = zbe_data["movement_id"]
-            # Pour ZBE-1, le format peut être ID^NAMESPACE^OID^ISO ou simple ID
-            # Si c'est un format complexe, extraire le namespace
-            system = ""
-            if "^" in movement_id:
-                parts = movement_id.split("^")
-                if len(parts) > 1:
-                    system = parts[1]  # NAMESPACE
-            mouvement_identifiers.append((movement_id, system, IdentifierType.MVT))
+        # --- PATCH: Robust PID-3 parsing and identifier assignment ---
+        # Build robust identifier list from PID-3
+        identifiers_raw = pid_data.get("identifiers", [])
+        identifiers = []
+        for cx_value, *_ in identifiers_raw:
+            value, system, type_code = parse_hl7_cx_identifier(cx_value)
+            identifiers.append((cx_value, system, type_code))
+
+        # Main patient identifier (fallback logic)
+        identifier = None
+        if identifiers:
+            # Prefer classified main identifier, fallback to first PID-3 value
+            try:
+                from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
+                identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
+                    identifiers, "patient", session, ej_id
+                )
+                identifier = main_id_value or (identifiers[0][0].split("^")[0] if identifiers else None)
+            except Exception as e:
+                logger.warning(f"[pam] Failed to classify identifiers: {e}")
+                identifier = identifiers[0][0].split("^")[0] if identifiers else None
+        logger.debug(f"[pam][admission] Resolved identifier={identifier} (identifiers_count={len(identifiers)})")
 
         # Nom / prénom
         family = pid_data.get("family") or ""
         given = pid_data.get("given") or ""
 
-        # Créer ou mettre à jour le patient
-        print(f"[pam] identifiers={pid_data.get('identifiers')} family={family} given={given} trigger={trigger}")
-        print(f"[pam] DEBUG: extracted identifier='{identifier}'")
-
+        # Create or update patient
         reused_patient = None
         if identifier:
-            from sqlmodel import select
+            # use global select
             from app.services.patient_update_helper import update_patient_from_pid_data
             existing = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
-            print(f"[pam] DEBUG: lookup result: {'FOUND' if existing else 'NOT FOUND'} (searching for identifier='{identifier}')")
             if existing:
                 update_patient_from_pid_data(existing, pid_data, session, create_mode=False)
                 session.add(existing)
                 session.flush()
-                print(f"[pam] Updated patient id={existing.id} identifier={existing.identifier} family={existing.family} given={existing.given}")
                 # Persist all PID-3 identifiers with namespace classification
                 try:
                     from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
@@ -845,8 +827,8 @@ async def handle_admission_message(
                             session.add(ident)
                 except Exception as e:
                     logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
-                    # Fallback to old method
-                    for raw_cx, _ in identifiers:
+                    # Fallback to legacy method
+                    for raw_cx, _, _ in identifiers:
                         try:
                             ident = create_identifier_from_hl7(raw_cx, "patient", existing.id)
                             exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -857,48 +839,51 @@ async def handle_admission_message(
                 reused_patient = existing
                 if trigger in ("A28", "A31"):
                     # Identity-only update: no new dossier/venue/mouvement. Return early.
+                    logger.info(f"[pam][admission] Identity-only update detected for existing patient, trigger={trigger}")
                     return True, None
 
-        # Si patient déjà mis à jour et trigger identité (A28/A31) on aurait quitté.
-        # Si patient existe mais trigger mouvement admission (A01/A04/A05/A06/A07) on réutilise.
+        # Debug: inspect identifier resolution and reuse
+        logger.debug(f"[pam][admission] identifiers={identifiers!r}")
+        logger.debug(f"[pam][admission] identifier={identifier!r}, reused_patient={reused_patient!r}")
+
+        # If patient already updated and trigger is identity, return early
         if reused_patient:
             patient = reused_patient
+            logger.debug(f"[pam][admission] Using reused_patient id={getattr(patient,'id', None)}")
         else:
             from app.services.patient_update_helper import create_patient_from_pid_data
             patient = create_patient_from_pid_data(pid_data, session, identifier, identifier, ej_id)
             session.add(patient)
             session.flush()
-            print(f"[pam] Created patient id={patient.id} identifier={patient.identifier} family={patient.family} given={patient.given}")
+            logger.debug(f"[pam][admission] Created patient id={getattr(patient,'id', None)}")
 
-        # Persist all identifiers from PID-3 with namespace classification
-        try:
-            from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
-            identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
-                identifiers, "patient", session, ej_id
-            )
-            for ident in identifiers_list:
-                ident.patient_id = patient.id
-                # Check duplicate by (system,value)
-                exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
-                if not exists:
-                    session.add(ident)
-        except Exception as e:
-            logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
-            # Fallback to old method
-            for raw_cx, _ in identifiers:
-                try:
-                    ident = create_identifier_from_hl7(raw_cx, "patient", patient.id)
-                    # Check duplicate by (system,value)
+            # Persist all identifiers from PID-3 with namespace classification
+            try:
+                from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
+                identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
+                    identifiers, "patient", session, ej_id
+                )
+                for ident in identifiers_list:
+                    ident.patient_id = patient.id
                     exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
                     if not exists:
                         session.add(ident)
-                except Exception:
-                    continue
-        
-        # Pour les messages d'identité (A28, A31), ne pas créer de dossier/venue/mouvement
-        if trigger in ("A28", "A31"):
-            # Identity-only update: no new dossier/venue/mouvement. Return early.
-            return True, None
+            except Exception as e:
+                logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
+                # Fallback to legacy method
+                for raw_cx, _, _ in identifiers:
+                    try:
+                        ident = create_identifier_from_hl7(raw_cx, "patient", patient.id)
+                        exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                        if not exists:
+                            session.add(ident)
+                    except Exception:
+                        continue
+
+            # For identity-only messages, do not create dossier/venue/mouvement
+            if trigger in ("A28", "A31"):
+                logger.debug(f"[pam][admission] Early return for identity-only trigger after create/update, trigger={trigger}, patient_id={getattr(patient,'id', None)}")
+                return True, None
             
         # Créer un dossier et une venue
         # Utiliser l'identifiant dossier fourni dans PID-18 si disponible, sinon générer une séquence
@@ -953,15 +938,14 @@ async def handle_admission_message(
         try:
             acc_raw = pid_data.get("account_number")
             if acc_raw:
-                from sqlmodel import select
-                from app.models_identifiers import Identifier as Identifier
+                # use global Identifier from module-level import
                 try:
                     ident = create_identifier_from_hl7(acc_raw, "dossier", dossier.id)
                     # Ensure PID-18 is recorded as AN (Account Number) when no explicit type present
                     try:
-                        from app.models_identifiers import IdentifierType as _IdType
-                        if ident.type == _IdType.PI:
-                            ident.type = _IdType.AN
+                        # use module-level IdentifierType
+                        if ident.type == IdentifierType.PI:
+                            ident.type = IdentifierType.AN
                     except Exception:
                         pass
                     exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -1017,15 +1001,14 @@ async def handle_admission_message(
         try:
             visit_raw = pv1_data.get("visit_number")
             if visit_raw:
-                from sqlmodel import select
-                from app.models_identifiers import Identifier as Identifier
+                # use global Identifier from module-level import
                 try:
                     ident = create_identifier_from_hl7(visit_raw, "venue", venue.id)
                     # Ensure PV1-19 is recorded as VN (Visit Number) when no explicit type present
                     try:
-                        from app.models_identifiers import IdentifierType as _IdType
-                        if ident.type == _IdType.PI:
-                            ident.type = _IdType.VN
+                        # use module-level IdentifierType
+                        if ident.type == IdentifierType.PI:
+                            ident.type = IdentifierType.VN
                     except Exception:
                         pass
                     exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -1053,6 +1036,7 @@ async def handle_admission_message(
         # Déterminer les UF selon ZBE et PV1
         # - UF hébergement : PV1-3-1 (location)
         # - UF médicale : ZBE-7-10
+        
         # - UF soins : ZBE-8-10
         uf_resp = dossier.uf_responsabilite
         uf_code_from_zbe = None
@@ -1065,7 +1049,7 @@ async def handle_admission_message(
             # Vérifier que l'UF existe dans la structure associée à l'EJ
             # Récupérer l'EJ depuis le patient (via un identifiant de type système)
             try:
-                from sqlmodel import select
+                # use global select
                 from app.models_structure import UniteFonctionnelle
                 from app.models_structure import EntiteJuridique
                 
@@ -1084,7 +1068,7 @@ async def handle_admission_message(
                                 UniteFonctionnelle, Service, Pole, LocationPhysicalType
                             )
                             from app.models_structure import EntiteGeographique
-                            from sqlmodel import select
+                            # use global select
 
                             # Récupérer/Créer une entité géographique (placeholder si absente)
                             eg = session.exec(select(EntiteGeographique)).first()
@@ -1274,7 +1258,7 @@ async def handle_transfer_message(
             return False, "No patient identifier found"
         identifier = identifiers[0][0].split("^")[0]
 
-        from sqlmodel import select
+        # use global select
 
         patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
         if not patient:
@@ -1404,7 +1388,7 @@ async def handle_discharge_message(
             return False, "No patient identifier found"
         identifier = identifiers[0][0].split("^")[0]
 
-        from sqlmodel import select
+                # use global select
 
         patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
         if not patient:
@@ -1528,7 +1512,7 @@ async def handle_leave_message(
             return False, "No patient identifier found"
         identifier = identifiers[0][0].split("^")[0]
 
-        from sqlmodel import select
+        # use global select
 
         patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
         if not patient:
@@ -1662,8 +1646,7 @@ async def handle_doctor_message(
             return False, "No patient identifier found"
         identifier = identifiers[0][0].split("^")[0]
 
-        from sqlmodel import select
-
+        # use global select
         patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
         if not patient:
             return False, "Patient not found"

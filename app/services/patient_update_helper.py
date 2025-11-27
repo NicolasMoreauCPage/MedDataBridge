@@ -53,7 +53,20 @@ def update_patient_from_pid_data(
     
     # Date de naissance (PID-7)
     if pid_data.get("birth_date"):
-        patient.birth_date = pid_data["birth_date"]
+        birth_date_raw = pid_data["birth_date"]
+        birth_date_obj = None
+        from datetime import datetime, date
+        if isinstance(birth_date_raw, str):
+            try:
+                if len(birth_date_raw) == 8 and birth_date_raw.isdigit():
+                    birth_date_obj = datetime.strptime(birth_date_raw, "%Y%m%d").date()
+                else:
+                    birth_date_obj = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
+            except Exception:
+                birth_date_obj = None
+        elif isinstance(birth_date_raw, date):
+            birth_date_obj = birth_date_raw
+        patient.birth_date = birth_date_obj
     
     # Genre (PID-8)
     if pid_data.get("gender"):

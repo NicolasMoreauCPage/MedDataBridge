@@ -51,8 +51,25 @@ def create_patient(
     Gère la logique de génération d'identifiant et la transaction.
     """
     identifier_val = patient_data.external_id or str(uuid4())
+    data = patient_data.dict()
+    birth_date_raw = data.get("birth_date")
+    birth_date_obj = None
+    if birth_date_raw:
+        from datetime import datetime, date
+        if isinstance(birth_date_raw, str):
+            try:
+                # Gère les formats YYYY-MM-DD et YYYYMMDD
+                if len(birth_date_raw) == 8 and birth_date_raw.isdigit():
+                    birth_date_obj = datetime.strptime(birth_date_raw, "%Y%m%d").date()
+                else:
+                    birth_date_obj = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
+            except Exception:
+                birth_date_obj = None
+        elif isinstance(birth_date_raw, date):
+            birth_date_obj = birth_date_raw
+    data["birth_date"] = birth_date_obj
     patient = Patient(
-        **patient_data.dict(),
+        **data,
         identifier=identifier_val,
         ght_context_id=ght_context_id
     )

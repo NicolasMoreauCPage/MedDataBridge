@@ -1,4 +1,225 @@
 import os
+import pytest
+
+os.environ.setdefault("TESTING", "1")
+
+from app.db import init_db, session_factory
+from app.models import Patient, Dossier, Venue
+from app.models_structure import GHTContext
+from app.models_shared import SystemEndpoint
+from sqlmodel import select
+from datetime import datetime
+
+
+@pytest.fixture(autouse=True, scope='session')
+def setup_test_db():
+    """Initialize the in-memory DB and create minimal records used by UI pages."""
+    init_db()
+    sess = session_factory()
+    try:
+        # Create a GHTContext if none exists
+        if not sess.exec(select(GHTContext)).first():
+            g = GHTContext(name="TESTGHT", code="TEST")
+            sess.add(g)
+            sess.commit()
+
+        # Create a minimal Patient/Dossier/Venue trio if missing
+        if not sess.exec(select(Patient)).first():
+            # Patient requires family (nom); provide minimal required fields
+            p = Patient(family="Test", given="User")
+            sess.add(p)
+            sess.commit()
+            # Create a Dossier with an explicit dossier_seq using the sequence helper
+            try:
+                from app.db import get_next_sequence
+                dossier_seq = get_next_sequence(sess, "dossier")
+            except Exception:
+                dossier_seq = None
+
+            if dossier_seq:
+                d = Dossier(dossier_seq=dossier_seq, patient_id=p.id, admit_time=datetime.utcnow())
+            else:
+                # Fallback: rely on before_flush auto-assignment if sequence helper unavailable
+                d = Dossier(patient_id=p.id, admit_time=datetime.utcnow())
+
+            sess.add(d)
+            sess.commit()
+
+            # Venue requires a venue_seq (no auto-assignment). Use get_next_sequence to populate it.
+            try:
+                from app.db import get_next_sequence
+                venue_seq = get_next_sequence(sess, "venue")
+            except Exception:
+                venue_seq = None
+
+            if venue_seq:
+                v = Venue(venue_seq=venue_seq, dossier_id=d.id, start_time=datetime.utcnow())
+            else:
+                # Last-resort: provide a numeric placeholder to satisfy NOT NULL constraint
+                v = Venue(venue_seq=1, dossier_id=d.id, start_time=datetime.utcnow())
+
+            sess.add(v)
+            sess.commit()
+
+        # Ensure at least one SystemEndpoint exists
+        if not sess.exec(select(SystemEndpoint)).first():
+            se = SystemEndpoint(name="local", kind="FILE")
+            sess.add(se)
+            sess.commit()
+        # Ensure minimal legal entity / geographic entity and namespaces exist
+        try:
+            from app.models_structure import EntiteJuridique, EntiteGeographique, IdentifierNamespace
+            # Create an EntiteJuridique if missing
+            if not sess.exec(select(EntiteJuridique)).first():
+                ej = EntiteJuridique(name="Test EJ", finess_ej="999999999", is_active=True)
+                sess.add(ej)
+                sess.commit()
+            else:
+                ej = sess.exec(select(EntiteJuridique)).first()
+
+            # Create an EntiteGeographique linked to the EJ
+            if not sess.exec(select(EntiteGeographique)).first():
+                eg = EntiteGeographique(name="Test EG", finess="999999999", entite_juridique_id=(ej.id if ej else None))
+                sess.add(eg)
+                sess.commit()
+            else:
+                eg = sess.exec(select(EntiteGeographique)).first()
+
+            # Create a basic IdentifierNamespace so identifier lookups in UI succeed
+            if not sess.exec(select(IdentifierNamespace)).first():
+                ns = IdentifierNamespace(name="TEST-IPP", system="urn:medbridge:test:ipp", type="IPP", ght_context_id=None, entite_juridique_id=(ej.id if ej else None), entite_geographique_id=(eg.id if eg else None))
+                sess.add(ns)
+                sess.commit()
+        except Exception:
+            # If any structure models are missing in a trimmed test environment, skip seeding
+            pass
+
+        # Create a minimal vocabulary system (administrative gender) used by some templates
+        try:
+            from app.models_vocabulary import VocabularySystem, VocabularyValue
+            if not sess.exec(select(VocabularySystem)).first():
+                vs = VocabularySystem(name="administrative-gender", label="Genre administratif", system_type="FHIR")
+                sess.add(vs)
+                sess.commit()
+                v_m = VocabularyValue(system_id=vs.id, code="M", display="Masculin")
+                v_f = VocabularyValue(system_id=vs.id, code="F", display="Féminin")
+                sess.add(v_m)
+                sess.add(v_f)
+                sess.commit()
+        except Exception:
+            pass
+
+        # If a Patient exists (we may have just created one), ensure it has an Identifier (IPP)
+        try:
+            from app.models_identifiers import Identifier as IdentifierModel
+            pat = sess.exec(select(Patient)).first()
+            if pat and not sess.exec(select(IdentifierModel).where(IdentifierModel.patient_id == pat.id)).first():
+                idn = IdentifierModel(value=str(pat.id), type="IPP", system="urn:medbridge:test:ipp", patient_id=pat.id)
+                sess.add(idn)
+                sess.commit()
+        except Exception:
+            pass
+
+        # Seed additional common models to cover UI pages: Poles, Services, UF, Sequence entries
+        try:
+            from app.models_structure import Pole, Service, UniteFonctionnelle, EntiteJuridique, EntiteGeographique, IdentifierNamespace
+            from app.db import get_next_sequence
+
+            # Ensure there's at least one Pole / Service / UF for structure pages
+            if not sess.exec(select(Pole)).first():
+                pole = Pole(identifier="POLE_TEST", name="Pôle Test")
+                sess.add(pole)
+                sess.commit()
+            if not sess.exec(select(Service)).first():
+                svc = Service(identifier="SRV_TEST", name="Service Test", pole_id=(pole.id if 'pole' in locals() else None))
+                sess.add(svc)
+                sess.commit()
+            if not sess.exec(select(UniteFonctionnelle)).first():
+                uf = UniteFonctionnelle(identifier="UF_TEST", name="UF Test", service_id=(svc.id if 'svc' in locals() else None))
+                sess.add(uf)
+                sess.commit()
+
+            # Ensure sequence entries exist for dossier/venue/mouvement to avoid insertion errors
+            try:
+                _ = get_next_sequence(sess, "dossier")
+                _ = get_next_sequence(sess, "venue")
+                _ = get_next_sequence(sess, "mouvement")
+                _ = get_next_sequence(sess, "patient")
+            except Exception:
+                # ignore if sequences cannot be created in this environment
+                pass
+        except Exception:
+            pass
+
+        # Endpoints with configs: create one MLLP and one FHIR config attached to SystemEndpoint
+        try:
+            from app.models_endpoints import MLLPConfig, FHIRConfig
+            from app.models_shared import SystemEndpoint as SEP
+
+            # Create one SystemEndpoint with MLLP and FHIR configs if none exist
+            if not sess.exec(select(SEP)).first():
+                sep = SEP(name="Test Endpoint", kind="FILE", role="both", is_enabled=True)
+                sess.add(sep)
+                sess.commit()
+            else:
+                sep = sess.exec(select(SEP)).first()
+
+            if not sess.exec(select(MLLPConfig)).first():
+                mcfg = MLLPConfig(name="Test MLLP", port=2575, sending_app="APP", sending_facility="FAC", endpoint_id=sep.id)
+                sess.add(mcfg)
+                sess.commit()
+            if not sess.exec(select(FHIRConfig)).first():
+                fcfg = FHIRConfig(name="Test FHIR", base_url="http://localhost:8080/fhir", endpoint_id=sep.id)
+                sess.add(fcfg)
+                sess.commit()
+        except Exception:
+            pass
+
+        # Seed a basic InteropScenario and WorkflowScenario to cover scenario pages
+        try:
+            from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate, ScenarioTemplateStep
+            from app.models_workflows import WorkflowScenario, WorkflowScenarioStep
+
+            if not sess.exec(select(InteropScenario)).first():
+                sc = InteropScenario(key="test.scenario", name="Test Scenario", protocol="HL7")
+                sess.add(sc)
+                sess.commit()
+                step = InteropScenarioStep(scenario_id=sc.id, order_index=1, payload="MSH|||")
+                sess.add(step)
+                sess.commit()
+
+            if not sess.exec(select(ScenarioTemplate)).first():
+                tpl = ScenarioTemplate(key="tpl.test", name="Template Test")
+                sess.add(tpl)
+                sess.commit()
+                tstep = ScenarioTemplateStep(template_id=tpl.id, order_index=1, semantic_event_code="PARCOURS_START")
+                sess.add(tstep)
+                sess.commit()
+
+            if not sess.exec(select(WorkflowScenario)).first():
+                ws = WorkflowScenario(name="WS Test", scenario_type="ADMISSION")
+                sess.add(ws)
+                sess.commit()
+                wstep = WorkflowScenarioStep(scenario_id=ws.id, order_index=0, action_type="CREER_PATIENT")
+                sess.add(wstep)
+                sess.commit()
+        except Exception:
+            pass
+
+        # Add a sample MessageLog to avoid empty logs in UI
+        try:
+            from app.models_shared import MessageLog
+            if not sess.exec(select(MessageLog)).first():
+                ml = MessageLog(direction="in", kind="FILE", payload="test", status="received")
+                sess.add(ml)
+                sess.commit()
+        except Exception:
+            pass
+    finally:
+        sess.close()
+
+    yield
+import os
 
 # Ensure the application runs in testing mode during pytest runs so
 # lifetime init (DB init, event listeners, background scheduler, MLLP)

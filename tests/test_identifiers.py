@@ -50,7 +50,7 @@ def test_create_identifier_from_hl7(session: Session):
     
     assert identifier.value == "12345"
     assert identifier.system == "OID_AUTH"
-    assert identifier.type == IdentifierType.PI
+    assert identifier.type == IdentifierType.IPP
     assert identifier.patient_id == patient.id
 
 
@@ -60,7 +60,7 @@ def test_fhir_identifier_conversion():
     identifier = Identifier(
         value="12345",
         system="http://hopital.fr/identifiers",
-        type=IdentifierType.PI,
+        type=IdentifierType.IPP,
         status="active"
     )
     
@@ -80,7 +80,7 @@ def test_fhir_identifier_conversion():
 def test_get_main_identifier():
     """Test de récupération de l'identifiant principal"""
     identifiers = [
-        Identifier(value="1", type=IdentifierType.PI, status="inactive"),
+        Identifier(value="1", type=IdentifierType.IPP, status="inactive"),
         Identifier(value="2", type=IdentifierType.IPP, status="active"),
         Identifier(value="3", type=IdentifierType.VN, status="active")
     ]

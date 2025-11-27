@@ -1,3 +1,10 @@
+def flash(request, message, category="info"):
+    """Ajoute un message flash à la session utilisateur."""
+    session = getattr(request, "session", None)
+    if session is not None:
+        messages = session.get("_messages", [])
+        messages.append({"message": message, "category": category})
+        session["_messages"] = messages
 from collections.abc import MutableMapping
 from typing import Any
 

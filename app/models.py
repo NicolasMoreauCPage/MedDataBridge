@@ -1,5 +1,8 @@
 from typing import Optional, List, TYPE_CHECKING, ForwardRef
-from datetime import datetime
+from datetime import date, datetime
+from pydantic import model_validator
+from sqlalchemy import Column
+from sqlalchemy.types import TypeDecorator, Date as SA_Date
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship, Session
 
@@ -68,7 +71,25 @@ class Patient(SQLModel, table=True):
     prefix: Optional[str] = None  # Civilité (M./Mme/Mlle)
     suffix: Optional[str] = None  # Suffixe (Jr., III, etc.)
     birth_family: Optional[str] = None  # Nom de naissance (nom de jeune fille) - PID-5 type L
-    birth_date: Optional[str] = None  # Date de naissance (AAAA-MM-JJ)
+    class _FlexibleDate(TypeDecorator):
+        impl = SA_Date
+
+        def process_bind_param(self, value, dialect):
+            if value is None:
+                return None
+            if isinstance(value, date):
+                return value
+            # Accept strings in common HL7 formats and convert
+            if isinstance(value, str):
+                v = value.strip()
+                for fmt in ("%Y%m%d", "%Y-%m-%d"):
+                    try:
+                        return datetime.strptime(v, fmt).date()
+                    except Exception:
+                        continue
+            return value
+
+    birth_date: Optional[date] = Field(default=None, sa_column=Column(_FlexibleDate(), nullable=True))  # Date de naissance
     gender: Optional[str] = None  # Sexe administratif (male/female/other/unknown)
     
     # Adresse d'habitation (PID-11)
@@ -93,7 +114,7 @@ class Patient(SQLModel, table=True):
     
     # Statut de l'identité (PID-32) - OBLIGATOIRE IHE PAM France pour INS
     identity_reliability_code: Optional[str] = None  # HL7 Table 0445/RNIV: VIDE/PROV/VALI/DOUTE/FICTI/QUAL/DOUB
-    identity_reliability_date: Optional[str] = None  # Date de validation de l'identité (AAAA-MM-JJ)
+    identity_reliability_date: Optional[date] = Field(default=None, sa_column=Column(_FlexibleDate(), nullable=True))  # Date de validation de l'identité
     identity_reliability_source: Optional[str] = None  # Source de validation (CNI, Passeport, Acte naissance, etc.)
     identity_matrix_code: Optional[str] = None  # Code Matrice de Gestion d'Identité (MGI) utilisée - RNIV
     
@@ -102,7 +123,7 @@ class Patient(SQLModel, table=True):
     ins_c: Optional[str] = None  # INS Calculé - Pour personnes sans NIR (RNIV)
     ins_type: Optional[str] = None  # Type d'INS: "NIR" ou "INS-C" (RNIV)
     ins_in_annuaire: Optional[bool] = None  # INS-A: INS présent dans annuaire national INSI (TéléSanté) - RNIV
-    ins_last_query_date: Optional[str] = None  # Date dernier appel service INSI (AAAA-MM-JJ) - RNIV
+    ins_last_query_date: Optional[date] = Field(default=None, sa_column=Column(_FlexibleDate(), nullable=True))  # Date dernier appel service INSI - RNIV
     
     # Prénoms structurés (RNIV - Traits Stricts)
     birth_given_names: Optional[str] = None  # Liste complète prénoms état civil (ordre officiel, séparés par espace) - RNIV
@@ -137,6 +158,33 @@ class Patient(SQLModel, table=True):
     def prenom(self, value: str) -> None:
         self.given = value
 
+    @model_validator(mode="before")
+    def _coerce_dates(cls, values: dict) -> dict:
+        """Coerce date strings (YYYYMMDD or YYYY-MM-DD) to Python date objects.
+
+        This accepts common HL7 date formats used in tests and in HL7 parsers.
+        """
+        def _parse_date(v):
+            if v is None:
+                return None
+            if isinstance(v, date):
+                return v
+            if isinstance(v, str):
+                v = v.strip()
+                for fmt in ("%Y%m%d", "%Y-%m-%d"):
+                    try:
+                        return datetime.strptime(v, fmt).date()
+                    except Exception:
+                        continue
+            return v
+
+        # Fields to coerce
+        for key in ("birth_date", "identity_reliability_date", "ins_last_query_date"):
+            if key in values:
+                values[key] = _parse_date(values.get(key))
+
+        return values
+
 
 # --- Dossier ---
 class Dossier(SQLModel, table=True):
@@ -150,32 +198,6 @@ class Dossier(SQLModel, table=True):
     # UF responsable du dossier (= UF médicale = UF de responsabilité médicale)
     uf_responsabilite: Optional[str] = None                 # Code UF responsable/médicale (ex: "CARDIO")
 
-    def update_type(self, new_type: DossierType, session: Session | None = None) -> None:
-        """
-        Met à jour le type de dossier avec validation et synchronisation de la classe.
-        Lève une ValueError si le changement est invalide.
-        """
-        if new_type == self.dossier_type:
-            return
-            
-        if session is None:
-            from app.db import session_factory
-            with session_factory() as new_session:
-                new_session.add(self)
-                self._validate_and_update_type(new_type, new_session)
-        else:
-            self._validate_and_update_type(new_type, session)
-    
-    def _validate_and_update_type(self, new_type: DossierType, session: Session) -> None:
-        from app.utils.dossier_validators import validate_dossier_type_change
-        from app.utils.dossier_helpers import sync_dossier_class
-        
-        can_change, warnings = validate_dossier_type_change(session, self, new_type)
-        if not can_change:
-            raise ValueError("\n".join(warnings))
-            
-        self.dossier_type = new_type
-        sync_dossier_class(self)
     # Extensions / IHE PAM additions (optional)
     admission_type: Optional[str] = None
     admission_source: Optional[str] = None  # Source d'admission

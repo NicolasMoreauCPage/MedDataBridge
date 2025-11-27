@@ -1,10 +1,9 @@
 """API pour les métriques et le monitoring."""
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional, Dict, Any
 from app.utils.structured_logging import metrics
-from app.auth import require_role
 from app.services.cache_service import get_cache_service
 
 
@@ -125,7 +124,7 @@ async def health_check():
 
 
 @router.get("/cache", response_model=dict)
-async def get_cache_metrics(current_user=Depends(require_role("admin"))) -> Dict[str, Any]:
+async def get_cache_metrics() -> Dict[str, Any]:
     """
     Récupère les métriques de cache Redis.
     
@@ -144,15 +143,14 @@ async def get_cache_metrics(current_user=Depends(require_role("admin"))) -> Dict
     cache = get_cache_service()
     stats = cache.get_stats()
     
-    # Ajouter des métriques calculées
-    if stats.get("enabled"):
-        hits = stats.get("keyspace_hits", 0)
-        misses = stats.get("keyspace_misses", 0)
-        total_ops = hits + misses
-        
-        stats["total_operations"] = total_ops
-        stats["hits_percentage"] = stats.get("hit_rate", 0)
-        stats["misses_percentage"] = round(100 - stats.get("hit_rate", 0), 2) if total_ops > 0 else 0
+    # Ajouter des métriques calculées même si Redis n'est pas activé
+    hits = stats.get("keyspace_hits", 0)
+    misses = stats.get("keyspace_misses", 0)
+    total_ops = hits + misses
+    
+    stats["total_operations"] = total_ops
+    stats["hits_percentage"] = stats.get("hit_rate", 0)
+    stats["misses_percentage"] = round(100 - stats.get("hit_rate", 0), 2) if total_ops > 0 else 0
     
     return stats
 

@@ -1,7 +1,5 @@
 # Import ght router first to avoid circular imports
 import app.routers.ght as ght
-import app.routers.ght_ej_min as ght_ej_min
-import app.routers.ght_ej_edit as ght_ej_edit
 """
 Composition de l'application FastAPI (MedData Bridge)
 
@@ -68,9 +66,16 @@ from app.routers import (
 from app.routers.ght.ej import router as ej_router
 from app.routers.ght.structure import router as structure_router
 
+
+# --- PATCH: Logging to file and console, DEBUG level ---
+LOG_FILE = os.getenv("MEDDATA_LOG_FILE", "meddata.log")
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler()
+    ]
 )
 if os.getenv("MLLP_TRACE", "0") in ("1","true","True"):
     logging.getLogger("mllp").setLevel(logging.DEBUG)
@@ -214,13 +219,9 @@ def create_app() -> FastAPI:
     # /admin/ght work as expected)
     from app.routers import admin_gateway
     app.include_router(admin_gateway.router)
-    app.include_router(ght.router, prefix="/admin")
-    # Minimal EJ detail router (guarantee availability even if ght incomplete)
-    app.include_router(ght_ej_min.router, prefix="/admin/ght")
-    # EJ edit router (provides missing edit routes)
-    app.include_router(ght_ej_edit.router, prefix="/admin/ght")
+    app.include_router(ght.router, prefix="/admin/ght")
     # Les sub-routers sont inclus dans ght.py, on ne les inclut pas directement ici
-    print(" - Admin routers mounted under /admin")
+    print(" - Admin routers mounted under /admin/ght")
     
     # 5. Integration and transport
     app.include_router(messages.router)

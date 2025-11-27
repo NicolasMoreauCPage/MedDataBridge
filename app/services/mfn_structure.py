@@ -1,4 +1,6 @@
+
 import logging
+import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from sqlmodel import Session, select
@@ -6,6 +8,12 @@ from sqlmodel import Session, select
 # NOTE: models import is delayed inside functions to avoid circular imports
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.propagate = True
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+if not logger.hasHandlers():
+    logger.addHandler(handler)
 
 
 def _normalize_loc_type(raw: str) -> str:
@@ -179,6 +187,8 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
         session: Session SQLModel
         multi_pass: Si True, fait plusieurs passes pour résoudre les dépendances parent-enfant
     """
+    print("[MFN-IMPORT] process_mfn_message called (print test)")
+    logger.info("[MFN-IMPORT] process_mfn_message called")
     logger.debug(f"Message reçu : {message}")
     # Si le message contient \\, remplacer par \
     message = message.replace("\\\\", "\\")
@@ -190,7 +200,7 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
     if not segments:
         logger.error("Pas de segments dans le message")
         raise ValueError("Message vide")
-        
+    
     # Vérifier le type de message
     if len(segments[0]) < 9 or not segments[0][8].startswith("MFN^M05"):
         logger.error(f"Type de message invalide: {segments[0][8] if len(segments[0]) >= 9 else 'inconnu'}")
@@ -216,10 +226,8 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
                 })
                 current_chars = {}
                 current_relations = []
-                
         elif segment_type == "LOC":
             current_location = extract_location_type(segment)
-            
         elif segment_type == "LCH":
             field_info = segment[4].split("^") if len(segment) > 4 else [""]
             field_name = field_info[0] if field_info else ""
@@ -227,14 +235,12 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
             components = value_field.split("^") if value_field else [""]
             value = next((c for c in reversed(components) if c), components[-1] if components else "")
             current_chars[field_name] = value
-            
         elif segment_type == "LRL":
             if len(segment) > 5:
                 current_relations.append({
                     "type": segment[4].split("^")[0] if len(segment) > 4 else "",
                     "target": segment[6] if len(segment) > 6 else ""
                 })
-    
     # Stocke la dernière entrée
     if current_location and current_chars:
         locations.append({
@@ -243,23 +249,38 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
             "characteristics": current_chars,
             "relations": current_relations
         })
-    
     logger.info(f"Parsed {len(locations)} locations from MFN message")
     services = [l for l in locations if l['type'] == 'D']
     logger.info(f"  Services: {len(services)}")
     if services:
         logger.info(f"  First Service: type={services[0]['type']}, id={services[0]['identifier'][:60]}, n_relations={len(services[0]['relations'])}")
-    
     # Phase 2: Import with multi-pass if enabled
     if multi_pass:
-        return _import_locations_multipass(locations, session)
+        results = _import_locations_multipass(locations, session)
     else:
         # Single pass (legacy behavior)
         results = []
         for loc in locations:
             result = save_location(loc["type"], loc["identifier"], loc["characteristics"], loc["relations"], session)
             results.append(result)
-        return results
+
+    # Log récapitulatif
+    created = {}
+    updated = {}
+    errors = 0
+    for r in results:
+        if r.get("status") == "success":
+            t = r.get("type", "Unknown")
+            created[t] = created.get(t, 0) + 1
+        elif r.get("status") == "updated":
+            t = r.get("type", "Unknown")
+            updated[t] = updated.get(t, 0) + 1
+        else:
+            errors += 1
+    logger.info(f"[MFN-IMPORT] Résumé: Créés: {created}, Mis à jour: {updated}, Erreurs: {errors}")
+    if sum(created.values()) + sum(updated.values()) == 0:
+        logger.warning("[MFN-IMPORT] Aucun impact du MFN: aucune entité créée ou mise à jour")
+    return results
 
 def _import_locations_multipass(locations: List[Dict[str, Any]], session: Session) -> List[Dict[str, Any]]:
     """Import locations with multiple passes to resolve parent dependencies"""
@@ -331,7 +352,7 @@ def save_location(
     """
     Sauvegarde une location en base selon son type
     """
-    logger.info(f"save_location called: loc_type={loc_type}, identifier={identifier}, n_relations={len(relations)}")
+    logger.info(f"[MFN-IMPORT] save_location called: loc_type={loc_type}, identifier={identifier}, n_relations={len(relations)}, characteristics={characteristics}")
     # Normalize loc_type to canonical internal codes (handles French labels and CPAGE variants)
     loc_type = _normalize_loc_type(loc_type)
     try:
@@ -503,15 +524,15 @@ def save_location(
                 "identifier": identifier
             }
         
-        logger.info(f"Created entity {entity.__class__.__name__} ID={entity.identifier}, about to process {len(relations)} relations")
+        logger.info(f"[MFN-IMPORT] Created entity {entity.__class__.__name__} ID={entity.identifier}, about to process {len(relations)} relations, props={base_props}")
         if isinstance(entity, Service) and len(relations) > 0:
-            logger.info(f"  Service relations: {relations}")
+            logger.info(f"[MFN-IMPORT] Service relations: {relations}")
         
         # Gestion des relations et rattachement à l'EJ
-        logger.info(f"Entity {entity.__class__.__name__} ID={entity.identifier} has {len(relations)} relations")
+        logger.info(f"[MFN-IMPORT] Entity {entity.__class__.__name__} ID={entity.identifier} has {len(relations)} relations")
         ej_id = None
         for relation in relations:
-            logger.info(f"  Relation type='{relation.get('type')}' target={relation.get('target', '')[:80]}")
+            logger.info(f"[MFN-IMPORT] Relation type='{relation.get('type')}' target={relation.get('target', '')[:80]}")
             # Rattachement à l'EJ via ETBLSMNT ou LCLSTN
             if relation["type"] in ("ETBLSMNT", "LCLSTN"):
                 target_clean = _extract_identifier_from_loc(relation["target"])
@@ -562,7 +583,7 @@ def save_location(
             # Relation de localisation (tous les niveaux hiérarchiques)
             # Utilise le type du parent pour gérer automatiquement les sauts de hiérarchie
             parent_type, parent_identifier = _extract_type_and_identifier_from_loc(relation["target"])
-            logger.info(f"LCLSTN pour {entity.__class__.__name__} ID={entity.identifier}: parent_type='{parent_type}', parent_id='{parent_identifier}', raw_target={relation['target'][:80]}")
+            logger.info(f"[MFN-IMPORT] LCLSTN pour {entity.__class__.__name__} ID={entity.identifier}: parent_type='{parent_type}', parent_id='{parent_identifier}', raw_target={relation['target'][:80]}")
             
             if isinstance(entity, Service):
                 # Service.pole_id requis
@@ -694,7 +715,7 @@ def save_location(
                                 )
                                 session.add(virtual_uh)
                                 session.flush()
-                                logger.info(f"Création UH virtuelle pour Chambre {entity.identifier}")
+                                logger.info(f"[MFN-IMPORT] Création UH virtuelle pour Chambre {entity.identifier}")
                             entity.unite_hebergement_id = virtual_uh.id
                         
                 elif isinstance(entity, Lit):
@@ -728,11 +749,12 @@ def save_location(
                         )
                         session.add(virtual_pole)
                         session.flush()
-                        logger.info(f"Création tardive d'un Pôle virtuel {virtual_pole.identifier} pour Service {entity.identifier} (fallback)")
+                        logger.info(f"[MFN-IMPORT] Création tardive d'un Pôle virtuel {virtual_pole.identifier} pour Service {entity.identifier} (fallback)")
                     entity.pole_id = virtual_pole.id
-            logger.warning(f"⚠️  BEFORE COMMIT Service {entity.identifier}, pole_id={getattr(entity,'pole_id', None)}, n_relations_processed={len(relations)}")
+            logger.warning(f"[MFN-IMPORT] ⚠️  BEFORE COMMIT Service {entity.identifier}, pole_id={getattr(entity,'pole_id', None)}, n_relations_processed={len(relations)}")
         
         if existing_entity:
+            logger.info(f"[MFN-IMPORT] Updating existing entity {existing_entity.__class__.__name__} ID={existing_entity.identifier}")
             # Mise à jour (idempotence import)
             updatable_fields = [
                 "name","short_name","address_line1","address_line2","address_line3","address_city","address_postalcode",
@@ -750,12 +772,15 @@ def save_location(
             session.refresh(existing_entity)
             saved_entity = existing_entity
             status = "updated"
+            logger.info(f"[MFN-IMPORT] Entity updated: {saved_entity.__class__.__name__} ID={saved_entity.identifier} DB_ID={saved_entity.id}")
         else:
+            logger.info(f"[MFN-IMPORT] Adding new entity {entity.__class__.__name__} ID={entity.identifier}")
             session.add(entity)
             session.commit()
             session.refresh(entity)
             saved_entity = entity
             status = "success"
+            logger.info(f"[MFN-IMPORT] Entity created: {saved_entity.__class__.__name__} ID={saved_entity.identifier} DB_ID={saved_entity.id}")
         
         return {
             "status": status,
@@ -764,7 +789,7 @@ def save_location(
         }
         
     except Exception as e:
-        logger.error(f"Erreur lors de la sauvegarde de la location: {e}")
+        logger.error(f"[MFN-IMPORT] Erreur lors de la sauvegarde de la location: {e}", exc_info=True)
         session.rollback()
         return {
             "status": "error",

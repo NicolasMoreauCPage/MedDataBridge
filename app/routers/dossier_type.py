@@ -5,6 +5,7 @@ from sqlmodel import Session
 
 from app.db import get_session
 from app.models import Dossier, DossierType
+from app.services import dossier_service
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.utils.dossier_helpers import sync_dossier_class
 
@@ -60,7 +61,7 @@ async def change_dossier_type(
     
     try:
         if not force:
-            dossier.update_type(new_type, session)
+            dossier_service.update_dossier_type(dossier=dossier, new_type=new_type, session=session)
         else:
             # Forcer le changement sans validation
             dossier.dossier_type = new_type

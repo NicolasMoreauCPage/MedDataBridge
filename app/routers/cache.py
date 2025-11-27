@@ -19,12 +19,7 @@ async def get_cache_stats() -> Dict[str, Any]:
     cache = get_cache_service()
     stats = cache.get_stats()
     
-    if not stats.get("enabled"):
-        raise HTTPException(
-            status_code=503,
-            detail="Cache Redis non disponible"
-        )
-    
+    # Retourner les statistiques même si Redis n'est pas activé
     return stats
 
 

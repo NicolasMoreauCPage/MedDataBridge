@@ -1478,7 +1478,12 @@ def seed_demo_population(
         fn = random.choice(first_names)
         ln = random.choice(last_names)
         birth_year = random.randint(1935, 2023)
-        birth_date = f"{birth_year}-" + f"{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+        birth_date_str = f"{birth_year}-" + f"{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+        from datetime import datetime
+        try:
+            birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
+        except Exception:
+            birth_date = None
 
         # Répartition cyclique des patients sur les EJ
         ej = ej_list[i % num_ej] if num_ej > 0 else None

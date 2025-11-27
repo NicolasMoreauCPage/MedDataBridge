@@ -120,7 +120,7 @@ def main():
             patients.append(patient)
             # Identifier CPAGE (PI)
             cpage_system, cpage_oid = ns["CPAGE"]
-            _add_identifier(session, value=str(pseq), type_=IdentifierType.PI, system=cpage_system, oid=cpage_oid, patient=patient)
+            _add_identifier(session, value=str(pseq), type_=IdentifierType.IPP, system=cpage_system, oid=cpage_oid, patient=patient)
             # Identifier IPP (distinct, formaté)
             ipp_system, ipp_oid = ns["IPP"]
             _add_identifier(session, value=f"IPP{pseq:08d}", type_=IdentifierType.IPP, system=ipp_system, oid=ipp_oid, patient=patient)

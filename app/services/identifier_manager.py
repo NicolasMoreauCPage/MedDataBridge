@@ -8,13 +8,40 @@ from app.models_identifiers import Identifier, IdentifierType
 from app.services.identifier_namespace_classifier import classify_incoming_identifiers
 
 
-def parse_hl7_cx_identifier(cx_value: str) -> Tuple[str, str, Optional[str]]:
+def map_hl7_type_to_identifier_type(type_code: Optional[str]) -> Optional[IdentifierType]:
+    """
+    Mappe un code HL7 (ex: PI, AN, NH) vers l'enum IdentifierType.
+    Règles principales:
+    - 'PI' (HL7 Patient Identifier) -> IdentifierType.IPP
+    - 'AN' (Accession Number) -> IdentifierType.NDA
+    - 'NH' (National Health number / SNS) -> IdentifierType.NDA
+    - otherwise attempt direct mapping to enum by value
+    """
+    if not type_code:
+        return None
+
+    code = type_code.strip()
+    # Mapping explicite HL7 -> enum
+    if code == "PI":
+        return IdentifierType.IPP
+    if code == "AN":
+        return IdentifierType.NDA
+    if code == "NH":
+        return IdentifierType.NDA
+    # Fallback: try direct enum construction
+    try:
+        return IdentifierType(code)
+    except ValueError:
+        return None
+
+
+def parse_hl7_cx_identifier(cx_value: str) -> Tuple[str, str, Optional[str], Optional[str]]:
     """
     Parse un identifiant au format HL7 CX (Component/Subcomponent Separator: ^)
     Format HL7 standard: ID^Check Digit^Check Digit Scheme^Assigning Authority^Identifier Type Code
     Pour simplifier, on extrait: value (pos 0), system (assigning authority à pos 3), type_code (pos 4)
     Support des OID: Assigning Authority peut être "SYSTEM&OID&ISO"
-    Retourne: (value, system, type_code)
+    Retourne: (value, system, authority_oid, type_code)
     """
     parts = cx_value.split("^")
     value = parts[0] if len(parts) > 0 else ""
@@ -25,13 +52,14 @@ def parse_hl7_cx_identifier(cx_value: str) -> Tuple[str, str, Optional[str]]:
 
     # Extraire l'OID si présent dans le format "SYSTEM&OID&ISO"
     system = system_full
+    authority_oid = None
     if "&" in system_full:
         system_parts = system_full.split("&")
         if len(system_parts) >= 2:
             system = system_parts[0]
-            # authority_oid = system_parts[1]  # Ignoré pour simplification
+            authority_oid = system_parts[1]
 
-    return value, system, type_code
+    return value, system, authority_oid, type_code
 
 
 def create_identifier_from_hl7(
@@ -45,16 +73,8 @@ def create_identifier_from_hl7(
     value, namespace, authority_oid, type_code = parse_hl7_cx_identifier(cx_value)
     
     # Déterminer le type d'identifiant — par défaut on considère PI (Patient Internal)
-    id_type = None
-    if type_code:
-        try:
-            id_type = IdentifierType(type_code)
-        except ValueError:
-            id_type = None
-
-    if id_type is None:
-        # Par souci de compatibilité, définir un type par défaut non-null
-        id_type = IdentifierType.IPP
+    # Convertir le code HL7 en IdentifierType via le mapping
+    id_type = map_hl7_type_to_identifier_type(type_code) or IdentifierType.IPP
     
     # Créer l'identifiant
     identifier = Identifier(
@@ -78,12 +98,122 @@ def create_identifier_from_hl7(
     return identifier
 
 
-def create_identifiers_from_hl7_with_namespace_check(
-    identifiers_data: List[Tuple[str, str, Optional[str]]],
-    entity_type: str,
-    session,
-    ej_id: Optional[int] = None
-) -> Tuple[List[Identifier], Optional[str], Optional[str]]:
+def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[List[Identifier], Optional[str], Optional[str]]:
+    """
+    Backwards-compatible wrapper that creates identifiers from HL7 CX values with namespace checks.
+
+    Supports two call signatures for historical reasons:
+    1) New style: create_identifiers_from_hl7_with_namespace_check(identifiers_data, entity_type, session, ej_id=None)
+    2) Old style used across the codebase: create_identifiers_from_hl7_with_namespace_check(session, identifiers_data, entity_obj_or_type, entity_type?)
+
+    The wrapper normalizes to (identifiers_data, entity_type, session, ej_id) and delegates to the internal implementation.
+    """
+    # Normalize arguments
+    from sqlmodel import Session as _Session
+
+    identifiers_data = None
+    entity_type = None
+    session = None
+    ej_id = kwargs.get("ej_id")
+
+    # Case A: first arg is a Session -> old style
+    if len(args) >= 1 and isinstance(args[0], _Session):
+        session = args[0]
+        if len(args) >= 2:
+            identifiers_data = args[1]
+        if len(args) >= 3:
+            third = args[2]
+            # third may be an entity instance or a string entity_type
+            if isinstance(third, str):
+                entity_type = third
+                if len(args) >= 4:
+                    ej_id = args[3]
+            else:
+                # third is entity object; fourth should be entity_type string if present
+                if len(args) >= 4 and isinstance(args[3], str):
+                    entity_type = args[3]
+                else:
+                    # try to infer type from object's class name
+                    try:
+                        entity_type = getattr(third, "__tablename__", None) or third.__class__.__name__.lower()
+                    except Exception:
+                        entity_type = None
+    else:
+        # Assume new style: identifiers_data, entity_type, session, ej_id
+        if len(args) >= 1:
+            identifiers_data = args[0]
+        if len(args) >= 2:
+            entity_type = args[1]
+        if len(args) >= 3:
+            session = args[2]
+        if len(args) >= 4:
+            ej_id = args[3]
+
+    # Fallback to kwargs if still missing
+    if identifiers_data is None:
+        identifiers_data = kwargs.get("identifiers_data")
+    if entity_type is None:
+        entity_type = kwargs.get("entity_type")
+    if session is None:
+        session = kwargs.get("session")
+
+    # Now call the internal implementation with normalized parameters
+    # (The rest of the original function expects identifiers_data, entity_type, session, ej_id)
+
+    # Synchronous implementation that returns a tuple-like object which is also awaitable.
+    class _AwaitableTuple(tuple):
+        def __await__(self):
+            async def _inner():
+                return tuple(self)
+            return _inner().__await__()
+
+    if not identifiers_data:
+        return _AwaitableTuple(([], None, None))
+
+    # Normalize incoming identifier tuple shapes and convert for the classifier
+    classifier_data = []
+    for item in identifiers_data:
+        try:
+            if isinstance(item, (list, tuple)) and len(item) == 3:
+                cx_value, system, id_type_str = item
+            elif isinstance(item, (list, tuple)) and len(item) == 4:
+                cx_value, system, _authority_oid, id_type_str = item
+            else:
+                cx_value = str(item)
+                system = ""
+                id_type_str = None
+        except Exception:
+            cx_value = str(item)
+            system = ""
+            id_type_str = None
+
+        id_type = map_hl7_type_to_identifier_type(id_type_str) or IdentifierType.IPP
+        classifier_data.append((cx_value, system, id_type))
+
+    classification = classify_incoming_identifiers(
+        session, classifier_data, entity_type, ej_id
+    )
+
+    identifiers = []
+    if classification.get('main_identifier'):
+        main_id = Identifier(
+            value=classification['main_identifier'],
+            system="",
+            type=IdentifierType.IPP,
+            status="active"
+        )
+        identifiers.append(main_id)
+
+    for ext_id_data in classification.get('external_identifiers', []):
+        ext_id = Identifier(
+            value=ext_id_data['value'],
+            system=ext_id_data.get('external_namespace') or ext_id_data.get('system'),
+            type=ext_id_data['type'],
+            status="active"
+        )
+        identifiers.append(ext_id)
+
+    return _AwaitableTuple((identifiers, classification.get('main_identifier'), classification.get('external_id')))
     """
     Crée des identifiants à partir de données HL7 en vérifiant les namespaces EJ.
     
@@ -102,19 +232,29 @@ def create_identifiers_from_hl7_with_namespace_check(
     if not identifiers_data:
         return [], None, None
     
-    # Convertir les données pour le classifier
+    # Normalize incoming identifier tuple shapes and convert for the classifier
     classifier_data = []
-    for cx_value, system, id_type_str in identifiers_data:
-        # Utiliser le système passé (déjà extrait du CX)
-        
-        # Convertir le type string en enum
-        id_type = None
-        if id_type_str:
-            try:
-                id_type = IdentifierType(id_type_str)
-            except ValueError:
-                id_type = IdentifierType.IPP  # Default
-        
+    for item in identifiers_data:
+        # Support either (cx_value, system, id_type_str) or
+        # (value, system, authority_oid, type_code) returned by parse_hl7_cx_identifier
+        try:
+            if isinstance(item, (list, tuple)) and len(item) == 3:
+                cx_value, system, id_type_str = item
+            elif isinstance(item, (list, tuple)) and len(item) == 4:
+                cx_value, system, _authority_oid, id_type_str = item
+            else:
+                # Unexpected shape: coerce to string and treat as raw CX
+                cx_value = str(item)
+                system = ""
+                id_type_str = None
+        except Exception:
+            cx_value = str(item)
+            system = ""
+            id_type_str = None
+
+        # Convert HL7 type string to enum via the mapper
+        id_type = map_hl7_type_to_identifier_type(id_type_str) or IdentifierType.IPP
+
         classifier_data.append((cx_value, system, id_type))
     
     # Classifier les identifiants selon les namespaces EJ
@@ -162,11 +302,25 @@ def create_fhir_identifier(identifier: Identifier) -> Dict:
         "value": identifier.value
     }
     
+    def map_identifier_type_to_hl7_code(id_type: IdentifierType) -> str:
+        """Retourne le code HL7 (v2) correspondant à l'enum interne.
+
+        - IdentifierType.IPP -> 'PI'
+        - IdentifierType.NDA -> 'AN'
+        - For other types, return the enum value as-is.
+        """
+        if id_type == IdentifierType.IPP:
+            return "PI"
+        if id_type == IdentifierType.NDA:
+            return "AN"
+        return id_type.value
+
     if identifier.type:
+        hl7_code = map_identifier_type_to_hl7_code(identifier.type)
         fhir_id["type"] = {
             "coding": [{
                 "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
-                "code": identifier.type.value
+                "code": hl7_code
             }]
         }
     
@@ -182,11 +336,10 @@ def create_identifier_from_fhir(fhir_identifier: Dict) -> Identifier:
     if "type" in fhir_identifier and "coding" in fhir_identifier["type"]:
         for coding in fhir_identifier["type"]["coding"]:
             if coding["system"] == "http://terminology.hl7.org/CodeSystem/v2-0203":
-                try:
-                    id_type = IdentifierType(coding["code"])
+                # Mapper HL7 code -> IdentifierType
+                id_type = map_hl7_type_to_identifier_type(coding.get("code"))
+                if id_type:
                     break
-                except ValueError:
-                    pass
     
     return Identifier(
         value=fhir_identifier["value"],

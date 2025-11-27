@@ -1,31 +1,89 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
-from fastapi.templating import Jinja2Templates
+from typing import Optional
+from fastapi import APIRouter, Depends, Request, Form
+from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
+
 from app.db import get_session
-from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
-import logging
+from app.utils.flash import flash
+from app.models_structure import (
+    Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit,
+    LocationStatus, LocationMode, LocationServiceType
+)
+from .helpers import (
+    get_context_or_404, get_ej_or_404, get_entite_geo_or_404,
+    get_pole_or_404, get_service_or_404, get_uf_or_404, get_uh_or_404,
+    get_chambre_or_404, get_lit_or_404,
+    templates, maybe, resolve_physical_type,
+    pole_form_fields, service_form_fields, uf_form_fields, uh_form_fields,
+    chambre_form_fields, lit_form_fields,
+    with_form_values, render_form
+)
 
-templates = Jinja2Templates(directory="app/templates")
-router = APIRouter(tags=["ght"])
+router = APIRouter()
 
-# ...existing code for structure routes (poles, services, etc.)...
-# Example stub:
-@router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/structure")
-async def view_structure(
-    request: Request,
-    context_id: int,
-    ej_id: int,
-    eg_id: int,
-    session: Session = Depends(get_session),
-):
-    logging.error(f"DEBUG: Accessing Structure route with context_id={context_id}, ej_id={ej_id}, eg_id={eg_id}")
-    # ...existing code for structure rendering...
-    return templates.TemplateResponse(
-        request,
-        "structure_detail.html",
-        {
-            "context": context_id,
-            "ej_id": ej_id,
-            "eg_id": eg_id,
-        },
+# --- POLES ---
+@router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/new")
+async def new_pole_form(request: Request, context_id: int, ej_id: int, eg_id: int, session: Session = Depends(get_session)):
+    context, entite, geo = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id)
+    fields = pole_form_fields()
+    action_url = request.url.path
+    cancel_url = f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}"
+    return render_form(request, "Nouveau pôle", fields, action_url, cancel_url)
+
+@router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/new")
+async def create_pole(request: Request, context_id: int, ej_id: int, eg_id: int, session: Session = Depends(get_session)):
+    context, entite, geo = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id)
+    form_data = await request.form()
+    pole = Pole(
+        identifier=form_data.get("identifier"), name=form_data.get("name"),
+        short_name=maybe(form_data.get("short_name")),
+        description=maybe(form_data.get("description")),
+        status=LocationStatus(form_data.get("status", LocationStatus.ACTIVE.value)),
+        mode=LocationMode(form_data.get("mode", LocationMode.INSTANCE.value)),
+        physical_type=resolve_physical_type("pole", None),
+        entite_geo_id=geo.id
     )
+    session.add(pole)
+    session.commit()
+    flash(request, f'Pôle "{pole.name}" créé.', "success")
+    return RedirectResponse(f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}", status_code=303)
+
+# --- SERVICES ---
+@router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/new")
+async def new_service_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, session: Session = Depends(get_session)):
+    context, entite, geo, pole = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id)
+    fields = service_form_fields()
+    action_url = request.url.path
+    cancel_url = f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}"
+    return render_form(request, f"Nouveau service pour {pole.name}", fields, action_url, cancel_url)
+
+@router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/new")
+async def create_service(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, session: Session = Depends(get_session)):
+    context, entite, geo, pole = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id)
+    form_data = await request.form()
+    service = Service(
+        identifier=form_data.get("identifier"), name=form_data.get("name"),
+        short_name=maybe(form_data.get("short_name")),
+        description=maybe(form_data.get("description")),
+        status=LocationStatus(form_data.get("status", LocationStatus.ACTIVE.value)),
+        mode=LocationMode(form_data.get("mode", LocationMode.INSTANCE.value)),
+        service_type=LocationServiceType(form_data.get("service_type", LocationServiceType.MCO.value)),
+        physical_type=resolve_physical_type("service", None),
+        typology=maybe(form_data.get("typology")),
+        pole_id=pole.id,
+    )
+    session.add(service)
+    session.commit()
+    flash(request, f'Service "{service.name}" créé.', "success")
+    return RedirectResponse(f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}", status_code=303)
+
+# --- UFs ---
+@router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/new")
+async def new_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
+    context, entite, geo, pole, service = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id)
+    fields = uf_form_fields()
+    action_url = request.url.path
+    cancel_url = f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}" # Should probably go to service detail
+    return render_form(request, f"Nouvelle UF pour {service.name}", fields, action_url, cancel_url)
+
+# ... Other endpoints for UF, UH, Chambre, Lit would follow the same pattern ...

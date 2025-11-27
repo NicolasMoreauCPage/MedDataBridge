@@ -163,14 +163,21 @@ def import_adt_into_ght(
     
     # Créer patient si absent
     if not patient:
-        patient = Patient(
-            family=pid_data["family"],
-            given=pid_data["given"],
-            birth_date=pid_data["birth_date"],
-            gender=pid_data["gender"],
-            identity_reliability_code="VALI",
-            country="FR"
-        )
+            birth_date_str = pid_data["birth_date"]
+            birth_date_obj = None
+            if birth_date_str:
+                try:
+                    birth_date_obj = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
+                except Exception:
+                    birth_date_obj = None
+            patient = Patient(
+                family=pid_data["family"],
+                given=pid_data["given"],
+                birth_date=birth_date_obj,
+                gender=pid_data["gender"],
+                identity_reliability_code="VALI",
+                country="FR"
+            )
         session.add(patient)
         session.commit()
         session.refresh(patient)

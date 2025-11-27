@@ -18,6 +18,10 @@ class IdentifierType(str, Enum):
     MVT = "MVT"  # Identifiant de Mouvement (mouvement)
     PC = "PC"    # Personne à Contacter (contacts)
 
+    # Backwards-compatible aliases for older code/tests using HL7 codes
+    PI = "IPP"
+    AN = "NDA"
+
 
 class Identifier(SQLModel, table=True):
     """Modèle pour stocker les identifiants avec leur domaine"""

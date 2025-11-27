@@ -29,14 +29,14 @@ def test_pix_query(client: TestClient, session: Session):
             patient_id=patient.id,
             system="HOPITAL_A",
             value="ID001",
-            type=IdentifierType.PI,
+            type=IdentifierType.IPP,
             status="active"
         ),
         Identifier(
             patient_id=patient.id,
             system="HOPITAL_B",
             value="ID002",
-            type=IdentifierType.PI,
+            type=IdentifierType.IPP,
             status="active"
         )
     ]
@@ -148,7 +148,7 @@ def test_pixm_query(client: TestClient, session: Session):
             patient_id=patient.id,
             system="http://hopital-a.fr/id",
             value="ID001",
-            type=IdentifierType.PI,
+            type=IdentifierType.IPP,
             status="active"
         ),
         Identifier(

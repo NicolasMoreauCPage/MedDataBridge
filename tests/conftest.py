@@ -1,3 +1,14 @@
+import os
+
+# Ensure the application runs in testing mode during pytest runs so
+# lifetime init (DB init, event listeners, background scheduler, MLLP)
+# are skipped. This avoids background emission workers opening new DB
+# sessions against the test DB which causes sqlite/SQLAlchemy errors.
+os.environ.setdefault("TESTING", "1")
+
+def pytest_configure(config):
+    # make sure other code reading env sees the flag early
+    os.environ["TESTING"] = "1"
 """Test fixtures"""
 import pytest
 from sqlmodel import SQLModel, Session

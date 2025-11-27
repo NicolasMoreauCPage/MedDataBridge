@@ -1,0 +1,109 @@
+import logging
+from datetime import datetime
+from typing import List, Optional
+from sqlmodel import Session, select
+from pydantic import BaseModel
+from sqlalchemy.orm import attributes, selectinload
+
+from app.models import Dossier, Patient, Venue, DossierType
+from app.models_identifiers import IdentifierType
+from app.models_structure import IdentifierNamespace, UniteFonctionnelle, Service, Pole, EntiteGeographique
+from app.db import get_next_sequence
+
+logger = logging.getLogger(__name__)
+
+class DossierCreateSchema(BaseModel):
+    """Schéma de données pour la création d'un dossier."""
+    uf_responsabilite: Optional[str]
+    dossier_type: DossierType
+    admission_source: Optional[str]
+    attending_provider: Optional[str]
+    admit_time: datetime
+    current_state: Optional[str] = "Pas de venue courante"
+
+class DossierUpdateSchema(BaseModel):
+    """Schéma de données pour la mise à jour d'un dossier."""
+    patient_id: int
+    uf_responsabilite: Optional[str]
+    dossier_type: DossierType
+    admission_source: Optional[str]
+    attending_provider: Optional[str]
+    admit_time: datetime
+    dossier_seq: int
+
+def get_uf_options(session: Session, ej_id: int) -> List[dict]:
+    """Récupère les options de l'UF pour les formulaires."""
+    if not ej_id:
+        return []
+    ufs = session.exec(
+        select(UniteFonctionnelle)
+        .join(Service).join(Pole).join(EntiteGeographique)
+        .where(EntiteGeographique.entite_juridique_id == ej_id)
+        .where(UniteFonctionnelle.status == "active")
+    ).all()
+    return [{"value": uf.identifier, "label": f"{uf.identifier} - {uf.name}"} for uf in ufs]
+
+def get_dossier(session: Session, dossier_id: int) -> Optional[Dossier]:
+    """Récupère un dossier par son ID."""
+    return session.get(Dossier, dossier_id)
+
+def get_dossiers(
+    session: Session,
+    ej_id: Optional[int] = None,
+    patient_id: Optional[int] = None,
+    dossier_type: Optional[DossierType] = None,
+    dossier_seq: Optional[int] = None,
+) -> List[Dossier]:
+    """Récupère une liste de dossiers filtrée."""
+    query = select(Dossier)
+    if ej_id:
+        query = query.where(Dossier.entite_juridique_id == ej_id)
+    if patient_id:
+        query = query.where(Dossier.patient_id == patient_id)
+    if dossier_type:
+        query = query.where(Dossier.dossier_type == dossier_type)
+    if dossier_seq:
+        query = query.where(Dossier.dossier_seq == dossier_seq)
+    return session.exec(query).all()
+
+def update_dossier(
+    session: Session,
+    dossier: Dossier,
+    update_data: DossierUpdateSchema
+) -> Dossier:
+    """Met à jour un dossier existant."""
+    try:
+        dossier.patient_id = update_data.patient_id
+        dossier.dossier_type = update_data.dossier_type
+        dossier.admission_source = update_data.admission_source
+        dossier.attending_provider = update_data.attending_provider
+        dossier.admit_time = update_data.admit_time
+        dossier.dossier_seq = update_data.dossier_seq
+
+        session.refresh(dossier, attribute_names=["venues"])
+        if dossier.venues:
+            dossier.venues[0].uf_responsabilite = update_data.uf_responsabilite
+        
+        session.add(dossier)
+        attributes.flag_modified(dossier, "dossier_type")
+        session.commit()
+        session.refresh(dossier)
+
+        logger.info(f"Dossier {dossier.id} mis à jour avec succès.")
+        return dossier
+    
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour du dossier {dossier.id}: {e}", exc_info=True)
+        session.rollback()
+        raise
+
+def delete_dossier(session: Session, dossier: Dossier):
+    """Supprime un dossier."""
+    try:
+        session.delete(dossier)
+        session.commit()
+        logger.info(f"Dossier {dossier.id} supprimé avec succès.")
+    except Exception as e:
+        logger.error(f"Erreur lors de la suppression du dossier {dossier.id}: {e}", exc_info=True)
+        session.rollback()
+        raise

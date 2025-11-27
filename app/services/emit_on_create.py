@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__name__)
 import asyncio
 import json
 from typing import Literal, Sequence, Tuple
@@ -17,6 +19,7 @@ import json
 
 # Global sanitization helper: coerce None / 'None' / whitespace-only to ''
 def _c(val):
+    logger.debug(f"_c called with val={val}")
     if val is None:
         return ""
     if isinstance(val, str):
@@ -33,42 +36,33 @@ def build_pid3_identifiers(
     forced_system: str | None = None,
     forced_oid: str | None = None,
 ) -> str:
-    """
-    Construit PID-3 avec TOUS les identifiants du patient (répétitions avec ~).
-    
-    Format HL7 v2.5 PID-3: ID1^^^SYSTEM1^TYPE~ID2^^^SYSTEM2^TYPE~...
-    
-    Ordre des identifiants:
-    1. IPP (patient_seq) - identifiant interne principal
-    2. External ID si présent
-    3. NIR (Sécurité sociale) si présent
-    4. Tous les autres identifiants actifs de la table Identifier
-    
-    Args:
-        patient: Instance Patient
-        session: Session DB pour requêter les Identifier
-        forced_system: Système forcé pour IPP (si None, utilise "HOSP")
-    
-    Returns:
-        String PID-3 avec répétitions ~ entre identifiants
-    
-    Exemple:
-        "1001^^^HOSP^PI~EXT123^^^EXTERNAL_SYS^PI~1234567890123^^^INS-NIR^NH"
-    """
     def _auth(system: str | None, oid: str | None) -> str:
         system = (system or "").strip()
         oid = (oid or "").strip()
         return f"{system}&{oid}&ISO" if system and oid else system
 
     identifiers = []
-    
-    # 1. IPP (patient_seq) - générer si absent pour éviter 'None'
-    # 1. IPP (patient_seq) - si absent ne pas persister, utiliser fallback éphémère pour PID-3
-    ipp_value = patient.id or "TEMP"
-    system = forced_system or "HOSP"
-    identifiers.append(f"{_c(ipp_value)}^^^{_auth(system, forced_oid)}^PI")
-        
-    
+    logger.info(f"build_pid3_identifiers called with args: {locals()}")
+    # Priority: include internal IPP identifier (patient_seq or id) using IdentifierNamespace of type 'IPP' when available
+    try:
+        internal_id_val = getattr(patient, "patient_seq", None) or getattr(patient, "id", None)
+        if internal_id_val:
+            ipp_ns = None
+            if getattr(patient, 'entite_juridique_id', None):
+                ipp_ns = session.exec(
+                    select(IdentifierNamespace)
+                    .where(IdentifierNamespace.entite_juridique_id == patient.entite_juridique_id)
+                    .where(IdentifierNamespace.type == "IPP")
+                    .where(IdentifierNamespace.is_active == True)
+                ).first()
+            if ipp_ns:
+                auth = _auth(ipp_ns.system, ipp_ns.oid)
+            else:
+                auth = _auth(forced_system, forced_oid) or "HOSP"
+            # Use 'IPP' as identifier type to reflect internal patient identifier namespace
+    except Exception:
+        logger.exception("Error while resolving IPP namespace for internal identifier")
+
     # 2. External ID si présent - chercher dans Identifier pour avoir system/oid
     external_id_clean = _c(getattr(patient, "external_id", None))
     if external_id_clean:  # Only add if not empty after sanitization
@@ -79,11 +73,12 @@ def build_pid3_identifiers(
             .where(Identifier.value == external_id_clean)
             .where(Identifier.status == "active")
         ).first()
-        
         if ext_ident:
             # Utiliser system/oid/type de l'Identifier
+            # Ensure we emit correct type code (PI/IPP/MR/...) and not duplicate namespace in trailing components
+            ident_type = getattr(ext_ident.type, 'value', ext_ident.type)
             identifiers.append(
-                f"{_c(ext_ident.value)}^^^{_auth(ext_ident.system, ext_ident.oid)}^{getattr(ext_ident.type, 'value', ext_ident.type)}"
+                f"{_c(ext_ident.value)}^^^{_auth(ext_ident.system, ext_ident.oid)}^{ident_type}"
             )
         else:
             # Fallback: external_id sans système connu
@@ -124,6 +119,37 @@ def build_pid3_identifiers(
     return "~".join(identifiers) if identifiers else ""
 
 
+def _resolve_namespace_authority(
+    session: Session, entite_juridique_id: int | None, ns_type: str, forced_system: str | None = None, forced_oid: str | None = None
+) -> Tuple[str, str]:
+    """Return (authority, type_code) for a namespace of given type.
+    authority is formatted as 'system&oid&ISO' when both present, or system when only system present.
+    type_code is the namespace.type (e.g. 'IPP','NDA','VN','MVT').
+    Falls back to forced_system/forced_oid or ('HOSP', ns_type).
+    """
+    def _auth(system: str | None, oid: str | None) -> str:
+        system = (system or "").strip()
+        oid = (oid or "").strip()
+        return f"{system}&{oid}&ISO" if system and oid else system or ""
+
+    if entite_juridique_id:
+        try:
+            ns = session.exec(
+                select(IdentifierNamespace)
+                .where(IdentifierNamespace.entite_juridique_id == entite_juridique_id)
+                .where(IdentifierNamespace.type == ns_type)
+                .where(IdentifierNamespace.is_active == True)
+            ).first()
+            if ns:
+                return (_auth(ns.system, ns.oid), ns.type or ns_type)
+        except Exception:
+            logger.exception("Error resolving IdentifierNamespace for type %s and ej=%s", ns_type, entite_juridique_id)
+
+    # Fallback to forced values or defaults
+    auth = _auth(forced_system, forced_oid) or (forced_system or "HOSP")
+    return (auth, ns_type)
+
+
 def generate_pam_hl7(
     entity,
     entity_type: Literal["patient", "dossier", "venue", "mouvement"],
@@ -131,7 +157,12 @@ def generate_pam_hl7(
     forced_identifier_system: str | None = None,
     forced_identifier_oid: str | None = None,
     operation: str = "insert",
+    msh_sending_app: str | None = None,
+    msh_sending_facility: str | None = None,
+    msh_receiving_app: str | None = None,
+    msh_receiving_facility: str | None = None,
 ) -> str:
+    logger.info(f"generate_pam_hl7 called with args: {locals()}")
     """Build a minimal HL7 PAM message for the given entity type."""
     if entity_type == "patient":
         # Local helper to coerce any None / 'None' / whitespace-only values to ''
@@ -164,7 +195,11 @@ def generate_pam_hl7(
         # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
         # MSH-16: FRA (pays)
         # MSH-17: 8859/1 (encodage ISO-8859-1)
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+        sending_app = msh_sending_app or "POC"
+        sending_fac = msh_sending_facility or "HOSP"
+        receiving_app = msh_receiving_app or "EXT"
+        receiving_fac = msh_receiving_facility or "HOSP"
+        msh = f"MSH|^~\\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         
         # EVN segment
         evn = f"EVN|{event_type}|{timestamp}"
@@ -581,10 +616,14 @@ def generate_pam_hl7(
             msg_structure = "ADT_A38"
         else:
             msg_structure = f"ADT_{event_code}"
+        sending_app = msh_sending_app or "POC"
+        sending_fac = msh_sending_facility or "HOSP"
+        receiving_app = msh_receiving_app or "EXT"
+        receiving_fac = msh_receiving_facility or "HOSP"
         if event_code == "Z99":
-            msh = rf"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+            msh = rf"MSH|^~\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         else:
-            msh = rf"MSH|^~\&|POC|HOSP|EXT|HOSP|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+            msh = rf"MSH|^~\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         
         # Build EVN segment
         evn = f"EVN|{event_code}|{timestamp}"
@@ -602,7 +641,13 @@ def generate_pam_hl7(
             gender = patient.gender or ""
             
             # PID-18: Patient Account Number (numéro de dossier pour IHE PAM France)
-            account_number = str(dossier.dossier_seq) if dossier and hasattr(dossier, 'dossier_seq') else ""
+            # Prefer VN namespace (visit number namespace) for visit/account identifiers
+            account_number_raw = str(dossier.dossier_seq) if dossier and hasattr(dossier, 'dossier_seq') else ""
+            authority_vn, vn_type = _resolve_namespace_authority(
+                session, getattr(dossier, 'entite_juridique_id', None), "VN",
+                forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
+            )
+            account_number = f"{account_number_raw}^^^{authority_vn}^{vn_type}"
             
             # Build complete PID segment with PID-18 (Patient Account Number)
             # Format: PID|1||PID3||Name||DOB|Gender||||||||||||Marital||||BirthPlace||||Nationality||||||IdentityCode
@@ -651,7 +696,13 @@ def generate_pam_hl7(
         visit_number_pv1 = str(venue.venue_seq) if venue else str(entity.mouvement_seq)
         
         # PV1-19 (Visit Number) - use venue_seq (numéro de venue) as full CX
-        pv1_19 = f"{visit_number_pv1}^^^{authority}^VN"
+        # PV1-19 (Visit Number) - use venue_seq (numéro de venue) as full CX
+        authority_vn, vn_type = _resolve_namespace_authority(
+            session, getattr(dossier, 'entite_juridique_id', None) if dossier else getattr(venue, 'entite_juridique_id', None),
+            "VN",
+            forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
+        )
+        pv1_19 = f"{visit_number_pv1}^^^{authority_vn}^{vn_type}"
         pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{pv1_19}||||||||||||||||||||{uf_resp}||||||{timestamp}"
 
         # ZBE segment generation for mouvement (same format as venue)
@@ -667,37 +718,21 @@ def generate_pam_hl7(
                     .where(Identifier.status == "active")
                 ).first()
             if mv_ident:
-                # Try to resolve a matching IdentifierNamespace for the identifier system
-                ns = None
-                if session and mv_ident.system:
-                    ns = session.exec(
-                        select(IdentifierNamespace).where(IdentifierNamespace.system == mv_ident.system)
-                    ).first()
-                if ns:
-                    # Use the namespace-aware ZBE-1 format (movementId ^ namespace.name ^ namespace.oid ^ ISO)
-                    zbe_id = f"{mv_ident.value}^{ns.name}^{ns.oid or ns.system}^ISO"
-                else:
-                    # Fallback to the raw identifier value
-                    zbe_id = str(mv_ident.value)
+                # Prefer namespace lookup by entite_juridique and type MVT
+                ns_auth, ns_type = _resolve_namespace_authority(
+                    session, getattr(dossier, 'entite_juridique_id', None), "MVT",
+                    forced_system=mv_ident.system, forced_oid=mv_ident.oid
+                )
+                # ZBE-1 movement identifier: value^namespace^oid^ISO-style authority
+                zbe_id = f"{mv_ident.value}^{ns_type}^{mv_ident.oid or mv_ident.system}^ISO"
             else:
-                # No MVT identifier found, use mouvement_seq with default MVT namespace
-                if session and dossier and hasattr(dossier, 'entite_juridique_id') and dossier.entite_juridique_id:
-                    # Try to find MVT namespace for the entity's EJ
-                    mvt_ns = session.exec(
-                        select(IdentifierNamespace)
-                        .where(IdentifierNamespace.entite_juridique_id == dossier.entite_juridique_id)
-                        .where(IdentifierNamespace.type == "MVT")
-                        .where(IdentifierNamespace.is_active == True)
-                    ).first()
-                    if mvt_ns:
-                        # Use mouvement_seq with MVT namespace
-                        zbe_id = f"{entity.mouvement_seq}^{mvt_ns.name}^{mvt_ns.oid or mvt_ns.system}^ISO"
-                    else:
-                        # Fallback to mouvement_seq without namespace
-                        zbe_id = str(entity.mouvement_seq)
-                else:
-                    # Fallback to mouvement_seq without namespace
-                    zbe_id = str(entity.mouvement_seq)
+                # No MVT identifier found, use mouvement_seq with MVT namespace if available
+                mvt_auth, mvt_type = _resolve_namespace_authority(
+                    session, getattr(dossier, 'entite_juridique_id', None), "MVT",
+                    forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
+                )
+                # mvt_auth may be 'system&oid&ISO' or system; include mvt_type as type code
+                zbe_id = f"{entity.mouvement_seq}^{mvt_type}^{mvt_auth}^ISO"
         except Exception:
             # Keep control_id as fallback on any error
             zbe_id = control_id
@@ -765,6 +800,7 @@ def generate_fhir(
     forced_identifier_system: str | None = None,
     forced_identifier_oid: str | None = None,
 ):
+    logger.info(f"generate_fhir called with args: {locals()}")
     """Build a FHIR Bundle for the entity using the new architecture.
     
     Architecture:
@@ -778,6 +814,7 @@ def generate_fhir(
 
 
 def _old_generate_fhir_patient_code():
+    logger.debug("_old_generate_fhir_patient_code called")
     """OLD CODE - kept for reference but not used."""
     if False:  # entity_type == "patient":
         # Build identifiers with proper systems
@@ -999,6 +1036,7 @@ def _old_generate_fhir_patient_code():
 
 
 def _build_fhir_targets(endpoint: SystemEndpoint) -> Sequence[Tuple[str, str, str | None]]:
+    logger.debug(f"_build_fhir_targets called with endpoint={endpoint}")
     """Return (base_url, auth_kind, auth_token) tuples for an endpoint."""
     targets: list[Tuple[str, str, str | None]] = []
 
@@ -1039,7 +1077,11 @@ async def emit_to_senders_async(
 ) -> None:
     """Emit HL7/FHIR notifications for newly created or updated entities."""
 
-    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.role.in_(["sender", "both"]))).all()
+    endpoints = session.exec(
+        select(SystemEndpoint)
+        .where(SystemEndpoint.role.in_(["sender", "both"]))
+        .where(SystemEndpoint.is_enabled == True)
+    ).all()
     # Filter endpoints: only those linked to the entity's EJ or GHT context
     entity_ej_id = getattr(entity, "entite_juridique_id", None)
     entity_ght_id = getattr(entity, "ght_context_id", None)
@@ -1066,6 +1108,10 @@ async def emit_to_senders_async(
                     forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
                     forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
                     operation=operation,
+                    msh_sending_app=getattr(endpoint, 'sending_app', None),
+                    msh_sending_facility=getattr(endpoint, 'sending_facility', None),
+                    msh_receiving_app=getattr(endpoint, 'receiving_app', None),
+                    msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
                 )
                 if hl7_message is None or (isinstance(hl7_message, str) and hl7_message.strip() == ""):
                     hl7_message = "[Emission error: HL7 message not generated]"
@@ -1134,11 +1180,15 @@ async def emit_to_senders_async(
                         existing_log.created_at = datetime.utcnow()
                         session.commit()
                     else:
+                        # Ensure payload is never None (DB NOT NULL constraint)
+                        if payload_str is None:
+                            logger.warning("MessageLog payload is None for endpoint=%s; coercing to empty string", endpoint.id)
+                        safe_payload = payload_str or ""
                         log = MessageLog(
                             direction="out",
                             kind="MLLP",
                             endpoint_id=endpoint.id,
-                            payload=payload_str,
+                            payload=safe_payload,
                             ack_payload=ack_payload or "",
                             status=status,
                             pam_validation_status=pam_status,
@@ -1192,11 +1242,14 @@ async def emit_to_senders_async(
                         existing_log.created_at = datetime.utcnow()
                         session.commit()
                     else:
+                        if payload_str is None:
+                            logger.warning("FHIR MessageLog payload is None for endpoint=%s; coercing to empty string", endpoint.id)
+                        safe_payload = payload_str or ""
                         log = MessageLog(
                             direction="out",
                             kind="FHIR",
                             endpoint_id=endpoint.id,
-                            payload=payload_str,
+                            payload=safe_payload,
                             ack_payload="Endpoint FHIR non configuré",
                             status="error",
                             correlation_id=correlation_id,
@@ -1227,6 +1280,8 @@ async def emit_to_senders_async(
                                 .where(MessageLog.direction == "out")
                                 .where(MessageLog.correlation_id == correlation_id)
                             ).first()
+                            if existing_log:
+                                logger.info(f"[RECEPTION] Updated existing FHIR MessageLog id={existing_log.id} with FHIR payload")
                         else:
                             existing_log = session.exec(
                                 select(MessageLog)
@@ -1235,6 +1290,7 @@ async def emit_to_senders_async(
                                 .where(MessageLog.status.in_(["error", "pending"]))
                                 .order_by(MessageLog.created_at.desc())
                             ).first()
+                            logger.info(f"[RECEPTION] Created new FHIR MessageLog for endpoint={endpoint.id}, correlation_id={correlation_id}")
                         if existing_log:
                             existing_log.payload = payload_str
                             existing_log.ack_payload = ack_payload
@@ -1242,11 +1298,14 @@ async def emit_to_senders_async(
                             existing_log.created_at = datetime.utcnow()
                             session.commit()
                         else:
+                            if payload_str is None:
+                                logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
+                            safe_payload = payload_str or ""
                             log = MessageLog(
                                 direction="out",
                                 kind="FHIR",
                                 endpoint_id=endpoint.id,
-                                payload=payload_str,
+                                payload=safe_payload,
                                 ack_payload=ack_payload,
                                 status=status,
                                 correlation_id=correlation_id,
@@ -1343,11 +1402,14 @@ async def emit_to_senders_async(
                             existing_log.created_at = datetime.utcnow()
                             session.commit()
                         else:
+                            if payload_str is None:
+                                logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
+                            safe_payload = payload_str or ""
                             log = MessageLog(
                                 direction="out",
                                 kind="FHIR",
                                 endpoint_id=endpoint.id,
-                                payload=payload_str,
+                                payload=safe_payload,
                                 ack_payload=ack_payload,
                                 status=status,
                                 correlation_id=correlation_id,
@@ -1359,6 +1421,70 @@ async def emit_to_senders_async(
                         retry += 1
                         if retry < max_retry:
                             time.sleep(60)
+
+        # FILE outbox: write HL7/FHIR payloads to a filesystem outbox if configured
+        if endpoint.kind == "FILE" and getattr(endpoint, "outbox_path", None):
+            from datetime import datetime
+            import os
+            try:
+                # Build HL7 for PAM events (patient/venue/mouvement)
+                hl7_message = None
+                if entity_type in ["patient", "venue", "mouvement"]:
+                    hl7_message = generate_pam_hl7(
+                        entity,
+                        entity_type,
+                        session,
+                        operation=operation,
+                        msh_sending_app=getattr(endpoint, 'sending_app', None),
+                        msh_sending_facility=getattr(endpoint, 'sending_facility', None),
+                        msh_receiving_app=getattr(endpoint, 'receiving_app', None),
+                        msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
+                    )
+                # Fallback to FHIR payload when HL7 not applicable
+                if not hl7_message:
+                    fhir_payload = generate_fhir(entity, entity_type, session)
+                    payload_str = json.dumps(fhir_payload, default=str)
+                    ext = "json"
+                else:
+                    payload_str = hl7_message
+                    ext = "hl7"
+
+                # Ensure outbox exists
+                outbox = endpoint.outbox_path
+                os.makedirs(outbox, exist_ok=True)
+                filename = f"{entity_type}_{getattr(entity,'id', 'unknown')}_{int(datetime.utcnow().timestamp())}.{ext}"
+                filepath = os.path.join(outbox, filename)
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(payload_str)
+
+                # Record MessageLog
+                log = MessageLog(
+                    direction="out",
+                    kind="FILE",
+                    endpoint_id=endpoint.id,
+                    payload=(payload_str[:100000] if payload_str else ""),
+                    ack_payload=f"WROTE:{filepath}",
+                    status="sent",
+                    correlation_id=getattr(entity, 'correlation_id', None),
+                )
+                session.add(log)
+                session.commit()
+            except Exception as exc:
+                logger.error(f"[emit_on_create] Failed to write FILE outbox for endpoint={endpoint.id}: {exc}")
+                try:
+                    log = MessageLog(
+                        direction="out",
+                        kind="FILE",
+                        endpoint_id=endpoint.id,
+                        payload=(payload_str[:100000] if 'payload_str' in locals() and payload_str else ""),
+                        ack_payload=str(exc),
+                        status="error",
+                        correlation_id=getattr(entity, 'correlation_id', None),
+                    )
+                    session.add(log)
+                    session.commit()
+                except Exception:
+                    logger.exception("Failed to persist FILE MessageLog after write failure")
 
     if not endpoints:
         # No sender configured: store generated payloads for audit trail.
@@ -1375,7 +1501,7 @@ async def emit_to_senders_async(
             direction="out",
             kind="MLLP",
             endpoint_id=None,
-            payload=hl7_message,
+            payload=hl7_message or "",
             ack_payload="",
             status="generated",
             pam_validation_status=pam_status,
@@ -1385,7 +1511,7 @@ async def emit_to_senders_async(
             direction="out",
             kind="FHIR",
             endpoint_id=None,
-            payload=json.dumps(fhir_payload, default=str),
+            payload=json.dumps(fhir_payload, default=str) if fhir_payload is not None else "",
             ack_payload="",
             status="generated",
         )

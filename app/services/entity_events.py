@@ -1,13 +1,30 @@
 """
 Système d'événements pour l'émission automatique de messages HL7/FHIR.
 
-Écoute les modifications d'entités (Patient, Dossier, Venue, Mouvement)
-et émet automatiquement des messages vers les endpoints configurés en "sender".
+Ce module met en place un système de "webhooks" basé sur la base de données.
+Il écoute les modifications sur les entités principales (Patient, Dossier, etc.)
+et déclenche des actions asynchrones (comme l'envoi de messages) après
+que les transactions de base de données ont été confirmées avec succès.
 
-Fonctionne pour TOUTES les sources de modification:
-- Messages MLLP entrants (via handlers PAM)
-- Saisie via IHM web (via routers FastAPI)
-- Scripts/outils (via accès direct à la DB)
+Le flux de travail est le suivant :
+1.  **Enregistrement :** Au démarrage de l'application, `register_entity_events()` attache
+    des écouteurs SQLAlchemy aux événements `after_insert` et `after_update` des modèles.
+2.  **Planification :** Lorsqu'une entité est modifiée dans une session, l'écouteur
+    appelle `_schedule_emission()`, qui ajoute une tâche à un dictionnaire
+    `_pending_emissions` lié à la session en cours. Une protection empêche les
+    émissions en chaîne (une émission qui déclenche une autre émission).
+3.  **Commit :** Une fois la transaction de base de données validée (`commit`),
+    l'écouteur `after_commit` s'exécute.
+4.  **Exécution en arrière-plan :** La fonction `after_commit` récupère les tâches
+    planifiées pour la session terminée et les soumet à un `ThreadPoolExecutor`.
+    Chaque tâche s'exécute dans un thread séparé, appelant `_emit_in_new_session`.
+5.  **Émission :** `_emit_in_new_session` s'exécute dans son propre thread, ouvre une
+    nouvelle session de base de données pour récupérer une vue à jour de l'entité,
+    et effectue l'émission réelle via `emit_to_senders_async`. Un sémaphore
+    limite le nombre d'émissions concurrentes pour éviter d'épuiser les ressources.
+
+Ce mécanisme garantit que les émissions ne se produisent que pour les données
+validées et ne bloquent pas le thread principal de l'application.
 """
 
 import asyncio
@@ -22,14 +39,25 @@ from app.services.emit_on_create import emit_to_senders_async
 
 logger = logging.getLogger(__name__)
 
-# Track entities to emit after flush (avoid duplicates)
+# --- Gestion d'état du système d'événements ---
+
+# _pending_emissions: Dictionnaire pour suivre les entités à émettre après la
+# validation (commit) de la transaction. La clé est l'ID de la session SQLAlchemy,
+# et la valeur est un ensemble de tuples (id_entité, type_entité, opération)
+# pour éviter les doublons.
 _pending_emissions: Dict[int, Set[tuple]] = {}
 
-# Thread-local flag to prevent recursive emissions (emission triggering new entities)
+# _emission_context: Un objet "thread-local" utilisé comme drapeau pour savoir
+# si le thread courant est déjà en train d'exécuter une émission. C'est une
+# sécurité cruciale pour empêcher les boucles d'émission infinies (une émission
+# qui modifie une entité, déclenchant ainsi une autre émission).
 _emission_context = threading.local()
 
-# Semaphore to limit concurrent emissions (prevent pool exhaustion)
-_emission_semaphore = threading.Semaphore(5)  # Max 5 concurrent emissions
+# _emission_semaphore: Un sémaphore pour limiter le nombre d'émissions simultanées
+# s'exécutant en arrière-plan. Protège contre l'épuisement des ressources
+# (par exemple, le pool de connexions à la base de données) en cas d'un grand
+# nombre de modifications rapides.
+_emission_semaphore = threading.Semaphore(5)
 
 
 def _get_session_id(session: Session) -> int:
@@ -38,8 +66,11 @@ def _get_session_id(session: Session) -> int:
 
 
 def _schedule_emission(session: Session, entity: Any, entity_type: str, operation: str):
-    """Schedule an emission after the current transaction flush."""
-    # Check if we're currently inside an emission (prevent recursive loop)
+    """
+    Planifie une émission pour qu'elle s'exécute après la validation (commit)
+    de la transaction en cours.
+    """
+    # Vérifie si nous sommes déjà dans un contexte d'émission pour éviter les boucles.
     if getattr(_emission_context, 'active', False):
         logger.debug(f"[entity_events] Skipping emission during emission: {entity_type} id={entity.id}")
         return
@@ -49,11 +80,10 @@ def _schedule_emission(session: Session, entity: Any, entity_type: str, operatio
     if session_id not in _pending_emissions:
         _pending_emissions[session_id] = set()
     
-    # Use (entity_id, entity_type) as key to avoid duplicate emissions
+    # Utilise une clé (id, type, op) pour éviter de planifier plusieurs fois
+    # la même émission au sein d'une même transaction.
     entity_id = entity.id
     emission_key = (entity_id, entity_type, operation)
-    
-    logger.info(f"[entity_events] Scheduling emission: {entity_type} id={entity_id} op={operation}")
     
     if emission_key not in _pending_emissions[session_id]:
         _pending_emissions[session_id].add(emission_key)
@@ -63,11 +93,14 @@ def _schedule_emission(session: Session, entity: Any, entity_type: str, operatio
 @event.listens_for(Session, "after_commit")
 def after_commit(session: Session):
     """
-    Triggered after transaction commit.
-    Emit messages for all entities that were created/updated in this transaction.
-    
-    Note: We use after_commit instead of after_flush to ensure all data is persisted
-    before attempting to emit messages.
+    Déclenché après la validation d'une transaction.
+    Lance les émissions pour toutes les entités modifiées dans cette transaction.
+
+    Cette fonction agit comme un pont entre le monde synchrone des événements
+    SQLAlchemy et le monde asynchrone des fonctions d'émission. Elle utilise un
+    ThreadPoolExecutor pour lancer chaque émission dans un thread d'arrière-plan,
+    évitant ainsi de bloquer le thread principal de l'application qui a déclenché
+    le commit.
     """
     session_id = _get_session_id(session)
     
@@ -81,11 +114,9 @@ def after_commit(session: Session):
     
     logger.info(f"[entity_events] Processing {len(pending)} pending emission(s)")
     
-    # Process emissions - we need to handle async in a sync context
-    # We'll schedule emissions to run in background without blocking the commit
     for entity_id, entity_type, operation in pending:
         try:
-            # Retrieve fresh entity from NEW session (old session is closed after commit)
+            # Récupère la classe de l'entité à partir de son type (str)
             entity_class = {
                 "patient": Patient,
                 "dossier": Dossier,
@@ -97,18 +128,22 @@ def after_commit(session: Session):
                 logger.error(f"[entity_events] Unknown entity type: {entity_type}")
                 continue
             
-            # Schedule emission in background using asyncio
+            # Planifie l'émission en arrière-plan via un pool de threads.
+            # `after_commit` est synchrone, mais l'émission est asynchrone.
+            # Le pool de threads permet de lancer une nouvelle boucle d'événements
+            # asyncio pour chaque émission.
             import concurrent.futures
-            from functools import partial
-            # Use a global ThreadPoolExecutor for background emissions
             if not hasattr(after_commit, "_executor"):
                 after_commit._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
             def run_emission():
                 import asyncio
                 try:
+                    # Crée une nouvelle boucle d'événements asyncio et exécute la coroutine.
                     asyncio.run(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
                 except Exception as exc:
                     logger.error(f"[entity_events] Emission failed in executor: {exc}", exc_info=True)
+
             after_commit._executor.submit(run_emission)
         
         except Exception as exc:
@@ -117,19 +152,25 @@ def after_commit(session: Session):
 
 async def _emit_in_new_session(entity_class: type, entity_id: int, entity_type: str, operation: str):
     """
-    Emit messages for an entity using a fresh session.
-    This is called in background after the original transaction commits.
+    Exécute l'émission pour une entité donnée dans une nouvelle session.
+
+    Cette fonction est le cœur du worker d'arrière-plan. Elle est conçue pour
+    être robuste et thread-safe.
     
-    IMPORTANT: 
-    - Set emission flag to prevent recursive emissions (emission -> new entity -> emission loop).
-    - Use semaphore to limit concurrent emissions and prevent pool exhaustion.
+    Points importants :
+    - Nouvelle Session : Elle crée une session de base de données éphémère pour
+      s'assurer que les données de l'entité sont à jour et pour éviter les
+      problèmes de thread-safety avec la session d'origine (qui est fermée).
+    - Sémaphore : Elle utilise `_emission_semaphore` pour limiter la concurrence.
+    - Contexte d'Émission : Elle active le drapeau `_emission_context.active` pour
+      prévenir toute émission récursive.
     """
     from app.db import engine
     from sqlmodel import Session as SQLModelSession
     
-    # Acquire semaphore to limit concurrent emissions
+    # Acquiert le sémaphore pour limiter le nombre d'émissions concurrentes.
     with _emission_semaphore:
-        # Mark that we're currently emitting (prevent recursive loop)
+        # Active le drapeau pour indiquer qu'une émission est en cours dans ce thread.
         _emission_context.active = True
         
         try:
@@ -145,14 +186,14 @@ async def _emit_in_new_session(entity_class: type, entity_id: int, entity_type: 
         except Exception as exc:
             logger.error(f"[entity_events] ✗ Emission failed for {entity_type} id={entity_id}: {exc}", exc_info=True)
         finally:
-            # Always clear emission flag
+            # Libère toujours le drapeau, même en cas d'erreur.
             _emission_context.active = False
 
 
-# Listener callbacks
+# --- Callbacks pour les événements SQLAlchemy ---
 
 def _entity_after_insert(mapper, connection, target):
-    """Generic handler for entity inserts."""
+    """Callback générique pour les insertions d'entités."""
     session = Session.object_session(target)
     if not session:
         return
@@ -169,10 +210,9 @@ def _entity_after_insert(mapper, connection, target):
 
 
 def _entity_after_update(mapper, connection, target):
-    """Generic handler for entity updates."""
+    """Callback générique pour les mises à jour d'entités."""
     session = Session.object_session(target)
     if not session:
-        logger.warning(f"[entity_events] after_update: no session for {type(target).__name__} id={getattr(target, 'id', '?')}")
         return
     
     entity_type = {
@@ -183,27 +223,26 @@ def _entity_after_update(mapper, connection, target):
     }.get(type(target))
     
     if entity_type:
-        logger.info(f"[entity_events] after_update triggered: {entity_type} id={target.id}")
         _schedule_emission(session, target, entity_type, "update")
-    else:
-        logger.warning(f"[entity_events] after_update: unknown entity type {type(target).__name__}")
 
 
 def register_entity_events():
     """
-    Register all entity event listeners.
-    Call this at application startup to enable automatic message emission.
+    Enregistre tous les écouteurs d'événements sur les entités.
+    Doit être appelée au démarrage de l'application pour activer l'émission automatique.
     """
-    # Register insert listeners
-    event.listen(Patient, "after_insert", _entity_after_insert)
-    event.listen(Dossier, "after_insert", _entity_after_insert)
-    event.listen(Venue, "after_insert", _entity_after_insert)
-    event.listen(Mouvement, "after_insert", _entity_after_insert)
+    listeners = [
+        (Patient, "after_insert", _entity_after_insert),
+        (Dossier, "after_insert", _entity_after_insert),
+        (Venue, "after_insert", _entity_after_insert),
+        (Mouvement, "after_insert", _entity_after_insert),
+        (Patient, "after_update", _entity_after_update),
+        (Dossier, "after_update", _entity_after_update),
+        (Venue, "after_update", _entity_after_update),
+        (Mouvement, "after_update", _entity_after_update),
+    ]
     
-    # Register update listeners
-    event.listen(Patient, "after_update", _entity_after_update)
-    event.listen(Dossier, "after_update", _entity_after_update)
-    event.listen(Venue, "after_update", _entity_after_update)
-    event.listen(Mouvement, "after_update", _entity_after_update)
+    for model, event_name, func in listeners:
+        event.listen(model, event_name, func)
     
-    logger.info("[entity_events] ✓ Entity event listeners registered (Patient, Dossier, Venue, Mouvement)")
+    logger.info("[entity_events] ✓ Entity event listeners registered for Patient, Dossier, Venue, Mouvement")

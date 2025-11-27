@@ -10,7 +10,7 @@ from app.utils.flash import flash
 from .helpers import get_context_or_404
 
 templates = Jinja2Templates(directory="app/templates")
-router = APIRouter(prefix="/ght/{context_id}/namespaces", tags=["ght_namespaces"])
+router = APIRouter(prefix="/{context_id}/namespaces", tags=["ght_namespaces"])
 
 @router.get("/new")
 async def new_namespace_form(

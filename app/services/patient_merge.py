@@ -180,6 +180,17 @@ async def handle_merge_patient(
         # Si non trouvé, créer le patient survivant (cas rare mais possible selon profil IHE)
         if not surviving_patient:
             from app.db import get_next_sequence
+            birth_date_raw = pid_data.get("birth_date")
+            birth_date_obj = None
+            if birth_date_raw:
+                try:
+                    # Gère les formats YYYY-MM-DD et YYYYMMDD
+                    if len(birth_date_raw) == 8 and birth_date_raw.isdigit():
+                        birth_date_obj = datetime.strptime(birth_date_raw, "%Y%m%d").date()
+                    else:
+                        birth_date_obj = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
+                except Exception:
+                    birth_date_obj = None
             surviving_patient = Patient(
                 patient_seq=get_next_sequence(session, "patient"),
                 identifier=pid_data.get("external_id") or f"MERGED-{get_next_sequence(session, 'patient')}",
@@ -187,7 +198,7 @@ async def handle_merge_patient(
                 family=pid_data.get("family", ""),
                 given=pid_data.get("given", ""),
                 gender=pid_data.get("gender", "unknown"),
-                birth_date=pid_data.get("birth_date"),
+                birth_date=birth_date_obj,
             )
             session.add(surviving_patient)
             session.flush()

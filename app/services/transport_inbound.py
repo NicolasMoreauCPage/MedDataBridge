@@ -13,7 +13,7 @@ Transactions & sessions
 """
 
 # app/services/transport_inbound.py
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from typing import Dict, List, Optional, Tuple
 import logging, os
@@ -646,7 +646,7 @@ def _handle_z99_updates(message: str, session: Session) -> None:
             dossier_seq=seq_value,
             patient_id=patient.id,
             uf_responsabilite=updates.get("uf_responsabilite") or "Z99-UF",
-            admit_time=datetime.utcnow(),
+            admit_time=datetime.now(timezone.utc),
         )
         session.add(dossier)
         session.flush()
@@ -668,7 +668,7 @@ def _handle_z99_updates(message: str, session: Session) -> None:
             venue_seq=seq_value,
             dossier_id=dossier.id,
             uf_responsabilite=updates.get("uf_responsabilite") or dossier.uf_responsabilite,
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             code=updates.get("code") or f"VEN-{seq_value}",
             label=updates.get("label") or f"Venue Z99 {seq_value}",
         )
@@ -692,7 +692,7 @@ def _handle_z99_updates(message: str, session: Session) -> None:
             mouvement_seq=seq_value,
             venue_id=venue.id,
             type=updates.get("type") or "Z99",
-            when=datetime.utcnow(),
+            when=datetime.now(timezone.utc),
             location=updates.get("location") or getattr(venue, "code", None),
         )
         session.add(mouvement)
@@ -877,7 +877,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 status="processed",
                 message_type=f"MFN^{trigger}",
                 ack_payload=ack,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             session.add(log)
             session.commit()
@@ -893,7 +893,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 status="error",
                 message_type=f"MFN^{trigger}",
                 ack_payload=ack,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             session.add(log)
             session.commit()
@@ -938,7 +938,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 payload=msg,
                 status="processing",
                 message_type=f"{msg_family}^{trigger}",
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             session.add(log)
 
@@ -1187,6 +1187,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             # Extract EJ ID from endpoint for proper patient association
             ej_id = endpoint.entite_juridique_id if endpoint and hasattr(endpoint, 'entite_juridique_id') else None
             success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg, ej_id=ej_id)
+            logger.debug(f"IHE handler returned: success={success!r}, err={err!r}")
 
             # --- Persistance des contacts après succès routage ---
             if success:

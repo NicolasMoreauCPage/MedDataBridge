@@ -2,7 +2,7 @@
 import logging
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from functools import wraps
 from contextlib import contextmanager
@@ -18,7 +18,7 @@ class StructuredLogger:
     def _log(self, level: int, message: str, **kwargs):
         """Log un message avec des données structurées."""
         log_data = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "logger": self.name,
             "message": message,
             **kwargs
@@ -100,7 +100,7 @@ class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Formate un log record en JSON."""
         log_data = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

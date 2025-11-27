@@ -268,7 +268,7 @@ class TestGenerateIdentifier:
         ident = generate_identifier(
             session=test_session,
             namespace=ns,
-            identifier_type=IdentifierType.PI
+            identifier_type=IdentifierType.IPP
         )
         
         # Devrait retourner "1000" par défaut

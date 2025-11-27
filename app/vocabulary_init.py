@@ -484,7 +484,18 @@ def init_vocabularies(session):
         session.add(system)
     
     session.commit()
-    
+
     # Initialiser les mappings entre vocabulaires
     # Note: doit être fait après la création des systèmes car utilise leurs IDs
-    init_vocabulary_mappings(session)
+    # Use a fresh session for mappings to avoid identity-map replacement warnings
+    # that can occur when new objects are flushed/loaded into the same session
+    # during complex commit/flush sequences.
+    try:
+        from sqlmodel import Session as SQLModelSession
+        engine = session.get_bind()
+        with SQLModelSession(engine) as new_sess:
+            init_vocabulary_mappings(new_sess)
+    except Exception:
+        # Fallback: if creating a new session fails for any reason, attempt
+        # to run mappings in the provided session to preserve original behavior.
+        init_vocabulary_mappings(session)

@@ -58,7 +58,7 @@ def test_pid18_and_pv119_simple_values(session):
     # Assert dossier identifier (AN) created
     ident_acc = session.exec(select(Identifier).where(Identifier.value == "ACC-12345")).first()
     assert ident_acc is not None
-    assert ident_acc.type == IdentifierType.AN
+    assert ident_acc.type == IdentifierType.NDA
     assert ident_acc.dossier_id is not None
 
     # Assert venue identifier (VN) created
@@ -101,7 +101,7 @@ def test_pid18_and_pv119_cx_form(session):
 
     ident_acc = session.exec(select(Identifier).where(Identifier.value == "ACC-CTX")).first()
     assert ident_acc is not None
-    assert ident_acc.type == IdentifierType.AN
+    assert ident_acc.type == IdentifierType.NDA
 
     ident_visit = session.exec(select(Identifier).where(Identifier.value == "VST-CTX")).first()
     assert ident_visit is not None

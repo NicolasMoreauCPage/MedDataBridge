@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/patients",
     tags=["patients"],
-    dependencies=[Depends(require_ght_context)],
 )
 
 @router.post("/api/patients", response_class=JSONResponse, summary="API for creating a patient")

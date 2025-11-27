@@ -90,7 +90,7 @@ def test_patient_improvements():
             value=unique_nir,
             system="INS-NIR",
             oid="1.2.250.1.213.1.4.8",
-            identifier_type=IdentifierType.SNS
+            identifier_type=IdentifierType.NDA
         )
         print(f"  ✓ NIR ajouté: {nir.value} (system={nir.system})")
         
@@ -101,7 +101,7 @@ def test_patient_improvements():
             value=unique_lab_id,
             system="LABO_X",
             oid="1.2.250.1.999.1",
-            identifier_type=IdentifierType.PI
+            identifier_type=IdentifierType.IPP
         )
         print(f"  ✓ Identifiant externe LABO_X ajouté: {external_lab.value}")
         
@@ -130,7 +130,7 @@ def test_patient_improvements():
                 value="LAB99999",  # Valeur différente
                 system="LABO_X",
                 oid="1.2.250.1.999.1",
-                identifier_type=IdentifierType.PI
+                identifier_type=IdentifierType.IPP
             )
             session.commit()
             print(f"  ✓ Patient 2 peut avoir un identifiant différent dans LABO_X: OK")
@@ -144,7 +144,7 @@ def test_patient_improvements():
                 value=unique_lab_id,  # MÊME valeur que patient 1
                 system="LABO_X",
                 oid="1.2.250.1.999.1",
-                identifier_type=IdentifierType.PI
+                identifier_type=IdentifierType.IPP
             )
             print(f"  ❌ Patient 2 ne devrait pas pouvoir réutiliser {unique_lab_id}!")
         except DuplicateIdentifierError as e:

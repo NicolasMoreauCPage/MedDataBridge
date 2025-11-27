@@ -60,7 +60,6 @@ def build_pid3_identifiers(
             else:
                 auth = _auth(forced_system, forced_oid) or "HOSP"
             # Use 'IPP' as identifier type to reflect internal patient identifier namespace
-            identifiers.append(f"{_c(internal_id_val)}^^^{auth}^IPP")
     except Exception:
         logger.exception("Error while resolving IPP namespace for internal identifier")
 
@@ -74,7 +73,6 @@ def build_pid3_identifiers(
             .where(Identifier.value == external_id_clean)
             .where(Identifier.status == "active")
         ).first()
-        
         if ext_ident:
             # Utiliser system/oid/type de l'Identifier
             # Ensure we emit correct type code (PI/IPP/MR/...) and not duplicate namespace in trailing components
@@ -198,9 +196,9 @@ def generate_pam_hl7(
         # MSH-16: FRA (pays)
         # MSH-17: 8859/1 (encodage ISO-8859-1)
         sending_app = msh_sending_app or "POC"
-        sending_fac = msh_sending_fac or "HOSP"
+        sending_fac = msh_sending_facility or "HOSP"
         receiving_app = msh_receiving_app or "EXT"
-        receiving_fac = msh_receiving_fac or "HOSP"
+        receiving_fac = msh_receiving_facility or "HOSP"
         msh = f"MSH|^~\\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         
         # EVN segment
@@ -619,9 +617,9 @@ def generate_pam_hl7(
         else:
             msg_structure = f"ADT_{event_code}"
         sending_app = msh_sending_app or "POC"
-        sending_fac = msh_sending_fac or "HOSP"
+        sending_fac = msh_sending_facility or "HOSP"
         receiving_app = msh_receiving_app or "EXT"
-        receiving_fac = msh_receiving_fac or "HOSP"
+        receiving_fac = msh_receiving_facility or "HOSP"
         if event_code == "Z99":
             msh = rf"MSH|^~\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         else:
@@ -1182,11 +1180,15 @@ async def emit_to_senders_async(
                         existing_log.created_at = datetime.utcnow()
                         session.commit()
                     else:
+                        # Ensure payload is never None (DB NOT NULL constraint)
+                        if payload_str is None:
+                            logger.warning("MessageLog payload is None for endpoint=%s; coercing to empty string", endpoint.id)
+                        safe_payload = payload_str or ""
                         log = MessageLog(
                             direction="out",
                             kind="MLLP",
                             endpoint_id=endpoint.id,
-                            payload=payload_str,
+                            payload=safe_payload,
                             ack_payload=ack_payload or "",
                             status=status,
                             pam_validation_status=pam_status,
@@ -1240,11 +1242,14 @@ async def emit_to_senders_async(
                         existing_log.created_at = datetime.utcnow()
                         session.commit()
                     else:
+                        if payload_str is None:
+                            logger.warning("FHIR MessageLog payload is None for endpoint=%s; coercing to empty string", endpoint.id)
+                        safe_payload = payload_str or ""
                         log = MessageLog(
                             direction="out",
                             kind="FHIR",
                             endpoint_id=endpoint.id,
-                            payload=payload_str,
+                            payload=safe_payload,
                             ack_payload="Endpoint FHIR non configuré",
                             status="error",
                             correlation_id=correlation_id,
@@ -1293,11 +1298,14 @@ async def emit_to_senders_async(
                             existing_log.created_at = datetime.utcnow()
                             session.commit()
                         else:
+                            if payload_str is None:
+                                logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
+                            safe_payload = payload_str or ""
                             log = MessageLog(
                                 direction="out",
                                 kind="FHIR",
                                 endpoint_id=endpoint.id,
-                                payload=payload_str,
+                                payload=safe_payload,
                                 ack_payload=ack_payload,
                                 status=status,
                                 correlation_id=correlation_id,
@@ -1394,11 +1402,14 @@ async def emit_to_senders_async(
                             existing_log.created_at = datetime.utcnow()
                             session.commit()
                         else:
+                            if payload_str is None:
+                                logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
+                            safe_payload = payload_str or ""
                             log = MessageLog(
                                 direction="out",
                                 kind="FHIR",
                                 endpoint_id=endpoint.id,
-                                payload=payload_str,
+                                payload=safe_payload,
                                 ack_payload=ack_payload,
                                 status=status,
                                 correlation_id=correlation_id,
@@ -1490,7 +1501,7 @@ async def emit_to_senders_async(
             direction="out",
             kind="MLLP",
             endpoint_id=None,
-            payload=hl7_message,
+            payload=hl7_message or "",
             ack_payload="",
             status="generated",
             pam_validation_status=pam_status,
@@ -1500,7 +1511,7 @@ async def emit_to_senders_async(
             direction="out",
             kind="FHIR",
             endpoint_id=None,
-            payload=json.dumps(fhir_payload, default=str),
+            payload=json.dumps(fhir_payload, default=str) if fhir_payload is not None else "",
             ack_payload="",
             status="generated",
         )

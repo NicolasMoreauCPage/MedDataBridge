@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Tuple, Any
 from sqlmodel import Session, select
-from datetime import datetime
+from datetime import datetime, timezone
 import importlib
 import logging
 import re
@@ -402,7 +402,7 @@ async def _handle_cancel_admission(
             mouvement_seq=m_seq,
             venue_id=venue.id,
             type=f"ADT^{trigger}",
-            when=datetime.utcnow(),
+            when=datetime.now(timezone.utc),
             status=MOVEMENT_STATUS_BY_TRIGGER.get(trigger, "cancelled"),
             movement_type=MOVEMENT_KIND_BY_TRIGGER.get(trigger, "admission-cancel"),
             trigger_event=trigger,  # Pour validation des transitions IHE PAM
@@ -533,7 +533,7 @@ async def _handle_cancel_discharge(
             return False, "No discharge movement found to cancel"
         
         # Déterminer la date du mouvement d'annulation : priorité ZBE-2 puis now
-        cancel_datetime = datetime.utcnow()
+        cancel_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -782,7 +782,7 @@ async def handle_admission_message(
         identifiers_raw = pid_data.get("identifiers", [])
         identifiers = []
         for cx_value, *_ in identifiers_raw:
-            value, system, type_code = parse_hl7_cx_identifier(cx_value)
+            value, system, _, type_code = parse_hl7_cx_identifier(cx_value)
             identifiers.append((cx_value, system, type_code))
 
         # Main patient identifier (fallback logic)
@@ -791,9 +791,21 @@ async def handle_admission_message(
             # Prefer classified main identifier, fallback to first PID-3 value
             try:
                 from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
-                identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
-                    identifiers, "patient", session, ej_id
-                )
+                try:
+                    _res = create_identifiers_from_hl7_with_namespace_check(identifiers, "patient", session, ej_id)
+                    if isinstance(_res, (list, tuple)) and len(_res) == 3:
+                        identifiers_list, main_id_value, external_id_value = _res
+                    elif isinstance(_res, list):
+                        identifiers_list, main_id_value, external_id_value = _res, None, None
+                    elif isinstance(_res, dict):
+                        identifiers_list = _res.get('identifiers', [])
+                        main_id_value = _res.get('main_identifier') or _res.get('main')
+                        external_id_value = _res.get('external_id') or _res.get('external')
+                    else:
+                        identifiers_list, main_id_value, external_id_value = [], None, None
+                except Exception as _e:
+                    logger.warning(f"[pam] Failed to classify identifiers (soft): {_e}")
+                    identifiers_list, main_id_value, external_id_value = [], None, None
                 identifier = main_id_value or (identifiers[0][0].split("^")[0] if identifiers else None)
             except Exception as e:
                 logger.warning(f"[pam] Failed to classify identifiers: {e}")
@@ -817,9 +829,21 @@ async def handle_admission_message(
                 # Persist all PID-3 identifiers with namespace classification
                 try:
                     from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
-                    identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
-                        identifiers, "patient", session, ej_id
-                    )
+                    try:
+                        _res = create_identifiers_from_hl7_with_namespace_check(identifiers, "patient", session, ej_id)
+                        if isinstance(_res, (list, tuple)) and len(_res) == 3:
+                            identifiers_list, main_id_value, external_id_value = _res
+                        elif isinstance(_res, list):
+                            identifiers_list, main_id_value, external_id_value = _res, None, None
+                        elif isinstance(_res, dict):
+                            identifiers_list = _res.get('identifiers', [])
+                            main_id_value = _res.get('main_identifier') or _res.get('main')
+                            external_id_value = _res.get('external_id') or _res.get('external')
+                        else:
+                            identifiers_list, main_id_value, external_id_value = [], None, None
+                    except Exception as _e:
+                        logger.warning(f"[pam] Failed to classify identifiers (soft): {_e}")
+                        identifiers_list, main_id_value, external_id_value = [], None, None
                     for ident in identifiers_list:
                         ident.patient_id = existing.id
                         exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -860,9 +884,21 @@ async def handle_admission_message(
             # Persist all identifiers from PID-3 with namespace classification
             try:
                 from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
-                identifiers_list, main_id_value, external_id_value = create_identifiers_from_hl7_with_namespace_check(
-                    identifiers, "patient", session, ej_id
-                )
+                try:
+                    _res = create_identifiers_from_hl7_with_namespace_check(identifiers, "patient", session, ej_id)
+                    if isinstance(_res, (list, tuple)) and len(_res) == 3:
+                        identifiers_list, main_id_value, external_id_value = _res
+                    elif isinstance(_res, list):
+                        identifiers_list, main_id_value, external_id_value = _res, None, None
+                    elif isinstance(_res, dict):
+                        identifiers_list = _res.get('identifiers', [])
+                        main_id_value = _res.get('main_identifier') or _res.get('main')
+                        external_id_value = _res.get('external_id') or _res.get('external')
+                    else:
+                        identifiers_list, main_id_value, external_id_value = [], None, None
+                except Exception as _e:
+                    logger.warning(f"[pam] Failed to classify identifiers (soft): {_e}")
+                    identifiers_list, main_id_value, external_id_value = [], None, None
                 for ident in identifiers_list:
                     ident.patient_id = patient.id
                     exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -911,7 +947,7 @@ async def handle_admission_message(
             except Exception:
                 admit_time = None
         if not admit_time:
-            admit_time = datetime.utcnow()
+            admit_time = datetime.now(timezone.utc)
 
         # Map PV1-2 patient_class (HL7v2) -> internal encounter-class (FHIR ActCode) via vocabulary mapping
         hl7_patient_class = pv1_data.get("patient_class") or "I"
@@ -943,9 +979,9 @@ async def handle_admission_message(
                     ident = create_identifier_from_hl7(acc_raw, "dossier", dossier.id)
                     # Ensure PID-18 is recorded as AN (Account Number) when no explicit type present
                     try:
-                        # use module-level IdentifierType
-                        if ident.type == IdentifierType.PI:
-                            ident.type = IdentifierType.AN
+                        # use module-level IdentifierType: treat HL7 PI as IPP and AN as NDA
+                        if ident.type == IdentifierType.IPP:
+                            ident.type = IdentifierType.NDA
                     except Exception:
                         pass
                     exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -988,7 +1024,7 @@ async def handle_admission_message(
             venue_seq=v_seq,
             dossier_id=dossier.id,
             uf_responsabilite=dossier.uf_responsabilite,
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             operational_status=operational_status,
             assigned_location=location_value,
             hospital_service=hospital_service or pv1_data.get("hospital_service") or dossier.uf_responsabilite,
@@ -1006,8 +1042,8 @@ async def handle_admission_message(
                     ident = create_identifier_from_hl7(visit_raw, "venue", venue.id)
                     # Ensure PV1-19 is recorded as VN (Visit Number) when no explicit type present
                     try:
-                        # use module-level IdentifierType
-                        if ident.type == IdentifierType.PI:
+                        # use module-level IdentifierType: treat HL7 PI as IPP
+                        if ident.type == IdentifierType.IPP:
                             ident.type = IdentifierType.VN
                     except Exception:
                         pass
@@ -1022,7 +1058,7 @@ async def handle_admission_message(
             pass
 
         # Déterminer la date du mouvement : priorité ZBE-2, puis PV1, puis now
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 # Parse HL7 timestamp: YYYYMMDDHHmmss
@@ -1220,9 +1256,11 @@ async def handle_admission_message(
                 )
 
         # Note: Message emission is now automatic via entity_events.py listeners
-
+        logger.debug(f"[pam][admission] handler returning: success=True, err=None")
         return True, None
     except Exception as e:
+        logger.error(f"[pam][admission] Exception during admission handler: {e}", exc_info=True)
+        logger.debug(f"[pam][admission] handler returning: success=False, err={e!r}")
         return False, str(e)
 
 
@@ -1280,7 +1318,7 @@ async def handle_transfer_message(
         hospital_service = (pv1_data.get("hospital_service") or "").strip() or None
 
         # Déterminer la date du mouvement : priorité ZBE-2, puis now
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -1403,11 +1441,11 @@ async def handle_discharge_message(
             return False, "Venue not found"
 
         previous_location = venue.assigned_location
-        discharge_time = pv1_data.get("discharge_time") or datetime.utcnow()
+        discharge_time = pv1_data.get("discharge_time") or datetime.now(timezone.utc)
         hospital_service = (pv1_data.get("hospital_service") or "").strip() or None
 
         # Déterminer la date du mouvement : priorité ZBE-2, puis discharge_time, puis now
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -1537,7 +1575,7 @@ async def handle_leave_message(
         hospital_service = (pv1_data.get("hospital_service") or "").strip() or venue.hospital_service
         
         # Déterminer la date du mouvement : priorité ZBE-2, puis now
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -1669,7 +1707,7 @@ async def handle_doctor_message(
         attending_doctor = (pv1_data.get("attending_doctor") or "").strip()
         
         # Déterminer la date du mouvement : priorité ZBE-2, puis now
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -1836,7 +1874,7 @@ async def handle_transfer_message(
         m_seq = get_next_sequence(session, "mouvement")
         
         # Déterminer la date du mouvement
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -1974,7 +2012,7 @@ async def handle_discharge_message(
         m_seq = get_next_sequence(session, "mouvement")
         
         # Déterminer la date du mouvement
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -2107,7 +2145,7 @@ async def handle_leave_message(
         m_seq = get_next_sequence(session, "mouvement")
         
         # Déterminer la date du mouvement
-        movement_datetime = datetime.utcnow()
+        movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]

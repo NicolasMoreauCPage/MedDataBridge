@@ -6,6 +6,7 @@ from typing import Dict, Optional
 from sqlmodel import Session
 from app.models import Patient
 import logging
+from app.services.identifier_manager import map_hl7_type_to_identifier_type
 
 logger = logging.getLogger(__name__)
 
@@ -187,10 +188,7 @@ def create_patient_from_pid_data(
     # Convertir les données d'identifiants pour le classifier
     classifier_input = []
     for cx_value, system, type_code in identifiers_data:
-        try:
-            id_type = IdentifierType(type_code)
-        except ValueError:
-            id_type = IdentifierType.IPP  # Par défaut
+        id_type = map_hl7_type_to_identifier_type(type_code) or IdentifierType.IPP
         
         # Extraire la valeur de l'identifiant du CX
         value = cx_value.split("^")[0] if "^" in cx_value else cx_value

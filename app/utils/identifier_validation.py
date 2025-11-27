@@ -122,8 +122,8 @@ def add_or_update_identifier(
         # Mettre à jour
         existing.type = identifier_type
         existing.status = "active"
-        from datetime import datetime
-        existing.last_updated = datetime.utcnow()
+        from datetime import datetime, timezone
+        existing.last_updated = datetime.now(timezone.utc)
         session.add(existing)
         return existing
     else:

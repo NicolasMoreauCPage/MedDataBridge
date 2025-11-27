@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, TypedDict
 from uuid import uuid4
 
@@ -30,7 +30,7 @@ def flash(request: Request, message: str, level: FlashLevel = "info") -> None:
         "id": uuid4().hex,
         "level": level,
         "message": message,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     messages = request.session.get("_messages")

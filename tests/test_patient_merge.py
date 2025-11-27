@@ -60,7 +60,7 @@ def test_find_patient_by_identifiers(session: Session):
     ident = Identifier(
         value="EXT001",
         system="urn:oid:1.2.3.4.5",
-        type=IdentifierType.PI,
+        type=IdentifierType.IPP,
         status="active",
         patient_id=patient.id
     )
@@ -108,7 +108,7 @@ async def test_merge_patient_basic(session: Session):
     source_ident = Identifier(
         value="SRC001",
         system="urn:oid:1.2.3.4.5",
-        type=IdentifierType.PI,
+        type=IdentifierType.IPP,
         status="active",
         patient_id=source_patient.id
     )
@@ -117,7 +117,7 @@ async def test_merge_patient_basic(session: Session):
     surv_ident = Identifier(
         value="SURV001",
         system="urn:oid:1.2.3.4.5",
-        type=IdentifierType.PI,
+        type=IdentifierType.IPP,
         status="active",
         patient_id=surviving_patient.id
     )
@@ -215,8 +215,8 @@ async def test_merge_patient_with_venues_and_mouvements(session: Session):
     
     # Identifiants
     session.add_all([
-        Identifier(value="SRC002", system="urn:oid:1.2.3", type=IdentifierType.PI, status="active", patient_id=source.id),
-        Identifier(value="SURV002", system="urn:oid:1.2.3", type=IdentifierType.PI, status="active", patient_id=surviving.id),
+        Identifier(value="SRC002", system="urn:oid:1.2.3", type=IdentifierType.IPP, status="active", patient_id=source.id),
+        Identifier(value="SURV002", system="urn:oid:1.2.3", type=IdentifierType.IPP, status="active", patient_id=surviving.id),
     ])
     session.flush()
     

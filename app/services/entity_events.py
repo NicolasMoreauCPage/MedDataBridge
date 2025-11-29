@@ -150,8 +150,12 @@ def after_commit(session: Session):
                         asyncio.run(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
                     else:
                         # Schedule the emission coroutine on the existing loop.
-                        # Tests using _wait_bg() will await background tasks to run.
-                        asyncio.ensure_future(_emit_in_new_session(entity_class, entity_id, entity_type, operation), loop=loop)
+                        # Use create_task when available; ensure_future also works.
+                        try:
+                            loop.create_task(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
+                        except Exception:
+                            # Fallback to ensure_future for older compatibility
+                            asyncio.ensure_future(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
                 except Exception as exc:
                     logger.error(f"[entity_events] Emission failed in sync mode: {exc}", exc_info=True)
             else:

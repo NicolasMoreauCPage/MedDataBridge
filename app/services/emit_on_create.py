@@ -1667,8 +1667,10 @@ class _EmitToSendersWrapper:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
+            # No running loop: run synchronously
             return asyncio.run(coro)
         else:
+            # Running loop present: return coroutine to be awaited by caller
             return coro
 
 

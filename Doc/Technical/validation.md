@@ -1,3 +1,19 @@
+## 2025-11-29 — ZBE-9 validation strictness restored
+
+- The PAM validator's handling of ZBE-9 (nature of stay) has been reverted
+  to strict mode: non-standard or unknown values are now reported as errors
+  rather than warnings. This enforces conformance with local policy and
+  aligns behavior with production requirements.
+
+- Tests: message-level tests (`tests/messages`) were executed with
+  `TESTING=1` and all passed locally after the change.
+
+Notes:
+- If you run tests locally, use:
+
+```bash
+TESTING=1 .venv/bin/python -m pytest tests/messages -q -o log_cli=true
+```
 # Validation — résumé et usage
 
 Ce fichier documente le validateur HL7 / IHE PAM implémenté dans

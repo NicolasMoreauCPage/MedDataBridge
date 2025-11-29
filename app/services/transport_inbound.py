@@ -1294,11 +1294,16 @@ class _OnMessageInboundCallable:
 
         # Create the coroutine
         coro = self._async(msg, session, endpoint)
+        # Check whether an event loop is already running without raising.
         try:
-            # If there's an existing running loop, return the coroutine so
-            # the caller (an async test or async code path) can await it.
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
+            policy = asyncio.get_event_loop_policy()
+            loop = policy.get_event_loop()
+            running = loop.is_running()
+        except Exception:
+            # As a very defensive fallback, consider there is no running loop.
+            running = False
+
+        if not running:
             # No running loop: safe to run and return the sync-compatible dict
             ack = asyncio.run(coro)
             if isinstance(ack, str) and "MSA|AA" in ack:

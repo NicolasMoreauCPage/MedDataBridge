@@ -87,6 +87,15 @@ import os as _os
 if _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}:
     REQUIRE_PV1 = {e for e in REQUIRE_PV1 if e != "A08"}
 
+# PID-13 XTN validation configuration
+# - PID13_STRICT=1 enables stricter validation for PID-13 fields (non-default)
+# - PID13_ALLOW_USES / PID13_ALLOW_EQUIP can list comma-separated exceptions to accept
+PID13_STRICT = os.getenv("PID13_STRICT", "1") in {"1", "true", "True"}
+_pid13_allow_uses_env = os.getenv("PID13_ALLOW_USES", "")
+_pid13_allow_equip_env = os.getenv("PID13_ALLOW_EQUIP", "")
+PID13_ALLOW_USES = {v.strip() for v in _pid13_allow_uses_env.split(",") if v.strip()}
+PID13_ALLOW_EQUIP = {v.strip() for v in _pid13_allow_equip_env.split(",") if v.strip()}
+
 # Ordre attendu des segments principaux selon HAPI structures
 # Format: liste ordonnée des segments (requis et optionnels)
 SEGMENT_ORDER = {
@@ -313,27 +322,49 @@ def _validate_xtn_telecom(xtn: str, field_name: str, issues: List[ValidationIssu
         ))
     
     # Telecom Use Code (3ème composant) validation
+    # Decide policy for strict checking on PID-13
+    is_pid13 = field_name.startswith("PID13")
+    pid13_should_strict = PID13_STRICT and is_pid13
+
     if len(components) > 2 and components[2]:
         use_code = components[2]
-        valid_uses = {"ASN", "BPN", "EMR", "NET", "ORN", "PRN", "PRS", "VHN", "WPN"}
-        if use_code not in valid_uses:
-            issues.append(ValidationIssue(
-                f"{field_name}_XTN_USE_INVALID",
-                f"{field_name}: XTN Use Code '{use_code}' not in HL7 Table 0201",
-                severity="info"
-            ))
-    
+        # permissive set for general checks
+        valid_uses = {"ASN", "BPN", "EMR", "NET", "ORN", "PRN", "PRS", "VHN", "WPN", "PH", "CP"}
+        # If strict mode for PID13 is enabled, enforce membership unless explicitly allowed by env
+        if is_pid13 and pid13_should_strict:
+            if use_code not in valid_uses and use_code not in PID13_ALLOW_USES:
+                issues.append(ValidationIssue(
+                    f"{field_name}_XTN_USE_INVALID",
+                    f"{field_name}: XTN Use Code '{use_code}' not in HL7 Table 0201",
+                    severity="error"
+                ))
+        else:
+            # non-PID13 fields: warn when not in permissive set
+            if not is_pid13 and use_code not in valid_uses:
+                issues.append(ValidationIssue(
+                    f"{field_name}_XTN_USE_INVALID",
+                    f"{field_name}: XTN Use Code '{use_code}' not in HL7 Table 0201",
+                    severity="info"
+                ))
+
     # Equipment Type (4ème composant) validation
     if len(components) > 3 and components[3]:
         equip_type = components[3]
         valid_types = {"BP", "CP", "FX", "Internet", "MD", "PH", "SAT", "TDD", "TTY", "X.400"}
-        if equip_type not in valid_types:
-            issues.append(ValidationIssue(
-                f"{field_name}_XTN_EQUIP_INVALID",
-                f"{field_name}: XTN Equipment Type '{equip_type}' not in HL7 Table 0202",
-                severity="info"
-            ))
-
+        if is_pid13 and pid13_should_strict:
+            if equip_type not in valid_types and equip_type not in PID13_ALLOW_EQUIP:
+                issues.append(ValidationIssue(
+                    f"{field_name}_XTN_EQUIP_INVALID",
+                    f"{field_name}: XTN Equipment Type '{equip_type}' not in HL7 Table 0202",
+                    severity="error"
+                ))
+        else:
+            if not is_pid13 and equip_type not in valid_types:
+                issues.append(ValidationIssue(
+                    f"{field_name}_XTN_EQUIP_INVALID",
+                    f"{field_name}: XTN Equipment Type '{equip_type}' not in HL7 Table 0202",
+                    severity="info"
+                ))
 
 def _validate_ts_timestamp(ts: str, field_name: str, issues: List[ValidationIssue]) -> None:
     """Valide un timestamp TS (Time Stamp).
@@ -704,7 +735,8 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
                 pass
             # If it is a composite known production token (like 'MH' or 'HM'), report as info (non-standard but accepted)
             elif norm_zbe9 and len(norm_zbe9) == 2 and all(ch in "SHMLD" for ch in norm_zbe9):
-                issues.append(ValidationIssue("ZBE9_NONSTANDARD_COMPOSITE", f"ZBE-9 nature non-standard observed in production: {zbe_9}", severity="info"))
+                # Treat non-standard composites as errors when enforcing spec conformity
+                issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature non-standard/composite: {zbe_9}", severity="error"))
             else:
                 # Unknown token, keep as error
                 issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature inconnue: {zbe_9}", severity="error"))

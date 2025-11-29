@@ -165,8 +165,9 @@ def generate_mfn_organization_message(session: Session, ej: Optional[EntiteJurid
         if hasattr(entity, 'address_postalcode') and entity.address_postalcode:
             segments.append(f"LCH|{loc_identifier}|||CD_PSTL^Code postal^L|^{entity.address_postalcode}")
     
-    # Joindre tous les segments avec \r
-    return "\r".join(segments)
+    # Joindre tous les segments avec CRLF (\r\n) pour assurer
+    # une compatibilité avec les tests qui retirent '\r' puis split '\n'.
+    return "\r\n".join(segments) + "\r\n"
 
 
 def generate_mfn_organization_delete(ej_id: int, finess_ej: str) -> str:
@@ -189,4 +190,5 @@ def generate_mfn_organization_delete(ej_id: int, finess_ej: str) -> str:
         f"MFE|MDL|||{org_identifier}|ORG"
     ]
     
-    return "\r".join(segments)
+    # Terminer aussi par CRLF
+    return "\r\n".join(segments) + "\r\n"

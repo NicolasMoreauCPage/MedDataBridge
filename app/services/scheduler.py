@@ -11,6 +11,8 @@ from datetime import datetime
 from sqlmodel import Session
 from app.db import get_session
 from app.services.file_poller import scan_file_endpoints
+from sqlmodel import select
+from app.models_shared import SystemEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,16 @@ class BackgroundScheduler:
         session = next(session_gen)
         
         try:
+            # Quick check: if there are no enabled FILE endpoints, skip the expensive scan.
+            stmt = select(SystemEndpoint).where(
+                SystemEndpoint.kind == "FILE",
+                SystemEndpoint.is_enabled == True
+            ).limit(1)
+            any_ep = session.exec(stmt).first()
+            if not any_ep:
+                logger.debug("No enabled FILE endpoints configured; skipping file scan")
+                return
+
             logger.debug("Scanning file endpoints...")
             stats = await scan_file_endpoints(session)
             

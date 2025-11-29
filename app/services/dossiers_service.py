@@ -107,3 +107,46 @@ def delete_dossier(session: Session, dossier: Dossier):
         logger.error(f"Erreur lors de la suppression du dossier {dossier.id}: {e}", exc_info=True)
         session.rollback()
         raise
+
+
+def create_dossier_with_pre_admit_venue(session: Session, dossier_data: DossierCreateSchema, patient: Patient) -> Dossier:
+    """Crée un dossier et une venue de pré-admission associée.
+
+    This is a thin wrapper used by the UI router: it creates the Dossier with a
+    generated dossier_seq and then creates an initial Venue (code PRE_ADMIT)
+    linked to the dossier so the rest of the app can operate normally.
+    """
+    from app.services.venues_service import VenueCreateSchema, create_venue
+
+    try:
+        # assign a dossier sequence
+        seq = get_next_sequence(session, "dossier")
+        dossier = Dossier(
+            dossier_seq=seq,
+            patient_id=patient.id,
+            admit_time=dossier_data.admit_time,
+            dossier_type=dossier_data.dossier_type,
+            uf_responsabilite=dossier_data.uf_responsabilite,
+            admission_source=dossier_data.admission_source,
+            attending_provider=dossier_data.attending_provider,
+            current_state=dossier_data.current_state,
+        )
+        session.add(dossier)
+        session.commit()
+        session.refresh(dossier)
+
+        # create a pre-admit venue
+        venue_schema = VenueCreateSchema(
+            dossier_id=dossier.id,
+            uf_responsabilite=dossier.uf_responsabilite or "",
+            start_time=dossier.admit_time,
+            code="PRE_ADMIT",
+            label="Pré-admission automatique",
+        )
+        create_venue(session=session, venue_data=venue_schema)
+
+        logger.info(f"Dossier {dossier.id} et pré-admission créés pour patient {patient.id}")
+        return dossier
+    except Exception:
+        session.rollback()
+        raise

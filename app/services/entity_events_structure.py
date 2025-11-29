@@ -11,6 +11,7 @@ import asyncio
 import logging
 import threading
 from typing import Any, Dict, Set, Tuple
+import os
 
 from sqlalchemy import event
 from sqlalchemy.orm import Session
@@ -65,6 +66,25 @@ def _after_commit(session: Session):
     if not items:
         return
     logger.info("[structure_events] Processing %d structure emission(s)", len(items))
+    # If running tests with TESTING=1, execute emissions synchronously so
+    # in-memory SQLite and test sessions see the MessageLog rows immediately.
+    if os.getenv("TESTING", "0") in ("1", "true", "True"):
+        for model_name, entity_id, op, frozen_metadata in items:
+            metadata = dict(frozen_metadata) if frozen_metadata else {}
+            try:
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    # No running loop — safe to execute directly
+                    asyncio.run(_emit_background(model_name, entity_id, op, metadata))
+                else:
+                    # Schedule coroutine on running loop so pytest-asyncio can await it
+                    asyncio.ensure_future(_emit_background(model_name, entity_id, op, metadata), loop=loop)
+            except Exception:
+                logger.exception("[structure_events] Emission failed in sync TESTING mode")
+        return
+
+    # Normal operation: create tasks on the running loop if any.
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -177,3 +197,12 @@ def register_structure_entity_events() -> None:
         event.listen(model, "after_update", _after_update)
         event.listen(model, "after_delete", _after_delete)
     logger.info("[structure_events] ✓ Listeners registered for structure models (including EntiteJuridique)")
+
+
+def register_structure_events() -> None:
+    """Backward-compatible alias used by some tests and older code.
+
+    Historically the registration function was named `register_structure_events`.
+    Keep an alias to avoid breaking tests or older imports.
+    """
+    register_structure_entity_events()

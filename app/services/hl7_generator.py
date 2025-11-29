@@ -255,49 +255,49 @@ def build_zbe_segment(
     - ZBE-9: Nature (S,H,M,L,D,SM)
     """
     # ZBE-1
-    movement_id = movement.mouvement_seq or movement.id
+    movement_id = getattr(movement, "mouvement_seq", None) or getattr(movement, "id", None)
     if namespace:
         zbe_1 = f"{movement_id}^{namespace.name}^{namespace.oid}^ISO"
     else:
         zbe_1 = str(movement_id)
 
     # ZBE-2
-    zbe_2 = format_datetime(movement.when)
+    zbe_2 = format_datetime(getattr(movement, "when", None))
 
     # ZBE-3 (vide)
     zbe_3 = ""
 
     # ZBE-4 Action
-    effective_action = action or movement.action or "INSERT"
+    effective_action = action or getattr(movement, "action", None) or "INSERT"
     if effective_action not in {"INSERT", "UPDATE", "CANCEL"}:
         effective_action = "INSERT"
     zbe_4 = effective_action
 
     # ZBE-5 Historic flag
-    historic_flag = (is_historic if is_historic is not None else movement.is_historic)
+    historic_flag = (is_historic if is_historic is not None else getattr(movement, "is_historic", False))
     zbe_5 = "Y" if historic_flag else "N"
 
     # ZBE-6 original trigger (only if UPDATE/CANCEL)
-    orig_trig = original_trigger or movement.original_trigger or ""
+    orig_trig = original_trigger or getattr(movement, "original_trigger", None) or ""
     if zbe_4 in {"UPDATE", "CANCEL"} and not orig_trig:
         # Best effort fallback: use movement.trigger_event if present
-        orig_trig = movement.trigger_event or ""
+        orig_trig = getattr(movement, "trigger_event", None) or ""
     zbe_6 = orig_trig if zbe_4 in {"UPDATE", "CANCEL"} else ""
 
     # ZBE-7 UF médicale XON format Nom^^^^^^^^^Code
-    uf_med_code = movement.uf_medicale_code or uf_responsabilite or (movement.venue.uf_responsabilite if getattr(movement, "venue", None) else None)
-    uf_med_label = movement.uf_medicale_label or uf_med_code
+    uf_med_code = getattr(movement, "uf_medicale_code", None) or uf_responsabilite or (getattr(getattr(movement, "venue", None), "uf_responsabilite", None) if getattr(movement, "venue", None) else None)
+    uf_med_label = getattr(movement, "uf_medicale_label", None) or uf_med_code
     zbe_7 = f"{uf_med_label or ''}^^^^^^^^^{uf_med_code}" if uf_med_code else ""
 
     # ZBE-8 UF soins XON
     # Venue n'a pas (encore) d'attribut uf_soins; on ne tente pas de l'utiliser pour éviter AttributeError
-    uf_soins_code = movement.uf_soins_code or uf_soins
-    uf_soins_label = movement.uf_soins_label or uf_soins_code
+    uf_soins_code = getattr(movement, "uf_soins_code", None) or uf_soins
+    uf_soins_label = getattr(movement, "uf_soins_label", None) or uf_soins_code
     zbe_8 = f"{uf_soins_label or ''}^^^^^^^^^{uf_soins_code}" if uf_soins_code else ""
 
     # ZBE-9 Nature
-    trigger = movement.trigger_event or original_trigger
-    effective_nature = derive_nature(trigger, nature or movement.nature)
+    trigger = getattr(movement, "trigger_event", None) or original_trigger
+    effective_nature = derive_nature(trigger, nature or getattr(movement, "nature", None))
     zbe_9 = effective_nature or ""
 
     return f"ZBE|{zbe_1}|{zbe_2}|{zbe_3}|{zbe_4}|{zbe_5}|{zbe_6}|{zbe_7}|{zbe_8}|{zbe_9}"
@@ -560,14 +560,14 @@ def generate_adt_message(
         # Ancienne logique référençait des attributs inexistants sur Dossier/Venue (uf_medicale, uf_soins).
         # Fallback: dossier.uf_responsabilite ou venue.uf_responsabilite pour UF médicale si mouvement n'a pas de code.
         uf_med = (
-            movement.uf_medicale_code
+            getattr(movement, "uf_medicale_code", None)
             or getattr(dossier, "uf_medicale", None)  # compat éventuelle si ajouté plus tard
-            or dossier.uf_responsabilite
-            or (venue.uf_responsabilite if venue else None)
+            or getattr(dossier, "uf_responsabilite", None)
+            or (getattr(venue, "uf_responsabilite", None) if venue else None)
         )
         # UF soins seulement si fournie sur le mouvement; pas de fallback explicite (segment ZBE-8 peut être vide)
         uf_soins = (
-            movement.uf_soins_code
+            getattr(movement, "uf_soins_code", None)
             or getattr(dossier, "uf_soins", None)
             or (getattr(venue, "uf_soins", None) if venue else None)
         )
@@ -582,10 +582,10 @@ def generate_adt_message(
                     .where(Mouvement.mouvement_seq < movement.mouvement_seq)
                     .order_by(Mouvement.mouvement_seq.desc())
                 ).first()
-                if prev and prev.uf_medicale_code:
-                    previous_uf = prev.uf_medicale_code
-                elif prev and dossier.uf_responsabilite:
-                    previous_uf = dossier.uf_responsabilite
+                if prev and getattr(prev, "uf_medicale_code", None):
+                    previous_uf = getattr(prev, "uf_medicale_code", None)
+                elif prev and getattr(dossier, "uf_responsabilite", None):
+                    previous_uf = getattr(dossier, "uf_responsabilite", None)
         # Rebuild PV1 with previous UF if needed (replace last appended PV1 segment)
         segments[2] = build_pv1_segment(dossier, venue=venue, session=session, previous_uf=previous_uf, trigger_event=trigger_event)
         segments.append(

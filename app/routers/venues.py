@@ -183,8 +183,13 @@ def delete_venue(venue_id: int, request: Request, session=Depends(get_session)):
     if not v:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
     dossier_id = v.dossier_id
-    
-    session.delete(v); session.commit()
+    # Refresh relationships so emit_to_senders can access them before deletion
+    session.refresh(v)
+    if v.dossier:
+        session.refresh(v.dossier, ["patient"])
+
     from app.services.emit_on_create import emit_to_senders
-    emit_to_senders(v, "venue", session) # This might fail as v is deleted
+    # Emit before deleting to avoid DetachedInstanceError in emit pipeline
+    emit_to_senders(v, "venue", session, operation="delete")
+    session.delete(v); session.commit()
     return RedirectResponse(url=f"/venues?dossier_id={dossier_id}", status_code=303)

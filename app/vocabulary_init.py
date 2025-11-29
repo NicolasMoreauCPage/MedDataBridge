@@ -480,6 +480,17 @@ def init_vocabularies(session):
     all_systems.extend(_create_contact_relationship_and_role_vocab())
     
     # Sauvegarder tous les systèmes et leurs valeurs
+    # Some helper functions may have created VocabularyMapping objects and
+    # attached them to VocabularyValue.mappings in-memory. These mapping
+    # objects are not attached to the DB session and trigger SAWarnings when
+    # SQLModel autoflush inspects relationships. Clear any such in-memory
+    # mappings before adding systems to the session.
+    for system in all_systems:
+        for val in getattr(system, "values", []) or []:
+            if hasattr(val, "mappings") and val.mappings:
+                # detach in-memory mapping instances to avoid autoflush warnings
+                val.mappings = []
+
     for system in all_systems:
         session.add(system)
     

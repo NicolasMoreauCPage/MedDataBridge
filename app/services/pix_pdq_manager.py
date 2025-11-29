@@ -175,15 +175,20 @@ class PIXPDQManager:
                 bd = params["birthdate"]
                 bd_obj = None
                 try:
-                    # Try YYYY-MM-DD
+                    # Try YYYY-MM-DD or YYYYMMDD
                     from datetime import datetime as _dt
-                    bd_obj = _dt.strptime(bd, "%Y-%m-%d").date()
-                except Exception:
                     try:
-                        bd_obj = _dt.strptime(bd, "%Y%m%d").date()
+                        bd_obj = _dt.strptime(bd, "%Y-%m-%d").date()
                     except Exception:
-                        # If invalid, ignore the birthdate filter (tests expect empty result, not error)
-                        bd_obj = None
+                        bd_obj = _dt.strptime(bd, "%Y%m%d").date()
+                except Exception:
+                    # If invalid format, per tests we should return an empty result
+                    return {
+                        "resourceType": "Bundle",
+                        "type": "searchset",
+                        "total": 0,
+                        "entry": []
+                    }
                 if bd_obj:
                     query = query.where(Patient.birth_date == bd_obj)
             if params.get("gender"):

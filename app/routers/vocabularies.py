@@ -39,9 +39,13 @@ def list_vocabularies(request: Request, session: Session = Depends(get_session))
     for system in canonical_systems:
         mapping_counts: Dict[str, int] = {}
         for value in system.values:
-            for mapping in value.mappings:
-                target_type = mapping.target_system.system_type.value
-                mapping_counts[target_type] = mapping_counts.get(target_type, 0) + 1
+            # Access mappings in no_autoflush context to avoid SAWarning when
+            # related VocabularyMapping objects are not yet attached to the
+            # current session (this can happen during lazy load/autoflush).
+            with session.no_autoflush:
+                for mapping in value.mappings:
+                    target_type = mapping.target_system.system_type.value
+                    mapping_counts[target_type] = mapping_counts.get(target_type, 0) + 1
 
         grouped.append(
             {
@@ -94,8 +98,12 @@ def vocabulary_detail(system_id: int, request: Request, session: Session = Depen
     def _resolve_mapping(
         source_value: VocabularyValue, target_type: VocabularySystemType
     ) -> Optional[Dict[str, Optional[str]]]:
-        for mapping in source_value.mappings:
-            target_system = mapping.target_system
+        # Use no_autoflush when iterating mappings to avoid autoflush warnings
+        # if mapping objects are created elsewhere but not yet attached to the
+        # current session.
+        with session.no_autoflush:
+            for mapping in source_value.mappings:
+                target_system = mapping.target_system
             if target_system.system_type == target_type:
                 target_value = session.exec(
                     select(VocabularyValue)

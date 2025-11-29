@@ -735,10 +735,10 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
                 pass
             # If it is a composite known production token (like 'MH' or 'HM'), report as info (non-standard but accepted)
             elif norm_zbe9 and len(norm_zbe9) == 2 and all(ch in "SHMLD" for ch in norm_zbe9):
-                # Treat non-standard composites as errors when enforcing spec conformity
+                # Treat known non-standard composites (production tokens like 'MH', 'HM') as errors again.
                 issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature non-standard/composite: {zbe_9}", severity="error"))
             else:
-                # Unknown token, keep as error
+                # Unknown token: report as error.
                 issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature inconnue: {zbe_9}", severity="error"))
     
     # Validation des champs PV1 (types de données complexes) si présent

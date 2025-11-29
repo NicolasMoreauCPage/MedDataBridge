@@ -15,12 +15,12 @@ Configuration via variables d'environnement
 - `PID13_ALLOW_USES` : CSV d'exceptions pour PID-13.3 (Use Code).
 - `PID13_ALLOW_EQUIP` : CSV d'exceptions pour PID-13.4 (Equipment Type).
 - `ENABLE_PAM_EXT` : active extensions locales.
-- `STRICT_PAM_FR` : ajustements pour règles locales FR.
+- `STRICT_PAM_FR` : ajustements pour règles locales.
 
 Contrôles principaux
 1. MSH (entête)
    - MSH-1 doit être `|` (sinon `MSH1_INVALID`, severity `error`).
-   - MSH-2 (encoding) recommandé `^~\&` (warning si non standard).
+   - MSH-2 (encoding) recommandé `^~\\&` (warning si non standard).
    - MSH-9 format `type^trigger[^structure]` (erreur si absent).
    - MSH-10 (Message Control ID) requis.
 2. EVN
@@ -94,4 +94,4 @@ for i in res.issues:
     print(i.code, i.severity, i.message)
 ```
 
-Fin du document détaillé.`
+Fin du document détaillé.

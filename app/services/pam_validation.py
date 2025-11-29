@@ -668,11 +668,46 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
             issues.append(ValidationIssue("ZBE8_ABSENT", "ZBE-8 UF soins absente (compatibilité legacy: warning seulement)", severity="info"))
 
         # ZBE-9 nature
-        valid_natures = {"S", "H", "M", "L", "D", "SM"}
-        if zbe_9 and zbe_9 not in valid_natures:
-            issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature inconnue: {zbe_9}", severity="error"))
+        # Accept standard natures per spec: S, H, M, L, D, SM
+        # But tolerate production tokens composed or suffixed (ex: 'MH', 'HM', 'MHU', 'MH-EXT') by
+        # normalizing known combos or downgrading to info to keep message as "truth" while reporting non-standardness.
+        standard_natures = {"S", "H", "M", "L", "D", "SM"}
+
+        def _normalize_zbe9(raw: str) -> Optional[str]:
+            if not raw:
+                return None
+            val = raw.strip().upper()
+            # Direct match
+            if val in standard_natures:
+                return val
+            # Known composite tokens from production: e.g., 'MH' (Med/Hosp mix) — accept as 'MH' but not standard
+            # Map two-letter combos where both letters are in standard set to a stable composite token
+            if len(val) == 2 and all(ch in "SHMLD" for ch in val):
+                # keep as-is (e.g., 'MH', 'HM')
+                return val
+            # Map values with non-alphanum suffixes like 'MH-EXT' -> 'MH'
+            m = re.match(r"^([A-Z]{1,3})[^A-Z0-9]?.*$", val)
+            if m:
+                core = m.group(1)
+                if len(core) == 2 and all(ch in "SHMLD" for ch in core):
+                    return core
+                if core in standard_natures:
+                    return core
+            return val  # unknown token, return raw for reporting
+
+        norm_zbe9 = _normalize_zbe9(zbe_9)
         if not zbe_9:
             issues.append(ValidationIssue("ZBE9_MISSING", "ZBE-9 nature requise", severity="error"))
+        else:
+            # If normalized into a standard nature, accept
+            if norm_zbe9 in standard_natures:
+                pass
+            # If it is a composite known production token (like 'MH' or 'HM'), report as info (non-standard but accepted)
+            elif norm_zbe9 and len(norm_zbe9) == 2 and all(ch in "SHMLD" for ch in norm_zbe9):
+                issues.append(ValidationIssue("ZBE9_NONSTANDARD_COMPOSITE", f"ZBE-9 nature non-standard observed in production: {zbe_9}", severity="info"))
+            else:
+                # Unknown token, keep as error
+                issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature inconnue: {zbe_9}", severity="error"))
     
     # Validation des champs PV1 (types de données complexes) si présent
     pv1 = _get_first_segment(msg, "PV1")

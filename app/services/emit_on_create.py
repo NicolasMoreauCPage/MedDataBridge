@@ -287,16 +287,40 @@ def generate_pam_hl7(
         # PID-3 identifiers
         pid3 = build_pid3_identifiers(entity, session, forced_system=forced_identifier_system, forced_oid=forced_identifier_oid)
 
-        # Names
+        # Names: build XPN repetitions but avoid emitting empty subcomponents
+        def _build_xpn(family_val, given_val, middle_val, type_code=None):
+            comps = [family_val, given_val]
+            # include middle only if present (not empty or None)
+            if middle_val:
+                comps.append(middle_val)
+            # ensure we place type code at component position 7 if we have degree/components in between
+            # We'll pad with empty strings up to the degree/type position if needed
+            # XPN structure used here: family^given^middle^suffix^prefix^degree^type
+            # We only populate family, given, maybe middle, and type
+            # Build full 7-component list
+            xpn = ["", "", "", "", "", "", ""]
+            if len(comps) > 0:
+                xpn[0] = comps[0] or ""
+            if len(comps) > 1:
+                xpn[1] = comps[1] or ""
+            if len(comps) > 2:
+                xpn[2] = comps[2] or ""
+            if type_code:
+                xpn[6] = type_code
+            # Trim trailing empty components to avoid producing '^' for missing trailing fields
+            while xpn and xpn[-1] == "":
+                xpn.pop()
+            return "^".join(xpn)
+
         family = _c_local(_get("family", ""))
         given = _c_local(_get("given", ""))
-        middle = _c_local(_get("middle", ""))
-        name_usuel = f"{family}^{given}^{middle}^^^^D" if middle else f"{family}^{given}^^^^D"
-        names = [name_usuel]
+        middle = _c_local(_get("middle", None))
+        names = []
+        if family or given or middle:
+            names.append(_build_xpn(family, given, middle, None))
         birth_family = _c_local(_get("birth_family", None)) or None
         if birth_family and birth_family != family:
-            name_naissance = f"{birth_family}^{given}^{middle}^^^^L" if middle else f"{birth_family}^{given}^^^^L"
-            names.append(name_naissance)
+            names.append(_build_xpn(birth_family, given, middle, None))
         name = "~".join(names)
 
         # Birth date
@@ -314,27 +338,34 @@ def generate_pam_hl7(
         gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
 
         # Addresses
-        addr1 = [
-            _c_local(_get("address", "")),
-            "",
-            _c_local(_get("city", "")),
-            _c_local(_get("state", "")),
-            _c_local(_get("postal_code", "")),
-            _c_local(_get("country", "")),
-            "H",
-        ]
-        addresses = ["^".join(addr1)]
-        if _c_local(_get("birth_address", None)) or _c_local(_get("birth_city", None)):
-            addr2 = [
-                _c_local(_get("birth_address", "")),
-                "",
-                _c_local(_get("birth_city", "")),
-                _c_local(_get("birth_state", "")),
-                _c_local(_get("birth_postal_code", "")),
-                _c_local(_get("birth_country", "")),
-                "BIR",
-            ]
-            addresses.append("^".join(addr2))
+        # Addresses: build XAD repetitions but only include repetitions with meaningful content
+        def _build_xad(street, other, city, state, postal, country, addr_type=None):
+            parts = [street or "", other or "", city or "", state or "", postal or "", country or ""]
+            if addr_type:
+                parts.append(addr_type)
+            # Trim trailing empty components
+            while parts and parts[-1] == "":
+                parts.pop()
+            return "^".join(parts) if parts else ""
+
+        addresses = []
+        street = _c_local(_get("address", None))
+        city = _c_local(_get("city", None))
+        state = _c_local(_get("state", None))
+        postal = _c_local(_get("postal_code", None))
+        country = _c_local(_get("country", None))
+        # Only add home address repetition if at least one meaningful field exists
+        if any([street, city, state, postal, country]):
+            addresses.append(_build_xad(street, "", city, state, postal, country, "H"))
+
+        birth_street = _c_local(_get("birth_address", None))
+        birth_city = _c_local(_get("birth_city", None))
+        birth_state = _c_local(_get("birth_state", None))
+        birth_postal = _c_local(_get("birth_postal_code", None))
+        birth_country = _c_local(_get("birth_country", None))
+        if any([birth_street, birth_city, birth_state, birth_postal, birth_country]):
+            addresses.append(_build_xad(birth_street, "", birth_city, birth_state, birth_postal, birth_country, "BIR"))
+
         patient_address = "~".join(addresses)
 
         # Phones

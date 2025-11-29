@@ -10,6 +10,10 @@ Comportement
 - Parsing ligne-based : séparation par '\r' / '\n' puis split par '|' et '^'.
 - Ne gère pas toutes les complexités d'échappement HL7 ; les champs courants (CX, XPN, XTN, TS, XAD) sont supportés.
 
+Comportement
+- Parsing ligne-based : séparation par '\r' / '\n' puis split par '|' et '^'.
+- Ne gère pas toutes les complexités d'échappement HL7 ; les champs courants (CX, XPN, XTN, TS, XAD) sont supportés.
+
 Transport
 - MLLP : `app/services/mllp.py` expose fonctions d'envoi et réception en MLLP; `app/services/mllp_manager.py` gère la mise en écoute et le multiplexage.
 - File poller : `app/services/file_poller.py` surveille des répertoires entrants/sortants pour ingestion ou publication.

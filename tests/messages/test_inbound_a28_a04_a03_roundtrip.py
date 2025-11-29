@@ -115,12 +115,13 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
             return val
 
         # Send messages in order
+        # Start watching for MessageLog entries now (before sending messages)
+        start = datetime.utcnow()
         val1 = send_and_validate(a28)
         val2 = send_and_validate(a04)
         val3 = send_and_validate(a03)
 
         # Wait for MessageLog entries and emitted payloads
-        start = datetime.utcnow()
         end = time.time() + 5
         logs = []
         while time.time() < end:
@@ -141,11 +142,17 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
         assert hasattr(scen_res, 'is_valid')
 
         # Verify expected validator outputs for this scenario
-        # - We expect the per-message validator to mark A28 as valid and A04/A03 to fail on ZBE-9
+        # - We expect the per-message validator to mark A28 as valid and A04/A03
+        #   to either fail under strict mode or be reported as a warning when
+        #   production tokens are tolerated.
         assert val1.is_valid is True
-        assert val2.is_valid is False
-        assert val3.is_valid is False
-        # Check that either ZBE9_INVALID (strict) or ZBE9_NONSTANDARD_COMPOSITE (production token tolerated)
+        # ZBE-9 validation was relaxed to a warning for some production tokens.
+        # Accept either an error (is_valid==False) or a warning-level result.
+        assert (val2.is_valid is False) or (val2.level == 'warn')
+        assert (val3.is_valid is False) or (val3.level == 'warn')
+
+        # Check that either ZBE9_INVALID (strict) or ZBE9_NONSTANDARD_COMPOSITE
+        # (production token tolerated) appears in the issue codes.
         def issue_codes(validation):
             return {i.code for i in validation.issues}
 

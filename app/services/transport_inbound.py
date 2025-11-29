@@ -1294,24 +1294,71 @@ class _OnMessageInboundCallable:
 
         # Create the coroutine
         coro = self._async(msg, session, endpoint)
-        # Check whether an event loop is already running without raising.
+        # Check whether an event loop is already running in this thread.
+        # asyncio.get_running_loop() raises a RuntimeError when no loop is running.
         try:
-            policy = asyncio.get_event_loop_policy()
-            loop = policy.get_event_loop()
-            running = loop.is_running()
-        except Exception:
-            # As a very defensive fallback, consider there is no running loop.
-            running = False
+            # If there's a running loop in this thread, get_running_loop() will succeed.
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
 
-        if not running:
-            # No running loop: safe to run and return the sync-compatible dict
+        if not running_loop:
+            # No running loop in this thread: safe to run and return the sync-compatible dict
             ack = asyncio.run(coro)
             if isinstance(ack, str) and "MSA|AA" in ack:
                 return {"status": "success", "ack": ack}
             else:
                 return {"status": "error", "ack": ack}
-        else:
-            # Return coroutine to be awaited by caller
+
+        # There is a running loop. Try to submit the coroutine to that loop from
+        # another thread using run_coroutine_threadsafe (works when the loop runs
+        # in a different thread). If that fails, fall back to returning the
+        # coroutine for the caller to await.
+        try:
+            policy = asyncio.get_event_loop_policy()
+            loop_for_thread = policy.get_event_loop()
+            # If loop_for_thread is running and not the same as running_loop, attempt thread-safe submit
+            if loop_for_thread is not running_loop and getattr(loop_for_thread, "is_running", lambda: False)():
+                future = asyncio.run_coroutine_threadsafe(coro, loop_for_thread)
+                ack = future.result(timeout=10)
+                if isinstance(ack, str) and "MSA|AA" in ack:
+                    return {"status": "success", "ack": ack}
+                else:
+                    return {"status": "error", "ack": ack}
+        except Exception:
+            # Couldn't submit to running loop (likely same-thread loop); fall through
+            pass
+
+        # If we reach here the running loop is the same thread's loop. We cannot
+        # call asyncio.run() from this thread because it would raise. Instead,
+        # run the coroutine in a fresh thread where asyncio.run() is allowed.
+        try:
+            import threading, queue as _queue
+
+            q = _queue.Queue()
+
+            def _run_in_thread():
+                try:
+                    result = asyncio.run(coro)
+                    q.put((True, result))
+                except Exception as e:
+                    q.put((False, e))
+
+            thread = threading.Thread(target=_run_in_thread, daemon=True)
+            thread.start()
+            thread.join(timeout=15)
+            if not q.empty():
+                ok, val = q.get()
+                if not ok:
+                    raise val
+                ack = val
+                if isinstance(ack, str) and "MSA|AA" in ack:
+                    return {"status": "success", "ack": ack}
+                else:
+                    return {"status": "error", "ack": ack}
+        except Exception:
+            # If any of the above fails, fall back to returning the coroutine so
+            # async callers can await it.
             return coro
 
     def __await__(self):

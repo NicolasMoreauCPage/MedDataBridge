@@ -288,26 +288,22 @@ def generate_pam_hl7(
         pid3 = build_pid3_identifiers(entity, session, forced_system=forced_identifier_system, forced_oid=forced_identifier_oid)
 
         # Names: build XPN repetitions but avoid emitting empty subcomponents
-        def _build_xpn(family_val, given_val, middle_val, type_code=None):
-            comps = [family_val, given_val]
-            # include middle only if present (not empty or None)
-            if middle_val:
-                comps.append(middle_val)
-            # ensure we place type code at component position 7 if we have degree/components in between
-            # We'll pad with empty strings up to the degree/type position if needed
-            # XPN structure used here: family^given^middle^suffix^prefix^degree^type
-            # We only populate family, given, maybe middle, and type
-            # Build full 7-component list
+        def _build_xpn(family_val, given_val, middle_val, suffix_val=None, prefix_val=None, type_code=None):
+            # XPN: family^given^middle^suffix^prefix^degree^type
             xpn = ["", "", "", "", "", "", ""]
-            if len(comps) > 0:
-                xpn[0] = comps[0] or ""
-            if len(comps) > 1:
-                xpn[1] = comps[1] or ""
-            if len(comps) > 2:
-                xpn[2] = comps[2] or ""
+            if family_val:
+                xpn[0] = family_val
+            if given_val:
+                xpn[1] = given_val
+            if middle_val:
+                xpn[2] = middle_val
+            if suffix_val:
+                xpn[3] = suffix_val
+            if prefix_val:
+                xpn[4] = prefix_val
             if type_code:
                 xpn[6] = type_code
-            # Trim trailing empty components to avoid producing '^' for missing trailing fields
+            # Trim trailing empty components
             while xpn and xpn[-1] == "":
                 xpn.pop()
             return "^".join(xpn)
@@ -315,12 +311,17 @@ def generate_pam_hl7(
         family = _c_local(_get("family", ""))
         given = _c_local(_get("given", ""))
         middle = _c_local(_get("middle", None))
+        suffix = _c_local(_get("suffix", None)) or None
+        prefix = _c_local(_get("prefix", None)) or None
         names = []
-        if family or given or middle:
-            names.append(_build_xpn(family, given, middle, None))
         birth_family = _c_local(_get("birth_family", None)) or None
+        # If we have a birth_family, prefer to mark the name with type 'L' (legal/birth)
+        first_type = "L" if birth_family else None
+        if family or given or middle or prefix or suffix:
+            names.append(_build_xpn(family, given, middle, suffix, prefix, first_type))
         if birth_family and birth_family != family:
-            names.append(_build_xpn(birth_family, given, middle, None))
+            # mark birth/legal name with type 'L' and preserve prefix/suffix when available
+            names.append(_build_xpn(birth_family, given, middle, suffix, prefix, "L"))
         name = "~".join(names)
 
         # Birth date
@@ -388,8 +389,58 @@ def generate_pam_hl7(
         marital_status = _c_local(_get("marital_status", ""))
         nationality = _c_local(_get("nationality", ""))
         identity_code = _c_local(_get("identity_reliability_code", ""))
+        # Attempt to include account_number (PID-18) if there's a dossier for this patient
+        account_number = ""
+        try:
+            pid_patient_id = _get('id', None)
+            if pid_patient_id is not None:
+                # pick latest dossier for this patient if any
+                from sqlmodel import select as _select
+                dossier_obj = session.exec(_select(Dossier).where(Dossier.patient_id == pid_patient_id).order_by(Dossier.id.desc())).first()
+                if dossier_obj and getattr(dossier_obj, 'dossier_seq', None):
+                    # resolve namespace authority for NDA (dossier numbers)
+                    auth, _ = _resolve_namespace_authority(session, _get('entite_juridique_id'), 'NDA', forced_identifier_system, forced_identifier_oid)
+                    if auth:
+                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{auth}^AN"
+                    else:
+                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{_c_local('EXTERNAL')}^AN"
+        except Exception:
+            logger.exception("Failed to resolve dossier/account_number for PID-18")
 
-        pid = f"PID|1||{_c_local(pid3)}||{_c_local(name)}||{birth_date}|{gender}|||{_c_local(patient_address)}||{phone_field}|||{marital_status}|||||||{birth_place}|||{nationality}||||||{identity_code}"
+        # Build PID using indexed fields to ensure PID-18 (account number) and PID-23 (birth place)
+        # are placed at their correct positions.
+        # We allocate up to PID-32 for safety (index matches HL7 field number).
+        pid_fields = [""] * 33
+        pid_fields[0] = "PID"
+        pid_fields[1] = "1"  # Set ID - PID-1
+        pid_fields[2] = ""   # PID-2 (Patient ID)
+        pid_fields[3] = _c_local(pid3)  # PID-3 Patient Identifier List
+        pid_fields[4] = ""   # PID-4 Alternate ID
+        pid_fields[5] = _c_local(name)  # PID-5 Patient Name
+        pid_fields[6] = ""   # PID-6 Mother's Maiden Name
+        pid_fields[7] = birth_date  # PID-7 Date/Time of Birth
+        pid_fields[8] = gender  # PID-8 Administrative Sex
+        pid_fields[9] = ""   # PID-9 Patient Alias
+        pid_fields[10] = ""  # PID-10 Race
+        pid_fields[11] = _c_local(patient_address)  # PID-11 Patient Address
+        pid_fields[12] = ""  # PID-12 County Code
+        pid_fields[13] = phone_field  # PID-13 Phone Number - Home
+        pid_fields[14] = ""  # PID-14 Phone Number - Business
+        pid_fields[15] = ""  # PID-15 Primary Language
+        pid_fields[16] = _c_local(marital_status)  # PID-16 Marital Status
+        pid_fields[17] = ""  # PID-17 Religion
+        pid_fields[18] = _c_local(account_number)  # PID-18 Patient Account Number
+        # PID-19.. PID-22 left empty for now
+        pid_fields[19] = ""  # PID-19 SSN Number - Patient
+        pid_fields[20] = ""  # PID-20 Driver's License Number
+        pid_fields[21] = ""  # PID-21 Mother's Identifier
+        pid_fields[22] = ""  # PID-22 Ethnic Group
+        pid_fields[23] = _c_local(birth_place)  # PID-23 Birth Place
+        pid_fields[24] = ""  # PID-24 Mother's Maiden Name (repeating semantics)
+        # PID-25..PID-31 reserved
+        pid_fields[32 - 1] = _c_local(identity_code)  # PID-32 Identity Reliability Code (placed at index 32)
+
+        pid = "|".join(pid_fields)
 
         return "\r".join([msh, evn, pid])
         

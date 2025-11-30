@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
+import os
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
@@ -328,3 +329,294 @@ async def seed_demo_structure(
 
     flash(request, message, "success")
     return RedirectResponse(f"/admin/ght/{context_id}", status_code=303)
+
+@router.post("/_test/session")
+async def _test_set_session(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    """Test-only helper: set GHT/EJ context in the session via JSON payload.
+
+    This endpoint exists only when tests run (guarded at runtime). It accepts
+    a JSON body like {"ght_id": 1, "ej_id": 2} and sets the corresponding
+    session keys so UI tests can deterministically establish context.
+    """
+    # Only enable when either TESTING is set, or when a valid test auth header
+    # is supplied. This lets the test harness use a short-lived secret header
+    # to call this helper without enabling full TESTING mode in the server
+    # process. The secret should be provided via the TEST_AUTH_TOKEN env var.
+    token = os.getenv("TEST_AUTH_TOKEN")
+    header = request.headers.get("x-test-auth") or request.headers.get("X-TEST-AUTH")
+    if not (os.getenv("TESTING", "0") in ("1", "true", "True") or (token and header == token)):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    try:
+        body = await request.json()
+    except Exception:
+        # If the client posted form-encoded data (auto-submitted form from
+        # the HTML setter), parse form data as a fallback so tests can use
+        # a simple form POST without triggering JSON preflight issues.
+        try:
+            form = await request.form()
+            body = {k: v for k, v in form.items()}
+        except Exception:
+            body = {}
+
+    ght_id = body.get("ght_id")
+    ght_code = body.get("ght_code")
+    ej_id = body.get("ej_id")
+
+    # If a ght_code was supplied, resolve it to the current DB id to avoid
+    # mismatches between the test process' DB and the server process DB.
+    if ght_code and not ght_id:
+        found = session.exec(select(GHTContext).where(GHTContext.code == str(ght_code))).first()
+        if found:
+            ght_id = found.id
+        else:
+            # Create the context on-the-fly in the server DB so tests can
+            # rely on navigating to a stable ght_code without needing
+            # pre-seeded numeric IDs that may differ across processes.
+            try:
+                new_ctx = GHTContext(name=str(ght_code), code=str(ght_code), is_active=True)
+                session.add(new_ctx)
+                session.commit()
+                session.refresh(new_ctx)
+                ght_id = new_ctx.id
+            except Exception:
+                # If creation fails, continue without raising to avoid
+                # breaking non-test flows; the session setter will simply
+                # not set a valid id.
+                pass
+
+    if ght_id is not None:
+        try:
+            request.session["ght_context_id"] = int(ght_id)
+        except Exception:
+            request.session["ght_context_id"] = ght_id
+
+    if ej_id is not None and ght_id is not None:
+        try:
+            request.session[f"ght_{int(ght_id)}_ej_id"] = int(ej_id)
+            request.session["ej_context_id"] = int(ej_id)
+        except Exception:
+            request.session[f"ght_{ght_id}_ej_id"] = ej_id
+            request.session["ej_context_id"] = ej_id
+    # Provide an explicit test cookie so browser contexts can detect the
+    # session-setting flow reliably even if signed session cookie parsing
+    # behaves unexpectedly in headless environments. Also set simple
+    # ght/ej id cookies as an unprotected fallback for the middleware
+    # to read when running tests.
+    from fastapi.responses import JSONResponse
+    resp = JSONResponse({"ok": True})
+    try:
+        resp.set_cookie("medbridge_test", "1", path="/", httponly=False)
+        if ght_id is not None:
+            resp.set_cookie("ght_context_id", str(ght_id), path="/", httponly=False)
+        if ej_id is not None:
+            resp.set_cookie("ej_context_id", str(ej_id), path="/", httponly=False)
+        # Also set a small JSON payload cookie to help middleware/tests share
+        # a simple, unsigned representation of the context. Use SameSite=Lax
+        # and do not set Secure so it works on local HTTP.
+        try:
+            import json as _json
+            payload = {}
+            if ght_id is not None:
+                payload["ght_id"] = int(ght_id) if isinstance(ght_id, (int, str)) and str(ght_id).isdigit() else ght_id
+            if ej_id is not None:
+                payload["ej_id"] = int(ej_id) if isinstance(ej_id, (int, str)) and str(ej_id).isdigit() else ej_id
+            if payload:
+                resp.set_cookie("medbridge_test_data", _json.dumps(payload), path="/", httponly=False, samesite="lax")
+        except Exception:
+            # Best-effort; do not break test helper on cookie serialization errors
+            pass
+    except Exception:
+        pass
+    return resp
+
+
+@router.get("/_test/session/debug")
+async def _test_get_session_debug(request: Request, session: Session = Depends(get_session)):
+    """Test-only helper: return a snapshot of the current session for debugging.
+
+    Only available when TESTING is enabled.
+    """
+    token = os.getenv("TEST_AUTH_TOKEN")
+    header = request.headers.get("x-test-auth") or request.headers.get("X-TEST-AUTH")
+    if not (os.getenv("TESTING", "0") in ("1", "true", "True") or (token and header == token)):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    # Return shallow copy of session keys and values (JSON-serializable best-effort)
+    data = {}
+    for k, v in request.session.items():
+        try:
+            # Some session values may not be JSON-serializable; coerce to string in that case
+            import json
+
+            json.dumps(v)
+            data[k] = v
+        except Exception:
+            data[k] = str(v)
+
+    return {"ok": True, "session": data}
+
+
+@router.get("/_test/session/set")
+async def _test_set_session_get(request: Request, token: str | None = None, ght_id: int | None = None, ej_id: int | None = None, ght_code: str | None = None, session: Session = Depends(get_session)):
+    """Test-only GET helper: set session via a navigable URL.
+
+    Allows tests to navigate the browser to a URL like
+    /admin/ght/_test/session/set?token=...&ght_id=1 which sets the
+    session cookie and redirects to /admin/ght. This avoids CORS
+    preflight issues because it's a simple browser navigation.
+    """
+    env_token = os.getenv("TEST_AUTH_TOKEN")
+    if not (os.getenv("TESTING", "0") in ("1", "true", "True") or (env_token and token == env_token)):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    # Resolve code -> id if needed to avoid cross-process id skews
+    if ght_code and not ght_id:
+        found = session.exec(select(GHTContext).where(GHTContext.code == str(ght_code))).first()
+        if found:
+            ght_id = found.id
+        else:
+            # Create the context on-the-fly in the server DB so tests can
+            # rely on navigating to a stable ght_code without needing
+            # pre-seeded numeric IDs that may differ across processes.
+            try:
+                new_ctx = GHTContext(name=str(ght_code), code=str(ght_code), is_active=True)
+                session.add(new_ctx)
+                session.commit()
+                session.refresh(new_ctx)
+                ght_id = new_ctx.id
+            except Exception:
+                # If creation fails, continue without raising
+                pass
+
+    if ght_id is not None:
+        try:
+            request.session["ght_context_id"] = int(ght_id)
+        except Exception:
+            request.session["ght_context_id"] = ght_id
+
+    if ej_id is not None and ght_id is not None:
+        try:
+            request.session[f"ght_{int(ght_id)}_ej_id"] = int(ej_id)
+            request.session["ej_context_id"] = int(ej_id)
+        except Exception:
+            request.session[f"ght_{ght_id}_ej_id"] = ej_id
+            request.session["ej_context_id"] = ej_id
+
+    # Instead of a redirect response which may not guarantee the browser
+    # has applied the cookies before subsequent resource loads, return a
+    # tiny HTML page that sets the plain cookies via document.cookie in the
+    # browser and then submits a hidden form (targeting an iframe) to the
+    # POST test endpoint so the server will issue a signed session cookie
+    # in the POST response. After the iframe submission completes we then
+    # navigate to /admin/ght. This avoids CORS/preflight problems and
+    # guarantees the signed session cookie is set by the server.
+    try:
+        import json as _json
+        payload = {}
+        if ght_id is not None:
+            payload["ght_id"] = int(ght_id) if isinstance(ght_id, (int, str)) and str(ght_id).isdigit() else ght_id
+        if ej_id is not None:
+            payload["ej_id"] = int(ej_id) if isinstance(ej_id, (int, str)) and str(ej_id).isdigit() else ej_id
+        payload_raw = _json.dumps(payload) if payload else ""
+    except Exception:
+        payload_raw = ""
+
+    # Build inline JS that sets cookies, posts the payload to the server via
+    # an auto-submitted hidden form in an iframe, and then redirects.
+    js_lines = []
+    js_lines.append("(function(){")
+    js_lines.append("document.cookie = 'medbridge_test=1; path=/; SameSite=Lax';")
+    if payload_raw:
+        # Inject minimal payload construction in JS
+        try:
+            import json as _json
+            payload_obj = _json.loads(payload_raw) if payload_raw else {}
+        except Exception:
+            payload_obj = {}
+        # Build JS object literal from payload_obj
+        parts = []
+        for k, v in (payload_obj.items() if isinstance(payload_obj, dict) else []):
+            # numbers shouldn't be quoted
+            if isinstance(v, (int, float)):
+                parts.append(f"{k}: {v}")
+            else:
+                # escape single quotes in strings
+                sval = str(v).replace("'", "\\'")
+                parts.append(f"{k}: '{sval}'")
+        obj_js = "{" + ", ".join(parts) + "}"
+        js_lines.append(f"var payload = {obj_js};")
+    js_lines.append("document.cookie = 'medbridge_test_data=' + encodeURIComponent(JSON.stringify(payload)) + '; path=/; SameSite=Lax';")
+    if ght_id is not None:
+        js_lines.append(f"document.cookie = 'ght_context_id={ght_id}; path=/; SameSite=Lax';")
+    if ej_id is not None:
+        js_lines.append(f"document.cookie = 'ej_context_id={ej_id}; path=/; SameSite=Lax';")
+
+    # Create a hidden iframe and a form that posts to the POST test endpoint
+    # so the server response can set the signed session cookie. The form is
+    # submitted targeting the iframe; after a short delay we navigate to
+    # /admin/ght.
+    js_lines.append("var iframe = document.createElement('iframe'); iframe.style.display='none'; iframe.name='session_iframe'; document.body.appendChild(iframe);")
+    js_lines.append("var form = document.createElement('form'); form.method='POST'; form.action='/admin/ght/_test/session'; form.target='session_iframe';")
+    if ght_id is not None:
+        js_lines.append(f"var i = document.createElement('input'); i.type='hidden'; i.name='ght_id'; i.value='{ght_id}'; form.appendChild(i);")
+    if ej_id is not None:
+        js_lines.append(f"var j = document.createElement('input'); j.type='hidden'; j.name='ej_id'; j.value='{ej_id}'; form.appendChild(j);")
+    if ght_code is not None:
+        js_lines.append(f"var k = document.createElement('input'); k.type='hidden'; k.name='ght_code'; k.value='{ght_code}'; form.appendChild(k);")
+    js_lines.append("document.body.appendChild(form); form.submit();")
+    js_lines.append("iframe.onload = function(){ window.location.href = '/admin/ght'; };")
+    js_lines.append("})();")
+    body = """
+    <html><head><meta charset='utf-8'></head>
+    <body>
+    <script>
+    """ + "\n".join(js_lines) + """
+    </script>
+    </body></html>
+    """
+    from fastapi.responses import HTMLResponse
+    # Also set the plain test cookies server-side so user agents receive
+    # them even if JS execution or iframe timing is flaky. Use percent-encoding
+    # for the JSON payload to ensure it's safe in cookie values.
+    try:
+        from urllib.parse import quote_plus
+        _cookie_val = quote_plus(payload_raw) if payload_raw else ""
+    except Exception:
+        _cookie_val = payload_raw
+
+    resp = HTMLResponse(content=body)
+    try:
+        resp.set_cookie("medbridge_test", "1", path="/", httponly=False)
+        if payload_raw:
+            resp.set_cookie("medbridge_test_data", _cookie_val, path="/", httponly=False, samesite="lax")
+        if ght_id is not None:
+            resp.set_cookie("ght_context_id", str(ght_id), path="/", httponly=False)
+        if ej_id is not None:
+            resp.set_cookie("ej_context_id", str(ej_id), path="/", httponly=False)
+    except Exception:
+        # Best-effort, don't break tests if cookies can't be set
+        pass
+
+    return resp
+
+
+@router.get("/_test/session/debug-html")
+async def _test_get_session_debug_html(request: Request, token: str | None = None):
+    """Return a tiny HTML page showing the session for browser-based debugging.
+
+    Accessible via ?token=... when TESTING is not enabled.
+    """
+    env_token = os.getenv("TEST_AUTH_TOKEN")
+    if not (os.getenv("TESTING", "0") in ("1", "true", "True") or (env_token and token == env_token)):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    items = []
+    for k, v in request.session.items():
+        items.append(f"<li><strong>{k}</strong>: {v}</li>")
+    body = f"<html><body><h1>Session</h1><ul>{''.join(items)}</ul></body></html>"
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(content=body)

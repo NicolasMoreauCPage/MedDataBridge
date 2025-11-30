@@ -4,7 +4,7 @@ from playwright.sync_api import expect
 from .ui_helpers import wait_for_ready, safe_navigate
 
 
-def test_navigation_menus(page, test_server):
+def test_navigation_menus(page, test_server, ght_context):
     """Ensure the main navigation exposes the grouped menus expected by the UI."""
     assert wait_for_ready(test_server), "Server not ready"
     # Ensure GHT context is selected so the navigation renders the full menu
@@ -144,7 +144,7 @@ def test_successful_submit(page, test_server):
     expect(toast).to_be_visible()
     assert "Enregistrement" in toast_text or "succès" in toast_text.lower() or "success" in toast_text.lower(), f"Expected success message not found in toast: {toast_text}"
 
-def test_state_transitions(page, test_server):
+def test_state_transitions(page, test_server, ght_context, patient_context):
     """Test state transition validation"""
     assert wait_for_ready(test_server), "Server not ready"
     # Ensure a GHT context is selected first (app redirects to /admin/ght when none set)

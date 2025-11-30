@@ -1,0 +1,15 @@
+{
+  "total": 137,
+  "passed": 130,
+  "failed": 7,
+  "skipped": 0,
+  "failures": [
+    "tests/test_a06_a07_auto_detection.py::test_a06_external_to_hospitalized_auto_detection",
+    "tests/test_a06_a07_auto_detection.py::test_a07_hospitalized_to_external_auto_detection",
+    "tests/test_a06_a07_auto_detection.py::test_no_a06_a07_without_history",
+    "tests/test_ihe_pix_pdq.py::test_error_handling",
+    "tests/ui/test_forms.py::test_navigation_menus",
+    "tests/ui/test_forms.py::test_form_validation",
+    "tests/ui/test_forms.py::test_state_transitions"
+  ]
+}

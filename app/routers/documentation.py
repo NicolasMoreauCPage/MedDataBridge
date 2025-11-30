@@ -9,6 +9,22 @@ from markdown.extensions.tables import TableExtension
 from markdown.extensions.codehilite import CodeHiliteExtension
 
 router = APIRouter(prefix="/documentation", tags=["documentation"])
+@router.get("/pam-workflows", response_class=HTMLResponse)
+async def documentation_pam_workflows(request: Request):
+    """Documentation des workflows IHE PAM (HTML statique)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_pam_workflows.html",
+        {"title": "Workflows IHE PAM (FR)"}
+    )
+@router.get("/pam-integration", response_class=HTMLResponse)
+async def documentation_pam_integration(request: Request):
+    """Documentation technique exhaustive IHE PAM (HTML statique)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_pam_integration.html",
+        {"title": "IHE PAM — Documentation technique complète"}
+    )
 
 DOC_ROOT = Path(__file__).parent.parent.parent / "Doc"
 

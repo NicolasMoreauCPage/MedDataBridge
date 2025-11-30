@@ -9,6 +9,22 @@ from markdown.extensions.tables import TableExtension
 from markdown.extensions.codehilite import CodeHiliteExtension
 
 router = APIRouter(prefix="/documentation", tags=["documentation"])
+@router.get("/fhir-reception-emission-complete", response_class=HTMLResponse)
+async def documentation_fhir_reception_emission_complete(request: Request):
+    """Documentation technique FHIR — Réception et émission (HTML statique, complète)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_fhir_reception_emission_complete.html",
+        {"title": "Documentation technique FHIR — Réception et émission"}
+    )
+@router.get("/fhir-reception-emission", response_class=HTMLResponse)
+async def documentation_fhir_reception_emission(request: Request):
+    """Documentation FHIR — Réception et émission (HTML statique)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_fhir_reception_emission.html",
+        {"title": "Documentation FHIR — Réception et émission"}
+    )
 @router.get("/pam-workflows", response_class=HTMLResponse)
 async def documentation_pam_workflows(request: Request):
     """Documentation des workflows IHE PAM (HTML statique)."""

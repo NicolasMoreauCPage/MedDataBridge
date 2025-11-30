@@ -35,9 +35,13 @@ async def export_structure(
     ej = session.get(EntiteJuridique, ej_id)
     if not ej:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
-    
-    # Créer le service d'export
-    fhir_url = ej.ght_context.fhir_server_url if ej.ght_context else "http://localhost:8000/fhir"
+
+    # Créer le service d'export (préférer l'URL FHIR configurée dans le contexte GHT)
+    cfg_url = getattr(ej.ght_context, 'fhir_server_url', None) if ej.ght_context else None
+    if cfg_url and isinstance(cfg_url, str) and cfg_url.strip().lower() != 'none':
+        fhir_url = cfg_url
+    else:
+        fhir_url = "http://localhost:8000/fhir"
     service = FHIRExportService(session, fhir_url)
     
     # Exporter la structure
@@ -75,8 +79,12 @@ async def export_patients(
     if not ej:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
     
-    # Créer le service d'export
-    fhir_url = ej.ght_context.fhir_server_url if ej.ght_context else "http://localhost:8000/fhir"
+    # Crer le service d'export
+    cfg_url = getattr(ej.ght_context, 'fhir_server_url', None) if ej.ght_context else None
+    if cfg_url and isinstance(cfg_url, str) and cfg_url.strip().lower() != 'none':
+        fhir_url = cfg_url
+    else:
+        fhir_url = "http://localhost:8000/fhir"
     service = FHIRExportService(session, fhir_url)
     
     # Exporter les patients

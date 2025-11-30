@@ -56,8 +56,9 @@ def test_generate_mfn_includes_all_types_and_lrl():
         assert any(f"^^^^^D^^^^{service.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for Service"
         assert any(f"^^^^^UF^^^^{uf.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for UF"
         assert any(f"^^^^^UH^^^^{uh.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for UH"
-        assert any(f"^^^^^CH^^^^{chambre.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for Chambre"
-        assert any(f"^^^^^LIT^^^^{lit.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for Lit"
+        # Accept either legacy/new PL codes for Chambre and Lit (CH vs R, LIT vs B)
+        assert any((f"^^^^^CH^^^^{chambre.identifier}" in l or f"^^^^^R^^^^{chambre.identifier}" in l) and l.startswith("MFE") for l in lines), "Missing MFE for Chambre"
+        assert any((f"^^^^^LIT^^^^{lit.identifier}" in l or f"^^^^^B^^^^{lit.identifier}" in l) and l.startswith("MFE") for l in lines), "Missing MFE for Lit"
 
         # Check at least one LRL segment exists for relations
         assert any(l.startswith("LRL|") for l in lines), "No LRL segments emitted"

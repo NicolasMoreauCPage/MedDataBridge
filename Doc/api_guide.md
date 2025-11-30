@@ -417,25 +417,33 @@ Importer scénario depuis JSON
 **Form Fields**:
 
 - `ght_context_id` (int, required): Contexte GHT cible
+
 - `json_file` (file, optional): Fichier JSON à uploader
+
 - `json_data` (text, optional): JSON en texte brut (si pas de fichier)
+
 - `override_key` (string, optional): Nouvelle clé pour éviter collision
+
 - `override_name` (string, optional): Nouveau nom
 
 **Exemple cURL**:
 
 ```bash
+
 # Upload fichier
+
 curl -X POST http://localhost:8000/scenarios/import \
   -F "ght_context_id=1" \
   -F "json_file=@scenario.json"
 
 # Ou JSON direct
+
 curl -X POST http://localhost:8000/scenarios/import \
   -F "ght_context_id=1" \
   -F 'json_data={"key":"test","name":"Test","protocol":"HL7v2","steps":[]}'
 
 # Avec override
+
 curl -X POST http://localhost:8000/scenarios/import \
   -F "ght_context_id=1" \
   -F "json_file=@scenario.json" \
@@ -459,6 +467,7 @@ Rejouer un scénario vers un endpoint
 **Form Data**:
 
 - `endpoint_id` (int, required): ID de l'endpoint cible
+
 - `step_id` (int, optional): Si fourni, n'envoie que ce step
 
 **Réponse Succès** (303 Redirect)
@@ -466,6 +475,7 @@ Rejouer un scénario vers un endpoint
 **Erreurs**:
 
 - `400`: Endpoint non configuré en mode sender
+
 - `404`: Scénario ou endpoint introuvable
 
 ### GET /scenarios/runs
@@ -507,7 +517,9 @@ Statistiques agrégées
 **Query params**:
 
 - `scenario_id` (int, optional): Filtrer par scénario
+
 - `endpoint_id` (int, optional): Filtrer par endpoint
+
 - `days_back` (int, default=30): Période d'analyse
 
 **Réponse**:
@@ -563,7 +575,9 @@ Comparaison de performances entre scénarios
 **Query params**:
 
 - `endpoint_id` (optional)
+
 - `days_back` (default=30)
+
 - `limit` (default=10): Nombre de scénarios
 
 **Réponse**:
@@ -610,36 +624,59 @@ Détails des erreurs d'une exécution
 Le JSON d'import doit respecter cette structure:
 
 **Champs Requis**:
+
 - `key` (string): Identifiant unique
+
 - `name` (string): Nom du scénario
+
 - `protocol` (string): "HL7v2" ou "FHIR"
+
 - `steps` (array): Liste des étapes
 
 **Champs Optionnels**:
+
 - `description` (string)
+
 - `category` (string)
+
 - `tags` (string): Séparés par virgules
+
 - `time_config` (object):
+
   - `anchor_mode` (string): "sliding" | "fixed" | "none"
+
   - `anchor_days_offset` (int)
+
   - `fixed_start_iso` (string): Date ISO 8601
+
   - `preserve_intervals` (bool)
+
   - `jitter_min` (int): Minutes
+
   - `jitter_max` (int): Minutes
+
   - `jitter_events` (bool)
 
 **Structure Step**:
+
 - `order_index` (int, required): Position dans séquence (0-based)
+
 - `message_type` (string, required): Type HL7 (ex: "ADT^A01")
+
 - `format` (string, optional): "HL7v2" ou "FHIR"
+
 - `delay_seconds` (int, optional): Délai avant ce step (0 par défaut)
+
 - `payload` (string, required): Contenu du message
 
 **Validation Automatique**:
-- Types vérifiés (steps = array, time_config = object)
-- Champs requis présents
-- Structure steps conforme
-- Retourne erreur explicite si invalide
 
----
+- Types vérifiés (steps = array, time_config = object)
+
+- Champs requis présents
+
+- Structure steps conforme
+
+- Retourne erreur explicite si invalide
+# 
 Documentation API v0.3.0

@@ -73,7 +73,10 @@
     <div class="mx-auto max-w-content px-4 py-2 flex items-center justify-between gap-4">
       <a href="/" class="flex items-center gap-3 text-lg font-semibold text-primary">
         <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">MD</span>
-        <span>MedData Bridge</span>
+        <div class="flex flex-col leading-4">
+          <span class="font-semibold text-base">MedData Bridge</span>
+          <span class="text-[11px] text-slate-400">by CPage</span>
+        </div>
       </a>
       <div class="flex items-center gap-2">
         {% if request and request.state and request.state.ght_context %}
@@ -192,19 +195,16 @@
                 <a href="/guide" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide utilisateur</a>
                 <a href="/api-docs" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation API</a>
                 <a href="https://www.hl7.org/fhir/" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">FHIR (specification R4)</a>
+
                 <hr class="my-2 border-slate-100">
                 <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Programme</p>
                 <a href="/documentation" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Index Documentation</a>
                 <a href="/docs/PROGRAM_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Programme — Vue d'ensemble</a>
-                <a href="/documentation/fhir-reception-emission" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Réception & Émission</a>
+                <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Réception & Émission (spec)</a>
                 <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration</a>
-                <a href="https://www.hl7.org/implement/standards/index.cfm" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">HL7 v2 (guide implémentation)</a>
-                <a href="/Doc/IHE_PAM_TECHNIQUE.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation technique IHE PAM (HTML)</a>
-                <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation technique IHE PAM (complète, code + specs)</a>
-                <a href="/documentation/pam-workflows" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Workflows IHE PAM (scénarios, validation)</a>
-                <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Réception et émission (spec & guide)</a>
-                <a href="/docs/PROGRAM_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-green-50 font-bold">Programme — Documentation exhaustive</a>
-                <a href="https://www.ihe.net/" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE (site officiel)</a>
+                <a href="/Doc/IHE_PAM_TECHNIQUE.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Technique (HTML)</a>
+                <a href="/Doc/IHE_PAM_INTEGRATION_COMPLETE_FR.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration (complète)</a>
+
                 <hr class="my-2 border-slate-100">
                 <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Outils & exemples</p>
                 <a href="/examples/hl7v2" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Exemples HL7 v2 (A01/A04/A06...)</a>
@@ -212,6 +212,7 @@
                 <a href="/examples/fhir-bundles" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Bundles FHIR d'exemple</a>
                 <a href="/tools/endpoints-test" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Endpoints de test internes</a>
                 <a href="/tools/mllp" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide de connexion MLLP</a>
+
                 <hr class="my-2 border-slate-100">
                 <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Checklists</p>
                 <a href="/docs/checklist_interop.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Checklist qualification d'interopérabilité</a>
@@ -525,14 +526,15 @@
         <div>
           <p class="text-xs uppercase tracking-wide text-slate-400 mb-1" data-test-section="ressources">Ressources</p>
           <a href="/guide" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Guide utilisateur</a>
-          <a href="/standards-docs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Documentation IHE</a>
-          <a href="/api-docs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">API Reference</a>
+          <a href="/api-docs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Documentation API</a>
+          <a href="https://www.hl7.org/fhir/" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR (specification R4)</a>
           <hr class="my-2 border-slate-100">
           <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Programme</p>
           <a href="/documentation" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Index Documentation</a>
           <a href="/docs/PROGRAM_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Programme — Vue d'ensemble</a>
-          <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR — Réception & Émission</a>
+          <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR — Réception & Émission (spec)</a>
           <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-blue-50">IHE PAM — Intégration</a>
+          <a href="/Doc/IHE_PAM_TECHNIQUE.html" class="block rounded-xl px-3 py-2 hover:bg-blue-50">IHE PAM — Technique (HTML)</a>
         </div>
         <a href="/admin" class="block rounded-xl px-3 py-2 bg-slate-900 text-white text-center">Administration</a>
       </div>
@@ -591,12 +593,26 @@
     </main>
 
     <footer class="border-t bg-white mt-auto">
-      <div class="mx-auto max-w-content px-4 py-4 text-xs text-slate-500">
-        <div class="flex flex-col gap-2">
-          <div>MedData Bridge • FastAPI + Tailwind</div>
-          <div class="flex gap-4">
-            <a href="/api-docs" class="hover:text-slate-700">Documentation API</a>
-            <a href="/admin" class="hover:text-slate-700">Administration</a>
+      <div class="mx-auto max-w-content px-4 py-6 text-sm text-slate-600">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex h-7 w-7 items-center justify-center rounded bg-slate-100 text-slate-700 font-mono">MD</span>
+            <div class="flex flex-col">
+              <span class="font-semibold">MedData Bridge</span>
+              <span class="text-xs text-slate-500">by CPage</span>
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-500">
+            <div>© 2025 MedData Bridge</div>
+            <div class="mt-1">FastAPI • Tailwind — Signalez un problème ou proposez une évolution :</div>
+            <div class="mt-2 flex items-center gap-3">
+              <a aria-label="Signaler un problème par mail" title="Signaler un problème / demande d'évolution" href="mailto:nicolas.moreau@cpage.fr?subject=%5BMedDataBridge%5D%20Signalement%20probl%C3%A8me%20ou%20demande%20d%27%C3%A9volution" class="inline-flex items-center gap-2 rounded-md bg-primary/5 px-3 py-2 text-primary hover:bg-primary/10">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 12v6M8 12v6M3 7h18M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                <span>Signaler un problème / demande d'évolution</span>
+              </a>
+              <a href="/documentation" class="text-slate-500 hover:text-slate-700">Voir la documentation</a>
+            </div>
           </div>
         </div>
       </div>

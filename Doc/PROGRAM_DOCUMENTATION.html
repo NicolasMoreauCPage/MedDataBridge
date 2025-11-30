@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedData Bridge — Documentation complète</title>
+<link rel="stylesheet" href="/static/css/forms.css">
+<style>body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;max-width:900px;margin:2rem auto;padding:1rem}h1{color:#0f172a}pre{background:#0f172a;color:#fff;padding:1rem;overflow:auto}</style>
+</head>
+<body>
+<h1 id="meddata-bridge-documentation-complete">MedData Bridge — Documentation complète</h1>
+<p>Date: 2025-11-30</p>
+<p>But de ce document</p>
+<ul>
+<li>Fournir une vue complète et précise du programme MedData Bridge : architecture, composants, flux de données et contrats.</li>
+<li>Couvrir les trois domaines fonctionnels principaux implémentés :</li>
+<li>FHIR (émission / import)</li>
+<li>IHE PAM (HL7v2 ADT pour identité et mouvements)</li>
+<li>
+<p>HL7/MFN (structure des lieux) et l'équivalent FHIR</p>
+</li>
+<li>
+<p>Expliquer comment exécuter, valider et tester (HAPI validator, pytest) et proposer des recommandations CI.</p>
+</li>
+</ul>
+<h2 id="1-apercu-general">1. Aperçu général</h2>
+<p>MedData Bridge est une plateforme d'interopérabilité médicale orientée FastAPI. Elle fournit :</p>
+<ul>
+<li>Un serveur HTTP (FastAPI) exposant : pages UI, API REST et endpoints d'import/export FHIR.</li>
+<li>Une couche de persistance basée sur SQLModel/SQLite (fichier <code>medbridge.db</code> par défaut).</li>
+<li>Un moteur de transport MLLP pour recevoir et émettre des messages HL7v2 (services MLLP) et une pipeline d'ingestion <code>transport_inbound</code> qui implémente le profil IHE PAM (ADTs).</li>
+<li>Un ensemble de services pour générer et valider des messages FHIR et HL7 (MFN), et pour convertir entre ces formats et le modèle métier.</li>
+</ul>
+<p>Structure principale du repo</p>
+<ul>
+<li><code>app/</code> : code applicatif principal (routers, services, modèles, convertisseurs).</li>
+<li><code>tests/</code> : tests unitaires et artefacts de test.</li>
+<li><code>Doc/</code> : documentations générées et manuelles (ici nous ajoutons <code>PROGRAM_DOCUMENTATION.md</code>).</li>
+<li><code>scripts/</code> et <code>tools/</code> : utilitaires et scripts de validation/maintenance (peuvent être archivés en /tmp pour sécurité).</li>
+</ul>
+<h2 id="2-composants-cles-et-fichiers-dentree">2. Composants clés et fichier(s) d'entrée</h2>
+<ul>
+<li>Point d'entrée application</li>
+<li>
+<p><code>app/app.py</code> : compose l'instance FastAPI, middlewares et inclusion des routeurs. Fournit <code>create_app()</code> et l'app prête à être lancée.</p>
+</li>
+<li>
+<p>Base de données et sessions</p>
+</li>
+<li>
+<p><code>app/db.py</code> : crée le moteur SQLModel (sqlite), fournit <code>get_session</code>, <code>session_factory</code>, gestion de séquences métier et hook <code>before_flush</code> qui normalise les dates et applique des règles de compatibilité ascendante.</p>
+</li>
+<li>
+<p>Modèles métier</p>
+</li>
+<li>
+<p><code>app/models.py</code>, <code>app/models_structure.py</code>, <code>app/models_identifiers.py</code>, <code>app/models_*</code> : modèles SQLModel décrivant Patient, Dossier, Venue, Mouvement, Entité Juridique / Géographique, Location tree, Identifiers, etc.</p>
+</li>
+<li>
+<p>Routes FHIR</p>
+</li>
+<li><code>app/routers/fhir_export.py</code> : endpoints d'export FHIR (génération de bundles pour dossier/venue/mouvement).</li>
+<li>
+<p><code>app/routers/fhir_import.py</code> : endpoints d'import (bundle/patient/location/encounter) qui utilisent <code>FHIRBundleImporter</code>.</p>
+</li>
+<li>
+<p>Convertisseurs et services FHIR</p>
+</li>
+<li><code>app/converters/fhir_import_converter.py</code> : convertisseurs FHIR→modèles internes (Location, Patient, Encounter) et orchestrateur <code>FHIRBundleImporter.import_bundle()</code> — gère <code>resource_map</code> pour résoudre références bundle-locales.</li>
+<li>
+<p><code>app/services/fhir.py</code>, <code>app/services/fhir_resources.py</code> : générateurs de Bundle/ressources FHIR (Patient, Encounter, EpisodeOfCare), logiques de mapping (dossier→Encounter class, extensions FRCore, etc.).</p>
+</li>
+<li>
+<p>IHE PAM / HL7 inbound</p>
+</li>
+<li><code>app/services/transport_inbound.py</code> : pipeline d'ingestion des messages HL7v2 (ITI-30/ITI-31 / IHE PAM). Gère parsing MSH/PID/PV1/ZBE, validation via <code>pam_validation</code>, routage via <code>IHEMessageRouter</code>, enregistrement MessageLog et création/maj des entités métier (Patient, Dossier, Venue, Mouvement).</li>
+<li>
+<p><code>app/services/mllp_manager.py</code> / <code>app/services/mllp.py</code> : gestion des connexions MLLP (serveur/client) — en charge du relié MLLP vers <code>transport_inbound.on_message_inbound</code>.</p>
+</li>
+<li>
+<p>HL7 MFN for structure</p>
+</li>
+<li>
+<p><code>app/services/mfn_structure.py</code> : génération et traitement des messages MFN M05 pour la structure (EntiteGeographique, Pole, Service, UF, UH, Chambre, Lit). Fournit <code>generate_mfn_message()</code> et <code>process_mfn_message()</code> qui sont utilisés pour importer/exporter la structure.</p>
+</li>
+<li>
+<p>Autres utilitaires</p>
+</li>
+<li><code>app/services/pix_pdq_manager.py</code>, <code>app/services/pix_pdq*</code> : gestion des requêtes de résolution d'identifiants (PIX/PDQ) si présentes.</li>
+<li><code>app/validators/*</code> : validators contextuels (PAMValidator, MFNValidator) pour aider en CLI et tests.</li>
+</ul>
+<h2 id="3-fluxs-et-contrats-par-domaine">3. Fluxs et contrats (par domaine)</h2>
+<p>3.1 FHIR — émission (export)</p>
+<ul>
+<li>Entrée : un <code>Dossier</code> (ou Venue/Mouvement/Patient) du modèle interne.</li>
+<li>Sortie : <code>Bundle</code> FHIR (type <code>collection</code>) contenant ressources : Patient, Encounter, EpisodeOfCare (et éventuellement Location).</li>
+<li>Principes-métiers importants :</li>
+<li><code>fullUrl</code> stable format utilisé : <code>ResourceType/&lt;id&gt;</code> (ex. <code>Patient/pat-123</code>) pour faciliter la réconciliation côté import.</li>
+<li><code>Encounter.subject.reference</code> pointe vers <code>Patient/pat-&lt;id&gt;</code>.</li>
+<li>EpisodeOfCare utilisé pour regrouper le dossier.</li>
+<li>Les meta.profile FRCore sont ajoutés quand possible (e.g. Encounter meta profile <code>http://interop-sante.fr/fhir/StructureDefinition/fr-encounter</code>).</li>
+<li>fichiers clés : <code>app/services/fhir.py</code>, <code>app/services/fhir_resources.py</code>.</li>
+</ul>
+<p>3.2 FHIR — réception (import)</p>
+<ul>
+<li>
+<p>Endpoint principal : POST <code>/api/fhir/import/bundle</code> (voir <code>app/routers/fhir_import.py</code>). Corps JSON attendu : <code>{ "bundle": &lt;Bundle&gt;, "ej_id": &lt;int&gt; }</code>.</p>
+</li>
+<li>
+<p>Orchestration : <code>FHIRBundleImporter.import_bundle(bundle)</code></p>
+</li>
+<li>Passe en trois phases (Location → Patient → Encounter) — ceci permet multi-pass pour résoudre références.</li>
+<li>Maintient <code>resource_map</code> : mapping bundle-local id / <code>ResourceType/id</code> → DB numeric id pour résoudre les références entre ressources du bundle.</li>
+<li>Converters créent entités et enregistrent mapping : ex. <code>resource_map['pat-999'] = patient.id</code> et <code>resource_map['Patient/pat-999'] = patient.id</code>.</li>
+<li>L'extracteur <code>_extract_id_from_reference()</code> gère : full URL / Type/id / bare id / leading '#' / numeric id.</li>
+<li>Erreurs collectées dans <code>results['errors']</code> et retournées au client (status <code>partial</code> si erreurs non bloquantes).</li>
+</ul>
+<p>3.3 IHE PAM — inbound HL7v2 (identité et mouvements)</p>
+<ul>
+<li>
+<p>Point d'entrée : MLLP listener appelle <code>on_message_inbound()</code> / <code>transport_inbound</code> pipeline.</p>
+</li>
+<li>
+<p>Validation : <code>pam_validation.validate_pam()</code> applique règles PAM FR (segments PID minimal, PV1, ZBE extension parsing, typage d'événement ADT - A01/A03/A08 etc.).</p>
+</li>
+<li>Routing : <code>IHEMessageRouter</code> mappe événements vers handlers métier (<code>process_admission</code>, <code>process_discharge</code>, <code>process_update</code>, <code>process_cancel</code>).</li>
+<li>Actions :</li>
+<li>Création / mise à jour de <code>Patient</code> si nouvel identifiant (PID identifiers) — mapping à champs Patient (nom, DOB, sex, addresses, identifiants).</li>
+<li>Création / gestion de <code>Dossier</code> et <code>Venue</code> / <code>Mouvement</code> en fonction des segments PV1/ZBE et valeur d'événement.</li>
+<li>Support des annulations (A12/A13) et des updates (A08) selon règles <code>strict_pam_fr</code> par EJ.</li>
+<li>Persistance : via <code>session_factory()</code> / transactions ; <code>before_flush</code> normalise les dates / assigne <code>dossier_seq</code> quand absent.</li>
+</ul>
+<p>3.4 HL7 MFN — Structure (locations)</p>
+<ul>
+<li>
+<p>Génération : <code>generate_mfn_message(session, eg_identifier)</code> produit MFN M05 snapshot ou partial pour une entité géographique.</p>
+</li>
+<li>
+<p>Contenu : segments MFE (MAD), LOC, LCH (meta champs), LRL (relations localisations) pour EG, Pôle, Service, UF, UH, Chambre, Lit.</p>
+</li>
+<li>Import : <code>process_mfn_message()</code> (dans même module) accepte MFN pour mettre à jour structure.</li>
+</ul>
+<h2 id="4-mappages-et-regles-importantes">4. Mappages et règles importantes</h2>
+<ul>
+<li>Patient identifiers</li>
+<li>Plusieurs systèmes supportés : IPP (URN OID internal), NIR/INS, local patient ID.</li>
+<li>
+<p>Lors de l'export, on ajoute les identifiants standards (URN OID), et si disponibles le NIR/ssn.</p>
+</li>
+<li>
+<p>Dossier → Encounter mapping</p>
+</li>
+<li>Dossier.dossier_type → Encounter.class.code (IMP/AMB/EMER) via mapping simple.</li>
+<li>
+<p>Venue ↔ Encounter : venues entraînent creation d'Encounter resources; mouvements peuvent être exposés en <code>Encounter.location</code>.</p>
+</li>
+<li>
+<p>Resource mapping lors d'import</p>
+</li>
+<li>L'importeur FHIR maintient <code>resource_map</code> et enregistre both bare id and <code>Type/id</code> keys pour faciliter la résolution.</li>
+<li><code>_extract_id_from_reference</code> a été renforcé pour accepter formes : <code>Patient/pat-1</code>, <code>pat-1</code>, full URL, <code>#pat-1</code>, et nombres numériques.</li>
+</ul>
+<h2 id="5-validation-et-tests">5. Validation et tests</h2>
+<ul>
+<li>Validation FHIR (autoritaire): HAPI FHIR CLI (jar) + IG pack <code>hl7.fhir.fr.core-package.tgz</code>.</li>
+<li>Commande locale (exemple) :</li>
+</ul>
+<p><code>bash
+  java -jar .tools/hapi-validator/hapi-fhir-cli-6.1.0.jar validate -n /tmp/bundle.json --igpack .tools/igpacks/hl7.fhir.fr.core-package.tgz -v r4 -r</code></p>
+<ul>
+<li>Tests unitaires</li>
+<li><code>pytest</code> exécute l'ensemble des tests. La suite couvre exports, imports, mappers et generateurs MFN.</li>
+<li>Exemples de tests ajoutés : <code>tests/test_fhir_import.py</code> (extractor + roundtrip bundle import).</li>
+</ul>
+<h2 id="6-how-to-run-locally-dev">6. How to run locally (dev)</h2>
+<p>Prérequis</p>
+<ul>
+<li>Python 3.10+ dans .venv, dépendances listées dans <code>requirements.txt</code> ou <code>pyproject.toml</code>.</li>
+<li>Java si tu veux exécuter HAPI validator localement.</li>
+</ul>
+<p>Start app (development)</p>
+<pre class="highlight"><code class="language-bash">python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export FILE_POLL_INTERVAL=60
+export SESSION_SECRET_KEY=change-me
+uvicorn app.app:app --reload
+</code></pre>
+
+<p>Tests</p>
+<pre class="highlight"><code class="language-bash">pytest -q
+</code></pre>
+
+<p>Running message ingestion (MLLP)</p>
+<ul>
+<li>Configure <code>app.services.mllp_manager</code> via env vars (see <code>.env.example</code>) and start app; le manager démarre lors du lifespan si <code>TESTING</code> n'est pas activé.</li>
+</ul>
+<h2 id="7-ci-recommendations">7. CI recommendations</h2>
+<ul>
+<li>Run <code>pytest</code> on every PR (already present in repo CI). Add these steps:<br />
+  1. <code>pytest -q</code> (unit tests + integration fast ones)<br />
+  2. Optional: run HAPI validator on representative generated bundles: requires installing Java and having IG pack available (publish pack as repository artifact or cache). A suggested workflow:<ul>
+<li>Generate sample bundle via script (or use stored <code>tests/artifacts/</code> bundles).</li>
+<li>Run HAPI CLI validate with <code>--igpack</code>.<br />
+  3. Run a small roundtrip test: generate bundle → validate with HAPI (optional) → POST to import endpoint using TestClient, assert no errors.</li>
+</ul>
+</li>
+</ul>
+<p>CI stub example for HAPI (GitHub Actions)</p>
+<ol>
+<li>Job setup with Java runtime (adoptopenjdk) + Python.</li>
+<li>Restore IG pack from repo .tools/igpacks or download from a secure location (note: IG packs are large — consider caching externally).</li>
+</ol>
+<h2 id="8-operation-logs-and-debugging">8. Operation, logs and debugging</h2>
+<ul>
+<li>Logs</li>
+<li>File log at <code>meddata.log</code> (configurable via <code>MEDDATA_LOG_FILE</code>).</li>
+<li>
+<p>Uvicorn/worker logs capture request traces; MLLP detailed logs activables via <code>MLLP_TRACE</code>.</p>
+</li>
+<li>
+<p>Debugging tips</p>
+</li>
+<li>Use the debug bundle <code>tmp/fhir_bundle_for_import_debug.json</code> to reproduce import issues.</li>
+<li>For FHIR import problems, verify <code>resource_map</code> contents (importer prints were used during debugging). Ensure <code>fullUrl</code> stable format when emitting bundles.</li>
+<li>For IHE PAM: inspect <code>pam_archive</code> and <code>pam_archive_dst</code> directories sample files.</li>
+</ul>
+<h2 id="9-security-privacy-notes">9. Security &amp; privacy notes</h2>
+<ul>
+<li>RGPD: les champs sensibles (race/religion) marqués comme legacy ne doivent pas être collectés.</li>
+<li>Les identifiants nationaux (NIR) et les données personnelles doivent être traités selon la politique locale (masquage, accès restreint).</li>
+</ul>
+<h2 id="10-fichiers-et-fonctions-cles-reference-rapide">10. Fichiers et fonctions clés (référence rapide)</h2>
+<ul>
+<li><code>app/app.py</code> : composition FastAPI, middlewares, route registration, lifespan.</li>
+<li><code>app/db.py</code> : engine, sessions, sequences, before_flush adaptateur.</li>
+<li><code>app/models.py</code> &amp; <code>app/models_structure.py</code> : définitions des entités Patient/Dossier/Venue/Mouvement + structure (EG/Pole/Service/UF/UH/Chambre/Lit).</li>
+<li><code>app/services/transport_inbound.py</code> : pipeline IHE PAM inbound, validation, routing.</li>
+<li><code>app/services/mllp_manager.py</code> : manager MLLP (serveur/client) et reloads.</li>
+<li><code>app/services/mfn_structure.py</code> : MFN generation &amp; processing (structure export/import).</li>
+<li><code>app/services/fhir.py</code>, <code>app/services/fhir_resources.py</code> : FHIR bundle/resource generation.</li>
+<li><code>app/converters/fhir_import_converter.py</code> : FHIR → internal models, <code>FHIRBundleImporter</code>.</li>
+<li><code>app/routers/fhir_import.py</code> : FHIR import API endpoints.</li>
+</ul>
+<h2 id="11-actions-recommandees-next-steps">11. Actions recommandées / next steps</h2>
+<ol>
+<li>Ajouter un job CI qui exécute HAPI validator (optionnel mais recommandé) sur bundles représentatifs. Fournir l'IG pack comme artefact ou via un URL privé.</li>
+<li>Élargir les tests roundtrip (générer bundle via code → HAPI validate → import via TestClient) pour couvrir plus de scénarios (refs entre resources, multientities, Locations).</li>
+<li>Améliorer la résolution Location→Venue lors de l'import FHIR (actuellement simplifiée : première venue ou création par défaut).</li>
+<li>Documenter les conventions d'identifiant (PL-6, EI formatting) si nécessaire pour les partenaires intégrateurs.</li>
+</ol>
+<hr />
+<p>Fichier créé automatiquement par un assistant de développement. Pour questions ou demandes d'approfondissement (diagrammes, séquences, ERD), dis-moi quelle section tu veux détailler et je génère ça.</p>
+</body>
+</html>

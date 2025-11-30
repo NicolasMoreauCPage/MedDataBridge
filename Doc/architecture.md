@@ -187,6 +187,5 @@ Modèle relationnel avec:
 - Parsing/validation: négligeable (<5% overhead)
 
 - MLLP async (sans blocage)
-
----
+# 
 Dernière mise à jour automatique.

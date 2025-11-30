@@ -24,19 +24,25 @@ La spécification IHE PAM FR s'appuie sur HL7 v2.5; la table 0063 fournit les co
 | OTH             | Autre              | PatientContact / VenueContact | OTHER | `other` |
 
 Notes :
+
 - Certains codes (GUAR, CARE) peuvent ne pas figurer dans 0063 de base selon la version; ils sont traités comme extensions locales si absents.
+
 - Le champ NK1-7 (Contact Role) est interne ici et peut refléter une catégorisation (EMERGENCY, NEXT_OF_KIN, ACCOMPANYING, VISITOR, GUARANTOR).
 
 ## Stratégie de mapping
 
 1. Système source HL7: `HL7-0063` (relationship_system dans les modèles)
+
 2. Système cible interne (local): `contact-role` (à créer si nécessaire) pour normaliser les rôles fonctionnels.
+
 3. Système FHIR: utilisation directe des codes standard FHIR quand disponibles. FHIR autorise des CodeableConcept multiples; ici on met un code principal.
 
 ## Règles d'utilisation
 
 - `is_emergency_contact=True` renforce le code EMR ou rôle EMERGENCY; lors de génération FHIR, ajouter `use=emergency` si supporté.
+
 - `priority` ou `sequence` détermine l'ordre des NK1 segments et l'ordre des `Patient.contact` en FHIR.
+
 - Si plusieurs contacts partagent EMERGENCY, garder le plus prioritaire (`priority=1`) en tête de liste.
 
 ## Champs HL7 / FHIR
@@ -61,10 +67,12 @@ Le profil IHE PAM FR n'impose pas une liste restreinte additionnelle pour Table 
 ## Prochaines étapes
 
 - Initialiser le système de vocabulaire `contact-role` (LOCAL) et insérer les valeurs (EMERGENCY, NEXT_OF_KIN, ACCOMPANYING, VISITOR, GUARANTOR, CAREGIVER, OTHER).
-- Créer mappings bidirectionnels HL7 0063 <-> contact-role quand pertinent.
-- Exposer un service de traduction via `map_code()` / `reverse_map_code()`.
-- Tests de roundtrip: modèle -> HL7 NK1 -> parsing -> modèle -> FHIR Patient.contact.
 
----
+- Créer mappings bidirectionnels HL7 0063 <-> contact-role quand pertinent.
+
+- Exposer un service de traduction via `map_code()` / `reverse_map_code()`.
+
+- Tests de roundtrip: modèle -> HL7 NK1 -> parsing -> modèle -> FHIR Patient.contact.
+# 
 Version: 2025-11-10
 Auteur: Auto‑généré (Contacts NK1)

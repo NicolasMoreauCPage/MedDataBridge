@@ -534,6 +534,5 @@ Sessions web associent GHT/EJ via `session_id`, permettant filtrage contextuel.
 - Field(default=None) pour optionnels
 
 - Énumérations strictes (pas de valeurs libres)
-
----
+# 
 Référence modèles v0.2.0

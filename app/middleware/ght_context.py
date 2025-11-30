@@ -41,17 +41,20 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
     """
     import logging
     logger = logging.getLogger(__name__)
+    debug_enabled = os.getenv("DEBUG_GHT_CONTEXT", "0") in ("1", "true", "True") or os.getenv("TESTING", "0") in ("1", "true", "True")
 
     try:
         context_id = request.session.get("ght_context_id")
-        # Keep minimal debug output: log presence of context id when debugging is enabled
-        logger.debug("[get_active_ght_context] context_id=%s", context_id)
+        # Emit debug messages only when explicitly enabled
+        if debug_enabled:
+            logger.debug("[get_active_ght_context] context_id=%s", context_id)
 
         if context_id:
             session = next(get_session())
             try:
                 ctx = session.get(GHTContext, context_id)
-                logger.debug("[get_active_ght_context] Loaded context: %s", getattr(ctx, 'name', None))
+                if debug_enabled:
+                    logger.debug("[get_active_ght_context] Loaded context: %s", getattr(ctx, 'name', None))
                 return ctx
             finally:
                 session.close()

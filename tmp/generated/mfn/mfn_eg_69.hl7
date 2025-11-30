@@ -1,0 +1,10 @@
+MSH|^~\&|STR|STR|RECEPTEUR|RECEPTEUR|20251130111240||MFN^M05^MFN_M05|20251130111240|P|2.5^FRA^2.11|||||FRA|8859/1
+MFI|LOC|CPAGE_LOC_FRA|REP||20251130111240|AL
+MFE|MAD|||^^^^^M^^^^69|PL
+LOC|^^^^^M^^^^69||M|Etablissement juridique
+LCH|^^^^^M^^^^69|||CD^Code^L|^69
+LCH|^^^^^M^^^^69|||ID_GLBL^Identifiant unique global^L|^6969
+LCH|^^^^^M^^^^69|||LBL^Libelle^L|^CENTRE HOSPITALIER - 990792731
+LCH|^^^^^M^^^^69|||LBL_CRT^Libelle court^L|^
+LCH|^^^^^M^^^^69|||FNS^Code FINESS^L|^700000029
+MFE|MAD|||^^^^^D^^^^0192|PL

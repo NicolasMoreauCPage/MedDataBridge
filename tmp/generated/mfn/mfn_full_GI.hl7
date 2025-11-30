@@ -1,0 +1,23 @@
+MSH|^~\&|STR|STR|RECEPTEUR|RECEPTEUR|20251130105708||MFN^M05^MFN_M05|20251130105708|P|2.5^FRA^2.11|||||FRA|8859/1
+MFI|LOC|CPAGE_LOC_FRA|REP||20251130105708|AL
+MFE|MAD|||^^^^^M^^^^GI|PL
+LOC|^^^^^M^^^^GI||M|Etablissement juridique
+LCH|^^^^^M^^^^GI|||CD^Code^L|^GI
+LCH|^^^^^M^^^^GI|||ID_GLBL^Identifiant unique global^L|^69GI
+LCH|^^^^^M^^^^GI|||LBL^Libelle^L|^ne pas utiliser GIP
+LCH|^^^^^M^^^^GI|||LBL_CRT^Libelle court^L|^
+LCH|^^^^^M^^^^GI|||FNS^Code FINESS^L|^888888888
+MFE|MAD|||^^^^^D^^^^CPAG|PL
+LOC|^^^^^D^^^^CPAG||D|Service
+LCH|^^^^^D^^^^CPAG|||CD^Code^L|^CPAG
+LCH|^^^^^D^^^^CPAG|||ID_GLBL^Identifiant unique global^L|^69GICPAG
+LCH|^^^^^D^^^^CPAG|||LBL^Libelle^L|^Ne pas utiliser CPage
+LCH|^^^^^D^^^^CPAG|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^D^^^^CPAG|||LCLSTN^Relation de localisation^L||^^^^^P^^^^VIRTUAL-POLE-GI
+MFE|MAD|||^^^^^P^^^^VIRTUAL-POLE-GI|PL
+LOC|^^^^^P^^^^VIRTUAL-POLE-GI||P|Pole
+LCH|^^^^^P^^^^VIRTUAL-POLE-GI|||CD^Code^L|^VIRTUAL-POLE-GI
+LCH|^^^^^P^^^^VIRTUAL-POLE-GI|||ID_GLBL^Identifiant unique global^L|^VIRTUAL-POLE-GI
+LCH|^^^^^P^^^^VIRTUAL-POLE-GI|||LBL^Libelle^L|^Pôle virtuel (ne pas utiliser GIP)
+LCH|^^^^^P^^^^VIRTUAL-POLE-GI|||LBL_CRT^Libelle court^L|^
+LRL|^^^^^P^^^^VIRTUAL-POLE-GI|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^GI

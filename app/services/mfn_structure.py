@@ -109,6 +109,31 @@ def clean_hl7_date(hl7_date: Optional[str]) -> Optional[str]:
     value = hl7_date.strip()
     return value or None
 
+
+def parse_hl7_date_to_datetime(hl7_date: Optional[str]) -> Optional[datetime]:
+    """Convertit une date HL7 (YYYYMMDD[HHMMSS]) en objet datetime ou retourne None.
+
+    Accepte les formats basiques utilisés dans les exports MFN. Si la conversion échoue,
+    retourne None pour éviter des erreurs de type lors de l'insertion en base.
+    """
+    if not hl7_date:
+        return None
+    s = str(hl7_date).strip()
+    try:
+        if len(s) >= 14:
+            # YYYYMMDDHHMMSS
+            return datetime.strptime(s[:14], "%Y%m%d%H%M%S")
+        if len(s) == 8:
+            # YYYYMMDD
+            return datetime.strptime(s, "%Y%m%d")
+        if len(s) == 12:
+            # YYYYMMDDHHMM
+            return datetime.strptime(s, "%Y%m%d%H%M")
+        # Fallback: try to parse ISO-like
+        return datetime.fromisoformat(s)
+    except Exception:
+        return None
+
 def format_datetime(value: Optional[str]) -> str:
     """Retourne la chaîne HL7 prête à être insérée dans un segment."""
     return value or ""
@@ -479,8 +504,8 @@ def save_location(
                 name=characteristics.get("LBL", ""),
                 finess_ej=characteristics.get("FNS", ""),
                 category_code=characteristics.get("CTGR_S", None),
-                start_date=characteristics.get("DT_OVRTR", None),
-                end_date=characteristics.get("DT_FRMTR", None),
+                start_date=parse_hl7_date_to_datetime(characteristics.get("DT_OVRTR", None)),
+                end_date=parse_hl7_date_to_datetime(characteristics.get("DT_FRMTR", None)),
             )
         elif loc_type == "ETBL_GRPQ":  # Établissement géographique
             existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
@@ -490,8 +515,8 @@ def save_location(
                 name=characteristics.get("LBL", ""),
                 finess=characteristics.get("FNS", ""),
                 category_code=characteristics.get("CTGR_S", None),
-                start_date=characteristics.get("DT_OVRTR", None),
-                end_date=characteristics.get("DT_FRMTR", None),
+                start_date=parse_hl7_date_to_datetime(characteristics.get("DT_OVRTR", None)),
+                end_date=parse_hl7_date_to_datetime(characteristics.get("DT_FRMTR", None)),
             )
             
         elif loc_type == "P":  # Pôle

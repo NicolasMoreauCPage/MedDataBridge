@@ -979,32 +979,57 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
     # Entités géographiques - filter if needed
     # Helper: build PL identifier with optional authority (EI format)
     def _build_pl_identifier(code: str, entity_identifier: str, ej_id: Optional[int] = None) -> str:
-        """Return a PL-style primary key value. If an IdentifierNamespace is available for the EJ,
-        include authority components after the identifier (e.g. id&system&oid&code)."""
-        # base PL prefix: ^^^^^<PL-6>^^^^<id>
-        base = f"^^^^^{code}^^^^{entity_identifier}"
+        """Return a PL-style primary key value using HL7 EI components when possible.
+
+        Produces a value that fits the project's PL encoding convention but uses HL7 EI
+        component placement for authority metadata when an `IdentifierNamespace` is present:
+
+            base PL: ^^^^^<PL-6>^^^^<EI>
+
+        where <EI> is formatted as: EI-1^EI-2^EI-3^EI-4
+
+        Preferred behavior (Option A):
+        - If `IdentifierNamespace.oid` is present, emit EI-1=<entity_identifier>, EI-2=<short code if any>,
+          EI-3=<OID>, EI-4='ISO' (or 'OID' depending on downstream expectations).
+        - Otherwise, if `IdentifierNamespace.system` (a URI) is present, emit EI-3=<URI> and EI-4='URI'.
+
+        This replaces the previous concatenation with '&' which produced ambiguous results.
+        """
+        # base PL prefix root (we will attach a proper EI component string instead of raw concatenation)
         try:
-            # Try to find an IdentifierNamespace linked to the entite_juridique (preferred)
+            ei1 = entity_identifier or ""
+            ei2 = ""  # short namespace code (optional)
+            ei3 = ""  # universal id (OID or URI)
+            ei4 = ""  # universal id type (ISO / URI / OID)
+
             if ej_id:
                 from app.models_structure import IdentifierNamespace
                 ns = session.exec(
                     select(IdentifierNamespace).where(IdentifierNamespace.entite_juridique_id == ej_id).where(IdentifierNamespace.is_active == True)
                 ).first()
                 if ns:
-                    # Build authority string: system&oid&code if available, otherwise system or oid
-                    parts = []
-                    if getattr(ns, 'system', None):
-                        parts.append(ns.system)
+                    # Prefer OID when available
                     if getattr(ns, 'oid', None):
-                        parts.append(ns.oid)
-                    # If we have any authority details, append them after an '&'
-                    if parts:
-                        # join with '&' and append a terminal '&ISO' is not necessary here; keep simple
-                        auth = "&" + "&".join(parts)
-                        return base + auth
+                        ei3 = ns.oid
+                        ei4 = 'ISO'
+                    elif getattr(ns, 'system', None):
+                        ei3 = ns.system
+                        ei4 = 'URI'
+                    # If there is a short code/name we can use as EI-2
+                    if getattr(ns, 'name', None):
+                        # Keep it short and remove spaces
+                        ei2 = str(ns.name).strip().replace(' ', '_')
+
+            # Build EI as components separated by '^' (HL7 component separator)
+            ei_components = [ei1, ei2, ei3, ei4]
+            # Only include trailing empty components as required by other code: pad to 4 components
+            ei_str = "^".join(ei_components)
+            base = f"^^^^^{code}^^^^{ei_str}"
+            return base
         except Exception:
             logger.debug("No IdentifierNamespace found or failed to resolve authority for PL-10")
-        return base
+            # Fallback to old simple base if anything goes wrong
+            return f"^^^^^{code}^^^^{entity_identifier}"
 
     # Map internal entity labels to canonical PL-6/LOC-3 codes used by the spec
     _canonical_loc_code = {

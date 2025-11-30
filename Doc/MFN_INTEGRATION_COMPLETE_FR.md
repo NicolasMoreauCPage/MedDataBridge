@@ -315,17 +315,19 @@ EI-1 (PL-10)
 Inclusion du namespace dans PL-10
 
 - Si un `IdentifierNamespace` actif est trouvé pour l'Etablissement Juridique lié à
-    l'entité, le générateur ajoute les informations d'autorité après l'identifiant en
-    les joignant avec le séparateur '&'. Exemple produit (bloc de code pour éviter
-    les bare URLs) :
+    l'entité, le générateur émet désormais les composants EI (EI-1^EI-2^EI-3^EI-4)
+    en privilégiant l'OID quand il est disponible (Option A). Exemple recommandé :
 
 ```hl7
-^^^^^M^^^^CHU-LYON-SITE-CENTRAL&http://020000000.fr/ns/ipp&1.2.250.1.71.1.1.1.2
+^^^^^M^^^^CHU-LYON-SITE-CENTRAL^^1.2.250.1.71.1.1.1.2^ISO
 ```
 
-- Cette représentation est conservatrice et facilite le diagnostique; si vous
-    préférez un encodage EI multi-composants HL7 plus strict (par ex. id^namespace^universal-id^assigning-authority)
-    nous pouvons modifier le format pour respecter exactement la structure EI.
+- Signification : EI-1 = CHU-LYON-SITE-CENTRAL, EI-2 = (short namespace code, vide ici),
+  EI-3 = OID (1.2.250....), EI-4 = 'ISO' (indique une universal id de type OID).
+
+- Si l'`IdentifierNamespace` ne possède pas d'OID mais une URI `system`, alors
+  EI-3 contiendra l'URI et EI-4 sera 'URI'. Cette stratégie évite la concaténation
+  ambigüe avec '&' et respecte la structure HL7 EI.
 
 Canonicalisation des codes LOC-3 / PL-6
 

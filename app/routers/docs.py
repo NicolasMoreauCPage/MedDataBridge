@@ -57,6 +57,7 @@ async def docs_markdown(request: Request, filename: str):
     """Serve simple markdown files from the Doc/ folder (basic renderer)."""
     from pathlib import Path
     import markdown
+    import re
 
     DOC_ROOT = Path(__file__).parent.parent.parent / "Doc"
     doc_path = DOC_ROOT / filename
@@ -65,6 +66,17 @@ async def docs_markdown(request: Request, filename: str):
             "documentation.html",
             {"request": request, "structure": {}, "error": f"Document non trouvé: {filename}", "current_doc": None}
         )
+
+    # Prefer a pre-generated HTML file if present (same base name .html)
+    html_equiv = doc_path.with_suffix('.html')
+    if html_equiv.exists():
+        # If a static HTML exists, prefer to redirect to it so the static file
+        # is served directly (preserves full HTML rendering produced by pandoc).
+        from fastapi.responses import RedirectResponse
+        static_url = request.url_for('doc') if False else f"/Doc/{html_equiv.name}"
+        return RedirectResponse(url=static_url)
+
+    # Otherwise render markdown on the fly
     content = doc_path.read_text(encoding="utf-8")
     html = markdown.markdown(content, extensions=["fenced_code", "tables", "toc"])
     return templates.TemplateResponse(

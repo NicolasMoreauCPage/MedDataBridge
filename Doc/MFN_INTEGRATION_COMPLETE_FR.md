@@ -297,6 +297,53 @@ LCH|^^^^^UF^^^^456|||ID_GLBL^Identifiant unique global^L|^700004592
 LRL|^^^^^UF^^^^456|||LCLSTN^Relation de localisation^L||^^^^^D^^^^0192
 ```
 
+## 11. Comportement opérationnel du générateur/importeur (implémentation actuelle)
+
+Cette section décrit de manière précise le comportement déjà implémenté dans
+`app/services/mfn_structure.py` et qui doit être considéré comme contractuel
+tant que nous n'en décidons pas autrement.
+
+EI-1 (PL-10)
+
+- Lors de la génération, si le premier sous-champ (EI-1) dépasse 16 caractères,
+    une alerte est émise dans les logs : WARNING "EI-1 ... is longer than 16 chars".
+    Le message est tout de même généré (comportement non bloquant par défaut).
+
+- Recommandation : pour conformité stricte, activer le mode "strict" qui transformera
+    l'avertissement en rejet (ou appliquer une règle de normalisation approuvée).
+
+Inclusion du namespace dans PL-10
+
+- Si un `IdentifierNamespace` actif est trouvé pour l'Etablissement Juridique lié à
+    l'entité, le générateur ajoute les informations d'autorité après l'identifiant en
+    les joignant avec le séparateur '&'. Exemple produit (bloc de code pour éviter
+    les bare URLs) :
+
+```hl7
+^^^^^M^^^^CHU-LYON-SITE-CENTRAL&http://020000000.fr/ns/ipp&1.2.250.1.71.1.1.1.2
+```
+
+- Cette représentation est conservatrice et facilite le diagnostique; si vous
+    préférez un encodage EI multi-composants HL7 plus strict (par ex. id^namespace^universal-id^assigning-authority)
+    nous pouvons modifier le format pour respecter exactement la structure EI.
+
+Canonicalisation des codes LOC-3 / PL-6
+
+- Le générateur émet désormais les codes PL-6 canoniques suivants pour les entités
+    internes : Chambre -> R, Lit -> B, Service -> D, Pôle -> PL, UF -> UF, UH -> UH, etc.
+
+- Cette canonicalisation vise à rendre les messages cohérents avec la spécification
+    AtelierStructure et réduire les ambiguïtés côté récepteur.
+
+Logging & diagnostics
+
+- Le générateur logge la création de chaque MFE/LOC et émet des WARNING pour
+    les identifiants ne respectant pas les contraintes (EI-1 > 16) et des DEBUG
+    pour la présence ou l'absence d'un `IdentifierNamespace`.
+
+Ces comportements sont implémentés pour être non-destructifs (génération non bloquante)
+mais aisément modifiables si vous demandez un comportement plus strict (rejet/tronquage).
+
 **Annotations :**
 
 - `MFE-1` : MUP (mise à jour)

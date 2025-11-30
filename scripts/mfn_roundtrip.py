@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 from app.db import session_factory, engine
 from sqlmodel import SQLModel, select
 from app.services.mfn_structure import process_mfn_message, generate_mfn_message
+from app.utils.atomic_write import write_atomic_text
 from app.services.transport_inbound import on_message_inbound_async
 from app.services.pam_validation import validate_pam
 from app.models_shared import MessageLog
@@ -169,12 +170,8 @@ def run_pam_checks(session, limit=None):
                         msg = None
                     if not msg:
                         continue
-                    suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
-                    fname = pam_out / f"gen_{et}_{getattr(ent,'id','unknown')}_{suffix}.hl7"
-                    tmpf = fname.with_suffix(fname.suffix + '.tmp')
-                    with tmpf.open('w', encoding='utf-8') as fh:
-                        fh.write(msg)
-                    tmpf.replace(fname)
+                    basename = f"gen_{et}_{getattr(ent,'id','unknown')}"
+                    write_atomic_text(pam_out, basename, msg, extension='.hl7')
                 except Exception:
                     pass
         except Exception:
@@ -194,12 +191,8 @@ def run_pam_checks(session, limit=None):
                         continue
                     # only write HL7-like payloads or those marked MLLP/FILE
                     if ob.kind in ('MLLP', 'FILE') or payload.startswith('MSH') or '\rPID' in payload:
-                        suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
-                        fname = pam_out / f"out_{ob.id}_{suffix}.hl7"
-                        tmpf = fname.with_suffix(fname.suffix + '.tmp')
-                        with tmpf.open('w', encoding='utf-8') as fh:
-                            fh.write(payload)
-                        tmpf.replace(fname)
+                        basename = f"out_{ob.id}"
+                        write_atomic_text(pam_out, basename, payload, extension='.hl7')
                 except Exception:
                     pass
         except Exception:
@@ -277,9 +270,8 @@ def main():
                     mfn_out_dir = out_base / "mfn"
                     try:
                         import time, random
-                        suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
-                        fname = mfn_out_dir / f"mfn_eg_{eg_id or 'unknown'}_{suffix}.hl7"
-                        fname.write_text(msg, encoding='utf-8')
+                        basename = f"mfn_eg_{eg_id or 'unknown'}"
+                        write_atomic_text(mfn_out_dir, basename, msg, extension='.hl7')
                     except Exception:
                         pass
 
@@ -344,9 +336,8 @@ def main():
                 try:
                     bundle = fes.export_structure(ej)
                     import time, random
-                    suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
-                    fname = fhir_out_dir / f"fhir_ej_{ej.identifier or ej.id}_{suffix}.json"
-                    fname.write_text(json.dumps(bundle.model_dump(), ensure_ascii=False, indent=2), encoding='utf-8')
+                    basename = f"fhir_ej_{ej.identifier or ej.id}"
+                    write_atomic_text(fhir_out_dir, basename, json.dumps(bundle.model_dump(), ensure_ascii=False, indent=2), extension='.json')
                     print(f"Wrote FHIR bundle for EJ {ej.id} -> {fname}")
                 except Exception as e:
                     print(f"Failed to export FHIR for EJ {ej.id}: {e}")

@@ -265,6 +265,26 @@ def generate_pam_hl7(
         # reuse outer _c sanitizer
         return _c(v)
 
+    # Reusable XPN builder for all branches (family^given^middle^suffix^prefix^degree^type)
+    def _build_xpn(family_val, given_val, middle_val=None, suffix_val=None, prefix_val=None, type_code=None):
+        xpn = ["", "", "", "", "", "", ""]
+        if family_val:
+            xpn[0] = family_val
+        if given_val:
+            xpn[1] = given_val
+        if middle_val:
+            xpn[2] = middle_val
+        if suffix_val:
+            xpn[3] = suffix_val
+        if prefix_val:
+            xpn[4] = prefix_val
+        if type_code:
+            xpn[6] = type_code
+        # Trim trailing empty components
+        while xpn and xpn[-1] == "":
+            xpn.pop()
+        return "^".join(xpn)
+
     # Patient HL7 PAM branch
     if entity_type == "patient":
         # Determine event type
@@ -287,26 +307,6 @@ def generate_pam_hl7(
         # PID-3 identifiers
         pid3 = build_pid3_identifiers(entity, session, forced_system=forced_identifier_system, forced_oid=forced_identifier_oid)
 
-        # Names: build XPN repetitions but avoid emitting empty subcomponents
-        def _build_xpn(family_val, given_val, middle_val, suffix_val=None, prefix_val=None, type_code=None):
-            # XPN: family^given^middle^suffix^prefix^degree^type
-            xpn = ["", "", "", "", "", "", ""]
-            if family_val:
-                xpn[0] = family_val
-            if given_val:
-                xpn[1] = given_val
-            if middle_val:
-                xpn[2] = middle_val
-            if suffix_val:
-                xpn[3] = suffix_val
-            if prefix_val:
-                xpn[4] = prefix_val
-            if type_code:
-                xpn[6] = type_code
-            # Trim trailing empty components
-            while xpn and xpn[-1] == "":
-                xpn.pop()
-            return "^".join(xpn)
 
         family = _c_local(_get("family", ""))
         given = _c_local(_get("given", ""))
@@ -505,8 +505,13 @@ def generate_pam_hl7(
         msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         evn = f"EVN|{event_type}|{admit_time}"
 
+        # Build name for PID-5 using XPN builder and include name type when available
+        birth_family = getattr(patient, 'birth_family', None) if patient else None
+        first_type = "L" if birth_family else None
+        name_field = _build_xpn(family, given, getattr(patient, 'middle', None) if patient else None, getattr(patient, 'suffix', None) if patient else None, getattr(patient, 'prefix', None) if patient else None, first_type)
+
         pid_fields = [
-            "PID", "1", "", pid3, "", f"{family}^{given}", "", birth_date, gender
+            "PID", "1", "", pid3, "", _c_local(name_field), "", birth_date, gender
         ]
         while len(pid_fields) < 19:
             pid_fields.append("")
@@ -752,7 +757,11 @@ def generate_pam_hl7(
             
             # Build complete PID segment with PID-18 (Patient Account Number)
             # Format: PID|1||PID3||Name||DOB|Gender||||||||||||Marital||||BirthPlace||||Nationality||||||IdentityCode
-            pid = f"PID|1||{pid3}||{family}^{given}||{birth_date}|{gender}||||||||||||||{account_number}||||||||||||||||||||"
+            # Build PID-5 using XPN builder (include birth/legal name type if present)
+            birth_family = getattr(patient, 'birth_family', None)
+            first_type = "L" if birth_family else None
+            name_field = _build_xpn(family, given, getattr(patient, 'middle', None), getattr(patient, 'suffix', None), getattr(patient, 'prefix', None), first_type)
+            pid = f"PID|1||{pid3}||{_c_local(name_field)}||{birth_date}|{gender}||||||||||||||{account_number}||||||||||||||||||||"
         else:
             # If only OID is provided without system, Solution de repli to HOSP system
             authority = (
@@ -1305,6 +1314,21 @@ async def emit_to_senders_async(
                         existing_log.pam_validation_issues = pam_issues
                         existing_log.created_at = datetime.utcnow()
                         session.commit()
+                        # Also dump HL7 payload to filesystem for inspection when requested
+                        try:
+                            import os, random, time
+                            base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
+                            out_dir = os.path.join(base, 'pam')
+                            os.makedirs(out_dir, exist_ok=True)
+                            if payload_str and not payload_str.startswith('[Emission error'):
+                                suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
+                                fname = os.path.join(out_dir, f"mllp_{getattr(entity,'id','unknown')}_{suffix}.hl7")
+                                tmpf = fname + '.tmp'
+                                with open(tmpf, 'w', encoding='utf-8') as fh:
+                                    fh.write(payload_str)
+                                os.replace(tmpf, fname)
+                        except Exception:
+                            logger.exception('Failed to dump outbound MLLP HL7 to /tmp')
                     else:
                         # Ensure payload is never None (DB NOT NULL constraint)
                         if payload_str is None:
@@ -1323,6 +1347,21 @@ async def emit_to_senders_async(
                         )
                         session.add(log)
                         session.commit()
+                        # Dump HL7 payload for inspection
+                        try:
+                            import os, random, time
+                            base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
+                            out_dir = os.path.join(base, 'pam')
+                            os.makedirs(out_dir, exist_ok=True)
+                            if safe_payload and not safe_payload.startswith('[Emission error'):
+                                suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
+                                fname = os.path.join(out_dir, f"mllp_{getattr(entity,'id','unknown')}_{suffix}.hl7")
+                                tmpf = fname + '.tmp'
+                                with open(tmpf, 'w', encoding='utf-8') as fh:
+                                    fh.write(safe_payload)
+                                os.replace(tmpf, fname)
+                        except Exception:
+                            logger.exception('Failed to dump outbound MLLP HL7 to /tmp')
                     if status == "sent":
                         break
                     retry += 1
@@ -1559,9 +1598,14 @@ async def emit_to_senders_async(
                             time.sleep(60)
 
         # FILE outbox: write HL7/FHIR payloads to a filesystem outbox if configured
-        if endpoint.kind == "FILE" and getattr(endpoint, "outbox_path", None):
+        if endpoint.kind == "FILE":
+            # Write HL7 / FHIR payloads to filesystem outbox. If the endpoint has an
+            # explicit outbox_path configured, use it; otherwise fall back to
+            # MEDBRIDGE_OUT_DIR env or /tmp/medbridge_generated to make test runs
+            # reliably produce inspectable files.
             from datetime import datetime
             import os
+            import random
             try:
                 # Build HL7 for PAM events (patient/venue/mouvement)
                 hl7_message = None
@@ -1576,7 +1620,7 @@ async def emit_to_senders_async(
                         msh_receiving_app=getattr(endpoint, 'receiving_app', None),
                         msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
                     )
-                # Solution de repli to FHIR payload when HL7 not applicable
+                # Fallback to FHIR payload when HL7 not applicable
                 if not hl7_message:
                     fhir_payload = generate_fhir(entity, entity_type, session)
                     payload_str = json.dumps(fhir_payload, default=str)
@@ -1585,15 +1629,31 @@ async def emit_to_senders_async(
                     payload_str = hl7_message
                     ext = "hl7"
 
-                # Ensure outbox exists
-                outbox = endpoint.outbox_path
-                os.makedirs(outbox, exist_ok=True)
-                filename = f"{entity_type}_{getattr(entity,'id', 'unknown')}_{int(datetime.utcnow().timestamp())}.{ext}"
-                filepath = os.path.join(outbox, filename)
-                with open(filepath, "w", encoding="utf-8") as f:
-                    f.write(payload_str)
+                # Determine base outbox: endpoint.outbox_path > MEDBRIDGE_OUT_DIR env > /tmp/medbridge_generated
+                base_outbox = (getattr(endpoint, 'outbox_path', None)) or os.environ.get('MEDBRIDGE_OUT_DIR') or "/tmp/medbridge_generated"
+                # Choose a sensible subdirectory per payload type
+                if ext == "hl7":
+                    sub = "pam"
+                elif ext == "json":
+                    sub = "fhir"
+                else:
+                    sub = entity_type
 
-                # Record MessageLog
+                outbox = os.path.join(base_outbox, sub)
+                os.makedirs(outbox, exist_ok=True)
+
+                # Unique filename: entityType_id_timestamp-rand.ext
+                suffix = f"{int(datetime.utcnow().timestamp())}-{random.randint(1000,9999)}"
+                filename = f"{entity_type}_{getattr(entity,'id', 'unknown')}_{suffix}.{ext}"
+                filepath = os.path.join(outbox, filename)
+
+                # Atomic write: write to tmp then replace
+                tmp_path = filepath + ".tmp"
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    f.write(payload_str)
+                os.replace(tmp_path, filepath)
+
+                # Record MessageLog (truncate payload to reasonable size)
                 log = MessageLog(
                     direction="out",
                     kind="FILE",
@@ -1654,6 +1714,32 @@ async def emit_to_senders_async(
         session.add(log1)
         session.add(log2)
         session.commit()
+        # Also write generated payloads to /tmp for easier inspection when no senders are configured.
+        try:
+            import os, random, time
+            base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
+            hl7_out = os.path.join(base, 'pam')
+            fhir_out = os.path.join(base, 'fhir')
+            os.makedirs(hl7_out, exist_ok=True)
+            os.makedirs(fhir_out, exist_ok=True)
+            # HL7 file
+            try:
+                if hl7_message:
+                    from app.utils.atomic_write import write_atomic_text
+                    basename = f"{entity_type}_{getattr(entity,'id','unknown')}"
+                    write_atomic_text(Path(hl7_out), basename, hl7_message, extension='.hl7')
+            except Exception:
+                logger.exception('Failed to write fallback HL7 file to /tmp')
+            # FHIR file
+            try:
+                if fhir_payload is not None:
+                    from app.utils.atomic_write import write_atomic_text
+                    basename = f"fhir_{entity_type}_{getattr(entity,'id','unknown')}"
+                    write_atomic_text(Path(fhir_out), basename, json.dumps(fhir_payload, default=str, ensure_ascii=False), extension='.json')
+            except Exception:
+                logger.exception('Failed to write fallback FHIR file to /tmp')
+        except Exception:
+            logger.exception('Failed to persist fallback files to /tmp')
 
 
 class _EmitToSendersWrapper:

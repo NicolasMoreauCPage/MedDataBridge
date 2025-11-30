@@ -16,6 +16,7 @@ from app.db import session_factory, engine
 from app.services.mfn_structure import process_mfn_message
 from app.services.transport_inbound import on_message_inbound_async
 from app.services.emit_on_create import generate_pam_hl7
+from app.utils.atomic_write import write_atomic_text
 from app.services.pam_validation import validate_pam
 from app.models_identifiers import Identifier, IdentifierType
 
@@ -39,8 +40,10 @@ def import_mfn(session):
 
 
 def ensure_out_dirs():
-    root = Path(__file__).resolve().parents[1]
-    base = root / "tmp" / "generated"
+    # Use system /tmp for generated outputs to make them easy to inspect and avoid
+    # committing to the repo. Create a per-user folder to avoid collisions.
+    import time, random
+    base = Path('/tmp') / 'medbridge_generated'
     for sub in ("pam", "mfn", "fhir"):
         (base / sub).mkdir(parents=True, exist_ok=True)
     return base
@@ -168,20 +171,21 @@ def main():
                         print('-', getattr(i, 'code', None), getattr(i, 'message', None), getattr(i, 'severity', None))
                 except Exception as e:
                     print("Error validating corrected HL7:", e)
-            # Save outputs to disk for manual inspection
+            # Save outputs to /tmp/medbridge_generated for manual inspection
             out_base = ensure_out_dirs()
             pam_dir = out_base / "pam"
-            # filename by venue_seq if present else id
+            # filename base: venue_seq if present else id, add timestamp+random suffix for uniqueness
+            import time, random
             seq = getattr(venue, 'venue_seq', None) or venue.id
-            hl7_file = pam_dir / f"pam_venue_{seq}.hl7"
-            hl7_file.write_text(corrected_hl7, encoding="utf-8")
-            val_file = pam_dir / f"pam_venue_{seq}.validation.json"
+            suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
+            basename = f"pam_venue_{seq}"
+            hl7_file = write_atomic_text(pam_dir, basename, corrected_hl7, extension='.hl7')
             import json
             val_obj = {
                 'level': getattr(v, 'level', None),
                 'issues': [i.__dict__ for i in issues]
             }
-            val_file.write_text(json.dumps(val_obj, indent=2, ensure_ascii=False), encoding="utf-8")
+            val_file = write_atomic_text(pam_dir, f"pam_venue_{seq}.validation", json.dumps(val_obj, indent=2, ensure_ascii=False), extension='.json')
             print(f"Wrote generated HL7 to {hl7_file} and validation to {val_file}")
             # print a short summary of files written
             try:

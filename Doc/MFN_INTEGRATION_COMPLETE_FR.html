@@ -40,6 +40,7 @@
 <li><a href="#rappel---correspondance-entité---loc-3-pl-6">Rappel - correspondance Entité -&gt; LOC-3 / PL-6</a></li>
 <li><a href="#exemple-mfn-avec-mise-à-jour-et-parent-virtuel">Exemple MFN avec mise à jour et parent virtuel</a></li>
 </ul></li>
+<li><a href="#comportement-opérationnel-du-générateurimporteur-implémentation-actuelle">11. Comportement opérationnel du générateur/importeur (implémentation actuelle)</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -352,6 +353,31 @@ MFE|MUP|||^^^^^UF^^^^456|PL
 LOC|^^^^^UF^^^^456&amp;CPAGE&amp;700004592&amp;FINEJ||UF|Unité de soins intensifs
 LCH|^^^^^UF^^^^456|||ID_GLBL^Identifiant unique global^L|^700004592
 LRL|^^^^^UF^^^^456|||LCLSTN^Relation de localisation^L||^^^^^D^^^^0192</code></pre>
+<h2 id="comportement-opérationnel-du-générateurimporteur-implémentation-actuelle">11. Comportement opérationnel du générateur/importeur (implémentation actuelle)</h2>
+<p>Cette section décrit de manière précise le comportement déjà implémenté dans <code>app/services/mfn_structure.py</code> et qui doit être considéré comme contractuel tant que nous n’en décidons pas autrement.</p>
+<p>EI-1 (PL-10)</p>
+<ul>
+<li><p>Lors de la génération, si le premier sous-champ (EI-1) dépasse 16 caractères, une alerte est émise dans les logs : WARNING “EI-1 … is longer than 16 chars”. Le message est tout de même généré (comportement non bloquant par défaut).</p></li>
+<li><p>Recommandation : pour conformité stricte, activer le mode “strict” qui transformera l’avertissement en rejet (ou appliquer une règle de normalisation approuvée).</p></li>
+</ul>
+<p>Inclusion du namespace dans PL-10</p>
+<ul>
+<li>Si un <code>IdentifierNamespace</code> actif est trouvé pour l’Etablissement Juridique lié à l’entité, le générateur ajoute les informations d’autorité après l’identifiant en les joignant avec le séparateur ‘&amp;’. Exemple produit (bloc de code pour éviter les bare URLs) :</li>
+</ul>
+<pre class="hl7"><code>^^^^^M^^^^CHU-LYON-SITE-CENTRAL&amp;http://020000000.fr/ns/ipp&amp;1.2.250.1.71.1.1.1.2</code></pre>
+<ul>
+<li>Cette représentation est conservatrice et facilite le diagnostique; si vous préférez un encodage EI multi-composants HL7 plus strict (par ex. id<sup>namespace</sup>universal-id^assigning-authority) nous pouvons modifier le format pour respecter exactement la structure EI.</li>
+</ul>
+<p>Canonicalisation des codes LOC-3 / PL-6</p>
+<ul>
+<li><p>Le générateur émet désormais les codes PL-6 canoniques suivants pour les entités internes : Chambre -&gt; R, Lit -&gt; B, Service -&gt; D, Pôle -&gt; PL, UF -&gt; UF, UH -&gt; UH, etc.</p></li>
+<li><p>Cette canonicalisation vise à rendre les messages cohérents avec la spécification AtelierStructure et réduire les ambiguïtés côté récepteur.</p></li>
+</ul>
+<p>Logging &amp; diagnostics</p>
+<ul>
+<li>Le générateur logge la création de chaque MFE/LOC et émet des WARNING pour les identifiants ne respectant pas les contraintes (EI-1 &gt; 16) et des DEBUG pour la présence ou l’absence d’un <code>IdentifierNamespace</code>.</li>
+</ul>
+<p>Ces comportements sont implémentés pour être non-destructifs (génération non bloquante) mais aisément modifiables si vous demandez un comportement plus strict (rejet/tronquage).</p>
 <p><strong>Annotations :</strong></p>
 <ul>
 <li><p><code>MFE-1</code> : MUP (mise à jour)</p></li>

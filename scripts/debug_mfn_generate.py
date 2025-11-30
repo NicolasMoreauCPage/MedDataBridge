@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 from app.db import session_factory, engine
 from sqlmodel import SQLModel, select
 from app.services.mfn_structure import process_mfn_message, generate_mfn_message
+from app.utils.atomic_write import write_atomic_text
 
 MFN_DIR = ROOT / "tests" / "exemples" / "mfn"
 
@@ -73,9 +74,9 @@ def main():
             msg = generate_mfn_message(session, eg_identifier=getattr(eg, 'identifier', None), collapse_virtual=False)
             out_dir = ROOT / 'tmp' / 'generated' / 'mfn'
             out_dir.mkdir(parents=True, exist_ok=True)
-            fname = out_dir / f"mfn_full_{eg.identifier}.hl7"
-            fname.write_text(msg, encoding='utf-8')
-            print(f"Wrote MFN full to {fname}")
+            basename = f"mfn_full_{eg.identifier}"
+            final = write_atomic_text(out_dir, basename, msg, extension='.hl7')
+            print(f"Wrote MFN full to {final}")
 
             # also print whether LRL exists in generated message
             has_lrl = 'LRL|' in msg

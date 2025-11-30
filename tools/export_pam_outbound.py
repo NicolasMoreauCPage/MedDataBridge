@@ -13,6 +13,7 @@ from sqlmodel import Session, select
 from app.db import engine
 from app.models import Dossier
 from app.services.pam import generate_pam_messages_for_dossier
+from app.utils.atomic_write import write_atomic_text
 
 def export(out_dir: Path, limit: int | None):
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -25,8 +26,8 @@ def export(out_dir: Path, limit: int | None):
             msgs = generate_pam_messages_for_dossier(dos)
             for m in msgs:
                 count += 1
-                fname = out_dir / f"ADT_{count:05d}.hl7"
-                fname.write_text(m, encoding="utf-8")
+                basename = f"ADT_{count:05d}"
+                write_atomic_text(out_dir, basename, m, extension='.hl7')
         print(f"Exporté {count} messages ADT vers {out_dir}")
 
 def main():

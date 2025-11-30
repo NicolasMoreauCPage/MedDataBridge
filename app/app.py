@@ -151,6 +151,10 @@ def create_app() -> FastAPI:
     static_dir = str(Path(__file__).parent / "static")
     app.mount("/static", StaticFiles(directory=static_dir, html=True, check_dir=True), name="static")
 
+    # Servir le dossier Doc/ pour les documentations HTML
+    doc_dir = str(Path(__file__).parent.parent / "Doc")
+    app.mount("/Doc", StaticFiles(directory=doc_dir, html=True, check_dir=True), name="doc")
+
     # Session et contexte GHT: IMPORTANT - dans Starlette, le dernier middleware
     # ajouté est exécuté en premier. Nous voulons que SessionMiddleware s'exécute
     # AVANT FlashMessageMiddleware et GHTContextMiddleware pour que request.session

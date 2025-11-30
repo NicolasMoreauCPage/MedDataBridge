@@ -1,3 +1,84 @@
+import pytest
+import json
+import secrets
+import os
+
+
+@pytest.fixture
+def ght_context(page, test_server):
+    """Ensure a selectable GHT context exists and is selected in the browser session.
+
+    Returns the selected ght id.
+    """
+    # Prefer setting the server-side session via the tokenized GET helper so
+    # the server resolves/creates the GHT in its own DB and the browser
+    # receives the correct session cookie. This avoids numeric id skews
+    # between the test process DB and the server process DB.
+    test_token = os.environ.get("TEST_AUTH_TOKEN")
+    if test_token:
+        try:
+            page.goto(f"{test_server}/admin/ght/_test/session/set?token={test_token}&ght_code=TEST_GHT", timeout=10000)
+            page.wait_for_load_state("networkidle")
+            # Optionally verify session via debug-html endpoint in the browser
+            try:
+                        page.goto(f"{test_server}/admin/ght/_test/session/debug-html?token={test_token}", timeout=5000)
+                        # Wait for the debug page to render and assert the session key is visible
+                        page.wait_for_selector("ul", timeout=3000)
+                        content = page.content()
+                        if "ght_context_id" in content or "TEST_GHT" in content:
+                            return True
+            except Exception:
+                # ignore debug check failures but treat session as likely set
+                return True
+        except Exception:
+            # Fall through to DB fallback
+            pass
+
+    # Fallback: if token helper not available or navigation failed, fall back to the on-disk DB approach
+    try:
+        from sqlmodel import Session as SQLSession, select
+        from sqlalchemy import create_engine
+        from app.models_structure import GHTContext
+
+        file_engine = create_engine("sqlite:///./medbridge.db")
+        with SQLSession(file_engine) as s:
+            existing = s.exec(select(GHTContext).where(GHTContext.code == "TEST_GHT")).first()
+            if existing:
+                gid = existing.id
+                try:
+                    page.goto(f"{test_server}/context/ght/{gid}", timeout=10000)
+                    page.wait_for_load_state("networkidle")
+                except Exception:
+                    return gid
+                return gid
+    except Exception:
+        return None
+
+
+@pytest.fixture
+def patient_context(page, test_server):
+    """Create a minimal patient via API and set the browser patient context cookie.
+
+    Returns the created patient id.
+    """
+    try:
+        resp = page.request.post(
+            f"{test_server}/patients/api/patients",
+            data=json.dumps({"family": "Test", "given": "Patient"}),
+            headers={"Content-Type": "application/json"},
+            timeout=10000,
+        )
+        if resp.ok:
+            pdata = resp.json()
+            pid = pdata.get("id")
+            if pid:
+                # Navigate to context setter so cookie is set
+                page.goto(f"{test_server}/context/patient/{pid}", timeout=10000)
+                page.wait_for_load_state("networkidle")
+                return pid
+    except Exception:
+        return None
+    return None
 # Temporary file to fix conftest.py
 import pytest
 from app.app import create_app
@@ -11,6 +92,14 @@ from playwright.sync_api import Page, sync_playwright
 
 def run_app(host, port):
     """Function to run the application in a separate process"""
+    # Ensure the server process uses the on-disk DB so the test process
+    # and the browser-driven server share the same database files.
+    import os
+    # Keep server child TESTING=0 so the application runs in its normal
+    # mode (some code paths assume TESTING is not enabled). The test
+    # fixture uses browser navigation to set session where possible.
+    os.environ["TESTING"] = "0"
+
     app = create_app()
     config = uvicorn.Config(
         app,
@@ -43,12 +132,36 @@ def server():
     # Ensure the DB schema exists on disk so the server process can access it
     try:
         from sqlmodel import SQLModel
-        from app.db import engine
-        SQLModel.metadata.create_all(engine)
+        from sqlalchemy import create_engine
+        # Create a file-based SQLite engine and ensure tables exist on disk
+        file_engine = create_engine("sqlite:///./medbridge.db")
+        SQLModel.metadata.create_all(file_engine)
+        # Create a deterministic TEST_GHT so the server has a selectable
+        # context at startup. This avoids timing issues where the test
+        # process creates the GHT after the server has already rendered
+        # pages and the id isn't available yet.
+        try:
+            from sqlmodel import Session as SQLSession, select
+            from app.models_structure import GHTContext
+
+            with SQLSession(file_engine) as s:
+                existing = s.exec(select(GHTContext).where(GHTContext.code == "TEST_GHT")).first()
+                if not existing:
+                    ght = GHTContext(name="Test GHT", code="TEST_GHT", is_active=True)
+                    s.add(ght)
+                    s.commit()
+        except Exception:
+            # Non-fatal: if model import fails, tests may create contexts later
+            pass
     except Exception:
         pass
 
     proc = Process(target=run_app, args=(host, port))
+    # Ensure a test auth token is present in the environment so the server
+    # child (which inherits os.environ) will accept browser-originated calls
+    # to the test-only endpoints without enabling full TESTING mode.
+    token = os.environ.get("TEST_AUTH_TOKEN") or secrets.token_urlsafe(24)
+    os.environ["TEST_AUTH_TOKEN"] = token
     proc.start()
 
     # Wait for server to be ready by checking root URL (more robust)
@@ -123,30 +236,123 @@ def page(browser, test_server):
         accept_downloads=False,
     )
     page = context.new_page()
-    # Capture browser console logs to help debugging client-side behavior
-    try:
-        page.on('console', lambda msg: print(f"BROWSER CONSOLE: {msg.type}: {msg.text}"))
-    except Exception:
-        # Playwright versions/signatures vary; best-effort only
-        pass
     page.set_default_timeout(10000)  # 10s default for most operations
 
     # Ensure a GHT context is selected in the browser session to bypass guards
     # and make UI routes like /patients/new/ directly accessible in tests.
     try:
-        from sqlmodel import Session as DBSession, select
-        from app.db import engine as db_engine
-        from app.models_structure import GHTContext
+        # Create or retrieve a GHT context via the server API so the server
+        # process and the browser share the same session-backed context.
+        # Deterministically create a GHT in the on-disk DB so the server
+        # process and the browser see the same data, then set session via
+        # the test-only endpoint. This avoids form encoding issues when
+        # posting to the HTML form endpoint.
+        try:
+            from sqlmodel import Session as SQLSession, select
+            from sqlalchemy import create_engine
+            from app.models_structure import GHTContext
 
-        with DBSession(db_engine) as s:
-            ctx = s.exec(select(GHTContext)).first()
-            if not ctx:
-                ctx = GHTContext(name="Test GHT", code="TEST_GHT", is_active=True)
-                s.add(ctx)
-                s.commit()
-                s.refresh(ctx)
-            # Hit the selection route using the browser to set the session cookie
-            page.goto(f"{test_server}/admin/ght/{ctx.id}", wait_until="domcontentloaded")
+            file_engine = create_engine("sqlite:///./medbridge.db")
+            with SQLSession(file_engine) as s:
+                existing = s.exec(select(GHTContext).where(GHTContext.code == "TEST_GHT")).first()
+                if existing:
+                    gid = existing.id
+                else:
+                    ght = GHTContext(name="Test GHT", code="TEST_GHT", is_active=True)
+                    s.add(ght)
+                    s.commit()
+                    s.refresh(ght)
+                    gid = ght.id
+
+                # Ensure the Playwright browser context has a plain fallback cookie
+                # so middleware can immediately detect the GHT even if the signed
+                # session cookie hasn't propagated yet.
+                try:
+                    import json as _json
+                    cookies_to_set = [
+                        {"name": "medbridge_test", "value": "1", "url": test_server, "path": "/"},
+                        {"name": "medbridge_test_data", "value": _json.dumps({"ght_id": gid}), "url": test_server, "path": "/"},
+                    ]
+                    try:
+                        context.add_cookies(cookies_to_set)
+                    except Exception:
+                        # older Playwright API might require different signature; best-effort
+                        for c in cookies_to_set:
+                            context.add_cookies([c])
+                except Exception:
+                    pass
+
+                # Try to set the session by calling the test-only endpoint from
+                # the browser origin. This ensures Set-Cookie is applied to the
+                # Playwright browser context. The server child accepts the call
+                # when it sees the X-TEST-AUTH header matching TEST_AUTH_TOKEN.
+                try:
+                    test_token = os.environ.get("TEST_AUTH_TOKEN")
+                    if test_token:
+                        js = f"""
+                        async () => {{
+                            const resp = await fetch('{test_server}/admin/ght/_test/session', {{
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: {{ 'Content-Type': 'application/json', 'x-test-auth': '{test_token}' }},
+                                body: JSON.stringify({{ ght_code: 'TEST_GHT' }})
+                            }});
+                            try {{ return await resp.json(); }} catch(e) {{ return {{ok:false}} }}
+                        }}
+                        """
+                        try:
+                            # page.evaluate supports async arrow functions
+                            res = page.evaluate(js)
+                        except Exception:
+                            res = None
+                    else:
+                        res = None
+
+                    # If fetch didn't result in a visible cookie, fall back to
+                    # the server-side context setter navigation.
+                    try:
+                        cookies = context.cookies()
+                    except Exception:
+                        cookies = []
+                    if not cookies:
+                        # Try navigating to the GET token helper to avoid CORS/preflight.
+                        # Use ght_code so the server resolves its own DB id and sets
+                        # the session cookie correctly even if numeric ids differ.
+                        test_token = os.environ.get("TEST_AUTH_TOKEN")
+                        if test_token:
+                            try:
+                                page.goto(f"{test_server}/admin/ght/_test/session/set?token={test_token}&ght_code=TEST_GHT", wait_until="domcontentloaded")
+                                # After navigation, assert debug-html shows the session
+                                try:
+                                    page.goto(f"{test_server}/admin/ght/_test/session/debug-html?token={test_token}", timeout=5000)
+                                    page.wait_for_selector("ul", timeout=3000)
+                                except Exception:
+                                    pass
+                                # Poll for the signed session cookie to appear in the browser context
+                                try:
+                                        import time
+                                        found = False
+                                        for _ in range(12):
+                                            cookies = context.cookies()
+                                            names = [c.get('name') for c in cookies]
+                                            # Playwright SessionMiddleware uses cookie name 'session' by default in this app
+                                            if 'session' in names or 'medbridge_test_data' in names:
+                                                found = True
+                                                break
+                                            time.sleep(0.25)
+                                        # If cookie not found after polling, continue gracefully.
+                                        # Avoid saving artifacts during normal test runs to reduce noise.
+                                except Exception:
+                                    pass
+                            except Exception:
+                                page.goto(f"{test_server}/context/ght/{gid}", wait_until="domcontentloaded")
+                        else:
+                            page.goto(f"{test_server}/context/ght/{gid}", wait_until="domcontentloaded")
+                except Exception:
+                    page.goto(f"{test_server}/admin/ght/", wait_until="domcontentloaded")
+        except Exception:
+            # If DB access or test endpoint fails, fall back to visiting the admin page
+            page.goto(f"{test_server}/admin/ght/", wait_until="domcontentloaded")
     except Exception:
         # If anything fails here, tests may redirect to /admin/ght and time out;
         # leave it best-effort to not mask other errors.
@@ -155,4 +361,9 @@ def page(browser, test_server):
     try:
         yield page
     finally:
+        try:
+            # Ensure main navigation has loaded (best-effort) before closing the context
+            page.wait_for_selector("a[href='/patients']", timeout=2000)
+        except Exception:
+            pass
         context.close()

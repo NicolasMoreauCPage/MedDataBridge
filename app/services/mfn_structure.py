@@ -373,15 +373,29 @@ def save_location(
 
         # Sécurise la présence d'un identifiant (code)
         if not base_props["identifier"]:
-            logger.error(
-                "Impossible de déterminer l'identifiant (CD manquant)",
-                extra={
-                    "loc_type": loc_type,
-                    "characteristics": characteristics,
-                    "raw_identifier": identifier,
-                },
-            )
-            raise ValueError("Identifiant (CD) manquant pour la localisation importée")
+            # Try to recover identifier from other fields: ID_GLBL or the raw identifier
+            recovered = characteristics.get("ID_GLBL") or _extract_identifier_from_loc(identifier) or identifier
+            if recovered:
+                base_props["identifier"] = recovered
+                logger.debug(
+                    "Import MFN identifier recovered from alternate source",
+                    extra={
+                        "loc_type": loc_type,
+                        "recovered_identifier": recovered,
+                        "characteristics": characteristics,
+                        "raw_identifier": identifier,
+                    },
+                )
+            else:
+                logger.error(
+                    "Impossible de déterminer l'identifiant (CD manquant)",
+                    extra={
+                        "loc_type": loc_type,
+                        "characteristics": characteristics,
+                        "raw_identifier": identifier,
+                    },
+                )
+                raise ValueError("Identifiant (CD) manquant pour la localisation importée")
         else:
             logger.debug(
                 "Import MFN identifier resolved",
@@ -578,13 +592,15 @@ def save_location(
         # Si on a trouvé un EJ parent, rattacher l'entité
         if ej_id and hasattr(entity, 'entite_juridique_id'):
             entity.entite_juridique_id = ej_id
+
         # Gestion des relations de localisation (LCLSTN)
-        if relation["type"] == "LCLSTN":
-            # Relation de localisation (tous les niveaux hiérarchiques)
-            # Utilise le type du parent pour gérer automatiquement les sauts de hiérarchie
-            parent_type, parent_identifier = _extract_type_and_identifier_from_loc(relation["target"])
-            logger.info(f"[MFN-IMPORT] LCLSTN pour {entity.__class__.__name__} ID={entity.identifier}: parent_type='{parent_type}', parent_id='{parent_identifier}', raw_target={relation['target'][:80]}")
-            
+        # Iterate over relations to handle location relationships safely
+        for relation in relations:
+            if relation.get("type") != "LCLSTN":
+                continue
+            parent_type, parent_identifier = _extract_type_and_identifier_from_loc(relation.get("target", ""))
+            logger.info(f"[MFN-IMPORT] LCLSTN pour {entity.__class__.__name__} ID={entity.identifier}: parent_type='{parent_type}', parent_id='{parent_identifier}', raw_target={relation.get('target','')[:80]}")
+
             if isinstance(entity, Service):
                 # Service.pole_id requis
                 if parent_type == "P":
@@ -592,7 +608,7 @@ def save_location(
                     parent_pole = _find_by_identifier(Pole, parent_identifier)
                     if parent_pole:
                         entity.pole_id = parent_pole.id
-                
+
                 elif parent_type == "ETBL_GRPQ":
                     # Saut de hiérarchie: Service → EG directement
                     parent_eg = _find_by_identifier(EntiteGeographique, parent_identifier)
@@ -602,7 +618,7 @@ def save_location(
                         virtual_pole = session.exec(
                             select(Pole).where(Pole.identifier == virtual_pole_id)
                         ).first()
-                        
+
                         if not virtual_pole:
                             virtual_pole = Pole(
                                 identifier=virtual_pole_id,
@@ -614,9 +630,9 @@ def save_location(
                             session.add(virtual_pole)
                             session.flush()
                             logger.info(f"Création d'un Pôle virtuel {virtual_pole.identifier} pour Service {entity.identifier}")
-                        
+
                         entity.pole_id = virtual_pole.id
-            
+
             elif isinstance(entity, UniteFonctionnelle):
                 # UniteFonctionnelle.service_id requis
                 if parent_type == "D":
@@ -683,14 +699,14 @@ def save_location(
                             session.flush()
                             logger.info(f"Création Pôle+Service virtuels pour UF {entity.identifier}")
                         entity.service_id = virtual_service.id
-                        
+
                 elif isinstance(entity, UniteHebergement):
                     # UH.unite_fonctionnelle_id requis
                     if parent_type == "UF":
                         parent = _find_by_identifier(UniteFonctionnelle, parent_identifier)
                         if parent:
                             entity.unite_fonctionnelle_id = parent.id
-                        
+
                 elif isinstance(entity, Chambre):
                     # Chambre.unite_hebergement_id requis
                     if parent_type == "UH":
@@ -717,7 +733,7 @@ def save_location(
                                 session.flush()
                                 logger.info(f"[MFN-IMPORT] Création UH virtuelle pour Chambre {entity.identifier}")
                             entity.unite_hebergement_id = virtual_uh.id
-                        
+
                 elif isinstance(entity, Lit):
                     # Lit.chambre_id requis
                     if parent_type in ["CH", "R"]:
@@ -1019,3 +1035,27 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^{lit.chambre.identifier}")
     
     return "\n".join(message)
+
+
+def generate_mfn_message_for_entity(session: Session, entity) -> str:
+    """Compatibility wrapper: generate an MFN message for a single entity.
+
+    Historically other modules imported `generate_mfn_message_for_entity`.
+    Provide a minimal implementation that returns a focused MFN for an
+    EntiteGeographique (using generate_mfn_message with eg_identifier), and
+    falls back to the full snapshot MFN for other entity types. This is a
+    non-destructive, safe default that keeps behaviour predictable for tests
+    and callers that only need a valid MFN string.
+    """
+    # Local import to avoid circular import at module level
+    try:
+        from app.models_structure import EntiteGeographique
+    except Exception:
+        EntiteGeographique = None
+
+    # If the entity is an EntiteGeographique, generate a targeted MFN
+    if EntiteGeographique is not None and isinstance(entity, EntiteGeographique):
+        return generate_mfn_message(session, eg_identifier=getattr(entity, "identifier", None))
+
+    # Fallback: return full snapshot MFN (safe default)
+    return generate_mfn_message(session)

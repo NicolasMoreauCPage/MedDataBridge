@@ -1,0 +1,1 @@
+{"tests": [{"name": "tests/ui/test_forms.py::test_state_transitions", "outcome": "passed", "duration_s": 4.16}], "summary": {"passed": 1, "failed": 0, "skipped": 0, "warnings": 3}}

@@ -25,3 +25,5 @@ venv/
 .vscode/
 .idea/
 Doc/interfaces.integration_src/interfaces.integration/
+.test_diagnostics/
+medbridge.db*

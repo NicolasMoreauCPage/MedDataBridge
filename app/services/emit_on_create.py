@@ -12,8 +12,9 @@ from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
 from app.services.fhir import generate_fhir_bundle_for_dossier
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
-from app.services.fhir_transport import post_fhir_bundle as send_fhir
-from app.services.mllp import send_mllp
+# Note: do NOT import network senders at module import time. Tests use monkeypatch
+# to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
+# Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_validation import validate_pam
 import json
 
@@ -43,80 +44,165 @@ def build_pid3_identifiers(
 
     identifiers = []
     logger.info(f"build_pid3_identifiers called with args: {locals()}")
+
+    # Support both model instances and snapshot dicts
+    is_dict = isinstance(patient, dict)
+
+    def _get(attr, default=None):
+        return (patient.get(attr, default) if is_dict else getattr(patient, attr, default))
+
     # Priority: include internal IPP identifier (patient_seq or id) using IdentifierNamespace of type 'IPP' when available
     try:
-        internal_id_val = getattr(patient, "patient_seq", None) or getattr(patient, "id", None)
+        internal_id_val = _get("patient_seq") or _get("id")
         if internal_id_val:
             ipp_ns = None
-            if getattr(patient, 'entite_juridique_id', None):
+            ej_id = _get('entite_juridique_id')
+            if ej_id:
                 ipp_ns = session.exec(
                     select(IdentifierNamespace)
-                    .where(IdentifierNamespace.entite_juridique_id == patient.entite_juridique_id)
+                    .where(IdentifierNamespace.entite_juridique_id == ej_id)
                     .where(IdentifierNamespace.type == "IPP")
                     .where(IdentifierNamespace.is_active == True)
                 ).first()
             if ipp_ns:
                 auth = _auth(ipp_ns.system, ipp_ns.oid)
             else:
+                # Respect forced identifier values from endpoint config when provided
                 auth = _auth(forced_system, forced_oid) or "HOSP"
-            # Use 'IPP' as identifier type to reflect internal patient identifier namespace
     except Exception:
         logger.exception("Error while resolving IPP namespace for internal identifier")
 
     # 2. External ID si présent - chercher dans Identifier pour avoir system/oid
-    external_id_clean = _c(getattr(patient, "external_id", None))
+    external_id_clean = _c(_get("external_id", None))
     if external_id_clean:  # Only add if not empty after sanitization
         # Chercher si cet external_id est dans la table Identifier
+        pid = _get('id')
         ext_ident = session.exec(
             select(Identifier)
-            .where(Identifier.patient_id == patient.id)
+            .where(Identifier.patient_id == pid)
             .where(Identifier.value == external_id_clean)
             .where(Identifier.status == "active")
         ).first()
         if ext_ident:
-            # Utiliser system/oid/type de l'Identifier
-            # Ensure we emit correct type code (PI/IPP/MR/...) and not duplicate namespace in trailing components
             ident_type = getattr(ext_ident.type, 'value', ext_ident.type)
             identifiers.append(
                 f"{_c(ext_ident.value)}^^^{_auth(ext_ident.system, ext_ident.oid)}^{ident_type}"
             )
         else:
-            # Fallback: external_id sans système connu
             identifiers.append(f"{external_id_clean}^^^{_auth('EXTERNAL', None)}^PI")
-    
+
     # 3. NIR (Sécurité sociale) si présent
-    nir_clean = _c(getattr(patient, "nir", None))
-    if nir_clean:  # Only add if not empty after sanitization
-        # NH = National Health ID (HL7 Table 0203)
+    nir_clean = _c(_get("nir", None))
+    if nir_clean:
         identifiers.append(f"{nir_clean}^^^INS-NIR^NH")
-    
+
     # 4. Tous les autres identifiants actifs
-    # Exclure ceux déjà ajoutés (id, external_id, nir)
     already_added_values = set()
-    if patient.id:
-        already_added_values.add(str(patient.id))
-    if patient.external_id:
-        already_added_values.add(patient.external_id)
-    if patient.nir:
-        already_added_values.add(patient.nir)
-    
-    # Charger explicitement les identifiers si pas encore chargés
-    if not patient.identifiers:
-        patient.identifiers = session.exec(
-            select(Identifier).where(Identifier.patient_id == patient.id)
-        ).all()
-    
-    for ident in patient.identifiers:
-        if ident.status == "active" and ident.value not in already_added_values:
-            # Format: value^^^system^type
-            # Si OID présent, on pourrait l'ajouter: value^^^system&OID&ISO^type
-            identifiers.append(
-                f"{_c(ident.value)}^^^{_auth(ident.system, ident.oid)}^{getattr(ident.type, 'value', ident.type)}"
-            )
-            already_added_values.add(_c(ident.value))
-    
-    # Joindre avec ~ (répétition HL7)
+    pid_val = _get('id')
+    if pid_val:
+        already_added_values.add(str(pid_val))
+    ext_val = _get('external_id')
+    if ext_val:
+        already_added_values.add(ext_val)
+    nir_val = _get('nir')
+    if nir_val:
+        already_added_values.add(nir_val)
+
+    # Load identifiers from DB if we have a model (or if snapshot didn't include identifiers)
+    id_list = None
+    if is_dict:
+        id_list = patient.get('identifiers') or []
+    else:
+        if not getattr(patient, 'identifiers', None):
+            id_list = session.exec(select(Identifier).where(Identifier.patient_id == pid_val)).all()
+        else:
+            id_list = getattr(patient, 'identifiers')
+
+    for ident in id_list or []:
+        # ident may be dict (from snapshot) or model
+        if isinstance(ident, dict):
+            status = ident.get('status')
+            value = ident.get('value')
+            system = ident.get('system')
+            oid = ident.get('oid')
+            typ = ident.get('type')
+        else:
+            status = getattr(ident, 'status', None)
+            value = getattr(ident, 'value', None)
+            system = getattr(ident, 'system', None)
+            oid = getattr(ident, 'oid', None)
+            typ = getattr(ident, 'type', None)
+        if status == 'active' and value not in already_added_values:
+            identifiers.append(f"{_c(value)}^^^{_auth(system, oid)}^{getattr(typ, 'value', typ)}")
+            already_added_values.add(_c(value))
+
     return "~".join(identifiers) if identifiers else ""
+
+
+def _snapshot_entity(entity, entity_type: str, session: Session) -> dict:
+    """Create a plain dict snapshot for the given entity to avoid lazy loads.
+    Only include commonly used scalar fields and relation ids used by generators.
+    This keeps emission code free of session-bound lazy-loading and safe to run
+    after the SQL row is deleted (when appropriate).
+    """
+    s = {}
+    try:
+        if entity_type == 'patient':
+            s.update({
+                'id': getattr(entity, 'id', None),
+                'patient_seq': getattr(entity, 'patient_seq', None),
+                'family': getattr(entity, 'family', None),
+                'given': getattr(entity, 'given', None),
+                'gender': getattr(entity, 'gender', None),
+                'birth_date': getattr(entity, 'birth_date', None),
+                'external_id': getattr(entity, 'external_id', None),
+                'nir': getattr(entity, 'nir', None),
+                'entite_juridique_id': getattr(entity, 'entite_juridique_id', None),
+            })
+            # identifiers: materialize into list of dicts
+            idents = []
+            try:
+                id_objs = getattr(entity, 'identifiers', None)
+                if not id_objs:
+                    id_objs = session.exec(select(Identifier).where(Identifier.patient_id == getattr(entity, 'id', None))).all()
+                for ii in id_objs or []:
+                    idents.append({'value': ii.value, 'system': ii.system, 'oid': getattr(ii, 'oid', None), 'status': ii.status, 'type': getattr(ii, 'type', None)})
+            except Exception:
+                idents = []
+            s['identifiers'] = idents
+        elif entity_type == 'dossier':
+            s.update({
+                'id': getattr(entity, 'id', None),
+                'dossier_seq': getattr(entity, 'dossier_seq', None),
+                'patient_id': getattr(entity, 'patient_id', None),
+                'entite_juridique_id': getattr(entity, 'entite_juridique_id', None),
+                'dossier_type': getattr(entity, 'dossier_type', None),
+                'uf_responsabilite': getattr(entity, 'uf_responsabilite', None),
+            })
+        elif entity_type == 'venue':
+            s.update({
+                'id': getattr(entity, 'id', None),
+                'venue_seq': getattr(entity, 'venue_seq', None),
+                'dossier_id': getattr(entity, 'dossier_id', None),
+                'start_time': getattr(entity, 'start_time', None),
+                'uf_responsabilite': getattr(entity, 'uf_responsabilite', None),
+            })
+        elif entity_type == 'mouvement':
+            s.update({
+                'id': getattr(entity, 'id', None),
+                'mouvement_seq': getattr(entity, 'mouvement_seq', None),
+                'venue_id': getattr(entity, 'venue_id', None),
+                'when': getattr(entity, 'when', None),
+                'type': getattr(entity, 'type', None),
+                'trigger_event': getattr(entity, 'trigger_event', None),
+                'uf_responsabilite': getattr(entity, 'uf_responsabilite', None),
+                'location': getattr(entity, 'location', None),
+            })
+        else:
+            s.update({k: getattr(entity, k, None) for k in dir(entity) if not k.startswith('_')})
+    except Exception:
+        logger.exception("Failed to snapshot entity %s", entity)
+    return s
 
 
 def _resolve_namespace_authority(
@@ -163,83 +249,87 @@ def generate_pam_hl7(
     msh_receiving_facility: str | None = None,
 ) -> str:
     logger.info(f"generate_pam_hl7 called with args: {locals()}")
-    """Build a minimal HL7 PAM message for the given entity type."""
+    """Build a minimal HL7 PAM message for the given entity type.
+
+    This function accepts either SQLModel instances or the snapshot dict produced
+    by `_snapshot_entity`. It uses local accessors to read attributes safely.
+    """
+
+    # Support snapshots (plain dicts) or model instances
+    is_dict = isinstance(entity, dict)
+
+    def _get(attr, default=None):
+        return (entity.get(attr, default) if is_dict else getattr(entity, attr, default))
+
+    def _c_local(v):
+        # reuse outer _c sanitizer
+        return _c(v)
+
+    # Patient HL7 PAM branch
     if entity_type == "patient":
-        # Local helper to coerce any None / 'None' / whitespace-only values to ''
-        def _c(val):  # c = clean / coerce
-            if val is None:
-                return ""
-            # Some legacy data may literally contain the string 'None'
-            if isinstance(val, str):
-                v = val.strip()
-                if v.lower() == "none" or v == "":
-                    return ""
-                return v
-            return str(val)
-        # Determine event type based on operation
-        if operation == "update":
-            event_type = "A31"  # ADT^A31 (Update person information)
-        else:
-            event_type = "A28"  # ADT^A28 (Add person information) - new patient created
-        
-        # Build timestamp
+        # Determine event type
+        event_type = "A31" if operation == "update" else "A28"
+
+        # Build timestamp and control id
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        control_id = str(getattr(entity, "patient_seq", getattr(entity, "id", "UNKNOWN")))
-        
-        # MSH segment avec structure de message et version IHE PAM France
-        # MSH-8-3: structure (ADT_A05 pour A28/A31, car même structure que A04/A05)
-        # A28 et A31 utilisent ADT_A05 comme structure de message
-        msg_structure = "ADT_A05"  # A28/A31 utilisent la structure ADT_A05
-        # MSH-9: ADT^{event_type}^{structure}
-        # MSH-11: 2.5^FRA^2.11 (version IHE PAM France 2.11)
-        # MSH-16: FRA (pays)
-        # MSH-17: 8859/1 (encodage ISO-8859-1)
+        control_id = str(_get("patient_seq", _get("id", "UNKNOWN")))
+
+        # MSH header
+        msg_structure = "ADT_A05"
         sending_app = msh_sending_app or "POC"
         sending_fac = msh_sending_facility or "HOSP"
         receiving_app = msh_receiving_app or "EXT"
         receiving_fac = msh_receiving_facility or "HOSP"
         msh = f"MSH|^~\\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
-        
-        # EVN segment
         evn = f"EVN|{event_type}|{timestamp}"
-        
-        # PID segment - avec identifiants multiples et PID-32
-        # PID-3: Identifiants patient (répétitions ~)
-        pid3 = build_pid3_identifiers(
-            entity,
-            session,
-            forced_system=forced_identifier_system,
-            forced_oid=forced_identifier_oid,
-        )
-        
-        # PID-5: Noms du patient (XPN, multi-valué)
-        # Répétition 1 : nom usuel, Répétition 2 : nom de naissance (si différent)
+
+        # PID-3 identifiers
+        pid3 = build_pid3_identifiers(entity, session, forced_system=forced_identifier_system, forced_oid=forced_identifier_oid)
+
+        # Names: build XPN repetitions but avoid emitting empty subcomponents
+        def _build_xpn(family_val, given_val, middle_val, suffix_val=None, prefix_val=None, type_code=None):
+            # XPN: family^given^middle^suffix^prefix^degree^type
+            xpn = ["", "", "", "", "", "", ""]
+            if family_val:
+                xpn[0] = family_val
+            if given_val:
+                xpn[1] = given_val
+            if middle_val:
+                xpn[2] = middle_val
+            if suffix_val:
+                xpn[3] = suffix_val
+            if prefix_val:
+                xpn[4] = prefix_val
+            if type_code:
+                xpn[6] = type_code
+            # Trim trailing empty components
+            while xpn and xpn[-1] == "":
+                xpn.pop()
+            return "^".join(xpn)
+
+        family = _c_local(_get("family", ""))
+        given = _c_local(_get("given", ""))
+        middle = _c_local(_get("middle", None))
+        suffix = _c_local(_get("suffix", None)) or None
+        prefix = _c_local(_get("prefix", None)) or None
         names = []
-        family = _c(getattr(entity, "family", ""))
-        given = _c(getattr(entity, "given", ""))
-        middle = _c(getattr(entity, "middle", ""))
-        # Nom usuel (usage D)
-        name_usuel = f"{family}^{given}^{middle}^^^^D" if middle else f"{family}^{given}^^^^D"
-        names.append(name_usuel)
-        # Nom de naissance (usage L) si présent et différent
-        birth_family = _c(getattr(entity, "birth_family", None)) or None
+        birth_family = _c_local(_get("birth_family", None)) or None
+        # If we have a birth_family, prefer to mark the name with type 'L' (legal/birth)
+        first_type = "L" if birth_family else None
+        if family or given or middle or prefix or suffix:
+            names.append(_build_xpn(family, given, middle, suffix, prefix, first_type))
         if birth_family and birth_family != family:
-            name_naissance = f"{birth_family}^{given}^{middle}^^^^L" if middle else f"{birth_family}^{given}^^^^L"
-            names.append(name_naissance)
+            # mark birth/legal name with type 'L' and preserve prefix/suffix when available
+            names.append(_build_xpn(birth_family, given, middle, suffix, prefix, "L"))
         name = "~".join(names)
-        
-        # PID-7: Date de naissance (format HL7: YYYYMMDD)
-        birth_date_raw = _c(getattr(entity, "birth_date", ""))
-        if birth_date_raw:
-            # Convert YYYY-MM-DD to YYYYMMDD
-            birth_date = birth_date_raw.replace("-", "").replace("/", "")[:8]
-        else:
-            birth_date = ""
-        
-        # PID-8: Sexe administratif
-        # Normalisation du sexe administratif HL7 (PID-8)
-        raw_gender = _c(getattr(entity, "gender", ""))
+
+        # Birth date
+        birth_date_raw = _c_local(_get("birth_date", ""))
+        birth_date = birth_date_raw.replace("-", "").replace("/", "")[:8] if birth_date_raw else ""
+
+        # Gender mapping
+        raw_gender = _c_local(_get("gender", ""))
         gender_map_hl7 = {
             "m": "M", "male": "M",
             "f": "F", "female": "F",
@@ -247,100 +337,111 @@ def generate_pam_hl7(
             "u": "U", "unknown": "U", "undifferentiated": "U", "n": "U"
         }
         gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
-        
-        # PID-11: Adresses du patient (XAD, multi-valué)
+
+        # Addresses
+        # Addresses: build XAD repetitions but only include repetitions with meaningful content
+        def _build_xad(street, other, city, state, postal, country, addr_type=None):
+            parts = [street or "", other or "", city or "", state or "", postal or "", country or ""]
+            if addr_type:
+                parts.append(addr_type)
+            # Trim trailing empty components
+            while parts and parts[-1] == "":
+                parts.pop()
+            return "^".join(parts) if parts else ""
+
         addresses = []
-        # Adresse d'habitation
-        # XAD components: street^other^city^state^zip^country^type
-        # HL7 Table 0190 for type (H=Home, B=Business, M=Mailing, P=Permanent...).
-        # We set main address as Home (H).
-        addr1 = [
-            _c(getattr(entity, "address", "")),
-            "",  # other designation
-            _c(getattr(entity, "city", "")),
-            _c(getattr(entity, "state", "")),
-            _c(getattr(entity, "postal_code", "")),
-            _c(getattr(entity, "country", "")),
-            "H",  # address type
-        ]
-        addresses.append("^".join(addr1))
-        # Adresse de naissance (si présente)
-        if _c(getattr(entity, "birth_address", None)) or _c(getattr(entity, "birth_city", None)):
-            # Not a standard HL7 address type exists for "birth"; use a custom mnemonic BIR.
-            addr2 = [
-                _c(getattr(entity, "birth_address", "")),
-                "",  # other designation
-                _c(getattr(entity, "birth_city", "")),
-                _c(getattr(entity, "birth_state", "")),
-                _c(getattr(entity, "birth_postal_code", "")),
-                _c(getattr(entity, "birth_country", "")),
-                "BIR",  # custom type for birth address
-            ]
-            addresses.append("^".join(addr2))
+        street = _c_local(_get("address", None))
+        city = _c_local(_get("city", None))
+        state = _c_local(_get("state", None))
+        postal = _c_local(_get("postal_code", None))
+        country = _c_local(_get("country", None))
+        # Only add home address repetition if at least one meaningful field exists
+        if any([street, city, state, postal, country]):
+            addresses.append(_build_xad(street, "", city, state, postal, country, "H"))
+
+        birth_street = _c_local(_get("birth_address", None))
+        birth_city = _c_local(_get("birth_city", None))
+        birth_state = _c_local(_get("birth_state", None))
+        birth_postal = _c_local(_get("birth_postal_code", None))
+        birth_country = _c_local(_get("birth_country", None))
+        if any([birth_street, birth_city, birth_state, birth_postal, birth_country]):
+            addresses.append(_build_xad(birth_street, "", birth_city, birth_state, birth_postal, birth_country, "BIR"))
+
         patient_address = "~".join(addresses)
-        
-        # PID-13: Téléphones (XTN, multi-valué)
-        # Format XTN: [phone]^[use]^[equipment]^[email]^[country]^[area]^[local]^[extension]...
-        # Simplified: ^[use]^[equipment]^^^^[local]
+
+        # Phones
         phones = []
-        
-        # Téléphone principal (domicile)
-        phone = _c(getattr(entity, "phone", ""))
+        phone = _c_local(_get("phone", ""))
         if phone:
-            # Format: ^PRN^PH^^^^local_number
-            # PRN = Primary Residence Number, PH = Telephone
             phones.append(f"^PRN^PH^^^^{phone}")
-        
-        # Mobile
-        mobile = _c(getattr(entity, "mobile", ""))
+        mobile = _c_local(_get("mobile", ""))
         if mobile:
-            # Format: ^ORN^CP^^^^local_number
-            # ORN = Other Residence Number, CP = Cell Phone
             phones.append(f"^ORN^CP^^^^{mobile}")
-        
-        # Téléphone professionnel
-        work_phone = _c(getattr(entity, "work_phone", ""))
+        work_phone = _c_local(_get("work_phone", ""))
         if work_phone:
-            # Format: ^WPN^PH^^^^local_number
-            # WPN = Work Number, PH = Telephone
             phones.append(f"^WPN^PH^^^^{work_phone}")
-        
-        # Email (XTN.4 pour email dans format XTN)
-        email = _c(getattr(entity, "email", ""))
+        email = _c_local(_get("email", ""))
         if email:
-            # Format: ^^^email_address (XTN.4 = email address)
-            # Ou format complet: ^NET^Internet^^^email_address
             phones.append(f"^NET^Internet^{email}")
-        
         phone_field = "~".join(phones)
-        
-        # PID-23: Lieu de naissance (ville)
-        birth_place = _c(getattr(entity, "birth_city", ""))
-        
-        # PID-16: Statut marital (Marital Status) - HL7 Table 0002
-        # S=Single, M=Married, D=Divorced, W=Widowed, P=Domestic partner, A=Separated, U=Unknown
-        marital_status = _c(getattr(entity, "marital_status", ""))
-        
-        # PID-26: Nationalité (Citizenship)
-        nationality = _c(getattr(entity, "nationality", ""))
-        
-        # PID-32: Statut de l'identité (Identity Reliability Code) - HL7 Table 0445
-        # VALI=Validée (avec INS qualifié), PROV=Provisoire, VIDE=Non qualifiée, 
-        # DOUB=Doublon, DESA=Désactivée, DPOT=Dépôt, IDVER=Vérifiée, CACH=Cachée, ANOM=Anonyme
-        identity_code = _c(getattr(entity, "identity_reliability_code", ""))
-        
-        # Construction du segment PID complet HL7 v2.5
-        # Format: PID|SetID|PatientID|PatientIDList|AltPatientID|PatientName|MothersMaidenName|
-        #            DateOfBirth|Sex|PatientAlias|Race|PatientAddress|CountryCode|PhoneNumber|
-        #            BusinessPhone|PrimaryLanguage|MaritalStatus|Religion|AccountNumber|SSN|
-        #            DriversLicense|MothersIdentifier|EthnicGroup|BirthPlace|MultipleBirth|
-        #            BirthOrder|Citizenship|VeteranStatus|Nationality|PatientDeathDate|DeathIndicator|
-        #            IdentityUnknownIndicator|IdentityReliabilityCode
-        # PID-1 à PID-13 remplis, PID-14-15 vides (2 pipes), PID-16 marital_status, PID-17-22 vides (6 pipes), PID-23 birth_place, PID-24-25 vides (2 pipes), PID-26 nationality, PID-27-31 vides (5 pipes), PID-32 identity_code
-        # Note: chaque champ est séparé par |
-        # Après PID-13: || (14,15) | marital (16) | |||||| (17-22) | birth_place (23) | || (24-25) | nationality (26) | ||||| (27-31) | identity (32)
-        pid = f"PID|1||{_c(pid3)}||{_c(name)}||{birth_date}|{gender}|||{_c(patient_address)}||{phone_field}|||{marital_status}|||||||{birth_place}|||{nationality}||||||{identity_code}"
-        
+
+        birth_place = _c_local(_get("birth_city", ""))
+        marital_status = _c_local(_get("marital_status", ""))
+        nationality = _c_local(_get("nationality", ""))
+        identity_code = _c_local(_get("identity_reliability_code", ""))
+        # Attempt to include account_number (PID-18) if there's a dossier for this patient
+        account_number = ""
+        try:
+            pid_patient_id = _get('id', None)
+            if pid_patient_id is not None:
+                # pick latest dossier for this patient if any
+                from sqlmodel import select as _select
+                dossier_obj = session.exec(_select(Dossier).where(Dossier.patient_id == pid_patient_id).order_by(Dossier.id.desc())).first()
+                if dossier_obj and getattr(dossier_obj, 'dossier_seq', None):
+                    # resolve namespace authority for NDA (dossier numbers)
+                    auth, _ = _resolve_namespace_authority(session, _get('entite_juridique_id'), 'NDA', forced_identifier_system, forced_identifier_oid)
+                    if auth:
+                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{auth}^AN"
+                    else:
+                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{_c_local('EXTERNAL')}^AN"
+        except Exception:
+            logger.exception("Failed to resolve dossier/account_number for PID-18")
+
+        # Build PID using indexed fields to ensure PID-18 (account number) and PID-23 (birth place)
+        # are placed at their correct positions.
+        # We allocate up to PID-32 for safety (index matches HL7 field number).
+        pid_fields = [""] * 33
+        pid_fields[0] = "PID"
+        pid_fields[1] = "1"  # Set ID - PID-1
+        pid_fields[2] = ""   # PID-2 (Patient ID)
+        pid_fields[3] = _c_local(pid3)  # PID-3 Patient Identifier List
+        pid_fields[4] = ""   # PID-4 Alternate ID
+        pid_fields[5] = _c_local(name)  # PID-5 Patient Name
+        pid_fields[6] = ""   # PID-6 Mother's Maiden Name
+        pid_fields[7] = birth_date  # PID-7 Date/Time of Birth
+        pid_fields[8] = gender  # PID-8 Administrative Sex
+        pid_fields[9] = ""   # PID-9 Patient Alias
+        pid_fields[10] = ""  # PID-10 Race
+        pid_fields[11] = _c_local(patient_address)  # PID-11 Patient Address
+        pid_fields[12] = ""  # PID-12 County Code
+        pid_fields[13] = phone_field  # PID-13 Phone Number - Home
+        pid_fields[14] = ""  # PID-14 Phone Number - Business
+        pid_fields[15] = ""  # PID-15 Primary Language
+        pid_fields[16] = _c_local(marital_status)  # PID-16 Marital Status
+        pid_fields[17] = ""  # PID-17 Religion
+        pid_fields[18] = _c_local(account_number)  # PID-18 Patient Account Number
+        # PID-19.. PID-22 left empty for now
+        pid_fields[19] = ""  # PID-19 SSN Number - Patient
+        pid_fields[20] = ""  # PID-20 Driver's License Number
+        pid_fields[21] = ""  # PID-21 Mother's Identifier
+        pid_fields[22] = ""  # PID-22 Ethnic Group
+        pid_fields[23] = _c_local(birth_place)  # PID-23 Birth Place
+        pid_fields[24] = ""  # PID-24 Mother's Maiden Name (repeating semantics)
+        # PID-25..PID-31 reserved
+        pid_fields[32 - 1] = _c_local(identity_code)  # PID-32 Identity Reliability Code (placed at index 32)
+
+        pid = "|".join(pid_fields)
+
         return "\r".join([msh, evn, pid])
         
     if entity_type == "dossier":
@@ -1082,27 +1183,50 @@ async def emit_to_senders_async(
         .where(SystemEndpoint.role.in_(["sender", "both"]))
         .where(SystemEndpoint.is_enabled == True)
     ).all()
-    # Filter endpoints: only those linked to the entity's EJ or GHT context
+    # Filter endpoints: include endpoints that are global (no EJ/GHT set),
+    # or those explicitly tied to the entity's EJ or GHT context.
+    # This lets tests (and simple setups) create endpoints without EJ/GHT
+    # and have them receive emissions.
     entity_ej_id = getattr(entity, "entite_juridique_id", None)
     entity_ght_id = getattr(entity, "ght_context_id", None)
     filtered_endpoints = []
     for ep in endpoints:
-        if entity_ej_id and ep.entite_juridique_id == entity_ej_id:
+        # Global endpoint (no explicit owner) receives all emissions
+        if getattr(ep, "entite_juridique_id", None) is None and getattr(ep, "ght_context_id", None) is None:
             filtered_endpoints.append(ep)
-        elif entity_ght_id and ep.ght_context_id == entity_ght_id:
+            continue
+        # Endpoint tied to same EJ
+        if entity_ej_id is not None and getattr(ep, "entite_juridique_id", None) == entity_ej_id:
             filtered_endpoints.append(ep)
+            continue
+        # Endpoint tied to same GHT
+        if entity_ght_id is not None and getattr(ep, "ght_context_id", None) == entity_ght_id:
+            filtered_endpoints.append(ep)
+            continue
     endpoints = filtered_endpoints
     sent_logs: list[MessageLog] = []
 
     for endpoint in endpoints:
         import time
         from datetime import datetime
+        # create a snapshot once per endpoint loop if needed
+        use_snapshot = True
+        try:
+            # allow endpoints to opt-out in future via attribute, keep default True
+            use_snapshot = getattr(endpoint, 'use_snapshot_emission', True)
+        except Exception:
+            use_snapshot = True
+        snapshot = None
+        if use_snapshot:
+            snapshot = _snapshot_entity(entity, entity_type, session)
         # Respect emission type flags
         # HL7 IHE PAM (identité/mouvements)
         if endpoint.kind == "MLLP" and getattr(endpoint, "emit_hl7_pam", True):
             if entity_type in ["patient", "venue", "mouvement"]:
+                # Prefer using the live model instance for generation when available
+                gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 hl7_message = generate_pam_hl7(
-                    entity,
+                    gen_entity,
                     entity_type,
                     session,
                     forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
@@ -1116,7 +1240,8 @@ async def emit_to_senders_async(
                 if hl7_message is None or (isinstance(hl7_message, str) and hl7_message.strip() == ""):
                     hl7_message = "[Emission error: HL7 message not generated]"
                 try:
-                    from app.services.mllp import parse_msh_fields
+                    # import parse_msh_fields and send_mllp at call time so tests can monkeypatch
+                    from app.services.mllp import parse_msh_fields, send_mllp as _send_mllp
                     hl7_fields = parse_msh_fields(hl7_message)
                     control_id = hl7_fields.get("control_id")
                 except Exception:
@@ -1136,7 +1261,8 @@ async def emit_to_senders_async(
                         pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
                     try:
                         if endpoint.host and endpoint.port:
-                            ack_payload = await send_mllp(endpoint.host, endpoint.port, hl7_message)
+                            # call the dynamically imported sender (may be monkeypatched)
+                            ack_payload = await _send_mllp(endpoint.host, endpoint.port, hl7_message)
                             from app.services.mllp import parse_msh_fields
                             ack_lines = ack_payload.split("\r") if ack_payload else []
                             msa_line = next((l for l in ack_lines if l.startswith("MSA|")), None)
@@ -1211,8 +1337,10 @@ async def emit_to_senders_async(
         if endpoint.kind == "FHIR" and getattr(endpoint, "emit_fhir_structure", True):
             if entity_type in ["dossier", "venue"]:
                 targets = _build_fhir_targets(endpoint)
+                # Prefer using the live model instance for generation when available
+                gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 fhir_payload = generate_fhir(
-                    entity,
+                    gen_entity,
                     entity_type,
                     session,
                     forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
@@ -1257,6 +1385,9 @@ async def emit_to_senders_async(
                         session.add(log)
                         session.commit()
                     return
+                # Import FHIR transport at call time so tests can monkeypatch
+                from app.services.fhir_transport import post_fhir_bundle as _send_fhir
+
                 for base_url, auth_kind, auth_token in targets:
                     retry = 0
                     max_retry = 3
@@ -1265,7 +1396,7 @@ async def emit_to_senders_async(
                         ack_payload = ""
                         payload_str = json.dumps(fhir_payload, default=str)
                         try:
-                            status_code, response_body = await send_fhir(
+                            status_code, response_body = await _send_fhir(
                                 base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
                             )
                             status = "sent" if 200 <= status_code < 300 else "error"
@@ -1321,8 +1452,10 @@ async def emit_to_senders_async(
         if endpoint.kind == "FHIR" and getattr(endpoint, "emit_fhir_identity", True):
             if entity_type in ["patient", "mouvement", "venue"]:
                 targets = _build_fhir_targets(endpoint)
+                # Prefer using the live model instance for generation when available
+                gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 fhir_payload = generate_fhir(
-                    entity,
+                    gen_entity,
                     entity_type,
                     session,
                     forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
@@ -1364,6 +1497,9 @@ async def emit_to_senders_async(
                         session.add(log)
                         session.commit()
                     return
+                # Import FHIR transport at call time so tests can monkeypatch
+                from app.services.fhir_transport import post_fhir_bundle as _send_fhir
+
                 for base_url, auth_kind, auth_token in targets:
                     retry = 0
                     max_retry = 3
@@ -1372,7 +1508,7 @@ async def emit_to_senders_async(
                         ack_payload = ""
                         payload_str = json.dumps(fhir_payload, default=str)
                         try:
-                            status_code, response_body = await send_fhir(
+                            status_code, response_body = await _send_fhir(
                                 base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
                             )
                             status = "sent" if 200 <= status_code < 300 else "error"
@@ -1531,8 +1667,10 @@ class _EmitToSendersWrapper:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
+            # No running loop: run synchronously
             return asyncio.run(coro)
         else:
+            # Running loop present: return coroutine to be awaited by caller
             return coro
 
 

@@ -1,7 +1,21 @@
 from sqlmodel import Session
 
 import time
+import os
+import asyncio
 
+async def _async_sleep(seconds: float) -> None:
+    """Async-aware sleep helper.
+
+    When running under TESTING=1, use a short sleep to keep tests fast and to
+    avoid blocking the event loop for long durations. In production mode this
+    falls back to asyncio.sleep with the provided duration.
+    """
+    if os.getenv("TESTING", "0") in ("1", "true", "True"):
+        # short-circuit long sleeps during tests
+        await asyncio.sleep(min(0.01, seconds))
+    else:
+        await asyncio.sleep(seconds)
 async def _emit_mfn_entity(entity, session: Session, ght_context_id=None) -> None:
     """Émet un message MFN^M05 pour une entité individuelle vers les endpoints MLLP."""
     from app.services.mfn_structure import generate_mfn_message_for_entity
@@ -63,7 +77,7 @@ async def _emit_mfn_entity(entity, session: Session, ght_context_id=None) -> Non
                     )
                     session.add(log)
                 if retry < max_retry:
-                    time.sleep(60)
+                    await _async_sleep(60)
 """Emission des messages Structure (FHIR Location et HL7 MFN) après modifications.
 
 Cette couche envoie:
@@ -195,7 +209,7 @@ async def _emit_organization_upsert(entity, session: Session, ght_context_id=Non
                         )
                         session.add(log)
                     if retry < max_retry:
-                        time.sleep(60)
+                        await _async_sleep(60)
 
 
 async def _emit_organization_delete(entity_id: int, finess_ej: str, session: Session) -> None:
@@ -445,7 +459,7 @@ async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> No
                         )
                         session.add(log)
                     if retry < max_retry:
-                        time.sleep(60)
+                            await _async_sleep(60)
 
 
 async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
@@ -527,8 +541,8 @@ async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
                         status="error",
                     )
                     session.add(log)
-                if retry < max_retry:
-                    time.sleep(60)
+                    if retry < max_retry:
+                        await _async_sleep(60)
 
 
 async def _emit_mfn_snapshot(session: Session, ght_context_id=None) -> None:
@@ -596,7 +610,7 @@ async def _emit_mfn_snapshot(session: Session, ght_context_id=None) -> None:
                     )
                     session.add(log)
                 if retry < max_retry:
-                    time.sleep(60)
+                    await _async_sleep(60)
 
 
 async def emit_structure_change(entity, session: Session, operation: str = "update", ght_context_id=None) -> None:

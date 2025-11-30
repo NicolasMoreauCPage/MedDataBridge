@@ -1530,8 +1530,21 @@ def delete_mouvement(mouvement_id: int, request: Request, session=Depends(get_se
     m = session.get(Mouvement, mouvement_id)
     if not m:
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-    session.delete(m); session.commit()
-    emit_to_senders(m, "mouvement", session)
+    # Refresh relationships so emit_to_senders can access them before deletion
+    session.refresh(m)
+    if m.venue:
+        session.refresh(m.venue, ["dossier"])
+        if m.venue.dossier:
+            session.refresh(m.venue.dossier, ["patient"])
+
+    # Emit deletion notification before removing the row to avoid DetachedInstanceError
+    emit_to_senders(m, "mouvement", session, operation="delete")
+    session.delete(m)
+    session.commit()
+    # Redirect back to the mouvements list filtered by the venue to ensure the
+    # list view has the required context and doesn't return 400.
+    if m.venue_id:
+        return RedirectResponse(url=f"/mouvements?venue_id={m.venue_id}", status_code=303)
     return RedirectResponse(url="/mouvements", status_code=303)
 
 

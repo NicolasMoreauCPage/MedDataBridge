@@ -50,13 +50,25 @@ class MLLPManager:
             key = (endpoint.host, endpoint.port)
             if key in self._by_addr:
                 return
-            server = await start_mllp_server(
-                host=endpoint.host,
-                port=endpoint.port,
-                on_message=self.on_message,
-                endpoint=endpoint,
-                session_factory=self.session_factory,
-            )
+            try:
+                server = await start_mllp_server(
+                    host=endpoint.host,
+                    port=endpoint.port,
+                    on_message=self.on_message,
+                    endpoint=endpoint,
+                    session_factory=self.session_factory,
+                )
+            except OSError as e:
+                # Ne pas faire échouer le démarrage de l'application si le
+                # bind échoue pour un endpoint particulier (par ex. address
+                # already in use). Loggons le problème et continuons.
+                import logging
+                logger = logging.getLogger("mllp.manager")
+                logger.warning(
+                    "Cannot start MLLP endpoint %s on %s:%s — %s; skipping",
+                    getattr(endpoint, "name", endpoint.id), endpoint.host, endpoint.port, e
+                )
+                return
             self.servers[endpoint.id] = server
             self._by_addr[key] = endpoint.id
 

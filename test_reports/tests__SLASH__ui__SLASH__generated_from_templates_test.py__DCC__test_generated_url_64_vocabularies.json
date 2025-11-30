@@ -1,0 +1,7 @@
+{
+  "nodeid": "tests/ui/generated_from_templates_test.py::test_generated_url_64_vocabularies",
+  "exit_code": 0,
+  "stdout": ".                                                                        [100%]\n=============================== warnings summary ===============================\n../../../.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:291\n../../../.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:291\n../../../.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:291\n  /home/nico/.local/lib/python3.10/site-packages/pydantic/_internal/_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.8/migration/\n    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1 passed, 3 warnings in 0.79s\n",
+  "stderr": "",
+  "timestamp": "2025-11-29T11:09:11.633014Z"
+}

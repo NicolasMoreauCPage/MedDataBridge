@@ -55,7 +55,14 @@ def filter_urls(urls):
     for u in urls:
         if any(k in u for k in skip_keywords):
             continue
-        filtered.append(u)
+        # Replace Jinja id placeholders like {{ x.id }} by '1' when safe
+        u2 = u
+        if '{{' in u2 and 'id' in u2:
+            # crude substitution: replace any {{ ... id ... }} by 1
+            u2 = re.sub(r"\{\{[^}]*id[^}]*\}\}", '1', u2)
+            # remove any leftover braces
+            u2 = u2.replace('{', '').replace('}', '')
+        filtered.append(u2)
     return filtered
 
 

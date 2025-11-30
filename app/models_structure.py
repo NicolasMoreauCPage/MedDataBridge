@@ -230,6 +230,8 @@ class EntiteJuridique(SQLModel, table=True):
     siret: Optional[str] = Field(default=None, description="Numéro SIRET de l'entité juridique")
     is_active: bool = Field(default=True)
     is_active: bool = Field(default=True)
+    # Comportement strict PAM FR par défaut pour les EJ (tests attendent True)
+    strict_pam_fr: bool = Field(default=True)
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     poles: List["Pole"] = Relationship(back_populates="entite_juridique")
     entites_geographiques: List["EntiteGeographique"] = Relationship(back_populates="entite_juridique")

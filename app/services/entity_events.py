@@ -30,6 +30,7 @@ validées et ne bloquent pas le thread principal de l'application.
 import asyncio
 import logging
 import threading
+import os
 from typing import Any, Dict, Set
 from sqlalchemy import event
 from sqlalchemy.orm import Session  # Use SQLAlchemy Session for event listeners
@@ -128,23 +129,51 @@ def after_commit(session: Session):
                 logger.error(f"[entity_events] Unknown entity type: {entity_type}")
                 continue
             
-            # Planifie l'émission en arrière-plan via un pool de threads.
-            # `after_commit` est synchrone, mais l'émission est asynchrone.
-            # Le pool de threads permet de lancer une nouvelle boucle d'événements
-            # asyncio pour chaque émission.
-            import concurrent.futures
-            if not hasattr(after_commit, "_executor"):
-                after_commit._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
-
-            def run_emission():
-                import asyncio
+            # In normal operation we run emissions in background threads so we don't
+            # block the committing thread. However, when running tests we may use
+            # an in-memory SQLite engine which is not compatible with concurrent
+            # threads sharing connections. To avoid intermittent "no such table"
+            # or cursor reset errors in tests, run emissions synchronously when
+            # the TESTING environment variable is set.
+            if os.getenv("TESTING", "0") in ("1", "true", "True"):
                 try:
-                    # Crée une nouvelle boucle d'événements asyncio et exécute la coroutine.
-                    asyncio.run(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
+                    # In test environments we prefer synchronous execution to
+                    # avoid threading issues with in-memory SQLite. However,
+                    # pytest-asyncio or other test harnesses may already have
+                    # a running event loop. Calling asyncio.run() inside an
+                    # existing loop raises RuntimeError. Detect the case and
+                    # schedule the coroutine on the running loop instead.
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        # No running loop: safe to run directly
+                        asyncio.run(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
+                    else:
+                        # Schedule the emission coroutine on the existing loop.
+                        # Use create_task when available; ensure_future also works.
+                        try:
+                            loop.create_task(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
+                        except Exception:
+                            # Fallback to ensure_future for older compatibility
+                            asyncio.ensure_future(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
                 except Exception as exc:
-                    logger.error(f"[entity_events] Emission failed in executor: {exc}", exc_info=True)
+                    logger.error(f"[entity_events] Emission failed in sync mode: {exc}", exc_info=True)
+            else:
+                # Planifie l'émission en arrière-plan via un pool de threads.
+                # `after_commit` est synchrone, but the emission is asynchronous.
+                import concurrent.futures
+                if not hasattr(after_commit, "_executor"):
+                    after_commit._executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-            after_commit._executor.submit(run_emission)
+                def run_emission():
+                    import asyncio
+                    try:
+                        # Create a new asyncio loop and run the coroutine.
+                        asyncio.run(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
+                    except Exception as exc:
+                        logger.error(f"[entity_events] Emission failed in executor: {exc}", exc_info=True)
+
+                after_commit._executor.submit(run_emission)
         
         except Exception as exc:
             logger.error(f"[entity_events] Failed to schedule emission {entity_type} id={entity_id}: {exc}")

@@ -199,7 +199,6 @@ def test_generated_url_47_structure():
     r = client.get('/structure')
     assert r.status_code in OK_CODES
 
-
 def test_generated_url_48_structure___details_type____details_id__edit():
     r = client.get('/structure/${details.type}/${details.id}/edit')
     assert r.status_code in OK_CODES

@@ -25,6 +25,8 @@ from app.services.transport_inbound import on_message_inbound_async
 from app.services.pam_validation import validate_pam
 from app.models_shared import MessageLog
 from sqlmodel import select
+from app.services.emit_on_create import generate_pam_hl7
+from app.models import Patient, Dossier, Venue, Mouvement
 
 MFN_DIR = ROOT / "tests" / "exemples" / "mfn"
 PAM_DIR = ROOT / "tests" / "exemples" / "Fichier_test_pam"
@@ -113,6 +115,11 @@ def run_pam_checks(session, limit=None):
         # Snapshot last MessageLog id
         last_id_row = session.exec(select(MessageLog.id).order_by(MessageLog.id.desc()).limit(1)).first()
         last_id = int(last_id_row) if last_id_row is not None else 0
+        # Snapshot max ids for entities so we can detect newly created rows
+        max_patient = session.exec(select(Patient.id).order_by(Patient.id.desc()).limit(1)).first() or 0
+        max_dossier = session.exec(select(Dossier.id).order_by(Dossier.id.desc()).limit(1)).first() or 0
+        max_venue = session.exec(select(Venue.id).order_by(Venue.id.desc()).limit(1)).first() or 0
+        max_mouv = session.exec(select(Mouvement.id).order_by(Mouvement.id.desc()).limit(1)).first() or 0
 
         # Inbound validation
         try:
@@ -130,8 +137,73 @@ def run_pam_checks(session, limit=None):
             results.append({"file": f.name, "error": str(e), "ack": None, "inbound_validation": {"ok": inbound_ok, "issues": inbound_issues}, "outbound_count": 0})
             continue
 
+        # After processing, detect newly created entities and regenerate PAM HL7s for inspection
+        try:
+            new_patients = session.exec(select(Patient).where(Patient.id > max_patient)).all()
+            new_dossiers = session.exec(select(Dossier).where(Dossier.id > max_dossier)).all()
+            new_venues = session.exec(select(Venue).where(Venue.id > max_venue)).all()
+            new_mouvs = session.exec(select(Mouvement).where(Mouvement.id > max_mouv)).all()
+            # Write generated PAM HL7s into /tmp/medbridge_generated/pam
+            base = ensure_out_dirs()
+            pam_out = base / 'pam'
+            import time, random
+            for ent in (new_patients + new_dossiers + new_venues + new_mouvs):
+                try:
+                    # Determine entity type
+                    if isinstance(ent, Patient):
+                        et = 'patient'
+                    elif isinstance(ent, Dossier):
+                        et = 'dossier'
+                    elif isinstance(ent, Venue):
+                        et = 'venue'
+                    elif isinstance(ent, Mouvement):
+                        et = 'mouvement'
+                    else:
+                        et = 'unknown'
+                    # Only generate when meaningful for PAM (patient/venue/mouvement)
+                    if et not in ('patient', 'venue', 'mouvement'):
+                        continue
+                    try:
+                        msg = generate_pam_hl7(ent, et, session)
+                    except Exception:
+                        msg = None
+                    if not msg:
+                        continue
+                    suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
+                    fname = pam_out / f"gen_{et}_{getattr(ent,'id','unknown')}_{suffix}.hl7"
+                    tmpf = fname.with_suffix(fname.suffix + '.tmp')
+                    with tmpf.open('w', encoding='utf-8') as fh:
+                        fh.write(msg)
+                    tmpf.replace(fname)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         created_logs = session.exec(select(MessageLog).where(MessageLog.id > last_id).order_by(MessageLog.id.asc())).all()
         outbound = [l for l in created_logs if (l.direction == "out") or (l.kind == "MLLP" and l.status in ("sent", "ack_ok", "pending"))]
+        # Persist outbound MessageLog payloads to /tmp for manual inspection (unique filenames)
+        try:
+            base = ensure_out_dirs()
+            pam_out = base / 'pam'
+            import time, random
+            for ob in outbound:
+                try:
+                    payload = ob.payload or ''
+                    if not payload:
+                        continue
+                    # only write HL7-like payloads or those marked MLLP/FILE
+                    if ob.kind in ('MLLP', 'FILE') or payload.startswith('MSH') or '\rPID' in payload:
+                        suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
+                        fname = pam_out / f"out_{ob.id}_{suffix}.hl7"
+                        tmpf = fname.with_suffix(fname.suffix + '.tmp')
+                        with tmpf.open('w', encoding='utf-8') as fh:
+                            fh.write(payload)
+                        tmpf.replace(fname)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         val_results = []
         for ob in outbound:
             try:
@@ -152,6 +224,25 @@ def run_pam_checks(session, limit=None):
     return results
 
 
+def ensure_out_dirs():
+    # Prefer an explicit env var, then a repo-local tmp/generated directory, then /tmp/medbridge_generated
+    out_dir = os.getenv('MEDBRIDGE_OUT_DIR')
+    if out_dir:
+        base = Path(out_dir)
+    else:
+        # Use repository-local tmp/generated when available (convenient for CI/dev)
+        try:
+            repo_base = ROOT / 'tmp' / 'generated'
+            repo_base.mkdir(parents=True, exist_ok=True)
+            base = repo_base
+        except Exception:
+            base = Path('/tmp') / 'medbridge_generated'
+
+    for sub in ("pam", "mfn", "fhir"):
+        (base / sub).mkdir(parents=True, exist_ok=True)
+    return base
+
+
 def main():
     # Ensure TESTING schema; optionally reset DB if requested
     if os.getenv("TESTING", "0") in ("1", "true", "True"):
@@ -167,7 +258,7 @@ def main():
         mfn_results = import_mfn_files(session)
         pam_results = run_pam_checks(session, limit=None)
 
-        # Per-EntiteGeographique MFN generation checks: ensure generated MFN for a single EG
+    # Per-EntiteGeographique MFN generation checks: ensure generated MFN for a single EG
         eg_checks = []
         try:
             from app.models_structure import EntiteGeographique
@@ -181,12 +272,13 @@ def main():
                     eg_id = getattr(eg, 'identifier', '')
                     contains_eg = eg_id and (eg_id in msg)
 
-                    # Save full MFN message for inspection
-                    gen_base = ROOT / "tmp" / "generated"
-                    mfn_out_dir = gen_base / "mfn"
-                    mfn_out_dir.mkdir(parents=True, exist_ok=True)
+                    # Save full MFN message for inspection into /tmp
+                    out_base = ensure_out_dirs()
+                    mfn_out_dir = out_base / "mfn"
                     try:
-                        fname = mfn_out_dir / f"mfn_eg_{eg_id or 'unknown'}.hl7"
+                        import time, random
+                        suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
+                        fname = mfn_out_dir / f"mfn_eg_{eg_id or 'unknown'}_{suffix}.hl7"
                         fname.write_text(msg, encoding='utf-8')
                     except Exception:
                         pass
@@ -211,10 +303,8 @@ def main():
             }
         }
         out['eg_mfn_checks'] = eg_checks
-        # Ensure generated out dirs
-        gen_base = ROOT / "tmp" / "generated"
-        for sub in ("pam", "mfn", "fhir"):
-            (gen_base / sub).mkdir(parents=True, exist_ok=True)
+        # Ensure generated out dirs in /tmp
+        gen_base = ensure_out_dirs()
 
         # Save any generated MFN messages from eg_checks into files
         mfn_out_dir = gen_base / "mfn"
@@ -228,9 +318,8 @@ def main():
                 except Exception:
                     pass
 
-        # Save whole results JSON
-        out_dir = ROOT / "tmp"
-        out_dir.mkdir(exist_ok=True)
+        # Save whole results JSON into /tmp for easier inspection
+        out_dir = Path('/tmp')
         out_file = out_dir / "mfn_roundtrip_results.json"
         with out_file.open("w", encoding="utf-8") as fh:
             json.dump(out, fh, indent=2, ensure_ascii=False)
@@ -254,7 +343,9 @@ def main():
             for ej in ejs:
                 try:
                     bundle = fes.export_structure(ej)
-                    fname = fhir_out_dir / f"fhir_ej_{ej.identifier or ej.id}.json"
+                    import time, random
+                    suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
+                    fname = fhir_out_dir / f"fhir_ej_{ej.identifier or ej.id}_{suffix}.json"
                     fname.write_text(json.dumps(bundle.model_dump(), ensure_ascii=False, indent=2), encoding='utf-8')
                     print(f"Wrote FHIR bundle for EJ {ej.id} -> {fname}")
                 except Exception as e:

@@ -1,9 +1,0 @@
-MSH|^~\&|STR|STR|RECEPTEUR|RECEPTEUR|20251130111240||MFN^M05^MFN_M05|20251130111240|P|2.5^FRA^2.11|||||FRA|8859/1
-MFI|LOC|CPAGE_LOC_FRA|REP||20251130111240|AL
-MFE|MAD|||^^^^^M^^^^72|PL
-LOC|^^^^^M^^^^72||M|Etablissement juridique
-LCH|^^^^^M^^^^72|||CD^Code^L|^72
-LCH|^^^^^M^^^^72|||ID_GLBL^Identifiant unique global^L|^6972
-LCH|^^^^^M^^^^72|||LBL^Libelle^L|^EHPAD REF3
-LCH|^^^^^M^^^^72|||LBL_CRT^Libelle court^L|^
-LCH|^^^^^M^^^^72|||FNS^Code FINESS^L|^700783343

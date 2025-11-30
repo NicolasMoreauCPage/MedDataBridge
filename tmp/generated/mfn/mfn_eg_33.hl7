@@ -1,9 +1,0 @@
-MSH|^~\&|STR|STR|RECEPTEUR|RECEPTEUR|20251130111240||MFN^M05^MFN_M05|20251130111240|P|2.5^FRA^2.11|||||FRA|8859/1
-MFI|LOC|CPAGE_LOC_FRA|REP||20251130111240|AL
-MFE|MAD|||^^^^^M^^^^33|PL
-LOC|^^^^^M^^^^33||M|Etablissement juridique
-LCH|^^^^^M^^^^33|||CD^Code^L|^33
-LCH|^^^^^M^^^^33|||ID_GLBL^Identifiant unique global^L|^6933
-LCH|^^^^^M^^^^33|||LBL^Libelle^L|^Etablissement VAL
-LCH|^^^^^M^^^^33|||LBL_CRT^Libelle court^L|^
-LCH|^^^^^M^^^^33|||FNS^Code FINESS^L|^700780033

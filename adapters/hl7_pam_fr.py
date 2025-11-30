@@ -56,7 +56,7 @@ def build_message_for_movement(
         "MSH|^~\\&|POC|POC|DST|DST|"
         f"{when}||ADT^{movement.type or 'A02'}|{control_id}|P|2.5"
     )
-    # Stable primary patient identifier fallback chain
+    # Stable primary patient identifier Solution de repli chain
     primary_id = (
         getattr(patient, 'identifier', None)
         or getattr(patient, 'external_id', None)
@@ -83,7 +83,7 @@ def build_message_for_movement(
         oid = getattr(movement_namespace, "oid", "")
         zbe_1 = f"{movement_id}^{authority}^{oid}^ISO"
     else:
-        # Fallback si pas de namespace
+        # Solution de repli si pas de namespace
         zbe_1 = str(movement_id)
     
     # ZBE-2: Date/heure du mouvement

@@ -9,7 +9,7 @@ from ..db import get_session
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-# Additional resource pages for examples/tools used by the UI "Ressources" menu
+# Additional resource pages for Exemple/tools used by the UI "Ressources" menu
 
 
 @router.get("/examples/hl7v2", response_class=HTMLResponse)

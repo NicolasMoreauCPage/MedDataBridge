@@ -17,7 +17,7 @@ def test_inbound_a28_identity_roundtrip_compare(monkeypatch):
     sent_payloads = []
 
     async def fake_send_mllp(host, port, hl7_message):
-        # capture payload and return AA
+        # capture payload and Renvoie AA
         sent_payloads.append(hl7_message)
         await asyncio.sleep(0)
         return "MSH|^~\\&|MEDBRIDGE|POC|SRC-PAM|SRC|20251101000000||ACK^A28|ACK1|P|2.5\rMSA|AA|MSG00001"

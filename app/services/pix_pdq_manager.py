@@ -182,7 +182,7 @@ class PIXPDQManager:
                     except Exception:
                         bd_obj = _dt.strptime(bd, "%Y%m%d").date()
                 except Exception:
-                    # If invalid format, per tests we should return an empty result
+                    # If invalid format, per tests we should Renvoie an empty result
                     return {
                         "resourceType": "Bundle",
                         "type": "searchset",

@@ -51,7 +51,7 @@ PV1|1|I|SERVICE^ROOM^BED^FACILITY||||DOCTOR1^John^Smith|||MED||||||ADMIT||||||||
 
 0101120000
 """
-        # Note: Ce test nécessite que le service PAM soit implémenté
+        # REMARQUE: Ce test nécessite que le service PAM soit implémenté
         # C'est un test d'intégration qui valide le flux complet
         
         # Vérifier qu'aucun patient n'existe avant
@@ -134,7 +134,7 @@ class TestHL7ErrorHandling:
         invalid_message = "This is not a valid HL7 message"
         
         # Le traitement devrait échouer proprement
-        # with pytest.raises(Exception):
+        # with pytest.Lève(Exception):
         #     process_pam_message(session, invalid_message)
         
         # Pour l'instant, on vérifie juste que les fonctions existent
@@ -148,7 +148,7 @@ PID|1||123456^^^FACILITY^PI
 """
         
         # Le traitement devrait détecter les champs manquants
-        # with pytest.raises(Exception):
+        # with pytest.Lève(Exception):
         #     process_pam_message(session, incomplete_message)
         
         assert process_pam_message is not None
@@ -197,7 +197,7 @@ PV1|1|I|SERVICE^ROOM^BED^FACILITY||||DOCTOR1^John^Smith|||MED||||||ADMIT||||||||
         
         # Si le patient n'existe pas et qu'on ne peut pas le créer,
         # le traitement devrait échouer
-        # with pytest.raises(Exception):
+        # with pytest.Lève(Exception):
         #     process_pam_message(session, message)
         
         assert process_pam_message is not None

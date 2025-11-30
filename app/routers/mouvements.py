@@ -651,7 +651,7 @@ def new_mouvement(
                             service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
                             uf_ids.update(uf.id for uf in service_ufs)
 
-            # Fallback: si toujours aucune UF, utiliser toutes les UF (pour compatibilité)
+            # Solution de repli: si toujours aucune UF, utiliser toutes les UF (pour compatibilité)
             if not uf_ids:
                 all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
                 uf_ids.update(uf.id for uf in all_ufs)
@@ -676,7 +676,7 @@ def new_mouvement(
             uh_options.append({"value": str(uh.id), "label": label})
     else:
         logging.info("No selected_uf_id, using fallback UH options")
-        # Fallback: utiliser toutes les UH disponibles
+        # Solution de repli: utiliser toutes les UH disponibles
         uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
         logging.info(f"Found {len(uhs)} UH in fallback")
         for uh in uhs:
@@ -1117,7 +1117,7 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
                 type_label = opt.get('label')
                 break
     if not type_label:
-        # Fallback vers le badge ou le code
+        # Solution de repli vers le badge ou le code
         type_label = m.movement_type or "Non spécifié"
     
     return templates.TemplateResponse(
@@ -1241,7 +1241,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
                     service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
                     uf_ids.update(uf.id for uf in service_ufs)
 
-    # Fallback: utiliser toutes les UF
+    # Solution de repli: utiliser toutes les UF
     if not uf_ids:
         all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
         uf_ids.update(uf.id for uf in all_ufs)
@@ -1519,7 +1519,7 @@ def update_mouvement(
         return RedirectResponse(url="/mouvements", status_code=303)
     except Exception as e:
         session.rollback()
-        # Return error to user with proper template
+        # Renvoie error to user with proper template
         from app.middleware.flash import flash
         flash(request, f"Erreur lors de la modification: {str(e)}", "error")
         return RedirectResponse(url=f"/mouvements/{mouvement_id}/edit", status_code=303)
@@ -1542,7 +1542,7 @@ def delete_mouvement(mouvement_id: int, request: Request, session=Depends(get_se
     session.delete(m)
     session.commit()
     # Redirect back to the mouvements list filtered by the venue to ensure the
-    # list view has the required context and doesn't return 400.
+    # list view has the required context and doesn't Renvoie 400.
     if m.venue_id:
         return RedirectResponse(url=f"/mouvements?venue_id={m.venue_id}", status_code=303)
     return RedirectResponse(url="/mouvements", status_code=303)
@@ -1646,18 +1646,18 @@ def get_reasons_for_movement_type(movement_type: str, session=Depends(get_sessio
             'A12': ['annulation_transfert'],  # Cancel transfer
             'A13': ['annulation_sortie'],  # Cancel discharge
             'A21': ['permission_sortie'],  # Leave of absence
-            'A22': ['retour_permission'],  # Return from leave
+            'A22': ['retour_permission'],  # Renvoie from leave
             'A38': ['annulation_preadmission']  # Cancel pre-admission
         }
         
-        # Get appropriate reasons for this event, or return all if unknown event
+        # Get appropriate reasons for this event, or Renvoie all if unknown event
         appropriate_codes = reason_mapping.get(event_code, [])
         
         if appropriate_codes:
             # Filter options to only include appropriate reasons
             filtered_options = [opt for opt in all_reason_options if opt.get('value') in appropriate_codes]
         else:
-            # Unknown event type, return all options
+            # Unknown event type, Renvoie all options
             filtered_options = all_reason_options
         
         return JSONResponse({"success": True, "options": filtered_options})

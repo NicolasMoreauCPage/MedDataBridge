@@ -141,7 +141,7 @@ def after_commit(session: Session):
                     # avoid threading issues with in-memory SQLite. However,
                     # pytest-asyncio or other test harnesses may already have
                     # a running event loop. Calling asyncio.run() inside an
-                    # existing loop raises RuntimeError. Detect the case and
+                    # existing loop Lève RuntimeError. Detect the case and
                     # schedule the coroutine on the running loop instead.
                     try:
                         loop = asyncio.get_running_loop()
@@ -154,7 +154,7 @@ def after_commit(session: Session):
                         try:
                             loop.create_task(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
                         except Exception:
-                            # Fallback to ensure_future for older compatibility
+                            # Solution de repli to ensure_future for older compatibility
                             asyncio.ensure_future(_emit_in_new_session(entity_class, entity_id, entity_type, operation))
                 except Exception as exc:
                     logger.error(f"[entity_events] Emission failed in sync mode: {exc}", exc_info=True)

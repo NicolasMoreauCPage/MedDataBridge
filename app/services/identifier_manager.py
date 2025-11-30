@@ -28,7 +28,7 @@ def map_hl7_type_to_identifier_type(type_code: Optional[str]) -> Optional[Identi
         return IdentifierType.NDA
     if code == "NH":
         return IdentifierType.NDA
-    # Fallback: try direct enum construction
+    # Solution de repli: try direct enum construction
     try:
         return IdentifierType(code)
     except ValueError:
@@ -149,7 +149,7 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
         if len(args) >= 4:
             ej_id = args[3]
 
-    # Fallback to kwargs if still missing
+    # Solution de repli to kwargs if still missing
     if identifiers_data is None:
         identifiers_data = kwargs.get("identifiers_data")
     if entity_type is None:
@@ -160,7 +160,7 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
     # Now call the internal implementation with normalized parameters
     # (The rest of the original function expects identifiers_data, entity_type, session, ej_id)
 
-    # Synchronous implementation that returns a tuple-like object which is also awaitable.
+    # Synchronous implementation that Renvoie a tuple-like object which is also awaitable.
     class _AwaitableTuple(tuple):
         def __await__(self):
             async def _inner():

@@ -114,7 +114,7 @@ async def _send_hl7_step(
             remap_pid3=True,
         )
     except Exception:
-        # En cas d'erreur transformation, fallback au payload original
+        # En cas d'erreur transformation, Solution de repli au payload original
         payload_to_send = working_payload
     
     # Remplacement des identifiants si configuré via binding
@@ -407,7 +407,7 @@ async def send_scenario(
         end_ts = datetime.utcnow()
         duration_ms = int((end_ts - start_ts).total_seconds() * 1000)
 
-        # Créer le step log
+        # Créer le Étape log
         step_log = ScenarioExecutionStepLog(
             run_id=run.id,
             step_id=step.id,

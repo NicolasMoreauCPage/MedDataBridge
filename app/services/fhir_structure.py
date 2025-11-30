@@ -477,11 +477,11 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
     """
     
     # Base commune
-    # Gestion du champ status : fallback sur operational_status pour UniteFonctionnelle
+    # Gestion du champ status : Solution de repli sur operational_status pour UniteFonctionnelle
     status = getattr(entity, "status", None)
     if status is None and isinstance(entity, UniteFonctionnelle):
         status = getattr(entity, "operational_status", None)
-    # Gestion du champ mode : fallback None pour UniteFonctionnelle si absent
+    # Gestion du champ mode : Solution de repli None pour UniteFonctionnelle si absent
     mode = getattr(entity, "mode", None)
     location = {
         "resourceType": "Location",
@@ -656,7 +656,7 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
         except Exception:
             pass
 
-        # Fallback sur l'ancien champ simple uf_type si aucune activité liée
+        # Solution de repli sur l'ancien champ simple uf_type si aucune activité liée
         if not uf_extensions and getattr(entity, "uf_type", None):
             uf_extensions.append({
                 "url": "http://interop-sante.fr/fhir/StructureDefinition/fr-uf-type",

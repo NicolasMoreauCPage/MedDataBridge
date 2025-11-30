@@ -29,7 +29,7 @@ print(f"📊 Backend would pass filtered_egs = {[eg[0] for eg in egs]}")
 print(f"   ({len(egs)} EG)")
 print()
 
-# What API would return for these IDs
+# What API would Renvoie for these IDs
 print("What API /api/structure/tree?eg_ids=... would return:")
 for eg in egs:
     print(f"  EG #{eg[0]}: {eg[1]}")

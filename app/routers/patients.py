@@ -30,7 +30,7 @@ async def api_create_patient(
     """API REST endpoint to create a patient, typically used by integration tests."""
     try:
         patient_data = PatientCreateSchema(family=family, given=given, birth_date=birth_date)
-        # Note: ght_context is not available in this API-only context
+        # REMARQUE: ght_context is not available in this API-only context
         patient = patients_service.create_patient(session=session, patient_data=patient_data)
         return {"id": patient.id, "family": patient.family, "given": patient.given, "birth_date": patient.birth_date}
     except Exception as e:

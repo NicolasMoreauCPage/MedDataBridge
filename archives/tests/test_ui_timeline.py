@@ -329,7 +329,7 @@ def test_timeline_highlights_active_periods(client: TestClient, session: Session
 
     # Le deuxième séjour devrait être marqué comme actif
     # (puisque pas de sortie)
-    # TODO: Vérifier le marquage visuel une fois implémenté
+    # À FAIRE: Vérifier le marquage visuel une fois implémenté
 
 
 @pytest.mark.xfail(reason="Routes timeline peuvent être cassées si dépendent de ght.py")

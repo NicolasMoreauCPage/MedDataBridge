@@ -48,7 +48,7 @@ def format_date(dt: Optional[datetime] = None) -> str:
                 return _dt.strptime(s, fmt).strftime("%Y%m%d")
             except Exception:
                 continue
-        # fallback: retirer non chiffres
+        # Solution de repli: retirer non chiffres
         digits = ''.join(c for c in s if c.isdigit())
         if len(digits) >= 8:
             return digits[:8]
@@ -130,7 +130,7 @@ def build_pid_segment(
                     f"{ident.value}^^^{namespace.name}&{namespace.system.split(':')[-1]}&ISO^PI"
                 )
             else:
-                # Fallback: utiliser OID directement de l'identifier
+                # Solution de repli: utiliser OID directement de l'identifier
                 oid = ident.oid or ident.system.split(":")[-1] if ident.system else "UNKNOWN"
                 pid_3_parts.append(f"{ident.value}^^^{oid}^PI")
     
@@ -182,7 +182,7 @@ def build_pv1_segment(
     # Translate FHIR encounter class to HL7 patient-class via vocabulary mappings if available.
     patient_class = reverse_map_code(session, "encounter-class", fhir_encounter_class, "patient-class") if session else None
     if not patient_class:
-        # Fallback heuristic
+        # Solution de repli heuristic
         fallback_map = {"EMER": "E", "AMB": "O", "IMP": "I"}
         patient_class = fallback_map.get(fhir_encounter_class, "I")
     
@@ -210,7 +210,7 @@ def build_pv1_segment(
                 visit_number = f"{ident.value}^^^{namespace.name}&{namespace.system.split(':')[-1]}&ISO^VN"
                 break
             elif ident.type == "NDA":
-                # Fallback sans namespace
+                # Solution de repli sans namespace
                 oid = ident.oid or ident.system.split(":")[-1] if ident.system else "UNKNOWN"
                 visit_number = f"{ident.value}^^^{oid}^VN"
                 break
@@ -280,7 +280,7 @@ def build_zbe_segment(
     # ZBE-6 original trigger (only if UPDATE/CANCEL)
     orig_trig = original_trigger or getattr(movement, "original_trigger", None) or ""
     if zbe_4 in {"UPDATE", "CANCEL"} and not orig_trig:
-        # Best effort fallback: use movement.trigger_event if present
+        # Best effort Solution de repli: use movement.trigger_event if present
         orig_trig = getattr(movement, "trigger_event", None) or ""
     zbe_6 = orig_trig if zbe_4 in {"UPDATE", "CANCEL"} else ""
 
@@ -545,7 +545,7 @@ def generate_adt_message(
                     _select(PatientContact).where(PatientContact.patient_id == patient.id).order_by(PatientContact.sequence)
                 ).all()
         except Exception:
-            contacts = []  # robust fallback
+            contacts = []  # robust Solution de repli
         # Trier par priority/sequence si attributs disponibles
         contacts.sort(key=lambda c: (getattr(c, 'priority', 1), c.sequence))
         for c in contacts:
@@ -558,14 +558,14 @@ def generate_adt_message(
             movement_namespace = namespaces["MOUVEMENT"]
         # UF médicale et UF soins dérivées principalement du mouvement (ZBE-7/ZBE-8)
         # Ancienne logique référençait des attributs inexistants sur Dossier/Venue (uf_medicale, uf_soins).
-        # Fallback: dossier.uf_responsabilite ou venue.uf_responsabilite pour UF médicale si mouvement n'a pas de code.
+        # Solution de repli: dossier.uf_responsabilite ou venue.uf_responsabilite pour UF médicale si mouvement n'a pas de code.
         uf_med = (
             getattr(movement, "uf_medicale_code", None)
             or getattr(dossier, "uf_medicale", None)  # compat éventuelle si ajouté plus tard
             or getattr(dossier, "uf_responsabilite", None)
             or (getattr(venue, "uf_responsabilite", None) if venue else None)
         )
-        # UF soins seulement si fournie sur le mouvement; pas de fallback explicite (segment ZBE-8 peut être vide)
+        # UF soins seulement si fournie sur le mouvement; pas de Solution de repli explicite (segment ZBE-8 peut être vide)
         uf_soins = (
             getattr(movement, "uf_soins_code", None)
             or getattr(dossier, "uf_soins", None)

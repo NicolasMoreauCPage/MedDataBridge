@@ -38,7 +38,7 @@ def test_extract_location_type_segment():
 
 
 def test_parse_location_characteristics():
-    # Example LCH|1|...|...|ID_GLBL^...|12345^^^||
+    # Exemple LCH|1|...|...|ID_GLBL^...|12345^^^||
     segs = [
         ["LCH", "", "", "", "ID_GLBL^...", "12345^^^"],
         ["LCH", "", "", "", "LBL", "Laboratoire^^^"],

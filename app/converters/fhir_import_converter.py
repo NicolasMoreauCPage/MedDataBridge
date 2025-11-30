@@ -208,7 +208,7 @@ class FHIRToLocationConverter:
         if len(parts) != 2:
             return None
         
-        # TODO: Implémenter une vraie résolution depuis la base
+        # À FAIRE: Implémenter une vraie résolution depuis la base
         # Pour l'instant, on retourne l'ID extrait
         try:
             return int(parts[1])
@@ -462,7 +462,7 @@ class FHIRToEncounterConverter:
             raise FHIRImportError(f"Aucun dossier trouvé pour le patient {patient_id}")
         
         # Trouver ou créer une venue pour ce dossier
-        # TODO: Implémenter une vraie résolution de venue depuis les locations
+        # À FAIRE: Implémenter une vraie résolution de venue depuis les locations
         # Pour l'instant, utiliser la première venue du dossier ou en créer une
         venue = self.session.exec(select(Venue).where(Venue.dossier_id == dossier.id)).first()
         if not venue:
@@ -496,7 +496,7 @@ class FHIRToEncounterConverter:
         self.session.refresh(mouvement)
         
         # Ajouter l'identifiant NDA
-        # Note: Le modèle Identifier n'a pas de foreign key pour Mouvement
+        # REMARQUE: Le modèle Identifier n'a pas de foreign key pour Mouvement
         # On pourrait l'ajouter ou utiliser un autre mécanisme
         if nda:
             identifier = Identifier(

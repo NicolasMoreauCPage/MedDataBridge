@@ -4,7 +4,7 @@ from app.services.transport_inbound import _OnMessageInboundCallable
 
 
 async def _dummy_async_handler(msg, session, endpoint=None):
-    # mimic the real handler: return an HL7 ack string on success
+    # mimic the real handler: Renvoie an HL7 ack string on success
     await asyncio.sleep(0)
     return "MSA|AA|1"
 

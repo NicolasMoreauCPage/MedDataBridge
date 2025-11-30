@@ -92,7 +92,7 @@ def sample_template(test_db):
     session.add(template)
     session.flush()
     
-    # Step 1 : Admission
+    # Étape 1 : Admission
     step1 = ScenarioTemplateStep(
         template_id=template.id,
         order_index=1,
@@ -104,7 +104,7 @@ def sample_template(test_db):
         delay_suggested_seconds=0,
     )
     
-    # Step 2 : Transfer
+    # Étape 2 : Transfer
     step2 = ScenarioTemplateStep(
         template_id=template.id,
         order_index=2,
@@ -116,7 +116,7 @@ def sample_template(test_db):
         delay_suggested_seconds=3600,  # 1h après admission
     )
     
-    # Step 3 : Discharge
+    # Étape 3 : Discharge
     step3 = ScenarioTemplateStep(
         template_id=template.id,
         order_index=3,
@@ -152,7 +152,7 @@ def test_materialize_hl7_with_ej_namespace(test_db, sample_template):
     
     scenario = materialize_template(session, sample_template, ej.id, options)
     
-    # Vérifier qu'on a 3 steps
+    # Vérifier qu'on a 3 Étape
     assert len(scenario.steps) == 3
     
     # Vérifier chaque message HL7
@@ -333,7 +333,7 @@ def test_materialize_fhir_patient_identifiers(test_db, sample_template):
     
     import json
     
-    # Vérifier le premier step (admission)
+    # Vérifier le premier Étape (admission)
     first_step = scenario.steps[0]
     bundle = json.loads(first_step.payload)
     
@@ -371,7 +371,7 @@ def test_materialize_consistency_across_steps(test_db, sample_template):
     
     scenario = materialize_template(session, sample_template, ej.id, options)
     
-    # Extraire IPP et NDA de chaque step
+    # Extraire IPP et NDA de chaque Étape
     identifiers = []
     for step in scenario.steps:
         payload = step.payload
@@ -396,7 +396,7 @@ def test_materialize_consistency_across_steps(test_db, sample_template):
         
         identifiers.append((ipp, nda))
     
-    # Vérifier que tous les steps ont les mêmes identifiants
+    # Vérifier que tous les Étape ont les mêmes identifiants
     first_ipp, first_nda = identifiers[0]
     
     for idx, (ipp, nda) in enumerate(identifiers[1:], start=2):
@@ -420,7 +420,7 @@ def test_materialize_without_identifiers(test_db, sample_template):
     
     scenario = materialize_template(session, sample_template, ej.id, options)
     
-    # Vérifier qu'on a les steps
+    # Vérifier qu'on a les Étape
     assert len(scenario.steps) == 3
     
     # Les messages doivent toujours contenir le namespace

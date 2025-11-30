@@ -175,7 +175,7 @@ async def view_document(request: Request, category: str, filename: str):
     doc_path = DOC_ROOT / category / filename
     
     if not doc_path.exists():
-        # Fallback: chercher à la racine du projet
+        # Solution de repli: chercher à la racine du projet
         doc_path = DOC_ROOT.parent / filename
     
     if not doc_path.exists() or not doc_path.is_file():
@@ -193,7 +193,7 @@ async def view_document(request: Request, category: str, filename: str):
     with open(doc_path, 'r', encoding='utf-8') as f:
         content_html, toc_html = render_markdown_with_toc(f.read())
     
-    # Extraire le titre du premier h1 (fallback à partir du nom de fichier)
+    # Extraire le titre du premier h1 (Solution de repli à partir du nom de fichier)
     title = filename.replace('.md', '').replace('_', ' ').replace('-', ' ').title()
 
     # Calculer navigation prev/next

@@ -58,7 +58,7 @@ def test_accept_valid_discharge_from_hospitalization(session: Session):
     
     # Étape 1: Créer un mouvement initial A01 (admission, classe I = inpatient)
     # Utiliser un PV1 avec 46 champs comme dans test_transport_inbound.py
-    # Note: on laisse visit_number vide pour A01 (sera créé automatiquement)
+    # REMARQUE: on laisse visit_number vide pour A01 (sera créé automatiquement)
     pv1_a01_fields = [""] * 46
     pv1_a01_fields[0] = "PV1"
     pv1_a01_fields[1] = "1"

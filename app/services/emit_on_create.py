@@ -12,7 +12,7 @@ from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
 from app.services.fhir import generate_fhir_bundle_for_dossier
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
-# Note: do NOT import network senders at module import time. Tests use monkeypatch
+# REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_validation import validate_pam
@@ -231,7 +231,7 @@ def _resolve_namespace_authority(
         except Exception:
             logger.exception("Error resolving IdentifierNamespace for type %s and ej=%s", ns_type, entite_juridique_id)
 
-    # Fallback to forced values or defaults
+    # Solution de repli to forced values or defaults
     auth = _auth(forced_system, forced_oid) or (forced_system or "HOSP")
     return (auth, ns_type)
 
@@ -754,7 +754,7 @@ def generate_pam_hl7(
             # Format: PID|1||PID3||Name||DOB|Gender||||||||||||Marital||||BirthPlace||||Nationality||||||IdentityCode
             pid = f"PID|1||{pid3}||{family}^{given}||{birth_date}|{gender}||||||||||||||{account_number}||||||||||||||||||||"
         else:
-            # If only OID is provided without system, fallback to HOSP system
+            # If only OID is provided without system, Solution de repli to HOSP system
             authority = (
                 f"HOSP&{forced_identifier_oid}&ISO" if forced_identifier_oid else "HOSP"
             )
@@ -778,7 +778,7 @@ def generate_pam_hl7(
                 target_system_name="patient-class"
             )
             
-            # Fallback si pas de mapping
+            # Solution de repli si pas de mapping
             if not patient_class:
                 patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E", "IMP": "I", "AMB": "O", "EMER": "E"}
                 patient_class = patient_class_map.get(encounter_class, "I")
@@ -835,7 +835,7 @@ def generate_pam_hl7(
                 # mvt_auth may be 'system&oid&ISO' or system; include mvt_type as type code
                 zbe_id = f"{entity.mouvement_seq}^{mvt_type}^{mvt_auth}^ISO"
         except Exception:
-            # Keep control_id as fallback on any error
+            # Keep control_id as Solution de repli on any error
             zbe_id = control_id
         
         # ZBE-4: Action (INSERT, UPDATE, CANCEL)
@@ -1576,7 +1576,7 @@ async def emit_to_senders_async(
                         msh_receiving_app=getattr(endpoint, 'receiving_app', None),
                         msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
                     )
-                # Fallback to FHIR payload when HL7 not applicable
+                # Solution de repli to FHIR payload when HL7 not applicable
                 if not hl7_message:
                     fhir_payload = generate_fhir(entity, entity_type, session)
                     payload_str = json.dumps(fhir_payload, default=str)
@@ -1670,7 +1670,7 @@ class _EmitToSendersWrapper:
             # No running loop: run synchronously
             return asyncio.run(coro)
         else:
-            # Running loop present: return coroutine to be awaited by caller
+            # Running loop present: Renvoie coroutine to be awaited by caller
             return coro
 
 

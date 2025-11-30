@@ -174,7 +174,7 @@ def create_app() -> FastAPI:
     # exposer le manager aux routeurs
     app.state.mllp_manager = mllp_manager
 
-    # Note: admin interface (SQLAdmin) will be created after route
+    # REMARQUE: admin interface (SQLAdmin) will be created after route
     # registration to avoid catching /admin/* routes before our own
     # admin-related pages (like /admin/ght). The Admin instance is
     # created later just before returning the app.
@@ -268,7 +268,7 @@ def create_app() -> FastAPI:
     app.include_router(cache.router, prefix="/api")
     print(" - Cache router mounted at /api/cache")
     
-    # 8. Import endpoints for test examples
+    # 8. Import endpoints for test Exemple
     from app.routers import import_examples
     app.include_router(import_examples.router)
     print(" - Import examples router mounted at /import")

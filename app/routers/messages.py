@@ -600,7 +600,7 @@ async def send_message(request: Request):
             {"request": request, "kind": kind, "ack": ack, "endpoints": endpoints},
         )
 
-    # FHIR inbound simulation: just log and return a simple response
+    # FHIR inbound simulation: just log and Renvoie a simple response
     if kind == "FHIR":
         # try to parse payload as JSON
         import json

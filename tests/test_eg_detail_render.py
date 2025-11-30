@@ -35,7 +35,7 @@ def test_eg_detail_shows_poles():
     resp = client.get(f"/admin/ght/{ght.id}/ej/{ej.id}/eg/{eg.id}")
     assert resp.status_code == 200
     text = resp.text
-    # The fallback message should not be present
+    # The Solution de repli message should not be present
     assert "Aucun pôle défini" not in text
     # The pole name should be visible
     assert "Pole Test" in text

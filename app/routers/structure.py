@@ -56,7 +56,7 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 # interférer avec la résolution des routes
 # ============================================================================
 
-# Note: Ces redirections seront ajoutées à la fin du fichier pour éviter
+# REMARQUE: Ces redirections seront ajoutées à la fin du fichier pour éviter
 # de capturer les routes valides
 
 
@@ -75,7 +75,7 @@ async def get_structure_tree(
     if changed:
         session.commit()
     
-    # Strict EJ filtering: if EJ context is present, only return EGs for that EJ (never fallback to all EGs)
+    # Strict EJ filtering: if EJ context is present, only Renvoie EGs for that EJ (never Solution de repli to all EGs)
     query = select(EntiteGeographique)
     ej_context = ej
     import inspect
@@ -96,8 +96,8 @@ async def get_structure_tree(
         query = query.where(EntiteGeographique.id.in_(eg_id_list))
     elif ej_context is not None:
         query = query.where(EntiteGeographique.entite_juridique_id == ej_context)
-    # If strict EJ filtering is requested and no EGs match, return empty list
-    # (prevents fallback to all EGs)
+    # If strict EJ filtering is requested and no EGs match, Renvoie empty list
+    # (prevents Solution de repli to all EGs)
     query = (query
         .options(selectinload(EntiteGeographique.poles)
             .selectinload(Pole.services)
@@ -106,7 +106,7 @@ async def get_structure_tree(
             .selectinload(UniteHebergement.chambres)
             .selectinload(Chambre.lits)))
     egs = session.exec(query).all()
-    # If EJ context is present and no EGs match, return []
+    # If EJ context is present and no EGs match, Renvoie []
     if (ej_context is not None or eg_id_list) and not egs:
         return []
     # Build tree structure

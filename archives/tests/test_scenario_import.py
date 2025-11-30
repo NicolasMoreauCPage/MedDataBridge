@@ -61,7 +61,7 @@ def test_validate_json_missing_required_fields():
     assert not is_valid
     assert "key" in error.lower()
     
-    # Manque "steps"
+    # Manque "Étape"
     json_data = {
         "key": "test-key",
         "name": "Test Scenario",
@@ -74,7 +74,7 @@ def test_validate_json_missing_required_fields():
 
 def test_validate_json_invalid_types():
     """Validation doit échouer si les types sont incorrects."""
-    # steps doit être une liste
+    # Étape doit être une liste
     json_data = {
         "key": "test-key",
         "name": "Test Scenario",
@@ -85,7 +85,7 @@ def test_validate_json_invalid_types():
     assert not is_valid
     assert "steps" in error.lower() and "list" in error.lower()
     
-    # time_config doit être un dict si présent (avec au moins un step)
+    # time_config doit être un dict si présent (avec au moins un Étape)
     json_data = {
         "key": "test-key",
         "name": "Test Scenario",
@@ -215,7 +215,7 @@ def test_import_scenario_basic(session: Session):
     assert scenario.ght_context_id == 1
     assert len(scenario.steps) == 2
     
-    # Vérifier les steps
+    # Vérifier les Étape
     steps = sorted(scenario.steps, key=lambda s: s.order_index)
     assert steps[0].order_index == 0
     assert steps[0].message_type == "ADT^A01"
@@ -262,7 +262,7 @@ def test_import_scenario_with_time_config(session: Session):
     assert scenario.preserve_intervals is True
     assert scenario.jitter_min_minutes == 1
     assert scenario.jitter_max_minutes == 5
-    # Note: apply_jitter_on_events est stocké comme string dans la DB
+    # REMARQUE: apply_jitter_on_events est stocké comme string dans la DB
     assert scenario.apply_jitter_on_events == "0"
 
 
@@ -475,5 +475,5 @@ def test_import_scenario_preserves_all_optional_fields(session: Session):
     assert scenario.preserve_intervals is False
     assert scenario.jitter_min_minutes == 2
     assert scenario.jitter_max_minutes == 10
-    # Note: apply_jitter_on_events est stocké comme string dans la DB
+    # REMARQUE: apply_jitter_on_events est stocké comme string dans la DB
     assert scenario.apply_jitter_on_events == "1"

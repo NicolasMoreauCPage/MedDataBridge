@@ -17,7 +17,7 @@ def test_cache_init():
         stats = cache.get_stats()
         assert stats["enabled"] is True
     else:
-        # Si Redis n'est pas disponible, le service doit gracefully fallback
+        # Si Redis n'est pas disponible, le service doit gracefully Solution de repli
         assert cache.client is None
 
 

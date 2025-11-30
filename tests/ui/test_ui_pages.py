@@ -20,7 +20,7 @@ def test_home_page_renders():
 
 def test_patients_page_renders():
     r = client.get("/patients")
-    # If auth is required this may redirect or return 200; accept 200 or 302
+    # If auth is required this may redirect or Renvoie 200; accept 200 or 302
     assert r.status_code in (200, 302)
 
 

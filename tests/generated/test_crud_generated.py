@@ -106,7 +106,7 @@ def test_venue_crud(client: TestClient, session):
     assert r2.status_code in (302, 303)
     # delete
     r3 = client.post(f'/venues/{v.id}/delete', follow_redirects=True)
-    # Some delete handlers redirect to a list view which may return 404 in tests
+    # Some delete handlers redirect to a list view which may Renvoie 404 in tests
     assert r3.status_code in (200, 303, 404)
 
 def test_mouvement_crud(client: TestClient, session):
@@ -145,7 +145,7 @@ def test_mouvement_crud(client: TestClient, session):
     r3 = client.post(f'/mouvements/{m.id}/edit', data={'venue_id': str(v.id), 'type': m.type or 'ADT^A01', 'when': now, 'mouvement_seq': str(m.mouvement_seq)}, follow_redirects=False)
     # delete mouvement
     r4 = client.post(f'/mouvements/{m.id}/delete', follow_redirects=True)
-    # note: some delete endpoints may return 404 or redirect, accept both
+    # REMARQUE: some delete endpoints may Renvoie 404 or redirect, accept both
     assert r4.status_code in (200, 303, 404)
 
 def test_structure_ej_eg_crud(client: TestClient, session):

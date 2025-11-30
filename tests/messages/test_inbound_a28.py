@@ -22,7 +22,7 @@ def test_inbound_a28_creates_patient_and_emits(monkeypatch):
     # Stub network senders
     async def fake_send_mllp(host, port, hl7_message):
         await asyncio.sleep(0)
-        # Return a simple AA ACK with MSA segment
+        # Renvoie a simple AA ACK with MSA segment
         return "MSH|^~\\&|Fake|Fake|Recv|Recv|20250101000000||ACK^A01|ACK1|P|2.5\rMSA|AA|1"
 
     async def fake_post_fhir_bundle(base, bundle, auth_kind="none", auth_token=None):

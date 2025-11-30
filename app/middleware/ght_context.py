@@ -58,7 +58,7 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                 return ctx
             finally:
                 session.close()
-        # Fallback for tests: if the signed session cookie isn't parsed but
+        # Solution de repli for tests: if the signed session cookie isn't parsed but
         # tests have set a simple cookie 'medbridge_test' and/or a JSON
         # 'medbridge_test_data' payload, read those and attempt to resolve
         # the context from DB. This helps headless browsers where signed

@@ -92,7 +92,7 @@ async def import_mfn_structure():
     with Session(engine) as db:
         try:
             # Call the MFN import service directly
-            # Note: You may need to call import_mfn_message or similar from your structure import service
+            # REMARQUE: You may need to call import_mfn_message or similar from your structure import service
             ack = await on_message_inbound_async(mfn_content, db, None)
             
             if "MSA|AA" in ack:
@@ -141,7 +141,7 @@ async def import_pam_messages():
             try:
                 pam_content = pam_file.read_text(encoding="utf-8").strip()
             except UnicodeDecodeError:
-                # Fallback pour certains fichiers ISO-8859-1/latin-1 en production
+                # Solution de repli pour certains fichiers ISO-8859-1/latin-1 en production
                 pam_content = pam_file.read_text(encoding="latin-1").strip()
             
             try:
@@ -349,27 +349,27 @@ async def main():
     print("PRODUCTION DATA INTEGRATION TEST")
     print("=" * 60)
     
-    # Step 1: Setup EJ and endpoints
+    # Étape 1: Setup EJ and endpoints
     ej_id = setup_ej_and_endpoints()
     if not ej_id:
         print("\n✗ Failed to setup EJ, aborting")
         return
     
-    # Step 2: Import MFN structure
+    # Étape 2: Import MFN structure
     mfn_success = await import_mfn_structure()
     if not mfn_success:
         print("\n⚠ MFN import failed, continuing with PAM anyway...")
     
-    # Step 3: Validate structure import
+    # Étape 3: Validate structure import
     await validate_structure_import()
     
-    # Step 4: Import PAM messages
+    # Étape 4: Import PAM messages
     pam_success = await import_pam_messages()
     
-    # Step 5: Validate PAM import
+    # Étape 5: Validate PAM import
     await validate_pam_import()
     
-    # Step 6: Validate roundtrip
+    # Étape 6: Validate roundtrip
     await validate_roundtrip()
     
     print("\n" + "=" * 60)

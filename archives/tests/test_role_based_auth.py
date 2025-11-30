@@ -63,7 +63,7 @@ class TestRoleBasedAccess:
         """Test endpoint multi-rôles avec moderator."""
         token = create_access_token({"sub": "moderator", "user_id": 3, "roles": ["moderator"]})
         
-        # Note: moderator n'existe pas dans fake_users_db, donc devrait échouer à get_current_user
+        # REMARQUE: moderator n'existe pas dans fake_users_db, donc devrait échouer à get_current_user
         response = client.get(
             "/api/admin/stats",
             headers={"Authorization": f"Bearer {token}"}

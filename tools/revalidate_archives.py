@@ -45,7 +45,7 @@ def _extract_event_code(msg: str) -> str | None:
 
 
 def _extract_ts(msg: str) -> datetime | None:
-    # Prefer EVN-2, fallback to MSH-7; return datetime if parsable
+    # Prefer EVN-2, Solution de repli to MSH-7; Renvoie datetime if parsable
     evn_ts = None
     msh_ts = None
     for line in msg.split("\n"):

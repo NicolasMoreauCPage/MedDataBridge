@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from sqlmodel import Session, select
 
-# NOTE: models import is delayed inside functions to avoid circular imports
+# REMARQUE: models import is delayed inside functions to avoid circular imports
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -154,7 +154,7 @@ def extract_location_type(loc_segment: List[str]) -> Tuple[str, str]:
     raw_identifier = loc_segment[1] if len(loc_segment) > 1 else ""
     location_identifier = _extract_identifier_from_loc(raw_identifier)
     # In some CPAGE exports the LOC type is placed in field 4 (index 4) while older
-    # messages used index 3. Prefer index 4, fallback to 3 to be robust.
+    # messages used index 3. Prefer index 4, Solution de repli to 3 to be robust.
     location_type = ""
     if len(loc_segment) > 4 and loc_segment[4]:
         location_type = loc_segment[4]
@@ -434,7 +434,7 @@ def save_location(
                 # If any DB/ORM issue occurs, ignore and fall back to relation heuristic
                 logger.debug("DB lookup for missing loc_type failed; falling back to relation inference")
 
-            # Second: fallback to relation-based inference (existing behaviour)
+            # Second: Solution de repli to relation-based inference (existing behaviour)
             if not loc_type:
                 inferred = None
                 for rel in relations:
@@ -1057,5 +1057,5 @@ def generate_mfn_message_for_entity(session: Session, entity) -> str:
     if EntiteGeographique is not None and isinstance(entity, EntiteGeographique):
         return generate_mfn_message(session, eg_identifier=getattr(entity, "identifier", None))
 
-    # Fallback: return full snapshot MFN (safe default)
+    # Solution de repli: Renvoie full snapshot MFN (safe default)
     return generate_mfn_message(session)

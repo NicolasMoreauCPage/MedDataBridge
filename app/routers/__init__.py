@@ -1,7 +1,7 @@
 # BUGFIX: Le module ght est exclu de __init__.py car il y a un problème d'import
 # circulaire qui empêche le chargement complet de ses routes. Il est importé
 # directement dans app/app.py à la place.
-# TODO: Investiguer et résoudre la vraie cause de l'import circulaire
+# À FAIRE: Investiguer et résoudre la vraie cause de l'import circulaire
 
 from app.routers.home import router as home_router
 from app.routers.messages import router as messages_router

@@ -31,10 +31,10 @@ def ght_context(page, test_server):
                 # ignore debug check failures but treat session as likely set
                 return True
         except Exception:
-            # Fall through to DB fallback
+            # Fall through to DB Solution de repli
             pass
 
-    # Fallback: if token helper not available or navigation failed, fall back to the on-disk DB approach
+    # Solution de repli: if token helper not available or navigation failed, fall back to the on-disk DB approach
     try:
         from sqlmodel import Session as SQLSession, select
         from sqlalchemy import create_engine
@@ -264,7 +264,7 @@ def page(browser, test_server):
                     s.refresh(ght)
                     gid = ght.id
 
-                # Ensure the Playwright browser context has a plain fallback cookie
+                # Ensure the Playwright browser context has a plain Solution de repli cookie
                 # so middleware can immediately detect the GHT even if the signed
                 # session cookie hasn't propagated yet.
                 try:

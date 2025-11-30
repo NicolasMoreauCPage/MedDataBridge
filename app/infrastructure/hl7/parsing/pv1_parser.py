@@ -40,7 +40,7 @@ def parse_hl7_datetime(s: Optional[str]) -> Optional[datetime]:
             except Exception:
                 continue
     
-    # Fallback: ignore timezone/extra and try first 14 chars
+    # Solution de repli: ignore timezone/extra and try first 14 chars
     try:
         return datetime.strptime(s[:14], "%Y%m%d%H%M%S")
     except Exception:

@@ -26,7 +26,7 @@ for file_path in files_to_fix:
     original = content
     
     # Replace attribute access: entity.uf_responsabilite → entity.uf_medicale (or conditional logic)
-    # For getters: use uf_medicale or uf_hebergement as fallback
+    # For getters: use uf_medicale or uf_hebergement as Solution de repli
     content = re.sub(
         r'\.uf_responsabilite(\s|\)|\,|$)',
         r'.uf_medicale\1',

@@ -280,7 +280,7 @@ class PAMValidator(HL7Validator):
             # Integration-style: identifier in F1, date in F2, action often in F4 (F3 sometimes empty)
             date_value = fields[2] if len(fields) > 2 else ""
             # Integration-style: movement code is expected in F3. Tests expect
-            # an error when F3 is empty, so do not fallback to other fields.
+            # an error when F3 is empty, so do not Solution de repli to other fields.
             mvt_code = fields[3] if len(fields) > 3 else ""
             code_field_label = "F3"
             date_field_label = "F2"

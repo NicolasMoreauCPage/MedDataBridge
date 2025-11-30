@@ -120,7 +120,7 @@ def _legacy_ensure_extended_structure(create_demo_ght: bool = True) -> None:
         else:
             print(f"✓ {len(ejs)} EJ déjà présentes")
 
-        # NOTE: Ce code legacy a été déplacé dans _legacy_ensure_extended_structure
+        # REMARQUE: Ce code legacy a été déplacé dans _legacy_ensure_extended_structure
         # La nouvelle logique appelle directement tools/init_extended_demo.py
         for ej in ejs:
             geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej.id)).first()

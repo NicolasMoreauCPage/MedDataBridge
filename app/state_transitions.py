@@ -42,7 +42,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "Z99",  # Changement d'identité
     },
     "A04": {
-        # Note: A03 (discharge/absence) NOT allowed from A04 (outpatient) per IHE PAM
+        # REMARQUE: A03 (discharge/absence) NOT allowed from A04 (outpatient) per IHE PAM
         # A03 is only allowed from inpatient encounters (A01, A02)
         "A04",
         "A06",
@@ -74,7 +74,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
     "A07": {"A06", "A07", "A11", "A01", "A04", "Z99"},
     # Nouveau resserrement : après A11 (annulation admission) seul A04 (enregistrement) ou A05 (pré-admission) sont autorisés.
     # Un A01 direct est désormais interdit (test_a01_rejected_if_not_start_nor_after_a05_a03).
-    "A11": {"A04", "A05"},  # note 1 ajustée
+    "A11": {"A04", "A05"},  # REMARQUE 1 ajustée
     "A12": {
         "A02",
         "A03",
@@ -135,7 +135,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A31",  # Mise à jour (pour corrections)
         "Z99",  # Changement d'identité
     },
-    "A38": {"A05", "A01", "A04"},  # note 3
+    "A38": {"A05", "A01", "A04"},  # REMARQUE 3
     "A40": {"A01", "A04", "A05"},
     "A44": {
         "A02",

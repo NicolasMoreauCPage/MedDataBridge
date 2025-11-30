@@ -25,7 +25,7 @@ INITIAL_EVENTS: Set[str] = {
 }
 
 # Transitions autorisées message -> message (IHE PAM France > 2.8)
-# NOTE:
+# REMARQUE:
 # - Les événements A52, A53, Z80, Z81, Z82, Z83, Z84, Z85 ne sont PAS autorisés
 #   dans le profil IHE PAM France > 2.8 et sont donc exclus des transitions.
 # - Les annulations/retours spécifiques sont gérés au niveau validation (ZBE-*)
@@ -69,7 +69,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
     },
     "A06": {"A06", "A07", "A11", "Z99"},
     "A07": {"A06", "A07", "A11", "Z99"},
-    "A11": {"A01", "A04", "A05"},  # note 1
+    "A11": {"A01", "A04", "A05"},  # REMARQUE 1
     "A12": {
         "A02",
         "A03",
@@ -114,7 +114,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A13",  # Annulation de sortie (correction d'erreur)
         "Z99",  # Mise à jour partielle
     },
-    "A38": {"A05", "A01", "A04"},  # note 3
+    "A38": {"A05", "A01", "A04"},  # REMARQUE 3
     "A40": {"A01", "A04", "A05"},
     "A44": {
         "A02",

@@ -106,7 +106,7 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
             "valueCoding": {
                 "system": "http://interopsante.org/fhir/CodeSystem/fr-core-cs-patient-identity-reliability",
                 "code": p.identity_reliability_code,
-                "display": p.identity_reliability_code  # TODO: mapping vers display approprié
+                "display": p.identity_reliability_code  # À FAIRE: mapping vers display approprié
             }
         })
         

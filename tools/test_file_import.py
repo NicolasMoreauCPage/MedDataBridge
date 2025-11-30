@@ -158,20 +158,20 @@ def scan_and_process():
 def main():
     print("=== File-Based Message Import Test ===\n")
     
-    # Step 1: Setup endpoint
+    # Étape 1: Setup endpoint
     print("Step 1: Setting up FILE endpoint...")
     config = setup_file_endpoint()
     print(f"Inbox: {config['inbox_path']}")
     print(f"Archive: {config['archive_path']}")
     print(f"Error: {config['error_path']}")
     
-    # Step 2: Copy example file
+    # Étape 2: Copy Exemple file
     print("\nStep 2: Copying example MFN file to inbox...")
     if not copy_example_file(config['inbox_path']):
         print("Failed to copy example file. Exiting.")
         return
     
-    # Step 3: Scan and process
+    # Étape 3: Scan and process
     print("\nStep 3: Processing files...")
     stats = scan_and_process()
     

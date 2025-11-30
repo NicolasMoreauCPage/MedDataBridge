@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 def test_patient_new_form_loads(client: TestClient):
     """Test que le formulaire de création patient se charge"""
-    # Note: Cela peut nécessiter un contexte GHT actif
+    # REMARQUE: Cela peut nécessiter un contexte GHT actif
     response = client.get("/patients/new")
     # Si le contexte GHT n'est pas disponible, on aura une redirection
     assert response.status_code in [200, 302, 303]

@@ -354,7 +354,7 @@ async def _test_set_session(
         body = await request.json()
     except Exception:
         # If the client posted form-encoded data (auto-submitted form from
-        # the HTML setter), parse form data as a fallback so tests can use
+        # the HTML setter), parse form data as a Solution de repli so tests can use
         # a simple form POST without triggering JSON preflight issues.
         try:
             form = await request.form()
@@ -404,7 +404,7 @@ async def _test_set_session(
     # Provide an explicit test cookie so browser contexts can detect the
     # session-setting flow reliably even if signed session cookie parsing
     # behaves unexpectedly in headless environments. Also set simple
-    # ght/ej id cookies as an unprotected fallback for the middleware
+    # ght/ej id cookies as an unprotected Solution de repli for the middleware
     # to read when running tests.
     from fastapi.responses import JSONResponse
     resp = JSONResponse({"ok": True})
@@ -445,7 +445,7 @@ async def _test_get_session_debug(request: Request, session: Session = Depends(g
     if not (os.getenv("TESTING", "0") in ("1", "true", "True") or (token and header == token)):
         raise HTTPException(status_code=404, detail="Not found")
 
-    # Return shallow copy of session keys and values (JSON-serializable best-effort)
+    # Renvoie shallow copy of session keys and values (JSON-serializable best-effort)
     data = {}
     for k, v in request.session.items():
         try:
@@ -507,7 +507,7 @@ async def _test_set_session_get(request: Request, token: str | None = None, ght_
             request.session["ej_context_id"] = ej_id
 
     # Instead of a redirect response which may not guarantee the browser
-    # has applied the cookies before subsequent resource loads, return a
+    # has applied the cookies before subsequent resource loads, Renvoie a
     # tiny HTML page that sets the plain cookies via document.cookie in the
     # browser and then submits a hidden form (targeting an iframe) to the
     # POST test endpoint so the server will issue a signed session cookie

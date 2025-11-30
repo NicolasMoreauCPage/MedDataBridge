@@ -47,7 +47,7 @@ def setup_test_db():
             if dossier_seq:
                 d = Dossier(dossier_seq=dossier_seq, patient_id=p.id, admit_time=datetime.utcnow())
             else:
-                # Fallback: rely on before_flush auto-assignment if sequence helper unavailable
+                # Solution de repli: rely on before_flush auto-assignment if sequence helper unavailable
                 d = Dossier(patient_id=p.id, admit_time=datetime.utcnow())
 
             sess.add(d)
@@ -258,7 +258,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 
-# Note: we import app.db (engine/get_session) locally in fixtures to allow
+# REMARQUE: we import app.db (engine/get_session) locally in fixtures to allow
 # setting TESTING env vars and manipulating sys.path before attempting to
 # import application modules. This avoids E402 linter errors while keeping
 # behavior stable.
@@ -283,7 +283,7 @@ def session_fixture():
     from app.db import engine
 
     with Session(engine) as session:
-        # Some tests expect session.refresh(obj) to return the object
+        # Some tests expect session.refresh(obj) to Renvoie the object
         _orig_refresh = session.refresh
 
         def _refresh_and_return(obj):
@@ -407,7 +407,7 @@ def client_fixture(session: Session):
         yield c
 
 
-# Example HL7 message fixture
+# Exemple HL7 message fixture
 @pytest.fixture(name="hl7_adt_a01")
 def hl7_adt_a01_fixture():
     now = datetime.now().strftime("%Y%m%d%H%M%S")

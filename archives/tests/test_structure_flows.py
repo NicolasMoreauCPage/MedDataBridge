@@ -47,7 +47,7 @@ LCH|^^^^^ETBL_GRPQ^^^^69&CPAGE&700004591&FINEJ|||TPLG^Typologie^L|^MCO"""
     assert eg.identifier == "69"
     assert eg.address_line1 == "4 Avenue de la VBF"
     
-    # Note: Les dates et responsables ne sont pas importés par l'importer MFN actuel
+    # REMARQUE: Les dates et responsables ne sont pas importés par l'importer MFN actuel
     # (import_mfn utilise un parser différent de process_mfn_message)
     # Ces assertions sont commentées car non supportées par l'importeur actuel
     # assert eg.opening_date == "20230101"

@@ -12,7 +12,7 @@ client = TestClient(app)
 @pytest.fixture
 def admin_token():
     """Get an admin token for testing."""
-    # Note: This assumes test admin user exists in fake_users_db
+    # REMARQUE: This assumes test admin user exists in fake_users_db
     # Using the default fake admin credentials from app.auth
     response = client.post(
         "/auth/login",
@@ -49,7 +49,7 @@ class TestCacheMetricsAPI:
             headers={"Authorization": f"Bearer {admin_token}"}
         )
         
-        # Should succeed or return cache unavailable
+        # Should succeed or Renvoie cache unavailable
         assert response.status_code == 200
         data = response.json()
         
@@ -198,13 +198,13 @@ class TestCacheMetricsErrors:
             headers={"Authorization": f"Bearer {admin_token}"}
         )
         
-        # Should always return 200 even if cache unavailable
+        # Should always Renvoie 200 even if cache unavailable
         assert response.status_code == 200
         
         data = response.json()
         assert "enabled" in data
         
-        # If disabled, should still return valid response
+        # If disabled, should still Renvoie valid response
         if not data["enabled"]:
             assert data["enabled"] is False
     
@@ -212,7 +212,7 @@ class TestCacheMetricsErrors:
         """Health check should not crash if Redis unavailable."""
         response = client.get("/api/metrics/cache/health")
         
-        # Should return valid response
+        # Should Renvoie valid response
         assert response.status_code == 200
         data = response.json()
         

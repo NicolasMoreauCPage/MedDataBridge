@@ -112,7 +112,7 @@ def import_fhir(input: str, ej_id: int, validate_only: bool):
         click.echo("\n✅ Validation terminée (mode validation seule)")
         return
     
-    # TODO: Implémenter l'import réel
+    # À FAIRE: Implémenter l'import réel
     click.echo(f"\n⚠️  Import non encore implémenté")
     click.echo(f"  Pour importer ce bundle, utilisez l'API POST /api/fhir/import/bundle")
 
@@ -201,7 +201,7 @@ def stats(ej_id: int):
         click.echo(f"🏢 Structure:")
         click.echo(f"  Entités géographiques: {eg_count}")
         
-        # TODO: Ajouter plus de statistiques
+        # À FAIRE: Ajouter plus de statistiques
         click.echo(f"\n💡 Pour plus de détails, utilisez l'API GET /api/fhir/export/statistics/{ej_id}")
 
 

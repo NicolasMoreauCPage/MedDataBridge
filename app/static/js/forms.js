@@ -15,35 +15,51 @@ class DependentFieldsManager {
 
     /**
      * Détecte les dépendances entre champs en analysant les data-depends-on
+     * Utilise des attributs data-* pour la configuration flexible
      */
     detectDependencies() {
         const deps = new Map();
         
-        // Pour les mouvements: UF -> UH -> Chambre -> Lit
-        const ufField = this.form.querySelector('[name="uf_id"]');
-        const uhField = this.form.querySelector('[name="uh_id"]');
-        const chambreField = this.form.querySelector('[name="chambre_id"]');
-        const litField = this.form.querySelector('[name="lit_id"]');
+        // Parcourir tous les selects du formulaire
+        const allSelects = this.form.querySelectorAll('select');
         
-        if (ufField && uhField) {
-            deps.set('uf_id', { 
-                dependents: ['uh_id'],
-                endpoint: '/api/structure/uh'
-            });
-        }
+        allSelects.forEach(select => {
+            const fieldName = select.name;
+            if (!fieldName) return;
+            
+            // Chercher les champs qui dépendent de celui-ci
+            const dependentSelects = this.form.querySelectorAll(`select[data-parent-field="${fieldName}"]`);
+            
+            if (dependentSelects.length > 0) {
+                const dependentNames = Array.from(dependentSelects).map(s => s.name).filter(n => n);
+                
+                if (dependentNames.length > 0) {
+                    deps.set(fieldName, {
+                        dependents: dependentNames
+                    });
+                }
+            }
+        });
         
-        if (uhField && chambreField) {
-            deps.set('uh_id', {
-                dependents: ['chambre_id'],
-                endpoint: '/api/structure/chambres'
-            });
-        }
-        
-        if (chambreField && litField) {
-            deps.set('chambre_id', {
-                dependents: ['lit_id'],
-                endpoint: '/api/structure/lits'
-            });
+        // Fallback: détection automatique pour mouvements (UF -> UH -> Chambre -> Lit)
+        // Si aucune dépendance n'a été détectée via data-parent-field
+        if (deps.size === 0) {
+            const ufField = this.form.querySelector('[name="uf_id"]');
+            const uhField = this.form.querySelector('[name="uh_id"]');
+            const chambreField = this.form.querySelector('[name="chambre_id"]');
+            const litField = this.form.querySelector('[name="lit_id"]');
+            
+            if (ufField && uhField) {
+                deps.set('uf_id', { dependents: ['uh_id'] });
+            }
+            
+            if (uhField && chambreField) {
+                deps.set('uh_id', { dependents: ['chambre_id'] });
+            }
+            
+            if (chambreField && litField) {
+                deps.set('chambre_id', { dependents: ['lit_id'] });
+            }
         }
         
         return deps;

@@ -827,6 +827,7 @@ def new_mouvement(
             "options": uh_options,
             "value": str(selected_uh_id) if selected_uh_id else None,
             "help": "Sélectionnez l'unité d'hébergement liée à l'UF (pré-remplie depuis le dernier mouvement)",
+            "parent_field": "uf_id",
             "depends_on": "une UF (Unité médicale)",
             "empty_message": "Sélectionnez d'abord une UF pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
@@ -837,6 +838,7 @@ def new_mouvement(
             "options": chambre_options,
             "value": str(selected_chambre_id) if selected_chambre_id else None,
             "help": "Sélectionnez la chambre (pré-remplie depuis le dernier mouvement)",
+            "parent_field": "uh_id",
             "depends_on": "une UH (Unité d'Hébergement)",
             "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
         },
@@ -847,6 +849,7 @@ def new_mouvement(
             "options": lit_options,
             "value": str(selected_lit_id) if selected_lit_id else None,
             "help": "Sélectionnez le lit (pré-rempli depuis le dernier mouvement)",
+            "parent_field": "chambre_id",
             "depends_on": "une Chambre",
             "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."
         },
@@ -1365,6 +1368,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "options": uh_options,
             "value": str(selected_uh_id) if selected_uh_id else None,
             "help": "Sélectionnez l'unité d'hébergement liée à l'UF",
+            "parent_field": "uf_id",
             "depends_on": "une UF (Unité médicale)",
             "empty_message": "Sélectionnez d'abord une UF pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
@@ -1375,6 +1379,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "options": chambre_options,
             "value": str(selected_chambre_id) if selected_chambre_id else None,
             "help": "Chambres disponibles pour l'UH sélectionnée",
+            "parent_field": "uh_id",
             "depends_on": "une UH (Unité d'Hébergement)",
             "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
         },
@@ -1385,6 +1390,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "options": lit_options,
             "value": str(selected_lit_id) if selected_lit_id else None,
             "help": "Lits disponibles pour la chambre sélectionnée",
+            "parent_field": "chambre_id",
             "depends_on": "une Chambre",
             "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."
         },

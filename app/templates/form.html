@@ -102,7 +102,7 @@
               {% endif %}
             </label>
             {% if field.type == 'select' %}
-              <select name="{{ field.name }}" id="{{ field.name }}" class="form-control" {% if field.required %}required{% endif %} {% if field.readonly %}disabled{% endif %}>
+              <select name="{{ field.name }}" id="{{ field.name }}" class="form-control" {% if field.required %}required{% endif %} {% if field.readonly %}disabled{% endif %}{% if field.parent_field %} data-parent-field="{{ field.parent_field }}"{% endif %}>
                 <option value="">-- Sélectionner --</option>
                 {% for option in field.options %}
                   <option value="{{ option.value }}"

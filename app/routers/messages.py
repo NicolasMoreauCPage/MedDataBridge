@@ -121,7 +121,7 @@ def list_messages(
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     ep_name = {e.id: e.name for e in endpoints}
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "messages.html",
         {
@@ -225,7 +225,7 @@ def list_rejections(
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     ep_name = {e.id: e.name for e in endpoints}
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "messages_rejections.html",
         {
@@ -379,7 +379,7 @@ def list_by_dossier(
         {"value": "out", "label": "Sortante"}
     ]
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "messages_by_dossier.html",
         {
@@ -440,7 +440,7 @@ def dossier_detail(
     endpoints = session.exec(select(SystemEndpoint)).all()
     ep_map = {e.id: e for e in endpoints}
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "messages_dossier_detail.html",
         {
@@ -559,7 +559,7 @@ def send_message_form(request: Request, session: Session = Depends(get_session))
         {"value": "MLLP", "label": "MLLP (HL7 v2)"},
         {"value": "FHIR", "label": "FHIR (JSON)"}
     ]
-    return templates.TemplateResponse(request, "send_message.html", {
+    return get_templates_with_filters(request).TemplateResponse(request, "send_message.html", {
         "request": request, 
         "endpoints": endpoints,
         "transport_options": transport_opts
@@ -589,7 +589,7 @@ async def send_message(request: Request):
             ep = s.get(SystemEndpoint, endpoint_pk) if endpoint_pk else None
             endpoints = s.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
             if ep and ep.kind != "MLLP":
-                return templates.TemplateResponse(
+                return get_templates_with_filters(request).TemplateResponse(
                     request,
                     "send_message.html",
                     {"request": request, "error": "Endpoint invalide", "endpoints": endpoints},
@@ -602,7 +602,7 @@ async def send_message(request: Request):
             except Exception as e:
                 logger.error(f"Error in on_message_inbound_async: {e}", exc_info=True)
                 ack = f"ERROR: {str(e)}"
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             request,
             "send_message_result.html",
             {"request": request, "kind": kind, "ack": ack, "endpoints": endpoints},
@@ -621,9 +621,9 @@ async def send_message(request: Request):
             ep = s.get(SystemEndpoint, int(endpoint_id)) if endpoint_id else None
             log = MessageLog(direction="in", kind="FHIR", endpoint_id=(ep.id if ep else None), payload=payload, ack_payload="", status="received", created_at=datetime.utcnow())
             s.add(log); s.commit(); s.refresh(log)
-    return templates.TemplateResponse(request, "send_message_result.html", {"request": request, "kind": kind, "ack": f"Logged message id={log.id}"})
+    return get_templates_with_filters(request).TemplateResponse(request, "send_message_result.html", {"request": request, "kind": kind, "ack": f"Logged message id={log.id}"})
 
-    return templates.TemplateResponse(request, "send_message.html", {"request": request, "error": "Kind non supporté", "endpoints": []})
+    return get_templates_with_filters(request).TemplateResponse(request, "send_message.html", {"request": request, "error": "Kind non supporté", "endpoints": []})
 
 
 @router.post("/scan")
@@ -662,7 +662,7 @@ def get_scheduler_status():
 def validate_dossier_form(request: Request, session: Session = Depends(get_session)):
     """Affiche le formulaire de validation d'un dossier."""
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "validate_dossier.html",
         {
@@ -725,7 +725,7 @@ async def validate_dossier(
     # 4. Si aucun message trouvé, retourner une erreur
     if not matching_messages:
         endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             request,
             "validate_dossier.html",
             {
@@ -745,7 +745,7 @@ async def validate_dossier(
     
     # 7. Afficher les résultats
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "validate_dossier.html",
         {
@@ -763,7 +763,7 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
     m = session.get(MessageLog, message_id)
     if not m:
         templates = get_templates_with_filters(request)
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Message introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Message introuvable"}, status_code=404)
     ep = session.get(SystemEndpoint, m.endpoint_id) if m.endpoint_id else None
     
     # Parser le JSON des issues de validation si présent
@@ -775,7 +775,7 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
             validation_issues = None
     
     templates = get_templates_with_filters(request)
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "message_detail.html",
         {"request": request, "m": m, "endpoint": ep, "validation_issues": validation_issues},

@@ -102,9 +102,9 @@ L'intégration IHE PAM repose sur un pipeline de traitement des messages HL7v2 (
 
 - Règles HL7 v2.5 : [Doc/HL7v2.5/CH02A.pdf], [Doc/HL7v2.5/Ch03.pdf]
 
-- Structures HAPI : [Doc/HAPI/hapi/custom/message/]
+- Structures HAPI : [Doc/HAPI/hapi/custom/message/]
+- Documentation utilisateur : [Doc/IHE_PAM.md], [scripts/validate_pam.py]
 
-- Documentation utilisateur : [Doc/IHE_PAM.md], [scripts/validate_pam.py]
-# 
+## Conclusion
 
 Pour toute extension ou adaptation, se référer aux modules cités et aux conventions de factorisation et de configuration décrites ci-dessus.

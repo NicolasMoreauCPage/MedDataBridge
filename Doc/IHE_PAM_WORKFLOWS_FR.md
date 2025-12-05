@@ -1,7 +1,6 @@
 # Documentation des workflows IHE PAM (Profil France)
 
-Version : 2025-11-30
-# 
+Version : 2025-11-30
 
 ## Objectif
 
@@ -18,9 +17,7 @@ Ce document détaille les workflows applicatifs IHE PAM tels qu’implémentés 
 4. Cas d’erreur et diagnostics
 
 5. Outils de validation et jeux de test
-
 6. Annexes (diagrammes, exemples)
-# 
 
 ## 1. Principes généraux des workflows PAM
 
@@ -36,47 +33,27 @@ Ce document détaille les workflows applicatifs IHE PAM tels qu’implémentés 
 
 ### 2.1. Admission classique
 
-### 2.1. Admission classique
-
-- A01 : Admission
-
-- A02/A08 : Transfert ou modification
-
-- A03 : Sortie
-
-- A11/A13 : Annulation
-
-
+- A01 : Admission
+- A02/A08 : Transfert ou modification
+- A03 : Sortie
+- A11/A13 : Annulation
 
 ### 2.2. Préadmission et changement de classe
 
-- A04/A05/A06/A07 : Préadmission, changement de classe, etc.
-
-- A03/A13 : Sortie ou annulation
-
-- A03/A13 : Sortie ou annulation
+- A04/A05/A06/A07 : Préadmission, changement de classe, etc.
+- A03/A13 : Sortie ou annulation
 
 ### 2.3. Permission et retour
 
-- A21/A22/A52/A53 : Permission, retour, annulation
+- A21/A22/A52/A53 : Permission, retour, annulation
 
-### 2.3. Permission et retour
+### 2.4. Fusion d'identités
 
-### 2.4. Fusion d’identités
-
-- A40 (PID/MRG) : Fusion de patients, ré-attribution des entités
-
-
+- A40 (PID/MRG) : Fusion de patients, ré-attribution des entités
 
 ### 2.5. Mise à jour partielle
 
-- Z99 : Update partiel, tolérance sandbox
-
-- A40 (PID/MRG) : Fusion de patients, ré-attribution des entités
-
-### 2.5. Mise à jour partielle
-
-- Z99 : Update partiel, tolérance sandbox
+- Z99 : Update partiel, tolérance sandbox
 
 ## 3. Règles de validation des enchaînements
 
@@ -118,9 +95,9 @@ Ce document détaille les workflows applicatifs IHE PAM tels qu’implémentés 
 
 - Diagrammes de workflow (admission → transfert → sortie → annulation).
 
-- Exemples de séquences HL7 : ADT^A01, ADT^A02, ADT^A03, ADT^A11, ADT^A40, Z99.
+- Exemples de séquences HL7 : ADT^A01, ADT^A02, ADT^A03, ADT^A11, ADT^A40, Z99.
+- Références : `/Doc/SpecIHEPAM/Publication-IHE_FRANCE_PAM_National_Extension_v2.11.1.txt`, `/Doc/IHE_PAM_INTEGRATION_COMPLETE_FR.md`, code source.
 
-- Références : `/Doc/SpecIHEPAM/Publication-IHE_FRANCE_PAM_National_Extension_v2.11.1.txt`, `/Doc/IHE_PAM_INTEGRATION_COMPLETE_FR.md`, code source.
-# 
+## Conclusion
 
 Document rédigé le 30/11/2025. Pour toute extension, se référer aux modules cités, aux conventions de factorisation et aux contraintes officielles IHE France.

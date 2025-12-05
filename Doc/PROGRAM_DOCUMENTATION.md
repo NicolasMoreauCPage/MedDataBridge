@@ -276,8 +276,8 @@ CI stub example for HAPI (GitHub Actions)
 2. Élargir les tests roundtrip (générer bundle via code → HAPI validate → import via TestClient) pour couvrir plus de scénarios (refs entre resources, multientities, Locations).
 
 3. Améliorer la résolution Location→Venue lors de l'import FHIR (actuellement simplifiée : première venue ou création par défaut).
-
 4. Documenter les conventions d'identifiant (PL-6, EI formatting) si nécessaire pour les partenaires intégrateurs.
-# 
+
+## Conclusion
 
 Fichier créé automatiquement par un assistant de développement. Pour questions ou demandes d'approfondissement (diagrammes, séquences, ERD), dis-moi quelle section tu veux détailler et je génère ça.

@@ -92,13 +92,13 @@ class HL7ImportValidator:
         # Validation 3: Format général
         self._validate_format(segments, report)
         
-        # Correction si LENIENT mode
-        if self.mode == "LENIENT" and report.status == ValidationResult.FIXABLE:
-            report.corrected_message = self._apply_corrections(message, segments, report)
-        
-        # Détermine le statut final
+        # Détermine le statut AVANT correction
         if report.errors:
             report.status = ValidationResult.REJECTED if self.mode == "STRICT" else ValidationResult.FIXABLE
+        
+        # Correction si LENIENT mode et messages fixables
+        if self.mode == "LENIENT" and report.status == ValidationResult.FIXABLE:
+            report.corrected_message = self._apply_corrections(message, segments, report)
         
         return report
     
@@ -235,46 +235,61 @@ class HL7ImportValidator:
         return mapping.get(trigger, "UNKNOWN")
     
     def _apply_corrections(self, message: str, segments: Dict, report: HL7ValidationReport) -> str:
-        """Applique les corrections au message"""
-        corrected_lines = []
+        """Applique les corrections au message
         
-        for segment_type in ["MSH", "PID", "PV1", "ZBE", "MRG"]:
-            if segment_type in segments:
-                segment = segments[segment_type]
-                
-                # Corrige MSH
-                if segment_type == "MSH":
-                    corrected = self._fix_msh_segment(segment, report.trigger)
-                    corrected_lines.append(corrected)
-                
-                # Corrige ZBE
-                elif segment_type == "ZBE":
-                    corrected = self._fix_zbe_segment(segment, report.trigger)
-                    corrected_lines.append(corrected)
-                
-                # Autres segments (inchangés)
-                else:
-                    corrected_lines.append(segment.get("raw", ""))
+        Reconstructs the entire message preserving all segments,
+        correcting only those that are broken/missing fields
+        """
+        corrected_lines = []
+        lines = message.replace("\r", "\n").split("\n")
+        
+        for line in lines:
+            if not line.strip():
+                continue
+            
+            segment_type = line[:3] if len(line) >= 3 else ""
+            
+            if segment_type == "MSH" and segment_type in segments:
+                # Fix MSH
+                corrected = self._fix_msh_segment(segments[segment_type], report.trigger)
+                corrected_lines.append(corrected)
+            elif segment_type == "ZBE" and segment_type in segments:
+                # Fix ZBE
+                corrected = self._fix_zbe_segment(segments[segment_type], report.trigger)
+                corrected_lines.append(corrected)
+            else:
+                # Keep as-is
+                corrected_lines.append(line)
         
         return "\r".join(corrected_lines)
     
+    
     def _fix_msh_segment(self, segment: Dict, trigger: str) -> str:
-        """Répare le segment MSH"""
+        """Répare le segment MSH
+        
+        MSH has special structure after split:
+        ['MSH', 'encoding', '', '', 'MSH-3', 'MSH-4', ...]
+                ^field[1]              ^field[3] ^field[4]
+        """
+        raw = segment.get("raw", "")
         fields = segment.get("fields", [])
         
-        # Complète les champs manquants
+        # Ensure we have enough fields (MSH has min 12 fields)
         while len(fields) < 12:
             fields.append("")
         
-        # MSH-3: Sending Application
+        # Fix MSH-3 at fields[3]
         if not fields[3]:
             fields[3] = "MEDBRIDGEDATA"
         
-        # MSH-4: Sending Facility
+        # Fix MSH-4 at fields[4]
         if not fields[4]:
             fields[4] = "IMPORT-SOURCE"
         
-        return self.field_separator.join(fields)
+        # Reconstruct properly with encoding at position [1]
+        reconstructed_parts = [fields[1]] + fields[2:]  # encoding + rest
+        return "MSH|" + self.field_separator.join(reconstructed_parts)
+    
     
     def _fix_zbe_segment(self, segment: Dict, trigger: str) -> str:
         """Répare le segment ZBE"""

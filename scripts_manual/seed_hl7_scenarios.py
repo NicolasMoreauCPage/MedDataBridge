@@ -2,6 +2,9 @@
 """
 Seed des scénarios IHE PAM depuis les fichiers HL7 de interfaces.integration
 À intégrer dans le processus d'initialisation de la base de données
+
+Phase 3 - INTEGRATION VALIDATEUR:
+Valide et corrige automatiquement les messages HL7 lors de l'import
 """
 
 import os
@@ -10,6 +13,7 @@ from app.db import engine
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from sqlmodel import Session, select
 from datetime import datetime
+from hl7_import_validator import HL7ImportValidator, ValidationResult
 
 
 def extract_hl7_messages(hl7_content: str) -> list:
@@ -60,8 +64,58 @@ def get_scenario_name_from_path(file_path: str) -> str:
     return f"IHE PAM - {name}"
 
 
+def _save_corrections_report(corrections_log: list) -> None:
+    """Sauvegarde un rapport détaillé des corrections appliquées"""
+    if not corrections_log:
+        return
+    
+    report_path = Path('/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/P3_IMPORT_CORRECTIONS_REPORT.md')
+    
+    with open(report_path, 'w') as f:
+        f.write('# Phase 3 - Rapport des Corrections à l\'Import\n\n')
+        f.write(f'**Timestamp**: {datetime.now().isoformat()}\n\n')
+        f.write(f'**Messages corrigés**: {len(corrections_log)}\n\n')
+        
+        f.write('## Résumé par Type d\'Erreur\n\n')
+        error_types = {}
+        for correction in corrections_log:
+            for error in correction['errors']:
+                error_type = error.split(':')[0] if ':' in error else error
+                error_types[error_type] = error_types.get(error_type, 0) + 1
+        
+        for error_type, count in sorted(error_types.items(), key=lambda x: -x[1]):
+            f.write(f'- **{error_type}**: {count} occurrences\n')
+        
+        f.write('\n## Corrections Détaillées\n\n')
+        
+        for i, correction in enumerate(corrections_log, 1):
+            f.write(f'### {i}. {correction["scenario"]} - Step {correction["step"]} ({correction["trigger"]})\n\n')
+            
+            if correction['errors']:
+                f.write('**Erreurs détectées**:\n')
+                for error in correction['errors']:
+                    f.write(f'- {error}\n')
+                f.write('\n')
+            
+            if correction['corrections']:
+                f.write('**Corrections appliquées**:\n')
+                for fix in correction['corrections']:
+                    f.write(f'- {fix}\n')
+                f.write('\n')
+    
+    print(f'\n  📄 Rapport des corrections sauvegardé: {report_path}')
+
+
+
 def seed_hl7_scenarios():
-    """Importe tous les fichiers HL7 comme scénarios dans la base"""
+    """Importe tous les fichiers HL7 comme scénarios dans la base
+    
+    Phase 3 - Intégration du validateur:
+    - Valide chaque message HL7 avant insertion
+    - Applique automatiquement les corrections (mode LENIENT)
+    - Enregistre les corrections appliquées
+    - Rejette les messages invalides irréparables
+    """
     
     base_path = Path('/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/Doc/interfaces.integration_src/interfaces.integration/target/classes/data')
     
@@ -75,7 +129,10 @@ def seed_hl7_scenarios():
         print('Aucun fichier HL7 trouvé')
         return
     
-    print(f'\nImportation de {len(hl7_files)} scénarios IHE PAM...')
+    print(f'\nImportation de {len(hl7_files)} scénarios IHE PAM avec validation...')
+    
+    # Initialiser le validateur en mode LENIENT (auto-correction)
+    validator = HL7ImportValidator(mode="LENIENT")
     
     with Session(engine) as session:
         # Vérifier si des scénarios IHE PAM existent déjà
@@ -90,6 +147,10 @@ def seed_hl7_scenarios():
         created_count = 0
         skipped_count = 0
         total_messages = 0
+        valid_messages = 0
+        corrected_messages = 0
+        rejected_messages = 0
+        corrections_log = []
         
         for hl7_file in sorted(hl7_files):
             try:
@@ -130,33 +191,82 @@ def seed_hl7_scenarios():
                 session.add(scenario)
                 session.flush()
                 
-                # Créer les étapes
+                # Créer les étapes avec validation et correction
                 for order_idx, msg in enumerate(messages, 1):
+                    trigger = extract_trigger_from_message(msg)
+                    total_messages += 1
+                    
+                    # Valider et corriger le message
+                    validation_report = validator.validate_message(msg)
+                    
+                    if validation_report.status == ValidationResult.VALID:
+                        # Message valide - utiliser tel quel
+                        payload_to_store = msg
+                        valid_messages += 1
+                    elif validation_report.status == ValidationResult.FIXABLE:
+                        # Message corrigible - utiliser la version corrigée
+                        payload_to_store = validation_report.corrected_message
+                        corrected_messages += 1
+                        
+                        # Enregistrer les corrections
+                        corrections_log.append({
+                            'scenario': scenario_name,
+                            'step': order_idx,
+                            'trigger': trigger,
+                            'errors': validation_report.errors,
+                            'corrections': validation_report.corrections_applied
+                        })
+                    else:  # REJECTED
+                        # Message invalide - ignorer
+                        rejected_messages += 1
+                        print(f'    ⚠ Message rejeté: {scenario_name} Step {order_idx} ({trigger})')
+                        continue
+                    
+                    # Créer l'étape avec le message (validé/corrigé ou original)
                     step = InteropScenarioStep(
                         scenario_id=scenario.id,
                         order_index=order_idx,
-                        name=f"Step {order_idx}: {extract_trigger_from_message(msg)}",
+                        name=f"Step {order_idx}: {trigger}",
                         message_format="hl7",
-                        message_type=extract_trigger_from_message(msg),
-                        payload=msg
+                        message_type=trigger,
+                        payload=payload_to_store
                     )
                     session.add(step)
                 
                 session.flush()
                 created_count += 1
-                total_messages += len(messages)
                 
                 if (created_count) % 20 == 0:
                     print(f'  ... {created_count}/{len(hl7_files)} scénarios')
                 
             except Exception as e:
                 skipped_count += 1
+                print(f'    ✗ Erreur lors du traitement {hl7_file}: {str(e)[:100]}')
         
         session.commit()
         
-        print(f'  ✓ Importé {created_count} scénarios avec {total_messages} messages')
+        # Statistiques d'import
+        print(f'\n  ✓ Importé {created_count} scénarios avec {total_messages} messages')
+        print(f'    - {valid_messages} messages valides (sans modification)')
+        print(f'    - {corrected_messages} messages corrigés (auto-fix appliqué)')
+        print(f'    - {rejected_messages} messages rejetés (invalides)')
         if skipped_count > 0:
-            print(f'  ({skipped_count} fichiers ignorés)')
+            print(f'    - ({skipped_count} fichiers ignorés)')
+        
+        # Enregistrer les corrections dans un rapport
+        if corrections_log:
+            print(f'\n  Corrections appliquées à {len(corrections_log)} messages:')
+            for correction in corrections_log[:10]:  # Afficher les 10 premières
+                print(f'    • {correction["scenario"]} - Step {correction["step"]} ({correction["trigger"]})')
+                for error in correction['errors'][:2]:
+                    print(f'      - {error}')
+                for fix in correction['corrections'][:2]:
+                    print(f'      ✓ {fix}')
+            if len(corrections_log) > 10:
+                print(f'    ... et {len(corrections_log) - 10} autres messages corrigés')
+        
+        # Sauvegarder un rapport détaillé
+        _save_corrections_report(corrections_log)
 
 
 if __name__ == "__main__":

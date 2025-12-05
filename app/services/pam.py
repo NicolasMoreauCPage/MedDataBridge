@@ -957,17 +957,28 @@ async def handle_admission_message(
         # Vérifier si le dossier_seq existe déjà
         existing_dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == d_seq)).first()
         if existing_dossier:
-            logger.error(f"[pam][admission] Doublon dossier_seq détecté: {d_seq}. Import annulé.")
-            raise Exception(f"Un dossier avec le numéro {d_seq} existe déjà. Import ADT/PAM annulé.")
-        dossier = Dossier(
-            dossier_seq=d_seq,
-            patient_id=patient.id,
-            uf_responsabilite=pv1_data.get("hospital_service") or "UNKNOWN",
-            admit_time=admit_time,
-            encounter_class=encounter_class_code,
-        )
-        session.add(dossier)
-        session.flush()
+            # IHE PAM France: workflow A05 → A01
+            # A05 crée le dossier en état "planned", A01 confirme l'admission
+            if trigger == "A01" and existing_dossier.patient_id == patient.id:
+                # Workflow normal: confirmation d'admission après pré-admission (A05)
+                logger.info(f"[pam][admission] A01 confirming pre-admission for dossier_seq={d_seq}")
+                dossier = existing_dossier
+                # Mettre à jour la date d'admission si nécessaire
+                if admit_time:
+                    dossier.admit_time = admit_time
+            else:
+                logger.error(f"[pam][admission] Doublon dossier_seq détecté: {d_seq}. Import annulé.")
+                raise Exception(f"Un dossier avec le numéro {d_seq} existe déjà. Import ADT/PAM annulé.")
+        else:
+            dossier = Dossier(
+                dossier_seq=d_seq,
+                patient_id=patient.id,
+                uf_responsabilite=pv1_data.get("hospital_service") or "UNKNOWN",
+                admit_time=admit_time,
+                encounter_class=encounter_class_code,
+            )
+            session.add(dossier)
+            session.flush()
         print(f"[pam] Created dossier id={dossier.id} dossier_seq={dossier.dossier_seq} patient_id={dossier.patient_id}")
 
         # If PID-18 (account number) was provided, persist it as a Dossier identifier
@@ -1006,6 +1017,12 @@ async def handle_admission_message(
             except (ValueError, IndexError) as e:
                 logger.warning(f"[pam][admission] Invalid venue sequence in PV1-19 '{visit_number}': {e}")
                 v_seq = get_next_sequence(session, "venue")
+        
+        # Vérifier si une venue existe déjà pour ce dossier (workflow IHE PAM A05→A01)
+        existing_venue = session.exec(
+            select(Venue).where(Venue.dossier_id == dossier.id, Venue.venue_seq == v_seq)
+        ).first()
+        
         location_raw = (pv1_data.get("location") or "").strip()
         location_value = location_raw or None
         previous_location = (pv1_data.get("previous_location") or "").strip() or None
@@ -1014,24 +1031,25 @@ async def handle_admission_message(
         movement_kind = MOVEMENT_KIND_BY_TRIGGER.get(trigger, "admission")
         movement_status = MOVEMENT_STATUS_BY_TRIGGER.get(trigger, "completed")
 
-        operational_status = "active"
-        if movement_status == "planned":
-            operational_status = "planned"
-        elif movement_status == "cancelled":
-            operational_status = "cancelled"
-
-        venue = Venue(
-            venue_seq=v_seq,
-            dossier_id=dossier.id,
-            uf_responsabilite=dossier.uf_responsabilite,
-            start_time=datetime.now(timezone.utc),
-            operational_status=operational_status,
-            assigned_location=location_value,
-            hospital_service=hospital_service or pv1_data.get("hospital_service") or dossier.uf_responsabilite,
-        )
-        session.add(venue)
-        session.flush()
-        print(f"[pam] Created venue id={venue.id} venue_seq={venue.venue_seq} dossier_id={venue.dossier_id}")
+        if existing_venue and trigger == "A01":
+            # IHE PAM: A01 confirme une pré-admission (A05)
+            # Mettre à jour la localisation de la venue existante si fournie
+            logger.info(f"[pam][admission] A01 confirming pre-admission for existing venue {existing_venue.id}")
+            if location_value:
+                existing_venue.assigned_location = location_value
+            venue = existing_venue
+            print(f"[pam] Updated venue id={venue.id} venue_seq={venue.venue_seq} for A01 confirmation")
+        else:
+            venue = Venue(
+                venue_seq=v_seq,
+                dossier_id=dossier.id,
+                uf_responsabilite=hospital_service or pv1_data.get("hospital_service") or dossier.uf_responsabilite,
+                start_time=datetime.now(timezone.utc),
+                assigned_location=location_value,
+            )
+            session.add(venue)
+            session.flush()
+            print(f"[pam] Created venue id={venue.id} venue_seq={venue.venue_seq} dossier_id={venue.dossier_id}")
 
         # If PV1-19 (visit number) was provided, persist it as a Venue identifier
         try:

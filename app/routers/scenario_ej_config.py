@@ -114,18 +114,33 @@ async def edit_ej_config(
 async def save_ej_config(
     request: Request,
     ej_id: int,
+    # Hospitalisation
     uf_hospitalisation_id: Optional[int] = Form(None),
+    chambre_hospitalisation: Optional[str] = Form(None),
+    lit_hospitalisation: Optional[str] = Form(None),
     medecin_hospitalisation_rpps: Optional[str] = Form(None),
     medecin_hospitalisation_nom: Optional[str] = Form(None),
+    # Consultation
     uf_consultation_id: Optional[int] = Form(None),
+    chambre_consultation: Optional[str] = Form(None),
+    lit_consultation: Optional[str] = Form(None),
     medecin_consultation_rpps: Optional[str] = Form(None),
     medecin_consultation_nom: Optional[str] = Form(None),
+    # Urgences
     uf_urgences_id: Optional[int] = Form(None),
+    chambre_urgences: Optional[str] = Form(None),
+    lit_urgences: Optional[str] = Form(None),
     medecin_urgences_rpps: Optional[str] = Form(None),
     medecin_urgences_nom: Optional[str] = Form(None),
+    # Mutation
     uf_mutation_cible_id: Optional[int] = Form(None),
+    chambre_mutation: Optional[str] = Form(None),
+    lit_mutation: Optional[str] = Form(None),
     medecin_mutation_rpps: Optional[str] = Form(None),
     medecin_mutation_nom: Optional[str] = Form(None),
+    # Médecin traitant (PV1-8)
+    medecin_traitant_rpps: Optional[str] = Form(None),
+    medecin_traitant_nom: Optional[str] = Form(None),
     session: Session = Depends(get_session)
 ):
     """Sauvegarder la configuration d'une EJ."""
@@ -143,22 +158,37 @@ async def save_ej_config(
         config = ScenarioEJConfig(entite_juridique_id=ej_id)
         session.add(config)
     
-    # Mettre à jour les champs
+    # Mettre à jour les champs - Hospitalisation
     config.uf_hospitalisation_id = uf_hospitalisation_id or None
+    config.chambre_hospitalisation = chambre_hospitalisation or None
+    config.lit_hospitalisation = lit_hospitalisation or None
     config.medecin_hospitalisation_rpps = medecin_hospitalisation_rpps or None
     config.medecin_hospitalisation_nom = medecin_hospitalisation_nom or None
     
+    # Consultation
     config.uf_consultation_id = uf_consultation_id or None
+    config.chambre_consultation = chambre_consultation or None
+    config.lit_consultation = lit_consultation or None
     config.medecin_consultation_rpps = medecin_consultation_rpps or None
     config.medecin_consultation_nom = medecin_consultation_nom or None
     
+    # Urgences
     config.uf_urgences_id = uf_urgences_id or None
+    config.chambre_urgences = chambre_urgences or None
+    config.lit_urgences = lit_urgences or None
     config.medecin_urgences_rpps = medecin_urgences_rpps or None
     config.medecin_urgences_nom = medecin_urgences_nom or None
     
+    # Mutation
     config.uf_mutation_cible_id = uf_mutation_cible_id or None
+    config.chambre_mutation = chambre_mutation or None
+    config.lit_mutation = lit_mutation or None
     config.medecin_mutation_rpps = medecin_mutation_rpps or None
     config.medecin_mutation_nom = medecin_mutation_nom or None
+    
+    # Médecin traitant (PV1-8)
+    config.medecin_traitant_rpps = medecin_traitant_rpps or None
+    config.medecin_traitant_nom = medecin_traitant_nom or None
     
     from datetime import datetime
     config.updated_at = datetime.utcnow()
@@ -169,7 +199,7 @@ async def save_ej_config(
     
     # Rediriger vers la liste avec message de succès
     return RedirectResponse(
-        url=f"/scenarios/ej-config?success=1&ej={ej.name}",
+        url=f"/config/scenario-ej?success=1&ej={ej.name}",
         status_code=303
     )
 

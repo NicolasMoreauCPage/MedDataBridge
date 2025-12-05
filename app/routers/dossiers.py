@@ -75,7 +75,7 @@ def new_dossier(request: Request, session=Depends(get_session)):
     
     dossier_type_opts = [{"value": dt.value, "label": dt.name.replace('_', ' ').capitalize()} for dt in DossierType]
     fields = [
-        {"name": "uf_responsabilite", "label": "UF de responsabilité", "type": "select", "options": uf_options},
+        {"name": "uf_responsabilite", "label": "UF de responsabilité", "type": "select", "options": uf_options, "empty_message": "Aucune UF disponible. Sélectionnez d'abord un contexte EJ (Établissement Juridique) ou créez des structures organisationnelles."},
         {"name": "dossier_type", "label": "Type de dossier", "type": "select", "options": dossier_type_opts},
         {"name": "admit_time", "label": "Date d'admission", "type": "datetime-local", "value": now_str},
     ]
@@ -141,10 +141,10 @@ def edit_dossier(dossier_id: int, request: Request, session=Depends(get_session)
     if not dossier:
         return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
     fields = [
-        {"label": "Patient ID", "name": "patient_id", "type": "number", "value": dossier.patient_id},
-        {"label": "Type de dossier", "name": "dossier_type", "type": "text", "value": dossier.dossier_type.value},
-        {"label": "Date d'admission", "name": "admit_time", "type": "datetime-local", "value": dossier.admit_time.strftime('%Y-%m-%dT%H:%M')},
-        {"label": "Numéro de séquence", "name": "dossier_seq", "type": "number", "value": dossier.dossier_seq},
+        {"label": "Patient ID", "name": "patient_id", "type": "number", "value": dossier.patient_id or 0},
+        {"label": "Type de dossier", "name": "dossier_type", "type": "text", "value": dossier.dossier_type.value if dossier.dossier_type else ''},
+        {"label": "Date d'admission", "name": "admit_time", "type": "datetime-local", "value": dossier.admit_time.strftime('%Y-%m-%dT%H:%M') if dossier.admit_time else ''},
+        {"label": "Numéro de séquence", "name": "dossier_seq", "type": "number", "value": dossier.dossier_seq or 0},
     ]
     return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Modifier dossier", "fields": fields, "action_url": f"/dossiers/{dossier.id}/edit"})
 

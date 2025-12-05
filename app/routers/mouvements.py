@@ -1713,9 +1713,9 @@ def edit_uf_form(uf_id: int, request: Request, session=Depends(get_session)):
     if not uf:
         return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
     fields = [
-        {"label": "Identifiant UF", "name": "identifier", "type": "text", "value": uf.identifier, "required": True},
-        {"label": "Nom", "name": "name", "type": "text", "value": uf.name, "required": True},
-        {"label": "Nom court", "name": "short_name", "type": "text", "value": uf.short_name},
+        {"label": "Identifiant UF", "name": "identifier", "type": "text", "value": uf.identifier or '', "required": True},
+        {"label": "Nom", "name": "name", "type": "text", "value": uf.name or '', "required": True},
+        {"label": "Nom court", "name": "short_name", "type": "text", "value": uf.short_name or ''},
     ]
     return get_templates_with_filters(request).TemplateResponse(request, "form.html", {
         "title": f"Éditer UF {uf.identifier}",

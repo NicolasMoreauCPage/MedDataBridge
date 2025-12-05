@@ -58,7 +58,7 @@ def new_venue(
     fields = [
         {"label": "Numéro de dossier", "name": "dossier_seq", "type": "number", "required": True, "value": dossier_seq_value, "readonly": True},
         {"name": "dossier_id", "type": "hidden", "value": prefill_dossier_id or ''},
-        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "required": True, "options": uf_options or [{"value": "", "label": "Aucune UF disponible"}]},
+        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "required": True, "options": uf_options or [{"value": "", "label": "Aucune UF disponible"}], "empty_message": "Aucune UF disponible pour le dossier sélectionné. Vérifiez que l'EJ associée contient des structures organisationnelles (Service > UF)."},
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", "value": now_str, "required": True},
         {"label": "Numéro de venue", "name": "venue_seq", "type": "number", "value": next_seq, "readonly": True},
     ]
@@ -145,9 +145,9 @@ def edit_venue(venue_id: int, request: Request, session=Depends(get_session)):
     
     fields = [
         {"label": "Dossier ID", "name": "dossier_id", "type": "number", "value": v.dossier_id, "required": True},
-        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "value": v.uf_responsabilite, "required": True, "options": uf_options},
+        {"label": "UF de responsabilité", "name": "uf_responsabilite", "type": "select", "value": v.uf_responsabilite or '', "required": True, "options": uf_options, "empty_message": "Aucune UF disponible. Vérifiez que l'EJ du dossier contient des structures organisationnelles."},
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", "value": v.start_time.strftime('%Y-%m-%dT%H:%M') if v.start_time else '', "required": True},
-        {"label": "Numéro de séquence", "name": "venue_seq", "type": "number", "value": v.venue_seq},
+        {"label": "Numéro de séquence", "name": "venue_seq", "type": "number", "value": v.venue_seq or 0},
     ]
     return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Modifier venue", "fields": fields, "action_url": f"/venues/{venue_id}/edit"})
 

@@ -1,20 +1,24 @@
 """Router pour la documentation des standards."""
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session
 
 from ..db import get_session
 
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 # Additional resource pages for Exemple/tools used by the UI "Ressources" menu
 
 
 @router.get("/examples/hl7v2", response_class=HTMLResponse)
 async def examples_hl7v2(request: Request):
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "examples_hl7v2.html",
         {"request": request, "title": "Exemples HL7 v2"}
     )
@@ -22,7 +26,7 @@ async def examples_hl7v2(request: Request):
 
 @router.get("/examples/mfn", response_class=HTMLResponse)
 async def examples_mfn(request: Request):
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "examples_mfn.html",
         {"request": request, "title": "Exemples MFN"}
     )
@@ -30,7 +34,7 @@ async def examples_mfn(request: Request):
 
 @router.get("/examples/fhir-bundles", response_class=HTMLResponse)
 async def examples_fhir_bundles(request: Request):
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "examples_fhir_bundles.html",
         {"request": request, "title": "Bundles FHIR d'exemple"}
     )
@@ -38,7 +42,7 @@ async def examples_fhir_bundles(request: Request):
 
 @router.get("/tools/mllp", response_class=HTMLResponse)
 async def tools_mllp(request: Request):
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "tools_mllp.html",
         {"request": request, "title": "Guide MLLP"}
     )
@@ -46,7 +50,7 @@ async def tools_mllp(request: Request):
 
 @router.get("/tools/endpoints-test", response_class=HTMLResponse)
 async def endpoints_test_page(request: Request):
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "endpoints_test.html",
         {"request": request, "title": "Endpoints de test"}
     )
@@ -62,7 +66,7 @@ async def docs_markdown(request: Request, filename: str):
     DOC_ROOT = Path(__file__).parent.parent.parent / "Doc"
     doc_path = DOC_ROOT / filename
     if not doc_path.exists():
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             "documentation.html",
             {"request": request, "structure": {}, "error": f"Document non trouvé: {filename}", "current_doc": None}
         )
@@ -79,7 +83,7 @@ async def docs_markdown(request: Request, filename: str):
     # Otherwise render markdown on the fly
     content = doc_path.read_text(encoding="utf-8")
     html = markdown.markdown(content, extensions=["fenced_code", "tables", "toc"])
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "generic_doc.html",
         {"request": request, "doc_content": html, "doc_title": filename}
     )
@@ -90,7 +94,7 @@ async def standards_docs(
     session: Session = Depends(get_session)
 ):
     """Page de documentation des standards supportés."""
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "standards_docs.html",
         {

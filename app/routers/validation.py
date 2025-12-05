@@ -4,13 +4,17 @@ Permet de valider un message HL7 en dehors du contexte GHT (unitaire ou scénari
 """
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from app.services.pam_validation import validate_pam
 from app.services.scenario_validation import validate_scenario
 import json
 
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/validation", response_class=HTMLResponse)
@@ -22,7 +26,7 @@ EVN|A01|20251105120000
 PID|1||123456^^^HOSP||DUPONT^JEAN||19800101|M
 PV1|1|I|CARDIO^101^1|||||||||||||||||1"""
     
-    return templates.TemplateResponse(request, "validation.html", {
+    return get_templates_with_filters(request).TemplateResponse(request, "validation.html", {
         "title": "Validation Messages HL7 v2.5",
         "validation_done": False,
         "hl7_message": example_message,
@@ -73,7 +77,7 @@ async def validate_message(
         else:
             hl7_base.append(issue)
     
-    return templates.TemplateResponse(request, "validation.html", {
+    return get_templates_with_filters(request).TemplateResponse(request, "validation.html", {
         "title": "Validation Messages HL7 v2.5",
         "validation_done": True,
         "hl7_message": hl7_message,
@@ -112,7 +116,7 @@ async def validate_scenario_route(
           f"workflow issues: {len(result.workflow_issues)}, "
           f"coherence issues: {len(result.coherence_issues)}")
     
-    return templates.TemplateResponse(request, "validation.html", {
+    return get_templates_with_filters(request).TemplateResponse(request, "validation.html", {
         "title": "Validation Scénario HL7 v2.5",
         "validation_done": False,
         "scenario_result": result,

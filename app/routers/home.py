@@ -1,20 +1,24 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import select
 from app.db import get_session
 from app.models import Patient, Dossier, Venue
 from app.models_endpoints import MessageLog
 from app.models_structure import GHTContext, EntiteJuridique
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(tags=["home"])
 
 @router.get("/", response_class=HTMLResponse)
 def home(request: Request, session=Depends(get_session)):
     ght_context = request.state.ght_context
     if not ght_context:
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             request,
             "ght_contexts.html",
             {
@@ -44,7 +48,7 @@ def home(request: Request, session=Depends(get_session)):
         "dossiers": len(dossiers),
         "venues": len(venues),
     }
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "ght_dashboard.html",
         {
@@ -59,4 +63,4 @@ def home(request: Request, session=Depends(get_session)):
 @router.get("/api-docs", response_class=HTMLResponse)
 def api_documentation(request: Request):
     """Documentation des APIs FHIR et HL7"""
-    return templates.TemplateResponse(request, "api_docs.html")
+    return get_templates_with_filters(request).TemplateResponse(request, "api_docs.html")

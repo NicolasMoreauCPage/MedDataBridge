@@ -16,7 +16,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
@@ -26,9 +26,13 @@ from app.models_structure import (
     UniteFonctionnelle, UniteHebergement
 )
 
-templates = Jinja2Templates(directory="app/templates")
 
 logger = logging.getLogger(__name__)
+
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
 
 router = APIRouter(prefix="/config/scenario-ej", tags=["scenario-ej-config"])
 
@@ -58,7 +62,7 @@ async def list_ej_configs(
             "has_config": config is not None
         })
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "scenarios/ej_config_list.html",
         {
             "request": request,
@@ -98,7 +102,7 @@ async def edit_ej_config(
                 uf = session.get(UniteFonctionnelle, uf_id)
                 selected_ufs[field] = uf
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         "scenarios/ej_config_form.html",
         {
             "request": request,

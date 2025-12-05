@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -14,7 +14,11 @@ from app.services.scenario_template_materializer import materialize_template, Ma
 from app.services.scenario_runner import send_scenario, ScenarioExecutionError
 from app.models_endpoints import SystemEndpoint
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/scenarios/templates", tags=["scenario-templates"])
 
 
@@ -74,7 +78,7 @@ def list_templates(request: Request, session: Session = Depends(get_session)):
         "rows": rows,
         "show_actions": False,
     }
-    return templates.TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 
 @router.get("/{template_key}", response_class=HTMLResponse)
@@ -103,7 +107,7 @@ def template_detail(template_key: str, request: Request, session: Session = Depe
             {"label": template.name, "url": f"/scenarios/templates/{template.key}"},
         ],
     }
-    return templates.TemplateResponse(request, "scenario_template_detail.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_template_detail.html", ctx)
 
 
 @router.post("/{template_key}/materialize", response_model=dict)

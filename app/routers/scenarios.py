@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
@@ -31,7 +31,11 @@ from app.services.scenario_status_service import (
 )
 from app.utils.flash import flash
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 
 
@@ -82,7 +86,7 @@ def list_scenarios(
             {"label": "⏹️  Jamais exécutés", "value": "no_run"},
         ],
     }
-    return templates.TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 
 @router.get("/runs.json")
@@ -173,7 +177,7 @@ def list_runs(
             "days_back": days_back,
         }
     }
-    return templates.TemplateResponse(request, "scenarios/dashboard.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenarios/dashboard.html", ctx)
 
 
 # --- Import routes (must be before /{scenario_id} to avoid conflicts) ---
@@ -185,7 +189,7 @@ def show_import_form(request: Request, session: Session = Depends(get_session)):
         "request": request,
         "contexts": contexts,
     }
-    return templates.TemplateResponse(request, "scenario_import.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_import.html", ctx)
 
 
 @router.post("/import")
@@ -279,7 +283,7 @@ def run_detail(run_id: int, request: Request, session: Session = Depends(get_ses
         "rows": rows,
         "show_actions": False,
     }
-    return templates.TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 
 @router.get("/{scenario_id}", response_class=HTMLResponse)
@@ -307,7 +311,7 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
             {"label": scenario.name, "url": f"/scenarios/{scenario.id}"},
         ],
     }
-    return templates.TemplateResponse(request, "scenario_detail.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_detail.html", ctx)
 
 
 @router.post("/capture", response_class=RedirectResponse)
@@ -549,7 +553,7 @@ def ej_scenarios_status(
         "stats": stats,
         "only_failed": only_failed,
     }
-    return templates.TemplateResponse(request, "scenarios/ej_scenarios_status.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenarios/ej_scenarios_status.html", ctx)
 
 
 @router.get("/api/ej/{ej_id}/scenarios-status")

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Form, Query
 import os
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import select, Session
 from sqlalchemy.orm import selectinload
 from datetime import datetime
@@ -19,7 +19,11 @@ from app.utils.flash import flash
 from app.dependencies.ght import require_ght_context
 from app.models_structure import UniteFonctionnelle, Service, Pole, EntiteGeographique
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(
     prefix="/dossiers",
     tags=["dossiers"],
@@ -57,7 +61,7 @@ def list_dossiers(
         } for d in dossiers
     ]
     ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie"], "rows": rows}
-    return templates.TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(request: Request, session=Depends(get_session)):
@@ -97,7 +101,7 @@ def new_dossier(request: Request, session=Depends(get_session)):
             {"value": "A38", "label": "A38 - Invalid transition (test)"},
         ]
         fields.append({"name": "event_code", "label": "Code événement", "type": "select", "options": event_options})
-    return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Nouveau dossier", "fields": fields})
+    return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Nouveau dossier", "fields": fields})
 
 @router.post("/new")
 def create_dossier(
@@ -135,14 +139,14 @@ def create_dossier(
 def edit_dossier(dossier_id: int, request: Request, session=Depends(get_session)):
     dossier = dossiers_service.get_dossier(session, dossier_id)
     if not dossier:
-        return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
     fields = [
         {"label": "Patient ID", "name": "patient_id", "type": "number", "value": dossier.patient_id},
         {"label": "Type de dossier", "name": "dossier_type", "type": "text", "value": dossier.dossier_type.value},
         {"label": "Date d'admission", "name": "admit_time", "type": "datetime-local", "value": dossier.admit_time.strftime('%Y-%m-%dT%H:%M')},
         {"label": "Numéro de séquence", "name": "dossier_seq", "type": "number", "value": dossier.dossier_seq},
     ]
-    return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Modifier dossier", "fields": fields, "action_url": f"/dossiers/{dossier.id}/edit"})
+    return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Modifier dossier", "fields": fields, "action_url": f"/dossiers/{dossier.id}/edit"})
 
 @router.post("/{dossier_id}/edit")
 def update_dossier(
@@ -184,7 +188,7 @@ def update_dossier(
 def delete_dossier(dossier_id: int, request: Request, session=Depends(get_session)):
     dossier = dossiers_service.get_dossier(session, dossier_id)
     if not dossier:
-        return templates.TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
     
     try:
         dossiers_service.delete_dossier(session, dossier)

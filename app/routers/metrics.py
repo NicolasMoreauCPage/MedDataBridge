@@ -1,15 +1,19 @@
 """API pour les métriques et le monitoring."""
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from typing import Optional, Dict, Any
 from app.utils.structured_logging import metrics
 from app.services.cache_service import get_cache_service
 
 
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/api/metrics", tags=["Metrics"])
 ui_router = APIRouter(prefix="/metrics", tags=["Metrics UI"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/operations", response_model=dict)
@@ -210,7 +214,7 @@ async def metrics_dashboard_ui(request: Request):
     
     Affiche les métriques de l'application de manière visuelle.
     """
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "metrics_dashboard.html",
         {}

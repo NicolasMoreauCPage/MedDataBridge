@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -22,7 +22,11 @@ def _ensure_vocabularies(session: Session) -> None:
         session.rollback()
         raise
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/vocabularies", tags=["vocabularies"])
 
 @router.get("", response_class=HTMLResponse)
@@ -77,7 +81,7 @@ def list_vocabularies(request: Request, session: Session = Depends(get_session))
         "can_create": True,
     }
 
-    return templates.TemplateResponse(request, "vocabularies/list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "vocabularies/list.html", ctx)
 
 @router.get("/{system_id}", response_class=HTMLResponse)
 def vocabulary_detail(system_id: int, request: Request, session: Session = Depends(get_session)):
@@ -169,7 +173,7 @@ def vocabulary_detail(system_id: int, request: Request, session: Session = Depen
         "has_hl7": any(row.get("hl7") for row in rows),
     }
 
-    return templates.TemplateResponse(request, "vocabularies/detail.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "vocabularies/detail.html", ctx)
 
 @router.get("/new", response_class=HTMLResponse)
 def new_vocabulary(request: Request):
@@ -216,7 +220,7 @@ def new_vocabulary(request: Request):
         {"label": "Nouvelle liste", "url": "/vocabularies/new"}
     ]
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "form.html",
         {
@@ -304,7 +308,7 @@ def new_value(system_id: int, request: Request, session: Session = Depends(get_s
         {"label": "Nouvelle valeur", "url": f"/vocabularies/{system_id}/values/new"}
     ]
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "form.html",
         {

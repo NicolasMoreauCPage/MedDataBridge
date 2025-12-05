@@ -7,13 +7,17 @@ Les fichiers non-HTML (images, etc.) sont servis directement sans enveloppe.
 """
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from pathlib import Path
 import logging
 import mimetypes
 
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 logger = logging.getLogger(__name__)
 
 DOC_ROOT = Path(__file__).parent.parent.parent / "Doc"
@@ -72,7 +76,7 @@ async def serve_wrapped_doc(request: Request, file_path: str):
         title = title_match.group(1) if title_match else file_path
         
         # Envelopper le contenu HTML dans le template base.html
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             "doc_wrapper.html",
             {
                 "request": request,

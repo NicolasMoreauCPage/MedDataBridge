@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import select
 from datetime import datetime
 from app.db import get_session, peek_next_sequence
@@ -10,7 +10,11 @@ from app.services import venues_service
 from app.services.venues_service import VenueCreateSchema
 from app.utils.flash import flash
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(
     prefix="/venues",
     tags=["venues"],
@@ -58,7 +62,7 @@ def new_venue(
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", "value": now_str, "required": True},
         {"label": "Numéro de venue", "name": "venue_seq", "type": "number", "value": next_seq, "readonly": True},
     ]
-    return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Nouvelle venue", "fields": fields})
+    return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Nouvelle venue", "fields": fields})
 
 
 @router.post("/new")
@@ -100,11 +104,11 @@ def create_venue(
 def venue_detail(venue_id: int, request: Request, session=Depends(get_session)):
     v = session.get(Venue, venue_id)
     if not v:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
     # Charger le dossier et le patient pour le contexte
     dossier = session.get(Dossier, v.dossier_id) if v.dossier_id else None
     patient = session.get(type(dossier.patient), dossier.patient_id) if dossier and dossier.patient_id else None
-    return templates.TemplateResponse(request, "venue_detail.html", {
+    return get_templates_with_filters(request).TemplateResponse(request, "venue_detail.html", {
         "request": request,
         "venue": v,
         "dossier": dossier,
@@ -116,7 +120,7 @@ def venue_detail(venue_id: int, request: Request, session=Depends(get_session)):
 def edit_venue(venue_id: int, request: Request, session=Depends(get_session)):
     v = session.get(Venue, venue_id)
     if not v:
-            return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
+            return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
     
     # Récupérer la liste des UF disponibles pour l'EJ du dossier
     uf_options = []
@@ -145,7 +149,7 @@ def edit_venue(venue_id: int, request: Request, session=Depends(get_session)):
         {"label": "Début de venue", "name": "start_time", "type": "datetime-local", "value": v.start_time.strftime('%Y-%m-%dT%H:%M') if v.start_time else '', "required": True},
         {"label": "Numéro de séquence", "name": "venue_seq", "type": "number", "value": v.venue_seq},
     ]
-    return templates.TemplateResponse(request, "form.html", {"request": request, "title": "Modifier venue", "fields": fields, "action_url": f"/venues/{venue_id}/edit"})
+    return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Modifier venue", "fields": fields, "action_url": f"/venues/{venue_id}/edit"})
 
 
 @router.post("/{venue_id}/edit")
@@ -160,7 +164,7 @@ def update_venue(
 ):
     v = session.get(Venue, venue_id)
     if not v:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
     v.dossier_id = dossier_id
     v.uf_responsabilite = uf_responsabilite
     v.start_time = datetime.fromisoformat(start_time)
@@ -181,7 +185,7 @@ def update_venue(
 def delete_venue(venue_id: int, request: Request, session=Depends(get_session)):
     v = session.get(Venue, venue_id)
     if not v:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Venue introuvable"}, status_code=404)
     dossier_id = v.dossier_id
     # Refresh relationships so emit_to_senders can access them before deletion
     session.refresh(v)

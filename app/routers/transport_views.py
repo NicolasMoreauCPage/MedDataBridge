@@ -3,13 +3,17 @@ from typing import Optional
 from pathlib import Path
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint, MLLPConfig, FHIRConfig
 
-templates = Jinja2Templates(directory="app/templates")
+
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
 
 router = APIRouter(
     prefix="/transport", 
@@ -26,7 +30,7 @@ async def view_transport_configs(request: Request, endpoint_id: int, session: Se
     if not endpoint:
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "endpoint_transport.html",
         {
@@ -43,7 +47,7 @@ async def new_mllp_config_form(request: Request, endpoint_id: int, session: Sess
     if not endpoint:
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "mllp_config_form.html",
         {
@@ -114,7 +118,7 @@ async def edit_mllp_config_form(
     if config.endpoint_id != endpoint_id:
         raise HTTPException(status_code=403, detail="Config does not belong to endpoint")
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "mllp_config_form.html",
         {
@@ -176,7 +180,7 @@ async def new_fhir_config_form(request: Request, endpoint_id: int, session: Sess
     if not endpoint:
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "fhir_config_form.html",
         {
@@ -240,7 +244,7 @@ async def edit_fhir_config_form(
     if config.endpoint_id != endpoint_id:
         raise HTTPException(status_code=403, detail="Config does not belong to endpoint")
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "fhir_config_form.html",
         {

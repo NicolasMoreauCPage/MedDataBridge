@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import select, Session
 from starlette import status
 from datetime import datetime, timezone
@@ -19,7 +19,11 @@ from app.runners import registry
 from sqlmodel.sql.expression import select as sqlmodel_select
 from sqlalchemy.orm import selectinload
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/endpoints", tags=["endpoints"])
 
 def _bool_from_str(v: str | None, default: bool = False) -> bool:
@@ -195,7 +199,7 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
         "is_admin": admin,
         "is_filtered": not admin and (ght_context is not None or ej_context_id is not None)
     }
-    return templates.TemplateResponse(request, "endpoints_hierarchical.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "endpoints_hierarchical.html", ctx)
 
 @router.get("/new", response_class=HTMLResponse)
 def new_endpoint(request: Request, session=Depends(get_session)):
@@ -249,7 +253,7 @@ def new_endpoint(request: Request, session=Depends(get_session)):
     {"label": "Error Path (FILE)", "name": "error_path", "type": "text", "placeholder": "C:/data/error", "required": False, "help": "Répertoire d'erreur pour le mode FILE."},
     {"label": "File Extensions (FILE)", "name": "file_extensions", "type": "text", "placeholder": ".hl7,.txt", "required": False, "help": "Extensions de fichiers acceptées pour le mode FILE."},
     ]
-    return templates.TemplateResponse(request, "form.html", {"request": request, "title":"Nouveau système", "fields":fields, "action_url": "/endpoints/new", "cancel_url": "/endpoints"})
+    return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title":"Nouveau système", "fields":fields, "action_url": "/endpoints/new", "cancel_url": "/endpoints"})
 
 @router.post("/new")
 def create_endpoint(
@@ -351,7 +355,7 @@ def detail_endpoint(endpoint_id: int, request: Request, session=Depends(get_sess
     else:
         is_running = endpoint_id in set(registry.running_ids())
     
-    return templates.TemplateResponse(request, "endpoint_detail.html", {
+    return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", {
         "e": e,
         "is_running": is_running,
         "ghts": ghts,
@@ -400,7 +404,7 @@ def update_endpoint(
         ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
         # Pour les endpoints FILE, "running" = is_enabled
         is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
-        return templates.TemplateResponse(request, "endpoint_detail.html", {
+        return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", {
             "e": e,
             "is_running": is_running,
             "ghts": ghts,
@@ -422,7 +426,7 @@ def update_endpoint(
             ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
             # Pour les endpoints FILE, "running" = is_enabled
             is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
-            return templates.TemplateResponse(request, "endpoint_detail.html", {
+            return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", {
                 "e": e,
                 "is_running": is_running,
                 "ghts": ghts,
@@ -500,7 +504,7 @@ def show_clone_structure_form(endpoint_id: int, request: Request, session: Sessi
         .where(SystemEndpoint.role.in_(["receiver", "both"]))
     ).all()
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "endpoint_clone_structure.html",
         {
@@ -659,7 +663,7 @@ def show_endpoint_context(endpoint_id: int, request: Request, session: Session =
         .where(MouvementContextMapping.context_id == context.id)
     ).all()
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "endpoint_context.html",
         {

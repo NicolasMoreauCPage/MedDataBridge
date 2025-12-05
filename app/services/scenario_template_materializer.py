@@ -19,7 +19,7 @@ from sqlmodel import Session, select
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep, InteropScenario, InteropScenarioStep
 from app.models_structure import EntiteJuridique, UniteFonctionnelle
-from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq
+from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq, generate_venue_seq
 from app.models_scenario_config import (
     ScenarioEJConfig, 
     get_location_for_event, 
@@ -91,7 +91,7 @@ def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dic
     Utilise les générateurs basés sur timestamp pour garantir l'unicité:
     - IPP: 12 chiffres, préfixe '9' + timestamp (generate_patient_seq)
     - NDA: 9 chiffres, préfixe '9' + timestamp (generate_dossier_seq)
-    - venue_seq: basé sur le NDA pour cohérence
+    - venue_seq: 10 chiffres, préfixe '8' + timestamp (generate_venue_seq)
     
     Returns:
         Dict avec:
@@ -106,8 +106,8 @@ def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dic
     # Génération basée sur timestamp pour unicité garantie
     ipp = str(generate_patient_seq())
     nda = str(generate_dossier_seq())
-    # Le venue_seq est basé sur le NDA pour cohérence du parcours
-    venue_seq = nda
+    # Le venue_seq est généré indépendamment pour garantir son unicité
+    venue_seq = str(generate_venue_seq())
     
     data.update({"ipp": ipp, "nda": nda, "venue_seq": venue_seq})
     return data

@@ -827,9 +827,9 @@ def new_mouvement(
             "options": uh_options,
             "value": str(selected_uh_id) if selected_uh_id else None,
             "help": "Sélectionnez l'unité d'hébergement liée à l'UF (pré-remplie depuis le dernier mouvement)",
-            "parent_field": "uf_id",
-            "depends_on": "une UF (Unité médicale)",
-            "empty_message": "Sélectionnez d'abord une UF pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
+            "parent_field": "uf_soins_id",
+            "depends_on": "une UF de Soins",
+            "empty_message": "Sélectionnez d'abord une UF de Soins pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
         {
             "label": "Chambre",
@@ -1368,9 +1368,9 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "options": uh_options,
             "value": str(selected_uh_id) if selected_uh_id else None,
             "help": "Sélectionnez l'unité d'hébergement liée à l'UF",
-            "parent_field": "uf_id",
-            "depends_on": "une UF (Unité médicale)",
-            "empty_message": "Sélectionnez d'abord une UF pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
+            "parent_field": "uf_soins_id",
+            "depends_on": "une UF de Soins",
+            "empty_message": "Sélectionnez d'abord une UF de Soins pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
         {
             "label": "Chambre",

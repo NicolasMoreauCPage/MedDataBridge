@@ -117,8 +117,10 @@ class DependentFieldsManager {
         let endpoint = '';
 
         // Construire l'endpoint selon le champ
+        // Note: Supporte à la fois uf_id et uf_soins_id comme parent de uh_id
         if (fieldName === 'uh_id') {
             // Charger les UH pour l'UF sélectionnée
+            // Le paramètre API est toujours 'uf_id' même si le parent s'appelle 'uf_soins_id'
             endpoint = `/api/mouvements/uh-options?uf_id=${encodeURIComponent(parentValue)}`;
         } else if (fieldName === 'chambre_id') {
             // Charger les chambres pour l'UH sélectionnée

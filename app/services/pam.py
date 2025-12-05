@@ -177,6 +177,27 @@ def process_pam_message(session: Session, message: str) -> Dict[str, Any]:
             }
         }
 
+        # Run stateless PAM validation (per-message) and stateful sequence validation
+        try:
+            from app.services.pam_validation import validate_pam
+            from app.services.pam_sequence_validator import validate_pam_sequence
+
+            stateless = validate_pam(message, direction="in")
+            seq = validate_pam_sequence(message, session)
+            result["validation"] = {
+                "stateless": stateless.to_dict(),
+                "sequence": seq.to_dict(),
+            }
+
+            # Enforce sequence validation strict par défaut (comportement demandé)
+            if seq.level == "fail":
+                # Les issues ont été traduites en français
+                raise ValueError(f"La validation de séquence PAM a échoué: {seq.issues}")
+        except Exception as e:
+            # Non-fatal by default: include warning in result
+            logger.warning(f"[pam] Validation warning/error: {e}")
+            result.setdefault("validation", {})["error"] = str(e)
+
         # Placeholder: log operation; future enrichment: persist changes
         logger.debug(f"[pam] Parsed message trigger={trigger} pid={patient_identifier} location={venue_location}")
         return result

@@ -780,6 +780,10 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
         pv1_19 = _field(pv1_parts, 19)
         if pv1_19:
             _validate_cx_identifier(pv1_19, "PV1_19", issues)
+        else:
+            # For events that require PV1 (stay/admission related), PV1-19 (visit number) is important
+            if trigger in REQUIRE_PV1:
+                issues.append(ValidationIssue("PV1_19_MISSING", f"PV1-19 (Visit Number) is recommended/required for event {trigger}", severity="error"))
         
         # PV1-44 (Admit Date/Time) - TS type
         pv1_44 = _field(pv1_parts, 44)
@@ -791,11 +795,45 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
         if pv1_45:
             _validate_ts_timestamp(pv1_45, "PV1_45", issues)
 
+        # PV1-3 detailed checks (Assigned Patient Location: PL format)
+        # Components: PointOfCare^Room^Bed^Facility^LocationStatus^PersonLocationType^Building^Floor
+        if pv1_3:
+            pl_comps = pv1_3.split("^")
+            pov = pl_comps[0] if len(pl_comps) > 0 else ""
+            room = pl_comps[1] if len(pl_comps) > 1 else ""
+            bed = pl_comps[2] if len(pl_comps) > 2 else ""
+            facility = pl_comps[3] if len(pl_comps) > 3 else ""
+            loc_status = pl_comps[4] if len(pl_comps) > 4 else ""
+
+            # For stay/admission related events, the UF (PointOfCare) should be present
+            if trigger in REQUIRE_PV1 and not pov:
+                issues.append(ValidationIssue("PV1_3_1_MISSING", f"PV1-3.1 (UF / PointOfCare) is expected for event {trigger}", severity="error"))
+
+            # A02 transfers in BP6: destination must include UF + Chambre + Lit
+            if trigger == "A02":
+                if not pov:
+                    issues.append(ValidationIssue("PV1_3_1_MISSING_A02", "PV1-3.1 (UF) is required for transfer (A02)", severity="error"))
+                if not room:
+                    issues.append(ValidationIssue("PV1_3_2_MISSING_A02", "PV1-3.2 (Room/Chambre) is required for transfer (A02)", severity="error"))
+                if not bed:
+                    issues.append(ValidationIssue("PV1_3_3_MISSING_A02", "PV1-3.3 (Bed/Lit) is required for transfer (A02)", severity="error"))
+
+            # PV1-3.5 (LocationStatus): expected values often 'O' (occupied) or 'U' (unoccupied)
+            if loc_status and loc_status not in {"O", "U", "R", "P"}:
+                issues.append(ValidationIssue("PV1_3_5_INVALID", f"PV1-3.5 (LocationStatus) has unexpected value '{loc_status}'", severity="info"))
+
     # Determine overall level
     has_error = any(i.severity == "error" for i in issues)
     has_warn = any(i.severity == "warn" for i in issues)
     level = "fail" if has_error else ("warn" if has_warn else "ok")
     is_valid = not has_error
+
+    # Translate issues to French for output
+    try:
+        from app.services.pam_i18n import translate_issues_to_fr
+        issues = translate_issues_to_fr(issues)
+    except Exception:
+        pass
 
     return ValidationResult(is_valid=is_valid, level=level, event=trigger, message_type=msg_type, issues=issues)
 

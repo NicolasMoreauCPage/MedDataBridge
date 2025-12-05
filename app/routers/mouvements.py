@@ -997,6 +997,15 @@ def create_mouvement(
     requires_location = bool(event_mapping.get(trigger_event, (None, False))[1])
     if requires_location and not (uh_id or chambre_id):
         raise HTTPException(status_code=400, detail="La localisation est obligatoire pour ce type de mouvement")
+    
+    # A02 (Transfert/Mutation) : la destination complète (UH, Chambre, Lit) est OBLIGATOIRE
+    if trigger_event == "A02":
+        if not uh_id:
+            raise HTTPException(status_code=400, detail="Pour un transfert (A02), l'Unité d'Hébergement de destination est obligatoire")
+        if not chambre_id:
+            raise HTTPException(status_code=400, detail="Pour un transfert (A02), la Chambre de destination est obligatoire")
+        if not lit_id:
+            raise HTTPException(status_code=400, detail="Pour un transfert (A02), le Lit de destination est obligatoire")
 
     # Sequence generation (always generate new, ignore form value)
     seq = get_next_sequence(session, "mouvement")
@@ -1522,6 +1531,44 @@ def update_mouvement(
         uf_resp_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_id)).first()
         if uf_resp_obj:
             uf_responsabilite = uf_resp_obj.identifier
+
+    # Determine event code (A01, A02, ... ) from submitted type for validation
+    trigger_event = None
+    if type:
+        parts = type.split("^", 1)
+        if len(parts) == 2:
+            trigger_event = parts[1]
+
+    # Movement event mapping (same as create_mouvement) to infer location requirements
+    event_mapping = {
+        "A01": ("admission", True),
+        "A02": ("transfer", True),
+        "A03": ("discharge", False),
+        "A04": ("consultation_out", False),
+        "A05": ("preadmission", False),
+        "A06": ("class_change", True),
+        "A07": ("from_consult", True),
+        "A11": ("cancel_admission", False),
+        "A12": ("cancel_transfer", False),
+        "A13": ("cancel_discharge", False),
+        "A21": ("temporary_leave", False),
+        "A22": ("return", True),
+        "A38": ("cancel_preadmission", False),
+    }
+
+    # Enforce location requirement according to mapping (mirror create_mouvement)
+    requires_location = bool(event_mapping.get(trigger_event, (None, False))[1])
+    if requires_location and not (uh_id or chambre_id):
+        raise HTTPException(status_code=400, detail="La localisation est obligatoire pour ce type de mouvement")
+
+    # A02 (Transfert/Mutation) : la destination complète (UH, Chambre, Lit) est OBLIGATOIRE
+    if trigger_event == "A02":
+        if not uh_id:
+            raise HTTPException(status_code=400, detail="Pour un transfert (A02), l'Unité d'Hébergement de destination est obligatoire")
+        if not chambre_id:
+            raise HTTPException(status_code=400, detail="Pour un transfert (A02), la Chambre de destination est obligatoire")
+        if not lit_id:
+            raise HTTPException(status_code=400, detail="Pour un transfert (A02), le Lit de destination est obligatoire")
     
     try:
         m.venue_id = venue_id

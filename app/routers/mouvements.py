@@ -808,7 +808,8 @@ def new_mouvement(
             "type": "select",
             "options": uf_options,
             "value": selected_venue.uf_responsabilite if (selected_venue and selected_venue.uf_responsabilite and not last_movement) else (selected_uf_id if selected_uf_id else None),
-            "help": "Sélectionnez l'UF médicale concernée (pré-remplie depuis le dernier mouvement ou la venue)"
+            "help": "Sélectionnez l'UF médicale concernée (pré-remplie depuis le dernier mouvement ou la venue)",
+            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
         },
         {
             "label": "Unité de Soins (UF Soins)",
@@ -816,7 +817,8 @@ def new_mouvement(
             "type": "select",
             "options": uf_options,  # Même options que l'UF principale
             "value": selected_uf_soins_id,
-            "help": "Sélectionnez l'unité de soins (pré-remplie depuis le dernier mouvement)"
+            "help": "Sélectionnez l'unité de soins (pré-remplie depuis le dernier mouvement)",
+            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
         },
         {
             "label": "Unité d'Hébergement (UH)",
@@ -824,7 +826,9 @@ def new_mouvement(
             "type": "select",
             "options": uh_options,
             "value": str(selected_uh_id) if selected_uh_id else None,
-            "help": "Sélectionnez l'unité d'hébergement liée à l'UF (pré-remplie depuis le dernier mouvement)"
+            "help": "Sélectionnez l'unité d'hébergement liée à l'UF (pré-remplie depuis le dernier mouvement)",
+            "depends_on": "une UF (Unité médicale)",
+            "empty_message": "Sélectionnez d'abord une UF pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
         {
             "label": "Chambre",
@@ -833,7 +837,8 @@ def new_mouvement(
             "options": chambre_options,
             "value": str(selected_chambre_id) if selected_chambre_id else None,
             "help": "Sélectionnez la chambre (pré-remplie depuis le dernier mouvement)",
-            "depends_on": "uh_id"
+            "depends_on": "une UH (Unité d'Hébergement)",
+            "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
         },
         {
             "label": "Lit",
@@ -842,7 +847,8 @@ def new_mouvement(
             "options": lit_options,
             "value": str(selected_lit_id) if selected_lit_id else None,
             "help": "Sélectionnez le lit (pré-rempli depuis le dernier mouvement)",
-            "depends_on": "chambre_id"
+            "depends_on": "une Chambre",
+            "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."
         },
         {
             "label": "Depuis (départ)",
@@ -1259,10 +1265,34 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
     # --- UH options (for selected UF) ---
     uh_options = []
     if selected_uf_db_id:
+        # Load UH for selected UF
         uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_db_id)).all()
         for uh in uhs:
             label = f"{uh.identifier} — {uh.name}"
             uh_options.append({"value": str(uh.id), "label": label})
+    else:
+        # Load all UH if no UF selected (for edit form convenience)
+        if ej_id:
+            # Charger les UH de l'EJ via la hiérarchie
+            from app.models_structure import EntiteGeographique
+            entites_geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()
+            for eg in entites_geo:
+                poles = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).all()
+                for pole in poles:
+                    services = session.exec(select(Service).where(Service.pole_id == pole.id)).all()
+                    for service in services:
+                        service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
+                        for uf in service_ufs:
+                            uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == uf.id)).all()
+                            for uh in uhs:
+                                label = f"{uh.identifier} — {uh.name}"
+                                uh_options.append({"value": str(uh.id), "label": label})
+        else:
+            # Fallback: charger toutes les UH
+            all_uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
+            for uh in all_uhs:
+                label = f"{uh.identifier} — {uh.name}"
+                uh_options.append({"value": str(uh.id), "label": label})
 
     # --- Chambre options (for selected UH) ---
     chambre_options = []
@@ -1315,16 +1345,18 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "name": "uf_id",
             "type": "select",
             "options": uf_options,
-            "value": selected_uf_identifier,
-            "help": "Sélectionnez l'UF médicale concernée"
+            "value": selected_uf_identifier or '',
+            "help": "Sélectionnez l'UF médicale concernée",
+            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
         },
         {
             "label": "Unité de Soins (UF Soins)",
             "name": "uf_soins_id",
             "type": "select",
             "options": uf_options,  # Même options que l'UF principale
-            "value": getattr(m, 'uf_soins_code', None),
-            "help": "Sélectionnez l'unité de soins (optionnel)"
+            "value": getattr(m, 'uf_soins_code', None) or '',
+            "help": "Sélectionnez l'unité de soins (optionnel)",
+            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
         },
         {
             "label": "Unité d'Hébergement (UH)",
@@ -1332,7 +1364,9 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "type": "select",
             "options": uh_options,
             "value": str(selected_uh_id) if selected_uh_id else None,
-            "help": "Sélectionnez l'unité d'hébergement liée à l'UF"
+            "help": "Sélectionnez l'unité d'hébergement liée à l'UF",
+            "depends_on": "une UF (Unité médicale)",
+            "empty_message": "Sélectionnez d'abord une UF pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
         {
             "label": "Chambre",
@@ -1340,8 +1374,9 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "type": "select",
             "options": chambre_options,
             "value": str(selected_chambre_id) if selected_chambre_id else None,
-            "help": "Sélectionnez d'abord une UH",
-            "depends_on": "uh_id"
+            "help": "Chambres disponibles pour l'UH sélectionnée",
+            "depends_on": "une UH (Unité d'Hébergement)",
+            "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
         },
         {
             "label": "Lit",
@@ -1349,28 +1384,29 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "type": "select",
             "options": lit_options,
             "value": str(selected_lit_id) if selected_lit_id else None,
-            "help": "Sélectionnez d'abord une chambre",
-            "depends_on": "chambre_id"
+            "help": "Lits disponibles pour la chambre sélectionnée",
+            "depends_on": "une Chambre",
+            "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."
         },
         {
             "label": "Depuis (départ)",
             "name": "from_location",
             "type": "text",
-            "value": getattr(m, 'from_location', None),
+            "value": getattr(m, 'from_location', None) or '',
             "help": "Pour les transferts : lieu de départ"
         },
         {
             "label": "Vers (arrivée)",
             "name": "to_location",
             "type": "text",
-            "value": getattr(m, 'to_location', None),
+            "value": getattr(m, 'to_location', None) or '',
             "help": "Pour les transferts : lieu d'arrivée"
         },
         {
             "label": "Raison / Motif",
             "name": "reason",
             "type": "text",
-            "value": getattr(m, 'reason', None),
+            "value": getattr(m, 'reason', None) or '',
             "help": "Motif du mouvement (issu du vocabulaire)"
         },
         {
@@ -1385,7 +1421,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "label": "Raison du mouvement",
             "name": "movement_reason",
             "type": "text",
-            "value": getattr(m, 'movement_reason', None),
+            "value": getattr(m, 'movement_reason', None) or '',
             "help": "Raison détaillée du mouvement"
         },
         {

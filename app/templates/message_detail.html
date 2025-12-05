@@ -67,13 +67,13 @@
 
 <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
   <h3 class="text-sm font-semibold mb-2">Payload</h3>
-  <pre class="whitespace-pre-wrap text-sm bg-slate-50 p-3 rounded">{{ m.payload }}</pre>
+  <pre class="whitespace-pre-wrap text-sm bg-slate-50 p-3 rounded">{{ m.payload|format_hl7_payload }}</pre>
 </div>
 
 {% if m.ack_payload %}
 <div class="bg-white rounded-2xl border border-slate-200 p-4">
   <h3 class="text-sm font-semibold mb-2">ACK</h3>
-  <pre class="whitespace-pre-wrap text-sm bg-slate-50 p-3 rounded">{{ m.ack_payload }}</pre>
+  <pre class="whitespace-pre-wrap text-sm bg-slate-50 p-3 rounded">{{ m.ack_payload|format_hl7_payload }}</pre>
 </div>
 {% endif %}
 

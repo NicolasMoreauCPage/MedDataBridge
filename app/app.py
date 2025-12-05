@@ -137,11 +137,25 @@ def create_app() -> FastAPI:
         if value is None or value == "None":
             return "—"
         return value
-    # Ajout du filtre au moteur de templates Jinja2
+    
+    # Filtre Jinja2 pour convertir les caractères de retour à la ligne en sauts de ligne visibles
+    def format_hl7_payload(value):
+        """Convertit les caractères \r, \n et \r\n en véritables sauts de ligne HTML"""
+        if not isinstance(value, str):
+            return value
+        # Remplacer \r\n par \n d'abord (pour éviter double conversion)
+        value = value.replace('\r\n', '\n')
+        # Remplacer \r seul par \n
+        value = value.replace('\r', '\n')
+        # Les sauts de ligne seront préservés par whitespace-pre-wrap en CSS
+        return value
+    
+    # Ajout des filtres au moteur de templates Jinja2
     from fastapi.templating import Jinja2Templates
     templates_dir = str(Path(__file__).parent / "templates")
     templates = Jinja2Templates(directory=templates_dir)
     templates.env.filters["none_to_dash"] = none_to_dash
+    templates.env.filters["format_hl7_payload"] = format_hl7_payload
     # Stocker dans app.state pour accès dans les routes si besoin
     app.state.templates = templates
     # Store version from pyproject.toml

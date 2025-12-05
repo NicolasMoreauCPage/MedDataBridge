@@ -18,8 +18,16 @@ from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.scenario_validation import validate_scenario
 from app.services.vocabulary_lookup import get_vocabulary_options
 
-templates = Jinja2Templates(directory="app/templates")
+# NOTE: Ne pas créer une instance Jinja2Templates ici
+# Les routers doivent utiliser request.app.state.templates pour accéder à la
+# instance globale qui a tous les filtres enregistrés dans app.app:create_app()
+
 router = APIRouter(prefix="/messages", tags=["messages"])
+
+# Créer une fonction helper pour obtenir les templates avec les filtres
+def get_templates_with_filters(request: Request):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
 
 logger = logging.getLogger("routers.messages")
 
@@ -754,6 +762,7 @@ async def validate_dossier(
 def message_detail(message_id: int, request: Request, session: Session = Depends(get_session)):
     m = session.get(MessageLog, message_id)
     if not m:
+        templates = get_templates_with_filters(request)
         return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Message introuvable"}, status_code=404)
     ep = session.get(SystemEndpoint, m.endpoint_id) if m.endpoint_id else None
     
@@ -765,6 +774,7 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
         except (json.JSONDecodeError, TypeError):
             validation_issues = None
     
+    templates = get_templates_with_filters(request)
     return templates.TemplateResponse(
         request,
         "message_detail.html",

@@ -832,23 +832,23 @@ def new_mouvement(
             "empty_message": "Sélectionnez d'abord une UF de Soins pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
         {
-            "label": "Chambre",
+            "label": "Chambre (optionnel)",
             "name": "chambre_id",
             "type": "select",
             "options": chambre_options,
             "value": str(selected_chambre_id) if selected_chambre_id else None,
-            "help": "Sélectionnez la chambre (pré-remplie depuis le dernier mouvement)",
+            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée",
             "parent_field": "uh_id",
             "depends_on": "une UH (Unité d'Hébergement)",
             "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
         },
         {
-            "label": "Lit",
+            "label": "Lit (optionnel)",
             "name": "lit_id",
             "type": "select",
             "options": lit_options,
             "value": str(selected_lit_id) if selected_lit_id else None,
-            "help": "Sélectionnez le lit (pré-rempli depuis le dernier mouvement)",
+            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée avec chambre assignée",
             "parent_field": "chambre_id",
             "depends_on": "une Chambre",
             "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."
@@ -1373,23 +1373,23 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
             "empty_message": "Sélectionnez d'abord une UF de Soins pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
         },
         {
-            "label": "Chambre",
+            "label": "Chambre (optionnel)",
             "name": "chambre_id",
             "type": "select",
             "options": chambre_options,
             "value": str(selected_chambre_id) if selected_chambre_id else None,
-            "help": "Chambres disponibles pour l'UH sélectionnée",
+            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée",
             "parent_field": "uh_id",
             "depends_on": "une UH (Unité d'Hébergement)",
             "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
         },
         {
-            "label": "Lit",
+            "label": "Lit (optionnel)",
             "name": "lit_id",
             "type": "select",
             "options": lit_options,
             "value": str(selected_lit_id) if selected_lit_id else None,
-            "help": "Lits disponibles pour la chambre sélectionnée",
+            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée avec chambre assignée",
             "parent_field": "chambre_id",
             "depends_on": "une Chambre",
             "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."

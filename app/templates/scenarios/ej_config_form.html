@@ -75,7 +75,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Chambre
+                                Chambre <span class="text-xs text-gray-400">(optionnel)</span>
                             </label>
                             <input type="text" 
                                    name="chambre_hospitalisation" 
@@ -98,11 +98,11 @@
                                     {% endif %}
                                 {% endfor %}
                             </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez depuis la structure</p>
+                            <p class="mt-1 text-xs text-gray-500">Optionnel - Pour hospitalisation confirmée uniquement</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Lit
+                                Lit <span class="text-xs text-gray-400">(optionnel)</span>
                             </label>
                             <input type="text" 
                                    name="lit_hospitalisation" 
@@ -129,7 +129,7 @@
                                     {% endif %}
                                 {% endfor %}
                             </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez depuis la structure</p>
+                            <p class="mt-1 text-xs text-gray-500">Optionnel - Pour hospitalisation confirmée avec chambre</p>
                         </div>
                     </div>
                 </div>
@@ -192,7 +192,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Salle de consultation
+                            Salle de consultation <span class="text-xs text-gray-400">(optionnel)</span>
                         </label>
                         <input type="text" 
                                name="chambre_consultation" 
@@ -215,7 +215,7 @@
                                 {% endif %}
                             {% endfor %}
                         </datalist>
-                        <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez depuis la structure</p>
+                        <p class="mt-1 text-xs text-gray-500">Optionnel - Pas de lit pour consultations</p>
                     </div>
                 </div>
                 
@@ -276,7 +276,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Box
+                                Box <span class="text-xs text-gray-400">(optionnel)</span>
                             </label>
                             <input type="text" 
                                    name="chambre_urgences" 
@@ -299,11 +299,11 @@
                                     {% endif %}
                                 {% endfor %}
                             </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
+                            <p class="mt-1 text-xs text-gray-500">Optionnel</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Brancard/Lit
+                                Brancard/Lit <span class="text-xs text-gray-400">(optionnel)</span>
                             </label>
                             <input type="text" 
                                    name="lit_urgences" 
@@ -327,10 +327,10 @@
                                                 {% endfor %}
                                             {% endif %}
                                         {% endfor %}
-                                    {% endif %}
-                                {% endfor %}
-                            </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
+                                {% endif %}
+                            {% endfor %}
+                        </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Optionnel</p>
                         </div>
                     </div>
                 </div>
@@ -392,7 +392,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Chambre
+                                Chambre <span class="text-xs text-gray-400">(optionnel)</span>
                             </label>
                             <input type="text" 
                                    name="chambre_mutation" 
@@ -415,11 +415,11 @@
                                     {% endif %}
                                 {% endfor %}
                             </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
+                            <p class="mt-1 text-xs text-gray-500">Optionnel - Pour mutation confirmée</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Lit
+                                Lit <span class="text-xs text-gray-400">(optionnel)</span>
                             </label>
                             <input type="text" 
                                    name="lit_mutation" 
@@ -443,10 +443,10 @@
                                                 {% endfor %}
                                             {% endif %}
                                         {% endfor %}
-                                    {% endif %}
-                                {% endfor %}
-                            </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
+                                {% endif %}
+                            {% endfor %}
+                        </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Optionnel - Pour mutation confirmée avec chambre</p>
                         </div>
                     </div>
                 </div>

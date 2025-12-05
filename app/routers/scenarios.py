@@ -24,6 +24,11 @@ from app.services.scenario_dashboard import (
     get_scenario_comparison
 )
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
+from app.services.scenario_status_service import (
+    get_last_scenario_status,
+    get_scenarios_status_for_ej,
+    get_scenarios_with_status,
+)
 from app.utils.flash import flash
 
 templates = Jinja2Templates(directory="app/templates")
@@ -31,20 +36,30 @@ router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 
 
 @router.get("", response_class=HTMLResponse)
-def list_scenarios(request: Request, session: Session = Depends(get_session)):
-    scenarios = session.exec(select(InteropScenario).order_by(InteropScenario.name)).all()
+def list_scenarios(
+    request: Request,
+    filter_status: Optional[str] = None,
+    session: Session = Depends(get_session)
+):
+    """Liste les scénarios avec leur dernier statut d'exécution."""
+    
+    # Récupérer les scénarios avec statut
+    scenarios_data = get_scenarios_with_status(session, filter_by_status=filter_status)
+    
     rows = []
-    for sc in scenarios:
+    for scenario, status in scenarios_data:
         rows.append(
             {
                 "cells": [
-                    sc.name,
-                    sc.protocol,
-                    len(sc.steps or []),
-                    sc.category or "",
-                    sc.tags or "",
+                    status.visual_indicator,
+                    scenario.name,
+                    scenario.protocol,
+                    len(scenario.steps or []),
+                    status.ack_code or "—",
+                    status.last_run_at.strftime("%Y-%m-%d %H:%M") if status.last_run_at else "—",
                 ],
-                "detail_url": f"/scenarios/{sc.id}",
+                "detail_url": f"/scenarios/{scenario.id}",
+                "css_class": status.css_class,
             }
         )
 
@@ -52,11 +67,19 @@ def list_scenarios(request: Request, session: Session = Depends(get_session)):
         "request": request,
         "title": "Scénarios d'interopération",
         "breadcrumbs": [{"label": "Scénarios", "url": "/scenarios"}],
-        "headers": ["Nom", "Protocole", "Étapes", "Catégorie", "Tags"],
+        "headers": ["", "Nom", "Protocole", "Étapes", "Dernier ACK", "Dernière exécution"],
         "rows": rows,
-        "show_actions": False,
+        "show_actions": True,
         "actions": [
             {"label": "Importer", "url": "/scenarios/import", "icon": "upload"}
+        ],
+        "filter_status": filter_status,
+        "filter_options": [
+            {"label": "Tous", "value": None},
+            {"label": "✅ Succès (tous AA)", "value": "all_aa"},
+            {"label": "⚠️  Partiel (certains AA)", "value": "some_aa"},
+            {"label": "❌ Erreurs", "value": "error"},
+            {"label": "⏹️  Jamais exécutés", "value": "no_run"},
         ],
     }
     return templates.TemplateResponse(request, "list.html", ctx)
@@ -457,3 +480,107 @@ def get_run_errors(
 ):
     """Détail des erreurs pour un run spécifique."""
     return get_step_error_summary(session, run_id)
+
+
+@router.get("/api/scenario/{scenario_id}/status")
+def get_scenario_status_api(
+    scenario_id: int,
+    endpoint_id: Optional[int] = None,
+    session: Session = Depends(get_session)
+):
+    """Récupère le statut du dernier run d'un scénario."""
+    status = get_last_scenario_status(session, scenario_id, endpoint_id=endpoint_id)
+    return {
+        "scenario_id": status.scenario_id,
+        "scenario_name": status.scenario_name,
+        "status": status.status,
+        "ack_code": status.ack_code,
+        "is_success": status.is_success,
+        "has_errors": status.has_errors,
+        "visual_indicator": status.visual_indicator,
+        "last_run_at": status.last_run_at.isoformat() if status.last_run_at else None,
+        "success_steps": status.success_steps,
+        "total_steps": status.total_steps,
+    }
+
+
+@router.get("/ej-status", response_class=HTMLResponse)
+def ej_scenarios_status(
+    request: Request,
+    ej_id: Optional[int] = None,
+    only_failed: bool = False,
+    session: Session = Depends(get_session)
+):
+    """Affiche l'état des scénarios pour chaque EJ avec filtrage des erreurs."""
+    from app.models_structure import EntiteJuridique
+    
+    # Récupérer toutes les EJ
+    ej_list = session.exec(
+        select(EntiteJuridique).order_by(EntiteJuridique.name)
+    ).all()
+    
+    scenarios = []
+    stats = {
+        "total_scenarios": 0,
+        "success_scenarios": 0,
+        "partial_scenarios": 0,
+        "error_scenarios": 0,
+    }
+    
+    if ej_id:
+        # Récupérer les statuts pour cette EJ
+        scenarios = get_scenarios_status_for_ej(session, ej_id, only_failed=only_failed)
+        
+        # Calculer les stats
+        stats["total_scenarios"] = len(scenarios)
+        stats["success_scenarios"] = len([s for s in scenarios if s.is_success])
+        stats["partial_scenarios"] = len([s for s in scenarios if s.is_partial])
+        stats["error_scenarios"] = len([s for s in scenarios if s.has_errors and not s.is_partial])
+    
+    ctx = {
+        "request": request,
+        "breadcrumbs": [
+            {"label": "Scénarios", "url": "/scenarios"},
+            {"label": "Par EJ", "url": "/scenarios/ej-status"},
+        ],
+        "ej_list": ej_list,
+        "selected_ej_id": ej_id,
+        "scenarios": scenarios,
+        "stats": stats,
+        "only_failed": only_failed,
+    }
+    return templates.TemplateResponse(request, "scenarios/ej_scenarios_status.html", ctx)
+
+
+@router.get("/api/ej/{ej_id}/scenarios-status")
+def get_ej_scenarios_status(
+    ej_id: int,
+    only_failed: bool = False,
+    session: Session = Depends(get_session)
+):
+    """Récupère le statut de tous les scénarios pour une EJ donnée.
+    
+    Query params:
+    - only_failed: bool (défaut=false) - Retourner seulement les scénarios échoués
+    """
+    statuses = get_scenarios_status_for_ej(session, ej_id, only_failed=only_failed)
+    
+    return {
+        "ej_id": ej_id,
+        "count": len(statuses),
+        "scenarios": [
+            {
+                "scenario_id": s.scenario_id,
+                "scenario_name": s.scenario_name,
+                "status": s.status,
+                "ack_code": s.ack_code,
+                "is_success": s.is_success,
+                "has_errors": s.has_errors,
+                "visual_indicator": s.visual_indicator,
+                "last_run_at": s.last_run_at.isoformat() if s.last_run_at else None,
+                "success_steps": s.success_steps,
+                "total_steps": s.total_steps,
+            }
+            for s in statuses
+        ]
+    }

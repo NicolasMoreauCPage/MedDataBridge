@@ -2,6 +2,211 @@
 
 console.debug('forms.js loaded');
 
+/**
+ * Gère les champs dépendants (cascading dropdowns)
+ * Charge dynamiquement les options quand un champ parent change
+ */
+class DependentFieldsManager {
+    constructor(formElement) {
+        this.form = formElement;
+        this.dependencies = this.detectDependencies();
+        this.setupListeners();
+    }
+
+    /**
+     * Détecte les dépendances entre champs en analysant les data-depends-on
+     */
+    detectDependencies() {
+        const deps = new Map();
+        
+        // Pour les mouvements: UF -> UH -> Chambre -> Lit
+        const ufField = this.form.querySelector('[name="uf_id"]');
+        const uhField = this.form.querySelector('[name="uh_id"]');
+        const chambreField = this.form.querySelector('[name="chambre_id"]');
+        const litField = this.form.querySelector('[name="lit_id"]');
+        
+        if (ufField && uhField) {
+            deps.set('uf_id', { 
+                dependents: ['uh_id'],
+                endpoint: '/api/structure/uh'
+            });
+        }
+        
+        if (uhField && chambreField) {
+            deps.set('uh_id', {
+                dependents: ['chambre_id'],
+                endpoint: '/api/structure/chambres'
+            });
+        }
+        
+        if (chambreField && litField) {
+            deps.set('chambre_id', {
+                dependents: ['lit_id'],
+                endpoint: '/api/structure/lits'
+            });
+        }
+        
+        return deps;
+    }
+
+    /**
+     * Configure les listeners sur les champs parents
+     */
+    setupListeners() {
+        this.dependencies.forEach((config, fieldName) => {
+            const field = this.form.querySelector(`[name="${fieldName}"]`);
+            if (field) {
+                field.addEventListener('change', () => this.handleParentChange(fieldName, field.value));
+            }
+        });
+    }
+
+    /**
+     * Gère le changement d'un champ parent
+     */
+    async handleParentChange(parentName, parentValue) {
+        const config = this.dependencies.get(parentName);
+        if (!config) return;
+
+        console.log(`Parent ${parentName} changed to:`, parentValue);
+
+        // Pour chaque champ dépendant
+        for (const dependentName of config.dependents) {
+            const dependentField = this.form.querySelector(`[name="${dependentName}"]`);
+            if (!dependentField) continue;
+
+            // Réinitialiser le champ
+            this.clearField(dependentField);
+
+            if (!parentValue || parentValue === '') {
+                this.showEmptyMessage(dependentField);
+                continue;
+            }
+
+            // Charger les nouvelles options
+            try {
+                await this.loadOptions(dependentField, parentName, parentValue);
+            } catch (error) {
+                console.error(`Failed to load options for ${dependentName}:`, error);
+                this.showErrorMessage(dependentField, 'Erreur lors du chargement des options');
+            }
+        }
+    }
+
+    /**
+     * Charge les options pour un champ dépendant
+     */
+    async loadOptions(field, parentName, parentValue) {
+        const fieldName = field.name;
+        let endpoint = '';
+
+        // Construire l'endpoint selon le champ
+        if (fieldName === 'uh_id') {
+            // Charger les UH pour l'UF sélectionnée
+            endpoint = `/api/mouvements/uh-options?uf_id=${encodeURIComponent(parentValue)}`;
+        } else if (fieldName === 'chambre_id') {
+            // Charger les chambres pour l'UH sélectionnée
+            endpoint = `/api/mouvements/chambre-options?uh_id=${encodeURIComponent(parentValue)}`;
+        } else if (fieldName === 'lit_id') {
+            // Charger les lits pour la chambre sélectionnée
+            endpoint = `/api/mouvements/lit-options?chambre_id=${encodeURIComponent(parentValue)}`;
+        }
+
+        if (!endpoint) return;
+
+        // Afficher un loader
+        this.showLoading(field);
+
+        try {
+            const response = await fetch(endpoint);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const options = await response.json();
+            
+            // Mettre à jour les options
+            this.updateFieldOptions(field, options);
+            
+            // Cacher le message d'avertissement si présent
+            this.hideEmptyMessage(field);
+            
+        } catch (error) {
+            console.error(`Error loading options:`, error);
+            this.showErrorMessage(field, 'Erreur de chargement');
+        }
+    }
+
+    /**
+     * Met à jour les options d'un champ select
+     */
+    updateFieldOptions(field, options) {
+        // Garder l'option vide
+        field.innerHTML = '<option value="">-- Sélectionner --</option>';
+        
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.label;
+            field.appendChild(option);
+        });
+
+        field.disabled = options.length === 0;
+    }
+
+    /**
+     * Réinitialise un champ
+     */
+    clearField(field) {
+        field.innerHTML = '<option value="">-- Sélectionner --</option>';
+        field.value = '';
+        field.disabled = false;
+    }
+
+    /**
+     * Affiche un loader dans le champ
+     */
+    showLoading(field) {
+        field.innerHTML = '<option value="">⏳ Chargement...</option>';
+        field.disabled = true;
+    }
+
+    /**
+     * Affiche le message d'avertissement sous le champ
+     */
+    showEmptyMessage(field) {
+        const container = field.closest('.space-y-2');
+        if (!container) return;
+
+        const existingMsg = container.querySelector('.empty-state-message');
+        if (existingMsg) {
+            existingMsg.style.display = 'block';
+        }
+    }
+
+    /**
+     * Cache le message d'avertissement
+     */
+    hideEmptyMessage(field) {
+        const container = field.closest('.space-y-2');
+        if (!container) return;
+
+        const existingMsg = container.querySelector('.empty-state-message');
+        if (existingMsg) {
+            existingMsg.style.display = 'none';
+        }
+    }
+
+    /**
+     * Affiche un message d'erreur
+     */
+    showErrorMessage(field, message) {
+        console.error(message);
+        field.innerHTML = `<option value="">❌ ${message}</option>`;
+        field.disabled = true;
+    }
+}
+
 class FormManager {
     constructor(formElement, options = {}) {
         this.form = formElement;
@@ -17,6 +222,9 @@ class FormManager {
         
         // Ensure family field gets focus
         this.setupInitialFocus();
+        
+        // Initialiser la gestion des champs dépendants
+        this.dependentFieldsManager = new DependentFieldsManager(formElement);
         
         this.validators = {
             required: (value) => value && value.trim() !== '',

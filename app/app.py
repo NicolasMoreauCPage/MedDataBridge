@@ -221,6 +221,11 @@ def create_app() -> FastAPI:
     app.include_router(mouvements.ajax_router)
     print(" - Mouvements AJAX router mounted at /mouvements/api")
     
+    # API endpoints for dynamic form field loading
+    from app.routers import api_structure
+    app.include_router(api_structure.router)
+    print(" - API Structure router mounted at /api/mouvements")
+    
     # 2b. Timeline views
     from app.routers import timeline
     app.include_router(timeline.router)
@@ -228,7 +233,7 @@ def create_app() -> FastAPI:
     
     # 3. Structure management
     app.include_router(structure.redirect_router)  # Redirections singulier->pluriel (AVANT le router principal)
-    app.include_router(structure.router)  # Has prefix /structure
+    app.include_router(structure.api_router)  # Has prefix /api/structure
     app.include_router(structure.api_router)  # Has prefix /api/structure
     app.include_router(structure_hl7.router)  # Has prefix /structure
     app.include_router(fhir_structure.router)  # Has prefix /fhir

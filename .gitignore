@@ -28,3 +28,7 @@ Doc/interfaces.integration_src/interfaces.integration/
 .test_diagnostics/
 medbridge.db*
 test_reports/
+
+# Ignore generated tmp files produced by scripts
+tmp/
+tmp/generated/

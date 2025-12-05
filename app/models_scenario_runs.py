@@ -32,7 +32,7 @@ class ScenarioExecutionRun(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # Relation vers les logs de steps
+    # Relation vers les logs de Étape
     step_logs: list["ScenarioExecutionStepLog"] = Relationship(back_populates="run")
 
 

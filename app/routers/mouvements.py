@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import select
 from datetime import datetime
 from typing import Optional
@@ -13,7 +13,11 @@ from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
 from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS, SUPPORTED_WORKFLOW_EVENTS
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(
     prefix="/mouvements", 
     tags=["mouvements"],
@@ -86,7 +90,7 @@ def list_mouvements(
     if venue_id:
         venue = session.get(Venue, venue_id)
         if not venue:
-            return templates.TemplateResponse(
+            return get_templates_with_filters(request).TemplateResponse(
                 request,
                 "error.html",
                 {
@@ -118,7 +122,7 @@ def list_mouvements(
         # Ensure Dossier refers to the imported model, not a local variable
         dossier = session.get(Dossier, dossier_id)
         if not dossier:
-            return templates.TemplateResponse(
+            return get_templates_with_filters(request).TemplateResponse(
                 request,
                 "error.html",
                 {
@@ -167,7 +171,7 @@ def list_mouvements(
             else:
                 mouvements = []
         else:
-            return templates.TemplateResponse(
+            return get_templates_with_filters(request).TemplateResponse(
                 request,
                 "error.html",
                 {
@@ -360,7 +364,7 @@ def list_mouvements(
         "show_actions": True
     }
 
-    return templates.TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 
 @router.get("/historique")
@@ -428,7 +432,7 @@ def new_mouvement(
                     venues.append(requested_venue)
     
     if not venues:
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             request,
             "error.html",
             {
@@ -651,7 +655,7 @@ def new_mouvement(
                             service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
                             uf_ids.update(uf.id for uf in service_ufs)
 
-            # Fallback: si toujours aucune UF, utiliser toutes les UF (pour compatibilité)
+            # Solution de repli: si toujours aucune UF, utiliser toutes les UF (pour compatibilité)
             if not uf_ids:
                 all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
                 uf_ids.update(uf.id for uf in all_ufs)
@@ -676,7 +680,7 @@ def new_mouvement(
             uh_options.append({"value": str(uh.id), "label": label})
     else:
         logging.info("No selected_uf_id, using fallback UH options")
-        # Fallback: utiliser toutes les UH disponibles
+        # Solution de repli: utiliser toutes les UH disponibles
         uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
         logging.info(f"Found {len(uhs)} UH in fallback")
         for uh in uhs:
@@ -889,7 +893,7 @@ def new_mouvement(
         if dossier:
             title += f" pour le dossier #{dossier.dossier_seq}"
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "form.html",
         {
@@ -1034,7 +1038,7 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
     require_ght_context(request)
     m = session.get(Mouvement, mouvement_id)
     if not m:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
     
     # Récupérer les informations enrichies pour l'affichage
     from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre
@@ -1117,10 +1121,10 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
                 type_label = opt.get('label')
                 break
     if not type_label:
-        # Fallback vers le badge ou le code
+        # Solution de repli vers le badge ou le code
         type_label = m.movement_type or "Non spécifié"
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "mouvement_detail.html",
         {
@@ -1146,7 +1150,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
 
     m = session.get(Mouvement, mouvement_id)
     if not m:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
 
     # Refresh venue and dossier for context
     session.refresh(m, ["venue"])
@@ -1241,7 +1245,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
                     service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
                     uf_ids.update(uf.id for uf in service_ufs)
 
-    # Fallback: utiliser toutes les UF
+    # Solution de repli: utiliser toutes les UF
     if not uf_ids:
         all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
         uf_ids.update(uf.id for uf in all_ufs)
@@ -1401,7 +1405,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
         },
     ]
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "form.html",
         {
@@ -1434,7 +1438,7 @@ def update_mouvement(
 ):
     m = session.get(Mouvement, mouvement_id)
     if not m:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
     
     # Import required models
     from app.models_structure import Chambre, UniteHebergement, UniteFonctionnelle
@@ -1519,7 +1523,7 @@ def update_mouvement(
         return RedirectResponse(url="/mouvements", status_code=303)
     except Exception as e:
         session.rollback()
-        # Return error to user with proper template
+        # Renvoie error to user with proper template
         from app.middleware.flash import flash
         flash(request, f"Erreur lors de la modification: {str(e)}", "error")
         return RedirectResponse(url=f"/mouvements/{mouvement_id}/edit", status_code=303)
@@ -1529,7 +1533,7 @@ def update_mouvement(
 def delete_mouvement(mouvement_id: int, request: Request, session=Depends(get_session)):
     m = session.get(Mouvement, mouvement_id)
     if not m:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
     # Refresh relationships so emit_to_senders can access them before deletion
     session.refresh(m)
     if m.venue:
@@ -1542,7 +1546,7 @@ def delete_mouvement(mouvement_id: int, request: Request, session=Depends(get_se
     session.delete(m)
     session.commit()
     # Redirect back to the mouvements list filtered by the venue to ensure the
-    # list view has the required context and doesn't return 400.
+    # list view has the required context and doesn't Renvoie 400.
     if m.venue_id:
         return RedirectResponse(url=f"/mouvements?venue_id={m.venue_id}", status_code=303)
     return RedirectResponse(url="/mouvements", status_code=303)
@@ -1646,18 +1650,18 @@ def get_reasons_for_movement_type(movement_type: str, session=Depends(get_sessio
             'A12': ['annulation_transfert'],  # Cancel transfer
             'A13': ['annulation_sortie'],  # Cancel discharge
             'A21': ['permission_sortie'],  # Leave of absence
-            'A22': ['retour_permission'],  # Return from leave
+            'A22': ['retour_permission'],  # Renvoie from leave
             'A38': ['annulation_preadmission']  # Cancel pre-admission
         }
         
-        # Get appropriate reasons for this event, or return all if unknown event
+        # Get appropriate reasons for this event, or Renvoie all if unknown event
         appropriate_codes = reason_mapping.get(event_code, [])
         
         if appropriate_codes:
             # Filter options to only include appropriate reasons
             filtered_options = [opt for opt in all_reason_options if opt.get('value') in appropriate_codes]
         else:
-            # Unknown event type, return all options
+            # Unknown event type, Renvoie all options
             filtered_options = all_reason_options
         
         return JSONResponse({"success": True, "options": filtered_options})
@@ -1671,13 +1675,13 @@ from app.models_structure import UniteFonctionnelle
 def edit_uf_form(uf_id: int, request: Request, session=Depends(get_session)):
     uf = session.get(UniteFonctionnelle, uf_id)
     if not uf:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
     fields = [
         {"label": "Identifiant UF", "name": "identifier", "type": "text", "value": uf.identifier, "required": True},
         {"label": "Nom", "name": "name", "type": "text", "value": uf.name, "required": True},
         {"label": "Nom court", "name": "short_name", "type": "text", "value": uf.short_name},
     ]
-    return templates.TemplateResponse(request, "form.html", {
+    return get_templates_with_filters(request).TemplateResponse(request, "form.html", {
         "title": f"Éditer UF {uf.identifier}",
         "fields": fields,
         "action_url": f"/mouvements/uf/{uf_id}/edit",
@@ -1688,7 +1692,7 @@ def edit_uf_form(uf_id: int, request: Request, session=Depends(get_session)):
 def update_uf(uf_id: int, identifier: str = Form(...), name: str = Form(...), short_name: str = Form(None), session=Depends(get_session), request: Request = None):
     uf = session.get(UniteFonctionnelle, uf_id)
     if not uf:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
     uf.identifier = identifier
     uf.name = name
     uf.short_name = short_name
@@ -1701,8 +1705,8 @@ def update_uf(uf_id: int, identifier: str = Form(...), name: str = Form(...), sh
 def confirm_delete_uf(uf_id: int, request: Request, session=Depends(get_session)):
     uf = session.get(UniteFonctionnelle, uf_id)
     if not uf:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
-    return templates.TemplateResponse(request, "confirm_delete.html", {
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+    return get_templates_with_filters(request).TemplateResponse(request, "confirm_delete.html", {
         "title": f"Supprimer UF {uf.identifier}",
         "object_label": uf.name,
         "action_url": f"/mouvements/uf/{uf_id}/delete",
@@ -1713,7 +1717,7 @@ def confirm_delete_uf(uf_id: int, request: Request, session=Depends(get_session)
 def delete_uf(uf_id: int, session=Depends(get_session), request: Request = None):
     uf = session.get(UniteFonctionnelle, uf_id)
     if not uf:
-        return templates.TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "UF introuvable"}, status_code=404)
     session.delete(uf)
     session.commit()
     return RedirectResponse(url="/mouvements/new", status_code=303)

@@ -23,7 +23,7 @@ def extract_nature_from_hl7(pv1: str, zbe: Optional[str]) -> Optional[str]:
             if nature in ["S", "H", "O", "U"]:
                 return nature
     
-    # Fallback: deduce from PV1-2 (patient class)
+    # Solution de repli: deduce from PV1-2 (patient class)
     if pv1:
         pv1_fields = pv1.split('|')
         if len(pv1_fields) > 2 and pv1_fields[2]:

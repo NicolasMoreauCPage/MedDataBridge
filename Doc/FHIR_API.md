@@ -13,8 +13,7 @@ http://localhost:8000/api/fhir
 ### Format
 
 Toutes les requêtes et réponses utilisent le format JSON avec le Content-Type `application/json`.
-
----
+# 
 
 ## Endpoints d'Export
 
@@ -23,6 +22,7 @@ Toutes les requêtes et réponses utilisent le format JSON avec le Content-Type 
 Exporte la structure organisationnelle complète d'une entité juridique au format FHIR.
 
 **Paramètres:**
+
 - `ej_id` (path, required): ID de l'entité juridique
 
 **Réponse:** Bundle FHIR de type 'transaction' contenant des ressources Location
@@ -78,16 +78,18 @@ curl -X GET "http://localhost:8000/api/fhir/export/structure/1"
   ]
 }
 ```
-
----
+# 
 
 ### GET /api/fhir/export/patients/{ej_id}
 
 Exporte les patients d'une entité juridique au format FHIR.
 
 **Paramètres:**
+
 - `ej_id` (path, required): ID de l'entité juridique
+
 - `limit` (query, optional): Nombre maximum de patients à exporter (pagination)
+
 - `offset` (query, optional): Nombre de patients à sauter (pagination)
 
 **Réponse:** Bundle FHIR contenant des ressources Patient
@@ -141,16 +143,18 @@ curl -X GET "http://localhost:8000/api/fhir/export/patients/1?limit=50&offset=0"
   ]
 }
 ```
-
----
+# 
 
 ### GET /api/fhir/export/venues/{ej_id}
 
 Exporte les venues (séjours/rencontres) d'une entité juridique au format FHIR.
 
 **Paramètres:**
+
 - `ej_id` (path, required): ID de l'entité juridique
+
 - `limit` (query, optional): Nombre maximum de venues à exporter
+
 - `offset` (query, optional): Nombre de venues à sauter
 
 **Réponse:** Bundle FHIR contenant des ressources Encounter
@@ -204,14 +208,14 @@ curl -X GET "http://localhost:8000/api/fhir/export/venues/1?limit=100"
   ]
 }
 ```
-
----
+# 
 
 ### GET /api/fhir/export/all/{ej_id}
 
 Exporte toutes les données (structure, patients, venues) en une seule requête.
 
 **Paramètres:**
+
 - `ej_id` (path, required): ID de l'entité juridique
 
 **Réponse:** Objet JSON avec trois bundles séparés
@@ -241,14 +245,14 @@ curl -X GET "http://localhost:8000/api/fhir/export/all/1"
   }
 }
 ```
-
----
+# 
 
 ### GET /api/fhir/export/statistics/{ej_id}
 
 Récupère les statistiques d'export pour une entité juridique.
 
 **Paramètres:**
+
 - `ej_id` (path, required): ID de l'entité juridique
 
 **Réponse:** Objet JSON avec les compteurs
@@ -280,8 +284,7 @@ curl -X GET "http://localhost:8000/api/fhir/export/statistics/1"
   "venues": 5421
 }
 ```
-
----
+# 
 
 ## Endpoints d'Import
 
@@ -318,8 +321,7 @@ curl -X POST "http://localhost:8000/api/fhir/import/bundle" \
   -H "Content-Type: application/json" \
   -d @bundle.json
 ```
-
----
+# 
 
 ### POST /api/fhir/import/patient
 
@@ -348,8 +350,7 @@ Importe une ressource Patient FHIR.
   "errors": []
 }
 ```
-
----
+# 
 
 ### POST /api/fhir/import/location
 
@@ -367,8 +368,7 @@ Importe une ressource Location FHIR.
   }
 }
 ```
-
----
+# 
 
 ### POST /api/fhir/import/encounter
 
@@ -386,8 +386,7 @@ Importe une ressource Encounter FHIR.
   }
 }
 ```
-
----
+# 
 
 ### POST /api/fhir/validate/bundle
 
@@ -420,52 +419,61 @@ curl -X POST "http://localhost:8000/api/fhir/validate/bundle" \
   -H "Content-Type: application/json" \
   -d @bundle-to-validate.json
 ```
-
----
+# 
 
 ## Codes d'erreur
 
 - **200 OK**: Requête réussie
-- **400 Bad Request**: Requête invalide (bundle mal formé, etc.)
-- **404 Not Found**: Ressource non trouvée (EJ inexistante, etc.)
-- **422 Unprocessable Entity**: Données invalides (validation échouée)
-- **500 Internal Server Error**: Erreur serveur
 
----
+- **400 Bad Request**: Requête invalide (bundle mal formé, etc.)
+
+- **404 Not Found**: Ressource non trouvée (EJ inexistante, etc.)
+
+- **422 Unprocessable Entity**: Données invalides (validation échouée)
+
+- **500 Internal Server Error**: Erreur serveur
+# 
 
 ## Pagination
 
 Les endpoints d'export supportent la pagination via les paramètres `limit` et `offset`:
 
 ```bash
+
 # Page 1 (50 premiers résultats)
+
 GET /api/fhir/export/patients/1?limit=50&offset=0
 
 # Page 2 (résultats 51-100)
+
 GET /api/fhir/export/patients/1?limit=50&offset=50
 
 # Page 3 (résultats 101-150)
+
 GET /api/fhir/export/patients/1?limit=50&offset=100
 ```
-
----
+# 
 
 ## Exemples d'utilisation
 
 ### Export complet d'une structure
 
 ```bash
+
 #!/bin/bash
 
 # Export de la structure
+
 curl -X GET "http://localhost:8000/api/fhir/export/structure/1" \
   -o structure.json
 
 # Export des patients
+
 curl -X GET "http://localhost:8000/api/fhir/export/patients/1" \
   -o patients.json
 
 # Export des venues
+
 curl -X GET "http://localhost:8000/api/fhir/export/venues/1" \
   -o venues.json
 
@@ -475,15 +483,18 @@ echo "Export terminé"
 ### Import d'un bundle
 
 ```bash
+
 #!/bin/bash
 
 # Valider le bundle avant import
+
 curl -X POST "http://localhost:8000/api/fhir/validate/bundle" \
   -H "Content-Type: application/json" \
   -d @my-bundle.json \
   | jq .
 
 # Si valid=true, importer
+
 curl -X POST "http://localhost:8000/api/fhir/import/bundle" \
   -H "Content-Type: application/json" \
   -d '{
@@ -496,14 +507,15 @@ curl -X POST "http://localhost:8000/api/fhir/import/bundle" \
 ### Statistiques d'export
 
 ```bash
+
 #!/bin/bash
 
 # Récupérer les statistiques
+
 curl -X GET "http://localhost:8000/api/fhir/export/statistics/1" \
   | jq '.locations.total, .patients, .venues'
 ```
-
----
+# 
 
 ## Documentation interactive
 

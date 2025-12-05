@@ -13,7 +13,7 @@ def _now():
 
 def _build_msg(trigger: str, pid_id: str, venue_seq: int | None = None) -> str:
     now = _now()
-    # ZBE-4=UPDATE, ZBE-1 intentionally empty to trigger fallback
+    # ZBE-4=UPDATE, ZBE-1 intentionally empty to trigger Solution de repli
     zbe = f"ZBE||{now}||UPDATE|N|{trigger}||||"
     pv1_visit = venue_seq if venue_seq is not None else ""
     return (

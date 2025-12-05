@@ -94,7 +94,7 @@ def _select_namespace_system(session: Session, ght_context_id: Optional[int], ej
     for n in ns:
         if (n.type or "").upper() == "IPP":
             return n.system or n.oid
-    # Fallback: first namespace system/oid
+    # Solution de repli: first namespace system/oid
     n0 = ns[0]
     return n0.system or n0.oid
 

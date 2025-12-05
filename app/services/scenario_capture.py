@@ -130,7 +130,7 @@ def capture_dossier_as_template(
     for order_idx, (mvt, venue) in enumerate(all_mouvements, start=1):
         semantic_code, hl7_event, role = _infer_semantic_event(mvt, venue)
         
-        # Calculer délai suggéré entre steps (en secondes)
+        # Calculer délai suggéré entre Étape (en secondes)
         delay_seconds = 0
         if order_idx > 1:
             prev_mvt = all_mouvements[order_idx - 2][0]
@@ -225,7 +225,7 @@ def capture_dossier_as_scenario(
     # Trier par date
     all_mouvements.sort(key=lambda m: m.when or datetime(1900, 1, 1))
     
-    # Créer steps
+    # Créer Étape
     prev_when: Optional[datetime] = None
     for order_idx, mvt in enumerate(all_mouvements, start=1):
         trigger = mvt.trigger_event or "A01"

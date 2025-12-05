@@ -1,81 +1,138 @@
 {% extends "base.html" %}
 {% from "macros/validation_report.html" import validation_report %}
+{% import "macros/ui.html" as ui %}
 
 {% block content %}
-<div class="max-w-content mx-auto py-8 px-4">
-  <div class="flex items-center justify-between mb-6">
-    <h2 class="text-2xl font-bold text-primary">Message #{{ m.id }}</h2>
-    <a href="/messages" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Retour</a>
-  </div>
-  <div class="bg-white rounded-xl border border-slate-200 p-8 mb-8 shadow-sm">
-    <div class="grid gap-6 md:grid-cols-2">
-    <label class="block">
-      <span class="text-sm text-slate-600">Horodatage</span>
-      <input value="{{ m.created_at }}" readonly class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
-    </label>
+<div class="max-w-6xl mx-auto py-8 px-4 space-y-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/messages" class="hover:text-blue-600 transition-colors">Messages</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Message #{{ m.id }}</span>
+  </nav>
 
-    <label class="block">
-      <span class="text-sm text-slate-600">Endpoint</span>
-      <input value="{{ (endpoint.name if endpoint else m.endpoint_id) }}" readonly class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
-    </label>
-
-    <label class="block">
-      <span class="text-sm text-slate-600">Protocole</span>
-      <input value="{{ m.kind }}" readonly class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
-    </label>
-
-    <label class="block">
-      <span class="text-sm text-slate-600">Direction</span>
-      <input value="{{ m.direction|upper }}" readonly class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
-    </label>
-
-    <label class="block">
-      <span class="text-sm text-slate-600">Statut</span>
-      <div class="mt-1">
-        {% if m.status in ['ack_error','error'] %}
-          <span class="inline-flex items-center rounded-full bg-red-50 text-red-700 px-2 py-1 text-xs">{{ m.status }}</span>
-        {% elif m.status in ['ack_ok','sent','received'] %}
-          <span class="inline-flex items-center rounded-full bg-green-50 text-green-700 px-2 py-1 text-xs">{{ m.status }}</span>
-        {% else %}
-          <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs">{{ m.status }}</span>
-        {% endif %}
-      </div>
-    </label>
-
-    <label class="block">
-      <span class="text-sm text-slate-600">Correlation ID</span>
-      <input value="{{ m.correlation_id or '' }}" readonly class="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" />
-    </label>
-    <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <label class="block">
-        <span class="text-sm text-slate-600">Validation IHE PAM</span>
-        <div class="mt-1">
-          {% if m.pam_validation_status == 'fail' %}
-            <span class="inline-flex items-center rounded-full bg-red-50 text-red-700 px-2 py-1 text-xs">invalide</span>
-          {% elif m.pam_validation_status == 'warn' %}
-            <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 px-2 py-1 text-xs">avert.</span>
-          {% elif m.pam_validation_status == 'ok' %}
-            <span class="inline-flex items-center rounded-full bg-green-50 text-green-700 px-2 py-1 text-xs">ok</span>
+  <!-- Header avec gradient -->
+  <div class="bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 rounded-2xl p-8 text-white relative overflow-hidden shadow-xl">
+    <div class="absolute inset-0 bg-black/10"></div>
+    <div class="relative z-10 flex items-start justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+          {% if m.kind == 'HL7' %}
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
           {% else %}
-            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs">n/a</span>
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+          </svg>
           {% endif %}
         </div>
-      </label>
+        <div>
+          <h2 class="text-3xl font-bold">Message #{{ m.id }}</h2>
+          <div class="flex items-center gap-3 mt-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-sm font-medium">
+              {{ m.kind }}
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-sm font-medium">
+              {{ '📥 IN' if m.direction == 'in' else '📤 OUT' }}
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold
+              {% if m.status in ['ack_error','error'] %}bg-red-500/90 text-white
+              {% elif m.status in ['ack_ok','sent','received'] %}bg-green-500/90 text-white
+              {% else %}bg-white/20 text-white{% endif %}">
+              {{ m.status }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <a href="/messages" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-white/10 backdrop-blur border-2 border-white/30 rounded-xl hover:bg-white/20 transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Retour
+      </a>
     </div>
   </div>
-</div>
 
-<div class="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
-  <h3 class="text-sm font-semibold mb-2">Payload</h3>
-  <pre class="whitespace-pre-wrap text-sm bg-slate-50 p-3 rounded">{{ m.payload }}</pre>
-</div>
+  <!-- Métadonnées -->
+  <div class="bg-white rounded-2xl border-2 border-slate-200 p-6 shadow-sm">
+    <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Métadonnées
+    </h3>
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">⏰ Horodatage</dt>
+        <dd class="text-base font-mono text-slate-900 bg-slate-50 px-3 py-2 rounded-lg">{{ m.created_at }}</dd>
+      </div>
 
-{% if m.ack_payload %}
-<div class="bg-white rounded-2xl border border-slate-200 p-4">
-  <h3 class="text-sm font-semibold mb-2">ACK</h3>
-  <pre class="whitespace-pre-wrap text-sm bg-slate-50 p-3 rounded">{{ m.ack_payload }}</pre>
-</div>
-{% endif %}
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">🔌 Endpoint</dt>
+        <dd class="text-base font-semibold text-slate-900">{{ (endpoint.name if endpoint else m.endpoint_id) }}</dd>
+      </div>
+
+      <div>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">🔗 Correlation ID</dt>
+        <dd class="text-sm font-mono text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">{{ m.correlation_id or '—' }}</dd>
+      </div>
+
+      <div class="md:col-span-2 lg:col-span-3 pt-4 border-t border-slate-200">
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">✅ Validation IHE PAM</dt>
+        <dd>
+          {% if m.pam_validation_status == 'fail' %}
+            <span class="inline-flex items-center gap-1.5 rounded-xl bg-red-100 text-red-800 px-4 py-2 text-sm font-semibold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              Invalide
+            </span>
+          {% elif m.pam_validation_status == 'warn' %}
+            <span class="inline-flex items-center gap-1.5 rounded-xl bg-amber-100 text-amber-800 px-4 py-2 text-sm font-semibold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Avertissements
+            </span>
+          {% elif m.pam_validation_status == 'ok' %}
+            <span class="inline-flex items-center gap-1.5 rounded-xl bg-green-100 text-green-800 px-4 py-2 text-sm font-semibold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              Validé
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 text-slate-600 px-4 py-2 text-sm font-semibold">N/A</span>
+          {% endif %}
+        </dd>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payload -->
+  <div class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm">
+    <div class="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 flex items-center gap-3">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+      </svg>
+      <h3 class="text-lg font-bold text-white">Payload</h3>
+    </div>
+    <div class="p-6">
+      <pre class="whitespace-pre-wrap text-sm bg-slate-900 text-green-400 p-4 rounded-xl overflow-x-auto font-mono">{{ m.payload|format_hl7_payload }}</pre>
+    </div>
+  </div>
+
+  <!-- ACK Payload -->
+  {% if m.ack_payload %}
+  <div class="bg-white rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
+    <div class="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 flex items-center gap-3">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <h3 class="text-lg font-bold text-white">ACK (Acknowledgment)</h3>
+    </div>
+    <div class="p-6">
+      <pre class="whitespace-pre-wrap text-sm bg-slate-900 text-green-400 p-4 rounded-xl overflow-x-auto font-mono">{{ m.ack_payload|format_hl7_payload }}</pre>
+    </div>
+  </div>
+  {% endif %}
 
 {% if validation_issues %}
 <div class="bg-white rounded-2xl border border-slate-200 p-4 mt-4">

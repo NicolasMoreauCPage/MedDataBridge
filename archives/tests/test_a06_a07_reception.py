@@ -148,7 +148,7 @@ class TestA06Reception:
         session.flush()
 
         # Receive A06 message: external → hospitalized (using \r separator)
-        # Note: HL7 ZBE-1 = 2 (different from m1.mouvement_seq=1)
+        # REMARQUE: HL7 ZBE-1 = 2 (different from m1.mouvement_seq=1)
         hl7_a06 = "MSH|^~\\&|POC|HOSP|EXT|HOSP|20251113120000||ADT^A06^ADT_A06|MSG001|P|2.5|\rEVN|A06|20251113120000|\rPID|1||DOE123||DOE^JOHN||19900101|M|\rPV1|1|I|CARDIO|H||||||||||||||||||||||||||||||||||||||||20251113120000|\rZBE|2|H|A06|CARDIO|"
         
         # Import mouvement

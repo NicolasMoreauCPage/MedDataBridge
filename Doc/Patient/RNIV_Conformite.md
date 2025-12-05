@@ -9,16 +9,25 @@ Le modèle Patient est conforme aux spécifications RNIV pour la gestion de l'IN
 ### 1. Identifiant National de Santé (INS)
 
 #### Champs INS
+
 - **`nir`**: Numéro d'Inscription au Répertoire (NIR) - Numéro de Sécurité Sociale français
+
 - **`ins_c`**: INS Calculé - Pour personnes sans NIR (nouveaux-nés, étrangers)
+
 - **`ins_type`**: Type d'INS - "NIR" ou "INS-C" (Enum `INSType`)
+
 - **`ins_in_annuaire`**: Boolean - INS-A présent dans l'annuaire national INSI (TéléSanté)
+
 - **`ins_last_query_date`**: Date du dernier appel au service INSI pour vérification
 
 #### OID INS
+
 L'INS doit être stocké dans la table `identifier` avec:
+
 - **System**: `urn:oid:1.2.250.1.213.1.4.8`
+
 - **OID**: `1.2.250.1.213.1.4.8`
+
 - **Type**: "INS"
 
 ### 2. Traits Stricts d'Identité (5 traits obligatoires)
@@ -26,19 +35,29 @@ L'INS doit être stocké dans la table `identifier` avec:
 Les 5 traits stricts obligatoires pour la qualification d'identité RNIV:
 
 1. **Nom de naissance**: `birth_family` (obligatoire)
+
 2. **Premier prénom**: `given` (obligatoire)
+
 3. **Date de naissance**: `birth_date` (obligatoire, format AAAA-MM-JJ)
+
 4. **Sexe**: `gender` (obligatoire: male/female/other/unknown)
+
 5. **Lieu de naissance**: 
+
    - `birth_city`: Ville de naissance (texte)
+
    - `birth_insee_code`: Code INSEE (5 caractères, ex: 75056 pour Paris, 2A004 pour Ajaccio)
+
    - `birth_country`: Pays de naissance (code ISO)
 
 ### 3. Prénoms Structurés
 
 - **`birth_given_names`**: Liste complète des prénoms dans l'ordre de l'état civil (séparés par espaces)
+
   - Exemple: "Jean Pierre Marie"
+
 - **`used_given_name`**: Prénom d'usage/usuel (peut différer du premier prénom officiel)
+
   - Exemple: "Pierre" (si la personne utilise son deuxième prénom)
 
 ### 4. Qualité d'Identité
@@ -58,8 +77,11 @@ Les 5 traits stricts obligatoires pour la qualification d'identité RNIV:
 | `FICTI` | Fictive | Alias HL7 de VIDE (compatibilité) |
 
 #### Champs complémentaires
+
 - **`identity_reliability_date`**: Date de validation/qualification (AAAA-MM-JJ)
+
 - **`identity_reliability_source`**: Source de validation (CNI, Passeport, Acte de naissance, etc.)
+
 - **`identity_matrix_code`**: Code de la Matrice de Gestion d'Identité (MGI) utilisée
 
 ## Règles de Validation
@@ -67,32 +89,48 @@ Les 5 traits stricts obligatoires pour la qualification d'identité RNIV:
 ### Contraintes d'intégrité
 
 ```python
+
 # Si ins_type="NIR", alors nir doit être rempli
+
 if patient.ins_type == INSType.NIR:
     assert patient.nir is not None, "NIR requis si ins_type=NIR"
 
 # Si ins_type="INS-C", alors ins_c doit être rempli
+
 if patient.ins_type == INSType.INS_C:
     assert patient.ins_c is not None, "INS-C requis si ins_type=INS-C"
 ```
 
 ### Format NIR
+
 - 13 chiffres + 2 chiffres de clé
+
 - Format: `1 SS AA MM DDD NNN CCC KK`
+
   - S: Sexe (1=homme, 2=femme)
+
   - AA: Année naissance (2 chiffres)
+
   - MM: Mois naissance
+
   - DDD: Département naissance
+
   - NNN: Commune (code INSEE tronqué)
+
   - CCC: Numéro d'ordre
+
   - KK: Clé de contrôle
 
 ### Format INS-C
+
 Structure spécifique définie par l'ASIP Santé (non implémenté dans cette version).
 
 ### Code INSEE Lieu de Naissance
+
 - 5 caractères pour France métropolitaine: ex `75056` (Paris 16e)
+
 - 2A/2B pour Corse: ex `2A004` (Ajaccio), `2B033` (Bastia)
+
 - Format spécial pour DOM-TOM
 
 ## Workflow de Qualification d'Identité
@@ -110,8 +148,11 @@ Structure spécifique définie par l'ASIP Santé (non implémenté dans cette ve
 ```
 
 ### États exceptionnels
+
 - **VIDE/FICTI**: Urgence, patient non identifiable → pas de qualification possible
+
 - **DOUTE**: Incohérences → nécessite intervention manuelle
+
 - **DOUB**: Doublon détecté → fusion de dossiers requise
 
 ## Intégration HL7v2 (PID Segment)
@@ -128,20 +169,29 @@ Structure spécifique définie par l'ASIP Santé (non implémenté dans cette ve
 | PID-32 | `identity_reliability_code` | Statut de l'identité |
 
 ### Extension France (segments Z)
+
 Certains établissements utilisent des segments Z pour:
+
 - **ZIN**: Informations INS détaillées
+
 - **ZBE-32**: Extension identité (qualité, MGI)
 
 ## Services INSI (Annuaire National)
 
 ### Appels INSI
+
 - **Service**: Téléservice INSI (ASIP Santé)
+
 - **Usage**: Vérification/récupération INS
+
 - **Traçabilité**: `ins_last_query_date` horodate dernier appel
 
 ### Réponses INSI
+
 - **INS trouvé**: Mise à jour `ins_in_annuaire=True`, passage `VALI`
+
 - **INS non trouvé**: Identité reste `QUAL` ou `PROV`
+
 - **Doublon**: Passage `DOUB`, nécessite action manuelle
 
 ## Migration Base de Données
@@ -186,8 +236,11 @@ Ajouter dans `IdentifierNamespace`:
 ## Références
 
 - **RNIV v1.3**: Référentiel National d'Identification des Individus (ASIP Santé)
+
 - **IHE PAM France**: Extension nationale pour Patient Administration Management
+
 - **HL7 Table 0445**: Identity Reliability Code
+
 - **Circulaire N°DGOS/MSIOS/2024/73**: Généralisation de l'INS
 
 ## Conformité

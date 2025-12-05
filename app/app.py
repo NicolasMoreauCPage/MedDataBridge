@@ -60,7 +60,7 @@ from app.routers import (
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
-    documentation, conformity, fhir_export, fhir_import, metrics, auth
+    documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper
 )
 
 from app.routers.ght.ej import router as ej_router
@@ -137,11 +137,25 @@ def create_app() -> FastAPI:
         if value is None or value == "None":
             return "—"
         return value
-    # Ajout du filtre au moteur de templates Jinja2
+    
+    # Filtre Jinja2 pour convertir les caractères de retour à la ligne en sauts de ligne visibles
+    def format_hl7_payload(value):
+        """Convertit les caractères \r, \n et \r\n en véritables sauts de ligne HTML"""
+        if not isinstance(value, str):
+            return value
+        # Remplacer \r\n par \n d'abord (pour éviter double conversion)
+        value = value.replace('\r\n', '\n')
+        # Remplacer \r seul par \n
+        value = value.replace('\r', '\n')
+        # Les sauts de ligne seront préservés par whitespace-pre-wrap en CSS
+        return value
+    
+    # Ajout des filtres au moteur de templates Jinja2
     from fastapi.templating import Jinja2Templates
     templates_dir = str(Path(__file__).parent / "templates")
     templates = Jinja2Templates(directory=templates_dir)
     templates.env.filters["none_to_dash"] = none_to_dash
+    templates.env.filters["format_hl7_payload"] = format_hl7_payload
     # Stocker dans app.state pour accès dans les routes si besoin
     app.state.templates = templates
     # Store version from pyproject.toml
@@ -150,6 +164,12 @@ def create_app() -> FastAPI:
     # Servir les fichiers statiques (CSS/JS)
     static_dir = str(Path(__file__).parent / "static")
     app.mount("/static", StaticFiles(directory=static_dir, html=True, check_dir=True), name="static")
+
+    # NOTE: Montage du dossier /Doc retiré - les documentations HTML sont maintenant
+    # servies via le routeur doc_wrapper qui les enveloppe dans le template base.html
+    # pour garantir une cohérence de style et de navigation avec le reste du programme.
+    # doc_dir = str(Path(__file__).parent.parent / "Doc")
+    # app.mount("/Doc", StaticFiles(directory=doc_dir, html=True, check_dir=True), name="doc")
 
     # Session et contexte GHT: IMPORTANT - dans Starlette, le dernier middleware
     # ajouté est exécuté en premier. Nous voulons que SessionMiddleware s'exécute
@@ -174,7 +194,7 @@ def create_app() -> FastAPI:
     # exposer le manager aux routeurs
     app.state.mllp_manager = mllp_manager
 
-    # Note: admin interface (SQLAdmin) will be created after route
+    # REMARQUE: admin interface (SQLAdmin) will be created after route
     # registration to avoid catching /admin/* routes before our own
     # admin-related pages (like /admin/ght). The Admin instance is
     # created later just before returning the app.
@@ -250,6 +270,7 @@ def create_app() -> FastAPI:
         logging.getLogger(__name__).warning(f"Context router not available: {e}")
     app.include_router(guide.router)
     app.include_router(docs.router)
+    app.include_router(doc_wrapper.router)  # Wrapper pour docs HTML statiques
     
     # Scenario templates (contextualisables) - AVANT scenarios pour éviter conflit de routes
     try:
@@ -258,6 +279,14 @@ def create_app() -> FastAPI:
         print(" - Scenario templates router mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Scenario templates router not available: {e}")
+    
+    # Configuration des scénarios par EJ - AVANT scenarios pour éviter conflit de routes
+    try:
+        from app.routers import scenario_ej_config
+        app.include_router(scenario_ej_config.router)
+        print(" - Scenario EJ config router mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Scenario EJ config router not available: {e}")
     
     app.include_router(scenarios.router)
     
@@ -268,7 +297,7 @@ def create_app() -> FastAPI:
     app.include_router(cache.router, prefix="/api")
     print(" - Cache router mounted at /api/cache")
     
-    # 8. Import endpoints for test examples
+    # 8. Import endpoints for test Exemple
     from app.routers import import_examples
     app.include_router(import_examples.router)
     print(" - Import examples router mounted at /import")

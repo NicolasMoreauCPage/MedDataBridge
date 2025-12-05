@@ -3,7 +3,28 @@
 {% block title %}Documentation{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto">
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Documentation MedData Bridge</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-slate-600 via-gray-600 to-zinc-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center space-x-4">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+          <div class="text-3xl">📚</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Documentation MedData Bridge</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
     <!-- Header -->
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Documentation MedData Bridge</h1>
@@ -25,6 +46,52 @@
                     <h2 class="text-xl font-semibold text-gray-900 mb-2">Guide de démarrage</h2>
                     <p class="text-sm text-gray-600 mb-3">Installation, configuration initiale et premiers pas</p>
                     <a href="/guide" class="text-blue-600 hover:underline text-sm">Consulter →</a>
+                </div>
+            </div>
+        </div>
+        <!-- Documentation technique IHE PAM -->
+        <div id="pam-integration" class="bg-white rounded-lg border border-blue-300 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-blue-900 mb-2">IHE PAM — Documentation technique complète</h2>
+                    <p class="text-sm text-gray-600 mb-3">Référence exhaustive basée sur le code et les spécifications officielles IHE France</p>
+                    <a href="/documentation/pam-integration" class="text-blue-700 hover:underline text-sm">Consulter la documentation →</a>
+                </div>
+            </div>
+        </div>
+        <!-- Documentation des workflows IHE PAM -->
+        <div id="pam-workflows" class="bg-white rounded-lg border border-purple-300 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-purple-900 mb-2">IHE PAM — Workflows et transitions</h2>
+                    <p class="text-sm text-gray-600 mb-3">Scénarios, règles de validation, cas d’erreur et outils de test</p>
+                    <a href="/documentation/pam-workflows" class="text-purple-700 hover:underline text-sm">Consulter les workflows →</a>
+                </div>
+            </div>
+        </div>
+        <!-- Documentation FHIR réception/émission -->
+        <div id="fhir-reception-emission" class="bg-white rounded-lg border border-green-300 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-green-900 mb-2">FHIR — Réception et émission</h2>
+                    <p class="text-sm text-gray-600 mb-3">Structure, identité, mouvements, mapping HL7/FHIR, outils et tests</p>
+                    <a href="/documentation/fhir-reception-emission" class="text-green-700 hover:underline text-sm">Consulter la documentation FHIR →</a>
+                    <a href="/documentation/fhir-reception-emission-complete" class="text-green-900 hover:underline text-sm font-bold">Documentation technique exhaustive FHIR →</a>
                 </div>
             </div>
         </div>

@@ -64,6 +64,7 @@ curl -X POST "http://localhost:8000/auth/refresh" \
 ## Durées de vie
 
 - **Access Token**: 30 minutes
+
 - **Refresh Token**: 7 jours
 
 ## Protéger des endpoints
@@ -106,24 +107,34 @@ async def mod_route(user: UserInDB = Depends(RoleChecker(["admin", "moderator"])
 Variables d'environnement:
 
 ```bash
+
 # Clé secrète JWT (OBLIGATOIRE en production)
+
 JWT_SECRET_KEY=votre-cle-secrete-super-longue-et-aleatoire
 
 # Durée de vie access token (minutes)
+
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # Durée de vie refresh token (jours)
+
 REFRESH_TOKEN_EXPIRE_DAYS=7
 ```
 
 ## Tester avec Swagger UI
 
 1. Accédez à http://localhost:8000/docs
+
 2. Cliquez sur le bouton "Authorize" (🔒)
+
 3. Entrez vos identifiants:
+
    - Username: `admin`
+
    - Password: `admin`
+
 4. Cliquez sur "Authorize"
+
 5. Vous pouvez maintenant utiliser les endpoints protégés
 
 ## Exemples d'utilisation
@@ -134,11 +145,13 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 import requests
 
 # Login
+
 response = requests.post("http://localhost:8000/auth/login/json", 
     json={"username": "admin", "password": "admin"})
 token = response.json()["access_token"]
 
 # Utiliser le token
+
 headers = {"Authorization": f"Bearer {token}"}
 response = requests.get("http://localhost:8000/auth/me", headers=headers)
 print(response.json())
@@ -166,13 +179,16 @@ console.log(user);
 ### cURL avec jq
 
 ```bash
+
 # Login et extraire le token
+
 TOKEN=$(curl -s -X POST "http://localhost:8000/auth/login/json" \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "admin"}' \
   | jq -r '.access_token')
 
 # Utiliser le token
+
 curl -X GET "http://localhost:8000/auth/me" \
   -H "Authorization: Bearer $TOKEN"
 ```
@@ -213,8 +229,11 @@ Rôle insuffisant:
 2. **Utilisez HTTPS**: Les tokens JWT doivent toujours être transmis sur HTTPS.
 
 3. **Stockez les tokens de manière sécurisée**:
+
    - ❌ localStorage (vulnérable aux XSS)
+
    - ✅ httpOnly cookies
+
    - ✅ Secure storage natif (mobile)
 
 4. **Implémentez une vraie base de données utilisateurs** au lieu de `fake_users_db`.
@@ -252,5 +271,7 @@ def authenticate_user(session: Session, username: str, password: str) -> Optiona
 ## Ressources
 
 - [JWT.io](https://jwt.io/) - Décodeur de tokens JWT
+
 - [FastAPI Security](https://fastapi.tiangolo.com/tutorial/security/)
+
 - [OAuth2 Password Flow](https://oauth.net/2/grant-types/password/)

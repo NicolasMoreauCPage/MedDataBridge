@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation des Scénarios d'Interopérabilité</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; max-width: 1200px; margin: 2rem auto; padding: 0 2rem; color: #333; }
+        h1, h2, h3, h4 { color: #2c3e50; margin-top: 1.5rem; }
+        h1 { border-bottom: 3px solid #3498db; padding-bottom: 0.5rem; }
+        h2 { border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3rem; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; font-family: 'Courier New', monospace; }
+        pre { background: #f8f8f8; border: 1px solid #ddd; border-radius: 5px; padding: 1rem; overflow-x: auto; }
+        pre code { background: none; padding: 0; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; }
+        th { background: #3498db; color: white; font-weight: 600; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        blockquote { border-left: 4px solid #3498db; padding-left: 1rem; margin-left: 0; color: #555; background: #f9f9f9; padding: 0.5rem 1rem; }
+        ul, ol { padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+<h1 id="documentation-des-scenarios-dinteroperabilite">Documentation des Scénarios d'Interopérabilité</h1>
+<h2 id="vue-densemble">Vue d'ensemble</h2>
+<p>Le module de scénarios permet de créer, gérer et exécuter des séquences de messages HL7v2 et FHIR pour tester l'interopérabilité avec des systèmes tiers. Il offre :</p>
+<ul>
+<li><strong>Templates prédéfinis</strong> : modèles IHE PAM réutilisables (admission, transfert, sortie)</li>
+<li><strong>Matérialisation</strong> : génération de scénarios concrets avec identifiants uniques</li>
+<li><strong>Exécution</strong> : envoi vers des endpoints configurés (dry-run ou réel)</li>
+<li><strong>Dashboard</strong> : statistiques, timeline et analyse des ACK</li>
+</ul>
+<h2 id="architecture">Architecture</h2>
+<h3 id="modeles-de-donnees">Modèles de données</h3>
+<pre class="codehilite"><code>ScenarioTemplate          →  InteropScenario           →  ScenarioExecutionRun
+     (modèle)               (instance concrète)            (trace d'exécution)
+        │                           │                              │
+        ▼                           ▼                              ▼
+ScenarioTemplateStep      InteropScenarioStep          ScenarioExecutionStepLog
+   (étapes types)            (messages HL7)              (logs par étape)
+</code></pre>
+
+<h4 id="scenariotemplate">ScenarioTemplate</h4>
+<p>Modèle abstrait définissant une séquence d'événements métier.</p>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td>
+<td>string</td>
+<td>Identifiant unique (ex: <code>ihe.hospitSimple</code>)</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>Nom lisible</td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>string</td>
+<td><code>IHE</code>, <code>DEMO</code>, <code>TEST</code>, <code>CUSTOM</code></td>
+</tr>
+<tr>
+<td><code>protocols_supported</code></td>
+<td>string</td>
+<td><code>HL7v2</code>, <code>FHIR</code>, <code>HL7v2,FHIR</code></td>
+</tr>
+<tr>
+<td><code>steps</code></td>
+<td>relation</td>
+<td>Étapes du template</td>
+</tr>
+</tbody>
+</table>
+<h4 id="interopscenario">InteropScenario</h4>
+<p>Instance concrète d'un template avec les messages HL7/FHIR générés.</p>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td>
+<td>string</td>
+<td>Identifiant unique</td>
+</tr>
+<tr>
+<td><code>protocol</code></td>
+<td>string</td>
+<td><code>HL7</code>, <code>FHIR</code>, <code>MIXED</code></td>
+</tr>
+<tr>
+<td><code>time_anchor_mode</code></td>
+<td>string</td>
+<td><code>now</code>, <code>admission_minus_days</code>, <code>fixed_start</code></td>
+</tr>
+<tr>
+<td><code>preserve_intervals</code></td>
+<td>bool</td>
+<td>Conserver les délais entre événements</td>
+</tr>
+<tr>
+<td><code>jitter_min_minutes</code></td>
+<td>int</td>
+<td>Jitter minimum (optionnel)</td>
+</tr>
+<tr>
+<td><code>jitter_max_minutes</code></td>
+<td>int</td>
+<td>Jitter maximum (optionnel)</td>
+</tr>
+<tr>
+<td><code>steps</code></td>
+<td>relation</td>
+<td>Messages à envoyer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="services">Services</h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Fichier</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Materializer</strong></td>
+<td><code>scenario_template_materializer.py</code></td>
+<td>Génère un <code>InteropScenario</code> depuis un <code>ScenarioTemplate</code></td>
+</tr>
+<tr>
+<td><strong>Runner</strong></td>
+<td><code>scenario_runner.py</code></td>
+<td>Exécute un scénario (envoi MLLP ou dry-run)</td>
+</tr>
+<tr>
+<td><strong>Capture</strong></td>
+<td><code>scenario_capture.py</code></td>
+<td>Capture un dossier existant en scénario</td>
+</tr>
+<tr>
+<td><strong>Import</strong></td>
+<td><code>scenario_import.py</code></td>
+<td>Import depuis JSON ou fichiers IHE</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td><code>scenario_dashboard.py</code></td>
+<td>Statistiques et analytics</td>
+</tr>
+<tr>
+<td><strong>Timeplan</strong></td>
+<td><code>scenario_timeplan.py</code></td>
+<td>Calcul avancé des horodatages</td>
+</tr>
+</tbody>
+</table>
+<h2 id="utilisation">Utilisation</h2>
+<h3 id="1-via-linterface-web">1. Via l'interface web</h3>
+<h4 id="acceder-aux-scenarios">Accéder aux scénarios</h4>
+<p>Menu <strong>Interopérabilité</strong> → <strong>Scénarios</strong> ou directement <code>/scenarios</code></p>
+<h4 id="consulter-les-templates">Consulter les templates</h4>
+<p><code>/scenarios/templates</code> — Liste des modèles prédéfinis disponibles</p>
+<h4 id="materialiser-un-template">Matérialiser un template</h4>
+<ol>
+<li>Cliquer sur un template</li>
+<li>Sélectionner l'entité juridique (EJ)</li>
+<li>Configurer les préfixes d'identifiants (optionnel)</li>
+<li>Cliquer sur "Matérialiser"</li>
+</ol>
+<h4 id="executer-un-scenario">Exécuter un scénario</h4>
+<ol>
+<li>Ouvrir un scénario matérialisé</li>
+<li>Sélectionner un endpoint de destination</li>
+<li>Choisir le mode :<br />
+   - <strong>Dry-run</strong> : prévisualisation sans envoi<br />
+   - <strong>Envoi réel</strong> : transmission MLLP</li>
+<li>Cliquer sur "Envoyer"</li>
+</ol>
+<h4 id="dashboard-des-executions">Dashboard des exécutions</h4>
+<p><code>/scenarios/runs</code> — Vue d'ensemble des exécutions</p>
+<ul>
+<li>Statistiques globales (taux de succès, durée moyenne)</li>
+<li>Distribution des codes ACK</li>
+<li>Timeline des exécutions</li>
+<li>Filtres par scénario, endpoint, période</li>
+</ul>
+<h3 id="2-via-lapi-rest">2. Via l'API REST</h3>
+<h4 id="lister-les-scenarios">Lister les scénarios</h4>
+<pre class="codehilite"><code class="language-http">GET /scenarios
+</code></pre>
+
+<h4 id="detail-dun-scenario">Détail d'un scénario</h4>
+<pre class="codehilite"><code class="language-http">GET /scenarios/{scenario_id}
+</code></pre>
+
+<h4 id="exporter-en-json">Exporter en JSON</h4>
+<pre class="codehilite"><code class="language-http">GET /scenarios/{scenario_id}/export
+</code></pre>
+
+<p>Réponse :</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;id&quot;: 1,
+  &quot;key&quot;: &quot;test-scenario&quot;,
+  &quot;name&quot;: &quot;Scénario de test&quot;,
+  &quot;protocol&quot;: &quot;HL7&quot;,
+  &quot;time_config&quot;: {
+    &quot;anchor_mode&quot;: &quot;now&quot;,
+    &quot;preserve_intervals&quot;: true
+  },
+  &quot;steps&quot;: [
+    {
+      &quot;order_index&quot;: 1,
+      &quot;message_type&quot;: &quot;ADT^A01&quot;,
+      &quot;format&quot;: &quot;hl7&quot;,
+      &quot;payload&quot;: &quot;MSH|^~\\&amp;|...&quot;
+    }
+  ]
+}
+</code></pre>
+
+<h4 id="importer-depuis-json">Importer depuis JSON</h4>
+<pre class="codehilite"><code class="language-http">POST /scenarios/import
+Content-Type: multipart/form-data
+
+ght_context_id=1
+json_file=@scenario.json
+</code></pre>
+
+<h4 id="envoyer-un-scenario">Envoyer un scénario</h4>
+<pre class="codehilite"><code class="language-http">POST /scenarios/{scenario_id}/send
+Content-Type: application/x-www-form-urlencoded
+
+endpoint_id=1&amp;dry_run=false
+</code></pre>
+
+<h4 id="api-dashboard">API Dashboard</h4>
+<pre class="codehilite"><code class="language-http">GET /scenarios/api/stats?days_back=30
+GET /scenarios/api/ack-distribution?scenario_id=1
+GET /scenarios/api/timeline?endpoint_id=2
+GET /scenarios/api/comparison?limit=10
+GET /scenarios/runs.json
+</code></pre>
+
+<h3 id="3-capture-depuis-un-dossier">3. Capture depuis un dossier</h3>
+<p>Pour capturer les messages d'un dossier existant :</p>
+<pre class="codehilite"><code class="language-http">POST /scenarios/capture
+Content-Type: application/x-www-form-urlencoded
+
+dossier_id=123
+</code></pre>
+
+<p>Cela crée un <code>InteropScenario</code> à partir des <code>MessageLog</code> du dossier.</p>
+<h2 id="configuration-avancee">Configuration avancée</h2>
+<h3 id="recalage-temporel-time-shifting">Recalage temporel (Time Shifting)</h3>
+<p>Le système peut recaler automatiquement les horodatages des messages :</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>now</code></td>
+<td>L'admission démarre maintenant</td>
+</tr>
+<tr>
+<td><code>admission_minus_days</code></td>
+<td>L'admission démarre il y a N jours</td>
+</tr>
+<tr>
+<td><code>fixed_start</code></td>
+<td>Horodatage fixe (ISO 8601)</td>
+</tr>
+</tbody>
+</table>
+<p>Exemple de configuration :</p>
+<pre class="codehilite"><code class="language-python">scenario.time_anchor_mode = &quot;admission_minus_days&quot;
+scenario.time_anchor_days_offset = 3  # Admission il y a 3 jours
+scenario.preserve_intervals = True     # Garder les délais entre événements
+</code></pre>
+
+<h3 id="jitter-variation-aleatoire">Jitter (variation aléatoire)</h3>
+<p>Pour simuler des variations réalistes :</p>
+<pre class="codehilite"><code class="language-python">scenario.jitter_min_minutes = 5
+scenario.jitter_max_minutes = 30
+scenario.apply_jitter_on_events = &quot;A02,A03,A06,A07,A08&quot;  # Transferts, sorties
+</code></pre>
+
+<h3 id="prefixes-didentifiants">Préfixes d'identifiants</h3>
+<p>Pour éviter les collisions avec les données existantes :</p>
+<pre class="codehilite"><code class="language-python">options = MaterializationOptions(
+    ipp_prefix=&quot;TEST&quot;,      # IPP → TEST00000001
+    nda_prefix=&quot;SC&quot;,        # NDA → SC0000001
+    namespace_oid=&quot;1.2.3.4&quot; # Namespace dans CX
+)
+</code></pre>
+
+<h2 id="templates-ihe-pam-disponibles">Templates IHE PAM disponibles</h2>
+<h3 id="hospitalisation-simple-ihehospitsimple">Hospitalisation simple (<code>ihe.hospitSimple</code>)</h3>
+<p>Parcours standard d'hospitalisation :</p>
+<ol>
+<li><code>PARCOURS_START</code> — Ouverture du parcours</li>
+<li><code>ADMISSION_PLANNED</code> — Pré-admission (A14)</li>
+<li><code>ADMISSION_CONFIRMED</code> — Admission confirmée (A01)</li>
+<li><code>TRANSFER_OUT</code> — Sortie de service (A02)</li>
+<li><code>TRANSFER_IN</code> — Entrée dans nouveau service (A02)</li>
+<li><code>DISCHARGE</code> — Sortie (A03)</li>
+<li><code>PARCOURS_END</code> — Clôture du parcours</li>
+</ol>
+<h3 id="autres-templates">Autres templates</h3>
+<p>D'autres templates sont importés automatiquement depuis les fichiers IHE PAM si disponibles dans <code>Doc/interfaces.integration_src/</code>.</p>
+<h2 id="statistiques-et-dashboard">Statistiques et Dashboard</h2>
+<h3 id="metriques-disponibles">Métriques disponibles</h3>
+<ul>
+<li><strong>Taux de succès</strong> : % de runs terminés sans erreur</li>
+<li><strong>Durée moyenne</strong> : temps d'exécution moyen par scénario</li>
+<li><strong>Distribution ACK</strong> : répartition des codes de réponse (AA, AE, AR)</li>
+<li><strong>Erreurs récentes</strong> : dernières anomalies rencontrées</li>
+</ul>
+<h3 id="filtres">Filtres</h3>
+<ul>
+<li>Par scénario</li>
+<li>Par endpoint de destination</li>
+<li>Par période (derniers N jours)</li>
+<li>Par statut (success, error, partial, dry_run)</li>
+</ul>
+<h2 id="bonnes-pratiques">Bonnes pratiques</h2>
+<h3 id="tests-dintegration">Tests d'intégration</h3>
+<ol>
+<li><strong>Dry-run d'abord</strong> : toujours prévisualiser avant envoi réel</li>
+<li><strong>Utiliser des préfixes</strong> : éviter les collisions d'identifiants</li>
+<li><strong>Vérifier les ACK</strong> : s'assurer que le système cible répond correctement</li>
+<li><strong>Conserver les traces</strong> : les logs d'exécution permettent le debug</li>
+</ol>
+<h3 id="production">Production</h3>
+<ol>
+<li><strong>Endpoints séparés</strong> : utiliser des endpoints dédiés pour les tests</li>
+<li><strong>Monitoring</strong> : surveiller le dashboard pour détecter les anomalies</li>
+<li><strong>Export régulier</strong> : sauvegarder les scénarios fonctionnels en JSON</li>
+</ol>
+<h2 id="depannage">Dépannage</h2>
+<h3 id="erreur-422-sur-scenariosimport">Erreur 422 sur <code>/scenarios/import</code></h3>
+<p><strong>Cause</strong> : Champ <code>ght_context_id</code> manquant dans le formulaire.</p>
+<p><strong>Solution</strong> : Sélectionner un contexte GHT dans le formulaire d'import.</p>
+<h3 id="ack-ae-ou-ar">ACK AE ou AR</h3>
+<p><strong>Cause</strong> : Le message n'est pas conforme aux attentes du système cible.</p>
+<p><strong>Vérifications</strong> :<br />
+- Valider la structure HL7 (segments obligatoires)<br />
+- Vérifier les identifiants (format IPP/NDA)<br />
+- Consulter les logs du système cible</p>
+<h3 id="timeout-mllp">Timeout MLLP</h3>
+<p><strong>Cause</strong> : L'endpoint ne répond pas dans le délai imparti.</p>
+<p><strong>Solutions</strong> :<br />
+- Vérifier la connectivité réseau<br />
+- Augmenter le timeout dans la configuration de l'endpoint<br />
+- Vérifier que le service MLLP distant est actif</p>
+<h2 id="fichiers-cles">Fichiers clés</h2>
+<pre class="codehilite"><code>app/
+├── models_scenarios.py              # Modèles ScenarioTemplate, InteropScenario
+├── models_scenario_runs.py          # Modèles d'exécution (Run, StepLog)
+├── routers/
+│   ├── scenarios.py                 # Routes UI et API (/scenarios/*)
+│   └── scenario_templates.py        # Routes templates (/scenarios/templates/*)
+├── services/
+│   ├── scenario_runner.py           # Exécution des scénarios
+│   ├── scenario_template_materializer.py  # Génération depuis templates
+│   ├── scenario_capture.py          # Capture depuis dossiers
+│   ├── scenario_import.py           # Import JSON
+│   ├── scenario_dashboard.py        # Analytics
+│   └── scenario_timeplan.py         # Calcul des horodatages
+└── templates/
+    ├── scenario_detail.html         # Détail d'un scénario
+    ├── scenario_import.html         # Formulaire d'import
+    ├── scenario_template_detail.html # Détail d'un template
+    └── scenarios/
+        └── dashboard.html           # Dashboard des exécutions
+</code></pre>
+
+<h2 id="voir-aussi">Voir aussi</h2>
+<ul>
+<li><a href="api_guide.md">Guide API développeur</a> — Section Scénarios</li>
+<li><a href="IHE_PAM_INTEGRATION_COMPLETE_FR.md">IHE PAM — Intégration</a> — Profil IHE PAM France</li>
+<li><a href="identifier_prefixes.md">Préfixes d'identifiants</a> — Configuration des préfixes</li>
+</ul>
+</body>
+</html>

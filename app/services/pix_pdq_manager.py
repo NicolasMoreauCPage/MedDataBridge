@@ -129,9 +129,10 @@ class PIXPDQManager:
             for identifier in identifiers:
                 param = create_fhir_identifier(identifier)
                 entries.append({
-                    "fullUrl": f"urn:uuid:{identifier.id}",
+                    "fullUrl": f"Parameters/param-{identifier.id}",
                     "resource": {
                         "resourceType": "Parameters",
+                        "id": f"param-{identifier.id}",
                         "parameter": [{
                             "name": "targetIdentifier",
                             "valueIdentifier": param
@@ -182,7 +183,7 @@ class PIXPDQManager:
                     except Exception:
                         bd_obj = _dt.strptime(bd, "%Y%m%d").date()
                 except Exception:
-                    # If invalid format, per tests we should return an empty result
+                    # If invalid format, per tests we should Renvoie an empty result
                     return {
                         "resourceType": "Bundle",
                         "type": "searchset",
@@ -230,7 +231,7 @@ class PIXPDQManager:
                     )
                     
                 entries.append({
-                    "fullUrl": f"urn:uuid:pat-{patient.id}",
+                    "fullUrl": f"Patient/{resource['id']}",
                     "resource": resource
                 })
                 

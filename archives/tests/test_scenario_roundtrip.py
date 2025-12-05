@@ -30,7 +30,7 @@ def test_scenario_roundtrip_basic():
         session.commit()
         session.refresh(ctx)
         
-        # Étape 1: Créer scénario avec 3 steps manuellement
+        # Étape 1: Créer scénario avec 3 Étape manuellement
         scenario = InteropScenario(
             key="test-roundtrip",
             name="Test Roundtrip",
@@ -43,7 +43,7 @@ def test_scenario_roundtrip_basic():
         session.commit()
         session.refresh(scenario)
         
-        # Créer 3 steps espacés (0h, 2h, 4h)
+        # Créer 3 Étape espacés (0h, 2h, 4h)
         base_time = datetime.utcnow()
         for i, (trigger, delay) in enumerate([("A01", 0), ("A02", 7200), ("A03", 14400)]):
             step = InteropScenarioStep(
@@ -60,7 +60,7 @@ def test_scenario_roundtrip_basic():
             session.add(step)
         session.commit()
         
-        # Charger steps
+        # Charger Étape
         steps = sorted(scenario.steps, key=lambda s: s.order_index)
         assert len(steps) == 3
         
@@ -122,7 +122,7 @@ def test_scenario_roundtrip_basic():
         session.commit()
         session.refresh(reloaded_scenario)
         
-        # Recréer steps
+        # Recréer Étape
         for step_data in reloaded_data["steps"]:
             reloaded_step = InteropScenarioStep(
                 scenario_id=reloaded_scenario.id,
@@ -186,7 +186,7 @@ def test_scenario_export_import_with_timeconfig():
         session.commit()
         session.refresh(scenario)
         
-        # Ajouter steps
+        # Ajouter Étape
         for i in range(3):
             step = InteropScenarioStep(
                 scenario_id=scenario.id,
@@ -235,7 +235,7 @@ def test_scenario_export_import_with_timeconfig():
         assert reloaded["time_config"]["jitter_max"] == 15
         assert reloaded["time_config"]["jitter_events"] == "A02,A06"
         
-        # Vérifier steps
+        # Vérifier Étape
         assert len(reloaded["steps"]) == 3
         assert reloaded["steps"][0]["delay_seconds"] == 0
         assert reloaded["steps"][1]["delay_seconds"] == 3600

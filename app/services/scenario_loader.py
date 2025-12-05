@@ -100,7 +100,7 @@ def load_hl7_files(
             scenario.tags = tags_value or scenario.tags
             scenario.updated_at = datetime.utcnow()
 
-        # Replace existing steps
+        # Replace existing Étape
         session.exec(delete(InteropScenarioStep).where(InteropScenarioStep.scenario_id == scenario.id))
         session.flush()
 

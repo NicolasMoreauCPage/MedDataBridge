@@ -41,7 +41,7 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
         "PV1||O|UNKNOWN\r"
     )
 
-    # Use a full A04 example similar to the consultation example (includes ZBE/ZFV etc.)
+    # Use a full A04 Exemple similar to the consultation Exemple (includes ZBE/ZFV etc.)
     # Adjusted timestamps to follow the A28 message and ZBE-9 set to 'HMS' (recognized)
     a04 = (
         "MSH|^~\\&|CPAGE|CPAGE|ANTARES|ANTARES|20251101010200||ADT^A04^ADT_A01|1117924606|P|2.5^FRA^2.11|||||FRA|8859/1\r"
@@ -138,7 +138,7 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
         # Validate the full scenario workflow
         scenario_text = "\n\n".join([a28, a04, a03])
         scen_res = validate_scenario(scenario_text, direction='inbound', profile='IHE_PAM_FR')
-        # scenario must at least be parsed and return a ScenarioValidationResult
+        # scenario must at least be parsed and Renvoie a ScenarioValidationResult
         assert hasattr(scen_res, 'is_valid')
 
         # Verify expected validator outputs for this scenario

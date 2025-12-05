@@ -724,7 +724,7 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
                     return core
                 if core in standard_natures:
                     return core
-            return val  # unknown token, return raw for reporting
+            return val  # unknown token, Renvoie raw for reporting
 
         norm_zbe9 = _normalize_zbe9(zbe_9)
         if not zbe_9:

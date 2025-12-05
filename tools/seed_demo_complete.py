@@ -593,7 +593,7 @@ def main():
             eg, poles, services, ufs, uhs = _create_structure(session, ej)
             structures.append({"ej": ej, "eg": eg, "poles": poles, "services": services, "ufs": ufs, "uhs": uhs})
             ejs.append(ej)
-        # TODO : répartir les patients/dossiers/mouvements sur toutes les EJ/structures
+        # À FAIRE : répartir les patients/dossiers/mouvements sur toutes les EJ/structures
         _create_patients_and_movements(session)  # À adapter pour multi-EJ
         print("\n✅ Seed multi-EJ terminé")
         print(f"   GHT: {ght.name} (code={ght.code})")

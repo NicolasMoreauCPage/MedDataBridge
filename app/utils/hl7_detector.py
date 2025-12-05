@@ -88,7 +88,7 @@ class HL7Detector:
             return "UNKNOWN"
         
         # MSH-9 format: MessageType^TriggerEvent^MessageStructure
-        # Examples: ADT^A01, MFN^M05, QBP^Q23
+        # Exemple: ADT^A01, MFN^M05, QBP^Q23
         parts = message_type.split('^')
         if not parts:
             return "UNKNOWN"

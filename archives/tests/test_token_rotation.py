@@ -173,7 +173,7 @@ class TestRefreshTokenRotation:
     @pytest.fixture
     def authenticated_user(self, test_user_credentials):
         """Create and authenticate a test user."""
-        # Note: This assumes user exists in test DB
+        # REMARQUE: This assumes user exists in test DB
         # You may need to create the user first or mock the DB
         response = client.post(
             "/auth/login",

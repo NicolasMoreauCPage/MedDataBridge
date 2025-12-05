@@ -47,7 +47,7 @@ def create_ihe_hospit_simple_template(session: Session) -> ScenarioTemplate:
         tags="pam,hospitalisation,transfer",
     )
     session.add(template)
-    session.flush()  # id pour FK steps
+    session.flush()  # id pour FK Étape
 
     order_index = 1
     for filename, semantic_code, hl7_event, role, narrative in HOSPIT_SIMPLE_SEQUENCE:

@@ -173,7 +173,7 @@ def generate_fhir_bundle_for_entity(
         patient_res = generate_patient_resource(entity, forced_identifier_system, forced_identifier_oid)
         entries.append({
             "resource": patient_res,
-            "fullUrl": f"urn:uuid:pat-{entity.id}"
+            "fullUrl": f"Patient/{patient_res['id']}"
         })
     
     elif entity_type == "dossier":
@@ -181,14 +181,14 @@ def generate_fhir_bundle_for_entity(
         episode_res = generate_episode_of_care_resource(entity, session)
         entries.append({
             "resource": episode_res,
-            "fullUrl": f"urn:uuid:eoc-{entity.id}"
+            "fullUrl": f"EpisodeOfCare/{episode_res['id']}"
         })
         
         # Ajouter aussi le patient
         patient_res = generate_patient_resource(entity.patient)
         entries.append({
             "resource": patient_res,
-            "fullUrl": f"urn:uuid:pat-{entity.patient_id}"
+            "fullUrl": f"Patient/{patient_res['id']}"
         })
     
     elif entity_type == "venue":
@@ -196,7 +196,7 @@ def generate_fhir_bundle_for_entity(
         encounter_res = generate_encounter_resource_for_venue(entity, session)
         entries.append({
             "resource": encounter_res,
-            "fullUrl": f"urn:uuid:enc-venue-{entity.id}"
+            "fullUrl": f"Encounter/{encounter_res['id']}"
         })
         
         # Ajouter EpisodeOfCare et Patient
@@ -204,13 +204,13 @@ def generate_fhir_bundle_for_entity(
         episode_res = generate_episode_of_care_resource(dossier, session)
         entries.append({
             "resource": episode_res,
-            "fullUrl": f"urn:uuid:eoc-{dossier.id}"
+            "fullUrl": f"EpisodeOfCare/{episode_res['id']}"
         })
         
         patient_res = generate_patient_resource(dossier.patient)
         entries.append({
             "resource": patient_res,
-            "fullUrl": f"urn:uuid:pat-{dossier.patient_id}"
+            "fullUrl": f"Patient/{patient_res['id']}"
         })
     
     elif entity_type == "mouvement":
@@ -218,7 +218,7 @@ def generate_fhir_bundle_for_entity(
         encounter_res = generate_encounter_resource_for_mouvement(entity, session)
         entries.append({
             "resource": encounter_res,
-            "fullUrl": f"urn:uuid:enc-mvt-{entity.id}"
+            "fullUrl": f"Encounter/{encounter_res['id']}"
         })
         
         # Ajouter Encounter de la venue
@@ -226,7 +226,7 @@ def generate_fhir_bundle_for_entity(
         venue_encounter_res = generate_encounter_resource_for_venue(venue, session)
         entries.append({
             "resource": venue_encounter_res,
-            "fullUrl": f"urn:uuid:enc-venue-{venue.id}"
+            "fullUrl": f"Encounter/{venue_encounter_res['id']}"
         })
         
         # Ajouter EpisodeOfCare et Patient
@@ -234,13 +234,13 @@ def generate_fhir_bundle_for_entity(
         episode_res = generate_episode_of_care_resource(dossier, session)
         entries.append({
             "resource": episode_res,
-            "fullUrl": f"urn:uuid:eoc-{dossier.id}"
+            "fullUrl": f"EpisodeOfCare/{episode_res['id']}"
         })
         
         patient_res = generate_patient_resource(dossier.patient)
         entries.append({
             "resource": patient_res,
-            "fullUrl": f"urn:uuid:pat-{dossier.patient_id}"
+            "fullUrl": f"Patient/{patient_res['id']}"
         })
     
     # Créer le bundle
@@ -248,7 +248,7 @@ def generate_fhir_bundle_for_entity(
         "resourceType": "Bundle",
         "id": f"bundle-{entity_type}-{entity.id}-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}",
         "type": "collection",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
         "entry": entries
     }
     

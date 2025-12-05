@@ -437,7 +437,7 @@ def test_movement_location_selection(client: TestClient, session: Session):
     session.commit()
     session.refresh(uf)
 
-    # TODO: Une fois que Chambres/Lits sont implémentés
+    # À FAIRE: Une fois que Chambres/Lits sont implémentés
     payload = {
         "patient_id": str(patient.id),
         "dossier_id": str(dossier.id),
@@ -602,7 +602,7 @@ def test_movement_hl7_emission(client: TestClient, session: Session):
         date_naissance=datetime(1990, 1, 1),
         sexe="M",
         identifiers=[
-            # TODO: Ajouter IPP une fois implémenté
+            # À FAIRE: Ajouter IPP une fois implémenté
         ]
     )
     session.add(patient)
@@ -637,7 +637,7 @@ def test_movement_hl7_emission(client: TestClient, session: Session):
     r = client.post("/mouvements", data=payload, follow_redirects=True)
     assert r.status_code == 200
 
-    # TODO: Vérifier émission HL7 une fois implémentée
+    # À FAIRE: Vérifier émission HL7 une fois implémentée
     # Pour l'instant, juste vérifier que le mouvement est créé
     mouvement = session.exec(
         select(Mouvement).where(Mouvement.patient_id == patient.id)

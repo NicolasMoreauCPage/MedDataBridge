@@ -1345,7 +1345,7 @@ def ensure_namespaces_for_context(
     from app.models_structure import IdentifierNamespace
     stats = Counter()
     
-    # OID racine du contexte (fallback si absent)
+    # OID racine du contexte (Solution de repli si absent)
     oid_base = context.oid_racine or "1.2.250.1.71.1.1"
     
     # Namespace global structure GHT

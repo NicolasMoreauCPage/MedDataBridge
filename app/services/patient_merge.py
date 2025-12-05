@@ -77,7 +77,7 @@ def _parse_mrg_segment(message: str) -> Optional[Dict]:
             out["account_number"] = parts[3]
         
         # MRG-7: Prior Patient Name
-        # Note: Some implementations place name at MRG-7, but in practice it can be at index 7-9
+        # REMARQUE: Some implementations place name at MRG-7, but in practice it can be at index 7-9
         # Check both MRG-7 (parts[7]) and further positions
         for idx in range(7, min(len(parts), 12)):
             if parts[idx] and "^" in parts[idx]:  # Name typically contains ^
@@ -118,7 +118,7 @@ def _find_patient_by_identifiers(session: Session, cx_list: List[str]) -> Option
             if patient:
                 return patient
     
-    # 2. Fallback: recherche directe par external_id ou identifier (premier composant)
+    # 2. Solution de repli: recherche directe par external_id ou identifier (premier composant)
     for cx in cx_list:
         id_value = cx.split("^")[0] if "^" in cx else cx
         if not id_value:

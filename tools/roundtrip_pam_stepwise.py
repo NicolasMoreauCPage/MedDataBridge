@@ -101,7 +101,7 @@ def rewrite_pid_identifiers(message: str) -> str:
                 # Extract value (first component of CX)
                 value = original_first.split("^")[0] if original_first else ""
                 if not value or value in ("None", "", "UNDEF"):
-                    # Fallback: use MSH-10 control ID if PID-3 empty
+                    # Solution de repli: use MSH-10 control ID if PID-3 empty
                     msh_line = next((l for l in lines if l.startswith("MSH")), None)
                     if msh_line:
                         msh_parts = msh_line.split("|")
@@ -172,7 +172,7 @@ def process_messages(limit: int | None, all_mode: bool):
                         if len(reps) > 1 and reps[1]:
                             orig_value = reps[1].split("^")[0]
                         elif reps[0]:
-                            # Fallback if only one rep (strip -DST suffix)
+                            # Solution de repli if only one rep (strip -DST suffix)
                             first_val = reps[0].split("^")[0]
                             orig_value = first_val[:-4] if first_val.endswith("-DST") else first_val
                 mapping.append((orig_value, patient.identifier if patient.identifier else f"PID{patient.id}"))

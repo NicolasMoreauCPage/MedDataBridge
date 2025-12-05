@@ -8,6 +8,7 @@ from app.utils.flash import flash
 from app.models_structure import EntiteJuridique, EntiteGeographique, LocationStatus, LocationMode, LocationPhysicalType
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from .helpers import get_context_or_404, get_ej_or_404, get_entite_geo_or_404, templates, resolve_physical_type
+from app.services.structure_tree import build_structure_tree_for_template
 
 router = APIRouter()
 
@@ -99,8 +100,12 @@ async def view_entite_geographique(
         "services": len(service_ids), "ufs": len(uf_ids),
         "uhs": len(uh_ids), "chambres": len(chambre_ids), "lits": lit_count,
     }
-    
+    # Reuse the shared tree builder used for template rendering
+    structure_tree, lit_operational, lits_actifs = build_structure_tree_for_template(session, geo)
+    counts["lits_actifs"] = lits_actifs
+
     return templates.TemplateResponse(
         request, "eg_detail.html",
-        {"context": context, "entite": entite, "geo": geo, "counts": counts}
+        {"context": context, "entite": entite, "geo": geo, "counts": counts,
+         "structure_tree": structure_tree, "lit_operational": lit_operational}
     )

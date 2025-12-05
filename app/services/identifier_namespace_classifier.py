@@ -233,14 +233,14 @@ class IdentifierNamespaceClassifier:
             - is_main_identifier: True si doit être identifiant principal
             - external_namespace: Le namespace externe si différent, None sinon
         """
-        # Utiliser la hiérarchie structurelle si fournie, sinon fallback vers EJ
+        # Utiliser la hiérarchie structurelle si fournie, sinon Solution de repli vers EJ
         if location_hierarchy:
             applicable_namespaces = self.get_hierarchical_namespaces(
                 identifier_type=identifier_type,
                 **location_hierarchy
             )
         elif ej_id:
-            # Fallback vers la logique EJ existante
+            # Solution de repli vers la logique EJ existante
             applicable_namespaces = self.get_ej_namespaces(ej_id, identifier_type)
         else:
             return True, None  # Par défaut, traiter comme principal si pas de contexte

@@ -284,7 +284,7 @@ def generate_pam_messages_for_dossier(dossier: Dossier) -> List[str]:
             if build_message_for_movement:
                 messages.append(build_message_for_movement(dossier=dossier, venue=v, movement=m, patient=patient))
             else:
-                # Choose a stable primary patient identifier (prefer patient.identifier, fallback external_id, then patient_seq)
+                # Choose a stable primary patient identifier (prefer patient.identifier, Solution de repli external_id, then patient_seq)
                 primary_id = patient.identifier or patient.external_id or (f"PSEQ{patient.patient_seq}" if patient.patient_seq is not None else f"PID{patient.id}")
                 # Emit PID-3 as CX with system tag for source context + type PI
                 pid_cx = f"{primary_id}^^^SRC-PAM&1.2.250.1.211.99.1&ISO^PI"
@@ -315,7 +315,7 @@ async def _handle_cancel_admission(
         
         if not zbe_data or not zbe_data.get("movement_id"):
             logger.warning(f"[pam][cancel] {trigger}: No ZBE segment or movement_id found, fallback to last movement")
-            # Fallback: chercher le dernier mouvement du patient
+            # Solution de repli: chercher le dernier mouvement du patient
             identifiers = pid_data.get("identifiers", [])
             if not identifiers:
                 return False, "No patient identifier found"
@@ -358,7 +358,7 @@ async def _handle_cancel_admission(
             
             if not original_mouvement:
                 logger.warning(f"[pam][cancel] {trigger}: Movement seq={movement_id_str} not found, trying fallback by patient")
-                # Fallback: chercher le dernier mouvement du patient
+                # Solution de repli: chercher le dernier mouvement du patient
                 identifiers = pid_data.get("identifiers", [])
                 if not identifiers:
                     return False, f"Movement with seq={movement_id_str} not found (no patient identifier for fallback)"
@@ -453,7 +453,7 @@ async def _handle_cancel_discharge(
         
         if not zbe_data or not zbe_data.get("movement_id"):
             logger.warning(f"[pam][cancel-discharge] No ZBE segment, fallback to last discharge")
-            # Fallback: chercher la dernière sortie
+            # Solution de repli: chercher la dernière sortie
             identifiers = pid_data.get("identifiers", [])
             if not identifiers:
                 return False, "No patient identifier found"
@@ -495,7 +495,7 @@ async def _handle_cancel_discharge(
             
             if not original_mouvement:
                 logger.warning(f"[pam][cancel-discharge]: Movement seq={movement_id_str} not found, trying fallback")
-                # Fallback: chercher la dernière sortie
+                # Solution de repli: chercher la dernière sortie
                 identifiers = pid_data.get("identifiers", [])
                 if not identifiers:
                     return False, f"Movement with seq={movement_id_str} not found (no patient identifier for fallback)"
@@ -602,7 +602,7 @@ async def _handle_cancel_transfer(
         
         if not zbe_data or not zbe_data.get("movement_id"):
             logger.warning(f"[pam][cancel-transfer] No ZBE segment, fallback to last transfer")
-            # Fallback: chercher le dernier transfert
+            # Solution de repli: chercher le dernier transfert
             identifiers = pid_data.get("identifiers", [])
             if not identifiers:
                 return False, "No patient identifier found"
@@ -644,7 +644,7 @@ async def _handle_cancel_transfer(
             
             if not original_mouvement:
                 logger.warning(f"[pam][cancel-transfer]: Movement seq={movement_id_str} not found, trying fallback")
-                # Fallback: chercher le dernier transfert
+                # Solution de repli: chercher le dernier transfert
                 identifiers = pid_data.get("identifiers", [])
                 if not identifiers:
                     return False, f"Movement with seq={movement_id_str} not found (no patient identifier for fallback)"
@@ -785,10 +785,10 @@ async def handle_admission_message(
             value, system, _, type_code = parse_hl7_cx_identifier(cx_value)
             identifiers.append((cx_value, system, type_code))
 
-        # Main patient identifier (fallback logic)
+        # Main patient identifier (Solution de repli logic)
         identifier = None
         if identifiers:
-            # Prefer classified main identifier, fallback to first PID-3 value
+            # Prefer classified main identifier, Solution de repli to first PID-3 value
             try:
                 from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check
                 try:
@@ -851,7 +851,7 @@ async def handle_admission_message(
                             session.add(ident)
                 except Exception as e:
                     logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
-                    # Fallback to legacy method
+                    # Solution de repli to legacy method
                     for raw_cx, _, _ in identifiers:
                         try:
                             ident = create_identifier_from_hl7(raw_cx, "patient", existing.id)
@@ -862,7 +862,7 @@ async def handle_admission_message(
                             continue
                 reused_patient = existing
                 if trigger in ("A28", "A31"):
-                    # Identity-only update: no new dossier/venue/mouvement. Return early.
+                    # Identity-only update: no new dossier/venue/mouvement. Renvoie early.
                     logger.info(f"[pam][admission] Identity-only update detected for existing patient, trigger={trigger}")
                     return True, None
 
@@ -870,7 +870,7 @@ async def handle_admission_message(
         logger.debug(f"[pam][admission] identifiers={identifiers!r}")
         logger.debug(f"[pam][admission] identifier={identifier!r}, reused_patient={reused_patient!r}")
 
-        # If patient already updated and trigger is identity, return early
+        # If patient already updated and trigger is identity, Renvoie early
         if reused_patient:
             patient = reused_patient
             logger.debug(f"[pam][admission] Using reused_patient id={getattr(patient,'id', None)}")
@@ -906,7 +906,7 @@ async def handle_admission_message(
                         session.add(ident)
             except Exception as e:
                 logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
-                # Fallback to legacy method
+                # Solution de repli to legacy method
                 for raw_cx, _, _ in identifiers:
                     try:
                         ident = create_identifier_from_hl7(raw_cx, "patient", patient.id)
@@ -937,7 +937,7 @@ async def handle_admission_message(
             d_seq = get_next_sequence(session, "dossier")
             logger.info(f"[pam][admission] Generated new dossier sequence: {d_seq}")
         # Use parsed datetime if available (pid parser provides birth_date_dt),
-        # otherwise attempt to parse HL7 YYYYMMDD string, or fallback to now.
+        # otherwise attempt to parse HL7 YYYYMMDD string, or Solution de repli to now.
         admit_time = pv1_data.get("admit_time")
         if not admit_time and pid_data.get("birth_date_dt"):
             admit_time = pid_data.get("birth_date_dt")
@@ -957,17 +957,28 @@ async def handle_admission_message(
         # Vérifier si le dossier_seq existe déjà
         existing_dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == d_seq)).first()
         if existing_dossier:
-            logger.error(f"[pam][admission] Doublon dossier_seq détecté: {d_seq}. Import annulé.")
-            raise Exception(f"Un dossier avec le numéro {d_seq} existe déjà. Import ADT/PAM annulé.")
-        dossier = Dossier(
-            dossier_seq=d_seq,
-            patient_id=patient.id,
-            uf_responsabilite=pv1_data.get("hospital_service") or "UNKNOWN",
-            admit_time=admit_time,
-            encounter_class=encounter_class_code,
-        )
-        session.add(dossier)
-        session.flush()
+            # IHE PAM France: workflow A05 → A01
+            # A05 crée le dossier en état "planned", A01 confirme l'admission
+            if trigger == "A01" and existing_dossier.patient_id == patient.id:
+                # Workflow normal: confirmation d'admission après pré-admission (A05)
+                logger.info(f"[pam][admission] A01 confirming pre-admission for dossier_seq={d_seq}")
+                dossier = existing_dossier
+                # Mettre à jour la date d'admission si nécessaire
+                if admit_time:
+                    dossier.admit_time = admit_time
+            else:
+                logger.error(f"[pam][admission] Doublon dossier_seq détecté: {d_seq}. Import annulé.")
+                raise Exception(f"Un dossier avec le numéro {d_seq} existe déjà. Import ADT/PAM annulé.")
+        else:
+            dossier = Dossier(
+                dossier_seq=d_seq,
+                patient_id=patient.id,
+                uf_responsabilite=pv1_data.get("hospital_service") or "UNKNOWN",
+                admit_time=admit_time,
+                encounter_class=encounter_class_code,
+            )
+            session.add(dossier)
+            session.flush()
         print(f"[pam] Created dossier id={dossier.id} dossier_seq={dossier.dossier_seq} patient_id={dossier.patient_id}")
 
         # If PID-18 (account number) was provided, persist it as a Dossier identifier
@@ -1006,6 +1017,12 @@ async def handle_admission_message(
             except (ValueError, IndexError) as e:
                 logger.warning(f"[pam][admission] Invalid venue sequence in PV1-19 '{visit_number}': {e}")
                 v_seq = get_next_sequence(session, "venue")
+        
+        # Vérifier si une venue existe déjà pour ce dossier (workflow IHE PAM A05→A01)
+        existing_venue = session.exec(
+            select(Venue).where(Venue.dossier_id == dossier.id, Venue.venue_seq == v_seq)
+        ).first()
+        
         location_raw = (pv1_data.get("location") or "").strip()
         location_value = location_raw or None
         previous_location = (pv1_data.get("previous_location") or "").strip() or None
@@ -1014,24 +1031,25 @@ async def handle_admission_message(
         movement_kind = MOVEMENT_KIND_BY_TRIGGER.get(trigger, "admission")
         movement_status = MOVEMENT_STATUS_BY_TRIGGER.get(trigger, "completed")
 
-        operational_status = "active"
-        if movement_status == "planned":
-            operational_status = "planned"
-        elif movement_status == "cancelled":
-            operational_status = "cancelled"
-
-        venue = Venue(
-            venue_seq=v_seq,
-            dossier_id=dossier.id,
-            uf_responsabilite=dossier.uf_responsabilite,
-            start_time=datetime.now(timezone.utc),
-            operational_status=operational_status,
-            assigned_location=location_value,
-            hospital_service=hospital_service or pv1_data.get("hospital_service") or dossier.uf_responsabilite,
-        )
-        session.add(venue)
-        session.flush()
-        print(f"[pam] Created venue id={venue.id} venue_seq={venue.venue_seq} dossier_id={venue.dossier_id}")
+        if existing_venue and trigger == "A01":
+            # IHE PAM: A01 confirme une pré-admission (A05)
+            # Mettre à jour la localisation de la venue existante si fournie
+            logger.info(f"[pam][admission] A01 confirming pre-admission for existing venue {existing_venue.id}")
+            if location_value:
+                existing_venue.assigned_location = location_value
+            venue = existing_venue
+            print(f"[pam] Updated venue id={venue.id} venue_seq={venue.venue_seq} for A01 confirmation")
+        else:
+            venue = Venue(
+                venue_seq=v_seq,
+                dossier_id=dossier.id,
+                uf_responsabilite=hospital_service or pv1_data.get("hospital_service") or dossier.uf_responsabilite,
+                start_time=datetime.now(timezone.utc),
+                assigned_location=location_value,
+            )
+            session.add(venue)
+            session.flush()
+            print(f"[pam] Created venue id={venue.id} venue_seq={venue.venue_seq} dossier_id={venue.dossier_id}")
 
         # If PV1-19 (visit number) was provided, persist it as a Venue identifier
         try:
@@ -1255,7 +1273,7 @@ async def handle_admission_message(
                     session, [mouvement_identifiers], mouvement, "mouvement"
                 )
 
-        # Note: Message emission is now automatic via entity_events.py listeners
+        # REMARQUE: Message emission is now automatic via entity_events.py listeners
         logger.debug(f"[pam][admission] handler returning: success=True, err=None")
         return True, None
     except Exception as e:
@@ -1384,7 +1402,7 @@ async def handle_transfer_message(
                     session, [mouvement_identifiers], mouvement, "mouvement"
                 )
         
-        # Note: Message emission is now automatic via entity_events.py listeners
+        # REMARQUE: Message emission is now automatic via entity_events.py listeners
         
         return True, None
     except Exception as e:
@@ -1513,7 +1531,7 @@ async def handle_discharge_message(
                     [mouvement_identifiers], "mouvement", session, ej_id
                 )
         
-        # Note: Message emission is now automatic via entity_events.py listeners
+        # REMARQUE: Message emission is now automatic via entity_events.py listeners
         
         return True, None
     except Exception as e:
@@ -1646,7 +1664,7 @@ async def handle_leave_message(
                     session, [mouvement_identifiers], mouvement, "mouvement"
                 )
         
-        # Note: Message emission is now automatic via entity_events.py listeners
+        # REMARQUE: Message emission is now automatic via entity_events.py listeners
         
         return True, None
     except Exception as e:
@@ -1790,7 +1808,7 @@ async def handle_doctor_message(
                     session, [mouvement_identifiers], mouvement, "mouvement"
                 )
         
-        # Note: Message emission is now automatic via entity_events.py listeners
+        # REMARQUE: Message emission is now automatic via entity_events.py listeners
         
         return True, None
     except Exception as e:

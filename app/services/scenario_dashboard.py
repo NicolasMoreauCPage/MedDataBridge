@@ -61,7 +61,7 @@ def get_scenario_stats(
     durations = [r.duration_seconds for r in runs if r.duration_seconds is not None]
     avg_duration = sum(durations) / len(durations) if durations else 0.0
     
-    # Compter steps
+    # Compter Étape
     step_query = select(func.count(ScenarioExecutionStepLog.id)).where(
         ScenarioExecutionStepLog.run_id.in_([r.id for r in runs])
     )
@@ -115,7 +115,7 @@ def get_ack_distribution(
     """
     cutoff = datetime.utcnow() - timedelta(days=days_back)
     
-    # Récupérer tous les step logs dans fenêtre
+    # Récupérer tous les Étape logs dans fenêtre
     query = (
         select(ScenarioExecutionStepLog)
         .join(ScenarioExecutionRun, ScenarioExecutionStepLog.run_id == ScenarioExecutionRun.id)

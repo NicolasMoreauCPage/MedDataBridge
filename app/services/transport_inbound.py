@@ -55,7 +55,7 @@ from app.models_contacts import PatientContact, VenueContact  # NK1 parsing mode
 logger = logging.getLogger("transport_inbound")
 
 
-# DEPRECATED: Old inline parsing functions below - use infrastructure.hl7.parsing instead
+# Obsolète: Old inline parsing functions below - use infrastructure.hl7.parsing instead
 # These are kept temporarily for compatibility during migration (Phase 1)
 # Will be removed in Phase 4 cleanup
 def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str, str]]:
@@ -435,7 +435,7 @@ def _parse_hl7_datetime(s: Optional[str]) -> Optional[datetime]:
                 return datetime.strptime(s, fmt)
             except Exception:
                 continue
-    # fallback: ignore timezone/extra and try first 14 chars
+    # Solution de repli: ignore timezone/extra and try first 14 chars
     try:
         return datetime.strptime(s[:14], "%Y%m%d%H%M%S")
     except Exception:
@@ -1007,7 +1007,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
             if action in {"UPDATE", "CANCEL"}:
                 movement_id = zbe_data.get("movement_id")
                 admission_triggers = {"A01", "A04", "A05", "A06", "A07"}
-                # Fallback neutralisation si aucun mouvement_id pour admission initiale
+                # Solution de repli neutralisation si aucun mouvement_id pour admission initiale
                 if not movement_id and trigger in admission_triggers:
                     # Vérifier absence de mouvements antérieurs
                     has_prior = False
@@ -1033,7 +1033,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                         )
                         action = None
                         zbe_data["action"] = None
-                # Si après fallback on n'est plus en UPDATE/CANCEL -> sortir
+                # Si après Solution de repli on n'est plus en UPDATE/CANCEL -> sortir
                 if action not in {"UPDATE", "CANCEL"}:
                     logger.debug("Neutralisation réussie; on saute la logique modification")
                 else:
@@ -1144,7 +1144,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                         previous_event = last_mouvement.trigger_event
                         logger.debug(f"Found previous event '{previous_event}' from venue {visit_num_id}")
             
-            # Stratégie 3 : Fallback - chercher le dernier événement du patient
+            # Stratégie 3 : Solution de repli - chercher le dernier événement du patient
             # (utilisé quand ni dossier ni venue ne sont spécifiés)
             if not previous_event:
                 # Si pas de visit_number, chercher le dernier événement du patient
@@ -1295,7 +1295,7 @@ class _OnMessageInboundCallable:
         # Create the coroutine
         coro = self._async(msg, session, endpoint)
         # Check whether an event loop is already running in this thread.
-        # asyncio.get_running_loop() raises a RuntimeError when no loop is running.
+        # asyncio.get_running_loop() Lève a RuntimeError when no loop is running.
         try:
             # If there's a running loop in this thread, get_running_loop() will succeed.
             running_loop = asyncio.get_running_loop()
@@ -1303,7 +1303,7 @@ class _OnMessageInboundCallable:
             running_loop = None
 
         if not running_loop:
-            # No running loop in this thread: safe to run and return the sync-compatible dict
+            # No running loop in this thread: safe to run and Renvoie the sync-compatible dict
             ack = asyncio.run(coro)
             if isinstance(ack, str) and "MSA|AA" in ack:
                 return {"status": "success", "ack": ack}

@@ -146,7 +146,7 @@ def map_code_with_fallback(
     if mapped:
         return mapped
 
-    # Si pas de mapping et fallback activé, essayer les valeurs par défaut
+    # Si pas de mapping et Solution de repli activé, essayer les valeurs par défaut
     if fallback_to_default:
         default_value = get_default_value(target_system, source_code)
         if default_value:

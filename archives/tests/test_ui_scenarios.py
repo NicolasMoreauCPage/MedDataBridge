@@ -67,14 +67,14 @@ def test_scenario_import_json_success(client: TestClient, session: Session):
     assert r.status_code == 200
 
     # Vérifier que le scénario a été créé
-    # TODO: Vérifier en DB une fois le modèle Scenario implémenté
+    # À FAIRE: Vérifier en DB une fois le modèle Scenario implémenté
     assert "Test Scenario" in r.text or "succès" in r.text.lower()
 
 
 @pytest.mark.xfail(reason="Routes scenarios peuvent être cassées si dépendent de ght.py")
 def test_scenario_detail_page_loads(client: TestClient, session: Session):
     """Test que la page détail d'un scénario se charge."""
-    # TODO: Créer un scénario en DB d'abord une fois implémenté
+    # À FAIRE: Créer un scénario en DB d'abord une fois implémenté
     # Pour l'instant, simuler avec un ID fictif
     r = client.get("/scenarios/1")
     # Peut retourner 404 si pas implémenté, mais l'endpoint devrait exister
@@ -84,7 +84,7 @@ def test_scenario_detail_page_loads(client: TestClient, session: Session):
 @pytest.mark.xfail(reason="Routes scenarios peuvent être cassées si dépendent de ght.py")
 def test_scenario_export_functionality(client: TestClient, session: Session):
     """Test l'export d'un scénario."""
-    # TODO: Créer un scénario d'abord
+    # À FAIRE: Créer un scénario d'abord
     r = client.get("/scenarios/1/export")
     assert r.status_code in [200, 404]  # 404 si scénario n'existe pas
 
@@ -149,7 +149,7 @@ def test_scenario_step_visualization(client: TestClient, session: Session):
     assert r.status_code in [200, 404]
 
     if r.status_code == 200:
-        # Devrait retourner du JSON avec les steps
+        # Devrait retourner du JSON avec les Étape
         data = r.json()
         assert isinstance(data, list) or "steps" in data
 
@@ -284,7 +284,7 @@ def test_scenario_execution_dry_run(client: TestClient, session: Session):
         result = r.json()
         # En dry-run, rien ne devrait être créé en DB
         mouvements_count = session.exec(select(Mouvement)).all()
-        # TODO: Vérifier que le count n'a pas changé
+        # À FAIRE: Vérifier que le count n'a pas changé
 
         # Mais on devrait avoir un aperçu des actions
         assert "preview" in result or "actions" in result or "steps" in result
@@ -315,7 +315,7 @@ def test_scenario_library_browse(client: TestClient, session: Session):
     assert r.status_code == 200
 
     # Devrait lister les scénarios disponibles
-    # TODO: Vérifier contenu une fois la bibliothèque implémentée
+    # À FAIRE: Vérifier contenu une fois la bibliothèque implémentée
 
 
 @pytest.mark.xfail(reason="Routes scenarios peuvent être cassées si dépendent de ght.py")
@@ -336,7 +336,7 @@ def test_scenario_template_creation(client: TestClient, session: Session):
 @pytest.mark.xfail(reason="Routes scenarios peuvent être cassées si dépendent de ght.py")
 def test_scenario_validation_rules(client: TestClient, session: Session):
     """Test les règles de validation des scénarios."""
-    # Scénario invalide (pas de steps)
+    # Scénario invalide (pas de Étape)
     invalid_scenario = {
         "name": "Invalid Scenario",
         "steps": []
@@ -372,7 +372,7 @@ def test_scenario_validation_rules(client: TestClient, session: Session):
 @pytest.mark.xfail(reason="Routes scenarios peuvent être cassées si dépendent de ght.py")
 def test_scenario_execution_progress_tracking(client: TestClient, session: Session):
     """Test le suivi de progression lors de l'exécution."""
-    # Créer scénario multi-steps
+    # Créer scénario multi-Étape
     scenario_data = {
         "name": "Progress Test",
         "steps": [
@@ -415,7 +415,7 @@ def test_scenario_execution_progress_tracking(client: TestClient, session: Sessi
 def test_scenario_rollback_functionality(client: TestClient, session: Session):
     """Test la fonctionnalité de rollback d'un scénario."""
     # Exécuter un scénario d'abord
-    # TODO: Une fois l'exécution implémentée
+    # À FAIRE: Une fois l'exécution implémentée
 
     # Puis tester le rollback
     r = client.post("/scenarios/executions/1/rollback")
@@ -423,7 +423,7 @@ def test_scenario_rollback_functionality(client: TestClient, session: Session):
 
     if r.status_code == 200:
         # Vérifier que les mouvements créés ont été supprimés
-        # TODO: Vérifier en DB
+        # À FAIRE: Vérifier en DB
         pass
 
 

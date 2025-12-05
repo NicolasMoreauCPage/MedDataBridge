@@ -1,5 +1,5 @@
 """
-Générateur d'identifiants basés sur timestamp pour Patient et Dossier.
+Générateur d'identifiants basés sur timestamp pour Patient, Dossier et Venue.
 
 Les identifiants sont générés sans dépendance à des séquences en base de données,
 basés uniquement sur le timestamp pour garantir l'unicité.
@@ -7,6 +7,7 @@ basés uniquement sur le timestamp pour garantir l'unicité.
 Formats:
 - Patient (patient_seq) : 12 caractères, préfixe '9' + 11 chiffres timestamp
 - Dossier (dossier_seq) : 9 caractères, préfixe '9' + 8 chiffres timestamp
+- Venue (venue_seq) : 10 caractères, préfixe '8' + 8 chiffres timestamp + 1 compteur
 
 Pour garantir l'unicité même en cas de génération très rapide, on utilise
 un compteur atomique en plus du timestamp.
@@ -17,10 +18,13 @@ import threading
 # Verrous et compteurs pour garantir l'unicité
 _patient_lock = threading.Lock()
 _dossier_lock = threading.Lock()
+_venue_lock = threading.Lock()
 _patient_counter = 0
 _dossier_counter = 0
+_venue_counter = 0
 _last_patient_timestamp = 0
 _last_dossier_timestamp = 0
+_last_venue_timestamp = 0
 
 
 def generate_patient_seq() -> int:
@@ -105,3 +109,44 @@ def generate_dossier_seq() -> int:
         
         # Préfixer avec '9', ajouter timestamp et compteur
         return int(f"9{timestamp_str}{_dossier_counter}")
+
+
+def generate_venue_seq() -> int:
+    """
+    Génère un identifiant de venue unique basé sur le timestamp.
+    
+    Format : 10 chiffres
+    - 1er chiffre : toujours '8' (pour distinguer des dossiers qui commencent par '9')
+    - 8 chiffres : timestamp en microsecondes
+    - 1 dernier chiffre : compteur (0-9) pour éviter les collisions
+    
+    Thread-safe et garantit l'unicité même avec génération très rapide.
+    
+    Returns:
+        int: Identifiant venue de 10 chiffres (ex: 8123456780)
+    
+    Examples:
+        >>> seq = generate_venue_seq()
+        >>> 8000000000 <= seq < 9000000000
+        True
+        >>> str(seq)[0]
+        '8'
+    """
+    global _venue_counter, _last_venue_timestamp
+    
+    with _venue_lock:
+        # Obtenir le timestamp en microsecondes
+        timestamp_us = int(time.time() * 1_000_000)
+        
+        # Si même timestamp, incrémenter le compteur
+        if timestamp_us == _last_venue_timestamp:
+            _venue_counter = (_venue_counter + 1) % 10
+        else:
+            _venue_counter = 0
+            _last_venue_timestamp = timestamp_us
+        
+        # Prendre 8 chiffres du timestamp
+        timestamp_str = str(timestamp_us)[-8:]
+        
+        # Préfixer avec '8', ajouter timestamp et compteur
+        return int(f"8{timestamp_str}{_venue_counter}")

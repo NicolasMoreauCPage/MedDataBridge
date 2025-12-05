@@ -69,7 +69,7 @@ class SystemEndpoint(SQLModel, table=True):
     receiving_facility: Optional[str] = None # MSH-6
 
     # Pour FHIR
-    base_url: Optional[str] = None  # Ex: https://fhir.example.com/fhir
+    base_url: Optional[str] = None  # Ex: https://fhir.Exemple.com/fhir
     auth_kind: Optional[str] = None  # none, basic, bearer
     auth_token: Optional[str] = None
 

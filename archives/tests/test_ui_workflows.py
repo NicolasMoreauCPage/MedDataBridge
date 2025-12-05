@@ -61,14 +61,14 @@ def test_workflow_creation_success(client: TestClient, session: Session):
     assert r.status_code == 200
 
     # Vérifier que le workflow a été créé
-    # TODO: Vérifier en DB une fois le modèle Workflow implémenté
+    # À FAIRE: Vérifier en DB une fois le modèle Workflow implémenté
     assert "Workflow Test" in r.text or "succès" in r.text.lower()
 
 
 @pytest.mark.xfail(reason="Routes workflows peuvent être cassées si dépendent de ght.py")
 def test_workflow_detail_page_loads(client: TestClient, session: Session):
     """Test que la page détail d'un workflow se charge."""
-    # TODO: Créer un workflow d'abord
+    # À FAIRE: Créer un workflow d'abord
     r = client.get("/workflows/1")
     assert r.status_code in [200, 404]
 
@@ -178,7 +178,7 @@ def test_workflow_trigger_on_movement(client: TestClient, session: Session):
     assert r.status_code == 200
 
     # Vérifier qu'un workflow a été déclenché automatiquement
-    # TODO: Vérifier les workflows exécutés une fois le système de triggers implémenté
+    # À FAIRE: Vérifier les workflows exécutés une fois le système de triggers implémenté
 
 
 @pytest.mark.xfail(reason="Routes workflows peuvent être cassées si dépendent de ght.py")
@@ -469,7 +469,7 @@ def test_workflow_bulk_operations(client: TestClient, session: Session):
 def test_workflow_execution_history(client: TestClient, session: Session):
     """Test l'historique d'exécution des workflows."""
     # Exécuter quelques workflows d'abord
-    # TODO: Une fois l'exécution implémentée
+    # À FAIRE: Une fois l'exécution implémentée
 
     # Consulter l'historique
     r = client.get("/workflows/executions")
@@ -491,7 +491,7 @@ def test_workflow_execution_history(client: TestClient, session: Session):
 def test_workflow_performance_monitoring(client: TestClient, session: Session):
     """Test le monitoring de performance des workflows."""
     # Exécuter un workflow
-    # TODO: Une fois implémenté
+    # À FAIRE: Une fois implémenté
 
     # Consulter les métriques
     r = client.get("/workflows/performance")

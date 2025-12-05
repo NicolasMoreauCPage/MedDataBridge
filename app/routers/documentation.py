@@ -9,6 +9,38 @@ from markdown.extensions.tables import TableExtension
 from markdown.extensions.codehilite import CodeHiliteExtension
 
 router = APIRouter(prefix="/documentation", tags=["documentation"])
+@router.get("/fhir-reception-emission-complete", response_class=HTMLResponse)
+async def documentation_fhir_reception_emission_complete(request: Request):
+    """Documentation technique FHIR — Réception et émission (HTML statique, complète)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_fhir_reception_emission_complete.html",
+        {"title": "Documentation technique FHIR — Réception et émission"}
+    )
+@router.get("/fhir-reception-emission", response_class=HTMLResponse)
+async def documentation_fhir_reception_emission(request: Request):
+    """Documentation FHIR — Réception et émission (HTML statique)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_fhir_reception_emission.html",
+        {"title": "Documentation FHIR — Réception et émission"}
+    )
+@router.get("/pam-workflows", response_class=HTMLResponse)
+async def documentation_pam_workflows(request: Request):
+    """Documentation des workflows IHE PAM (HTML statique)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_pam_workflows.html",
+        {"title": "Workflows IHE PAM (FR)"}
+    )
+@router.get("/pam-integration", response_class=HTMLResponse)
+async def documentation_pam_integration(request: Request):
+    """Documentation technique exhaustive IHE PAM (HTML statique)."""
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "documentation_pam_integration.html",
+        {"title": "IHE PAM — Documentation technique complète"}
+    )
 
 DOC_ROOT = Path(__file__).parent.parent.parent / "Doc"
 
@@ -175,7 +207,7 @@ async def view_document(request: Request, category: str, filename: str):
     doc_path = DOC_ROOT / category / filename
     
     if not doc_path.exists():
-        # Fallback: chercher à la racine du projet
+        # Solution de repli: chercher à la racine du projet
         doc_path = DOC_ROOT.parent / filename
     
     if not doc_path.exists() or not doc_path.is_file():
@@ -193,7 +225,7 @@ async def view_document(request: Request, category: str, filename: str):
     with open(doc_path, 'r', encoding='utf-8') as f:
         content_html, toc_html = render_markdown_with_toc(f.read())
     
-    # Extraire le titre du premier h1 (fallback à partir du nom de fichier)
+    # Extraire le titre du premier h1 (Solution de repli à partir du nom de fichier)
     title = filename.replace('.md', '').replace('_', ' ').replace('-', ' ').title()
 
     # Calculer navigation prev/next

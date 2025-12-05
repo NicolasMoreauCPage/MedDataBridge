@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Documentation technique complète IHE PAM (Profil France)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background: #f9f9f9; }
+    h1, h2, h3 { color: #2a4b7c; }
+    code, pre { background: #eef; padding: 2px 6px; border-radius: 3px; }
+    ul, ol { margin-left: 2em; }
+    .section { margin-bottom: 2em; }
+    .ref { font-size: 0.95em; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Intégration IHE PAM (Profil France) — Documentation technique complète</h1>
+  <div class="section">
+    <h2>Objectif</h2>
+    <p>Ce document décrit de manière exhaustive l’intégration des messages IHE PAM (ADT, ZBE, MRG, etc.) dans MedData_Bridge, en conformité avec les spécifications IHE France. Il s’adresse aux experts de l’interopérabilité, développeurs et intégrateurs qui doivent maintenir, étendre ou valider le pipeline PAM.</p>
+  </div>
+  <div class="section">
+    <h2>Sommaire</h2>
+    <ol>
+      <li>Segments HL7 lus et mapping</li>
+      <li>Gestion des identifiants et namespaces</li>
+      <li>Modèle relationnel et parentage</li>
+      <li>Algorithme de traitement et transactionnalité</li>
+      <li>Règles métier par trigger</li>
+      <li>Cas d’erreur et diagnostics</li>
+      <li>Tests de validation et régression</li>
+      <li>Annexes et utilitaires</li>
+    </ol>
+  </div>
+  <div class="section">
+    <h2>1. Segments HL7 lus et mapping</h2>
+    <ul>
+      <li><b>MSH</b> : Validation complète selon IHE France (séparateur, encodage, type, trigger, version, control ID, processing ID).</li>
+      <li><b>EVN</b> : Cohérence EVN-1/MSH-9.</li>
+      <li><b>PID</b> : Validation stricte de tous les champs clés (PID-3, PID-5, PID-7, PID-8, PID-11, PID-13, PID-18, PID-32). Mapping vers <code>Patient</code>.</li>
+      <li><b>PV1</b> : PV1-2, PV1-3, PV1-10, PV1-19. Mapping vers <code>Venue</code> et <code>Dossier</code>.</li>
+      <li><b>ZBE</b> : Extension France pour mouvements. Mapping vers <code>Mouvement</code>.</li>
+      <li><b>MRG</b> : Fusion d’identités. Utilisé pour A40.</li>
+      <li><b>NK1</b> : Contacts. Mapping vers <code>PatientContact</code> ou <code>VenueContact</code>.</li>
+      <li><b>PD1</b> : Informations complémentaires patient (optionnel).</li>
+    </ul>
+    <p>Les usages, cardinalités et listes de valeurs sont conformes aux tableaux des specs IHE France.</p>
+  </div>
+  <div class="section">
+    <h2>2. Gestion des identifiants et namespaces</h2>
+    <ul>
+      <li><b>PID-3</b> : CX, format <code>ID^^^SYSTEM&OID&ISO^PI</code>, validation structure, unicité, longueur EI-1.</li>
+      <li><b>PV1-19</b> : identifiant de séjour (CX).</li>
+      <li><b>ZBE-1</b> : identifiant mouvement (ID^AUTHORITY^OID^ISO).</li>
+      <li><b>MRG-1</b> : identifiants à fusionner (CX répétés).</li>
+      <li>Namespaces extraits et validés selon les specs.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>3. Modèle relationnel et parentage</h2>
+    <ul>
+      <li><b>Patient</b> → <b>Dossier</b> → <b>Venue</b> → <b>Mouvement</b></li>
+      <li>Parentage résolu par identifiant (PID-3, PV1-19, ZBE-1).</li>
+      <li>Annulation, fusion, update : rattachement dynamique selon trigger et segments.</li>
+      <li>Contacts (NK1) rattachés au patient ou à la venue selon la date/heure.</li>
+      <li>Transactions SQLModel, rollback en cas d’erreur.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>4. Algorithme de traitement et transactionnalité</h2>
+    <ul>
+      <li>Pipeline principal : <code>on_message_inbound_async</code> (validation, parsing, routage, journalisation, transaction).</li>
+      <li>Validation structurelle, parsing, mapping, validation métier.</li>
+      <li>Routage métier via <code>IHEMessageRouter</code> selon le trigger.</li>
+      <li>Gestion des annulations, fusions, mises à jour partielles, fallback.</li>
+      <li>Log détaillé, création de parents virtuels si nécessaire.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>5. Règles métier par trigger</h2>
+    <ul>
+      <li><b>A01/A04/A05/A06/A07</b> : admission, pré-admission, changement de classe.</li>
+      <li><b>A02/A12</b> : transfert, annulation de transfert.</li>
+      <li><b>A03/A13</b> : sortie, annulation de sortie.</li>
+      <li><b>A11/A23/A38</b> : annulation admission/enregistrement/préadmission.</li>
+      <li><b>A21/A22/A52/A53</b> : permission, retour, annulation.</li>
+      <li><b>A40</b> : fusion d’identités (PID/MRG).</li>
+      <li><b>Z99</b> : mises à jour partielles, tolérance sandbox.</li>
+      <li>Validation stricte des transitions (ordre logique, cohérence temporelle).</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>6. Cas d’erreur et diagnostics</h2>
+    <ul>
+      <li>Identifiant manquant : log, rejet, fallback.</li>
+      <li>Parent manquant : report, création de parent virtuel.</li>
+      <li>Import incomplet : log, rollback transaction.</li>
+      <li>Collision/incohérence : log, création de lien virtuel, rejet si non résoluble.</li>
+      <li>Annulation sans mouvement cible : fallback sur dernier mouvement.</li>
+      <li>Erreur de validation IHE France : log, rejet ou warning selon configuration.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>7. Tests de validation et régression</h2>
+    <ul>
+      <li>Validation roundtrip admission → transfert → sortie → annulation.</li>
+      <li>Contrôle des transitions et des identifiants.</li>
+      <li>Utilisation de jeux de données de test pour tous les cas d’erreur.</li>
+      <li>Scripts : <code>scripts/validate_pam.py</code>, rapports <code>reports/pam_import_report.json</code>.</li>
+      <li>Tests unitaires et d’intégration dans <code>archives/tests/</code> et <code>pam_archive_dst/</code>.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>8. Annexes et utilitaires</h2>
+    <ul>
+      <li>Listes de valeurs officielles : genre, classe patient, nature mouvement, status, triggers, etc.</li>
+      <li>Exemples de messages PAM : ADT^A01, ADT^A03, ADT^A11, ADT^A40, Z99, etc.</li>
+      <li>Utilitaires de parsing et génération : <code>app/services/pam.py</code>, <code>adapters/hl7_pam_fr.py</code>, <code>app/infrastructure/hl7/parsing.py</code>.</li>
+      <li>Patterns d’écriture atomique recommandés pour éviter les corruptions.</li>
+      <li>Références : specs IHE France, code source, scripts de validation, rapports d’import.</li>
+    </ul>
+  </div>
+  <hr>
+  <p>Document rédigé le 30/11/2025. Pour toute extension, se référer aux modules cités, aux conventions de factorisation et aux contraintes officielles IHE France.</p>
+</body>
+</html>

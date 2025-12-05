@@ -93,7 +93,7 @@ def test_template_independence_after_dossier_modification(test_session: Session)
         template_name="Template Test Indépendance",
     )
     
-    # Vérifier template créé avec 1 step
+    # Vérifier template créé avec 1 Étape
     assert template.id is not None
     assert template.name == "Template Test Indépendance"
     assert len(template.steps) == 1
@@ -171,7 +171,7 @@ def test_template_independence_after_dossier_deletion(test_session: Session):
         template_name="Template Test Suppression",
     )
     
-    # Vérifier 2 steps
+    # Vérifier 2 Étape
     assert len(template.steps) == 2
     step1_narrative = template.steps[0].narrative
     step2_narrative = template.steps[1].narrative
@@ -245,7 +245,7 @@ def test_template_no_foreign_key_to_dossier(test_session: Session):
     
     # Vérifier qu'il n'y a PAS de colonne dossier_id dans ScenarioTemplate
     assert not hasattr(template, "dossier_id")
-    # Vérifier que les steps n'ont PAS de FK vers Mouvement/Venue
+    # Vérifier que les Étape n'ont PAS de FK vers Mouvement/Venue
     for step in template.steps:
         assert not hasattr(step, "mouvement_id")
         assert not hasattr(step, "venue_id")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from datetime import datetime, timedelta
@@ -9,7 +9,11 @@ from app.db import get_session
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.dependencies.ght import require_ght_context
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(
     prefix="/timeline",
     tags=["timeline"],
@@ -268,7 +272,7 @@ def patient_timeline(
     """Timeline view for a patient"""
     patient = session.get(Patient, patient_id)
     if not patient:
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             request,
             "error.html",
             {"message": "Patient non trouvé"}
@@ -297,7 +301,7 @@ def patient_timeline(
             mvts = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
             mouvements.extend(mvts)
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "timeline.html",
         {
@@ -324,7 +328,7 @@ def dossier_timeline(
     """Timeline view for a dossier"""
     dossier = session.get(Dossier, dossier_id)
     if not dossier:
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             request,
             "error.html",
             {"message": "Dossier non trouvé"}
@@ -357,7 +361,7 @@ def dossier_timeline(
         mvts = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
         mouvements.extend(mvts)
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "timeline.html",
         {
@@ -384,7 +388,7 @@ def venue_timeline(
     """Timeline view for a venue"""
     venue = session.get(Venue, venue_id)
     if not venue:
-        return templates.TemplateResponse(
+        return get_templates_with_filters(request).TemplateResponse(
             request,
             "error.html",
             {"message": "Venue non trouvée"}
@@ -411,7 +415,7 @@ def venue_timeline(
         {"label": "Timeline", "url": f"/timeline/venue/{venue_id}"}
     ])
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "timeline.html",
         {

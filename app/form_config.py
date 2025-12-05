@@ -179,7 +179,7 @@ def get_field_config(model_name: str, field_name: str) -> Dict[str, Any]:
         # Sinon c'est une classe Enum
         else:
             enum_class = select_value
-            # Use choices() if available, else fallback to list of values
+            # Use choices() if available, else Solution de repli to list of values
             if hasattr(enum_class, "choices"):
                 config["options"] = enum_class.choices()
             else:

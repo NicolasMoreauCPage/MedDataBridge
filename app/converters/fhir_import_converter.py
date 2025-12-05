@@ -208,7 +208,7 @@ class FHIRToLocationConverter:
         if len(parts) != 2:
             return None
         
-        # TODO: Implémenter une vraie résolution depuis la base
+        # À FAIRE: Implémenter une vraie résolution depuis la base
         # Pour l'instant, on retourne l'ID extrait
         try:
             return int(parts[1])
@@ -424,8 +424,14 @@ class FHIRToPatientConverter:
 class FHIRToEncounterConverter:
     """Convertit des ressources FHIR Encounter vers les modèles Mouvement."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, resource_map: Optional[Dict[str, int]] = None):
         self.session = session
+        # mapping from bundle resource ids or fullUrls (e.g. 'pat-1' or 'Patient/pat-1')
+        # to internal DB numeric ids (patient.id)
+        # IMPORTANT: accept the exact dict passed in (even if empty) so the importer
+        # and converters share the same mapping instance. Using `or {}` would create
+        # a new dict when an empty one is passed.
+        self.resource_map = resource_map if resource_map is not None else {}
 
     def convert_encounter(self, fhir_encounter: Dict[str, Any]) -> Mouvement:
         """
@@ -462,7 +468,7 @@ class FHIRToEncounterConverter:
             raise FHIRImportError(f"Aucun dossier trouvé pour le patient {patient_id}")
         
         # Trouver ou créer une venue pour ce dossier
-        # TODO: Implémenter une vraie résolution de venue depuis les locations
+        # À FAIRE: Implémenter une vraie résolution de venue depuis les locations
         # Pour l'instant, utiliser la première venue du dossier ou en créer une
         venue = self.session.exec(select(Venue).where(Venue.dossier_id == dossier.id)).first()
         if not venue:
@@ -496,7 +502,7 @@ class FHIRToEncounterConverter:
         self.session.refresh(mouvement)
         
         # Ajouter l'identifiant NDA
-        # Note: Le modèle Identifier n'a pas de foreign key pour Mouvement
+        # REMARQUE: Le modèle Identifier n'a pas de foreign key pour Mouvement
         # On pourrait l'ajouter ou utiliser un autre mécanisme
         if nda:
             identifier = Identifier(
@@ -514,14 +520,48 @@ class FHIRToEncounterConverter:
         """Extrait l'ID depuis une référence FHIR."""
         if not reference:
             return None
-        
-        parts = reference.split("/")
-        if len(parts) != 2:
-            return None
-        
+
+        # Normalize and strip whitespace
+        ref = reference.strip()
+
+        # Remove leading '#' used in some bundle-local references
+        if ref.startswith('#'):
+            ref = ref[1:]
+
+        # If it's a full URL, keep only the tail (e.g. http://.../Patient/pat-999 -> Patient/pat-999)
+        if '/' in ref:
+            parts = ref.split('/')
+            # prefer last two segments if available
+            if len(parts) >= 2:
+                resource_type = parts[-2]
+                ref_id = parts[-1]
+                candidate_full = f"{resource_type}/{ref_id}"
+            else:
+                # fallback
+                ref_id = parts[-1]
+                candidate_full = ref
+        else:
+            # bare id (e.g. 'pat-999')
+            ref_id = ref
+            candidate_full = None
+
+    # (no debug prints)
+
+        # Try numeric id first
         try:
-            return int(parts[1])
-        except ValueError:
+            return int(ref_id)
+        except (ValueError, TypeError):
+            # Not a numeric id — try resolving via resource_map (bundle-local ids)
+            if hasattr(self, 'resource_map') and self.resource_map:
+                # exact original reference (e.g. 'Patient/pat-999' or long URL)
+                if ref in self.resource_map:
+                    return self.resource_map[ref]
+                # normalized candidate like 'Patient/pat-999'
+                if candidate_full and candidate_full in self.resource_map:
+                    return self.resource_map[candidate_full]
+                # bare id lookup
+                if ref_id in self.resource_map:
+                    return self.resource_map[ref_id]
             return None
 
     def _parse_datetime(self, datetime_str: Optional[str]) -> Optional[datetime]:
@@ -554,9 +594,11 @@ class FHIRBundleImporter:
     def __init__(self, session: Session, ej: EntiteJuridique):
         self.session = session
         self.ej = ej
+        # resource_map: maps bundle-local ids and references to DB ids
+        self.resource_map: Dict[str, int] = {}
         self.location_converter = FHIRToLocationConverter(session, ej)
         self.patient_converter = FHIRToPatientConverter(session, ej)
-        self.encounter_converter = FHIRToEncounterConverter(session)
+        self.encounter_converter = FHIRToEncounterConverter(session, resource_map=self.resource_map)
 
     def import_bundle(self, bundle: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -589,17 +631,30 @@ class FHIRBundleImporter:
             
             try:
                 if resource_type == "Location":
-                    self.location_converter.convert_location(resource)
+                    entity = self.location_converter.convert_location(resource)
+                    # Record mapping: resource.id and full reference
+                    res_id = resource.get('id')
+                    if res_id and hasattr(entity, 'id'):
+                        self.resource_map[res_id] = entity.id
+                        self.resource_map[f"Location/{res_id}"] = entity.id
                     results["locations"] += 1
                     results["imported"] += 1
                     
                 elif resource_type == "Patient":
-                    self.patient_converter.convert_patient(resource)
+                    patient = self.patient_converter.convert_patient(resource)
+                    res_id = resource.get('id')
+                    if res_id and hasattr(patient, 'id'):
+                        self.resource_map[res_id] = patient.id
+                        self.resource_map[f"Patient/{res_id}"] = patient.id
                     results["patients"] += 1
                     results["imported"] += 1
                     
                 elif resource_type == "Encounter":
-                    self.encounter_converter.convert_encounter(resource)
+                    mouvement = self.encounter_converter.convert_encounter(resource)
+                    res_id = resource.get('id')
+                    if res_id and hasattr(mouvement, 'id'):
+                        self.resource_map[res_id] = mouvement.id
+                        self.resource_map[f"Encounter/{res_id}"] = mouvement.id
                     results["encounters"] += 1
                     results["imported"] += 1
                     

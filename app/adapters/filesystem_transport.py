@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from typing import List, Optional, Callable
 from datetime import datetime
+from app.utils.atomic_write import write_atomic_text
 
 
 class FileSystemReader:
@@ -193,11 +194,16 @@ class FileSystemWriter:
                 filename = f"{timestamp}{self.extension}"
         
         file_path = target_dir / filename
-        
-        # Write content
-        file_path.write_text(content, encoding='utf-8')
-        
-        return file_path
+
+        # Use atomic writer to write content with unique timestamp+rand filename
+        # Derive a sensible basename (strip extension if filename provided)
+        if filename:
+            basename = filename.rsplit('.', 1)[0]
+        else:
+            basename = timestamp
+
+        final = write_atomic_text(target_dir, basename, content, extension=self.extension)
+        return final
     
     def write_batch(self, messages: List[tuple[str, Optional[str]]]) -> List[Path]:
         """

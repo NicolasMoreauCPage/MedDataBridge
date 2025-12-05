@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 from datetime import datetime
 
@@ -16,8 +16,12 @@ from app.models_structure import (
 from app.services.emit_on_create import emit_to_senders as emit_on_create
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS, WORKFLOW_GRAPH
 
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/workflow", tags=["workflow"])
-templates = Jinja2Templates(directory="app/templates")
 
 def _collect_workflow_context(venue_id: int, session: Session) -> Dict[str, object]:
     # Récupérer la venue et son dossier
@@ -137,7 +141,7 @@ async def workflow_view(
     
     from app.services.vocabulary_lookup import get_vocabulary_options
     reason_options = get_vocabulary_options("movement-reason") or []
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "mouvement_workflow.html",
         {

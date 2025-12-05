@@ -4,6 +4,7 @@ Extrait de `/program_docs/README.md` : cette copie centralise les pointeurs vers
 
 Consultez toujours les fichiers originaux sous `/program_docs` pour les scripts et les contenus générés automatiquement.
 ```markdown
+
 # Internal implementation docs (program_docs)
 
 This is a copied subset of `/program_docs/README.md` to centralize technical materials.

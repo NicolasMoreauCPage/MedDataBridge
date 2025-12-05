@@ -1,0 +1,984 @@
+Transition IHE PAM invalide
+Transition IHE PAM invalide
+Transition IHE PAM invalide
+Transition IHE PAM invalide
+Transition IHE PAM invalide
+Transition IHE PAM invalide
+Transition IHE PAM invalide
+🔍 Analyse Détaillée des Erreurs Roundtrip
+⏰ Début: 2025-12-05 14:51:08
+====================================================================================================
+✅ 125 scénarios à analyser
+
+
+====================================================================================================
+❌ SCÉNARIOS AVEC ERREURS COMPLÈTES (100% des steps en erreur)
+====================================================================================================
+
+[  1] IHE PAM - Admission (1 msg)
+     Erreurs: 1 steps
+     ACK codes: {'AR': 1}
+     Triggers: {'A01': 1}
+     Détails:
+       Step 1: ADT^A01 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[  3] IHE PAM - Admission + Add Person (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 1, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 2}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+
+[  5] IHE PAM - Merge Patient (1 msg)
+     Erreurs: 1 steps
+     ACK codes: {'AE': 1}
+     Triggers: {'A40': 1}
+     Détails:
+       Step 1: ADT^A40 → AE
+         └─ ERR|||207^Segment MRG obligatoire manquant pour le message ADT^A40. Le segment M
+
+[  6] IHE PAM - Change Alternate ID (1 msg)
+     Erreurs: 1 steps
+     ACK codes: {'AE': 1}
+     Triggers: {'A47': 1}
+     Détails:
+       Step 1: ADT^A47 → AE
+         └─ ERR|||207^Segment MRG obligatoire manquant pour le message ADT^A47. Le segment M
+
+[  8] IHE PAM - Admission + Bed Status + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 1, 'AE': 3}
+     Triggers: {'A28': 1, 'A01': 1, 'A21': 1, 'A22': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A21 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A21. Le profil IH
+       Step 4: ADT^A22 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A22. Le profil IH
+
+[  9] IHE PAM - Admission + Transfer + ... (4 events) (6 msg)
+     Erreurs: 6 steps
+     ACK codes: {'AR': 4, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'A02': 2, 'Z99': 2}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^A02 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A02. Le profil IH
+       Step 4: ADT^A02 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A02. Le profil IH
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 6: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 11] IHE PAM - Discharge + Register + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 2, 'AE': 2}
+     Triggers: {'A28': 1, 'A04': 1, 'A03': 1, 'A31': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A04 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A04. Le profil IH
+       Step 3: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 4: ADT^A31 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[ 23] IHE PAM - Admission + Add Person (2 msg)
+     Erreurs: 2 steps
+     ACK codes: {'AR': 1, 'AE': 1}
+     Triggers: {'A28': 1, 'A01': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+
+[ 24] IHE PAM - Admission + Add Person (2 msg)
+     Erreurs: 2 steps
+     ACK codes: {'AR': 1, 'AE': 1}
+     Triggers: {'A28': 1, 'A01': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+
+[ 25] IHE PAM - Admission + Discharge + Add Person (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 1, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[ 26] IHE PAM - Admission + Add Person (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 1, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 2}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+
+[ 27] IHE PAM - Admission + Pre-Admission + Add Person (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 3}
+     Triggers: {'A28': 1, 'A05': 1, 'A01': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^A01 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[ 28] IHE PAM - Admission + Transfer + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 1, 'AE': 3}
+     Triggers: {'A28': 1, 'A01': 1, 'A02': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A02 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A02. Le profil IH
+       Step 4: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[ 37] IHE PAM - Add Person (6 msg)
+     Erreurs: 6 steps
+     ACK codes: {'AR': 6}
+     Triggers: {'A28': 6}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 4: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 5: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 6: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[ 50] IHE PAM - Admission + Discharge + ... (5 events) (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 2, 'AE': 3}
+     Triggers: {'A28': 1, 'A05': 1, 'A01': 1, 'A03': 1, 'Z99': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A05. Le profil IH
+       Step 3: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 4: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 53] IHE PAM - Discharge + Register + ... (5 events) (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 2, 'AE': 3}
+     Triggers: {'A28': 1, 'A04': 1, 'A06': 1, 'Z99': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A04 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A04. Le profil IH
+       Step 3: ADT^A06 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A06. Le profil IH
+       Step 4: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 5: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[ 60] IHE PAM - Register + Change Attr. + ... (4 events) (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 3, 'AE': 2}
+     Triggers: {'A28': 1, 'A04': 1, 'Z99': 2, 'A06': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A04 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A04. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 4: ADT^A06 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A06. Le profil IH
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 61] IHE PAM - Admission + Discharge + ... (4 events) (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 3, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'A03': 1, 'Z99': 2}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 4: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 64] IHE PAM - Admission + Discharge + ... (4 events) (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 3, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'Z99': 2, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 4: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 65] IHE PAM - Admission + Pre-Admission + Add Person (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 1, 'AE': 2}
+     Triggers: {'A28': 1, 'A05': 1, 'A01': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A05. Le profil IH
+       Step 3: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+
+[ 68] IHE PAM - Admission + Add Person + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 2, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'Z80': 1, 'Z99': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z80 → AE
+         └─ ERR|||207^Transition IHE invalide : début de parcours -> Z80 (attendu: A01, A04,
+       Step 4: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 70] IHE PAM - Admission + Add Person (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 1, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 2}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+
+[ 73] IHE PAM - Admission + Discharge + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 2, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'Z99': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 4: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[ 74] IHE PAM - Admission + Discharge + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 2, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'Z99': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 4: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[ 75] IHE PAM - Admission + Transfer + ... (6 events) (7 msg)
+     Erreurs: 7 steps
+     ACK codes: {'AR': 7}
+     Triggers: {'A28': 1, 'A05': 1, 'Z99': 2, 'A01': 1, 'A02': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 4: ADT^A01 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 5: ADT^A02 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 6: ADT^Z99 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 7: ADT^A03 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[ 76] IHE PAM - Admission + Transfer + ... (5 events) (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 2, 'AE': 3}
+     Triggers: {'A28': 1, 'A01': 1, 'Z99': 1, 'A02': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 4: ADT^A02 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A02. Le profil IH
+       Step 5: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[ 77] IHE PAM - Admission + Discharge + ... (5 events) (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 2, 'AE': 3}
+     Triggers: {'A28': 1, 'A05': 1, 'A01': 1, 'Z99': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A05. Le profil IH
+       Step 3: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 4: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 5: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[ 79] IHE PAM - Admission + Transfer + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 4}
+     Triggers: {'A28': 1, 'A01': 1, 'A02': 1, 'A11': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^A02 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 4: ADT^A11 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[ 85] IHE PAM - Admission + Bed Status + ... (5 events) (7 msg)
+     Erreurs: 7 steps
+     ACK codes: {'AR': 4, 'AE': 3}
+     Triggers: {'A28': 1, 'A01': 1, 'A21': 1, 'A22': 1, 'Z99': 3}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A21 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A21. Le profil IH
+       Step 4: ADT^A22 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A22. Le profil IH
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 6: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 7: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 89] IHE PAM - Admission + Add Person + Custom (5 msg)
+     Erreurs: 5 steps
+     ACK codes: {'AR': 4, 'AE': 1}
+     Triggers: {'A28': 1, 'A01': 1, 'Z99': 3}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 4: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 97] IHE PAM - Admission + Add Person + Custom (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 2, 'AE': 1}
+     Triggers: {'A28': 1, 'A01': 1, 'Z99': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[ 98] IHE PAM - Admission + Add Person + Custom (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 2, 'AE': 1}
+     Triggers: {'A28': 1, 'A01': 1, 'Z99': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+
+[101] IHE PAM - Pre-Admission + Add Person + Cancelled Pre-Admission (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 3}
+     Triggers: {'A28': 1, 'A05': 1, 'A38': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^A38 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[102] IHE PAM - Admission + Add Person + Move Patient (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 3, 'AE': 1}
+     Triggers: {'A28': 2, 'A01': 1, 'A44': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 4: ADT^A44 → AE
+         └─ ERR|||207^Transition IHE invalide : début de parcours -> A44 (attendu: A01, A04,
+
+[103] IHE PAM - Admission + Discharge + ... (4 events) (9 msg)
+     Erreurs: 9 steps
+     ACK codes: {'AR': 4, 'AE': 5}
+     Triggers: {'A28': 1, 'A01': 2, 'A03': 3, 'Z99': 3}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 4: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 5: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 6: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 7: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 8: ADT^Z99 → AR
+         └─ ERR|||207^Z99 message missing ZBE-1 (original movement identifier)^HL70357|E
+       Step 9: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[104] IHE PAM - Admission + Discharge + Add Person (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AR': 1, 'AE': 2}
+     Triggers: {'A28': 1, 'A01': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[105] IHE PAM - Admission + Discharge + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 1, 'AE': 3}
+     Triggers: {'A28': 1, 'A01': 1, 'A21': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A21 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A21. Le profil IH
+       Step 4: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[106] IHE PAM - Admission + Bed Status + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 1, 'AE': 3}
+     Triggers: {'A28': 1, 'A01': 1, 'A21': 1, 'A22': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A21 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A21. Le profil IH
+       Step 4: ADT^A22 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A22. Le profil IH
+
+[108] IHE PAM - Admission + Discharge + ... (5 events) (13 msg)
+     Erreurs: 13 steps
+     ACK codes: {'AR': 1, 'AE': 12}
+     Triggers: {'A28': 1, 'A01': 5, 'A03': 5, 'A13': 1, 'A11': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 3: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 4: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 5: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 6: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 7: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 8: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 9: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 10: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 11: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+       Step 12: ADT^A13 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A13. Le profil IH
+       Step 13: ADT^A11 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A11. Le profil IH
+
+[109] IHE PAM - Admission + Discharge + ... (4 events) (4 msg)
+     Erreurs: 4 steps
+     ACK codes: {'AR': 1, 'AE': 3}
+     Triggers: {'A28': 1, 'A05': 1, 'A01': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A05. Le profil IH
+       Step 3: ADT^A01 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A01. Le profil IH
+       Step 4: ADT^A03 → AE
+         └─ ERR|||207^Segment ZBE obligatoire manquant pour le message ADT^A03. Le profil IH
+
+[115] IHE PAM - Appt Booking + Appt Interruption (2 msg)
+     Erreurs: 2 steps
+     ACK codes: {'AE': 2}
+     Triggers: {'S12': 1, 'S15': 1}
+     Détails:
+       Step 1: SIU^S12 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+       Step 2: SIU^S15 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+
+[116] IHE PAM - Appt Booking + Appt Rescheduling (2 msg)
+     Erreurs: 2 steps
+     ACK codes: {'AE': 2}
+     Triggers: {'S12': 1, 'S13': 1}
+     Détails:
+       Step 1: SIU^S12 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+       Step 2: SIU^S13 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+
+[117] IHE PAM - Appt Booking (2 msg)
+     Erreurs: 2 steps
+     ACK codes: {'AE': 2}
+     Triggers: {'S12': 2}
+     Détails:
+       Step 1: SIU^S12 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+       Step 2: SIU^S12 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+
+[118] IHE PAM - Appt Booking (1 msg)
+     Erreurs: 1 steps
+     ACK codes: {'AE': 1}
+     Triggers: {'S12': 1}
+     Détails:
+       Step 1: SIU^S12 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+
+[119] IHE PAM - Appt Rescheduling + Appt Cancellation (3 msg)
+     Erreurs: 3 steps
+     ACK codes: {'AE': 3}
+     Triggers: {'S13': 2, 'S14': 1}
+     Détails:
+       Step 1: SIU^S13 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+       Step 2: SIU^S13 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+       Step 3: SIU^S14 → AE
+         └─ ERR|||207^Unsupported message type: SIU (only ADT/MFN M05 supported)^HL70357|E
+
+[123] IHE PAM - (1 msg)
+     Erreurs: 1 steps
+     ACK codes: {'AR': 1}
+     Triggers: {'?': 1}
+     Détails:
+       Step 1: ?^? → AR
+         └─ ERR|||207^Invalid message structure^HL70357|E
+
+[124] IHE PAM - Admission + Transfer + ... (6 events) (7 msg)
+     Erreurs: 7 steps
+     ACK codes: {'AR': 7}
+     Triggers: {'A28': 1, 'A05': 1, 'Z99': 2, 'A01': 1, 'A02': 1, 'A03': 1}
+     Détails:
+       Step 1: ADT^A28 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 2: ADT^A05 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 3: ADT^Z99 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 4: ADT^A01 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 5: ADT^A02 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 6: ADT^Z99 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+       Step 7: ADT^A03 → AR
+         └─ ERR|||207^Missing required MSH fields: sending_app, sending_facility^HL70357|E
+
+[125] IHE PAM - Hospitalisation simple (HL7v2)
+     Erreurs: 5 steps
+     ACK codes: {'AE': 5}
+     Triggers: {'A05': 1, 'A01': 1, 'A02': 2, 'A03': 1}
+     Détails:
+       Step 1: ADT^A05 → AE
+         └─ ERR|||207^Transition IHE invalide : A01 -> A05 (attendu: A02, A03, A06, A07, A11
+       Step 2: ADT^A01 → AE
+         └─ ERR|||207^Transition IHE invalide : A01 -> A01 (attendu: A02, A03, A06, A07, A11
+       Step 3: ADT^A02 → AE
+         └─ ERR|||207^Il doit y avoir au moins 1 minute d'écart entre deux mouvements conséc
+       Step 4: ADT^A02 → AE
+         └─ ERR|||207^Il doit y avoir au moins 1 minute d'écart entre deux mouvements conséc
+       Step 5: ADT^A03 → AE
+         └─ ERR|||207^Il doit y avoir au moins 1 minute d'écart entre deux mouvements conséc
+
+====================================================================================================
+⚠️  SCÉNARIOS PARTIELS (Certains steps OK, d'autres en erreur)
+====================================================================================================
+
+[  2] IHE PAM - Discharge + Register + Add Person (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A03', 'AE')]
+
+[  7] IHE PAM - Discharge + Register + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A03', 'AE'), (4, 'A06', 'AE')]
+
+[ 10] IHE PAM - Transfer + Register + ... (5 events) (7 msg)
+     Erreurs: 6 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'A02', 'AE'), (5, 'A02', 'AE'), (6, 'Z99', 'AR'), (7, 'Z99', 'AR')]
+
+[ 12] IHE PAM - Admission + Transfer + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'Z99', 'AR')]
+
+[ 13] IHE PAM - Admission + Transfer + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'Z99', 'AR')]
+
+[ 14] IHE PAM - Admission + Transfer + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'Z99', 'AR')]
+
+[ 15] IHE PAM - Admission + Transfer + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'Z99', 'AR')]
+
+[ 16] IHE PAM - Admission + Transfer + ... (4 events) (6 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (4, 'A01', 'AE'), (5, 'A02', 'AE'), (6, 'Z99', 'AR')]
+
+[ 17] IHE PAM - Admission + Transfer + Add Person (6 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (4, 'A01', 'AE'), (5, 'A02', 'AE'), (6, 'A02', 'AE')]
+
+[ 18] IHE PAM - Admission + Transfer + ... (4 events) (6 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (4, 'A01', 'AE'), (5, 'A02', 'AE'), (6, 'Z99', 'AR')]
+
+[ 19] IHE PAM - Admission + Transfer + ... (4 events) (6 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (4, 'A01', 'AE'), (5, 'A02', 'AE'), (6, 'Z99', 'AR')]
+
+[ 20] IHE PAM - Admission + Transfer + ... (4 events) (6 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (4, 'A01', 'AE'), (5, 'A02', 'AE'), (6, 'Z99', 'AR')]
+
+[ 21] IHE PAM - Admission + Add Person + Bed Config. (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'Z80', 'AE'), (4, 'Z80', 'AE')]
+
+[ 22] IHE PAM - Register + Pre-Admission + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'A04', 'AE'), (4, 'Z99', 'AR')]
+
+[ 29] IHE PAM - Pre-Admission + Add Person (2 msg)
+     Erreurs: 1 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE')]
+
+[ 41] IHE PAM - Register + Add Person + Merge Patient (5 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (4, 'A04', 'AE'), (5, 'A40', 'AE')]
+
+[ 43] IHE PAM - Admission + Transfer + ... (4 events) (6 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (4, 'A01', 'AE'), (5, 'A02', 'AE'), (6, 'A03', 'AE')]
+
+[ 44] IHE PAM - Admission + Pre-Admission + ... (4 events) (6 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (5, 'A05', 'AE'), (6, 'A01', 'AE')]
+
+[ 45] IHE PAM - Admission + Transfer + ... (4 events) (8 msg)
+     Erreurs: 7 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'A02', 'AE'), (5, 'A02', 'AE'), (6, 'Z99', 'AR'), (7, 'Z99', 'AR'), (8, 'Z99', 'AR')]
+
+[ 46] IHE PAM - Admission + Transfer + ... (4 events) (6 msg)
+     Erreurs: 5 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'A02', 'AE'), (5, 'A12', 'AE'), (6, 'A12', 'AE')]
+
+[ 47] IHE PAM - Admission + Transfer + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'Z99', 'AR')]
+
+[ 48] IHE PAM - Transfer + Register + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'A02', 'AE'), (5, 'Z99', 'AR')]
+
+[ 49] IHE PAM - Admission + Pre-Admission + ... (5 events) (9 msg)
+     Erreurs: 7 steps
+     Pattern d'erreurs: [(3, 'A05', 'AE'), (4, 'A01', 'AE'), (5, 'Z99', 'AR'), (6, 'Z99', 'AR'), (7, 'Z99', 'AR'), (8, 'Z99', 'AR'), (9, 'Z99', 'AR')]
+
+[ 51] IHE PAM - Admission + Pre-Admission + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'A01', 'AE'), (4, 'A21', 'AE'), (5, 'A22', 'AE')]
+
+[ 52] IHE PAM - Admission + Discharge + ... (6 events) (6 msg)
+     Erreurs: 5 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'A01', 'AE'), (4, 'A21', 'AE'), (5, 'A22', 'AE'), (6, 'A03', 'AE')]
+
+[ 54] IHE PAM - Register + Change Attr. + Add Person (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE')]
+
+[ 55] IHE PAM - Transfer + Register + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'A02', 'AE'), (5, 'Z99', 'AR')]
+
+[ 56] IHE PAM - Transfer + Register + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'A02', 'AE'), (5, 'Z99', 'AR')]
+
+[ 57] IHE PAM - Transfer + Register + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'A02', 'AE'), (5, 'Z99', 'AR')]
+
+[ 58] IHE PAM - Transfer + Register + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'A02', 'AE'), (5, 'Z99', 'AR')]
+
+[ 59] IHE PAM - Register + Change Attr. + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'Z99', 'AR')]
+
+[ 62] IHE PAM - Pre-Admission + Add Person + Appt Booking (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'S12', 'AE')]
+
+[ 63] IHE PAM - Register + Cancel Admit + ... (4 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'Z99', 'AR'), (4, 'Z99', 'AR'), (5, 'A11', 'AE')]
+
+[ 66] IHE PAM - Discharge + Register + ... (5 events) (8 msg)
+     Erreurs: 7 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'A04', 'AE'), (4, 'A03', 'AE'), (5, 'A04', 'AE'), (6, 'A03', 'AE'), (7, 'Z99', 'AR'), (8, 'Z99', 'AR')]
+
+[ 67] IHE PAM - Admission + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'Z99', 'AR')]
+
+[ 69] IHE PAM - Admission + Transfer + ... (8 events) (9 msg)
+     Erreurs: 8 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'A01', 'AE'), (4, 'A02', 'AE'), (5, 'A02', 'AE'), (6, 'A21', 'AE'), (7, 'A22', 'AE'), (8, 'Z80', 'AE'), (9, 'A03', 'AE')]
+
+[ 71] IHE PAM - Admission + Add Person (2 msg)
+     Erreurs: 1 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE')]
+
+[ 72] IHE PAM - Admission + Add Person (2 msg)
+     Erreurs: 1 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE')]
+
+[ 78] IHE PAM - Admission + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'Z99', 'AR')]
+
+[ 80] IHE PAM - Admission + Discharge + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A21', 'AE'), (4, 'A22', 'AE'), (5, 'A03', 'AE')]
+
+[ 81] IHE PAM - Admission + Transfer + ... (5 events) (6 msg)
+     Erreurs: 5 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A03', 'AE'), (4, 'A02', 'AE'), (5, 'A54', 'AE'), (6, 'A02', 'AE')]
+
+[ 82] IHE PAM - Admission + Discharge + ... (5 events) (9 msg)
+     Erreurs: 8 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'A01', 'AE'), (4, 'A03', 'AE'), (5, 'A01', 'AE'), (6, 'A03', 'AE'), (7, 'A01', 'AE'), (8, 'A03', 'AE'), (9, 'A11', 'AE')]
+
+[ 83] IHE PAM - Admission + Discharge + ... (6 events) (12 msg)
+     Erreurs: 11 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'A01', 'AE'), (4, 'A03', 'AE'), (5, 'A01', 'AE'), (6, 'A03', 'AE'), (7, 'A01', 'AE'), (8, 'A03', 'AE'), (9, 'A13', 'AE'), (10, 'A11', 'AE'), (11, 'A01', 'AE'), (12, 'A03', 'AE')]
+
+[ 84] IHE PAM - Admission + Transfer + ... (5 events) (8 msg)
+     Erreurs: 6 steps
+     Pattern d'erreurs: [(2, 'A01', 'AR'), (4, 'A01', 'AE'), (5, 'A02', 'AR'), (6, 'Z99', 'AR'), (7, 'A02', 'AR'), (8, 'A03', 'AE')]
+
+[ 86] IHE PAM - Admission + Transfer + ... (4 events) (7 msg)
+     Erreurs: 5 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (4, 'A01', 'AE'), (5, 'A02', 'AE'), (6, 'A03', 'AE'), (7, 'A03', 'AE')]
+
+[ 87] IHE PAM - Register + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'Z99', 'AR')]
+
+[ 90] IHE PAM - Pre-Admission + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'Z99', 'AR')]
+
+[ 91] IHE PAM - Pre-Admission + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'Z99', 'AR')]
+
+[ 92] IHE PAM - Pre-Admission + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'Z99', 'AR')]
+
+[ 93] IHE PAM - Pre-Admission + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'Z99', 'AR')]
+
+[ 94] IHE PAM - Pre-Admission + Add Person + Custom (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'Z99', 'AR')]
+
+[ 96] IHE PAM - Transfer + Register + ... (4 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'Z99', 'AR'), (4, 'A02', 'AE'), (5, 'Z99', 'AR')]
+
+[ 99] IHE PAM - Admission + Add Person (2 msg)
+     Erreurs: 1 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE')]
+
+[100] IHE PAM - Pre-Admission + Add Person + Update Person (5 msg)
+     Erreurs: 1 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE')]
+
+[107] IHE PAM - Admission + Transfer + ... (6 events) (17 msg)
+     Erreurs: 16 steps
+     Pattern d'erreurs: [(2, 'A01', 'AE'), (3, 'A02', 'AE'), (4, 'A03', 'AE'), (5, 'A12', 'AE'), (6, 'A13', 'AE'), (7, 'A12', 'AE'), (8, 'A02', 'AE'), (9, 'A03', 'AE'), (10, 'A12', 'AE'), (11, 'A13', 'AE'), (12, 'A12', 'AE'), (13, 'A02', 'AE'), (14, 'A03', 'AE'), (15, 'A12', 'AE'), (16, 'A13', 'AE'), (17, 'A12', 'AE')]
+
+[110] IHE PAM - Discharge + Register + Add Person (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A03', 'AE')]
+
+[111] IHE PAM - Discharge + Register + Add Person (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A03', 'AE')]
+
+[112] IHE PAM - Register + Change Attr. + ... (4 events) (7 msg)
+     Erreurs: 6 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'Z99', 'AR'), (4, 'Z99', 'AR'), (5, 'A06', 'AE'), (6, 'Z99', 'AR'), (7, 'Z99', 'AR')]
+
+[113] IHE PAM - Transfer + Register + ... (5 events) (5 msg)
+     Erreurs: 4 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A06', 'AE'), (4, 'A02', 'AE'), (5, 'Z99', 'AR')]
+
+[114] IHE PAM - Discharge + Register + ... (4 events) (4 msg)
+     Erreurs: 3 steps
+     Pattern d'erreurs: [(2, 'A04', 'AE'), (3, 'A03', 'AE'), (4, 'A13', 'AE')]
+
+[120] IHE PAM - Add Person + Appt Booking (2 msg)
+     Erreurs: 1 steps
+     Pattern d'erreurs: [(2, 'S12', 'AE')]
+
+[121] IHE PAM - Pre-Admission + Add Person + Appt Booking (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'S12', 'AE')]
+
+[122] IHE PAM - Pre-Admission + Add Person + Appt Booking (3 msg)
+     Erreurs: 2 steps
+     Pattern d'erreurs: [(2, 'A05', 'AE'), (3, 'S12', 'AE')]
+
+====================================================================================================
+📊 STATISTIQUES
+====================================================================================================
+Scénarios avec erreurs 100%: 48
+Scénarios partiels: 63
+Scénarios sans erreurs: 14
+
+====================================================================================================
+🎯 PATTERNS D'ERREURS COMMUNS
+====================================================================================================
+
+Triggers problématiques:
+  A01: 88 erreurs
+  Z99: 76 erreurs
+  A03: 50 erreurs
+  A02: 45 erreurs
+  A28: 44 erreurs
+  A05: 28 erreurs
+  A04: 26 erreurs
+  A06: 13 erreurs
+  S12: 9 erreurs
+  A21: 8 erreurs
+  A12: 8 erreurs
+  A22: 7 erreurs
+  A13: 6 erreurs
+  A11: 5 erreurs
+  Z80: 4 erreurs
+  S13: 3 erreurs
+  A40: 2 erreurs
+  A47: 1 erreurs
+  A31: 1 erreurs
+  A38: 1 erreurs
+  A44: 1 erreurs
+  S15: 1 erreurs
+  S14: 1 erreurs
+  ?: 1 erreurs
+  A54: 1 erreurs
+
+⏰ Fin: 2025-12-05 14:51:09

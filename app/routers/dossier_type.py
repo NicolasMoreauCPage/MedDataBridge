@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session
 
 from app.db import get_session
@@ -9,8 +9,12 @@ from app.services import dossier_service
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.utils.dossier_helpers import sync_dossier_class
 
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/dossier-type", tags=["dossier"])
-templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/{dossier_id}/change", response_class=HTMLResponse)
 async def show_change_type_form(
@@ -28,7 +32,7 @@ async def show_change_type_form(
             ("hospitalise", "Hospitalisé"), ("externe", "Externe"), ("urgence", "Urgence")
         ]
     ]
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "dossier_type_change.html",
         {"dossier": dossier, "dossier_type_options": options}

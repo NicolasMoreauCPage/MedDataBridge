@@ -275,7 +275,7 @@ def generate_identifier(
         next_val = int(last_ident.value) + 1
         return str(next_val)
 
-    # Fallback: commencer à 1000 pour ce namespace
+    # Solution de repli: commencer à 1000 pour ce namespace
     return "1000"
 
 

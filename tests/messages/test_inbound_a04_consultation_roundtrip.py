@@ -120,7 +120,7 @@ def test_inbound_a04_consultation_roundtrip(monkeypatch):
                 if matched_payload is None:
                     matched_payload = p
         if not matched_payload:
-            # fallback to last payload
+            # Solution de repli to last payload
             matched_payload = sent_payloads[-1]
 
         out_pid = extract_segment(matched_payload, 'PID')

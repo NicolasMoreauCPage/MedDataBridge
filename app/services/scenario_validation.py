@@ -77,7 +77,7 @@ def _extract_event_code(message: str) -> Optional[str]:
                 if len(components) > 1:
                     return components[1]  # Trigger (A01, A02, etc.)
     
-    # Fallback: chercher EVN-1
+    # Solution de repli: chercher EVN-1
     for line in lines:
         if line.startswith("EVN"):
             fields = line.split("|")
@@ -128,7 +128,7 @@ def _extract_timestamp(message: str) -> Optional[str]:
             if len(fields) > 2 and fields[2].strip():
                 return fields[2].strip()
     
-    # Fallback: MSH-7 (datetime of message)
+    # Solution de repli: MSH-7 (datetime of message)
     for line in lines:
         if line.startswith("MSH"):
             fields = line.split("|")

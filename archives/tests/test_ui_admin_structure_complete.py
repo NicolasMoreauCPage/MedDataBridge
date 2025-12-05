@@ -647,7 +647,7 @@ def test_structure_audit_trail(client: TestClient, session: Session):
     r = client.post(f"/admin/ght/{ght.id}/ej", data=payload, follow_redirects=True)
     assert r.status_code == 200
 
-    # TODO: Vérifier audit trail une fois implémenté
+    # À FAIRE: Vérifier audit trail une fois implémenté
     # Pour l'instant, juste vérifier que l'opération réussit
     ej = session.exec(select(EntiteJuridique).where(EntiteJuridique.code == "EntiteJuridique-AUDIT")).first()
     assert ej is not None
@@ -668,7 +668,7 @@ def test_concurrent_structure_edits(client: TestClient, session: Session):
     session.refresh(ej)
 
     # Simuler édition avec version obsolète
-    # TODO: Implémenter une fois que le versioning est en place
+    # À FAIRE: Implémenter une fois que le versioning est en place
     payload = {
         "name": "EntiteJuridique Modifié",
         "code": "EntiteJuridique-CONC",
@@ -703,7 +703,7 @@ def test_structure_search_filter(client: TestClient, session: Session):
     assert "EntiteJuridique Neuro" not in r.text
 
     # Test filtrage par statut
-    # TODO: Une fois que les statuts sont implémentés
+    # À FAIRE: Une fois que les statuts sont implémentés
     r = client.get(f"/admin/ght/{ght.id}/ej?status=active")
     assert r.status_code == 200
 
@@ -751,12 +751,12 @@ def test_structure_permissions(client: TestClient, session: Session):
     session.refresh(ej)
 
     # Test accès sans authentification
-    # TODO: Une fois que l'authentification est implémentée
+    # À FAIRE: Une fois que l'authentification est implémentée
     r = client.get(f"/admin/ght/{ght.id}/ej/{ej.id}")
     # Pour l'instant, juste vérifier que l'endpoint répond
     assert r.status_code in [200, 401, 403]
 
     # Test accès avec permissions insuffisantes
-    # TODO: Implémenter une fois que les rôles sont définis
+    # À FAIRE: Implémenter une fois que les rôles sont définis
     # r = client.get(f"/admin/ght/{ght.id}/ej/{ej.id}", headers={"Authorization": "user_role"})
     # assert r.status_code == 403

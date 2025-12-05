@@ -97,96 +97,129 @@ class FHIRExportService:
                 select(Pole)
                 .where(Pole.entite_geo_id == eg.id)
             ).all():
+                # Some older models (Pole) may not have physical_type attribute; default to None
+                pole_physical = None
+                try:
+                    pole_physical = pole.physical_type.value if hasattr(pole, 'physical_type') and getattr(pole.physical_type, 'value', None) else (pole.physical_type if hasattr(pole, 'physical_type') else None)
+                except Exception:
+                    pole_physical = None
+
                 location = self.structure_converter.create_location(
                     pole.identifier,
                     pole.name,
                     "PL",
-                    pole.physical_type,
+                    pole_physical or "SI",
                     self._location_refs[eg.identifier]
                 )
                 entries.append(self.converter.create_bundle_entry(location))
                 self._location_refs[pole.identifier] = self.converter.create_reference(
                     "Location", pole.identifier, pole.name
                 )
-                
+
                 # Services
                 for service in self.session.exec(
                     select(Service)
                     .where(Service.pole_id == pole.id)
                 ).all():
+                    svc_physical = None
+                    try:
+                        svc_physical = service.physical_type.value if hasattr(service, 'physical_type') and getattr(service.physical_type, 'value', None) else (service.physical_type if hasattr(service, 'physical_type') else None)
+                    except Exception:
+                        svc_physical = None
+
                     location = self.structure_converter.create_location(
                         service.identifier,
                         service.name,
                         "D",
-                        service.physical_type,
+                        svc_physical or "SI",
                         self._location_refs[pole.identifier]
                     )
                     entries.append(self.converter.create_bundle_entry(location))
                     self._location_refs[service.identifier] = self.converter.create_reference(
                         "Location", service.identifier, service.name
                     )
-                    
+
                     # UFs
                     for uf in self.session.exec(
                         select(UniteFonctionnelle)
                         .where(UniteFonctionnelle.service_id == service.id)
                     ).all():
+                        uf_physical = None
+                        try:
+                            uf_physical = uf.physical_type.value if hasattr(uf, 'physical_type') and getattr(uf.physical_type, 'value', None) else (uf.physical_type if hasattr(uf, 'physical_type') else None)
+                        except Exception:
+                            uf_physical = None
                         location = self.structure_converter.create_location(
                             uf.identifier,
                             uf.name,
                             "UF",
-                            uf.physical_type,
+                            uf_physical or "SI",
                             self._location_refs[service.identifier]
                         )
                         entries.append(self.converter.create_bundle_entry(location))
                         self._location_refs[uf.identifier] = self.converter.create_reference(
                             "Location", uf.identifier, uf.name
                         )
-                        
+
                         # UHs
                         for uh in self.session.exec(
                             select(UniteHebergement)
                             .where(UniteHebergement.unite_fonctionnelle_id == uf.id)
                         ).all():
+                            uh_physical = None
+                            try:
+                                uh_physical = uh.physical_type.value if hasattr(uh, 'physical_type') and getattr(uh.physical_type, 'value', None) else (uh.physical_type if hasattr(uh, 'physical_type') else None)
+                            except Exception:
+                                uh_physical = None
                             location = self.structure_converter.create_location(
                                 uh.identifier,
                                 uh.name,
-                                "UH",
-                                uh.physical_type,
+                                    "UH",
+                                    uh_physical or "SI",
                                 self._location_refs[uf.identifier]
                             )
                             entries.append(self.converter.create_bundle_entry(location))
                             self._location_refs[uh.identifier] = self.converter.create_reference(
                                 "Location", uh.identifier, uh.name
                             )
-                            
+
                             # Chambres
                             for chambre in self.session.exec(
                                 select(Chambre)
                                 .where(Chambre.unite_hebergement_id == uh.id)
                             ).all():
+                                chambre_physical = None
+                                try:
+                                    chambre_physical = chambre.physical_type.value if hasattr(chambre, 'physical_type') and getattr(chambre.physical_type, 'value', None) else (chambre.physical_type if hasattr(chambre, 'physical_type') else None)
+                                except Exception:
+                                    chambre_physical = None
                                 location = self.structure_converter.create_location(
                                     chambre.identifier,
                                     chambre.name,
-                                    "CH",
-                                    chambre.physical_type,
+                                        "CH",
+                                        chambre_physical or "SI",
                                     self._location_refs[uh.identifier]
                                 )
                                 entries.append(self.converter.create_bundle_entry(location))
                                 self._location_refs[chambre.identifier] = self.converter.create_reference(
                                     "Location", chambre.identifier, chambre.name
                                 )
-                                
+
                                 # Lits
                                 for lit in self.session.exec(
                                     select(Lit)
                                     .where(Lit.chambre_id == chambre.id)
                                 ).all():
+                                    lit_physical = None
+                                    try:
+                                        lit_physical = lit.physical_type.value if hasattr(lit, 'physical_type') and getattr(lit.physical_type, 'value', None) else (lit.physical_type if hasattr(lit, 'physical_type') else None)
+                                    except Exception:
+                                        lit_physical = None
                                     location = self.structure_converter.create_location(
                                         lit.identifier,
                                         lit.name,
-                                        "LIT",
-                                        lit.physical_type,
+                                            "LIT",
+                                            lit_physical or "SI",
                                         self._location_refs[chambre.identifier]
                                     )
                                     entries.append(self.converter.create_bundle_entry(location))

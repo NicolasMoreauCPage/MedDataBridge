@@ -1,43 +1,60 @@
 {% extends "base.html" %}
 {% import "components.html" as components %}
+{% from "macros/ui.html" import button, badge, breadcrumbs as ui_breadcrumbs, empty_state %}
 
 {% block content %}
 {# Breadcrumb #}
-{{ components.breadcrumb(breadcrumbs) if breadcrumbs }}
+{% if breadcrumbs %}
+<div class="mb-6">
+  {{ ui_breadcrumbs(breadcrumbs) }}
+</div>
+{% endif %}
 
 {# Header avec titre et actions #}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-semibold text-slate-900">{{ title|default('', true) }}</h1>
-  
-  <div class="flex items-center gap-4">
-    {% if filters %}
-      <button 
-        type="button"
-        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50"
-        @click="showFilters = !showFilters"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-        </svg>
-        Filtrer
-      </button>
-    {% endif %}
+<div class="bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">{{ title|default('Liste', true) }}</h1>
+      {% if subtitle %}
+      <p class="text-slate-600 mt-1">{{ subtitle }}</p>
+      {% endif %}
+    </div>
+    
+    <div class="flex flex-wrap items-center gap-3">
+      {# Filtre de statut (si fourni) #}
+      {% if filter_options %}
+        <form method="get" class="inline-block">
+          <select name="filter_status" onchange="this.form.submit()" class="rounded-lg border-slate-300 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm transition-colors">
+            {% for opt in filter_options %}
+              <option value="{{ opt.value or '' }}" {% if filter_status == opt.value %}selected{% endif %}>
+                {{ opt.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+      {% endif %}
 
-    {% if new_url %}
-      <a 
-        href="{{ new_url }}"
-        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Nouveau
-      </a>
-    {% endif %}
+      {% if filters %}
+        <button 
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          @click="showFilters = !showFilters"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filtrer
+        </button>
+      {% endif %}
 
-    {% if actions %}
-      {{ components.actions_menu(actions) }}
-    {% endif %}
+      {% if new_url %}
+        {{ button('Nouveau', href=new_url, variant='primary', size='md', icon='<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>') }}
+      {% endif %}
+
+      {% if actions %}
+        {{ components.actions_menu(actions) }}
+      {% endif %}
+    </div>
   </div>
 </div>
 
@@ -63,30 +80,42 @@
 {% endif %}
 
 {# Tableau principal #}
-<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+<div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+  {# Info bar #}
+  {% if rows %}
+  <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+    <p class="text-sm text-slate-600">
+      <span class="font-semibold text-slate-900">{{ rows|length }}</span> élément(s)
+    </p>
+  </div>
+  {% endif %}
+
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-slate-200">
       <thead class="bg-slate-50">
         <tr>
           {% for header in headers %}
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
               {{ header }}
             </th>
           {% endfor %}
           {% if show_actions %}
-            <th class="relative px-6 py-3">
+            <th class="relative px-6 py-3.5 text-right">
               <span class="sr-only">Actions</span>
             </th>
           {% endif %}
         </tr>
       </thead>
-      <tbody class="bg-white divide-y divide-slate-200">
+      <tbody class="bg-white divide-y divide-slate-100">
         {% for row in rows %}
-          <tr class="hover:bg-slate-50">
+          <tr class="hover:bg-blue-50/50 transition-colors {% if row.css_class %}{{ row.css_class }}{% endif %}">
             {% for cell in row.cells %}
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                 {% if row.detail_url and loop.first %}
-                  <a href="{{ row.detail_url }}" class="hover:text-blue-600">{{ cell if cell is not none else '' }}</a>
+                  <a href="{{ row.detail_url }}" class="hover:text-primary font-medium transition-colors">{{ cell if cell is not none else '' }}</a>
+                {% elif loop.index0 == 0 and cell in ('✅', '⚠️', '❌', '⏹️') %}
+                  {# Indicateur visuel #}
+                  <span class="text-lg" title="{{ row.status or 'Statut inconnu' }}">{{ cell }}</span>
                 {% elif loop.index == 4 or loop.index == 5 %} {# Colonne type:4, status:5 (0-based) #}
                   {{ cell|safe if cell is not none else '' }}
                 {% else %}
@@ -97,30 +126,33 @@
             
             {% if show_actions %}
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex items-center justify-end gap-3">
+                <div class="flex items-center justify-end gap-2">
                   {% if row.detail_url %}
-                    <a href="{{ row.detail_url }}" class="text-blue-600 hover:text-blue-700">
+                    <a href="{{ row.detail_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                       Voir
                     </a>
                   {% endif %}
                   {% if row.context_url %}
-                    <a href="{{ row.context_url }}" class="text-green-600 hover:text-green-700">
+                    <a href="{{ row.context_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors">
                       Contexte
                     </a>
                   {% endif %}
                   {% if row.timeline_url %}
-                    <a href="{{ row.timeline_url }}" class="text-purple-600 hover:text-purple-700">
+                    <a href="{{ row.timeline_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors">
                       Timeline
                     </a>
                   {% endif %}
                   {% if row.edit_url %}
-                    <a href="{{ row.edit_url }}" class="text-slate-600 hover:text-slate-700">
+                    <a href="{{ row.edit_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       Modifier
                     </a>
                   {% endif %}
                   {% if row.delete_url %}
                     <form method="post" action="{{ row.delete_url }}" class="inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet élément ?');">
-                      <button type="submit" class="text-red-600 hover:text-red-700">
+                      <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         Supprimer
                       </button>
                     </form>
@@ -131,8 +163,14 @@
           </tr>
         {% else %}
           <tr>
-            <td colspan="{{ headers|length + (1 if show_actions else 0) }}" class="px-6 py-4 text-center text-sm text-slate-500">
-              Aucun élément trouvé
+            <td colspan="{{ headers|length + (1 if show_actions else 0) }}" class="px-6 py-12">
+              {{ empty_state(
+                'Aucun élément',
+                'Aucun élément ne correspond à vos critères. Modifiez vos filtres ou créez un nouvel élément.',
+                '<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>',
+                new_url_label|default('Nouveau'),
+                new_url|default('')
+              ) }}
             </td>
           </tr>
         {% endfor %}
@@ -142,7 +180,9 @@
 
   {# Pagination #}
   {% if pagination %}
-    {{ components.pagination(pagination.page, pagination.total_pages, pagination.base_url) }}
+    <div class="px-6 py-3 bg-slate-50 border-t border-slate-200">
+      {{ components.pagination(pagination.page, pagination.total_pages, pagination.base_url) }}
+    </div>
   {% endif %}
 </div>
 

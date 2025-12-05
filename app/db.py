@@ -117,7 +117,7 @@ def _coerce_datetime_value(v):
                 return datetime.strptime(v, fmt)
             except Exception:
                 continue
-        # fallback: try to parse first 14 digits as YYYYMMDDHHMMSS
+        # Solution de repli: try to parse first 14 digits as YYYYMMDDHHMMSS
         s = ''.join([c for c in v if c.isdigit()])
         try:
             return datetime.strptime(s[:14], "%Y%m%d%H%M%S")

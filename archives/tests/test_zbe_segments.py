@@ -84,7 +84,7 @@ def test_zbe_update_missing_original_trigger_should_fallback():
         session.add(m1); session.commit(); session.refresh(m1)
         msg = generate_admission_message(patient, dossier, venue, m1, session=session)
         zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
-        # Fallback uses movement.trigger_event for ZBE-6
+        # Solution de repli uses movement.trigger_event for ZBE-6
         assert "|A01|" in zbe
 
 
@@ -121,7 +121,7 @@ def test_zbe_invalid_action_fallback_to_insert():
         patient, dossier, venue = _setup(session)
         m1 = Mouvement(mouvement_seq=9701, venue_id=venue.id, when=datetime.utcnow(), location="LOC-X/BOX", trigger_event="A01", action="BADACTION")
         session.add(m1); session.commit(); session.refresh(m1)
-        # Generator should fallback action to INSERT
+        # Generator should Solution de repli action to INSERT
         msg = generate_admission_message(patient, dossier, venue, m1, session=session)
         zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
         assert "|INSERT|" in zbe
@@ -135,7 +135,7 @@ def test_zbe_update_missing_original_trigger_includes_fallback():
         session.add(m1); session.commit(); session.refresh(m1)
         msg = generate_admission_message(patient, dossier, venue, m1, session=session)
         zbe = next(s for s in msg.split("\r") if s.startswith("ZBE"))
-        # Fallback original trigger uses movement.trigger_event
+        # Solution de repli original trigger uses movement.trigger_event
         parts = zbe.split("|")
         assert parts[6] == "A02"
 

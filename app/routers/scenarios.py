@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
@@ -24,27 +24,46 @@ from app.services.scenario_dashboard import (
     get_scenario_comparison
 )
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
+from app.services.scenario_status_service import (
+    get_last_scenario_status,
+    get_scenarios_status_for_ej,
+    get_scenarios_with_status,
+)
 from app.utils.flash import flash
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 
 
 @router.get("", response_class=HTMLResponse)
-def list_scenarios(request: Request, session: Session = Depends(get_session)):
-    scenarios = session.exec(select(InteropScenario).order_by(InteropScenario.name)).all()
+def list_scenarios(
+    request: Request,
+    filter_status: Optional[str] = None,
+    session: Session = Depends(get_session)
+):
+    """Liste les scénarios avec leur dernier statut d'exécution."""
+    
+    # Récupérer les scénarios avec statut
+    scenarios_data = get_scenarios_with_status(session, filter_by_status=filter_status)
+    
     rows = []
-    for sc in scenarios:
+    for scenario, status in scenarios_data:
         rows.append(
             {
                 "cells": [
-                    sc.name,
-                    sc.protocol,
-                    len(sc.steps or []),
-                    sc.category or "",
-                    sc.tags or "",
+                    status.visual_indicator,
+                    scenario.name,
+                    scenario.protocol,
+                    len(scenario.steps or []),
+                    status.ack_code or "—",
+                    status.last_run_at.strftime("%Y-%m-%d %H:%M") if status.last_run_at else "—",
                 ],
-                "detail_url": f"/scenarios/{sc.id}",
+                "detail_url": f"/scenarios/{scenario.id}",
+                "css_class": status.css_class,
             }
         )
 
@@ -52,14 +71,46 @@ def list_scenarios(request: Request, session: Session = Depends(get_session)):
         "request": request,
         "title": "Scénarios d'interopération",
         "breadcrumbs": [{"label": "Scénarios", "url": "/scenarios"}],
-        "headers": ["Nom", "Protocole", "Étapes", "Catégorie", "Tags"],
+        "headers": ["", "Nom", "Protocole", "Étapes", "Dernier ACK", "Dernière exécution"],
         "rows": rows,
-        "show_actions": False,
+        "show_actions": True,
         "actions": [
             {"label": "Importer", "url": "/scenarios/import", "icon": "upload"}
         ],
+        "filter_status": filter_status,
+        "filter_options": [
+            {"label": "Tous", "value": None},
+            {"label": "✅ Succès (tous AA)", "value": "all_aa"},
+            {"label": "⚠️  Partiel (certains AA)", "value": "some_aa"},
+            {"label": "❌ Erreurs", "value": "error"},
+            {"label": "⏹️  Jamais exécutés", "value": "no_run"},
+        ],
     }
-    return templates.TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
+
+
+@router.get("/runs.json")
+def list_runs_json(session: Session = Depends(get_session)):
+    """Export JSON des dernières exécutions."""
+    runs = session.exec(
+        select(ScenarioExecutionRun).order_by(ScenarioExecutionRun.started_at.desc()).limit(200)
+    ).all()
+    return [
+        {
+            "id": r.id,
+            "scenario_id": r.scenario_id,
+            "endpoint_id": r.endpoint_id,
+            "status": r.status,
+            "success_steps": r.success_steps,
+            "error_steps": r.error_steps,
+            "skipped_steps": r.skipped_steps,
+            "total_steps": r.total_steps,
+            "dry_run": r.dry_run,
+            "started_at": r.started_at.isoformat(),
+            "finished_at": r.finished_at.isoformat() if r.finished_at else None,
+        }
+        for r in runs
+    ]
 
 
 @router.get("/runs", response_class=HTMLResponse)
@@ -126,7 +177,73 @@ def list_runs(
             "days_back": days_back,
         }
     }
-    return templates.TemplateResponse(request, "scenarios/dashboard.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenarios/dashboard.html", ctx)
+
+
+# --- Import routes (must be before /{scenario_id} to avoid conflicts) ---
+@router.get("/import", response_class=HTMLResponse)
+def show_import_form(request: Request, session: Session = Depends(get_session)):
+    """Display the scenario import form."""
+    contexts = session.exec(select(GHTContext).order_by(GHTContext.name)).all()
+    ctx = {
+        "request": request,
+        "contexts": contexts,
+    }
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_import.html", ctx)
+
+
+@router.post("/import")
+async def import_scenario(
+    request: Request,
+    ght_context_id: int = Form(...),
+    override_key: Optional[str] = Form(None),
+    override_name: Optional[str] = Form(None),
+    session: Session = Depends(get_session)
+):
+    """Import scenario from JSON export."""
+    try:
+        form_data = await request.form()
+        json_file = form_data.get("json_file")
+        
+        if json_file:
+            content = await json_file.read()
+            json_data = json.loads(content.decode("utf-8"))
+        else:
+            json_text = form_data.get("json_data")
+            if not json_text:
+                flash(request, "Aucune donnée JSON fournie", level="error")
+                return RedirectResponse(url="/scenarios", status_code=303)
+            json_data = json.loads(json_text)
+        
+        is_valid, error_msg = validate_scenario_json(json_data)
+        if not is_valid:
+            flash(request, f"JSON invalide: {error_msg}", level="error")
+            return RedirectResponse(url="/scenarios", status_code=303)
+        
+        scenario = import_scenario_from_json(
+            session, 
+            json_data, 
+            ght_context_id,
+            override_key=override_key,
+            override_name=override_name
+        )
+        
+        flash(
+            request, 
+            f"Scénario '{scenario.name}' importé avec succès ({len(scenario.steps)} étapes)",
+            level="success"
+        )
+        return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
+        
+    except json.JSONDecodeError as e:
+        flash(request, f"Erreur de parsing JSON: {str(e)}", level="error")
+        return RedirectResponse(url="/scenarios", status_code=303)
+    except ScenarioImportError as e:
+        flash(request, f"Erreur d'import: {str(e)}", level="error")
+        return RedirectResponse(url="/scenarios", status_code=303)
+    except Exception as e:
+        flash(request, f"Erreur inattendue: {str(e)}", level="error")
+        return RedirectResponse(url="/scenarios", status_code=303)
 
 
 @router.get("/runs/{run_id}", response_class=HTMLResponse)
@@ -166,7 +283,7 @@ def run_detail(run_id: int, request: Request, session: Session = Depends(get_ses
         "rows": rows,
         "show_actions": False,
     }
-    return templates.TemplateResponse(request, "list.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 
 @router.get("/{scenario_id}", response_class=HTMLResponse)
@@ -194,7 +311,7 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
             {"label": scenario.name, "url": f"/scenarios/{scenario.id}"},
         ],
     }
-    return templates.TemplateResponse(request, "scenario_detail.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_detail.html", ctx)
 
 
 @router.post("/capture", response_class=RedirectResponse)
@@ -316,99 +433,6 @@ def export_scenario_json(scenario_id: int, session: Session = Depends(get_sessio
     }
 
 
-@router.get("/import", response_class=HTMLResponse)
-def show_import_form(request: Request, session: Session = Depends(get_session)):
-    """Display the scenario import form."""
-    contexts = session.exec(select(GHTContext).order_by(GHTContext.name)).all()
-    ctx = {
-        "request": request,
-        "contexts": contexts,
-    }
-    return templates.TemplateResponse(request, "scenario_import.html", ctx)
-
-
-@router.post("/import")
-async def import_scenario(
-    request: Request,
-    ght_context_id: int = Form(...),
-    override_key: Optional[str] = Form(None),
-    override_name: Optional[str] = Form(None),
-    session: Session = Depends(get_session)
-):
-    """Import scenario from JSON export."""
-    try:
-        # Parse JSON from request body
-        form_data = await request.form()
-        json_file = form_data.get("json_file")
-        
-        if json_file:
-            # File upload
-            content = await json_file.read()
-            json_data = json.loads(content.decode("utf-8"))
-        else:
-            # Raw JSON in form field
-            json_text = form_data.get("json_data")
-            if not json_text:
-                flash(request, "Aucune donnée JSON fournie", level="error")
-                return RedirectResponse(url="/scenarios", status_code=303)
-            json_data = json.loads(json_text)
-        
-        # Validate JSON structure
-        is_valid, error_msg = validate_scenario_json(json_data)
-        if not is_valid:
-            flash(request, f"JSON invalide: {error_msg}", level="error")
-            return RedirectResponse(url="/scenarios", status_code=303)
-        
-        # Import scenario
-        scenario = import_scenario_from_json(
-            session, 
-            json_data, 
-            ght_context_id,
-            override_key=override_key,
-            override_name=override_name
-        )
-        
-        flash(
-            request, 
-            f"Scénario '{scenario.name}' importé avec succès ({len(scenario.steps)} étapes)",
-            level="success"
-        )
-        return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
-        
-    except json.JSONDecodeError as e:
-        flash(request, f"Erreur de parsing JSON: {str(e)}", level="error")
-        return RedirectResponse(url="/scenarios", status_code=303)
-    except ScenarioImportError as e:
-        flash(request, f"Erreur d'import: {str(e)}", level="error")
-        return RedirectResponse(url="/scenarios", status_code=303)
-    except Exception as e:
-        flash(request, f"Erreur inattendue: {str(e)}", level="error")
-        return RedirectResponse(url="/scenarios", status_code=303)
-
-
-@router.get("/runs.json")
-def list_runs_json(session: Session = Depends(get_session)):
-    runs = session.exec(
-        select(ScenarioExecutionRun).order_by(ScenarioExecutionRun.started_at.desc()).limit(200)
-    ).all()
-    return [
-        {
-            "id": r.id,
-            "scenario_id": r.scenario_id,
-            "endpoint_id": r.endpoint_id,
-            "status": r.status,
-            "success_steps": r.success_steps,
-            "error_steps": r.error_steps,
-            "skipped_steps": r.skipped_steps,
-            "total_steps": r.total_steps,
-            "dry_run": r.dry_run,
-            "started_at": r.started_at.isoformat(),
-            "finished_at": r.finished_at.isoformat() if r.finished_at else None,
-        }
-        for r in runs
-    ]
-
-
 @router.get("/api/stats")
 def get_stats(
     scenario_id: Optional[int] = None,
@@ -460,3 +484,107 @@ def get_run_errors(
 ):
     """Détail des erreurs pour un run spécifique."""
     return get_step_error_summary(session, run_id)
+
+
+@router.get("/api/scenario/{scenario_id}/status")
+def get_scenario_status_api(
+    scenario_id: int,
+    endpoint_id: Optional[int] = None,
+    session: Session = Depends(get_session)
+):
+    """Récupère le statut du dernier run d'un scénario."""
+    status = get_last_scenario_status(session, scenario_id, endpoint_id=endpoint_id)
+    return {
+        "scenario_id": status.scenario_id,
+        "scenario_name": status.scenario_name,
+        "status": status.status,
+        "ack_code": status.ack_code,
+        "is_success": status.is_success,
+        "has_errors": status.has_errors,
+        "visual_indicator": status.visual_indicator,
+        "last_run_at": status.last_run_at.isoformat() if status.last_run_at else None,
+        "success_steps": status.success_steps,
+        "total_steps": status.total_steps,
+    }
+
+
+@router.get("/ej-status", response_class=HTMLResponse)
+def ej_scenarios_status(
+    request: Request,
+    ej_id: Optional[int] = None,
+    only_failed: bool = False,
+    session: Session = Depends(get_session)
+):
+    """Affiche l'état des scénarios pour chaque EJ avec filtrage des erreurs."""
+    from app.models_structure import EntiteJuridique
+    
+    # Récupérer toutes les EJ
+    ej_list = session.exec(
+        select(EntiteJuridique).order_by(EntiteJuridique.name)
+    ).all()
+    
+    scenarios = []
+    stats = {
+        "total_scenarios": 0,
+        "success_scenarios": 0,
+        "partial_scenarios": 0,
+        "error_scenarios": 0,
+    }
+    
+    if ej_id:
+        # Récupérer les statuts pour cette EJ
+        scenarios = get_scenarios_status_for_ej(session, ej_id, only_failed=only_failed)
+        
+        # Calculer les stats
+        stats["total_scenarios"] = len(scenarios)
+        stats["success_scenarios"] = len([s for s in scenarios if s.is_success])
+        stats["partial_scenarios"] = len([s for s in scenarios if s.is_partial])
+        stats["error_scenarios"] = len([s for s in scenarios if s.has_errors and not s.is_partial])
+    
+    ctx = {
+        "request": request,
+        "breadcrumbs": [
+            {"label": "Scénarios", "url": "/scenarios"},
+            {"label": "Par EJ", "url": "/scenarios/ej-status"},
+        ],
+        "ej_list": ej_list,
+        "selected_ej_id": ej_id,
+        "scenarios": scenarios,
+        "stats": stats,
+        "only_failed": only_failed,
+    }
+    return get_templates_with_filters(request).TemplateResponse(request, "scenarios/ej_scenarios_status.html", ctx)
+
+
+@router.get("/api/ej/{ej_id}/scenarios-status")
+def get_ej_scenarios_status(
+    ej_id: int,
+    only_failed: bool = False,
+    session: Session = Depends(get_session)
+):
+    """Récupère le statut de tous les scénarios pour une EJ donnée.
+    
+    Query params:
+    - only_failed: bool (défaut=false) - Retourner seulement les scénarios échoués
+    """
+    statuses = get_scenarios_status_for_ej(session, ej_id, only_failed=only_failed)
+    
+    return {
+        "ej_id": ej_id,
+        "count": len(statuses),
+        "scenarios": [
+            {
+                "scenario_id": s.scenario_id,
+                "scenario_name": s.scenario_name,
+                "status": s.status,
+                "ack_code": s.ack_code,
+                "is_success": s.is_success,
+                "has_errors": s.has_errors,
+                "visual_indicator": s.visual_indicator,
+                "last_run_at": s.last_run_at.isoformat() if s.last_run_at else None,
+                "success_steps": s.success_steps,
+                "total_steps": s.total_steps,
+            }
+            for s in statuses
+        ]
+    }

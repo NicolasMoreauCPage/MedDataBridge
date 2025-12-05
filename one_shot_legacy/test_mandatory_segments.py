@@ -187,7 +187,7 @@ MRG|000059478099^^^CPAGE&1.2.250.1.211.10.200.2&ISO^PI|||||||THOMAS^LUC"""
         # Tester l'intégration
         ack_message = await on_message_inbound_async(message, session, endpoint)
         
-        # Note: Le message peut être rejeté pour d'autres raisons (ex: pas encore supporté)
+        # REMARQUE: Le message peut être rejeté pour d'autres raisons (ex: pas encore supporté)
         # mais au moins il ne doit PAS être rejeté pour segment MRG manquant
         if "MRG obligatoire" in ack_message:
             print(f"\n❌ Message rejeté pour segment MRG manquant alors qu'il est présent!")

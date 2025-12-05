@@ -109,7 +109,7 @@ class TestNatureExtraction:
         """ZBE-2 prioritaire sur PV1-2."""
         pv1 = "PV1|1|I|location|A|"
         zbe = "ZBE|1|timestamp|CANCEL|N||uf|uf|S|"  # ZBE-9=S
-        # Note: actual parsing uses ZBE-2, not ZBE-9
+        # REMARQUE: actual parsing uses ZBE-2, not ZBE-9
         # This is just for structure testing
 
 
@@ -118,7 +118,7 @@ class TestDossierTypeSynchronization:
 
     def test_a06_syncs_dossier_type_hospitalise(self):
         """A06 reçu avec PV1-2=I doit mettre à jour dossier_type=HOSPITALISE."""
-        # Note: Full integration test would require session and DB setup
+        # REMARQUE: Full integration test would require session and DB setup
         # This is unit test level validation
         
         # Vérifier que patient_class "I" mappe bien à HOSPITALISE

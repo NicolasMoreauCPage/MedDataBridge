@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
@@ -15,7 +15,11 @@ from datetime import datetime
 from typing import Tuple, List, Optional
 from pathlib import Path
 
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
+
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
 
 router = APIRouter(
     prefix="/transport",

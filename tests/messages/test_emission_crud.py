@@ -18,7 +18,7 @@ def test_emit_identity_and_movements(monkeypatch):
 
     # Stub network senders to deterministic async functions
     async def fake_send_mllp(*args, **kwargs):
-        # Return a simple positive ACK
+        # Renvoie a simple positive ACK
         await asyncio.sleep(0)
         return "MSA|AA|1"
 

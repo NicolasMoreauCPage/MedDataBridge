@@ -324,7 +324,7 @@ def test_error_handling(client: TestClient, session: Session):
     # Just verify we got an error response
     assert response.json() is not None
     
-    # 4. PIXm - Format d'identifiant invalide (returns empty bundle, not error)
+    # 4. PIXm - Format d'identifiant invalide (Renvoie empty bundle, not error)
     response = client.post(
         "/ihe/pixm/$ihe-pix",
         params={"sourceIdentifier": "invalid_format"},
@@ -332,9 +332,9 @@ def test_error_handling(client: TestClient, session: Session):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total"] == 0  # Should return empty bundle for invalid identifier
+    assert data["total"] == 0  # Should Renvoie empty bundle for invalid identifier
     
-    # 5. PDQm - Format de date invalide (returns empty bundle, not error)
+    # 5. PDQm - Format de date invalide (Renvoie empty bundle, not error)
     response = client.get(
         "/ihe/pdqm/Patient",
         params={"birthdate": "01/01/1980"},  # Format invalide
@@ -342,7 +342,7 @@ def test_error_handling(client: TestClient, session: Session):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total"] == 0  # Should return empty bundle for no matches
+    assert data["total"] == 0  # Should Renvoie empty bundle for no matches
     
     # Vérifier les logs d'erreur
     error_logs = session.exec(

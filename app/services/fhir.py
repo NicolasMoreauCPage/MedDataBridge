@@ -106,7 +106,7 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
             "valueCoding": {
                 "system": "http://interopsante.org/fhir/CodeSystem/fr-core-cs-patient-identity-reliability",
                 "code": p.identity_reliability_code,
-                "display": p.identity_reliability_code  # TODO: mapping vers display approprié
+                "display": p.identity_reliability_code  # À FAIRE: mapping vers display approprié
             }
         })
         
@@ -317,15 +317,17 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
         }
 
     # Bundle avec identifiant unique
+    # Use stable fullUrl values (ResourceType/id) to ensure uniqueness and
+    # better interoperability (avoids duplicate urn:uuid collisions).
     bundle = {
         "resourceType": "Bundle",
         "id": f"bundle-{dossier.id}-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}",
         "type": "collection",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
         "entry": [
-            {"resource": patient_res, "fullUrl": f"urn:uuid:pat-{p.id}"},
-            {"resource": encounter_res, "fullUrl": f"urn:uuid:enc-{dossier.id}"},
-            {"resource": episode_res, "fullUrl": f"urn:uuid:eoc-{dossier.id}"},
+            {"resource": patient_res, "fullUrl": f"Patient/{patient_res['id']}"},
+            {"resource": encounter_res, "fullUrl": f"Encounter/{encounter_res['id']}"},
+            {"resource": episode_res, "fullUrl": f"EpisodeOfCare/{episode_res['id']}"},
         ]
     }
     

@@ -2,49 +2,93 @@
 {% import "components.html" as components %}
 
 {% block content %}
-<div class="container">
-    <div class="my-8 space-y-10">
-        <div class="flex items-start justify-between gap-6">
-            <div>
-                <a href="/context/ght/{{ context.id }}?next=/admin/ght/{{ context.id }}/ej/{{ entite.id }}"
-                   class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-3">
-                    &larr; Retour à {{ entite.name }}
-                </a>
-                <h1 class="text-3xl font-bold text-slate-900">{{ geo.name }}</h1>
-                <p class="text-slate-600 mt-1">Identifiant global : <span class="font-mono">{{ geo.identifier }}</span></p>
-                <p class="text-slate-600">FINESS géographique : <span class="font-mono">{{ geo.finess }}</span></p>
-            </div>
-            <div class="flex items-center gap-3">
-                {% if geo.is_active %}
-                <span class="px-3 py-1 text-sm font-semibold text-green-700 bg-green-100 rounded-full">Actif</span>
-                {% else %}
-                <span class="px-3 py-1 text-sm font-semibold text-slate-700 bg-slate-100 rounded-full">Inactif</span>
-                {% endif %}
-                <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/edit"
-                   class="inline-flex items-center px-4 py-2 text-sm text-blue-600 hover:text-blue-800">
-                    Modifier
-                </a>
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+        <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+        <span class="text-slate-400">/</span>
+        <a href="/admin/ght/{{ context.id }}" class="hover:text-blue-600 transition-colors">GHT</a>
+        <span class="text-slate-400">/</span>
+        <a href="/context/ght/{{ context.id }}?next=/admin/ght/{{ context.id }}/ej/{{ entite.id }}" class="hover:text-blue-600 transition-colors">{{ entite.name }}</a>
+        <span class="text-slate-400">/</span>
+        <span class="text-slate-800 font-medium">{{ geo.name }}</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 rounded-2xl p-8 text-white shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold">{{ geo.name }}</h1>
+                        <div class="flex gap-4 mt-2 text-purple-100 text-sm">
+                            <span class="font-mono">🆔 {{ geo.identifier }}</span>
+                            <span class="font-mono">🏛️ {{ geo.finess }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    {% if geo.is_active %}
+                    <span class="px-4 py-2 text-sm font-bold bg-green-500 text-white rounded-xl shadow-lg">✅ Actif</span>
+                    {% else %}
+                    <span class="px-4 py-2 text-sm font-bold bg-slate-400 text-white rounded-xl shadow-lg">❌ Inactif</span>
+                    {% endif %}
+                    <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/edit"
+                       class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition-all duration-200">
+                        Modifier
+                    </a>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="rounded-xl border border-blue-100 bg-blue-50 px-5 py-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-blue-600 font-semibold">Pôles</p>
-                <p class="mt-2 text-3xl font-bold text-blue-700">{{ counts.poles }}</p>
+    <div class="space-y-8">
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-blue-700 font-bold mb-1">Pôles</p>
+                        <p class="text-4xl font-bold text-blue-800">{{ counts.poles }}</p>
+                    </div>
+                    <div class="text-4xl">🏛️</div>
+                </div>
             </div>
-            <div class="rounded-xl border border-emerald-100 bg-emerald-50 px-5 py-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-emerald-600 font-semibold">Services</p>
-                <p class="mt-2 text-3xl font-bold text-emerald-700">{{ counts.services }}</p>
+            <div class="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-emerald-700 font-bold mb-1">Services</p>
+                        <p class="text-4xl font-bold text-emerald-800">{{ counts.services }}</p>
+                    </div>
+                    <div class="text-4xl">🏭</div>
+                </div>
             </div>
-            <div class="rounded-xl border border-amber-100 bg-amber-50 px-5 py-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-amber-600 font-semibold">Unités fonctionnelles</p>
-                <p class="mt-2 text-3xl font-bold text-amber-700">{{ counts.ufs }}</p>
-                <p class="text-xs text-amber-500 mt-1">{{ counts.uhs }} unités d'hébergement</p>
+            <div class="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-amber-700 font-bold mb-1">Unités fonctionnelles</p>
+                        <p class="text-4xl font-bold text-amber-800">{{ counts.ufs }}</p>
+                        <p class="text-xs text-amber-600 mt-1 font-semibold">{{ counts.uhs }} UH</p>
+                    </div>
+                    <div class="text-4xl">🏥</div>
+                </div>
             </div>
-            <div class="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Capacité lits</p>
-                <p class="mt-2 text-3xl font-bold text-slate-800">{{ counts.lits }}</p>
-                <p class="text-xs text-slate-500 mt-1">{{ counts.lits_actifs }} actifs</p>
+            <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-gray-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-slate-700 font-bold mb-1">Capacité lits</p>
+                        <p class="text-4xl font-bold text-slate-800">{{ counts.lits }}</p>
+                        <p class="text-xs text-slate-600 mt-1 font-semibold">{{ counts.lits_actifs }} actifs</p>
+                    </div>
+                    <div class="text-4xl">🛏️</div>
+                </div>
             </div>
         </div>
 

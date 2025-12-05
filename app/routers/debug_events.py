@@ -19,7 +19,7 @@ async def entity_events_status(session: Session = Depends(get_session)):
     from app.models import Patient, Dossier, Venue, Mouvement
     
     # Check if listeners are registered
-    # Note: event.contains() returns boolean, not count
+    # REMARQUE: event.contains() Renvoie boolean, not count
     patient_listeners = sa_event.contains(Patient, "after_insert")
     dossier_listeners = sa_event.contains(Dossier, "after_insert")
     venue_listeners = sa_event.contains(Venue, "after_insert")

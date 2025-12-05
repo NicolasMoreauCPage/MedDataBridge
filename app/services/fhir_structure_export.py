@@ -6,7 +6,7 @@ from app.models_structure import EntiteGeographique
 
 logger = logging.getLogger(__name__)
 
-FHIR_BASE_URL = "http://example.org/fhir"  # TODO: externalize
+FHIR_BASE_URL = "http://example.org/fhir"  # À FAIRE: externalize
 
 def _location_resource(entity: Any, resource_type: str = "Location") -> Dict[str, Any]:
     """Map a structure entity to a minimal FHIR Location resource."""
@@ -82,7 +82,7 @@ def generate_fhir_bundle_structure(session: Session, eg_identifier: Optional[str
             loc["partOf"] = {"reference": f"Location/{service.pole.identifier}"}
         entries.append({"resource": loc})
 
-    # TODO: add UF/UH/CH/LIT similarly if needed; skipped for brevity vs current source file
+    # À FAIRE: add UF/UH/CH/LIT similarly if needed; skipped for brevity vs current source file
 
     bundle = {
         "resourceType": "Bundle",

@@ -103,9 +103,9 @@ def import_scenario_from_json(
         session.rollback()
         raise ScenarioImportError(f"Erreur d'intégrité lors de la création: {str(e)}")
     
-    # Créer steps
+    # Créer Étape
     for step_data in json_data["steps"]:
-        # Validation step
+        # Validation Étape
         if "order_index" not in step_data:
             raise ScenarioImportError(f"Champ 'order_index' manquant dans step")
         if "message_type" not in step_data:
@@ -139,15 +139,15 @@ def validate_scenario_json(json_data: dict) -> tuple[bool, Optional[str]]:
         if field not in json_data:
             return False, f"Champ requis manquant: '{field}'"
     
-    # Vérifier steps
+    # Vérifier Étape
     if not isinstance(json_data["steps"], list):
         return False, "Le champ 'steps' doit être une liste"
     
-    # Un scénario peut avoir 0 steps (rare mais valide)
+    # Un scénario peut avoir 0 Étape (rare mais valide)
     if len(json_data["steps"]) == 0:
         return True, None
     
-    # Valider chaque step
+    # Valider chaque Étape
     for i, step in enumerate(json_data["steps"]):
         if not isinstance(step, dict):
             return False, f"Step {i} n'est pas un objet valide"

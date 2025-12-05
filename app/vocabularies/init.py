@@ -832,5 +832,5 @@ def init_vocabularies(session):
     session.commit()
     
     # Initialiser les mappings entre vocabulaires
-    # Note: doit être fait après la création des systèmes car utilise leurs IDs
+    # REMARQUE: doit être fait après la création des systèmes car utilise leurs IDs
     init_vocabulary_mappings(session)

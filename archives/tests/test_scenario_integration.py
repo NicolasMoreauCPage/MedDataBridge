@@ -70,7 +70,7 @@ def test_complete_scenario_lifecycle(session: Session):
     session.commit()
     session.refresh(scenario_original)
     
-    # Créer steps
+    # Créer Étape
     steps_data = [
         ("ADT^A01", 0, "MSH|^~\\&|SENDING|SENDER||RECEIVER|20250109120000||ADT^A01|MSG001|P|2.5\rEVN|A01|20250109120000\rPID|||12345||Dupont^Jean"),
         ("ADT^A02", 7200, "MSH|^~\\&|SENDING|SENDER||RECEIVER|20250109140000||ADT^A02|MSG002|P|2.5\rEVN|A02|20250109140000\rPID|||12345||Dupont^Jean"),
@@ -155,7 +155,7 @@ def test_complete_scenario_lifecycle(session: Session):
     # Modifier un payload (ajouter commentaire)
     json_modified["steps"][0]["payload"] += "\r# Modified payload"
     
-    # Changer délai du 2ème step (1h au lieu de 2h)
+    # Changer délai du 2ème Étape (1h au lieu de 2h)
     json_modified["steps"][1]["delay_seconds"] = 3600
     
     print(f"✓ JSON modifié: time_config, payload, délais")
@@ -183,7 +183,7 @@ def test_complete_scenario_lifecycle(session: Session):
     assert scenario_imported.jitter_min_minutes == 2
     assert scenario_imported.jitter_max_minutes == 10
     
-    # Vérifier steps
+    # Vérifier Étape
     imported_steps = sorted(scenario_imported.steps, key=lambda s: s.order_index)
     assert len(imported_steps) == 3
     assert imported_steps[0].message_type == "ADT^A01"
@@ -209,10 +209,10 @@ def test_complete_scenario_lifecycle(session: Session):
     orig_steps = sorted(original_reloaded.steps, key=lambda s: s.order_index)
     imp_steps = sorted(imported_reloaded.steps, key=lambda s: s.order_index)
     
-    # Délai step[1] différent
+    # Délai Étape[1] différent
     assert orig_steps[1].delay_seconds != imp_steps[1].delay_seconds
     
-    # Payload step[0] différent
+    # Payload Étape[0] différent
     assert "# Modified payload" not in orig_steps[0].payload
     assert "# Modified payload" in imp_steps[0].payload
     

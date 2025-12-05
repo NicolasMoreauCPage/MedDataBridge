@@ -33,6 +33,6 @@ def downgrade() -> None:
     try:
         op.drop_column("entitejuridique", "strict_pam_fr")
     except Exception:
-        # Fallback note: SQLite <3.35 cannot drop columns; in such case manual table
+        # Solution de repli REMARQUE: SQLite <3.35 cannot drop columns; in such case manual table
         # recreation would be required. We silently ignore to keep downgrade path tolerant.
         pass

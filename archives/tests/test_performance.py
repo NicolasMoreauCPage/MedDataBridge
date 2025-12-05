@@ -293,7 +293,7 @@ class TestCachePerformance:
         second_elapsed = time.time() - start_time
         
         # La deuxième requête devrait être plus rapide
-        # Note: SQLAlchemy a son propre cache de session
+        # REMARQUE: SQLAlchemy a son propre cache de session
         assert result1 == result2
         assert second_elapsed <= first_elapsed
 
@@ -322,7 +322,7 @@ class TestLongRunningOperations:
         
         # Vérifier que les bundles contiennent des données
         assert len(structure_bundle.entry) > 0
-        # Note: patient_bundle pourrait être vide si les patients ne sont pas liés à l'EJ
+        # REMARQUE: patient_bundle pourrait être vide si les patients ne sont pas liés à l'EJ
 
 
 class TestMemoryUsage:

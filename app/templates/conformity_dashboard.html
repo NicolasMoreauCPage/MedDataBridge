@@ -2,21 +2,41 @@
 {% import "macros/ui.html" as ui %}
 
 {% block content %}
-<div class="max-w-content mx-auto px-4 py-8">
-  <!-- Dashboard Header -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
-    <div>
-      <h1 class="text-3xl font-bold text-primary mb-1">{{ summary.ej.name }}</h1>
-      <p class="text-slate-600">FINESS : <span class="font-mono">{{ summary.ej.finess_ej or 'N/A' }}</span></p>
-      {% if summary.ej.strict_pam_fr %}
-        <span class="inline-flex items-center px-3 py-1 mt-2 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-          🔒 Mode strict IHE PAM France
-        </span>
-      {% endif %}
-    </div>
-    <div class="flex gap-2">
-      <a href="/conformity" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">← Liste des EJ</a>
-      <a href="/conformity/ej/{{ summary.ej.id }}/messages" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-700 transition">Voir tous les messages</a>
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/conformity" class="hover:text-blue-600 transition-colors">Conformité</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{{ summary.ej.name }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold">{{ summary.ej.name }}</h1>
+            <p class="text-green-100 mt-1 font-mono">FINESS: {{ summary.ej.finess_ej or 'N/A' }}</p>
+            {% if summary.ej.strict_pam_fr %}
+            <span class="inline-flex items-center px-3 py-1 mt-2 rounded-xl text-sm font-bold bg-purple-500 text-white shadow-lg">
+              🔒 Mode strict IHE PAM France
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <a href="/conformity" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition-all duration-200">← Liste EJ</a>
+          <a href="/conformity/ej/{{ summary.ej.id }}/messages" class="bg-white text-green-700 px-6 py-3 rounded-xl font-bold hover:bg-green-50 transition-all duration-200 shadow-lg">Tous les messages</a>
+        </div>
+      </div>
     </div>
   </div>
 

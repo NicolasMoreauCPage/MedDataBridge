@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from sqlmodel import Session, select
 
-# NOTE: models import is delayed inside functions to avoid circular imports
+# REMARQUE: models import is delayed inside functions to avoid circular imports
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -109,6 +109,31 @@ def clean_hl7_date(hl7_date: Optional[str]) -> Optional[str]:
     value = hl7_date.strip()
     return value or None
 
+
+def parse_hl7_date_to_datetime(hl7_date: Optional[str]) -> Optional[datetime]:
+    """Convertit une date HL7 (YYYYMMDD[HHMMSS]) en objet datetime ou retourne None.
+
+    Accepte les formats basiques utilisés dans les exports MFN. Si la conversion échoue,
+    retourne None pour éviter des erreurs de type lors de l'insertion en base.
+    """
+    if not hl7_date:
+        return None
+    s = str(hl7_date).strip()
+    try:
+        if len(s) >= 14:
+            # YYYYMMDDHHMMSS
+            return datetime.strptime(s[:14], "%Y%m%d%H%M%S")
+        if len(s) == 8:
+            # YYYYMMDD
+            return datetime.strptime(s, "%Y%m%d")
+        if len(s) == 12:
+            # YYYYMMDDHHMM
+            return datetime.strptime(s, "%Y%m%d%H%M")
+        # Fallback: try to parse ISO-like
+        return datetime.fromisoformat(s)
+    except Exception:
+        return None
+
 def format_datetime(value: Optional[str]) -> str:
     """Retourne la chaîne HL7 prête à être insérée dans un segment."""
     return value or ""
@@ -154,7 +179,7 @@ def extract_location_type(loc_segment: List[str]) -> Tuple[str, str]:
     raw_identifier = loc_segment[1] if len(loc_segment) > 1 else ""
     location_identifier = _extract_identifier_from_loc(raw_identifier)
     # In some CPAGE exports the LOC type is placed in field 4 (index 4) while older
-    # messages used index 3. Prefer index 4, fallback to 3 to be robust.
+    # messages used index 3. Prefer index 4, Solution de repli to 3 to be robust.
     location_type = ""
     if len(loc_segment) > 4 and loc_segment[4]:
         location_type = loc_segment[4]
@@ -294,7 +319,10 @@ def _import_locations_multipass(locations: List[Dict[str, Any]], session: Sessio
         "CH": 6, "R": 6,  # Chambre (CH standard ou type R)
         "LIT": 7, "B": 7  # Lit (LIT standard ou type B)
     }
-    locations_sorted = sorted(locations, key=lambda x: type_order.get(x["type"], 99))
+    # Normalize the raw location type strings before sorting so that
+    # human-readable types (e.g. 'Service', 'Unite Fonctionnelle') and
+    # CPAGE variants are mapped to the canonical codes used in type_order.
+    locations_sorted = sorted(locations, key=lambda x: type_order.get(_normalize_loc_type(x.get("type", "")), 99))
     
     results = []
     pending = list(locations_sorted)
@@ -434,7 +462,7 @@ def save_location(
                 # If any DB/ORM issue occurs, ignore and fall back to relation heuristic
                 logger.debug("DB lookup for missing loc_type failed; falling back to relation inference")
 
-            # Second: fallback to relation-based inference (existing behaviour)
+            # Second: Solution de repli to relation-based inference (existing behaviour)
             if not loc_type:
                 inferred = None
                 for rel in relations:
@@ -479,8 +507,8 @@ def save_location(
                 name=characteristics.get("LBL", ""),
                 finess_ej=characteristics.get("FNS", ""),
                 category_code=characteristics.get("CTGR_S", None),
-                start_date=characteristics.get("DT_OVRTR", None),
-                end_date=characteristics.get("DT_FRMTR", None),
+                start_date=parse_hl7_date_to_datetime(characteristics.get("DT_OVRTR", None)),
+                end_date=parse_hl7_date_to_datetime(characteristics.get("DT_FRMTR", None)),
             )
         elif loc_type == "ETBL_GRPQ":  # Établissement géographique
             existing_entity = _get_existing(EntiteGeographique, base_props["identifier"])
@@ -490,8 +518,8 @@ def save_location(
                 name=characteristics.get("LBL", ""),
                 finess=characteristics.get("FNS", ""),
                 category_code=characteristics.get("CTGR_S", None),
-                start_date=characteristics.get("DT_OVRTR", None),
-                end_date=characteristics.get("DT_FRMTR", None),
+                start_date=parse_hl7_date_to_datetime(characteristics.get("DT_OVRTR", None)),
+                end_date=parse_hl7_date_to_datetime(characteristics.get("DT_FRMTR", None)),
             )
             
         elif loc_type == "P":  # Pôle
@@ -700,46 +728,46 @@ def save_location(
                             logger.info(f"Création Pôle+Service virtuels pour UF {entity.identifier}")
                         entity.service_id = virtual_service.id
 
-                elif isinstance(entity, UniteHebergement):
-                    # UH.unite_fonctionnelle_id requis
-                    if parent_type == "UF":
-                        parent = _find_by_identifier(UniteFonctionnelle, parent_identifier)
-                        if parent:
-                            entity.unite_fonctionnelle_id = parent.id
+            elif isinstance(entity, UniteHebergement):
+                # UH.unite_fonctionnelle_id requis
+                if parent_type == "UF":
+                    parent = _find_by_identifier(UniteFonctionnelle, parent_identifier)
+                    if parent:
+                        entity.unite_fonctionnelle_id = parent.id
 
-                elif isinstance(entity, Chambre):
-                    # Chambre.unite_hebergement_id requis
-                    if parent_type == "UH":
-                        parent = _find_by_identifier(UniteHebergement, parent_identifier)
-                        if parent:
-                            entity.unite_hebergement_id = parent.id
-                    elif parent_type in ["N", "UF"]:
-                        # Chambre peut être directement sous une UF (sans UH)
-                        parent_uf = _find_by_identifier(UniteFonctionnelle, parent_identifier)
-                        if parent_uf:
-                            # Créer une UH virtuelle
-                            virtual_uh_id = f"VIRTUAL-UH-{parent_identifier}"
-                            virtual_uh = session.exec(
-                                select(UniteHebergement).where(UniteHebergement.identifier == virtual_uh_id)
-                            ).first()
-                            if not virtual_uh:
-                                virtual_uh = UniteHebergement(
-                                    identifier=virtual_uh_id,
-                                    name=f"UH virtuelle ({parent_uf.name})",
-                                    physical_type=LocationPhysicalType.WI,
-                                    unite_fonctionnelle_id=parent_uf.id
-                                )
-                                session.add(virtual_uh)
-                                session.flush()
-                                logger.info(f"[MFN-IMPORT] Création UH virtuelle pour Chambre {entity.identifier}")
-                            entity.unite_hebergement_id = virtual_uh.id
+            elif isinstance(entity, Chambre):
+                # Chambre.unite_hebergement_id requis
+                if parent_type == "UH":
+                    parent = _find_by_identifier(UniteHebergement, parent_identifier)
+                    if parent:
+                        entity.unite_hebergement_id = parent.id
+                elif parent_type in ["N", "UF"]:
+                    # Chambre peut être directement sous une UF (sans UH)
+                    parent_uf = _find_by_identifier(UniteFonctionnelle, parent_identifier)
+                    if parent_uf:
+                        # Créer une UH virtuelle
+                        virtual_uh_id = f"VIRTUAL-UH-{parent_identifier}"
+                        virtual_uh = session.exec(
+                            select(UniteHebergement).where(UniteHebergement.identifier == virtual_uh_id)
+                        ).first()
+                        if not virtual_uh:
+                            virtual_uh = UniteHebergement(
+                                identifier=virtual_uh_id,
+                                name=f"UH virtuelle ({parent_uf.name})",
+                                physical_type=LocationPhysicalType.WI,
+                                unite_fonctionnelle_id=parent_uf.id
+                            )
+                            session.add(virtual_uh)
+                            session.flush()
+                            logger.info(f"[MFN-IMPORT] Création UH virtuelle pour Chambre {entity.identifier}")
+                        entity.unite_hebergement_id = virtual_uh.id
 
-                elif isinstance(entity, Lit):
-                    # Lit.chambre_id requis
-                    if parent_type in ["CH", "R"]:
-                        parent = _find_by_identifier(Chambre, parent_identifier)
-                        if parent:
-                            entity.chambre_id = parent.id
+            elif isinstance(entity, Lit):
+                # Lit.chambre_id requis
+                if parent_type in ["CH", "R"]:
+                    parent = _find_by_identifier(Chambre, parent_identifier)
+                    if parent:
+                        entity.chambre_id = parent.id
         
         # Sauvegarde
         if isinstance(entity, Service):
@@ -883,14 +911,42 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         if not target_eg:
             logger.warning(f"EntiteGeographique {eg_identifier} not found")
             return "\n".join(message)
-        
+
         entites_geo = [target_eg]
-        poles = target_eg.poles
-        services = [svc for pole in poles for svc in pole.services]
-        unites_fonctionnelles = [uf for svc in services for uf in svc.unites_fonctionnelles]
-        unites_hebergement = [uh for uf in unites_fonctionnelles for uh in uf.unites_hebergement]
-        chambres = [ch for uh in unites_hebergement for ch in uh.chambres]
-        lits = [lit for ch in chambres for lit in ch.lits]
+
+        # Query related poles/services/ufs/uh/chambres/lits explicitly from DB instead of
+        # relying on relationship attributes (which may be unloaded in the current session).
+        poles = session.exec(select(Pole).where(Pole.entite_geo_id == target_eg.id)).all()
+
+        # Services attached to the poles of the EG
+        services = []
+        if poles:
+            pole_ids = [p.id for p in poles]
+            services = session.exec(select(Service).where(Service.pole_id.in_(pole_ids))).all()
+
+        # UFs attached to services
+        unites_fonctionnelles = []
+        if services:
+            service_ids = [s.id for s in services]
+            unites_fonctionnelles = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id.in_(service_ids))).all()
+
+        # UHs attached to UFs
+        unites_hebergement = []
+        if unites_fonctionnelles:
+            uf_ids = [u.id for u in unites_fonctionnelles]
+            unites_hebergement = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id.in_(uf_ids))).all()
+
+        # Chambres attached to UHs
+        chambres = []
+        if unites_hebergement:
+            uh_ids = [uh.id for uh in unites_hebergement]
+            chambres = session.exec(select(Chambre).where(Chambre.unite_hebergement_id.in_(uh_ids))).all()
+
+        # Lits attached to chambres
+        lits = []
+        if chambres:
+            chambre_ids = [c.id for c in chambres]
+            lits = session.exec(select(Lit).where(Lit.chambre_id.in_(chambre_ids))).all()
     else:
         # Global mode: export all entities
         entites_geo = session.exec(select(EntiteGeographique)).all()
@@ -921,10 +977,96 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
 
     
     # Entités géographiques - filter if needed
+    # Helper: build PL identifier with optional authority (EI format)
+    def _build_pl_identifier(code: str, entity_identifier: str, ej_id: Optional[int] = None) -> str:
+        """Return a PL-style primary key value using HL7 EI components when possible.
+
+        Produces a value that fits the project's PL encoding convention but uses HL7 EI
+        component placement for authority metadata when an `IdentifierNamespace` is present:
+
+            base PL: ^^^^^<PL-6>^^^^<EI>
+
+        where <EI> is formatted as: EI-1^EI-2^EI-3^EI-4
+
+        Preferred behavior (Option A):
+        - If `IdentifierNamespace.oid` is present, emit EI-1=<entity_identifier>, EI-2=<short code if any>,
+          EI-3=<OID>, EI-4='ISO' (or 'OID' depending on downstream expectations).
+        - Otherwise, if `IdentifierNamespace.system` (a URI) is present, emit EI-3=<URI> and EI-4='URI'.
+
+        This replaces the previous concatenation with '&' which produced ambiguous results.
+        """
+        # base PL prefix root (we will attach a proper EI component string instead of raw concatenation)
+        try:
+            ei1 = entity_identifier or ""
+            ei2 = ""  # short namespace code (optional)
+            ei3 = ""  # universal id (OID or URI)
+            ei4 = ""  # universal id type (ISO / URI / OID)
+
+            if ej_id:
+                from app.models_structure import IdentifierNamespace
+                ns = session.exec(
+                    select(IdentifierNamespace).where(IdentifierNamespace.entite_juridique_id == ej_id).where(IdentifierNamespace.is_active == True)
+                ).first()
+                if ns:
+                    # Prefer OID when available
+                    if getattr(ns, 'oid', None):
+                        ei3 = ns.oid
+                        ei4 = 'ISO'
+                    elif getattr(ns, 'system', None):
+                        ei3 = ns.system
+                        ei4 = 'URI'
+                    # If there is a short code/name we can use as EI-2
+                    if getattr(ns, 'name', None):
+                        # Keep it short and remove spaces
+                        ei2 = str(ns.name).strip().replace(' ', '_')
+
+            # Build EI as components separated by '^' (HL7 component separator)
+            ei_components = [ei1, ei2, ei3, ei4]
+            # Only include trailing empty components as required by other code: pad to 4 components
+            ei_str = "^".join(ei_components)
+            base = f"^^^^^{code}^^^^{ei_str}"
+            return base
+        except Exception:
+            logger.debug("No IdentifierNamespace found or failed to resolve authority for PL-10")
+            # Fallback to old simple base if anything goes wrong
+            return f"^^^^^{code}^^^^{entity_identifier}"
+
+    # Map internal entity labels to canonical PL-6/LOC-3 codes used by the spec
+    _canonical_loc_code = {
+        'Entite juridique': 'M',
+        'Etablissement juridique': 'M',
+        'Etablissement geographique': 'ETBL_GRPQ',
+        'Etablissement géographique': 'ETBL_GRPQ',
+        'Pole': 'PL',
+        'Pôle': 'PL',
+        'Service': 'D',
+        'Unite Fonctionnelle': 'UF',
+        'Unite Fonctionnelle': 'UF',
+        'Unite Hebergement': 'UH',
+        'Unite Hebergement': 'UH',
+        'Chambre': 'R',
+        'Lit': 'B',
+        'Unite Fonctionnelle': 'UF',
+        'Unite Fonctionnelle': 'UF',
+    }
+
+    def _canonical_label(label: str) -> str:
+        return _canonical_loc_code.get(label, label)
+
     for eg in entites_geo:
-        identifier = f"^^^^^M^^^^{eg.identifier}"
+        # build identifier with possible authority using EJ id
+        identifier = _build_pl_identifier('M', eg.identifier, getattr(eg, 'entite_juridique_id', None))
+        # length check EI-1: entity identifier must be <= 16
+        try:
+            # Extract the EI-1 candidate (before any '&')
+            ei1 = eg.identifier.split('&', 1)[0]
+            if len(ei1) > 16:
+                logger.warning(f"EI-1 for EntiteGeographique {eg.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
+        except Exception:
+            pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||M|Etablissement juridique")
+        # Use canonical label if available
+        message.append(f"LOC|{identifier}||M|{_canonical_label('Etablissement juridique')}")
         message.extend(add_lch_segments(eg, identifier))
         if hasattr(eg, 'finess') and eg.finess:
             message.append(f"LCH|{identifier}|||FNS^Code FINESS^L|^{eg.finess}")
@@ -949,9 +1091,16 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
     
     # Services (avec leurs responsables)
     for service in services:
-        identifier = f"^^^^^D^^^^{service.identifier}"
+        identifier = _build_pl_identifier('D', service.identifier, getattr(service, 'entite_juridique_id', None))
+        # EI-1 length check
+        try:
+            ei1 = service.identifier.split('&', 1)[0]
+            if len(ei1) > 16:
+                logger.warning(f"EI-1 for Service {service.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
+        except Exception:
+            pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||D|Service")
+        message.append(f"LOC|{identifier}||D|{_canonical_label('Service')}")
         message.extend(add_lch_segments(service, identifier))
 
         if hasattr(service, 'typology') and service.typology:
@@ -969,70 +1118,131 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         if hasattr(service, 'responsible_specialty') and service.responsible_specialty:
             message.append(f"LCH|{identifier}|||CD_SPCLT_RSPNSBL^Code spécialité B2 du responsable^L|^{service.responsible_specialty}")
 
-        # Relations hiérarchiques
-        if collapse_virtual and service.pole and service.pole.identifier.startswith("VIRTUAL-POLE-"):
-            # Collapse: exporter relation directe vers EG parent du pôle virtuel
-            if service.pole.entite_geo:
-                eg_parent = service.pole.entite_geo
-                message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^ETBL_GRPQ^^^^{eg_parent.identifier}")
-        else:
-            # Relation avec le pôle (standard)
-            if service.pole:
-                message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^P^^^^{service.pole.identifier}")
+        # Relations hiérarchiques - derive parents from FK fields to avoid relying on lazy-loaded relationships
+        try:
+            # If service.pole_id set, fetch pole identifier
+            if getattr(service, 'pole_id', None):
+                parent_pole = session.exec(select(Pole).where(Pole.id == service.pole_id)).first()
+                if parent_pole:
+                    # If collapsing virtual poles, and parent is virtual, try to use its EG parent instead
+                    if collapse_virtual and parent_pole.identifier.startswith("VIRTUAL-POLE-"):
+                        if getattr(parent_pole, 'entite_geo_id', None):
+                            parent_eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.id == parent_pole.entite_geo_id)).first()
+                            if parent_eg:
+                                message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^ETBL_GRPQ^^^^{parent_eg.identifier}")
+                                # skip further pole relation
+                                parent_pole = None
+                    if parent_pole:
+                        message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^P^^^^{parent_pole.identifier}")
+            else:
+                # If service points directly to an EntiteGeographique
+                if getattr(service, 'entite_geo_id', None):
+                    parent_eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.id == service.entite_geo_id)).first()
+                    if parent_eg:
+                        message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^ETBL_GRPQ^^^^{parent_eg.identifier}")
+        except Exception:
+            # Fallback: if something goes wrong, retain previous behaviour
+            if collapse_virtual and getattr(service, 'pole', None) and getattr(service.pole, 'identifier', '').startswith("VIRTUAL-POLE-"):
+                if getattr(service.pole, 'entite_geo', None):
+                    eg_parent = service.pole.entite_geo
+                    message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^ETBL_GRPQ^^^^{eg_parent.identifier}")
+            else:
+                if getattr(service, 'pole', None):
+                    message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^P^^^^{service.pole.identifier}")
     
     # Pôles (ignorer les pôles virtuels si collapse_virtual)
     for pole in poles:
-        identifier = f"^^^^^P^^^^{pole.identifier}"
+        identifier = _build_pl_identifier('P', pole.identifier, getattr(pole, 'entite_geo_id', None) and getattr(pole, 'entite_juridique_id', None))
+        try:
+            ei1 = pole.identifier.split('&', 1)[0]
+            if len(ei1) > 16:
+                logger.warning(f"EI-1 for Pole {pole.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
+        except Exception:
+            pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||P|Pole")
+        message.append(f"LOC|{identifier}||P|{_canonical_label('Pole')}")
         message.extend(add_lch_segments(pole, identifier))
-        # Relation avec l'entité géographique
-        if pole.entite_geo:
-            message.append(f"LRL|{identifier}|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^{pole.entite_geo.identifier}")
+        # Relation avec l'entité géographique (use FK)
+        if getattr(pole, 'entite_geo_id', None):
+            parent_eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.id == pole.entite_geo_id)).first()
+            if parent_eg:
+                message.append(f"LRL|{identifier}|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^{parent_eg.identifier}")
     
     # UF
     for uf in unites_fonctionnelles:
-        identifier = f"^^^^^UF^^^^{uf.identifier}"
+        identifier = _build_pl_identifier('UF', uf.identifier, getattr(uf, 'entite_juridique_id', None))
+        try:
+            ei1 = uf.identifier.split('&', 1)[0]
+            if len(ei1) > 16:
+                logger.warning(f"EI-1 for UF {uf.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
+        except Exception:
+            pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||UF|Unite Fonctionnelle")
+        message.append(f"LOC|{identifier}||UF|{_canonical_label('Unite Fonctionnelle')}")
         message.extend(add_lch_segments(uf, identifier))
         if hasattr(uf, 'um_code') and uf.um_code:
             message.append(f"LCH|{identifier}|||CD_UM^Code UM^L|^{uf.um_code}")
-        # Relation avec le service
-        if uf.service:
-            message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^D^^^^{uf.service.identifier}")
+        # Relation avec le service (use FK)
+        if getattr(uf, 'service_id', None):
+            parent_service = session.exec(select(Service).where(Service.id == uf.service_id)).first()
+            if parent_service:
+                message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^D^^^^{parent_service.identifier}")
     
     # UH
     for uh in unites_hebergement:
-        identifier = f"^^^^^UH^^^^{uh.identifier}"
+        identifier = _build_pl_identifier('UH', uh.identifier, getattr(uh, 'entite_juridique_id', None))
+        try:
+            ei1 = uh.identifier.split('&', 1)[0]
+            if len(ei1) > 16:
+                logger.warning(f"EI-1 for UH {uh.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
+        except Exception:
+            pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||UH|Unite Hebergement")
+        message.append(f"LOC|{identifier}||UH|{_canonical_label('Unite Hebergement')}")
         message.extend(add_lch_segments(uh, identifier))
-        # Relation avec UF
-        if uh.unite_fonctionnelle:
-            message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^{uh.unite_fonctionnelle.identifier}")
+        # Relation avec UF (use FK)
+        if getattr(uh, 'unite_fonctionnelle_id', None):
+            parent_uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id == uh.unite_fonctionnelle_id)).first()
+            if parent_uf:
+                message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^{parent_uf.identifier}")
     
     # Chambres
     for chambre in chambres:
-        identifier = f"^^^^^CH^^^^{chambre.identifier}"
+        identifier = _build_pl_identifier('R', chambre.identifier, getattr(chambre, 'entite_juridique_id', None))
+        try:
+            ei1 = chambre.identifier.split('&', 1)[0]
+            if len(ei1) > 16:
+                logger.warning(f"EI-1 for Chambre {chambre.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
+        except Exception:
+            pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||CH|Chambre")
+        message.append(f"LOC|{identifier}||R|{_canonical_label('Chambre')}")
         message.extend(add_lch_segments(chambre, identifier))
-        # Relation avec UH
-        if chambre.unite_hebergement:
-            message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^{chambre.unite_hebergement.identifier}")
+        # Relation avec UH (use FK)
+        if getattr(chambre, 'unite_hebergement_id', None):
+            parent_uh = session.exec(select(UniteHebergement).where(UniteHebergement.id == chambre.unite_hebergement_id)).first()
+            if parent_uh:
+                message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^{parent_uh.identifier}")
     
     # Lits
     for lit in lits:
-        identifier = f"^^^^^LIT^^^^{lit.identifier}"
+        identifier = _build_pl_identifier('B', lit.identifier, getattr(lit, 'entite_juridique_id', None))
+        try:
+            ei1 = lit.identifier.split('&', 1)[0]
+            if len(ei1) > 16:
+                logger.warning(f"EI-1 for Lit {lit.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
+        except Exception:
+            pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||LIT|Lit")
+        message.append(f"LOC|{identifier}||B|{_canonical_label('Lit')}")
         message.extend(add_lch_segments(lit, identifier))
         if hasattr(lit, 'operational_status') and lit.operational_status:
             message.append(f"LCH|{identifier}|||OPERATIONAL_STATUS^Statut opérationnel^L|^{lit.operational_status}")
-        # Relation avec chambre
-        if lit.chambre:
-            message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^{lit.chambre.identifier}")
+        # Relation avec chambre (use FK)
+        if getattr(lit, 'chambre_id', None):
+            parent_ch = session.exec(select(Chambre).where(Chambre.id == lit.chambre_id)).first()
+            if parent_ch:
+                message.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^{parent_ch.identifier}")
     
     return "\n".join(message)
 
@@ -1057,5 +1267,110 @@ def generate_mfn_message_for_entity(session: Session, entity) -> str:
     if EntiteGeographique is not None and isinstance(entity, EntiteGeographique):
         return generate_mfn_message(session, eg_identifier=getattr(entity, "identifier", None))
 
-    # Fallback: return full snapshot MFN (safe default)
-    return generate_mfn_message(session)
+    # Otherwise build a minimal MFN containing only the provided entity.
+    # This avoids sending a full snapshot when only one entity was created/updated.
+    now = datetime.now().strftime("%Y%m%d%H%M%S")
+    msg = [
+        f"MSH|^~\\&|STR|STR|RECEPTEUR|RECEPTEUR|{now}||MFN^M05^MFN_M05|{now}|P|2.5^FRA^2.11|||||FRA|8859/1",
+        f"MFI|LOC|CPAGE_LOC_FRA|REP||{now}|AL"
+    ]
+
+    def add_lch(entity_obj, identifier):
+        segs = []
+        id_glbl = getattr(entity_obj, 'global_identifier', None) or getattr(entity_obj, 'identifier', '')
+        name = getattr(entity_obj, 'name', None) or getattr(entity_obj, 'identifier', '')
+        short_name = getattr(entity_obj, 'short_name', '') or ''
+        segs.extend([
+            f"LCH|{identifier}|||CD^Code^L|^{getattr(entity_obj, 'identifier', '')}",
+            f"LCH|{identifier}|||ID_GLBL^Identifiant unique global^L|^{id_glbl}",
+            f"LCH|{identifier}|||LBL^Libelle^L|^{name}",
+            f"LCH|{identifier}|||LBL_CRT^Libelle court^L|^{short_name}",
+        ])
+        return segs
+
+    # Local imports for types
+    try:
+        from app.models_structure import (
+            EntiteGeographique as EGType, Pole as PoleType, Service as ServiceType,
+            UniteFonctionnelle as UFType, UniteHebergement as UHType, Chambre as CHType, Lit as LITType
+        )
+    except Exception:
+        EGType = PoleType = ServiceType = UFType = UHType = CHType = LITType = None
+
+    # Build a single-entry MFN depending on entity type
+    cls_name = entity.__class__.__name__
+    try:
+        if EGType is not None and isinstance(entity, EGType):
+            identifier = f"^^^^^M^^^^{getattr(entity, 'identifier', '')}"
+            msg.append(f"MFE|MAD|||{identifier}|PL")
+            msg.append(f"LOC|{identifier}||M|Etablissement juridique")
+            msg.extend(add_lch(entity, identifier))
+
+        elif ServiceType is not None and isinstance(entity, ServiceType):
+            identifier = f"^^^^^D^^^^{getattr(entity, 'identifier', '')}"
+            msg.append(f"MFE|MAD|||{identifier}|PL")
+            msg.append(f"LOC|{identifier}||D|Service")
+            msg.extend(add_lch(entity, identifier))
+            # parent reference via pole_id or entite_geo fallback
+            if getattr(entity, 'pole_id', None):
+                parent = session.exec(select(PoleType).where(PoleType.id == entity.pole_id)).first()
+                if parent:
+                    msg.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^P^^^^{getattr(parent, 'identifier', '')}")
+            elif getattr(entity, 'entite_geo_id', None):
+                parent_eg = session.exec(select(EGType).where(EGType.id == entity.entite_geo_id)).first()
+                if parent_eg:
+                    msg.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^ETBL_GRPQ^^^^{getattr(parent_eg, 'identifier', '')}")
+
+        elif UFType is not None and isinstance(entity, UFType):
+            identifier = f"^^^^^UF^^^^{getattr(entity, 'identifier', '')}"
+            msg.append(f"MFE|MAD|||{identifier}|PL")
+            msg.append(f"LOC|{identifier}||UF|Unite Fonctionnelle")
+            msg.extend(add_lch(entity, identifier))
+            if getattr(entity, 'service_id', None):
+                parent = session.exec(select(ServiceType).where(ServiceType.id == entity.service_id)).first()
+                if parent:
+                    msg.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^D^^^^{getattr(parent, 'identifier', '')}")
+
+        elif UHType is not None and isinstance(entity, UHType):
+            identifier = f"^^^^^UH^^^^{getattr(entity, 'identifier', '')}"
+            msg.append(f"MFE|MAD|||{identifier}|PL")
+            msg.append(f"LOC|{identifier}||UH|Unite Hebergement")
+            msg.extend(add_lch(entity, identifier))
+            if getattr(entity, 'unite_fonctionnelle_id', None):
+                parent = session.exec(select(UFType).where(UFType.id == entity.unite_fonctionnelle_id)).first()
+                if parent:
+                    msg.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^UF^^^^{getattr(parent, 'identifier', '')}")
+
+        elif CHType is not None and isinstance(entity, CHType):
+            identifier = f"^^^^^CH^^^^{getattr(entity, 'identifier', '')}"
+            msg.append(f"MFE|MAD|||{identifier}|PL")
+            msg.append(f"LOC|{identifier}||CH|Chambre")
+            msg.extend(add_lch(entity, identifier))
+            if getattr(entity, 'unite_hebergement_id', None):
+                parent = session.exec(select(UHType).where(UHType.id == entity.unite_hebergement_id)).first()
+                if parent:
+                    msg.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^UH^^^^{getattr(parent, 'identifier', '')}")
+
+        elif LITType is not None and isinstance(entity, LITType):
+            identifier = f"^^^^^LIT^^^^{getattr(entity, 'identifier', '')}"
+            msg.append(f"MFE|MAD|||{identifier}|PL")
+            msg.append(f"LOC|{identifier}||LIT|Lit")
+            msg.extend(add_lch(entity, identifier))
+            if getattr(entity, 'chambre_id', None):
+                parent = session.exec(select(CHType).where(CHType.id == entity.chambre_id)).first()
+                if parent:
+                    msg.append(f"LRL|{identifier}|||LCLSTN^Relation de localisation^L||^^^^^CH^^^^{getattr(parent, 'identifier', '')}")
+
+        else:
+            # Unknown type: fallback to minimal representation using class name
+            identifier = f"^^^^^UNK^^^^{getattr(entity, 'identifier', getattr(entity, 'id', 'unknown'))}"
+            msg.append(f"MFE|MAD|||{identifier}|PL")
+            msg.append(f"LOC|{identifier}||UNK|{cls_name}")
+            msg.extend(add_lch(entity, identifier))
+
+    except Exception as e:
+        # If anything goes wrong, fall back to full snapshot to preserve behaviour
+        logger.exception("generate_mfn_message_for_entity failed building minimal MFN, falling back to full snapshot")
+        return generate_mfn_message(session)
+
+    return "\n".join(msg)

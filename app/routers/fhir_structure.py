@@ -360,16 +360,16 @@ def process_search_params(params: Dict[str, Any], session: Session) -> Any:
                     break
 
             if parent:
-                # If parent is an EntiteGeographique, return services under its poles
+                # If parent is an EntiteGeographique, Renvoie services under its poles
                 if isinstance(parent, EntiteGeographique):
                     pole_ids = [p.id for p in session.exec(select(Pole).where(Pole.entite_geo_id == parent.id)).all()]
                     if not pole_ids:
                         return select(Service).where(Service.pole_id == -1)
                     return select(Service).where(Service.pole_id.in_(pole_ids))
-                # If parent is a Pole, return Services under that pole
+                # If parent is a Pole, Renvoie Services under that pole
                 if isinstance(parent, Pole):
                     return select(Service).where(Service.pole_id == parent.id)
-                # If parent is a Service, return UFs under that service
+                # If parent is a Service, Renvoie UFs under that service
                 if isinstance(parent, Service):
                     return select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == parent.id)
                 # Default: no special handling, fallthrough

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 from starlette.responses import RedirectResponse
 
@@ -8,7 +8,11 @@ from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridiqu
 from app.models_identifiers import Identifier
 from app.middleware.ght_context import get_active_ght_context
 
-templates = Jinja2Templates(directory="app/templates")
+
+def get_templates_with_filters(request: FastAPIRequest):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
+
 router = APIRouter(prefix="/ght", tags=["ght"])
 
 
@@ -34,7 +38,7 @@ async def new_namespace(
     if not context or context.id != ght_id:
         raise HTTPException(status_code=404, detail="GHT context not found")
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "namespace_form.html",
         {
@@ -130,7 +134,7 @@ async def view_namespace(
         select(Identifier).where(Identifier.system == namespace.system)
     ).all()
     
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "namespace_detail.html",
         {
@@ -159,7 +163,7 @@ async def edit_namespace(
     if not namespace:
         raise HTTPException(status_code=404, detail="Namespace not found")
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "namespace_form.html",
         {
@@ -257,7 +261,7 @@ async def new_ej_namespace(
     
     ej = _get_ej_or_404(session, context, ej_id)
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "namespace_form.html",
         {
@@ -340,7 +344,7 @@ async def edit_ej_namespace(
     if not namespace:
         raise HTTPException(status_code=404, detail="Namespace not found")
 
-    return templates.TemplateResponse(
+    return get_templates_with_filters(request).TemplateResponse(
         request,
         "namespace_form.html",
         {

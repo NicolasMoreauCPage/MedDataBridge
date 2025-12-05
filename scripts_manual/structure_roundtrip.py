@@ -51,7 +51,7 @@ def _export_structure(session: Session) -> List[ExportLocation]:
     eg_query = select(EntiteGeographique).where(EntiteGeographique.identifier == "CHU-DEMO-SITE-CENTRAL")
     eg = session.exec(eg_query).first()
     if not eg:
-        # Fallback to first EG if CENTRAL doesn't exist
+        # Solution de repli to first EG if CENTRAL doesn't exist
         eg = session.exec(select(EntiteGeographique)).first()
     if not eg:
         return data  # No structure to export

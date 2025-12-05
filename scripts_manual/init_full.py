@@ -25,6 +25,7 @@ from subprocess import CalledProcessError, run
 from app.db import init_db, engine, get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
 from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
+from seed_hl7_scenarios import seed_hl7_scenarios
 from app.models_structure import (
     Pole,
     Service,
@@ -120,7 +121,7 @@ def _legacy_ensure_extended_structure(create_demo_ght: bool = True) -> None:
         else:
             print(f"✓ {len(ejs)} EJ déjà présentes")
 
-        # NOTE: Ce code legacy a été déplacé dans _legacy_ensure_extended_structure
+        # REMARQUE: Ce code legacy a été déplacé dans _legacy_ensure_extended_structure
         # La nouvelle logique appelle directement tools/init_extended_demo.py
         for ej in ejs:
             geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej.id)).first()
@@ -486,6 +487,7 @@ def main() -> None:
     parser.add_argument("--rich-seed", action="store_true", help="Seed riche (multi patients)")
     parser.add_argument("--demo-scenarios", action="store_true", help="Insère scénarios complexes")
     parser.add_argument("--extended-structure", action="store_true", help="Crée structure étendue avant seeds")
+    parser.add_argument("--hl7-scenarios", action="store_true", help="Importe 124 scénarios HL7 IHE PAM")
     args = parser.parse_args()
 
     if args.force_reset and DB_PATH.exists():
@@ -512,6 +514,10 @@ def main() -> None:
 
     if args.demo_scenarios:
         seed_demo_scenarios()
+
+    if args.hl7_scenarios:
+        print("→ Scénarios HL7 IHE PAM…")
+        seed_hl7_scenarios()
 
     if args.with_vocab and not auto_vocab_requested:
         print("→ Vocabulaires…")

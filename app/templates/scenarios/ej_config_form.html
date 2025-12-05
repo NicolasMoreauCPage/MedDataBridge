@@ -392,7 +392,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Chambre <span class="text-xs text-gray-400">(optionnel)</span>
+                                Chambre <span class="text-xs text-red-600">*</span>
                             </label>
                             <input type="text" 
                                    name="chambre_mutation" 
@@ -400,7 +400,7 @@
                                    list="chambres_list_mut"
                                    value="{{ config.chambre_mutation if config else '' }}"
                                    maxlength="20"
-                                   placeholder="Ex: 201 (saisie libre ou depuis liste)"
+                                   placeholder="Ex: 201 (requis - destination du transfert)"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <datalist id="chambres_list_mut">
                                 {% for uf in structure.all_ufs %}
@@ -415,11 +415,11 @@
                                     {% endif %}
                                 {% endfor %}
                             </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Optionnel - Pour mutation confirmée</p>
+                            <p class="mt-1 text-xs text-gray-500">Requis - Destination du transfert/mutation</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Lit <span class="text-xs text-gray-400">(optionnel)</span>
+                                Lit <span class="text-xs text-red-600">*</span>
                             </label>
                             <input type="text" 
                                    name="lit_mutation" 
@@ -445,13 +445,11 @@
                                         {% endfor %}
                                 {% endif %}
                             {% endfor %}
-                        </datalist>
-                            <p class="mt-1 text-xs text-gray-500">Optionnel - Pour mutation confirmée avec chambre</p>
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Requis - Lit de destination du transfert</p>
                         </div>
                     </div>
-                </div>
-                
-                <div class="space-y-4">
+                </div>                <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Médecin destination (RPPS)

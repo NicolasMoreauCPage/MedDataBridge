@@ -4,13 +4,14 @@ Ce module prend un template abstrait + un contexte (GHT/EJ, param génération i
 et crée un InteropScenario avec des InteropScenarioStep payload HL7/FHIR prêts à rejouer.
 """
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep, InteropScenario, InteropScenarioStep
-from app.models_structure import EntiteJuridique  # si disponible
+from app.models_structure import EntiteJuridique, UniteFonctionnelle  # si disponible
 from app.db import get_next_sequence
+from app.models_scenario_config import ScenarioEJConfig, get_uf_code_for_event, get_medecin_for_event
 
 
 @dataclass
@@ -39,7 +40,61 @@ def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dic
     return data
 
 
-def _build_hl7_message(event: str, semantic: str, ids: dict, ej: Optional[EntiteJuridique], namespace_oid: Optional[str] = None) -> str:
+def _get_ej_config(session: Session, ej_id: int) -> Optional[ScenarioEJConfig]:
+    """Charge la configuration de scénario pour une EJ."""
+    return session.exec(
+        select(ScenarioEJConfig).where(ScenarioEJConfig.entite_juridique_id == ej_id)
+    ).first()
+
+
+def _build_location_from_uf(session: Session, uf_id: Optional[int]) -> str:
+    """Construit la chaîne de localisation PV1-3 depuis une UF."""
+    if not uf_id:
+        return "WARD^ROOM^BED"
+    
+    uf = session.get(UniteFonctionnelle, uf_id)
+    if not uf:
+        return "WARD^ROOM^BED"
+    
+    # Format HL7: Point of Care ^ Room ^ Bed ^ Facility ^ Location Status ^ ...
+    # On utilise l'identifiant UF comme point of care principal
+    uf_code = uf.identifier or uf.name or "UF"
+    return f"{uf_code}^^^{uf_code}^ACTIVE"
+
+
+def _build_doctor_xcn(medecin_info: Optional[Dict[str, str]]) -> str:
+    """Construit le champ XCN HL7 pour un médecin.
+    
+    Format XCN: ID^Family^Given^Middle^Suffix^Prefix^Degree^Source Table^Assigning Authority^Name Type^ID Check Digit
+    """
+    if not medecin_info or not medecin_info.get("rpps"):
+        return "DR001^MEDECIN^TEST^^^Dr."
+    
+    rpps = medecin_info.get("rpps", "")
+    nom = medecin_info.get("nom", "MEDECIN RPPS")
+    
+    # Essayer de parser le nom (format attendu: "Dr DUPONT Jean" ou "DUPONT Jean")
+    nom_parts = nom.replace("Dr ", "").replace("Dr. ", "").strip().split()
+    if len(nom_parts) >= 2:
+        family = nom_parts[0]
+        given = " ".join(nom_parts[1:])
+    else:
+        family = nom
+        given = ""
+    
+    # Format: RPPS^Family^Given^Middle^Suffix^Prefix (Dr)^Degree^Source (RPPS)^AssigningAuth^NameType (L=Legal)
+    return f"{rpps}^{family}^{given}^^^Dr.^^RPPS^1.2.250.1.71.4.2.1^L"
+
+
+def _build_hl7_message(
+    event: str, 
+    semantic: str, 
+    ids: dict, 
+    ej: Optional[EntiteJuridique], 
+    namespace_oid: Optional[str] = None,
+    ej_config: Optional[ScenarioEJConfig] = None,
+    session: Optional[Session] = None
+) -> str:
     # Construction enrichie avec segments contextuels selon semantic_event_code
     sending_app = "MEDDATA"
     sending_fac = (ej.code_ej if ej and hasattr(ej, "code_ej") and ej.code_ej else "FAC")
@@ -56,8 +111,26 @@ def _build_hl7_message(event: str, semantic: str, ids: dict, ej: Optional[Entite
         nda_field = nda
     msg_id = f"MSG{ts}{semantic[:4]}"
     
+    # Extraire le code événement HL7 (ex: A01 de ADT^A01)
+    event_code = event.split("^")[-1] if "^" in event else event
+    
+    # === Utilisation de la configuration EJ pour UF et médecin ===
+    # Déterminer l'UF à utiliser selon le type d'événement
+    location_str = "WARD^ROOM^BED"  # Valeur par défaut
+    if ej_config and session:
+        uf_code = get_uf_code_for_event(ej_config, event_code, session)
+        if uf_code:
+            location_str = f"{uf_code}^^^{uf_code}^ACTIVE"
+    
+    # Déterminer le médecin à utiliser selon le type d'événement  
+    doctor_xcn = "DR001^MEDECIN^TEST^^^Dr."  # Valeur par défaut
+    if ej_config:
+        medecin_info = get_medecin_for_event(ej_config, event_code)
+        if medecin_info:
+            doctor_xcn = _build_doctor_xcn(medecin_info)
+    
     msh = f"MSH|^~\\&|{sending_app}|{sending_fac}|RECEIVER|{sending_fac}|{ts}||{event}|{msg_id}|P|2.5"
-    evn = f"EVN|{event.split('^')[-1]}|{ts}"
+    evn = f"EVN|{event_code}|{ts}"
     pid = f"PID|1||{ipp_field}||TEMPLATE^{semantic}||19900101|F|||123 RUE TEST^^CITY^^38000^100||||||||||||||||||"
     
     # PV1 adapté selon type d'événement
@@ -68,14 +141,20 @@ def _build_hl7_message(event: str, semantic: str, ids: dict, ej: Optional[Entite
     pv1_fields = [
         "PV1",             # fields[0] placeholder for the segment name
         "1",               # PV1-1 Set ID
-        pv_class,           # PV1-2 Patient Class
-        "WARD^ROOM^BED",   # PV1-3 Assigned Patient Location
+        pv_class,          # PV1-2 Patient Class
+        location_str,      # PV1-3 Assigned Patient Location (from EJ config if available)
         "",                # PV1-4
-        "DR001^MEDECIN^TEST^^^Dr.",  # PV1-5 Attending Doctor
+        "",                # PV1-5 Preadmit Number (vide)
+        "",                # PV1-6 Prior Patient Location (vide)
+        doctor_xcn,        # PV1-7 Attending Doctor (from EJ config if available)
     ]
-    # Pad empty fields up to index 18 (so that index 19 is PV1-19)
-    while len(pv1_fields) < 19:
+    # PV1-8 à PV1-16 vides
+    while len(pv1_fields) < 17:
         pv1_fields.append("")
+    # PV1-17: Admitting Doctor (same as attending for simplicity)
+    pv1_fields.append(doctor_xcn)
+    # PV1-18 vide
+    pv1_fields.append("")
     # Set PV1-19 to the nda_field (Visit Number)
     pv1_fields.append(nda_field)
     # Append a few common trailing fields (we include the timestamp near the end)
@@ -235,11 +314,24 @@ def materialize_template(
     else:
         ej_obj = ej_context
 
+    # Charger la configuration EJ pour les UF et médecins
+    ej_config: Optional[ScenarioEJConfig] = None
+    if ej_obj and ej_obj.id:
+        ej_config = _get_ej_config(session, ej_obj.id)
+
     order_index = 1
     for t_step in template.steps:
         if scenario.protocol == "HL7":
             event = t_step.hl7_event_code or "ADT^A01"
-            payload = _build_hl7_message(event, t_step.semantic_event_code, ids, ej_obj, namespace_oid=options.namespace_oid)
+            payload = _build_hl7_message(
+                event, 
+                t_step.semantic_event_code, 
+                ids, 
+                ej_obj, 
+                namespace_oid=options.namespace_oid,
+                ej_config=ej_config,
+                session=session
+            )
             message_type = event
             message_format = "hl7"
         else:

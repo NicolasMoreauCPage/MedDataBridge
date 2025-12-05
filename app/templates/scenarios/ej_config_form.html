@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration scénarios - {{ ej.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="/config/scenario-ej" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 mb-2 inline-block">
+            <i class="fas fa-arrow-left mr-1"></i>Retour à la liste
+        </a>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+            <i class="fas fa-cogs mr-2"></i>Configuration des scénarios
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-1">
+            Entité juridique: <strong>{{ ej.name }}</strong>
+            {% if ej.identifier %}
+            <span class="text-sm text-gray-500">({{ ej.identifier }})</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Formulaire -->
+    <form method="POST" action="/config/scenario-ej/{{ ej.id }}" class="space-y-8">
+        
+        <!-- UF Hospitalisation -->
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                <span class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-3">
+                    <i class="fas fa-bed text-blue-600 dark:text-blue-400 text-sm"></i>
+                </span>
+                Hospitalisation
+                <span class="ml-2 text-sm font-normal text-gray-500">(A01, A03, A11, A13)</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Unité Fonctionnelle
+                    </label>
+                    <select name="uf_hospitalisation_id" 
+                            class="uf-select w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">-- Sélectionner une UF --</option>
+                        {% for uf in structure.all_ufs %}
+                        <option value="{{ uf.id }}" 
+                                {% if config and config.uf_hospitalisation_id == uf.id %}selected{% endif %}>
+                            {{ uf.path }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">UF utilisée pour les admissions en hospitalisation complète</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Médecin (RPPS)
+                        </label>
+                        <input type="text" name="medecin_hospitalisation_rpps" 
+                               value="{{ config.medecin_hospitalisation_rpps if config else '' }}"
+                               pattern="[0-9]{11}"
+                               maxlength="11"
+                               placeholder="Ex: 10101234567"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <p class="mt-1 text-xs text-gray-500">Numéro RPPS à 11 chiffres</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Nom du médecin
+                        </label>
+                        <input type="text" name="medecin_hospitalisation_nom" 
+                               value="{{ config.medecin_hospitalisation_nom if config else '' }}"
+                               maxlength="100"
+                               placeholder="Ex: Dr DUPONT Jean"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UF Consultation externe -->
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                <span class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
+                    <i class="fas fa-stethoscope text-green-600 dark:text-green-400 text-sm"></i>
+                </span>
+                Consultation externe
+                <span class="ml-2 text-sm font-normal text-gray-500">(A04, A05, A38)</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Unité Fonctionnelle
+                    </label>
+                    <select name="uf_consultation_id" 
+                            class="uf-select w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">-- Sélectionner une UF --</option>
+                        {% for uf in structure.all_ufs %}
+                        <option value="{{ uf.id }}" 
+                                {% if config and config.uf_consultation_id == uf.id %}selected{% endif %}>
+                            {{ uf.path }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">UF utilisée pour les consultations ambulatoires</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Médecin (RPPS)
+                        </label>
+                        <input type="text" name="medecin_consultation_rpps" 
+                               value="{{ config.medecin_consultation_rpps if config else '' }}"
+                               pattern="[0-9]{11}"
+                               maxlength="11"
+                               placeholder="Ex: 10101234567"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Nom du médecin
+                        </label>
+                        <input type="text" name="medecin_consultation_nom" 
+                               value="{{ config.medecin_consultation_nom if config else '' }}"
+                               maxlength="100"
+                               placeholder="Ex: Dr MARTIN Marie"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UF Urgences -->
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                <span class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mr-3">
+                    <i class="fas fa-ambulance text-red-600 dark:text-red-400 text-sm"></i>
+                </span>
+                Urgences
+                <span class="ml-2 text-sm font-normal text-gray-500">(Passages urgences)</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Unité Fonctionnelle
+                    </label>
+                    <select name="uf_urgences_id" 
+                            class="uf-select w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">-- Sélectionner une UF --</option>
+                        {% for uf in structure.all_ufs %}
+                        <option value="{{ uf.id }}" 
+                                {% if config and config.uf_urgences_id == uf.id %}selected{% endif %}>
+                            {{ uf.path }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">UF du service des urgences</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Médecin (RPPS)
+                        </label>
+                        <input type="text" name="medecin_urgences_rpps" 
+                               value="{{ config.medecin_urgences_rpps if config else '' }}"
+                               pattern="[0-9]{11}"
+                               maxlength="11"
+                               placeholder="Ex: 10101234567"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Nom du médecin
+                        </label>
+                        <input type="text" name="medecin_urgences_nom" 
+                               value="{{ config.medecin_urgences_nom if config else '' }}"
+                               maxlength="100"
+                               placeholder="Ex: Dr DURAND Pierre"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UF Mutation cible -->
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                <span class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center mr-3">
+                    <i class="fas fa-exchange-alt text-purple-600 dark:text-purple-400 text-sm"></i>
+                </span>
+                Mutation / Transfert
+                <span class="ml-2 text-sm font-normal text-gray-500">(A02 - UF destination)</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Unité Fonctionnelle (destination)
+                    </label>
+                    <select name="uf_mutation_cible_id" 
+                            class="uf-select w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">-- Sélectionner une UF --</option>
+                        {% for uf in structure.all_ufs %}
+                        <option value="{{ uf.id }}" 
+                                {% if config and config.uf_mutation_cible_id == uf.id %}selected{% endif %}>
+                            {{ uf.path }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">UF de destination pour les transferts internes</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Médecin (RPPS)
+                        </label>
+                        <input type="text" name="medecin_mutation_rpps" 
+                               value="{{ config.medecin_mutation_rpps if config else '' }}"
+                               pattern="[0-9]{11}"
+                               maxlength="11"
+                               placeholder="Ex: 10101234567"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Nom du médecin
+                        </label>
+                        <input type="text" name="medecin_mutation_nom" 
+                               value="{{ config.medecin_mutation_nom if config else '' }}"
+                               maxlength="100"
+                               placeholder="Ex: Dr LEROY Anne"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="flex justify-between items-center pt-4">
+            <a href="/config/scenario-ej" 
+               class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+                <i class="fas fa-times mr-2"></i>Annuler
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <i class="fas fa-save mr-2"></i>Enregistrer la configuration
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Amélioration UX: filtrage des selects avec recherche
+document.addEventListener('DOMContentLoaded', function() {
+    // Si Select2 ou similar est disponible, l'utiliser
+    const selects = document.querySelectorAll('.uf-select');
+    selects.forEach(select => {
+        // Ajouter un comportement de recherche basique si pas de librairie externe
+        select.addEventListener('focus', function() {
+            this.size = Math.min(10, this.options.length);
+        });
+        select.addEventListener('blur', function() {
+            this.size = 1;
+        });
+        select.addEventListener('change', function() {
+            this.size = 1;
+            this.blur();
+        });
+    });
+});
+</script>
+
+<style>
+/* Style pour les selects avec recherche */
+.uf-select {
+    max-height: 300px;
+}
+.uf-select option {
+    padding: 8px 12px;
+}
+.uf-select option:hover {
+    background-color: #EBF5FF;
+}
+</style>
+{% endblock %}

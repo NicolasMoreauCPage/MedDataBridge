@@ -53,16 +53,24 @@ def upgrade() -> None:
             SELECT id, name, 'ACTIVE', category_code FROM entitegeographique_old WHERE name IS NOT NULL
         ''')
         op.drop_table('entitegeographique_old')
-    op.alter_column('identifiernamespace', 'system',
-               existing_type=sa.VARCHAR(),
-               nullable=False)
-    op.alter_column('identifiernamespace', 'type',
-               existing_type=sa.VARCHAR(),
-               nullable=False)
-    op.alter_column('identifiernamespace', 'is_active',
-               existing_type=sa.BOOLEAN(),
-               nullable=False)
-    op.drop_column('identifiernamespace', 'created_at')
+    
+    # Use batch_alter_table for SQLite compatibility
+    with op.batch_alter_table('identifiernamespace') as batch_op:
+        batch_op.alter_column('system',
+                   existing_type=sa.VARCHAR(),
+                   nullable=False)
+        batch_op.alter_column('type',
+                   existing_type=sa.VARCHAR(),
+                   nullable=False)
+        batch_op.alter_column('is_active',
+                   existing_type=sa.BOOLEAN(),
+                   nullable=False)
+        # Check if column exists before dropping
+        conn = op.get_bind()
+        inspector = sa.inspect(conn)
+        columns = [c['name'] for c in inspector.get_columns('identifiernamespace')]
+        if 'created_at' in columns:
+            batch_op.drop_column('created_at')
     # op.drop_index('idx_messagelog_status_endpoint_created', table_name='messagelog')
     # op.drop_index('idx_mouvement_venue_when', table_name='mouvement')
     # op.drop_index('idx_mouvement_when', table_name='mouvement')

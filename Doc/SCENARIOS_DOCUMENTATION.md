@@ -298,15 +298,66 @@ D'autres templates sont importés automatiquement depuis les fichiers IHE PAM si
 - Augmenter le timeout dans la configuration de l'endpoint
 - Vérifier que le service MLLP distant est actif
 
+---
+
+## Configuration UF et Médecins par EJ
+
+### Principe
+
+Pour chaque Entité Juridique (EJ), vous pouvez configurer :
+
+- **UF Hospitalisation** : Unité Fonctionnelle utilisée pour les admissions (A01, A03)
+- **UF Consultation** : UF pour les consultations externes (A04)
+- **UF Urgences** : UF pour les passages aux urgences
+- **UF Mutation** : UF destination pour les transferts internes (A02)
+
+Pour chaque type d'UF, un médecin référent (numéro RPPS) peut être associé.
+
+### Accès à la configuration
+
+Menu **Ressources** → **Scénarios** → **Configuration UF/Médecins par EJ**
+
+Ou directement : `/config/scenario-ej`
+
+### Utilisation
+
+Lors de la **matérialisation d'un template** vers un scénario concret, si une configuration existe pour l'EJ cible :
+
+1. Le code UF configuré remplace le placeholder dans **PV1-3** (Assigned Patient Location)
+2. Le numéro RPPS du médecin remplace les valeurs dans **PV1-7** (Attending Doctor) et **PV1-17** (Admitting Doctor)
+
+### Mapping événement → UF
+
+| Événement HL7 | Type d'UF utilisé |
+|---------------|-------------------|
+| A01, A03, A11, A13 | UF Hospitalisation |
+| A04, A05, A38 | UF Consultation |
+| A02, A06, A07, A12 | UF Mutation (cible) |
+| A10 | UF Urgences |
+
+### Format du médecin (XCN)
+
+Le champ médecin est construit au format HL7 XCN :
+
+```
+RPPS^NOM^PRENOM^^^Dr.^^RPPS^1.2.250.1.71.4.2.1^L
+```
+
+Exemple : `10101234567^DUPONT^Jean^^^Dr.^^RPPS^1.2.250.1.71.4.2.1^L`
+
+---
+
 ## Fichiers clés
 
 ```
 app/
 ├── models_scenarios.py              # Modèles ScenarioTemplate, InteropScenario
 ├── models_scenario_runs.py          # Modèles d'exécution (Run, StepLog)
+├── models_scenario_config.py        # Configuration UF/Médecins par EJ
 ├── routers/
 │   ├── scenarios.py                 # Routes UI et API (/scenarios/*)
-│   └── scenario_templates.py        # Routes templates (/scenarios/templates/*)
+│   ├── scenario_templates.py        # Routes templates (/scenarios/templates/*)
+│   └── scenario_ej_config.py        # Configuration par EJ (/config/scenario-ej/*)
 ├── services/
 │   ├── scenario_runner.py           # Exécution des scénarios
 │   ├── scenario_template_materializer.py  # Génération depuis templates
@@ -319,7 +370,9 @@ app/
     ├── scenario_import.html         # Formulaire d'import
     ├── scenario_template_detail.html # Détail d'un template
     └── scenarios/
-        └── dashboard.html           # Dashboard des exécutions
+        ├── dashboard.html           # Dashboard des exécutions
+        ├── ej_config_list.html      # Liste des configurations EJ
+        └── ej_config_form.html      # Formulaire de configuration
 ```
 
 ## Voir aussi

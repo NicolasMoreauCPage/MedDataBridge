@@ -263,6 +263,14 @@ def create_app() -> FastAPI:
     except Exception as e:
         logging.getLogger(__name__).warning(f"Scenario templates router not available: {e}")
     
+    # Configuration des scénarios par EJ - AVANT scenarios pour éviter conflit de routes
+    try:
+        from app.routers import scenario_ej_config
+        app.include_router(scenario_ej_config.router)
+        print(" - Scenario EJ config router mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Scenario EJ config router not available: {e}")
+    
     app.include_router(scenarios.router)
     
     print(" - Utility routers mounted")

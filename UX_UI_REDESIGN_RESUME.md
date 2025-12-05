@@ -1,14 +1,41 @@
 # 🎨 Refonte UI/UX - Résumé du travail
 
 **Branche**: `feat/ux-ui-redesign`  
-**Date**: 5 décembre 2025  
-**Status**: ✅ Stratégie définie, refonte en cours
+**Date de début**: 5 décembre 2025  
+**Dernière mise à jour**: 6 décembre 2025  
+**Status**: 🚀 En cours - Templates fondamentaux modernisés
 
 ## 📊 État des lieux
 
 **Total templates**: 113 fichiers HTML  
+**Templates modernisés**: 10 / 113 (9%)  
 **Stratégie créée**: UX_UI_REDESIGN_STRATEGY.md (244 lignes)  
-**Audit complété**: ✅ Catégorisation en 9 groupes
+**Audit complété**: ✅ Catégorisation en 9 groupes  
+**Commits**: 10 commits sur la branche
+
+## ✅ Templates modernisés
+
+### Fondation (3/3)
+- ✅ `base.html` - Template de base avec header sticky, footer moderne
+- ✅ `macros/ui.html` - 10 catégories de composants réutilisables (342 lignes)
+- ✅ `home.html` - Dashboard principal avec hero gradient et stat cards
+
+### Templates de listes (3/N)
+- ✅ `messages.html` - Liste messages HL7/FHIR avec filtres collapsibles
+- ✅ `list.html` - Template générique de liste modernisé
+- ✅ `contacts_list.html` - Onglets Patient/Venue, cartes contact
+
+### Templates de détails/formulaires (3/N)
+- ✅ `endpoint_detail.html` - Accordéons par type (MLLP/FHIR/FILE)
+- ✅ `ght_dashboard.html` - Dashboard GHT avec stats et actions rapides
+- 🔄 `patient_form.html` - Déjà bien structuré, améliorations mineures à faire
+
+### À moderniser (100/113)
+- Templates détails (patient_detail, dossier_detail, venue_detail, etc.)
+- Templates formulaires (contact_form, ej_form, uf_detail, etc.)
+- Dashboards spécialisés (conformity, cache, metrics)
+- Documentation (doc_wrapper, examples, standards)
+- Outils (tools_mllp, send_message, validation)
 
 ## 🎯 Améliorations clés à implémenter
 

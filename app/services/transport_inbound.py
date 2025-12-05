@@ -834,6 +834,26 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
     msg_family = msh.get("type", "")
     trigger = msh.get("trigger", "")
 
+    # 1.5. Idempotence check: avoid processing the same message twice
+    # Check if a MessageLog with the same control_id was already processed in the last hour
+    try:
+        from datetime import timedelta
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
+        existing_log = session.exec(
+            select(MessageLog)
+            .where(MessageLog.correlation_id == ctrl_id)
+            .where(MessageLog.created_at > cutoff_time)
+            .where(MessageLog.status.in_(["processed", "error", "rejected"]))
+            .order_by(MessageLog.created_at.desc())
+        ).first()
+        
+        if existing_log and existing_log.ack_payload:
+            logger.info(f"Message duplicate detected (MSH-10={ctrl_id}), returning previous ACK")
+            return existing_log.ack_payload
+    except Exception as e:
+        logger.warning(f"Error checking message idempotence: {e}")
+        # Continue processing if check fails; don't block on idempotence check errors
+
     # Détermination per-endpoint du mode strict (priorité EJ > env)
     import os as _os
     strict_ej = False

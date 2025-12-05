@@ -331,6 +331,35 @@ def import_pam_messages(session: Session, ej: EntiteJuridique, directory: Path, 
                 with open(hl7_file, 'r', encoding='utf-8', errors='ignore') as f:
                     hl7_content = f.read()
 
+                # Check for duplicate message (idempotence) using MSH-10 control ID
+                try:
+                    msh_line = None
+                    for line in hl7_content.replace('\r\n', '\r').replace('\n', '\r').split('\r'):
+                        if line.startswith('MSH|'):
+                            msh_line = line
+                            break
+                    
+                    if msh_line:
+                        msh_parts = msh_line.split('|')
+                        ctrl_id = msh_parts[9] if len(msh_parts) > 9 else None
+                        
+                        if ctrl_id:
+                            from datetime import timedelta
+                            cutoff = __import__('datetime').datetime.utcnow() - timedelta(hours=1)
+                            from app.models_endpoints import MessageLog as MsgLog
+                            existing = session.exec(
+                                __import__('sqlmodel').select(MsgLog)
+                                .where(MsgLog.correlation_id == ctrl_id)
+                                .where(MsgLog.created_at > cutoff)
+                            ).first()
+                            
+                            if existing:
+                                print(f"⏭️  Skipping duplicate message (MSH-10={ctrl_id}): {hl7_file.name}")
+                                stats['skipped'] += 1
+                                continue
+                except Exception as dup_check_err:
+                    print(f"⚠️  Warning checking duplicate (continuing): {dup_check_err}")
+
                 validator = PAMValidator()
                 result = validator.validate_message(hl7_content)
                 

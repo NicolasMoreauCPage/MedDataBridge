@@ -77,21 +77,59 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Chambre
                             </label>
-                            <input type="text" name="chambre_hospitalisation" 
+                            <input type="text" 
+                                   name="chambre_hospitalisation" 
+                                   id="chambre_hospitalisation"
+                                   list="chambres_list_hosp"
                                    value="{{ config.chambre_hospitalisation if config else '' }}"
                                    maxlength="20"
-                                   placeholder="Ex: 101"
+                                   placeholder="Ex: 101 (saisie libre ou depuis liste)"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <datalist id="chambres_list_hosp">
+                                {% for uf in structure.all_ufs %}
+                                    {% if uf.unites_hebergement %}
+                                        {% for uh in uf.unites_hebergement.values() %}
+                                            {% if uh.chambres %}
+                                                {% for chambre in uh.chambres.values() %}
+                                                    <option value="{{ chambre.name }}">{{ uf.path }} → {{ uh.name }} → {{ chambre.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez depuis la structure</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Lit
                             </label>
-                            <input type="text" name="lit_hospitalisation" 
+                            <input type="text" 
+                                   name="lit_hospitalisation" 
+                                   id="lit_hospitalisation"
+                                   list="lits_list_hosp"
                                    value="{{ config.lit_hospitalisation if config else '' }}"
                                    maxlength="20"
-                                   placeholder="Ex: A"
+                                   placeholder="Ex: A (saisie libre ou depuis liste)"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <datalist id="lits_list_hosp">
+                                {% for uf in structure.all_ufs %}
+                                    {% if uf.unites_hebergement %}
+                                        {% for uh in uf.unites_hebergement.values() %}
+                                            {% if uh.chambres %}
+                                                {% for chambre in uh.chambres.values() %}
+                                                    {% if chambre.lits %}
+                                                        {% for lit in chambre.lits %}
+                                                            <option value="{{ lit.name }}">{{ chambre.name }} → {{ lit.name }}</option>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez depuis la structure</p>
                         </div>
                     </div>
                 </div>
@@ -156,11 +194,28 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Salle de consultation
                         </label>
-                        <input type="text" name="chambre_consultation" 
+                        <input type="text" 
+                               name="chambre_consultation" 
+                               id="chambre_consultation"
+                               list="chambres_list_consul"
                                value="{{ config.chambre_consultation if config else '' }}"
                                maxlength="20"
-                               placeholder="Ex: CONS-A"
+                               placeholder="Ex: CONS-A (saisie libre ou depuis liste)"
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <datalist id="chambres_list_consul">
+                            {% for uf in structure.all_ufs %}
+                                {% if uf.unites_hebergement %}
+                                    {% for uh in uf.unites_hebergement.values() %}
+                                        {% if uh.chambres %}
+                                            {% for chambre in uh.chambres.values() %}
+                                                <option value="{{ chambre.name }}">{{ uf.path }} → {{ chambre.name }}</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </datalist>
+                        <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez depuis la structure</p>
                     </div>
                 </div>
                 
@@ -223,21 +278,59 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Box
                             </label>
-                            <input type="text" name="chambre_urgences" 
+                            <input type="text" 
+                                   name="chambre_urgences" 
+                                   id="chambre_urgences"
+                                   list="chambres_list_urg"
                                    value="{{ config.chambre_urgences if config else '' }}"
                                    maxlength="20"
-                                   placeholder="Ex: BOX-1"
+                                   placeholder="Ex: BOX-1 (saisie libre ou depuis liste)"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <datalist id="chambres_list_urg">
+                                {% for uf in structure.all_ufs %}
+                                    {% if uf.unites_hebergement %}
+                                        {% for uh in uf.unites_hebergement.values() %}
+                                            {% if uh.chambres %}
+                                                {% for chambre in uh.chambres.values() %}
+                                                    <option value="{{ chambre.name }}">{{ uf.path }} → {{ chambre.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Brancard/Lit
                             </label>
-                            <input type="text" name="lit_urgences" 
+                            <input type="text" 
+                                   name="lit_urgences" 
+                                   id="lit_urgences"
+                                   list="lits_list_urg"
                                    value="{{ config.lit_urgences if config else '' }}"
                                    maxlength="20"
-                                   placeholder="Ex: BR-01"
+                                   placeholder="Ex: BR-01 (saisie libre ou depuis liste)"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <datalist id="lits_list_urg">
+                                {% for uf in structure.all_ufs %}
+                                    {% if uf.unites_hebergement %}
+                                        {% for uh in uf.unites_hebergement.values() %}
+                                            {% if uh.chambres %}
+                                                {% for chambre in uh.chambres.values() %}
+                                                    {% if chambre.lits %}
+                                                        {% for lit in chambre.lits %}
+                                                            <option value="{{ lit.name }}">{{ chambre.name }} → {{ lit.name }}</option>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
                         </div>
                     </div>
                 </div>
@@ -301,21 +394,59 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Chambre
                             </label>
-                            <input type="text" name="chambre_mutation" 
+                            <input type="text" 
+                                   name="chambre_mutation" 
+                                   id="chambre_mutation"
+                                   list="chambres_list_mut"
                                    value="{{ config.chambre_mutation if config else '' }}"
                                    maxlength="20"
-                                   placeholder="Ex: 201"
+                                   placeholder="Ex: 201 (saisie libre ou depuis liste)"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <datalist id="chambres_list_mut">
+                                {% for uf in structure.all_ufs %}
+                                    {% if uf.unites_hebergement %}
+                                        {% for uh in uf.unites_hebergement.values() %}
+                                            {% if uh.chambres %}
+                                                {% for chambre in uh.chambres.values() %}
+                                                    <option value="{{ chambre.name }}">{{ uf.path }} → {{ chambre.name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Lit
                             </label>
-                            <input type="text" name="lit_mutation" 
+                            <input type="text" 
+                                   name="lit_mutation" 
+                                   id="lit_mutation"
+                                   list="lits_list_mut"
                                    value="{{ config.lit_mutation if config else '' }}"
                                    maxlength="20"
-                                   placeholder="Ex: B"
+                                   placeholder="Ex: B (saisie libre ou depuis liste)"
                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <datalist id="lits_list_mut">
+                                {% for uf in structure.all_ufs %}
+                                    {% if uf.unites_hebergement %}
+                                        {% for uh in uf.unites_hebergement.values() %}
+                                            {% if uh.chambres %}
+                                                {% for chambre in uh.chambres.values() %}
+                                                    {% if chambre.lits %}
+                                                        {% for lit in chambre.lits %}
+                                                            <option value="{{ lit.name }}">{{ chambre.name }} → {{ lit.name }}</option>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500">Tapez ou sélectionnez</p>
                         </div>
                     </div>
                 </div>

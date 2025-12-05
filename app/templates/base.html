@@ -188,19 +188,7 @@
         </button>
       </div>
     </div>
-    {% if not request.state.ght_context and not request.url.path.startswith('/admin/') and not request.url.path.startswith('/context/') %}
-    <div class="bg-yellow-50 border-b border-yellow-100">
-      <div class="mx-auto max-w-content px-4 py-3 flex items-center gap-3 text-sm text-yellow-800">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <span>
-          Sélectionnez un contexte GHT pour accéder aux fonctionnalités complètes. Les éléments grisés avec un cadenas indiquent qu'un contexte est requis.
-          <a href="/context/select" class="font-medium underline hover:text-yellow-900">Choisir un GHT</a>
-        </span>
-      </div>
-    </div>
-    {% endif %}
+
   <nav class="hidden md:block border-t border-theme surface" aria-label="Navigation principale" role="navigation">
   <ul class="mx-auto max-w-content px-4 py-2 flex items-center gap-6 text-sm text-slate-600" role="menubar">
   <li role="none"><a role="menuitem" href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">Tableau de bord</a></li>
@@ -226,14 +214,7 @@
                 <a href="/endpoints" class="block rounded-xl px-3 py-2 hover:bg-green-50">Endpoints</a>
                 <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-green-50">Scénarios IHE PAM</a>
                 <a href="/validation" class="block rounded-xl px-3 py-2 hover:bg-green-50">Validation HL7</a>
-                {% if request.state.ght_context %}
-                  <a href="/conformity" class="block rounded-xl px-3 py-2 hover:bg-green-50">Conformité IHE</a>
-                {% else %}
-                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un GHT pour accéder à la conformité">
-                    Conformité IHE
-                    <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                  </span>
-                {% endif %}
+                <a href="/conformity" class="block rounded-xl px-3 py-2 hover:bg-green-50">Conformité IHE</a>
               </div>
             </div>
           </div>
@@ -349,37 +330,8 @@
                 <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400" data-test-subsection="suivi">Suivi des prises en charge</p>
                 <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="patients">Patients</a>
                 <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="dossiers">Dossiers</a>
-                {% if request.state and request.state.dossier_context %}
-                  <a href="/venues?dossier_id={{ request.state.dossier_context.id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="venues">Venues</a>
-                {% else %}
-                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier pour voir les venues" data-test-link="venues-disabled">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
-                    Venues
-                  </span>
-                {% endif %}
-                {% if request.state and request.state.dossier_context %}
-                  {# Patch: link to first venue of dossier if no venue_context #}
-                  {% set first_venue_id = None %}
-                  {% if not request.state.venue_context %}
-                    {% set _venues = dossier_venues if dossier_venues is defined else [] %}
-                    {% if _venues|length > 0 %}
-                      {% set first_venue_id = _venues[0].id %}
-                    {% endif %}
-                  {% endif %}
-                  {% if (request.state.venue_context and request.state.venue_context.id) or (first_venue_id) %}
-                    <a href="/mouvements?venue_id={{ request.state.venue_context.id if request.state.venue_context else first_venue_id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">Mouvements</a>
-                  {% else %}
-                    <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Aucune venue disponible pour ce dossier" data-test-link="mouvements-disabled">
-                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
-                      Mouvements
-                    </span>
-                  {% endif %}
-                {% else %}
-                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier pour voir les mouvements" data-test-link="mouvements-disabled">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
-                    Mouvements
-                  </span>
-                {% endif %}
+                <a href="/venues{% if request.state and request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="venues">Venues</a>
+                <a href="/mouvements{% if request.state.venue_context %}?venue_id={{ request.state.venue_context.id }}{% elif request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">Mouvements</a>
               </div>
               <div>
                 <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400" data-test-subsection="formulaires">Formulaires & validations</p>
@@ -406,43 +358,19 @@
             <div class="w-[520px] grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
               <div>
                 <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Vue d'ensemble</p>
-                {% if request.state and request.state.ej_context %}
-                  <a href="/structure" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau structurel</a>
-                {% else %}
-                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un EJ pour accéder au tableau structurel">
-                    Tableau structurel
-                    <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                  </span>
-                {% endif %}
+                <a href="/structure" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau structurel</a>
                 <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
+                <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche avancée</a>
                 {% if request.state and request.state.ej_context %}
-                  <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche avancée</a>
-                {% else %}
-                  <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un EJ pour utiliser la recherche structure">
-                    Recherche avancée
-                    <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                  </span>
-                {% endif %}
-                {% if request.state and request.state.ej_context %}
-                  <div class="mt-2 mx-3 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-700">
+                  <div class="mt-2 mx-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                     <div class="flex items-center justify-between gap-2">
-                      <span class="font-medium">EJ courant</span>
-                      <div class="flex items-center gap-2">
-                        <a href="/admin/ght" class="hover:underline">Changer</a>
-                        <span aria-hidden>·</span>
-                        <a href="/context/clear?kind=ej" class="hover:underline" title="Effacer le contexte établissement">Effacer</a>
-                      </div>
-                    </div>
-                    <div class="mt-1 truncate">
-                      {{ request.state.ej_context.name }}
-                      {% if request.state.ej_context.finess_ej %}
-                        <span class="text-teal-500">• FINESS {{ request.state.ej_context.finess_ej }}</span>
-                      {% endif %}
+                      <span class="font-medium">🏥 {{ request.state.ej_context.name }}</span>
+                      <a href="/context/clear?kind=ej" class="hover:underline" title="Changer d'EJ">×</a>
                     </div>
                   </div>
                 {% else %}
-                  <a href="/admin/ght" class="mx-3 mt-2 block rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-blue-50" title="Sélectionnez un établissement pour filtrer les listes">
-                    Sélectionner un EJ
+                  <a href="/admin/ght" class="mx-3 mt-2 block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 hover:bg-blue-100" title="Sélectionnez un EJ pour filtrer les listes">
+                    <span class="font-medium">→ Sélectionner un établissement</span>
                   </a>
                 {% endif %}
               </div>
@@ -456,26 +384,13 @@
                   {% endif %}
                 </p>
                 <div class="grid grid-cols-2 gap-1 text-sm">
-                  {% if request.state and request.state.ej_context %}
-                    <a href="/structure/eg" class="rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
-                    <a href="/structure/poles" class="rounded-xl px-3 py-2 hover:bg-blue-50">Pôles</a>
-                    <a href="/structure/services" class="rounded-xl px-3 py-2 hover:bg-blue-50">Services</a>
-                    <a href="/structure/ufs" class="rounded-xl px-3 py-2 hover:bg-blue-50">UF</a>
-                    <a href="/structure/uh" class="rounded-xl px-3 py-2 hover:bg-blue-50">UH</a>
-                    <a href="/structure/chambres" class="rounded-xl px-3 py-2 hover:bg-blue-50">Chambres</a>
-                    <a href="/structure/lits" class="rounded-xl px-3 py-2 hover:bg-blue-50">Lits</a>
-                  {% else %}
-                    <span class="rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un EJ pour parcourir les entités">
-                      Entités géographiques
-                      <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    </span>
-                    <span class="rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Pôles<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-                    <span class="rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Services<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-                    <span class="rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">UF<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-                    <span class="rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">UH<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-                    <span class="rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Chambres<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-                    <span class="rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Lits<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-                  {% endif %}
+                  <a href="/structure/eg" class="rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
+                  <a href="/structure/poles" class="rounded-xl px-3 py-2 hover:bg-blue-50">Pôles</a>
+                  <a href="/structure/services" class="rounded-xl px-3 py-2 hover:bg-blue-50">Services</a>
+                  <a href="/structure/ufs" class="rounded-xl px-3 py-2 hover:bg-blue-50">UF</a>
+                  <a href="/structure/uh" class="rounded-xl px-3 py-2 hover:bg-blue-50">UH</a>
+                  <a href="/structure/chambres" class="rounded-xl px-3 py-2 hover:bg-blue-50">Chambres</a>
+                  <a href="/structure/lits" class="rounded-xl px-3 py-2 hover:bg-blue-50">Lits</a>
                 </div>
               </div>
             </div>
@@ -509,22 +424,8 @@
           </p>
           <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Patients</a>
           <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Dossiers</a>
-          {% if request.state and request.state.dossier_context %}
-            <a href="/venues?dossier_id={{ request.state.dossier_context.id }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Venues</a>
-          {% else %}
-            <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier">
-              Venues
-              <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            </span>
-          {% endif %}
-          {% if request.state and request.state.dossier_context %}
-            <a href="/mouvements?venue_id={{ request.state.venue_context.id if request.state.venue_context else '' }}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Mouvements</a>
-          {% else %}
-            <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un dossier">
-              Mouvements
-              <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            </span>
-          {% endif %}
+          <a href="/venues{% if request.state and request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Venues</a>
+          <a href="/mouvements{% if request.state.venue_context %}?venue_id={{ request.state.venue_context.id }}{% elif request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Mouvements</a>
           <a href="/forms" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Formulaires</a>
           <a href="/vocabularies" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Listes de valeurs</a>
         </div>
@@ -551,21 +452,7 @@
             </span>
           {% endif %}
           <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
-          {% if request.state and request.state.ej_context %}
-            {% if request.state and request.state.ej_context %}
-              <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche structure</a>
-            {% else %}
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un EJ pour utiliser la recherche structure">
-                Recherche structure
-                <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-              </span>
-            {% endif %}
-          {% else %}
-            <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un EJ pour utiliser la recherche structure">
-              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
-              Recherche structure
-            </span>
-          {% endif %}
+          <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche structure</a>
           {% if request.state and request.state.ej_context %}
             <div class="mt-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-700">
               <div class="font-medium">EJ courant</div>
@@ -585,23 +472,13 @@
             <a href="/admin/ght" class="mt-2 block rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-blue-50">Sélectionner un EJ</a>
           {% endif %}
           <div class="pl-2 space-y-1">
-            {% if request.state and request.state.ej_context %}
-              <a href="/structure/eg" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
-              <a href="/structure/poles" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Pôles</a>
-              <a href="/structure/services" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Services</a>
-              <a href="/structure/ufs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">UF</a>
-              <a href="/structure/uh" class="block rounded-xl px-3 py-2 hover:bg-blue-50">UH</a>
-              <a href="/structure/chambres" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Chambres</a>
-              <a href="/structure/lits" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Lits</a>
-            {% else %}
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Entités géographiques<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Pôles<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Services<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">UF<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">UH<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Chambres<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-              <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1">Lits<svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>
-            {% endif %}
+            <a href="/structure/eg" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
+            <a href="/structure/poles" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Pôles</a>
+            <a href="/structure/services" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Services</a>
+            <a href="/structure/ufs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">UF</a>
+            <a href="/structure/uh" class="block rounded-xl px-3 py-2 hover:bg-blue-50">UH</a>
+            <a href="/structure/chambres" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Chambres</a>
+            <a href="/structure/lits" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Lits</a>
           </div>
         </div>
         {% endif %}

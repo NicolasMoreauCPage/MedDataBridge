@@ -62,6 +62,30 @@ def list_scenarios(request: Request, session: Session = Depends(get_session)):
     return templates.TemplateResponse(request, "list.html", ctx)
 
 
+@router.get("/runs.json")
+def list_runs_json(session: Session = Depends(get_session)):
+    """Export JSON des dernières exécutions."""
+    runs = session.exec(
+        select(ScenarioExecutionRun).order_by(ScenarioExecutionRun.started_at.desc()).limit(200)
+    ).all()
+    return [
+        {
+            "id": r.id,
+            "scenario_id": r.scenario_id,
+            "endpoint_id": r.endpoint_id,
+            "status": r.status,
+            "success_steps": r.success_steps,
+            "error_steps": r.error_steps,
+            "skipped_steps": r.skipped_steps,
+            "total_steps": r.total_steps,
+            "dry_run": r.dry_run,
+            "started_at": r.started_at.isoformat(),
+            "finished_at": r.finished_at.isoformat() if r.finished_at else None,
+        }
+        for r in runs
+    ]
+
+
 @router.get("/runs", response_class=HTMLResponse)
 def list_runs(
     request: Request,
@@ -127,6 +151,72 @@ def list_runs(
         }
     }
     return templates.TemplateResponse(request, "scenarios/dashboard.html", ctx)
+
+
+# --- Import routes (must be before /{scenario_id} to avoid conflicts) ---
+@router.get("/import", response_class=HTMLResponse)
+def show_import_form(request: Request, session: Session = Depends(get_session)):
+    """Display the scenario import form."""
+    contexts = session.exec(select(GHTContext).order_by(GHTContext.name)).all()
+    ctx = {
+        "request": request,
+        "contexts": contexts,
+    }
+    return templates.TemplateResponse(request, "scenario_import.html", ctx)
+
+
+@router.post("/import")
+async def import_scenario(
+    request: Request,
+    ght_context_id: int = Form(...),
+    override_key: Optional[str] = Form(None),
+    override_name: Optional[str] = Form(None),
+    session: Session = Depends(get_session)
+):
+    """Import scenario from JSON export."""
+    try:
+        form_data = await request.form()
+        json_file = form_data.get("json_file")
+        
+        if json_file:
+            content = await json_file.read()
+            json_data = json.loads(content.decode("utf-8"))
+        else:
+            json_text = form_data.get("json_data")
+            if not json_text:
+                flash(request, "Aucune donnée JSON fournie", level="error")
+                return RedirectResponse(url="/scenarios", status_code=303)
+            json_data = json.loads(json_text)
+        
+        is_valid, error_msg = validate_scenario_json(json_data)
+        if not is_valid:
+            flash(request, f"JSON invalide: {error_msg}", level="error")
+            return RedirectResponse(url="/scenarios", status_code=303)
+        
+        scenario = import_scenario_from_json(
+            session, 
+            json_data, 
+            ght_context_id,
+            override_key=override_key,
+            override_name=override_name
+        )
+        
+        flash(
+            request, 
+            f"Scénario '{scenario.name}' importé avec succès ({len(scenario.steps)} étapes)",
+            level="success"
+        )
+        return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
+        
+    except json.JSONDecodeError as e:
+        flash(request, f"Erreur de parsing JSON: {str(e)}", level="error")
+        return RedirectResponse(url="/scenarios", status_code=303)
+    except ScenarioImportError as e:
+        flash(request, f"Erreur d'import: {str(e)}", level="error")
+        return RedirectResponse(url="/scenarios", status_code=303)
+    except Exception as e:
+        flash(request, f"Erreur inattendue: {str(e)}", level="error")
+        return RedirectResponse(url="/scenarios", status_code=303)
 
 
 @router.get("/runs/{run_id}", response_class=HTMLResponse)
@@ -314,99 +404,6 @@ def export_scenario_json(scenario_id: int, session: Session = Depends(get_sessio
         },
         "steps": steps,
     }
-
-
-@router.get("/import", response_class=HTMLResponse)
-def show_import_form(request: Request, session: Session = Depends(get_session)):
-    """Display the scenario import form."""
-    contexts = session.exec(select(GHTContext).order_by(GHTContext.name)).all()
-    ctx = {
-        "request": request,
-        "contexts": contexts,
-    }
-    return templates.TemplateResponse(request, "scenario_import.html", ctx)
-
-
-@router.post("/import")
-async def import_scenario(
-    request: Request,
-    ght_context_id: int = Form(...),
-    override_key: Optional[str] = Form(None),
-    override_name: Optional[str] = Form(None),
-    session: Session = Depends(get_session)
-):
-    """Import scenario from JSON export."""
-    try:
-        # Parse JSON from request body
-        form_data = await request.form()
-        json_file = form_data.get("json_file")
-        
-        if json_file:
-            # File upload
-            content = await json_file.read()
-            json_data = json.loads(content.decode("utf-8"))
-        else:
-            # Raw JSON in form field
-            json_text = form_data.get("json_data")
-            if not json_text:
-                flash(request, "Aucune donnée JSON fournie", level="error")
-                return RedirectResponse(url="/scenarios", status_code=303)
-            json_data = json.loads(json_text)
-        
-        # Validate JSON structure
-        is_valid, error_msg = validate_scenario_json(json_data)
-        if not is_valid:
-            flash(request, f"JSON invalide: {error_msg}", level="error")
-            return RedirectResponse(url="/scenarios", status_code=303)
-        
-        # Import scenario
-        scenario = import_scenario_from_json(
-            session, 
-            json_data, 
-            ght_context_id,
-            override_key=override_key,
-            override_name=override_name
-        )
-        
-        flash(
-            request, 
-            f"Scénario '{scenario.name}' importé avec succès ({len(scenario.steps)} étapes)",
-            level="success"
-        )
-        return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
-        
-    except json.JSONDecodeError as e:
-        flash(request, f"Erreur de parsing JSON: {str(e)}", level="error")
-        return RedirectResponse(url="/scenarios", status_code=303)
-    except ScenarioImportError as e:
-        flash(request, f"Erreur d'import: {str(e)}", level="error")
-        return RedirectResponse(url="/scenarios", status_code=303)
-    except Exception as e:
-        flash(request, f"Erreur inattendue: {str(e)}", level="error")
-        return RedirectResponse(url="/scenarios", status_code=303)
-
-
-@router.get("/runs.json")
-def list_runs_json(session: Session = Depends(get_session)):
-    runs = session.exec(
-        select(ScenarioExecutionRun).order_by(ScenarioExecutionRun.started_at.desc()).limit(200)
-    ).all()
-    return [
-        {
-            "id": r.id,
-            "scenario_id": r.scenario_id,
-            "endpoint_id": r.endpoint_id,
-            "status": r.status,
-            "success_steps": r.success_steps,
-            "error_steps": r.error_steps,
-            "skipped_steps": r.skipped_steps,
-            "total_steps": r.total_steps,
-            "dry_run": r.dry_run,
-            "started_at": r.started_at.isoformat(),
-            "finished_at": r.finished_at.isoformat() if r.finished_at else None,
-        }
-        for r in runs
-    ]
 
 
 @router.get("/api/stats")

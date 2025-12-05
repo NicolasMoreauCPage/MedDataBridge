@@ -60,7 +60,7 @@ from app.routers import (
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
-    documentation, conformity, fhir_export, fhir_import, metrics, auth
+    documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper
 )
 
 from app.routers.ght.ej import router as ej_router
@@ -151,9 +151,11 @@ def create_app() -> FastAPI:
     static_dir = str(Path(__file__).parent / "static")
     app.mount("/static", StaticFiles(directory=static_dir, html=True, check_dir=True), name="static")
 
-    # Servir le dossier Doc/ pour les documentations HTML
-    doc_dir = str(Path(__file__).parent.parent / "Doc")
-    app.mount("/Doc", StaticFiles(directory=doc_dir, html=True, check_dir=True), name="doc")
+    # NOTE: Montage du dossier /Doc retiré - les documentations HTML sont maintenant
+    # servies via le routeur doc_wrapper qui les enveloppe dans le template base.html
+    # pour garantir une cohérence de style et de navigation avec le reste du programme.
+    # doc_dir = str(Path(__file__).parent.parent / "Doc")
+    # app.mount("/Doc", StaticFiles(directory=doc_dir, html=True, check_dir=True), name="doc")
 
     # Session et contexte GHT: IMPORTANT - dans Starlette, le dernier middleware
     # ajouté est exécuté en premier. Nous voulons que SessionMiddleware s'exécute
@@ -254,6 +256,7 @@ def create_app() -> FastAPI:
         logging.getLogger(__name__).warning(f"Context router not available: {e}")
     app.include_router(guide.router)
     app.include_router(docs.router)
+    app.include_router(doc_wrapper.router)  # Wrapper pour docs HTML statiques
     
     # Scenario templates (contextualisables) - AVANT scenarios pour éviter conflit de routes
     try:

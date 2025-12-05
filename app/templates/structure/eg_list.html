@@ -25,14 +25,8 @@
     </div>
   </div>
 
-  <div class="sm:flex sm:items-center sm:justify-between">
-    <div class="sm:flex-auto">
-      <h1 class="text-xl font-semibold text-slate-900">Entités Géographiques</h1>
-      <p class="mt-2 text-sm text-slate-600">Liste des établissements géographiques.</p>
-    </div>
-  </div>
-
-  <div class="grid gap-4 sm:grid-cols-1">
+  <!-- Filtres -->
+  <div class="mb-6 grid gap-4 sm:grid-cols-1">
     <div>
       <label for="text_filter" class="block text-sm font-medium text-slate-700">Recherche</label>
       <input type="search" id="text_filter" name="text_filter" value="{{ search_term or '' }}"

@@ -1,7 +1,28 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="bg-white p-6 rounded shadow">
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Résultat d'injection</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center space-x-4">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+          <div class="text-3xl">🔹</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Résultat d'injection</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <h2 class="text-lg font-semibold mb-4">Résultat d'injection</h2>
 
   <div class="mb-4">

@@ -3,7 +3,28 @@
 {% block title %}{% if chambre %}Modifier la chambre{% else %}Nouvelle chambre{% endif %}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{% if chambre %}Modifier la chambre {% else %}Nouvelle chambre dans {% endif %}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center space-x-4">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+          <div class="text-3xl">📝</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">{% if chambre %}Modifier la chambre {% else %}Nouvelle chambre dans {% endif %}</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight mb-8">
     {% if chambre %}Modifier la chambre {{ chambre.name }}{% else %}Nouvelle chambre dans {{ unite_hebergement.name }}{% endif %}
   </h2>

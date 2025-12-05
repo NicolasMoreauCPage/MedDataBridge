@@ -2,15 +2,31 @@
 {% import "components.html" as components %}
 
 {% block content %}
-{# Breadcrumb #}
-{{ components.breadcrumb(breadcrumbs) if breadcrumbs }}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Événements chronologiques</span>
+  </nav>
 
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center space-x-4">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+          <div class="text-3xl">🔹</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Événements chronologiques</h1>
+        </div>
+      </div>
+    </div>
+  </div>
 
-{# Header #}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h1 class="text-2xl font-semibold text-slate-900">{{ title }}</h1>
-    <p class="mt-1 text-sm text-slate-600">Historique chronologique des événements</p>
+  <!-- Info dossier et actions -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
     {% if dossier %}
       <div class="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
         <span class="font-semibold">Dossier #{{ dossier.dossier_seq|default('-', true) }}</span>

@@ -11,7 +11,6 @@ from app.db import get_session
 from app.models_structure import GHTContext, IdentifierNamespace
 from app.models import Dossier
 from app.utils.flash import flash
-from app.services.structure_seed import ensure_demo_structure
 from .helpers import get_context_or_404, get_ej_or_404
 
 templates = Jinja2Templates(directory="app/templates")
@@ -295,40 +294,6 @@ async def view_ght_context(
             "selected_ej_name": selected_ej_name}
     )
 
-
-@router.post("/{context_id}/seed-demo")
-async def seed_demo_structure(
-    request: Request,
-    context_id: int,
-    session: Session = Depends(get_session),
-):
-    """Génère ou met à jour une structure hospitalière de démonstration pour ce GHT."""
-    context = get_context_or_404(session, context_id)
-    stats = ensure_demo_structure(session, context)
-
-    summary_parts = []
-    label_map = {
-        "entite_juridique": "entité juridique",
-        "entite_geographique": "site géographique",
-        "pole": "pôle",
-        "service": "service",
-        "unite_fonctionnelle": "UF",
-        "unite_hebergement": "UH",
-        "chambre": "chambre",
-        "lit": "lit",
-    }
-    for key, label in label_map.items():
-        created = stats["created"].get(key, 0)
-        updated = stats["updated"].get(key, 0)
-        if created or updated:
-            summary_parts.append(f"{label}s +{created}/~{updated}")
-
-    message = "Structure de démonstration générée."
-    if summary_parts:
-        message += " " + ", ".join(summary_parts) + "."
-
-    flash(request, message, "success")
-    return RedirectResponse(f"/admin/ght/{context_id}", status_code=303)
 
 @router.post("/_test/session")
 async def _test_set_session(

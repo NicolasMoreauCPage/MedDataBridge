@@ -282,3 +282,92 @@ async def handle_merge_patient(
     except Exception as e:
         logger.exception("Error processing A40 merge")
         return False, f"Merge failed: {str(e)}"
+
+
+async def handle_change_patient_identifier(
+    session: Session,
+    trigger: str,
+    pid_data: Dict,
+    pv1_data: Dict,
+    message: str
+) -> Tuple[bool, Optional[str]]:
+    """
+    Gère un message A47 de modification d'identifiant patient.
+    
+    A47 est utilisé pour:
+    - Modifier un identifiant patient (ex: changement d'INS-NIR)
+    - Supprimer un identifiant incorrect
+    
+    Args:
+        session: Session de base de données
+        trigger: "A47"
+        pid_data: Nouvelles données patient (segment PID)
+        pv1_data: Données PV1 (non utilisé pour A47)
+        message: Message HL7 complet (pour parser MRG)
+    
+    Returns:
+        (success, error_message)
+    """
+    try:
+        # 1. Parser le segment MRG (ancien identifiant)
+        mrg_data = _parse_mrg_segment(message)
+        if not mrg_data or not mrg_data["identifiers"]:
+            return False, "MRG segment manquant ou invalide (MRG-1 requis pour A47)"
+        
+        logger.info(
+            f"Processing A47 change identifier: {len(mrg_data['identifiers'])} old identifier(s)",
+            extra={"old_identifiers": mrg_data["identifiers"]}
+        )
+        
+        # 2. Trouver le patient par l'ancien identifiant (MRG-1)
+        patient = _find_patient_by_identifiers(session, mrg_data["identifiers"])
+        
+        if not patient:
+            return False, "Patient introuvable avec l'ancien identifiant (MRG-1)"
+        
+        # 3. Traiter les anciens identifiants (les marquer comme "old" ou les supprimer)
+        old_identifiers_processed = 0
+        for cx_str in mrg_data["identifiers"]:
+            # Trouver les identifiants correspondants
+            old_ids = session.exec(
+                select(Identifier)
+                .where(Identifier.patient_id == patient.id)
+                .where(Identifier.value == cx_str.split("^")[0])  # Prendre le premier composant du CX
+            ).all()
+            
+            for old_id in old_ids:
+                # Marquer comme "old" plutôt que supprimer (traçabilité)
+                old_id.use = "old"
+                old_identifiers_processed += 1
+        
+        # 4. Ajouter les nouveaux identifiants (depuis PID-3)
+        new_identifiers_added = 0
+        if pid_data.get("identifiers"):
+            from app.services.pam import _create_or_update_identifiers
+            _create_or_update_identifiers(session, patient.id, pid_data["identifiers"])
+            new_identifiers_added = len(pid_data["identifiers"])
+        
+        # 5. Mettre à jour les données démographiques si changées
+        if pid_data.get("family"):
+            patient.family = pid_data["family"]
+        if pid_data.get("given"):
+            patient.given = pid_data["given"]
+        
+        session.add(patient)
+        session.flush()
+        
+        logger.info(
+            f"A47 change identifier completed: {old_identifiers_processed} old ID(s) marked, "
+            f"{new_identifiers_added} new ID(s) added for patient {patient.identifier}",
+            extra={
+                "patient_id": patient.id,
+                "old_identifiers": old_identifiers_processed,
+                "new_identifiers": new_identifiers_added
+            }
+        )
+        
+        return True, None
+        
+    except Exception as e:
+        logger.exception("Error processing A47 change identifier")
+        return False, f"Change identifier failed: {str(e)}"

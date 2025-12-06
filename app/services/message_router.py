@@ -56,8 +56,9 @@ class IHEMessageRouter:
         "A54": ("doctor", handle_doctor_message),
         "A55": ("doctor", handle_doctor_message),
         
-        # Fusion de patients
-        "A40": ("merge", None),  # Handler spécial (nécessite le message complet)
+        # Fusion et modification d'identifiants patients
+        "A40": ("merge", None),  # Fusion patients (nécessite le message complet)
+        "A47": ("change_id", None),  # Modification identifiant patient (nécessite le message complet)
     }
     
     @classmethod
@@ -95,11 +96,18 @@ class IHEMessageRouter:
                 f"Routing {trigger} message to {category} handler"
             )
             
-            # Cas spécial: A40 nécessite le message complet pour parser MRG
+            # Cas spéciaux: A40 et A47 nécessitent le message complet pour parser MRG
             if trigger == "A40":
                 if not message:
                     return False, "A40 merge requires full message to parse MRG segment"
                 return await handle_merge_patient(session, trigger, pid_data, pv1_data, message)
+            
+            if trigger == "A47":
+                if not message:
+                    return False, "A47 change identifier requires full message to parse MRG segment"
+                # A47 utilise le même handler que A40 mais pour modifier les identifiants
+                from app.services.patient_merge import handle_change_patient_identifier
+                return await handle_change_patient_identifier(session, trigger, pid_data, pv1_data, message)
             
             # Tous les handlers IHE PAM reçoivent le message complet pour parser ZBE
             # (segment ZBE TOUJOURS présent dans les messages IHE PAM mouvements)

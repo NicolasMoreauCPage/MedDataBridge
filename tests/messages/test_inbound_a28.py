@@ -98,16 +98,16 @@ def test_inbound_a28_creates_patient_and_emits(monkeypatch):
         patient = session.exec(select(Patient).where(Patient.family == "DOE")).first()
         assert patient is not None, "Patient not persisted"
 
-        # The patient.external_id may be stored as a full CX string (e.g. 'SRC12345^^^...')
-        # Normalize by splitting on '^' and asserting the core identifier equals expected value.
+        # The patient.identifier may be stored as a full CX string (e.g. 'SRC12345^^^...')
+        # or as a simple value. Extract the core identifier by splitting on '^'.
         core_id = None
-        if getattr(patient, "external_id", None):
-            core_id = str(patient.external_id).split("^")[0]
+        if patient.identifier:
+            core_id = str(patient.identifier).split("^")[0]
         else:
             # Fall back to Identifier rows
             ids = session.exec(select(Identifier).where(Identifier.value.contains("SRC12345"))).all()
             if ids:
-                core_id = ids[0].value
+                core_id = ids[0].value.split("^")[0]
 
         assert core_id == "SRC12345", f"Expected persisted core identifier 'SRC12345', got {core_id!r}"
 

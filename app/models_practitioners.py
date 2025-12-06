@@ -5,8 +5,11 @@ Les médecins responsables sont associés aux Unités Fonctionnelles (UF)
 et peuvent être liés aux dossiers et mouvements.
 """
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from app.models import UniteFonctionnelle, Dossier, Mouvement
 
 
 class MedecinResponsable(SQLModel, table=True):

@@ -68,6 +68,8 @@ def create_patient(
         elif isinstance(birth_date_raw, date):
             birth_date_obj = birth_date_raw
     data["birth_date"] = birth_date_obj
+    # Remove identifier from data to avoid duplicate parameter
+    data.pop("identifier", None)
     patient = Patient(
         **data,
         identifier=identifier_val,

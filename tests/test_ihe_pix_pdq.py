@@ -202,14 +202,14 @@ def test_pdqm_search(client: TestClient, session: Session):
             given="Jean",
             birth_date="1980-01-01",
             gender="male",
-            external_id="P1"
+            identifier="P1"
         ),
         Patient(
             family="DUPONT",
             given="Marie", 
             birth_date="1982-02-02",
             gender="female",
-            external_id="P2"
+            identifier="P2"
         )
     ]
     session.add_all(patients)

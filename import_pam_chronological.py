@@ -193,7 +193,7 @@ async def import_all_archives_chronologically():
         print(f"\n📊 Database Statistics:")
         print(f"   Messages: {len(message_count)}")
         
-        from app.models_patient import Patient, Dossier, Venue, Mouvement
+        from app.models import Patient, Dossier, Venue, Mouvement
         patients = session.exec(select(Patient)).all()
         dossiers = session.exec(select(Dossier)).all()
         venues = session.exec(select(Venue)).all()

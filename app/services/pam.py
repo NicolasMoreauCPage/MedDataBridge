@@ -450,6 +450,7 @@ async def _handle_cancel_admission(
             location=original_mouvement.location,
             from_location=original_mouvement.from_location,
             to_location=original_mouvement.to_location,
+            entite_juridique_id=ej_id,
         )
         session.add(cancel_mouvement)
         
@@ -596,6 +597,7 @@ async def _handle_cancel_discharge(
             from_location=original_mouvement.from_location,
             to_location=original_mouvement.to_location,
             cancelled_movement_seq=original_mouvement.mouvement_seq,
+            entite_juridique_id=ej_id,
         )
         session.add(cancel_mouvement)
         
@@ -745,6 +747,7 @@ async def _handle_cancel_transfer(
             from_location=original_mouvement.to_location,
             to_location=original_mouvement.from_location,
             cancelled_movement_seq=original_mouvement.mouvement_seq,
+            entite_juridique_id=ej_id,
         )
         session.add(cancel_mouvement)
         
@@ -1029,6 +1032,7 @@ async def handle_admission_message(
                 admit_time=admit_time,
                 encounter_class=encounter_class_code,
                 medecin_responsable_id=medecin.id if medecin else None,
+                entite_juridique_id=ej_id,
             )
             session.add(dossier)
             session.flush()
@@ -1099,6 +1103,7 @@ async def handle_admission_message(
                 uf_responsabilite=hospital_service or pv1_data.get("hospital_service") or dossier.uf_responsabilite,
                 start_time=datetime.now(timezone.utc),
                 assigned_location=location_value,
+                entite_juridique_id=ej_id,
             )
             session.add(venue)
             session.flush()
@@ -1302,6 +1307,7 @@ async def handle_admission_message(
             uf_soins_code=uf_soins_code,
             uf_soins_label=uf_soins_code,
             medecin_responsable_id=medecin.id if medecin else None,
+            entite_juridique_id=ej_id,
         )
         session.add(mouvement)
         session.flush()
@@ -1427,6 +1433,7 @@ async def handle_transfer_message(
             from_location=previous_location,
             to_location=new_location,
             location=new_location,
+            entite_juridique_id=ej_id,
         )
         session.add(mouvement)
 
@@ -1556,6 +1563,7 @@ async def handle_discharge_message(
             trigger_event=trigger,  # Pour validation des transitions IHE PAM
             from_location=previous_location,
             to_location=None,
+            entite_juridique_id=ej_id,
         )
         session.add(mouvement)
         venue.operational_status = "completed"
@@ -1685,6 +1693,7 @@ async def handle_leave_message(
             movement_type=movement_type,
             trigger_event=trigger,  # Pour validation des transitions IHE PAM
             location=location,
+            entite_juridique_id=ej_id,
         )
         session.add(mouvement)
         
@@ -1820,6 +1829,7 @@ async def handle_doctor_message(
                 movement_type="doctor-change",
                 trigger_event=trigger,  # Pour validation des transitions IHE PAM
                 location=venue.assigned_location,
+                entite_juridique_id=ej_id,
             )
             session.add(mouvement)
             
@@ -1837,6 +1847,7 @@ async def handle_doctor_message(
                 movement_type="doctor-change-cancel",
                 trigger_event=trigger,  # Pour validation des transitions IHE PAM
                 location=venue.assigned_location,
+                entite_juridique_id=ej_id,
             )
             session.add(mouvement)
         

@@ -299,7 +299,9 @@ class FHIRToPatientConverter:
             family=family,
             given=given,
             birth_date=birth_date,
-            gender=gender
+            gender=gender,
+            entite_juridique_id=self.ej.id,
+            ght_context_id=self.ej.ght_context_id
         )
         
         self.session.add(patient)
@@ -334,7 +336,8 @@ class FHIRToPatientConverter:
             dossier_seq=dossier_seq,
             patient_id=patient.id,
             admit_time=datetime.now(),
-            dossier_type="HOSPITALISE"
+            dossier_type="HOSPITALISE",
+            entite_juridique_id=self.ej.id
         )
         self.session.add(dossier)
         self.session.commit()

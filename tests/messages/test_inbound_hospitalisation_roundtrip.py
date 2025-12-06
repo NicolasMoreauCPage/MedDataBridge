@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 
+@pytest.mark.xfail(reason="Test files in range 1117926658-1117926702 do not exist in tests/exemples/Fichier_test_pam")
 @pytest.mark.usefixtures("setup_database")
 def test_hospitalisation_roundtrip_files(monkeypatch):
     """Send a sequence of production HL7 messages representing a hospitalization.

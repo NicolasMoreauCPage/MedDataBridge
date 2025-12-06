@@ -813,7 +813,8 @@ def generate_pam_hl7(
             forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
         )
         pv1_19 = f"{visit_number_pv1}^^^{authority_vn}^{vn_type}"
-        pv1 = f"PV1|1|{patient_class}|{location}|||||||||||||||{pv1_19}||||||||||||||||||||{uf_resp}||||||{timestamp}"
+        # PV1 format: |1(SetID)|2(PatClass)|3(Location)|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19(VisitNum)|20..51|52(UF)|...|
+        pv1 = f"PV1|1|{patient_class}|{location}||||||||||||||||{pv1_19}|||||||||||||||||||||||||||||||||{uf_resp}||||||{timestamp}"
 
         # ZBE segment generation for mouvement (same format as venue)
         # Prefer a movement identifier (Identifier.type == MVT) with namespace when available

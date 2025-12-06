@@ -961,6 +961,7 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
                 created_at=datetime.now(timezone.utc),
             )
             session.add(log)
+            session.flush()  # Persist immediately to get ID and avoid duplicates
 
             # PAM validation (configurable per endpoint)
             try:

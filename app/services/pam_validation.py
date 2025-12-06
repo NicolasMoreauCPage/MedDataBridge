@@ -310,32 +310,41 @@ def _validate_xtn_telecom(xtn: str, field_name: str, issues: List[ValidationIssu
     
     components = xtn.split("^")
     
-    # XTN peut avoir le numéro dans le 1er composant (forme simple) ou 2ème (forme étendue)
+    # XTN-1: Telephone Number (deprecated, not used - index 0)
+    # XTN-2: Telecommunication Use Code (Table 0201 - index 1)
+    # XTN-3: Telecommunication Equipment Type (Table 0202 - index 2)
+    # XTN-4: Email Address (index 3)
+    # XTN-12: Unformatted Telephone Number (index 11)
+    
+    # XTN peut avoir le numéro dans le 1er composant (forme simple) ou 12ème (forme étendue)
     phone = components[0] if len(components) > 0 else ""
-    phone_extended = components[1] if len(components) > 1 else ""
+    phone_unformatted = components[11] if len(components) > 11 else ""
     
-    if not phone and not phone_extended:
-        issues.append(ValidationIssue(
-            f"{field_name}_XTN_EMPTY",
-            f"{field_name}: XTN must have a telephone number",
-            severity="warn"
-        ))
+    if not phone and not phone_unformatted:
+        # Pour les emails (NET), le numéro n'est pas requis
+        is_email = len(components) > 1 and components[1] == "NET"
+        if not is_email:
+            issues.append(ValidationIssue(
+                f"{field_name}_XTN_EMPTY",
+                f"{field_name}: XTN must have a telephone number or email",
+                severity="warn"
+            ))
     
-    # Telecom Use Code (3ème composant) validation
+    # XTN-2: Telecommunication Use Code validation (index 1)
     # Decide policy for strict checking on PID-13
     is_pid13 = field_name.startswith("PID13")
     pid13_should_strict = PID13_STRICT and is_pid13
 
-    if len(components) > 2 and components[2]:
-        use_code = components[2]
-        # permissive set for general checks
-        valid_uses = {"ASN", "BPN", "EMR", "NET", "ORN", "PRN", "PRS", "VHN", "WPN", "PH", "CP"}
+    if len(components) > 1 and components[1]:
+        use_code = components[1]
+        # permissive set for general checks (Table 0201)
+        valid_uses = {"ASN", "BPN", "EMR", "NET", "ORN", "PRN", "PRS", "VHN", "WPN"}
         # If strict mode for PID13 is enabled, enforce membership unless explicitly allowed by env
         if is_pid13 and pid13_should_strict:
             if use_code not in valid_uses and use_code not in PID13_ALLOW_USES:
                 issues.append(ValidationIssue(
                     f"{field_name}_XTN_USE_INVALID",
-                    f"{field_name}: XTN Use Code '{use_code}' not in HL7 Table 0201",
+                    f"{field_name}: XTN-2 Use Code '{use_code}' not in HL7 Table 0201",
                     severity="error"
                 ))
         else:
@@ -343,28 +352,48 @@ def _validate_xtn_telecom(xtn: str, field_name: str, issues: List[ValidationIssu
             if not is_pid13 and use_code not in valid_uses:
                 issues.append(ValidationIssue(
                     f"{field_name}_XTN_USE_INVALID",
-                    f"{field_name}: XTN Use Code '{use_code}' not in HL7 Table 0201",
+                    f"{field_name}: XTN-2 Use Code '{use_code}' not in HL7 Table 0201",
                     severity="info"
                 ))
 
-    # Equipment Type (4ème composant) validation
-    if len(components) > 3 and components[3]:
-        equip_type = components[3]
+    # XTN-3: Equipment Type validation (index 2)
+    if len(components) > 2 and components[2]:
+        equip_type = components[2]
+        # Table 0202
         valid_types = {"BP", "CP", "FX", "Internet", "MD", "PH", "SAT", "TDD", "TTY", "X.400"}
         if is_pid13 and pid13_should_strict:
             if equip_type not in valid_types and equip_type not in PID13_ALLOW_EQUIP:
                 issues.append(ValidationIssue(
                     f"{field_name}_XTN_EQUIP_INVALID",
-                    f"{field_name}: XTN Equipment Type '{equip_type}' not in HL7 Table 0202",
+                    f"{field_name}: XTN-3 Equipment Type '{equip_type}' not in HL7 Table 0202",
                     severity="error"
                 ))
         else:
             if not is_pid13 and equip_type not in valid_types:
                 issues.append(ValidationIssue(
                     f"{field_name}_XTN_EQUIP_INVALID",
-                    f"{field_name}: XTN Equipment Type '{equip_type}' not in HL7 Table 0202",
+                    f"{field_name}: XTN-3 Equipment Type '{equip_type}' not in HL7 Table 0202",
                     severity="info"
                 ))
+    
+    # XTN-4: Email Address validation (index 3)
+    # Selon specs IHE France, si XTN-2 = NET, alors XTN-4 contient l'email
+    if len(components) > 1 and components[1] == "NET":
+        if len(components) > 3 and components[3]:
+            email = components[3]
+            # Validation basique d'email
+            if "@" not in email or "." not in email.split("@")[-1]:
+                issues.append(ValidationIssue(
+                    f"{field_name}_XTN_EMAIL_INVALID",
+                    f"{field_name}: XTN-4 Email '{email}' is not a valid email format",
+                    severity="warn"
+                ))
+        else:
+            issues.append(ValidationIssue(
+                f"{field_name}_XTN_EMAIL_MISSING",
+                f"{field_name}: XTN-4 Email Address required when XTN-2 = NET",
+                severity="error"
+            ))
 
 def _validate_ts_timestamp(ts: str, field_name: str, issues: List[ValidationIssue]) -> None:
     """Valide un timestamp TS (Time Stamp).

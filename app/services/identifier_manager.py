@@ -171,13 +171,18 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
         return _AwaitableTuple(([], None, None))
 
     # Normalize incoming identifier tuple shapes and convert for the classifier
+    # Also build a mapping from clean value -> (system, oid) for later use
     classifier_data = []
+    value_to_cx_map = {}  # Maps clean value -> original CX for OID extraction
+    
     for item in identifiers_data:
         try:
             if isinstance(item, (list, tuple)) and len(item) == 3:
                 cx_value, system, id_type_str = item
             elif isinstance(item, (list, tuple)) and len(item) == 4:
-                cx_value, system, _authority_oid, id_type_str = item
+                # New format from pam.py: (value, system, type_code, cx_value)
+                value, system, id_type_str, cx_value = item
+                value_to_cx_map[value] = cx_value
             else:
                 cx_value = str(item)
                 system = ""
@@ -186,6 +191,15 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
             cx_value = str(item)
             system = ""
             id_type_str = None
+
+        # Extract clean value from CX if not already done
+        if cx_value and "^" in cx_value:
+            clean_value = cx_value.split("^")[0]
+            if clean_value not in value_to_cx_map:
+                value_to_cx_map[clean_value] = cx_value
+        elif cx_value:
+            if cx_value not in value_to_cx_map:
+                value_to_cx_map[cx_value] = cx_value
 
         id_type = map_hl7_type_to_identifier_type(id_type_str) or IdentifierType.IPP
         classifier_data.append((cx_value, system, id_type))
@@ -196,18 +210,43 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
 
     identifiers = []
     if classification.get('main_identifier'):
+        main_value = classification['main_identifier']
+        main_system = ""
+        main_oid = ""
+        
+        # Extract system and OID from original CX
+        cx_for_main = value_to_cx_map.get(main_value, main_value)
+        if cx_for_main and "^" in cx_for_main:
+            _, parsed_system, parsed_oid, _ = parse_hl7_cx_identifier(cx_for_main)
+            main_system = parsed_system or ""
+            main_oid = parsed_oid or ""
+        
         main_id = Identifier(
-            value=classification['main_identifier'],
-            system="",
+            value=main_value,
+            system=main_system,
+            oid=main_oid,
             type=IdentifierType.IPP,
             status="active"
         )
         identifiers.append(main_id)
 
     for ext_id_data in classification.get('external_identifiers', []):
+        ext_value = ext_id_data['value']
+        ext_system = ext_id_data.get('external_namespace') or ext_id_data.get('system', '')
+        ext_oid = ""
+        
+        # Extract system and OID from original CX
+        cx_for_ext = value_to_cx_map.get(ext_value, ext_value)
+        if cx_for_ext and "^" in cx_for_ext:
+            _, parsed_system, parsed_oid, _ = parse_hl7_cx_identifier(cx_for_ext)
+            if parsed_system:
+                ext_system = parsed_system
+            ext_oid = parsed_oid or ""
+        
         ext_id = Identifier(
-            value=ext_id_data['value'],
-            system=ext_id_data.get('external_namespace') or ext_id_data.get('system'),
+            value=ext_value,
+            system=ext_system,
+            oid=ext_oid,
             type=ext_id_data['type'],
             status="active"
         )

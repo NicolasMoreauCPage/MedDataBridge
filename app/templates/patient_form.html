@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+{# Ensure `sample_data` exists to avoid Jinja UndefinedError when template
+   is rendered by routes that don't provide `sample_data` in the context. #}
+{% if sample_data is not defined %}
+  {% set sample_data = {} %}
+{% endif %}
 <div class="max-w-6xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">

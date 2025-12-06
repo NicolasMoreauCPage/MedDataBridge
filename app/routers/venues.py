@@ -21,7 +21,64 @@ router = APIRouter(
     dependencies=[Depends(require_ght_context)],
 )
 
-# GET / (list_venues) remains unchanged for now
+@router.get("", response_class=HTMLResponse)
+def list_venues(
+    request: Request,
+    dossier_id: int | None = Query(None, description="Filter by dossier id"),
+    patient_id: int | None = Query(None, description="Filter by patient id"),
+    session=Depends(get_session)
+):
+    """Displays the list of venues, optional filters by dossier or patient.
+
+    The router has a GHT context dependency so the results will be scoped
+    to the current EJ/GHT if available.
+    """
+    ght_context = getattr(request.state, "ght_context", None)
+    ej_context = getattr(request.state, "ej_context", None)
+
+    query = select(Venue)
+    # Filter by dossier or patient if provided
+    if dossier_id:
+        query = query.where(Venue.dossier_id == dossier_id)
+    elif patient_id:
+        # Join through Dossier to filter by patient
+        query = query.join(Dossier, Venue.dossier_id == Dossier.id).where(Dossier.patient_id == patient_id)
+    else:
+        if ej_context and getattr(ej_context, "id", None):
+            query = query.where(Venue.entite_juridique_id == ej_context.id)
+        elif ght_context and getattr(ght_context, "id", None):
+            # If a GHT context exists, try to limit to that ght id when available
+            # Venues may not have direct ght field; rely on EJ when possible.
+            pass
+
+    venues = session.exec(query).all()
+
+    rows = [
+        {
+            "cells": [v.id, v.venue_seq, v.code or v.label or "", v.assigned_location or "", v.start_time],
+            "detail_url": f"/venues/{v.id}",
+            "edit_url": f"/venues/{v.id}/edit",
+            "delete_url": f"/venues/{v.id}/delete",
+        }
+        for v in venues
+    ]
+
+    breadcrumbs = [{"label": "Venues", "url": "/venues"}]
+    ctx = {
+        "request": request,
+        "title": "Venues",
+        "breadcrumbs": breadcrumbs,
+        "headers": ["ID", "Seq", "Code / Label", "Assigned", "Début"],
+        "rows": rows,
+        "new_url": "/venues/new",
+        "filters": [],
+        "actions": [],
+        "show_actions": True,
+    }
+
+    templates = get_templates_with_filters(request)
+    return templates.TemplateResponse(request, "list.html", ctx)
+
 
 @router.get("/new", response_class=HTMLResponse)
 def new_venue(

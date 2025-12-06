@@ -1,5 +1,7 @@
 # 🔍 Analyse Détaillée des Rejets/Erreurs du Roundtrip
 
+<!-- markdownlint-disable MD040 -->
+
 **Date**: 2025-12-05  
 **Scénarios analysés**: 125  
 **Résultat**: Erreurs IDENTIFIÉES et CLASSIFIÉES

@@ -1,6 +1,9 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from app.models_practitioners import MedecinResponsable
 
 class Pole(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -102,6 +105,11 @@ class UniteFonctionnelle(SQLModel, table=True):
     um_code: Optional[str] = None
     service_id: Optional[int] = Field(default=None, foreign_key="service.id")
     service: Optional["Service"] = Relationship(back_populates="unites_fonctionnelles")
+    
+    # Médecin responsable de l'UF
+    medecin_responsable_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
+    medecin_responsable: Optional["MedecinResponsable"] = Relationship(back_populates="uf_responsabilite")
+    
     unites_hebergement: List["UniteHebergement"] = Relationship(back_populates="unite_fonctionnelle")
     activities: List[UFActivity] = Relationship(
         back_populates="unites_fonctionnelles",

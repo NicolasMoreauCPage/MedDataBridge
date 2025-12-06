@@ -15,6 +15,7 @@ from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyM
 from app.models_structure import GHTContext, IdentifierNamespace
 from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_identifiers import Identifier
+from app.models_practitioners import MedecinResponsable  # Médecins responsables
 from app import models_scenarios  # ensure scenario models are registered
 from app import models_workflows  # ensure workflow models are registered
 

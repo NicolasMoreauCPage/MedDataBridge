@@ -15,6 +15,8 @@ from app.models_structure import (
 )
 from app.models import Patient, Dossier, Mouvement, Venue
 from app.models_identifiers import Identifier, IdentifierType
+from app.models_practitioners import MedecinResponsable
+from app.services.medecin_extractor import get_or_create_medecin
 
 
 class FHIRImportError(Exception):
@@ -487,6 +489,9 @@ class FHIRToEncounterConverter:
         # Générer un mouvement_seq unique (simple combinaison venue + horodatage courte fenêtre)
         mouvement_seq = venue.id * 10000 + int(datetime.now().timestamp() % 10000)
         
+        # Extraire le médecin responsable depuis participant[ATND]
+        medecin_responsable_id = self._extract_medecin_from_participants(fhir_encounter)
+        
         # Créer le mouvement
         mouvement = Mouvement(
             mouvement_seq=mouvement_seq,
@@ -494,12 +499,19 @@ class FHIRToEncounterConverter:
             type=type_mouvement,
             when=date_debut or datetime.now(),
             end_time=date_fin,
-            status=self._map_status(status)
+            status=self._map_status(status),
+            medecin_responsable_id=medecin_responsable_id
         )
         
         self.session.add(mouvement)
         self.session.commit()
         self.session.refresh(mouvement)
+        
+        # Si un médecin a été trouvé et que le dossier n'en a pas encore, l'assigner aussi au dossier
+        if medecin_responsable_id and not dossier.medecin_responsable_id:
+            dossier.medecin_responsable_id = medecin_responsable_id
+            self.session.add(dossier)
+            self.session.commit()
         
         # Ajouter l'identifiant NDA
         # REMARQUE: Le modèle Identifier n'a pas de foreign key pour Mouvement
@@ -515,6 +527,190 @@ class FHIRToEncounterConverter:
             self.session.commit()
         
         return mouvement
+
+    def _extract_medecin_from_participants(self, fhir_encounter: Dict[str, Any]) -> Optional[int]:
+        """
+        Extrait le médecin responsable depuis Encounter.participant[ATND].
+        
+        Recherche un participant avec type.coding.code = "ATND" (Attender),
+        extrait la référence vers Practitioner, et crée/récupère le MedecinResponsable.
+        
+        Returns:
+            ID du MedecinResponsable ou None si non trouvé
+        """
+        participants = fhir_encounter.get("participant", [])
+        
+        for participant in participants:
+            # Vérifier si c'est un ATND (Attender = médecin responsable)
+            types = participant.get("type", [])
+            is_attender = False
+            
+            for type_item in types:
+                codings = type_item.get("coding", [])
+                for coding in codings:
+                    if coding.get("code") == "ATND":
+                        is_attender = True
+                        break
+                if is_attender:
+                    break
+            
+            if not is_attender:
+                continue
+            
+            # Récupérer la référence vers le Practitioner
+            individual = participant.get("individual", {})
+            practitioner_ref = individual.get("reference", "")
+            
+            if not practitioner_ref:
+                # Pas de référence, peut-être juste un display
+                display = individual.get("display", "")
+                if display:
+                    # Essayer de parser le display pour extraire le nom
+                    # Format attendu: "Dr KENNOUCHE Moussa Samir" ou "KENNOUCHE^Moussa Samir"
+                    medecin_data = self._parse_practitioner_display(display)
+                    if medecin_data:
+                        medecin = get_or_create_medecin(self.session, medecin_data)
+                        return medecin.id if medecin else None
+                continue
+            
+            # Essayer de résoudre la référence dans le bundle
+            practitioner = self._resolve_practitioner_reference(practitioner_ref, fhir_encounter)
+            
+            if practitioner:
+                medecin_data = self._extract_medecin_from_practitioner(practitioner)
+                if medecin_data:
+                    medecin = get_or_create_medecin(self.session, medecin_data)
+                    return medecin.id if medecin else None
+        
+        return None
+    
+    def _resolve_practitioner_reference(self, reference: str, encounter: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Résout une référence vers un Practitioner dans le bundle ou la base de données.
+        
+        Args:
+            reference: Référence FHIR (ex: "Practitioner/pract-123" ou "#pract-1")
+            encounter: Ressource Encounter contenant potentiellement le Practitioner en contained
+            
+        Returns:
+            Ressource Practitioner ou None
+        """
+        # Vérifier si c'est une référence contained (commence par #)
+        if reference.startswith("#"):
+            contained_id = reference[1:]
+            contained_resources = encounter.get("contained", [])
+            
+            for resource in contained_resources:
+                if resource.get("id") == contained_id and resource.get("resourceType") == "Practitioner":
+                    return resource
+        
+        # Sinon, essayer de trouver dans le bundle (via resource_map)
+        # Note: Dans un vrai bundle, il faudrait chercher dans bundle.entry
+        # Pour l'instant, on ne supporte que les contained resources
+        
+        return None
+    
+    def _extract_medecin_from_practitioner(self, practitioner: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Extrait les données médecin depuis une ressource FHIR Practitioner.
+        
+        Args:
+            practitioner: Ressource FHIR Practitioner
+            
+        Returns:
+            Dict avec rpps, adeli, family_name, given_name, etc.
+        """
+        medecin_data = {}
+        
+        # Extraire les identifiants (RPPS/ADELI)
+        identifiers = practitioner.get("identifier", [])
+        for identifier in identifiers:
+            system = identifier.get("system", "")
+            value = identifier.get("value", "")
+            
+            if not value:
+                continue
+            
+            # RPPS: 11 chiffres
+            if "rpps" in system.lower() or (value.isdigit() and len(value) == 11):
+                medecin_data["rpps"] = value
+            # ADELI: 9 chiffres
+            elif "adeli" in system.lower() or (value.isdigit() and len(value) == 9):
+                medecin_data["adeli"] = value
+        
+        # Extraire le nom
+        names = practitioner.get("name", [])
+        if names:
+            name = names[0]  # Prendre le premier nom
+            medecin_data["family_name"] = name.get("family", "")
+            given_names = name.get("given", [])
+            if given_names:
+                medecin_data["given_name"] = " ".join(given_names)
+            medecin_data["prefix"] = " ".join(name.get("prefix", []))
+            medecin_data["suffix"] = " ".join(name.get("suffix", []))
+        
+        # Extraire la spécialité
+        qualifications = practitioner.get("qualification", [])
+        if qualifications:
+            qual = qualifications[0]
+            code = qual.get("code", {})
+            codings = code.get("coding", [])
+            if codings:
+                medecin_data["specialty"] = codings[0].get("display", "")
+        
+        # Vérifier qu'on a au moins un identifiant ou un nom
+        if not (medecin_data.get("rpps") or medecin_data.get("adeli") or medecin_data.get("family_name")):
+            return None
+        
+        return medecin_data
+    
+    def _parse_practitioner_display(self, display: str) -> Optional[Dict[str, Any]]:
+        """
+        Parse un display de Practitioner pour extraire les données.
+        
+        Formats supportés:
+        - "Dr KENNOUCHE Moussa Samir"
+        - "KENNOUCHE^Moussa Samir"
+        - "KENNOUCHE Moussa Samir"
+        
+        Args:
+            display: Chaîne de caractères à parser
+            
+        Returns:
+            Dict avec family_name, given_name, prefix ou None
+        """
+        if not display:
+            return None
+        
+        medecin_data = {}
+        
+        # Format XCN: FAMILY^GIVEN
+        if "^" in display:
+            parts = display.split("^")
+            if len(parts) >= 2:
+                medecin_data["family_name"] = parts[0].strip()
+                medecin_data["given_name"] = parts[1].strip()
+            return medecin_data if medecin_data else None
+        
+        # Format texte: "Dr FAMILY GIVEN" ou "FAMILY GIVEN"
+        parts = display.strip().split()
+        if not parts:
+            return None
+        
+        # Extraire le préfixe (Dr, Pr, etc.)
+        if parts[0] in ["Dr", "Pr", "Prof", "Docteur", "Professeur"]:
+            medecin_data["prefix"] = parts[0]
+            parts = parts[1:]
+        
+        if not parts:
+            return None
+        
+        # Le premier mot est le nom de famille, le reste est le prénom
+        medecin_data["family_name"] = parts[0]
+        if len(parts) > 1:
+            medecin_data["given_name"] = " ".join(parts[1:])
+        
+        return medecin_data if medecin_data else None
 
     def _extract_id_from_reference(self, reference: str) -> Optional[int]:
         """Extrait l'ID depuis une référence FHIR."""

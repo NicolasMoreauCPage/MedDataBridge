@@ -71,7 +71,31 @@ def build_message_for_movement(
         f"{getattr(patient, 'family', '')}^{getattr(patient, 'given', '')}"
         f"||{getattr(patient, 'birth_date', '')}|{getattr(patient, 'gender', '')}"
     )
-    pv1 = f"PV1||I|{location}|||^^^^^{uf_responsabilite}"
+    
+    # PV1-7: Attending Doctor (médecin responsable) au format XCN
+    # Format: ID^FamilyName^GivenName^MiddleName^Suffix^Prefix^Degree^SourceTable^AssigningAuthority
+    pv1_7 = ""
+    medecin = getattr(movement, 'medecin_responsable', None) or getattr(dossier, 'medecin_responsable', None)
+    if medecin:
+        # Construire le XCN
+        id_number = getattr(medecin, 'rpps', None) or getattr(medecin, 'adeli', None) or ""
+        family_name = getattr(medecin, 'family_name', None) or ""
+        given_name = getattr(medecin, 'given_name', None) or ""
+        middle_name = getattr(medecin, 'middle_name', None) or ""
+        suffix = getattr(medecin, 'suffix', None) or ""
+        prefix = getattr(medecin, 'prefix', None) or ""
+        degree = ""
+        source_table = ""
+        # Déterminer l'autorité d'attribution (RPPS ou ADELI)
+        assigning_authority = ""
+        if getattr(medecin, 'rpps', None):
+            assigning_authority = "RPPS"
+        elif getattr(medecin, 'adeli', None):
+            assigning_authority = "ADELI"
+        
+        pv1_7 = f"{id_number}^{family_name}^{given_name}^{middle_name}^{suffix}^{prefix}^{degree}^{source_table}^{assigning_authority}"
+    
+    pv1 = f"PV1||I|{location}|||{pv1_7}||^^^^^{uf_responsabilite}"
     
     # Construction du segment ZBE (mouvement)
     # ZBE-1: Identifiant du mouvement au format: ID^AUTHORITY^OID^ISO

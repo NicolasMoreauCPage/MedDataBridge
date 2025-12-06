@@ -11,6 +11,7 @@ import app.models_contacts
 
 if TYPE_CHECKING:
     from app.models_contacts import PatientContact, VenueContact
+    from app.models_practitioners import MedecinResponsable
 
 
 class IdentityReliabilityCode(str, Enum):
@@ -197,6 +198,10 @@ class Dossier(SQLModel, table=True):
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
     # UF responsable du dossier (= UF médicale = UF de responsabilité médicale)
     uf_responsabilite: Optional[str] = None                 # Code UF responsable/médicale (ex: "CARDIO")
+    
+    # Médecin responsable du dossier (PV1-7 Attending Doctor)
+    medecin_responsable_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
+    medecin_responsable: Optional["MedecinResponsable"] = Relationship(back_populates="dossiers")
 
     # Extensions / IHE PAM additions (optional)
     admission_type: Optional[str] = None
@@ -238,6 +243,11 @@ class Mouvement(SQLModel, table=True):
     mouvement_seq: int = Field(index=True, unique=True)     # identifiant métier unique
     venue_id: int = Field(foreign_key="venue.id")
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
+    
+    # Médecin responsable du mouvement (PV1-7 Attending Doctor)
+    medecin_responsable_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
+    medecin_responsable: Optional["MedecinResponsable"] = Relationship(back_populates="mouvements")
+    
     # Type de message HL7 (ex: "ADT^A01"). Conservé pour compat UI/ancienne donnée.
     # La logique métier doit utiliser trigger_event (A01, A03, A21, ...).
     type: Optional[str] = None

@@ -11,6 +11,7 @@ from app.services.identifier_manager import create_identifiers_from_hl7_with_nam
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.vocabulary_translate import map_code
 from app.services.vocabulary_translate import map_code
+from app.services.medecin_extractor import extract_and_store_medecin_from_pv1
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +205,25 @@ def process_pam_message(session: Session, message: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"[pam] Échec traitement message: {e}")
         raise
+
+
+def _extract_pv1_segment(message: str) -> Optional[str]:
+    """
+    Extrait le segment PV1 complet du message HL7.
+    
+    Args:
+        message: Message HL7 complet
+        
+    Returns:
+        Segment PV1 en string ou None si absent
+    """
+    try:
+        lines = re.split(r"\r|\n", message)
+        pv1 = next((l for l in lines if l.startswith("PV1")), None)
+        return pv1 if pv1 else None
+    except Exception as e:
+        logger.error(f"Erreur extraction segment PV1: {e}")
+        return None
 
 
 def _parse_zbe_segment(message: str) -> Optional[Dict]:
@@ -991,12 +1011,22 @@ async def handle_admission_message(
                 logger.error(f"[pam][admission] Doublon dossier_seq détecté: {d_seq}. Import annulé.")
                 raise Exception(f"Un dossier avec le numéro {d_seq} existe déjà. Import ADT/PAM annulé.")
         else:
+            # Extract médecin responsable from PV1-7 for the dossier
+            medecin = None
+            if message:
+                pv1_segment = _extract_pv1_segment(message)
+                if pv1_segment:
+                    medecin = extract_and_store_medecin_from_pv1(pv1_segment, session)
+                    if medecin:
+                        logger.info(f"[pam][admission] Médecin responsable extrait pour dossier: {medecin}")
+            
             dossier = Dossier(
                 dossier_seq=d_seq,
                 patient_id=patient.id,
                 uf_responsabilite=pv1_data.get("hospital_service") or "UNKNOWN",
                 admit_time=admit_time,
                 encounter_class=encounter_class_code,
+                medecin_responsable_id=medecin.id if medecin else None,
             )
             session.add(dossier)
             session.flush()
@@ -1242,6 +1272,15 @@ async def handle_admission_message(
         except ValueError as e:
             return False, str(e)
         
+        # Extract médecin responsable from PV1-7
+        medecin = None
+        if message:
+            pv1_segment = _extract_pv1_segment(message)
+            if pv1_segment:
+                medecin = extract_and_store_medecin_from_pv1(pv1_segment, session)
+                if medecin:
+                    logger.info(f"[pam][admission] Médecin responsable extrait: {medecin}")
+        
         # Inject UF codes from ZBE if available (ZBE-7 / ZBE-8)
         uf_medicale_code = zbe_data.get("uf_medicale") if zbe_data else None
         uf_soins_code = zbe_data.get("uf_soins") if zbe_data else None
@@ -1260,6 +1299,7 @@ async def handle_admission_message(
             uf_medicale_label=uf_medicale_code,
             uf_soins_code=uf_soins_code,
             uf_soins_label=uf_soins_code,
+            medecin_responsable_id=medecin.id if medecin else None,
         )
         session.add(mouvement)
         session.flush()

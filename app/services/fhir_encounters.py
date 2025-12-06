@@ -105,7 +105,58 @@ def generate_encounter_resource_for_venue(venue: Venue, session: Optional[Sessio
             "reference": f"Organization/{venue.uf_responsabilite}",
             "display": venue.uf_responsabilite
         }
-    if getattr(venue, "attending_provider", None):
+    # Ajouter le médecin responsable depuis le dossier
+    if dossier.medecin_responsable_id:
+        if session:
+            from app.models_practitioners import MedecinResponsable
+            medecin = session.get(MedecinResponsable, dossier.medecin_responsable_id)
+            if medecin:
+                encounter_res["participant"] = [{
+                    "type": [{
+                        "coding": [{
+                            "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                            "code": "ATND",
+                            "display": "attender"
+                        }]
+                    }],
+                    "individual": {
+                        "reference": f"#pract-{medecin.id}",
+                        "display": medecin.get_full_name()
+                    }
+                }]
+                # Ajouter le Practitioner en contained
+                practitioner_resource = {
+                    "resourceType": "Practitioner",
+                    "id": f"pract-{medecin.id}",
+                    "identifier": [],
+                    "name": [{
+                        "family": medecin.family_name or "",
+                        "given": [medecin.given_name] if medecin.given_name else []
+                    }]
+                }
+                if medecin.rpps:
+                    practitioner_resource["identifier"].append({
+                        "system": "http://rpps.fr",
+                        "value": medecin.rpps
+                    })
+                if medecin.adeli:
+                    practitioner_resource["identifier"].append({
+                        "system": "http://adeli.fr",
+                        "value": medecin.adeli
+                    })
+                if medecin.prefix:
+                    practitioner_resource["name"][0]["prefix"] = [medecin.prefix]
+                if medecin.specialty:
+                    practitioner_resource["qualification"] = [{
+                        "code": {
+                            "coding": [{
+                                "display": medecin.specialty
+                            }]
+                        }
+                    }]
+                encounter_res["contained"] = [practitioner_resource]
+    elif getattr(venue, "attending_provider", None):
+        # Fallback sur attending_provider si pas de médecin responsable
         encounter_res["participant"] = [{
             "type": [{
                 "coding": [{
@@ -171,6 +222,57 @@ def generate_encounter_resource_for_mouvement(mouvement: Mouvement, session: Opt
             "display": f"ADT {event_code}"
         }]
     }]
+    # Ajouter le médecin responsable depuis le mouvement ou le dossier
+    medecin_id = mouvement.medecin_responsable_id or dossier.medecin_responsable_id
+    if medecin_id and session:
+        from app.models_practitioners import MedecinResponsable
+        medecin = session.get(MedecinResponsable, medecin_id)
+        if medecin:
+            encounter_res["participant"] = [{
+                "type": [{
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                        "code": "ATND",
+                        "display": "attender"
+                    }]
+                }],
+                "individual": {
+                    "reference": f"#pract-{medecin.id}",
+                    "display": medecin.get_full_name()
+                }
+            }]
+            # Ajouter le Practitioner en contained
+            practitioner_resource = {
+                "resourceType": "Practitioner",
+                "id": f"pract-{medecin.id}",
+                "identifier": [],
+                "name": [{
+                    "family": medecin.family_name or "",
+                    "given": [medecin.given_name] if medecin.given_name else []
+                }]
+            }
+            if medecin.rpps:
+                practitioner_resource["identifier"].append({
+                    "system": "http://rpps.fr",
+                    "value": medecin.rpps
+                })
+            if medecin.adeli:
+                practitioner_resource["identifier"].append({
+                    "system": "http://adeli.fr",
+                    "value": medecin.adeli
+                })
+            if medecin.prefix:
+                practitioner_resource["name"][0]["prefix"] = [medecin.prefix]
+            if medecin.specialty:
+                practitioner_resource["qualification"] = [{
+                    "code": {
+                        "coding": [{
+                            "display": medecin.specialty
+                        }]
+                    }
+                }]
+            encounter_res["contained"] = [practitioner_resource]
+    
     if event_code == "A02" and getattr(mouvement, "to_location", None):
         encounter_res["location"] = [{
             "location": {"display": mouvement.to_location},

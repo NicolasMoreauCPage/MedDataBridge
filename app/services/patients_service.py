@@ -7,7 +7,7 @@ from sqlalchemy.orm import attributes
 
 class PatientCreateSchema(BaseModel):
     """Schéma de données pour la création d'un patient."""
-    external_id: Optional[str] = None
+    identifier: Optional[str] = None
     family: str
     given: str
     middle: Optional[str] = None

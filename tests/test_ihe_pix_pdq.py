@@ -220,7 +220,7 @@ def test_pdqm_search(client: TestClient, session: Session):
         id = Identifier(
             patient_id=p.id,
             system="http://hopital.fr/id",
-            value=p.external_id,
+            value=p.identifier,
             type=IdentifierType.PI,
             status="active"
         )

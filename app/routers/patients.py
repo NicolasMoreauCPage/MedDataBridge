@@ -6,7 +6,7 @@ from sqlmodel import select
 
 from app.db import get_session
 from app.dependencies.ght import require_ght_context
-from app.models import Patient, DossierType
+from app.models import Patient, Dossier, DossierType
 from app.routers.contacts import get_templates
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema, PatientUpdateSchema

@@ -185,11 +185,11 @@ async def handle_merge_patient(
                 except Exception:
                     birth_date_obj = None
             surviving_patient = Patient(
-                patient_seq=get_next_sequence(session, \"patient\"),
-                identifier=pid_data.get(\"identifier\") or f\"MERGED-{get_next_sequence(session, 'patient')}\",
-                family=pid_data.get(\"family\", \"\"),
-                given=pid_data.get(\"given\", \"\"),
-                gender=pid_data.get(\"gender\", \"unknown\"),
+                patient_seq=get_next_sequence(session, "patient"),
+                identifier=pid_data.get("identifier") or f"MERGED-{get_next_sequence(session, 'patient')}",
+                family=pid_data.get("family", ""),
+                given=pid_data.get("given", ""),
+                gender=pid_data.get("gender", "unknown"),
                 birth_date=birth_date_obj,
             )
             session.add(surviving_patient)

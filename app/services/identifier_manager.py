@@ -234,28 +234,49 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
     
     # Normalize incoming identifier tuple shapes and convert for the classifier
     classifier_data = []
+    cx_mapping = {}  # Pour mapper value -> CX complet
+    
     for item in identifiers_data:
-        # Support either (cx_value, system, id_type_str) or
-        # (value, system, authority_oid, type_code) returned by parse_hl7_cx_identifier
+        # Support multiple formats:
+        # (value, system, type_code, cx_value) - nouveau format depuis pam.py
+        # (cx_value, system, id_type_str) - ancien format
+        # (value, system, authority_oid, type_code) - format parse_hl7_cx_identifier
         try:
-            if isinstance(item, (list, tuple)) and len(item) == 3:
-                cx_value, system, id_type_str = item
-            elif isinstance(item, (list, tuple)) and len(item) == 4:
-                cx_value, system, _authority_oid, id_type_str = item
+            if isinstance(item, (list, tuple)) and len(item) == 4:
+                # Nouveau format: (value, system, type_code, cx_value)
+                value, system, id_type_str, cx_value = item
+                cx_mapping[value] = cx_value
+            elif isinstance(item, (list, tuple)) and len(item) == 3:
+                # Format (cx_value, system, id_type_str) ou (value, system, type_code)
+                value_or_cx, system, id_type_str = item
+                # Si contient ^, c'est un CX complet, parser
+                if "^" in value_or_cx:
+                    value, system, _, id_type_str = parse_hl7_cx_identifier(value_or_cx)
+                    cx_mapping[value] = value_or_cx
+                else:
+                    value = value_or_cx
+                    cx_mapping[value] = value_or_cx
             else:
                 # Unexpected shape: coerce to string and treat as raw CX
-                cx_value = str(item)
-                system = ""
-                id_type_str = None
+                value_str = str(item)
+                if "^" in value_str:
+                    value, system, _, id_type_str = parse_hl7_cx_identifier(value_str)
+                    cx_mapping[value] = value_str
+                else:
+                    value = value_str
+                    system = ""
+                    id_type_str = None
+                    cx_mapping[value] = value
         except Exception:
-            cx_value = str(item)
+            value = str(item)
             system = ""
             id_type_str = None
+            cx_mapping[value] = value
 
         # Convert HL7 type string to enum via the mapper
         id_type = map_hl7_type_to_identifier_type(id_type_str) or IdentifierType.IPP
 
-        classifier_data.append((cx_value, system, id_type))
+        classifier_data.append((value, system, id_type))
     
     # Classifier les identifiants selon les namespaces EJ
     classification = classify_incoming_identifiers(
@@ -266,10 +287,34 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
     
     # Traiter les identifiants principaux
     if classification.get('main_identifier'):
+        # Récupérer le system et l'OID depuis le CX original via mapping
+        main_system = ""
+        main_oid = ""
+        main_value = classification['main_identifier']
+        
+        # Chercher le CX complet dans le mapping
+        cx_value = cx_mapping.get(main_value, main_value)
+        if "^" in cx_value:
+            # Parser le CX complet pour extraire system et OID
+            _, parsed_system, parsed_oid, _ = parse_hl7_cx_identifier(cx_value)
+            main_system = parsed_system
+            main_oid = parsed_oid or ""
+        else:
+            # Fallback: chercher dans classifier_data
+            for value, system, id_type in classifier_data:
+                if value == main_value:
+                    main_system = system
+                    if "&" in system:
+                        parts = system.split("&")
+                        if len(parts) >= 2:
+                            main_oid = parts[1]
+                    break
+        
         # Créer un identifiant principal
         main_id = Identifier(
             value=classification['main_identifier'],
-            system="",  # Le système sera déterminé par le namespace EJ
+            system=main_system,
+            oid=main_oid,
             type=IdentifierType.IPP,  # Type par défaut
             status="active"
         )
@@ -277,9 +322,33 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
     
     # Traiter les identifiants externes
     for ext_id_data in classification.get('external_identifiers', []):
+        # Récupérer system et OID depuis le CX original via mapping
+        ext_value = ext_id_data['value']
+        ext_system = ext_id_data.get('external_namespace') or ext_id_data.get('system', '')
+        ext_oid = ""
+        
+        # Chercher le CX complet dans le mapping
+        cx_value = cx_mapping.get(ext_value, ext_value)
+        if "^" in cx_value:
+            # Parser le CX complet pour extraire system et OID
+            _, parsed_system, parsed_oid, _ = parse_hl7_cx_identifier(cx_value)
+            ext_system = parsed_system
+            ext_oid = parsed_oid or ""
+        else:
+            # Fallback: chercher dans classifier_data
+            for value, system, id_type in classifier_data:
+                if value == ext_value:
+                    ext_system = system
+                    if "&" in system:
+                        parts = system.split("&")
+                        if len(parts) >= 2:
+                            ext_oid = parts[1]
+                    break
+        
         ext_id = Identifier(
-            value=ext_id_data['value'],
-            system=ext_id_data['external_namespace'] or ext_id_data['system'],
+            value=ext_value,
+            system=ext_system,
+            oid=ext_oid,
             type=ext_id_data['type'],
             status="active"
         )

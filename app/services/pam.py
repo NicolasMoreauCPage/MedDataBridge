@@ -823,8 +823,10 @@ async def handle_admission_message(
         identifiers_raw = pid_data.get("identifiers", [])
         identifiers = []
         for cx_value, *_ in identifiers_raw:
-            value, system, _, type_code = parse_hl7_cx_identifier(cx_value)
-            identifiers.append((cx_value, system, type_code))
+            value, system, oid, type_code = parse_hl7_cx_identifier(cx_value)
+            # Passer (value, system, type_code) pour classification, pas cx_value complet
+            # Mais garder cx_value pour fallback
+            identifiers.append((value, system, type_code, cx_value))
 
         # Main patient identifier (Solution de repli logic)
         identifier = None
@@ -847,10 +849,10 @@ async def handle_admission_message(
                 except Exception as _e:
                     logger.warning(f"[pam] Failed to classify identifiers (soft): {_e}")
                     identifiers_list, main_id_value, external_id_value = [], None, None
-                identifier = main_id_value or (identifiers[0][0].split("^")[0] if identifiers else None)
+                identifier = main_id_value or (identifiers[0][0] if identifiers else None)  # identifiers[0][0] = value
             except Exception as e:
                 logger.warning(f"[pam] Failed to classify identifiers: {e}")
-                identifier = identifiers[0][0].split("^")[0] if identifiers else None
+                identifier = identifiers[0][0] if identifiers else None  # identifiers[0][0] = value
         logger.debug(f"[pam][admission] Resolved identifier={identifier} (identifiers_count={len(identifiers)})")
 
         # Nom / prénom
@@ -893,7 +895,7 @@ async def handle_admission_message(
                 except Exception as e:
                     logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
                     # Solution de repli to legacy method
-                    for raw_cx, _, _ in identifiers:
+                    for value, system, type_code, raw_cx in identifiers:
                         try:
                             ident = create_identifier_from_hl7(raw_cx, "patient", existing.id)
                             exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -948,7 +950,7 @@ async def handle_admission_message(
             except Exception as e:
                 logger.warning(f"[pam] Failed to create identifiers with namespace check: {e}")
                 # Solution de repli to legacy method
-                for raw_cx, _, _ in identifiers:
+                for value, system, type_code, raw_cx in identifiers:
                     try:
                         ident = create_identifier_from_hl7(raw_cx, "patient", patient.id)
                         exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()

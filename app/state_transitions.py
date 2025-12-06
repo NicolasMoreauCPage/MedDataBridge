@@ -42,8 +42,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "Z99",  # Changement d'identité
     },
     "A04": {
-        # REMARQUE: A03 (discharge/absence) NOT allowed from A04 (outpatient) per IHE PAM
-        # A03 is only allowed from inpatient encounters (A01, A02)
+        "A03",  # Sortie définitive (fin de consultation externe)
         "A04",
         "A06",
         "A07",

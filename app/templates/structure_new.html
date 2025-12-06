@@ -23,25 +23,6 @@
     </div>
   </div>
 
-    <!-- DEBUG CONTEXT -->
-    <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
-        <strong>DEBUG Contexte EJ :</strong>
-        {% if filtered_ej_id %}
-            <span>ID: {{ filtered_ej_id }}</span>
-        {% else %}
-            <span>Aucun EJ dans le contexte</span>
-        {% endif %}<br>
-        <strong>DEBUG EG filtrés :</strong>
-        {% if filtered_egs and filtered_egs|length > 0 %}
-            <ul>
-            {% for eg_id in filtered_egs %}
-                <li>ID: {{ eg_id }}</li>
-            {% endfor %}
-            </ul>
-        {% else %}
-            <span>Aucun EG trouvé pour cet EJ</span>
-        {% endif %}
-    </div>
     <!-- En-tête avec filtres -->
     <div class="mb-8 space-y-4">
         <div class="flex items-center justify-between">

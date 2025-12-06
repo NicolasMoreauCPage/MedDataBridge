@@ -35,7 +35,8 @@ def get_templates_with_filters(request: FastAPIRequest):
 router = APIRouter(
     prefix="/structure",
     tags=["structure"],
-    dependencies=[Depends(require_ght_context)],
+    # NOTE: GHT context dependency removed from router level
+    # Individual routes that need it can add the dependency
 )
 
 # Route API pour les endpoints JSON

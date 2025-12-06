@@ -234,7 +234,7 @@ def create_app() -> FastAPI:
     # 3. Structure management
     app.include_router(structure.redirect_router)  # Redirections singulier->pluriel (AVANT le router principal)
     app.include_router(structure.api_router)  # Has prefix /api/structure
-    app.include_router(structure.api_router)  # Has prefix /api/structure
+    app.include_router(structure.router)  # Main structure dashboard at /structure
     app.include_router(structure_hl7.router)  # Has prefix /structure
     app.include_router(fhir_structure.router)  # Has prefix /fhir
     app.include_router(structure_select.router)  # Has prefix /structure

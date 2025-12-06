@@ -134,10 +134,6 @@ def build_pid_segment(
                 oid = ident.oid or ident.system.split(":")[-1] if ident.system else "UNKNOWN"
                 pid_3_parts.append(f"{ident.value}^^^{oid}^PI")
     
-    # Si pas d'identifiants, utiliser l'external_id si présent
-    if not pid_3_parts and patient.external_id:
-        pid_3_parts.append(patient.external_id)
-    
     pid_3 = "~".join(pid_3_parts) if pid_3_parts else ""
     
     # PID-5: Nom du patient (Family^Given)

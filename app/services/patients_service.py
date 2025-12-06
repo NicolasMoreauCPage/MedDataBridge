@@ -50,7 +50,7 @@ def create_patient(
     Crée un nouveau patient en base de données.
     Gère la logique de génération d'identifiant et la transaction.
     """
-    identifier_val = patient_data.external_id or str(uuid4())
+    identifier_val = patient_data.identifier or str(uuid4())
     data = patient_data.dict()
     birth_date_raw = data.get("birth_date")
     birth_date_obj = None

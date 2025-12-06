@@ -127,9 +127,7 @@ def update_patient_from_pid_data(
     if pid_data.get("ssn"):
         patient.ssn = pid_data["ssn"]
     
-    # Account number (PID-18) - stocké dans external_id si vide
-    if pid_data.get("account_number") and not patient.external_id:
-        patient.external_id = pid_data["account_number"]
+    # Account number (PID-18) - deprecated, now stored in identifier table
     
     return patient
 
@@ -138,7 +136,6 @@ def create_patient_from_pid_data(
     pid_data: Dict,
     session: Session,
     identifier: Optional[str] = None,
-    external_id: Optional[str] = None,
     ej_id: Optional[int] = None
 ) -> Patient:
     """
@@ -148,7 +145,6 @@ def create_patient_from_pid_data(
         pid_data: Dict retourné par _parse_pid()
         session: Session DB
         identifier: Identifiant principal (si None, extrait de pid_data)
-        external_id: ID externe (si None, extrait de pid_data)
         ej_id: ID de l'Entité Juridique pour classification des namespaces
     
     Returns:
@@ -158,8 +154,8 @@ def create_patient_from_pid_data(
     from app.services.identifier_namespace_classifier import classify_incoming_identifiers
     from app.models_identifiers import IdentifierType
     
-    # Si identifier et external_id sont fournis explicitement, les utiliser
-    if identifier is not None and external_id is not None:
+    # Si identifier est fourni explicitement, l'utiliser
+    if identifier is not None:
         # Récupérer le contexte GHT depuis l'EJ si fournie
         ght_context_id = None
         if ej_id:
@@ -171,7 +167,6 @@ def create_patient_from_pid_data(
         patient = Patient(
             patient_seq=get_next_sequence(session, "patient"),
             identifier=identifier,
-            external_id=external_id,
             family=pid_data.get("family") or "",
             given=pid_data.get("given") or "",
             ght_context_id=ght_context_id,
@@ -211,7 +206,6 @@ def create_patient_from_pid_data(
     patient = Patient(
         patient_seq=get_next_sequence(session, "patient"),
         identifier=classification.get('main_identifier'),
-        external_id=classification.get('external_id'),
         family=pid_data.get("family") or "",
         given=pid_data.get("given") or "",
         ght_context_id=ght_context_id,

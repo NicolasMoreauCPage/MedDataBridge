@@ -167,6 +167,12 @@
     </div>
   </div>
 
+  <!-- Identifiants -->
+  {% set identifiers = mouvement.identifiers %}
+  {% set entity_type = "Mouvement" %}
+  {% set main_identifier = None %}
+  {% include 'components/identifier_table.html' with context %}
+
   <!-- Actions -->
   <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-6">
     <div class="flex flex-wrap gap-3">

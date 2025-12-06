@@ -114,7 +114,7 @@ async def pdq_query(request: Request, session: Session = Depends(get_session)):
         
         if patients:
             for p in patients:
-                rsp += (f"PID|||{p.external_id or ''}||{p.family or ''}^{p.given or ''}||"
+                rsp += (f"PID|||{p.identifier or ''}||{p.family or ''}^{p.given or ''}||"
                        f"{p.birth_date or ''}|{p.gender or ''}|||||\r")
                 
         log.ack_payload = rsp

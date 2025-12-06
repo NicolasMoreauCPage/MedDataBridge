@@ -60,7 +60,6 @@ class Patient(SQLModel, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     # patient_seq supprimé, utiliser id comme identifiant métier unique
-    external_id: Optional[str] = None  # Identifiant du système source externe
     identifier: Optional[str] = Field(default=None, index=True)  # Identifiant principal (peut être NIR ou autre)
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id")  # Association au contexte GHT
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")  # Association à l'EJ

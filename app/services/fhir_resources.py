@@ -11,17 +11,6 @@ def generate_patient_resource(patient: Patient, forced_identifier_system=None, f
         dict: Ressource FHIR Patient
     """
     identifiers = []
-    if getattr(patient, "external_id", None):
-        identifiers.append({
-            "system": "urn:oid:1.2.250.1.71.4.2.1",
-            "type": {
-                "coding": [{
-                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
-                    "code": "PI"
-                }]
-            },
-            "value": patient.external_id
-        })
     if getattr(patient, "patient_seq", None):
         identifiers.append({
             "system": "http://hospital.local/patient-id",

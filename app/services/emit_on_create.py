@@ -470,7 +470,7 @@ def generate_pam_hl7(
         # Patient info
         if patient:
             patient_seq_val = getattr(patient, "patient_seq", None) or (patient.id or "TEMP")
-            patient_id = patient.identifier or patient.external_id or str(patient_seq_val)
+            patient_id = patient.identifier or str(patient_seq_val)
             family = patient.family or ""
             given = patient.given or ""
             if patient.birth_date:
@@ -738,7 +738,7 @@ def generate_pam_hl7(
         if patient:
             assigning_system = forced_identifier_system or "HOSP"
             assigning_oid = forced_identifier_oid
-            patient_id = patient.identifier or patient.external_id or str(patient.id)
+            patient_id = patient.identifier or str(patient.id)
             authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
             pid3 = f"{patient_id}^^^{authority}^PI"
             family = patient.family or ""

@@ -53,7 +53,7 @@ def list_patients(request: Request, session=Depends(get_session)):
     
     rows = [
         {
-            "cells": [p.id, p.external_id, f"{p.family} {p.given}", p.birth_date, p.gender],
+            "cells": [p.id, p.identifier, f"{p.family} {p.given}", p.birth_date, p.gender],
             "detail_url": f"/patients/{p.id}",
             "context_url": f"/context/patient/{p.id}",
             "timeline_url": f"/timeline/patient/{p.id}",

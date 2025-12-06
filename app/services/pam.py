@@ -325,8 +325,8 @@ def generate_pam_messages_for_dossier(dossier: Dossier) -> List[str]:
             if build_message_for_movement:
                 messages.append(build_message_for_movement(dossier=dossier, venue=v, movement=m, patient=patient))
             else:
-                # Choose a stable primary patient identifier (prefer patient.identifier, Solution de repli external_id, then patient_seq)
-                primary_id = patient.identifier or patient.external_id or (f"PSEQ{patient.patient_seq}" if patient.patient_seq is not None else f"PID{patient.id}")
+                # Choose a stable primary patient identifier (prefer patient.identifier, fallback to patient_seq)
+                primary_id = patient.identifier or (f"PSEQ{patient.patient_seq}" if patient.patient_seq is not None else f"PID{patient.id}")
                 # Emit PID-3 as CX with system tag for source context + type PI
                 pid_cx = f"{primary_id}^^^SRC-PAM&1.2.250.1.211.99.1&ISO^PI"
                 msh = f"MSH|^~\\&|MedBridge|SYSTEM|DST|DST|{m.when:%Y%m%d%H%M%S}||{m.type}|{dossier.dossier_seq}|P|2.5"
@@ -922,7 +922,7 @@ async def handle_admission_message(
             logger.debug(f"[pam][admission] Using reused_patient id={getattr(patient,'id', None)}")
         else:
             from app.services.patient_update_helper import create_patient_from_pid_data
-            patient = create_patient_from_pid_data(pid_data, session, identifier, identifier, ej_id)
+            patient = create_patient_from_pid_data(pid_data, session, identifier, ej_id)
             session.add(patient)
             session.flush()
             logger.debug(f"[pam][admission] Created patient id={getattr(patient,'id', None)}")

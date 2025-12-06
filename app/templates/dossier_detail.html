@@ -127,6 +127,12 @@
       </div>
     </div>
 
+    <!-- Identifiants -->
+    {% set identifiers = dossier.identifiers %}
+    {% set entity_type = "Dossier" %}
+    {% set main_identifier = None %}
+    {% include 'components/identifier_table.html' with context %}
+
     <!-- Venues -->
     <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
       <div class="bg-gradient-to-r from-cyan-700 to-blue-700 px-6 py-4 flex items-center justify-between text-white">

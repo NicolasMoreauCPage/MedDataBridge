@@ -94,7 +94,7 @@ def _parse_mrg_segment(message: str) -> Optional[Dict]:
 def _find_patient_by_identifiers(session: Session, cx_list: List[str]) -> Optional[Patient]:
     """
     Trouve un patient à partir d'une liste d'identifiants CX HL7.
-    Teste d'abord les identifiants puis les champs direct (external_id, identifier).
+    Teste d'abord les identifiants puis les champs direct (identifier).
     """
     if not cx_list:
         return None
@@ -118,18 +118,11 @@ def _find_patient_by_identifiers(session: Session, cx_list: List[str]) -> Option
             if patient:
                 return patient
     
-    # 2. Solution de repli: recherche directe par external_id ou identifier (premier composant)
+    # 2. Solution de repli: recherche directe par identifier (premier composant)
     for cx in cx_list:
         id_value = cx.split("^")[0] if "^" in cx else cx
         if not id_value:
             continue
-        
-        # Chercher par external_id
-        patient = session.exec(
-            select(Patient).where(Patient.external_id == id_value)
-        ).first()
-        if patient:
-            return patient
         
         # Chercher par identifier
         patient = session.exec(
@@ -192,12 +185,11 @@ async def handle_merge_patient(
                 except Exception:
                     birth_date_obj = None
             surviving_patient = Patient(
-                patient_seq=get_next_sequence(session, "patient"),
-                identifier=pid_data.get("external_id") or f"MERGED-{get_next_sequence(session, 'patient')}",
-                external_id=pid_data.get("external_id"),
-                family=pid_data.get("family", ""),
-                given=pid_data.get("given", ""),
-                gender=pid_data.get("gender", "unknown"),
+                patient_seq=get_next_sequence(session, \"patient\"),
+                identifier=pid_data.get(\"identifier\") or f\"MERGED-{get_next_sequence(session, 'patient')}\",
+                family=pid_data.get(\"family\", \"\"),
+                given=pid_data.get(\"given\", \"\"),
+                gender=pid_data.get(\"gender\", \"unknown\"),
                 birth_date=birth_date_obj,
             )
             session.add(surviving_patient)

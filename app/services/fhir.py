@@ -42,17 +42,6 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
     
     # Identifiants avec systèmes standardisés
     identifiers = []
-    if getattr(p, "external_id", None):
-        identifiers.append({
-            "system": "urn:oid:1.2.250.1.71.4.2.1", 
-            "type": {
-                "coding": [{
-                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
-                    "code": "PI"
-                }]
-            },
-            "value": p.external_id
-        })
     if getattr(p, "ssn", None):
         identifiers.append({
             "system": "http://hl7.org/fhir/sid/us-ssn",

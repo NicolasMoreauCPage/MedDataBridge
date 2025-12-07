@@ -2,7 +2,8 @@
 Accès base de données et aides de séquence
 
 Contenu
-- Création du moteur SQLModel/SQLite (fichier local `medbridge.db`).
+- Création du moteur SQLModel/SQLAlchemy supportant SQLite et PostgreSQL.
+- Configuration via variables d'environnement (DB_TYPE, DB_HOST, DB_USER, etc.).
 - Utilitaires de session via dépendance `get_session` (FastAPI Depends).
 - Gestion de séquences applicatives simples (table `Sequence`) avec `peek_next_sequence`
     et `get_next_sequence`.
@@ -11,6 +12,7 @@ Contenu
 Notes
 - En contexte transactionnel (session.in_transaction()), on privilégie `flush()`
     pour éviter des commits imbriqués.
+- Support PostgreSQL activé via `DB_TYPE=postgresql` et paramètres connexion.
 """
 
 from sqlmodel import SQLModel, create_engine, Session, select
@@ -30,9 +32,27 @@ except Exception:  # pragma: no cover
 from app import models_workflows  # ensure workflow models are registered
 
 
-# Use in-memory SQLite for tests, file-based otherwise
+# Use in-memory SQLite for tests, PostgreSQL or file-based SQLite for production
 import os
 from sqlalchemy.pool import StaticPool
+
+# Get database configuration from environment or defaults
+def get_database_url():
+    """Construct database URL from environment variables or defaults."""
+    db_type = os.getenv("DB_TYPE", "sqlite").lower()
+    
+    if db_type == "postgresql":
+        # PostgreSQL connection string using psycopg (v3) driver
+        db_user = os.getenv("DB_USER", "medbridge")
+        db_password = os.getenv("DB_PASSWORD", "medbridge")
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_port = os.getenv("DB_PORT", "5432")
+        db_name = os.getenv("DB_NAME", "medbridge")
+        return f"postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    else:
+        # Default to SQLite
+        return "sqlite:///./medbridge.db"
+
 if os.getenv("TESTING", "0") in ("1", "true", "True"):
     engine = create_engine(
         "sqlite:///:memory:",
@@ -41,26 +61,42 @@ if os.getenv("TESTING", "0") in ("1", "true", "True"):
         poolclass=StaticPool,
     )
 else:
-    engine = create_engine(
-        "sqlite:///./medbridge.db",
-        echo=False,
-        pool_size=20,  # Increased from default 5
-        max_overflow=30,  # Increased from default 10
-        pool_timeout=60,  # Increased from default 30
-        pool_pre_ping=True  # Check connections before using
-    )
+    database_url = get_database_url()
+    # PostgreSQL-specific connection parameters
+    if "postgresql" in database_url:
+        engine = create_engine(
+            database_url,
+            echo=False,
+            pool_size=20,
+            max_overflow=30,
+            pool_timeout=60,
+            pool_pre_ping=True,
+            connect_args={"server_settings": {"application_name": "medbridge"}}
+        )
+    else:
+        # SQLite fallback
+        engine = create_engine(
+            database_url,
+            echo=False,
+            pool_size=20,
+            max_overflow=30,
+            pool_timeout=60,
+            pool_pre_ping=True
+        )
 
 def init_db() -> None:
     """Crée les tables si elles n'existent pas (idempotent)."""
     SQLModel.metadata.create_all(engine)
-    # Active le mode WAL pour SQLite afin d'améliorer la gestion des accès concurrents
+    # Optimize SQLite if used
     try:
-        import sqlite3
-        conn = sqlite3.connect("medbridge.db")
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.close()
+        db_url = get_database_url()
+        if "sqlite" in db_url and os.path.exists("medbridge.db"):
+            import sqlite3
+            conn = sqlite3.connect("medbridge.db")
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.close()
     except Exception as e:
-        print(f"[WARN] Impossible d'activer WAL: {e}")
+        print(f"[WARN] Database optimization skipped: {e}")
     # Initialisation idempotente des templates de scénarios abstraits (IHE, démo...)
     if init_scenario_templates:
         with Session(engine) as _s:

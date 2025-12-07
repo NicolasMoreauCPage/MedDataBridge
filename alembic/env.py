@@ -18,6 +18,7 @@ from app.models_identifiers import Identifier
 from app.models_practitioners import MedecinResponsable  # Médecins responsables
 from app import models_scenarios  # ensure scenario models are registered
 from app import models_workflows  # ensure workflow models are registered
+from app.db import get_database_url
 
 config = context.config
 if config.config_file_name is not None:
@@ -25,9 +26,13 @@ if config.config_file_name is not None:
 
 target_metadata = SQLModel.metadata
 
+# Get database URL from environment or config
+database_url = os.getenv("SQLALCHEMY_DATABASE_URL") or get_database_url()
+
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    """Run migrations in 'offline' mode (no DB connection needed)."""
+    url = database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -39,8 +44,13 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode with a real database connection."""
+    configuration = config.get_section(config.config_ini_section)
+    # Override sqlalchemy.url with the dynamic database URL
+    configuration["sqlalchemy.url"] = database_url
+    
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

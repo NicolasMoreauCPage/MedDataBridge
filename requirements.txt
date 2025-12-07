@@ -5,9 +5,12 @@ jinja2==3.1.4
 python-multipart==0.0.9
 sqlalchemy==2.0.32
 pydantic==2.8.2
-sqladmin==0.19.1
+sqladmin==0.22.0
 httpx==0.27.0
 markdown==3.6  # rendu documentation markdown
+
+# Database
+psycopg[binary]==3.3.2  # PostgreSQL driver for SQLAlchemy
 
 # Testing
 pytest>=7.0.0,<8.0.0

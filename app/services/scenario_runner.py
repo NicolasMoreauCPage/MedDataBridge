@@ -472,3 +472,140 @@ def list_scenarios(session: Session) -> List[InteropScenario]:
 
 def get_scenario(session: Session, scenario_id: int) -> Optional[InteropScenario]:
     return session.get(InteropScenario, scenario_id)
+
+
+async def execute_scenario_on_endpoint(
+    endpoint: SystemEndpoint,
+    scenario: InteropScenario,
+    steps: List[InteropScenarioStep],
+    session: Session
+) -> dict:
+    """
+    Exécute un scénario complet sur un endpoint spécifique.
+    
+    Args:
+        endpoint: L'endpoint cible
+        scenario: Le scénario à exécuter
+        steps: Les étapes du scénario (déjà triées par order_index)
+        session: Session de base de données
+        
+    Returns:
+        dict avec success_count, error_count, total_count
+    """
+    from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
+    
+    # Créer un run d'exécution
+    run = ScenarioExecutionRun(
+        scenario_id=scenario.id,
+        triggered_by="manual_endpoint",
+        endpoint_id=endpoint.id,
+        status="running",
+        started_at=datetime.utcnow(),
+        total_steps=len(steps),
+        success_steps=0,
+        error_steps=0,
+        skipped_steps=0
+    )
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+    
+    success_count = 0
+    error_count = 0
+    
+    try:
+        for step in steps:
+            step_log = ScenarioExecutionStepLog(
+                run_id=run.id,
+                step_id=step.id,
+                step_order=step.order_index,
+                status="running",
+                started_at=datetime.utcnow()
+            )
+            session.add(step_log)
+            session.commit()
+            
+            try:
+                # Envoyer selon le protocole de l'endpoint
+                if endpoint.kind == "MLLP":
+                    message_log = await _send_hl7_step(
+                        session=session,
+                        step=step,
+                        endpoint=endpoint,
+                        update_dates=True
+                    )
+                    
+                    step_log.message_log_id = message_log.id
+                    step_log.ack_code = message_log.ack_code
+                    step_log.response = message_log.response_payload
+                    
+                    if message_log.ack_code in ("AA", "CA"):
+                        step_log.status = "success"
+                        success_count += 1
+                    else:
+                        step_log.status = "error"
+                        error_count += 1
+                        
+                elif endpoint.kind == "FHIR":
+                    # Pour FHIR, on suppose que le payload est déjà un Bundle JSON
+                    targets = _build_fhir_targets(endpoint)
+                    if not targets:
+                        raise ScenarioExecutionError("Aucun serveur FHIR configuré")
+                    
+                    base_url, auth_kind, auth_token = targets[0]
+                    response = await post_fhir_bundle(
+                        base_url=base_url,
+                        bundle_json=step.payload,
+                        auth_kind=auth_kind,
+                        auth_token=auth_token
+                    )
+                    
+                    step_log.response = json.dumps(response)
+                    step_log.status = "success"
+                    success_count += 1
+                    
+                else:
+                    step_log.status = "skipped"
+                    step_log.error_message = f"Type d'endpoint non supporté: {endpoint.kind}"
+                    
+            except Exception as e:
+                step_log.status = "error"
+                step_log.error_message = str(e)
+                error_count += 1
+                
+            step_log.finished_at = datetime.utcnow()
+            session.add(step_log)
+            session.commit()
+            
+            # Délai entre messages si configuré
+            if step.delay_seconds and step.delay_seconds > 0:
+                await asyncio.sleep(step.delay_seconds)
+        
+        # Mettre à jour le run
+        run.success_steps = success_count
+        run.error_steps = error_count
+        run.finished_at = datetime.utcnow()
+        
+        if error_count == 0:
+            run.status = "success"
+        elif success_count > 0:
+            run.status = "partial"
+        else:
+            run.status = "error"
+            
+        session.add(run)
+        session.commit()
+        
+    except Exception as e:
+        run.status = "error"
+        run.finished_at = datetime.utcnow()
+        session.add(run)
+        session.commit()
+        raise
+    
+    return {
+        "success_count": success_count,
+        "error_count": error_count,
+        "total_count": len(steps),
+        "run_id": run.id
+    }

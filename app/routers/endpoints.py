@@ -15,6 +15,7 @@ from app.models_context import (
     VenueContextMapping, MouvementContextMapping
 )
 from app.models_structure import GHTContext, EntiteJuridique
+from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.runners import registry
 from sqlmodel.sql.expression import select as sqlmodel_select
 from sqlalchemy.orm import selectinload
@@ -674,4 +675,100 @@ def show_endpoint_context(endpoint_id: int, request: Request, session: Session =
             "venue_mappings": venue_mappings,
             "mouvement_mappings": mouvement_mappings
         }
+    )
+
+
+# ==================== ROUTES SCÉNARIOS ====================
+
+@router.get("/{endpoint_id}/scenarios", response_class=HTMLResponse)
+def endpoint_scenarios(
+    endpoint_id: int,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Affiche les scénarios disponibles pour cet endpoint avec possibilité d'exécution."""
+    
+    endpoint = session.get(SystemEndpoint, endpoint_id)
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    
+    # Récupérer tous les scénarios actifs avec leurs steps
+    scenarios = session.exec(
+        select(InteropScenario)
+        .where(InteropScenario.is_active == True)
+        .order_by(InteropScenario.category, InteropScenario.name)
+    ).all()
+    
+    # Charger les steps pour chaque scénario
+    for scenario in scenarios:
+        scenario.steps = session.exec(
+            select(InteropScenarioStep)
+            .where(InteropScenarioStep.scenario_id == scenario.id)
+            .order_by(InteropScenarioStep.order_index)
+        ).all()
+    
+    return get_templates_with_filters(request).TemplateResponse(
+        request,
+        "endpoint_scenarios.html",
+        {
+            "endpoint": endpoint,
+            "scenarios": scenarios,
+            "bound_scenario_ids": set()  # Pas de binding pour l'instant
+        }
+    )
+
+
+@router.post("/{endpoint_id}/scenarios/{scenario_id}/execute")
+async def execute_scenario_on_endpoint(
+    endpoint_id: int,
+    scenario_id: int,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Exécute un scénario complet sur cet endpoint."""
+    from app.services.scenario_runner import execute_scenario_on_endpoint as exec_scenario
+    from app.utils.flash import flash
+    
+    # Vérifier que l'endpoint existe
+    endpoint = session.get(SystemEndpoint, endpoint_id)
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="Endpoint not found")
+    
+    # Vérifier que le scénario existe
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    
+    # Charger les steps du scénario
+    steps = session.exec(
+        select(InteropScenarioStep)
+        .where(InteropScenarioStep.scenario_id == scenario_id)
+        .order_by(InteropScenarioStep.order_index)
+    ).all()
+    
+    if not steps:
+        flash(request, "error", f"Le scénario '{scenario.name}' n'a aucun message à exécuter.")
+        return RedirectResponse(
+            url=f"/endpoints/{endpoint_id}/scenarios",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    
+    try:
+        # Exécuter le scénario
+        result = await exec_scenario(
+            endpoint=endpoint,
+            scenario=scenario,
+            steps=steps,
+            session=session
+        )
+        
+        flash(request, "success", 
+              f"Scénario '{scenario.name}' exécuté avec succès: {result['success_count']}/{result['total_count']} messages OK")
+        
+    except Exception as e:
+        flash(request, "error", f"Erreur lors de l'exécution: {str(e)}")
+    
+    return RedirectResponse(
+        url=f"/endpoints/{endpoint_id}/scenarios",
+        status_code=status.HTTP_303_SEE_OTHER
     )

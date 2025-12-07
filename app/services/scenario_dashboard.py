@@ -209,7 +209,7 @@ def get_step_error_summary(
     steps = session.exec(
         select(ScenarioExecutionStepLog)
         .where(ScenarioExecutionStepLog.run_id == run_id)
-        .order_by(ScenarioExecutionStepLog.step_order)
+        .order_by(ScenarioExecutionStepLog.order_index)
     ).all()
     
     return [

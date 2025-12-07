@@ -35,6 +35,13 @@ class ScenarioExecutionRun(SQLModel, table=True):
     # Relation vers les logs de Étape
     step_logs: list["ScenarioExecutionStepLog"] = Relationship(back_populates="run")
 
+    @property
+    def duration_seconds(self) -> Optional[float]:
+        """Retourne la durée du run en secondes quand fini."""
+        if not self.finished_at:
+            return None
+        return max((self.finished_at - self.started_at).total_seconds(), 0.0)
+
 
 class ScenarioExecutionStepLog(SQLModel, table=True):
     """Journalisation fine d'une étape pendant un run."""
@@ -52,3 +59,20 @@ class ScenarioExecutionStepLog(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     run: ScenarioExecutionRun = Relationship(back_populates="step_logs")
+
+    @property
+    def step_order(self) -> Optional[int]:
+        """Expose order_index sous un nom plus lisible pour le dashboard."""
+        return self.order_index
+
+    @property
+    def duration_seconds(self) -> Optional[float]:
+        """Convertit la durée enregistrée en millisecondes vers les secondes."""
+        if self.duration_ms is None:
+            return None
+        return max(self.duration_ms / 1000.0, 0.0)
+
+    @property
+    def error_detail(self) -> Optional[str]:
+        """Alias utilisé par la vue dashboard pour accéder au message d'erreur."""
+        return self.error_message

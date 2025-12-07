@@ -31,6 +31,7 @@ from app.services.scenario_status_service import (
     get_scenarios_with_status,
 )
 from app.utils.flash import flash
+from app.services.scenario_realistic_timeplan import suggest_scenario_timing_update
 
 logger = logging.getLogger(__name__)
 
@@ -768,4 +769,111 @@ def get_ej_scenarios_status(
             }
             for s in statuses
         ]
+    }
+
+
+@router.post("/{scenario_id}/suggest-realistic-timing")
+def suggest_realistic_timing(
+    scenario_id: int,
+    session: Session = Depends(get_session)
+):
+    """Suggère une configuration temporelle réaliste pour un scénario basée sur l'analyse de ses messages HL7."""
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    
+    # Récupérer les messages HL7 du scénario
+    hl7_steps = session.exec(
+        select(InteropScenarioStep)
+        .where(InteropScenarioStep.scenario_id == scenario_id)
+        .where(InteropScenarioStep.message_format.ilike("hl7"))
+        .order_by(InteropScenarioStep.order_index)
+    ).all()
+    
+    if not hl7_steps:
+        raise HTTPException(status_code=400, detail="No HL7 messages found in scenario")
+    
+    messages = [step.payload for step in hl7_steps]
+    message_types = [step.message_type for step in hl7_steps]
+    
+    # Générer la suggestion
+    suggestion = suggest_scenario_timing_update(scenario_id, messages, message_types)
+    
+    return {
+        "scenario_id": scenario_id,
+        "scenario_name": scenario.name,
+        "current_config": {
+            "time_anchor_mode": scenario.time_anchor_mode,
+            "time_anchor_days_offset": scenario.time_anchor_days_offset,
+            "preserve_intervals": scenario.preserve_intervals,
+            "jitter_min_minutes": scenario.jitter_min_minutes,
+            "jitter_max_minutes": scenario.jitter_max_minutes,
+            "apply_jitter_on_events": scenario.apply_jitter_on_events,
+        },
+        "suggested_config": {k: v for k, v in suggestion.items() if not k.startswith("_")},
+        "analysis": {
+            "detected_workflow": suggestion.get("_detected_workflow"),
+            "workflow_description": suggestion.get("_workflow_description"),
+            "event_sequence": suggestion.get("_event_sequence"),
+        }
+    }
+
+
+@router.post("/{scenario_id}/apply-realistic-timing")
+def apply_realistic_timing(
+    scenario_id: int,
+    session: Session = Depends(get_session)
+):
+    """Applique automatiquement une configuration temporelle réaliste à un scénario."""
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    
+    # Récupérer les messages HL7 du scénario
+    hl7_steps = session.exec(
+        select(InteropScenarioStep)
+        .where(InteropScenarioStep.scenario_id == scenario_id)
+        .where(InteropScenarioStep.message_format.ilike("hl7"))
+        .order_by(InteropScenarioStep.order_index)
+    ).all()
+    
+    if not hl7_steps:
+        raise HTTPException(status_code=400, detail="No HL7 messages found in scenario")
+    
+    messages = [step.payload for step in hl7_steps]
+    message_types = [step.message_type for step in hl7_steps]
+    
+    # Générer et appliquer la suggestion
+    suggestion = suggest_scenario_timing_update(scenario_id, messages, message_types)
+    
+    # Mettre à jour le scénario avec la nouvelle configuration
+    scenario.time_anchor_mode = suggestion.get("time_anchor_mode")
+    scenario.time_anchor_days_offset = suggestion.get("time_anchor_days_offset")
+    scenario.preserve_intervals = suggestion.get("preserve_intervals")
+    scenario.jitter_min_minutes = suggestion.get("jitter_min_minutes")
+    scenario.jitter_max_minutes = suggestion.get("jitter_max_minutes")
+    scenario.apply_jitter_on_events = suggestion.get("apply_jitter_on_events")
+    
+    session.add(scenario)
+    session.commit()
+    session.refresh(scenario)
+    
+    return {
+        "scenario_id": scenario_id,
+        "scenario_name": scenario.name,
+        "applied_config": {
+            "time_anchor_mode": scenario.time_anchor_mode,
+            "time_anchor_days_offset": scenario.time_anchor_days_offset,
+            "preserve_intervals": scenario.preserve_intervals,
+            "jitter_min_minutes": scenario.jitter_min_minutes,
+            "jitter_max_minutes": scenario.jitter_max_minutes,
+            "apply_jitter_on_events": scenario.apply_jitter_on_events,
+        },
+        "analysis": {
+            "detected_workflow": suggestion.get("_detected_workflow"),
+            "workflow_description": suggestion.get("_workflow_description"),
+            "event_sequence": suggestion.get("_event_sequence"),
+        },
+        "success": True,
+        "message": f"Configuration temporelle réaliste appliquée avec succès (workflow: {suggestion.get('_detected_workflow')})"
     }

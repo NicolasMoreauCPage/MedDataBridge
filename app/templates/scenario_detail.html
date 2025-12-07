@@ -68,6 +68,12 @@
         </svg>
         Exporter JSON
       </a>
+      <button type="button" onclick="configureRealisticTiming()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Timing réaliste
+      </button>
       <a href="/scenarios" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">
         Retour
       </a>
@@ -132,3 +138,70 @@
 </div>
 
 {% endblock %}
+
+<script>
+async function configureRealisticTiming() {
+  const scenarioId = {{ scenario.id }};
+  
+  try {
+    // D'abord, récupérer la suggestion
+    const suggestionResponse = await fetch(`/scenarios/${scenarioId}/suggest-realistic-timing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!suggestionResponse.ok) {
+      throw new Error(`Erreur ${suggestionResponse.status}: ${await suggestionResponse.text()}`);
+    }
+    
+    const suggestion = await suggestionResponse.json();
+    
+    // Demander confirmation avec les détails
+    const confirmMessage = `Configurer le timing réaliste pour ce scénario ?
+
+Workflow détecté: ${suggestion.analysis.detected_workflow}
+Description: ${suggestion.analysis.workflow_description}
+Séquence d'événements: ${suggestion.analysis.event_sequence.join(' → ')}
+
+Configuration suggérée:
+• Ancrage: ${suggestion.suggested_config.time_anchor_mode}
+${suggestion.suggested_config.time_anchor_days_offset ? `• Décalage: ${suggestion.suggested_config.time_anchor_days_offset} jours` : ''}
+• Jitter: ${suggestion.suggested_config.jitter_min_minutes}-${suggestion.suggested_config.jitter_max_minutes} minutes
+• Événements avec jitter: ${suggestion.suggested_config.apply_jitter_on_events}
+
+Cette action remplacera la configuration temporelle actuelle.`;
+    
+    if (confirm(confirmMessage)) {
+      // Appliquer la configuration
+      const applyResponse = await fetch(`/scenarios/${scenarioId}/apply-realistic-timing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!applyResponse.ok) {
+        throw new Error(`Erreur ${applyResponse.status}: ${await applyResponse.text()}`);
+      }
+      
+      const result = await applyResponse.json();
+      
+      alert(`✅ ${result.message}
+
+Workflow: ${result.analysis.detected_workflow}
+Configuration appliquée avec succès !
+
+La page va se recharger pour afficher les nouvelles options de timing.`);
+      
+      // Recharger la page pour voir les changements
+      window.location.reload();
+    }
+    
+  } catch (error) {
+    console.error('Erreur lors de la configuration du timing réaliste:', error);
+    alert(`❌ Erreur lors de la configuration du timing réaliste:\n${error.message}`);
+  }
+}
+</script>

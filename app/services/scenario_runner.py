@@ -20,6 +20,7 @@ from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import parse_msh_fields, send_mllp
 from app.services.scenario_date_updater import update_hl7_message_dates
 from app.services.scenario_timeplan import TimeShiftConfig, shift_hl7_scenario
+from app.services.scenario_realistic_timeplan import create_realistic_timeshift_config
 from app.services.scenario_transform import transform_hl7_for_context
 from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message
 
@@ -452,15 +453,28 @@ async def send_scenario(
         try:
             hl7_steps = [s for s in steps if s.message_format.lower() == "hl7"]
             original_messages = [s.payload for s in hl7_steps]
-            cfg = TimeShiftConfig(
-                anchor_mode=scenario.time_anchor_mode or "now",
-                anchor_days_offset=scenario.time_anchor_days_offset,
-                fixed_start_iso=scenario.time_fixed_start_iso,
-                preserve_intervals=scenario.preserve_intervals,
-                jitter_min_minutes=scenario.jitter_min_minutes,
-                jitter_max_minutes=scenario.jitter_max_minutes,
-                jitter_events=[e.strip() for e in (scenario.apply_jitter_on_events or "").split(',') if e.strip()] or None,
-            )
+            message_types = [s.message_type for s in hl7_steps]
+            
+            # Si le scénario n'a pas de configuration temporelle personnalisée,
+            # utiliser la détection automatique de workflow réaliste
+            if (scenario.time_anchor_mode is None and 
+                scenario.jitter_min_minutes is None and 
+                scenario.jitter_max_minutes is None):
+                cfg = create_realistic_timeshift_config(original_messages, message_types)
+                print(f"[scenario_runner] Using automatic realistic timeplan for scenario {scenario.name}")
+            else:
+                # Utiliser la configuration manuelle existante
+                cfg = TimeShiftConfig(
+                    anchor_mode=scenario.time_anchor_mode or "now",
+                    anchor_days_offset=scenario.time_anchor_days_offset,
+                    fixed_start_iso=scenario.time_fixed_start_iso,
+                    preserve_intervals=scenario.preserve_intervals,
+                    jitter_min_minutes=scenario.jitter_min_minutes,
+                    jitter_max_minutes=scenario.jitter_max_minutes,
+                    jitter_events=[e.strip() for e in (scenario.apply_jitter_on_events or "").split(',') if e.strip()] or None,
+                )
+                print(f"[scenario_runner] Using manual timeplan configuration for scenario {scenario.name}")
+            
             shifted_messages = shift_hl7_scenario(original_messages, cfg)
             for s, new_payload in zip(hl7_steps, shifted_messages):
                 payload_overrides[s.id] = new_payload

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import re
 from datetime import datetime
 from typing import Iterable, List, Optional, Tuple
 
@@ -20,6 +22,9 @@ from app.services.scenario_date_updater import update_hl7_message_dates
 from app.services.scenario_timeplan import TimeShiftConfig, shift_hl7_scenario
 from app.services.scenario_transform import transform_hl7_for_context
 from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message
+
+
+logger = logging.getLogger(__name__)
 
 
 class ScenarioExecutionError(Exception):
@@ -62,6 +67,29 @@ def _extract_trigger(step: InteropScenarioStep) -> Optional[str]:
         return fields.get("trigger")
     except Exception:
         return None
+
+
+def _extract_segment(message: str, segment_name: str) -> Optional[str]:
+    """Extrait un segment HL7 du message (ex: 'PID' pour obtenir la ligne PID)."""
+    lines = message.split('\n')
+    for line in lines:
+        if line.startswith(segment_name + '|'):
+            return line
+    return None
+
+
+def _replace_segment(message: str, segment_name: str, new_segment: str) -> str:
+    """Remplace un segment HL7 dans le message."""
+    lines = message.split('\n')
+    result = []
+    replaced = False
+    for line in lines:
+        if line.startswith(segment_name + '|') and not replaced:
+            result.append(new_segment)
+            replaced = True
+        else:
+            result.append(line)
+    return '\n'.join(result)
 
 
 async def _send_hl7_step(
@@ -117,9 +145,9 @@ async def _send_hl7_step(
         # En cas d'erreur transformation, Solution de repli au payload original
         payload_to_send = working_payload
     
-    # Remplacement des identifiants si configuré via binding
+    # Remplacement des identifiants - TOUJOURS génération de nouveaux identifiants
     generated_ids = {}
-    if binding and ght_context_id:
+    if ght_context_id:
         try:
             # Récupérer les namespaces configurés pour ce contexte
             ipp_namespace = session.exec(
@@ -146,30 +174,102 @@ async def _send_hl7_step(
                 )
             ).first()
             
-            # Si au moins IPP et NDA configurés, remplacer les identifiants
+            # Si namespaces configurés, utiliser le système standard
             if ipp_namespace and nda_namespace:
+                ipp_prefix_override = binding.identifier_prefix_ipp if binding else None
+                nda_prefix_override = binding.identifier_prefix_nda if binding else None
+                
                 payload_to_send, generated_ids = replace_identifiers_in_hl7_message(
                     message=payload_to_send,
                     session=session,
                     ipp_namespace=ipp_namespace,
                     nda_namespace=nda_namespace,
                     venue_namespace=venue_namespace,
-                    ipp_prefix_override=binding.identifier_prefix_ipp,
-                    nda_prefix_override=binding.identifier_prefix_nda
+                    ipp_prefix_override=ipp_prefix_override,
+                    nda_prefix_override=nda_prefix_override
                 )
                 
-                # Mettre à jour le binding avec les identifiants générés
-                if generated_ids:
+                # Mettre à jour le binding avec les identifiants générés (si binding existe)
+                if binding and generated_ids:
                     binding.generated_ipp = generated_ids.get('ipp')
                     binding.generated_nda = generated_ids.get('nda')
                     binding.generated_venue_id = generated_ids.get('venue')
                     binding.last_execution_at = datetime.utcnow()
                     session.add(binding)
                     session.commit()
+                    
+                logger.info(f"✅ Identifiants générés avec namespaces: IPP={generated_ids.get('ipp')}, NDA={generated_ids.get('nda')}")
+            
+            # Dans TOUS LES CAS (namespaces ou pas), générer nouveaux identifiants + config EJ
+            if True:  # Force toujours la génération
+                logger.info("🔄 Génération systématique de nouveaux identifiants avec config EJ")
+                from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq
+                from app.models_scenario_config import ScenarioEJConfig, get_medecin_for_event, build_xcn_field, get_location_for_event
+                
+                # Récupérer la config EJ
+                ej_config = session.exec(
+                    select(ScenarioEJConfig).where(ScenarioEJConfig.entite_juridique_id == ght_context_id)
+                ).first()
+                
+                # Générer NOUVEAUX identifiants IPP/NDA à chaque exécution
+                ipp_value = str(generate_patient_seq())  # Format: "9" + 11 chiffres
+                nda_value = str(generate_dossier_seq())  # Format: "9" + 8 chiffres
+                
+                # Extraire le trigger pour déterminer les UF/médecin à utiliser
+                trigger = None
+                msh_line = next((line for line in payload_to_send.split('\n') if line.startswith('MSH')), None)
+                if msh_line:
+                    msh_fields = msh_line.split('|')
+                    if len(msh_fields) > 9:
+                        trigger = msh_fields[9].split('^')[0] if '^' in msh_fields[9] else msh_fields[9]
+                
+                # Remplacer dans PID (identifiants patient)
+                pid_segment = _extract_segment(payload_to_send, "PID")
+                if pid_segment:
+                    # PID-3: IPP
+                    new_pid = re.sub(
+                        r'^(PID\|[^|]*\|[^|]*\|)([^|]*)(\|)',
+                        fr'\g<1>{ipp_value}^^^1.2.250.1.213.1.1.1\g<3>',
+                        pid_segment
+                    )
+                    # PID-18: NDA
+                    fields = new_pid.split('|')
+                    while len(fields) <= 18:
+                        fields.append('')
+                    fields[18] = f"{nda_value}^^^1.2.250.1.213.1.1.9"
+                    new_pid = '|'.join(fields)
+                    payload_to_send = _replace_segment(payload_to_send, "PID", new_pid)
+                    
+                    generated_ids.update({'ipp': ipp_value, 'nda': nda_value})
+                    logger.info(f"🆔 NOUVEAUX identifiants: IPP={ipp_value}, NDA={nda_value}")
+                
+                # Remplacer UF et médecin dans PV1 avec config EJ
+                pv1_segment = _extract_segment(payload_to_send, "PV1")
+                if pv1_segment and trigger:
+                    pv1_fields = pv1_segment.split('|')
+                    
+                    # PV1-3: Localisation avec UF configurée
+                    if ej_config:
+                        location_info = get_location_for_event(ej_config, trigger, session)
+                        if location_info.get("pv1_3"):
+                            if len(pv1_fields) > 3:
+                                pv1_fields[3] = location_info["pv1_3"]
+                                logger.info(f"🏥 UF configurée: {location_info['pv1_3']}")
+                    
+                    # PV1-7: Médecin responsable configuré
+                    if ej_config:
+                        medecin_info = get_medecin_for_event(ej_config, trigger)
+                        if medecin_info:
+                            pv1_7 = build_xcn_field(medecin_info)
+                            if len(pv1_fields) > 7:
+                                pv1_fields[7] = pv1_7
+                                logger.info(f"👨‍⚕️ Médecin configuré: {medecin_info.get('nom', '')} (RPPS: {medecin_info.get('rpps', '')})")
+                    
+                    new_pv1 = '|'.join(pv1_fields)
+                    payload_to_send = _replace_segment(payload_to_send, "PV1", new_pv1)
         except Exception as e:
             # Log l'erreur mais continue avec le payload non modifié
-            print(f"⚠️ Erreur remplacement identifiants: {e}")
-            pass
+            logger.warning(f"⚠️ Erreur remplacement identifiants: {e}")
 
     # Mettre à jour les dates du message si demandé ET pas déjà recalé globalement
     if update_dates and payload_override is None:
@@ -564,6 +664,31 @@ async def execute_scenario_on_endpoint(
                     step_log.status = "success"
                     success_count += 1
                     
+                elif endpoint.kind == "FILE":
+                    # Écrire le message dans l'outbox_path de l'endpoint
+                    if not endpoint.outbox_path:
+                        raise ScenarioExecutionError("Aucun outbox_path configuré pour l'endpoint FILE")
+                    
+                    import os
+                    from datetime import datetime as dt
+                    
+                    # Créer le répertoire s'il n'existe pas
+                    os.makedirs(endpoint.outbox_path, exist_ok=True)
+                    
+                    # Générer un nom de fichier avec timestamp
+                    timestamp = dt.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+                    file_ext = ".hl7" if scenario.protocol == "HL7" else ".json"
+                    filename = f"{scenario.name.replace(' ', '_')}_{step.order_index}_{timestamp}{file_ext}"
+                    filepath = os.path.join(endpoint.outbox_path, filename)
+                    
+                    # Écrire le payload
+                    with open(filepath, "w", encoding="utf-8") as f:
+                        f.write(step.payload)
+                    
+                    step_log.response = f"Écrit dans {filepath}"
+                    step_log.status = "success"
+                    success_count += 1
+                    
                 else:
                     step_log.status = "skipped"
                     step_log.error_message = f"Type d'endpoint non supporté: {endpoint.kind}"
@@ -573,7 +698,10 @@ async def execute_scenario_on_endpoint(
                 step_log.error_message = str(e)
                 error_count += 1
                 
-            step_log.finished_at = datetime.utcnow()
+            # Calculer la durée en millisecondes
+            now = datetime.utcnow()
+            duration_ms = int((now - step_log.created_at).total_seconds() * 1000)
+            step_log.duration_ms = duration_ms
             session.add(step_log)
             session.commit()
             

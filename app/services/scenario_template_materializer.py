@@ -89,9 +89,11 @@ def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dic
     """Génère les identifiants uniques pour un scénario.
     
     Utilise les générateurs basés sur timestamp pour garantir l'unicité:
-    - IPP: 12 chiffres, préfixe '9' + timestamp (generate_patient_seq)
-    - NDA: 9 chiffres, préfixe '9' + timestamp (generate_dossier_seq)
+    - IPP: 12 chiffres, préfixe configurable ou '9' + timestamp (generate_patient_seq)
+    - NDA: 9 chiffres, préfixe configurable ou '9' + timestamp (generate_dossier_seq)
     - venue_seq: 10 chiffres, préfixe '8' + timestamp (generate_venue_seq)
+    
+    Respecte les préfixes configurés via ipp_prefix et nda_prefix des options.
     
     Returns:
         Dict avec:
@@ -104,10 +106,28 @@ def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dic
         return data
     
     # Génération basée sur timestamp pour unicité garantie
-    ipp = str(generate_patient_seq())
-    nda = str(generate_dossier_seq())
-    # Le venue_seq est généré indépendamment pour garantir son unicité
-    venue_seq = str(generate_venue_seq())
+    ipp_base = str(generate_patient_seq())  # Format: "9" + 11 chiffres timestamp
+    nda_base = str(generate_dossier_seq())  # Format: "9" + 8 chiffres timestamp
+    venue_seq = str(generate_venue_seq())   # Format: "8" + chiffres timestamp
+    
+    # Appliquer les préfixes configurés si fournis
+    # IPP: remplacer le préfixe initial par le préfixe configuré
+    if opts.ipp_prefix:
+        # Garder la partie numérique du base (sans le "9" initial)
+        # et ajouter le préfixe configuré
+        ipp_numeric = ipp_base[1:]  # Enlever le "9" initial
+        ipp = f"{opts.ipp_prefix}{ipp_numeric}"
+    else:
+        ipp = ipp_base
+    
+    # NDA: remplacer le préfixe initial par le préfixe configuré
+    if opts.nda_prefix:
+        # Garder la partie numérique du base (sans le "9" initial)
+        # et ajouter le préfixe configuré
+        nda_numeric = nda_base[1:]  # Enlever le "9" initial
+        nda = f"{opts.nda_prefix}{nda_numeric}"
+    else:
+        nda = nda_base
     
     data.update({"ipp": ipp, "nda": nda, "venue_seq": venue_seq})
     return data

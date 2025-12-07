@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
@@ -31,6 +32,7 @@ from app.services.scenario_status_service import (
 )
 from app.utils.flash import flash
 
+logger = logging.getLogger(__name__)
 
 def get_templates_with_filters(request: FastAPIRequest):
     """Retourne l'instance templates globale avec les filtres enregistrés"""
@@ -75,7 +77,8 @@ def list_scenarios(
         "rows": rows,
         "show_actions": True,
         "actions": [
-            {"label": "Importer", "url": "/scenarios/import", "icon": "upload"}
+            {"label": "Exécuter en masse", "url": "/scenarios/bulk-execute", "type": "link", "icon": "play"},
+            {"label": "Importer", "url": "/scenarios/import", "type": "link", "icon": "upload"}
         ],
         "filter_status": filter_status,
         "filter_options": [
@@ -244,6 +247,184 @@ async def import_scenario(
     except Exception as e:
         flash(request, f"Erreur inattendue: {str(e)}", level="error")
         return RedirectResponse(url="/scenarios", status_code=303)
+
+
+@router.get("/bulk-execute", response_class=HTMLResponse)
+def bulk_execute_scenarios_form(
+    request: Request,
+    filter_status: Optional[str] = None,
+    session: Session = Depends(get_session)
+):
+    """Formulaire pour exécuter plusieurs scénarios en masse sur un endpoint."""
+    
+    # Récupérer l'EJ sélectionnée dans le contexte
+    ej_context = getattr(request.state, 'ej_context', None)
+    ej_id = ej_context.id if ej_context else None
+    
+    # Récupérer tous les scénarios actifs avec leur statut
+    scenarios_data = get_scenarios_with_status(session, filter_by_status=filter_status)
+    
+    # Construire la requête d'endpoints filtrés par EJ
+    endpoints_query = select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True))
+    
+    if ej_id:
+        endpoints_query = endpoints_query.where(SystemEndpoint.entite_juridique_id == ej_id)
+    
+    all_endpoints = session.exec(endpoints_query.order_by(SystemEndpoint.kind, SystemEndpoint.name)).all()
+    
+    # Catégoriser les endpoints par rôle et type
+    file_endpoints = [ep for ep in all_endpoints if ep.kind == "FILE"]
+    fhir_endpoints = [ep for ep in all_endpoints if ep.kind == "FHIR"]
+    mllp_endpoints = [ep for ep in all_endpoints if ep.kind == "MLLP"]
+    other_endpoints = [ep for ep in all_endpoints if ep.kind not in ["FILE", "FHIR", "MLLP"]]
+    
+    return get_templates_with_filters(request).TemplateResponse(
+        request,
+        "scenarios_bulk_execute_v2.html",
+        {
+            "scenarios": scenarios_data,
+            "file_endpoints": file_endpoints,
+            "fhir_endpoints": fhir_endpoints,
+            "mllp_endpoints": mllp_endpoints,
+            "other_endpoints": other_endpoints,
+            "ej_name": ej_context.name if ej_context else "Non sélectionnée",
+            "filter_status": filter_status,
+            "filter_options": [
+                {"label": "Tous les scénarios", "value": None},
+                {"label": "✅ Succès (dernier run)", "value": "success"},
+                {"label": "⚠️ Partiellement réussis", "value": "partial"},
+                {"label": "❌ Erreurs (dernier run)", "value": "error"},
+                {"label": "⏹️ Jamais exécutés", "value": "no_run"},
+            ]
+        }
+    )
+
+
+@router.post("/bulk-execute")
+async def bulk_execute_scenarios(
+    request: Request,
+    endpoint_id: int = Form(...),
+    scenario_ids: list[int] = Form(...),
+    session: Session = Depends(get_session)
+):
+    """Exécute plusieurs scénarios sur un endpoint en arrière-plan."""
+    from app.services.scenario_runner import execute_scenario_on_endpoint
+    from app.utils.flash import flash
+    import asyncio
+    
+    # Vérifier que l'endpoint existe
+    endpoint = session.get(SystemEndpoint, endpoint_id)
+    if not endpoint:
+        flash(request, "error", "❌ Endpoint introuvable")
+        return RedirectResponse(url="/scenarios/bulk-execute", status_code=status.HTTP_303_SEE_OTHER)
+    
+    if not scenario_ids or scenario_ids == ['']:
+        flash(request, "warning", "⚠️ Aucun scénario sélectionné")
+        return RedirectResponse(url="/scenarios/bulk-execute", status_code=status.HTTP_303_SEE_OTHER)
+    
+    # Convertir les scenario_ids en entiers et charger les noms avant de quitter la session
+    scenario_ids_int = []
+    scenario_names = {}
+    total_messages = 0
+    
+    for scenario_id_str in scenario_ids:
+        try:
+            scenario_id = int(scenario_id_str)
+            scenario_ids_int.append(scenario_id)
+            
+            scenario = session.get(InteropScenario, scenario_id)
+            if scenario:
+                scenario_names[scenario_id] = scenario.name
+                steps = session.exec(
+                    select(InteropScenarioStep)
+                    .where(InteropScenarioStep.scenario_id == scenario_id)
+                ).all()
+                total_messages += len(steps)
+        except (ValueError, TypeError):
+            continue
+    
+    total_scenarios = len(scenario_ids_int)
+    endpoint_name = endpoint.name
+    endpoint_id_copy = endpoint.id
+    
+    # Fonction d'exécution en arrière-plan avec sa propre session
+    async def run_scenarios_background():
+        """Exécute les scénarios en arrière-plan avec une nouvelle session."""
+        from app.db import session_factory
+        
+        success_count = 0
+        error_count = 0
+        failed_scenarios = []
+        
+        # Créer une nouvelle session pour la tâche de fond
+        bg_session = session_factory()
+        try:
+            # Récupérer l'endpoint et les scénarios dans cette nouvelle session
+            bg_endpoint = bg_session.get(SystemEndpoint, endpoint_id_copy)
+            if not bg_endpoint:
+                logger.error(f"[Background] Endpoint {endpoint_id_copy} introuvable")
+                return
+            
+            for scenario_id in scenario_ids_int:
+                scenario = bg_session.get(InteropScenario, scenario_id)
+                if not scenario:
+                    error_count += 1
+                    continue
+                
+                scenario_name = scenario.name
+                
+                # Charger les steps
+                steps = bg_session.exec(
+                    select(InteropScenarioStep)
+                    .where(InteropScenarioStep.scenario_id == scenario_id)
+                    .order_by(InteropScenarioStep.order_index)
+                ).all()
+                
+                if not steps:
+                    error_count += 1
+                    continue
+                
+                try:
+                    logger.info(f"[Background] Exécution du scénario '{scenario_name}' sur '{endpoint_name}'")
+                    result = await execute_scenario_on_endpoint(
+                        endpoint=bg_endpoint,
+                        scenario=scenario,
+                        steps=steps,
+                        session=bg_session
+                    )
+                    
+                    if result.get('error_count', 0) == 0:
+                        success_count += 1
+                        logger.info(f"[Background] ✅ '{scenario_name}' exécuté avec succès")
+                    else:
+                        error_count += 1
+                        failed_scenarios.append(scenario_name)
+                        logger.warning(f"[Background] ⚠️ '{scenario_name}' exécuté avec {result.get('error_count', 0)} erreurs")
+                except Exception as e:
+                    error_count += 1
+                    failed_scenarios.append(scenario_name)
+                    logger.error(f"[Background] ❌ Erreur lors de l'exécution de '{scenario_name}': {str(e)[:200]}")
+            
+            # Log final
+            if error_count == 0 and success_count > 0:
+                logger.info(f"[Background] ✅ {success_count}/{total_scenarios} scénarios exécutés avec succès ({total_messages} messages)")
+            elif success_count > 0:
+                logger.warning(f"[Background] ⚠️ {success_count}/{total_scenarios} scénarios réussis, {error_count} en erreur")
+            else:
+                logger.error(f"[Background] ❌ Aucun scénario n'a pu être exécuté ({error_count} erreurs)")
+        
+        finally:
+            bg_session.close()
+    
+    # Lancer l'exécution en arrière-plan sans attendre
+    asyncio.create_task(run_scenarios_background())
+    
+    # Retourner immédiatement avec un message au user
+    flash(request, "info", 
+          f"⏱️ Exécution lancée en arrière-plan: {total_scenarios} scénario(s), {total_messages} message(s). "
+          f"Vérifiez les logs ou revisitez cette page pour le statut final.")
+    
+    return RedirectResponse(url="/scenarios/bulk-execute", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/runs/{run_id}", response_class=HTMLResponse)

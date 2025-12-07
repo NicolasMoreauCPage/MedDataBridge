@@ -122,6 +122,9 @@ def update_patient_from_pid_data(
     # PID-32: Identity Reliability Code
     if pid_data.get("identity_reliability_code"):
         patient.identity_reliability_code = pid_data["identity_reliability_code"]
+        logger.debug(f"[patient_update] Set identity_reliability_code to {pid_data['identity_reliability_code']}")
+    else:
+        logger.debug(f"[patient_update] identity_reliability_code is empty: {pid_data.get('identity_reliability_code')!r}")
     
     # SSN / NIR
     if pid_data.get("ssn"):

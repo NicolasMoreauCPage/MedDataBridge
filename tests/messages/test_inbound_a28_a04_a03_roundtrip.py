@@ -34,11 +34,11 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
     from app.models_structure import EntiteJuridique, IdentifierNamespace
 
     # Messages: A28 (create identity), A04 (admission), A03 (discharge) provided by user
+    # PID-5 requires XPN-7 (Name Type Code): L=Legal, D=Usage, U=Unspecified
     a28 = (
         "MSH|^~\\&|SRC-PAM|SRC|MEDBRIDGE|POC|20251101010101||ADT^A28|MSG-A28|P|2.5\r"
         "EVN|A28|20251101010101\r"
-        "PID|||SRC12345^^^SRC-PAM&1.2.250.1.211.99.1&ISO^PI||DOE^JOHN||19800101|M\r"
-        "PV1||O|UNKNOWN\r"
+        "PID|||SRC12345^^^SRC-PAM&1.2.250.1.211.99.1&ISO^PI||DOE^JOHN^^^^^L||19800101|M||||||||||||||||||||||||VALI\r"
     )
 
     # Use a full A04 Exemple similar to the consultation Exemple (includes ZBE/ZFV etc.)

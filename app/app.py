@@ -126,7 +126,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(
         title="MedBridge - Healthcare Interoperability Platform",
-        version="1.0.0-rc1",
+        version="1.0.0-alpha",
         lifespan=lifespan
     )
 
@@ -159,7 +159,7 @@ def create_app() -> FastAPI:
     # Stocker dans app.state pour accès dans les routes si besoin
     app.state.templates = templates
     # Store version from pyproject.toml
-    app.state.version = "0.2.0"
+    app.state.version = "1.0.0-alpha"
 
     # Servir les fichiers statiques (CSS/JS)
     static_dir = str(Path(__file__).parent / "static")

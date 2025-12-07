@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "MedData_Bridge"
-version = "0.2.0"
+version = "1.0.0-alpha"
 authors = [
   { name="Nicolas", email="author@example.com" },
 ]

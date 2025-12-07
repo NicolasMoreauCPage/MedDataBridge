@@ -23,6 +23,11 @@ from app.services.scenario_timeplan import TimeShiftConfig, shift_hl7_scenario
 from app.services.scenario_realistic_timeplan import create_realistic_timeshift_config
 from app.services.scenario_transform import transform_hl7_for_context
 from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message
+from app.services.scenario_identity_generator import (
+    PatientIdentity,
+    apply_patient_identity_to_hl7,
+    generate_patient_identity,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -100,6 +105,7 @@ async def _send_hl7_step(
     update_dates: bool = True,
     binding: Optional[ScenarioBinding] = None,
     payload_override: Optional[str] = None,
+    identity_profile: Optional[PatientIdentity] = None,
 ) -> MessageLog:
     """
     Envoie une étape HL7 via MLLP avec remplacement optionnel des identifiants.
@@ -110,6 +116,7 @@ async def _send_hl7_step(
         endpoint: Endpoint cible
         update_dates: Si True, met à jour les dates du message pour qu'elles soient récentes
         binding: ScenarioBinding optionnel pour configuration des identifiants
+        identity_profile: Identité patient générée pour ce run (réutilisée sur toutes les étapes)
     """
     if not endpoint.host or not endpoint.port:
         raise ScenarioExecutionError("Endpoint MLLP incomplet (host/port manquant)")
@@ -145,6 +152,12 @@ async def _send_hl7_step(
     except Exception:
         # En cas d'erreur transformation, Solution de repli au payload original
         payload_to_send = working_payload
+
+    if identity_profile:
+        try:
+            payload_to_send = apply_patient_identity_to_hl7(payload_to_send, identity_profile)
+        except Exception as exc:
+            logger.warning(f"⚠️ Impossible d'appliquer l'identité générée: {exc}")
     
     # Remplacement des identifiants - TOUJOURS génération de nouveaux identifiants
     generated_ids = {}
@@ -364,6 +377,7 @@ async def send_step(
     update_dates: bool = True,
     binding: Optional[ScenarioBinding] = None,
     payload_override: Optional[str] = None,
+    identity_profile: Optional[PatientIdentity] = None,
 ) -> MessageLog:
     """
     Envoie une étape de scénario au système cible.
@@ -374,6 +388,7 @@ async def send_step(
         endpoint: Endpoint cible
         update_dates: Si True, met à jour automatiquement les dates HL7 pour qu'elles soient récentes
         binding: ScenarioBinding optionnel pour configuration des identifiants
+        identity_profile: Identité patient à injecter pour maintenir la cohérence multi-étapes
     """
     trigger = _extract_trigger(step)
 
@@ -400,6 +415,7 @@ async def send_step(
             update_dates=update_dates,
             binding=binding,
             payload_override=payload_override,
+            identity_profile=identity_profile,
         )
     if endpoint.kind == "FHIR":
         return await _send_fhir_step(session, step, endpoint)
@@ -434,6 +450,10 @@ async def send_scenario(
     steps = sorted(steps, key=lambda s: s.order_index)
     if start_order_index is not None:
         steps = [s for s in steps if s.order_index >= start_order_index]
+
+    identity_profile: Optional[PatientIdentity] = None
+    if any(s.message_format.lower() == "hl7" for s in steps):
+        identity_profile = generate_patient_identity()
 
     # Créer le run
     run = ScenarioExecutionRun(
@@ -503,6 +523,7 @@ async def send_scenario(
                     update_dates=update_dates,
                     binding=binding,
                     payload_override=override,
+                    identity_profile=identity_profile,
                 )
                 status = message_log.status
                 # Extraction code ACK HL7 (AA/AE/AR) ou HTTP code pour FHIR
@@ -626,6 +647,9 @@ async def execute_scenario_on_endpoint(
     
     success_count = 0
     error_count = 0
+    identity_profile: Optional[PatientIdentity] = None
+    if any(step.message_format.lower() == "hl7" for step in steps):
+        identity_profile = generate_patient_identity()
     
     try:
         for step in steps:
@@ -646,7 +670,8 @@ async def execute_scenario_on_endpoint(
                         session=session,
                         step=step,
                         endpoint=endpoint,
-                        update_dates=True
+                        update_dates=True,
+                        identity_profile=identity_profile,
                     )
                     
                     step_log.message_log_id = message_log.id

@@ -2,6 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 import asyncio
 import json
+from pathlib import Path
 from typing import Literal, Sequence, Tuple
 
 from sqlmodel import Session, select
@@ -52,6 +53,7 @@ def build_pid3_identifiers(
         return (patient.get(attr, default) if is_dict else getattr(patient, attr, default))
 
     # Priority: include internal IPP identifier (patient_seq or id) using IdentifierNamespace of type 'IPP' when available
+    internal_identifier_value = None
     try:
         internal_id_val = _get("patient_seq") or _get("id")
         if internal_id_val:
@@ -64,11 +66,14 @@ def build_pid3_identifiers(
                     .where(IdentifierNamespace.type == "IPP")
                     .where(IdentifierNamespace.is_active == True)
                 ).first()
+            auth = None
             if ipp_ns:
                 auth = _auth(ipp_ns.system, ipp_ns.oid)
-            else:
-                # Respect forced identifier values from endpoint config when provided
-                auth = _auth(forced_system, forced_oid) or "HOSP"
+            elif forced_system or forced_oid:
+                auth = _auth(forced_system, forced_oid)
+            if auth:
+                internal_identifier_value = _c(str(internal_id_val))
+                identifiers.append(f"{internal_identifier_value}^^^{auth}^PI")
     except Exception:
         logger.exception("Error while resolving IPP namespace for internal identifier")
 
@@ -101,6 +106,8 @@ def build_pid3_identifiers(
     pid_val = _get('id')
     if pid_val:
         already_added_values.add(str(pid_val))
+    if internal_identifier_value:
+        already_added_values.add(internal_identifier_value)
     ext_val = _get('external_id')
     if ext_val:
         already_added_values.add(ext_val)
@@ -135,6 +142,17 @@ def build_pid3_identifiers(
         if status == 'active' and value not in already_added_values:
             identifiers.append(f"{_c(value)}^^^{_auth(system, oid)}^{getattr(typ, 'value', typ)}")
             already_added_values.add(_c(value))
+
+    # As a last resort, ensure PID-3 is populated with an internal identifier so PAM validators accept the payload.
+    if not identifiers:
+        try:
+            fallback_val = _get("patient_seq") or _get("id")
+            if fallback_val:
+                auth = _auth(forced_system, forced_oid) or "HOSP"
+                internal_identifier_value = _c(str(fallback_val))
+                identifiers.append(f"{internal_identifier_value}^^^{auth}^PI")
+        except Exception:
+            logger.exception("Failed to build fallback PID-3 identifier")
 
     return "~".join(identifiers) if identifiers else ""
 
@@ -399,13 +417,34 @@ def generate_pam_hl7(
                 dossier_obj = session.exec(_select(Dossier).where(Dossier.patient_id == pid_patient_id).order_by(Dossier.id.desc())).first()
                 if dossier_obj and getattr(dossier_obj, 'dossier_seq', None):
                     # resolve namespace authority for NDA (dossier numbers)
-                    auth, _ = _resolve_namespace_authority(session, _get('entite_juridique_id'), 'NDA', forced_identifier_system, forced_identifier_oid)
+                    auth, type_code = _resolve_namespace_authority(
+                        session,
+                        _get('entite_juridique_id'),
+                        'NDA',
+                        forced_identifier_system,
+                        forced_identifier_oid,
+                    )
+                    type_code = type_code or 'AN'
                     if auth:
-                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{auth}^AN"
+                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{auth}^{type_code}"
                     else:
-                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{_c_local('EXTERNAL')}^AN"
+                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{_c_local('HOSP')}^{type_code}"
         except Exception:
             logger.exception("Failed to resolve dossier/account_number for PID-18")
+
+        if not account_number:
+            # Fallback: reuse patient sequence/id so PID-18 is never empty (IHE requires it)
+            fallback_value = _c_local(str(_get('patient_seq') or _get('id') or 'PENDING'))
+            fallback_auth, fallback_type = _resolve_namespace_authority(
+                session,
+                _get('entite_juridique_id'),
+                'NDA',
+                forced_identifier_system,
+                forced_identifier_oid,
+            )
+            fallback_type = fallback_type or 'AN'
+            fallback_auth = fallback_auth or _c_local('HOSP')
+            account_number = f"{fallback_value}^^^{fallback_auth}^{fallback_type}"
 
         # Build PID using indexed fields to ensure PID-18 (account number) and PID-23 (birth place)
         # are placed at their correct positions.
@@ -442,7 +481,26 @@ def generate_pam_hl7(
 
         pid = "|".join(pid_fields)
 
-        return "\r".join([msh, evn, pid])
+        # Minimal PV1 so validators always find visit data even when no dossier/venue exists yet
+        visit_number_value = _c_local(str(_get('patient_seq') or _get('id') or '0'))
+        vn_auth, vn_type = _resolve_namespace_authority(
+            session,
+            _get('entite_juridique_id'),
+            'VN',
+            forced_identifier_system,
+            forced_identifier_oid,
+        )
+        vn_auth = vn_auth or _c_local('HOSP')
+        vn_type = vn_type or 'VN'
+        pv1_fields = [""] * 40
+        pv1_fields[0] = "PV1"
+        pv1_fields[1] = "1"
+        pv1_fields[2] = "O"  # Default patient class (Outpatient) for standalone patient events
+        pv1_fields[3] = ""   # Location unknown at this stage
+        pv1_fields[19] = f"{visit_number_value}^^^{vn_auth}^{vn_type}"
+        pv1 = "|".join(pv1_fields)
+
+        return "\r".join([msh, evn, pid, pv1])
         
     if entity_type == "dossier":
         # ⚠️ IMPORTANT : La création d'un dossier ne génère PAS de message IHE PAM
@@ -747,21 +805,83 @@ def generate_pam_hl7(
             gender = patient.gender or ""
             
             # PID-18: Patient Account Number (numéro de dossier pour IHE PAM France)
-            # Prefer VN namespace (visit number namespace) for visit/account identifiers
-            account_number_raw = str(dossier.dossier_seq) if dossier and hasattr(dossier, 'dossier_seq') else ""
+            # Prefer VN namespace (visit number namespace) for visit/account identifiers; fallback to dossier/id when sequences are missing
+            account_number_raw = ""
+            if dossier and getattr(dossier, 'dossier_seq', None):
+                account_number_raw = str(dossier.dossier_seq)
+            elif dossier and getattr(dossier, 'id', None):
+                account_number_raw = str(dossier.id)
+            elif venue and getattr(venue, 'venue_seq', None):
+                account_number_raw = str(venue.venue_seq)
+            elif getattr(entity, 'mouvement_seq', None):
+                account_number_raw = str(entity.mouvement_seq)
+
             authority_vn, vn_type = _resolve_namespace_authority(
-                session, getattr(dossier, 'entite_juridique_id', None), "VN",
-                forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
+                session,
+                getattr(dossier, 'entite_juridique_id', None),
+                "VN",
+                forced_system=forced_identifier_system,
+                forced_oid=forced_identifier_oid,
             )
-            account_number = f"{account_number_raw}^^^{authority_vn}^{vn_type}"
+            authority_vn = authority_vn or (forced_identifier_system or "HOSP")
+            vn_type = vn_type or "VN"
+            account_number = f"{account_number_raw}^^^{authority_vn}^{vn_type}" if account_number_raw else ""
+
+            if not account_number:
+                fallback_value = str(getattr(entity, 'mouvement_seq', None) or getattr(venue, 'venue_seq', None) or getattr(dossier, 'id', None) or "0")
+                fallback_auth, fallback_type = _resolve_namespace_authority(
+                    session,
+                    getattr(dossier, 'entite_juridique_id', None),
+                    "NDA",
+                    forced_system=forced_identifier_system,
+                    forced_oid=forced_identifier_oid,
+                )
+                fallback_auth = fallback_auth or (forced_identifier_system or "HOSP")
+                fallback_type = fallback_type or "AN"
+                account_number = f"{fallback_value}^^^{fallback_auth}^{fallback_type}"
             
-            # Build complete PID segment with PID-18 (Patient Account Number)
-            # Format: PID|1||PID3||Name||DOB|Gender||||||||||||Marital||||BirthPlace||||Nationality||||||IdentityCode
-            # Build PID-5 using XPN builder (include birth/legal name type if present)
+            # Build complete PID segment with PID-18 (Patient Account Number) using indexed fields
             birth_family = getattr(patient, 'birth_family', None)
             first_type = "L" if birth_family else None
-            name_field = _build_xpn(family, given, getattr(patient, 'middle', None), getattr(patient, 'suffix', None), getattr(patient, 'prefix', None), first_type)
-            pid = f"PID|1||{pid3}||{_c_local(name_field)}||{birth_date}|{gender}||||||||||||||{account_number}||||||||||||||||||||"
+            name_field = _build_xpn(
+                family,
+                given,
+                getattr(patient, 'middle', None),
+                getattr(patient, 'suffix', None),
+                getattr(patient, 'prefix', None),
+                first_type,
+            )
+            pid_fields = [""] * 40
+            pid_fields[0] = "PID"
+            pid_fields[1] = "1"
+            pid_fields[3] = pid3
+            pid_fields[5] = _c_local(name_field)
+            pid_fields[7] = birth_date
+            pid_fields[8] = gender
+
+            if patient:
+                addr = [
+                    patient.address or "",
+                    "",
+                    patient.city or "",
+                    patient.state or "",
+                    patient.postal_code or "",
+                    patient.country or "",
+                    "H",
+                ]
+                pid_fields[11] = "^".join(addr)
+                xtn_parts = []
+                if getattr(patient, "phone", None):
+                    xtn_parts.append(f"^PRN^PH^^^^{patient.phone}")
+                if getattr(patient, "mobile", None):
+                    xtn_parts.append(f"^ORN^CP^^^^{patient.mobile}")
+                if getattr(patient, "email", None):
+                    xtn_parts.append(f"^NET^Internet^{patient.email}")
+                if xtn_parts:
+                    pid_fields[13] = "~".join(xtn_parts)
+
+            pid_fields[18] = account_number
+            pid = "|".join(pid_fields)
         else:
             # If only OID is provided without system, Solution de repli to HOSP system
             authority = (
@@ -890,13 +1010,38 @@ def generate_pam_hl7(
         if not zbe_9 or zbe_9 not in valid_natures:
             zbe_9 = "H"  # Default to hospitalisation
         
-        # Build complete ZBE segment with conditional ZBE-6
-        # ZBE-6 (original_trigger) is required for CANCEL and UPDATE actions (per IHE PAM France)
-        # Format: ZBE|1|2||4|5|6|7|8|9 when CANCEL/UPDATE, ZBE|1|2||4|5||7|8|9 when INSERT
+        # Build ZBE segment respecting official field order. ZBE-3 carries the movement code used
+        # by validators, while ZBE-4 still exposes the action indicator expected by downstream feeds.
+        movement_code = getattr(entity, "movement_code", None)
+        if not movement_code:
+            # Map common HL7 events to textual movement codes when no explicit code is provided.
+            event_to_movement = {
+                "A01": "ADMIT",
+                "A02": "TRANSFER",
+                "A03": "DISCHARGE",
+                "A06": "ADMIT",
+                "A07": "TRANSFER",
+                "A11": "TRANSFER",
+                "A12": "DELETE",
+                "A13": "DELETE",
+                "A31": "UPDATE",
+                "Z99": "UPDATE",
+            }
+            movement_code = event_to_movement.get(event_code, action or "INSERT")
+        zbe_fields = [
+            "ZBE",
+            zbe_id,
+            timestamp,
+            movement_code,
+            action or movement_code,
+            historic,
+        ]
         if (action in ["CANCEL", "UPDATE"]) and original_trigger:
-            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}|{original_trigger}|{zbe_7}|{zbe_8}|{zbe_9}"
+            zbe_fields.append(original_trigger)
         else:
-            zbe = f"ZBE|{zbe_id}|{timestamp}||{action}|{historic}||{zbe_7}|{zbe_8}|{zbe_9}"
+            zbe_fields.append("")
+        zbe_fields.extend([zbe_7, zbe_8, zbe_9])
+        zbe = "|".join(zbe_fields)
         
         # Combine all segments with \r separator (HL7 standard)
         return "\r".join([msh, evn, pid, pv1, zbe])
@@ -1215,8 +1360,10 @@ async def emit_to_senders_async(
             continue
     endpoints = filtered_endpoints
     sent_logs: list[MessageLog] = []
+    base_correlation_id = getattr(entity, "correlation_id", None)
 
     for endpoint in endpoints:
+        correlation_id = base_correlation_id
         import time
         from datetime import datetime
         # create a snapshot once per endpoint loop if needed
@@ -1256,7 +1403,7 @@ async def emit_to_senders_async(
                     control_id = hl7_fields.get("control_id")
                 except Exception:
                     control_id = None
-                correlation_id = control_id or getattr(entity, "correlation_id", None)
+                correlation_id = control_id or correlation_id
                 max_retry = 3
                 retry = 0
                 while retry < max_retry:

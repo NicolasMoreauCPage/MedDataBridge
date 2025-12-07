@@ -5,6 +5,9 @@
 {% if sample_data is not defined %}
   {% set sample_data = {} %}
 {% endif %}
+{% if sample_prefilled is not defined %}
+  {% set sample_prefilled = False %}
+{% endif %}
 <div class="max-w-6xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
@@ -30,14 +33,29 @@
             <p class="text-blue-100 mt-1">Formulaire de création/modification patient</p>
           </div>
         </div>
-        <a href="/patients" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg">
-          ← Retour
-        </a>
+        <div class="flex flex-col items-end gap-3 text-sm">
+          <a href="/patients" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg text-base">
+            ← Retour
+          </a>
+          {% if not patient %}
+          <button type="button" id="regenerate-sample" class="px-6 py-3 rounded-xl font-semibold bg-white text-indigo-700 hover:bg-slate-100 transition-all duration-200 shadow-md flex items-center gap-2 justify-center">
+            <span>🎲</span>
+            <span>Générer une identité réaliste</span>
+          </button>
+          <p id="sample-status" class="text-xs text-white/80 text-right" aria-live="polite">
+            {% if sample_prefilled %}
+              Identité exemple appliquée
+            {% else %}
+              Cliquez sur 🎲 pour générer une identité
+            {% endif %}
+          </p>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
 
-  <form method="post" action="{{ action_url }}" class="space-y-6">
+  <form method="post" action="{{ action_url }}" class="space-y-6" data-patient-form="true">
     <div class="form-grid grid gap-4 md:gap-6">
     
     <!-- Section Identité -->
@@ -451,4 +469,68 @@
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
   }
 </style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form[data-patient-form]');
+    const regenerateBtn = document.getElementById('regenerate-sample');
+    if (!form || !regenerateBtn) {
+      return;
+    }
+    const statusEl = document.getElementById('sample-status');
+    const defaultLabel = regenerateBtn.textContent;
+    const fieldNames = [
+      'prefix', 'family', 'given', 'middle', 'suffix', 'birth_family',
+      'birth_date', 'gender', 'address', 'city', 'state', 'postal_code',
+      'country', 'phone', 'mobile', 'work_phone', 'email', 'birth_address',
+      'birth_city', 'birth_state', 'birth_postal_code', 'birth_country',
+      'nir', 'marital_status', 'nationality', 'identity_reliability_code',
+      'mothers_maiden_name', 'primary_care_provider'
+    ];
+
+    regenerateBtn.addEventListener('click', async function () {
+      regenerateBtn.disabled = true;
+      regenerateBtn.textContent = 'Chargement...';
+      try {
+        const response = await fetch('/patients/sample-identity');
+        if (!response.ok) {
+          throw new Error('sample identity fetch failed');
+        }
+        const payload = await response.json();
+        const sample = payload.sample_data || payload;
+        applyValues(sample);
+        if (statusEl) {
+          statusEl.textContent = 'Nouvelle identité appliquée';
+          statusEl.classList.remove('text-rose-200');
+          statusEl.classList.add('text-emerald-200');
+        }
+      } catch (error) {
+        console.error(error);
+        if (statusEl) {
+          statusEl.textContent = "Impossible de générer une identité";
+          statusEl.classList.remove('text-emerald-200');
+          statusEl.classList.add('text-rose-200');
+        }
+      } finally {
+        regenerateBtn.disabled = false;
+        regenerateBtn.textContent = defaultLabel;
+      }
+    });
+
+    function applyValues(data) {
+      fieldNames.forEach(function (name) {
+        const input = form.querySelector('[name="' + name + '"]');
+        if (!input) {
+          return;
+        }
+        let value = data[name] || '';
+        if (input.tagName === 'INPUT' && input.type === 'date' && value) {
+          value = value.substring(0, 10);
+        }
+        input.value = value;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+  });
+</script>
 {% endblock %}

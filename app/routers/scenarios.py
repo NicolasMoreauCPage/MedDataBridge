@@ -32,6 +32,7 @@ from app.services.scenario_status_service import (
 )
 from app.utils.flash import flash
 from app.services.scenario_realistic_timeplan import suggest_scenario_timing_update
+from app.services.scenario_identity_generator import generate_patient_identity
 
 logger = logging.getLogger(__name__)
 
@@ -534,7 +535,12 @@ async def scenario_send(
             step = session.get(InteropScenarioStep, step_id)
             if not step:
                 raise HTTPException(status_code=404, detail="Étape introuvable")
-            log = await send_step(session, step, endpoint)
+            log = await send_step(
+                session,
+                step,
+                endpoint,
+                identity_profile=generate_patient_identity(),
+            )
             if log.status == "sent":
                 level = "success"
             elif log.status == "skipped":

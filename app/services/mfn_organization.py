@@ -144,10 +144,9 @@ def generate_mfn_organization_message(session: Session, ej: Optional[EntiteJurid
         
         segments.append("|".join(org_fields))
         
-        # LOC - Location (pour compatibilité avec les systèmes existants)
-        # Certains systèmes s'attendent à un segment LOC même pour les organizations
-        loc_identifier = f"^^^^^ORG^^^^{entity.finess_ej or entity.id}"
-        segments.append(f"LOC|{loc_identifier}||ORG|Entite Juridique")
+        # LOC - Location (utilise les mêmes codes que MFN structure afin de satisfaire les validateurs génériques)
+        loc_identifier = f"^^^^^M^^^^{entity.finess_ej or entity.id}"
+        segments.append(f"LOC|{loc_identifier}||M|Entite Juridique")
         
         # LCH - Location Characteristic (détails additionnels)
         segments.append(f"LCH|{loc_identifier}|||ID_GLBL^Identifiant unique global^L|^{entity.finess_ej or entity.id}")

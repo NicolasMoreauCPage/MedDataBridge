@@ -76,22 +76,34 @@
 - ✅ **Fallback intelligent** : utilise `message_type` si `payload` vide
 - ✅ **Préservation** des intervalles relatifs entre messages
 
+### 🆕 Identités patient réalistes
+
+- **Service dédié** : `app/services/scenario_identity_generator.py` génère à la volée un profil patient complet (nom, adresse, NIR, téléphones, etc.) basé sur des jeux de données français.
+- **Injection HL7** : `_send_hl7_step` applique automatiquement le profil sur les segments PID avant la régénération des identifiants IPP/NDA, garantissant une cohérence multi-étapes.
+- **Réutilisation UI/API** : `send_step`, `send_scenario` et les envois unitaires depuis l’interface utilisent tous la même identité par exécution, alignant scénarios, captures et démonstrations.
+- **Tests unitaires** : `tests/test_scenario_identity_generator.py` valide la reproductibilité (seed) et l’injection propre des champs sensibles.
+
 ## 📈 Bénéfices apportés
 
 ### Pour les tests réalistes
+
 - **Timestamps cohérents** avec les workflows hospitaliers
 - **Variabilité contrôlée** via jitter adapté au contexte
 - **Ancrage temporel** intelligent (urgence = récent, séjour long = ancien)
 
 ### Pour l'utilisateur
+
 - **Configuration automatique** : plus de réglage manuel fastidieux
 - **Workflows reconnus** : le système comprend le contexte médical
 - **Application en masse** : configuration de 19 scénarios en une commande
+- **Identités fraîches** : chaque exécution de scénario bénéficie d’une identité unique et réaliste, sans préparation manuelle.
 
 ### Pour le développement  
+
 - **Tests plus représentatifs** de la réalité hospitalière
 - **Détection de bugs temporels** dans des conditions réalistes
 - **Validation** des interfaces avec des données temporelles cohérentes
+- **Couverture renforcée** : le générateur dispose de tests dédiés pour prévenir les régressions sur la structure des segments PID.
 
 ## 🎪 Démonstration
 
@@ -109,10 +121,18 @@ curl -X POST "http://localhost:8000/scenarios/1/suggest-realistic-timing" | jq .
 http://localhost:8000/scenarios/1
 ```
 
+## ✅ Validation complète des scénarios enrichis
+
+1. **Lancer un scénario HL7 complet** via l'UI (bouton "Envoyer" sur la fiche scénario) ou `cli.py scenarios send` afin de propager l'identité réaliste nouvellement injectée.
+2. **Surveiller le système destinataire** (serveur MLLP ou EMR de test) et les `MessageLog` locaux pour confirmer l'acceptation des champs PID enrichis (noms, adresses, NIR, PID-32...).
+3. **Comparer une trace avant/après** en exportant le message HL7 depuis `MessageLog` pour vérifier que les identités restent cohérentes sur toutes les étapes d'une même exécution.
+4. **Archiver le résultat** (ACK HL7 AA/AE + captures d'écran destinataire) dans `ROUNDTRIP_SESSION_SUMMARY.md` afin de tracer l'impact de ces données réalistes sur les workflows aval.
+
 ## 🔮 Exemples d'intervalles générés
 
 ### Urgence (Scénario 1)
-```
+
+```text
 A05 (Consultation urgence) 
   ↓ 30min-2h
 A01 (Admission) 
@@ -125,7 +145,8 @@ A03 (Sortie)
 ```
 
 ### Hospitalisation programmée (Scénarios 2,3,5...)
-```
+
+```text
 A01 (Admission programmée)
   ↓ 4h-12h
 A02 (Transfert éventuel) 
@@ -134,7 +155,8 @@ A03 (Sortie)
 ```
 
 ### Consultation (Scénarios 4,6)
-```
+
+```text
 A04 (Arrivée)
   ↓ 15min-1h
 A05 (Consultation)

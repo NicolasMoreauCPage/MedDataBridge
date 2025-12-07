@@ -10,6 +10,10 @@ from app.models import Patient, Dossier, DossierType
 from app.routers.contacts import get_templates
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema, PatientUpdateSchema
+from app.services.scenario_identity_generator import (
+    generate_patient_identity,
+    identity_to_sample_data,
+)
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.utils.flash import flash
 
@@ -176,10 +180,19 @@ def delete_patient(patient_id: int, request: Request, session=Depends(get_sessio
     flash(request, f"Patient {p.family} {p.given} supprimé.", "success")
     return RedirectResponse(url="/patients", status_code=303)
 
+
+@router.get("/sample-identity", response_class=JSONResponse)
+def generate_sample_identity():
+    """Expose une identité patient réaliste pour pré-remplir le formulaire côté UI."""
+    sample_identity = identity_to_sample_data(generate_patient_identity())
+    return {"sample_data": sample_identity}
+
 @router.get("/new", response_class=HTMLResponse)
 def new_patient_form(request: Request):
     """Displays the form to create a new patient."""
     templates = get_templates(request)
+    prefill_request = request.query_params.get("prefill") == "1"
+    sample_identity = identity_to_sample_data(generate_patient_identity()) if prefill_request else None
     return templates.TemplateResponse(request, "patient_form.html", {
         "title": "Nouveau patient", "patient": None, "action_url": "/patients/new",
         "identity_reliability_options": get_vocabulary_options("identity-reliability-rniv"),
@@ -187,6 +200,8 @@ def new_patient_form(request: Request):
         "ins_type_options": get_vocabulary_options("ins-type"),
         "gender_options": get_vocabulary_options("administrative-gender-v2"),
         "country_options": get_vocabulary_options("country-codes"),
+        "sample_data": sample_identity,
+        "sample_prefilled": prefill_request,
     })
 
 @router.post("/new")

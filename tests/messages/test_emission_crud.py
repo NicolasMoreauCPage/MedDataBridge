@@ -5,6 +5,32 @@ from datetime import datetime
 import pytest
 from sqlmodel import select
 
+from app.validators.hl7_validators import MFNValidator, PAMValidator
+
+
+def _is_mfn_message(payload: str) -> bool:
+    first_segment = (payload or "").split("\r", 1)[0]
+    parts = first_segment.split("|")
+    if len(parts) > 8:
+        msg_type = parts[8]
+        if msg_type and "MFN" in msg_type:
+            return True
+    return "MFN" in first_segment
+
+
+def _validate_hl7_logs(logs):
+    for log in logs:
+        if getattr(log, "kind", "") != "MLLP":
+            continue
+        payload = getattr(log, "payload", "") or ""
+        if not payload.strip():
+            continue
+        validator_cls = MFNValidator if _is_mfn_message(payload) else PAMValidator
+        validator = validator_cls(payload)
+        assert validator.validate(), (
+            f"HL7 payload invalide via {validator_cls.__name__}: {validator.errors}"
+        )
+
 
 @pytest.mark.usefixtures("setup_database")
 def test_emit_identity_and_movements(monkeypatch):
@@ -84,6 +110,7 @@ def test_emit_identity_and_movements(monkeypatch):
         # basic checks on logs: ensure payloads were generated
         for l in logs:
             assert getattr(l, "payload", None) is not None
+        _validate_hl7_logs(logs)
 
     # Create a Dossier and Venue (admission)
         from app.models import Dossier, Venue, Mouvement
@@ -115,6 +142,7 @@ def test_emit_identity_and_movements(monkeypatch):
         logs2 = wait_for_logs_since(start4, timeout=5)
         assert logs2, "No MessageLog entries created for movement emits"
         assert any(getattr(l, "payload", None) for l in logs2)
+        _validate_hl7_logs(logs2)
 
 
 @pytest.mark.usefixtures("setup_database")
@@ -191,6 +219,7 @@ def test_emit_structure_crud(monkeypatch):
     assert logs, "No MessageLog entries created for structure emit"
     # ensure at least one payload exists
     assert any(getattr(l, "payload", None) for l in logs)
+    _validate_hl7_logs(logs)
 
     # Update an entity to trigger update emissions
     ej.name = "EJ Test Updated"
@@ -200,6 +229,7 @@ def test_emit_structure_crud(monkeypatch):
     logs = wait_for_any()
     assert logs, "No MessageLog entries after EJ update"
     assert any(getattr(l, "payload", None) for l in logs)
+    _validate_hl7_logs(logs)
 
     # Delete entity and call explicit delete emitter if available
     session.delete(eg)
@@ -208,4 +238,6 @@ def test_emit_structure_crud(monkeypatch):
     # Structure deletion may emit; check logs
     logs = wait_for_any()
     # accept either presence or absence depending on config, but ensure no exceptions
+    if logs:
+        _validate_hl7_logs(logs)
     assert True

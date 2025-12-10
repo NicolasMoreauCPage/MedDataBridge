@@ -1,0 +1,1400 @@
+"""Pipeline de traitement des messages HL7v2 entrants (IHE PAM).
+
+Fonctions principales
+- Validation et parsing des segments MSH/PID/PD1/PV1
+- Application d'updates Z99 tolérantes sur des entités manquantes
+- Routage métier via `IHEMessageRouter`
+- Journalisation dans `MessageLog` et génération des ACK HL7 (AA/AE/AR)
+
+Transactions & sessions
+- Utilise la session SQLModel fournie (voir `session_factory` côté MLLP)
+    et enchaîne les opérations dans un contexte transactionnel `session.begin()`
+    lorsque nécessaire.
+"""
+
+# app/services/transport_inbound.py
+from datetime import datetime, timezone
+import re
+from typing import Dict, List, Optional, Tuple
+import logging, os
+
+from sqlmodel import Session, select
+
+from app.models_endpoints import MessageLog
+from app.services.mllp import parse_msh_fields, build_ack
+from app.services.pam_validation import validate_pam
+import json
+from app.models import Patient, Dossier, Venue, Mouvement
+from app.models_identifiers import Identifier, IdentifierType
+from app.db import get_next_sequence
+from app.services.emit_on_create import emit_to_senders
+from app.services.identifier_manager import (
+    create_identifier_from_hl7,
+    merge_identifiers,
+    get_main_identifier
+)
+from app.services.message_router import IHEMessageRouter
+from app.state_transitions import is_valid_transition, assert_transition
+
+# Import parsing functions from infrastructure layer (Phase 1 extraction)
+from app.infrastructure.hl7.parsing import (
+    parse_pid,
+    parse_pd1,
+    parse_pv1,
+    parse_zbe,
+    parse_mrg,
+    has_segment,
+    parse_patient_identifiers,
+)
+from app.services.nature_mapping import derive_nature
+# Import validation functions from infrastructure layer (Phase 1 extraction)
+from app.infrastructure.hl7.validation import validate_transition
+from app.services.vocabulary_translate import map_code
+from app.models_contacts import PatientContact, VenueContact  # NK1 parsing models
+
+logger = logging.getLogger("transport_inbound")
+
+
+# Obsolète: Old inline parsing functions below - use infrastructure.hl7.parsing instead
+# These are kept temporarily for compatibility during migration (Phase 1)
+# Will be removed in Phase 4 cleanup
+def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str, str]]:
+    """Parse les identifiants patients du segment PID
+    
+    Returns:
+        Liste de tuples (cx_value, system, type_code)
+    """
+    identifiers = []
+    try:
+        parts = pid_segment.split("|")
+        if len(parts) <= 3:
+            return []
+            
+        # PID-3 contient une liste d'identifiants séparés par ~
+        id_list = parts[3].split("~")
+        for cx in id_list:
+            if not cx:
+                continue
+            
+            # Parser le CX pour extraire value, system, type
+            cx_parts = cx.split("^")
+            value = cx_parts[0] if len(cx_parts) > 0 else ""
+            system = cx_parts[3] if len(cx_parts) > 3 else ""
+            type_code = cx_parts[4] if len(cx_parts) > 4 else "PI"  # Par défaut Patient Internal
+            
+            identifiers.append((cx, system, type_code))
+            
+    except Exception as e:
+        logger.error(f"Erreur parsing identifiants PID: {str(e)}")
+        
+    return identifiers
+
+
+def _parse_pid(message: str) -> dict:
+    """Parse le segment PID avec support complet des identifiants"""
+    out = {
+        "identifiers": [],
+        "external_id": None,
+        "account_number": None,
+        "family": "",
+        "given": "",
+        "middle": None,
+        "prefix": None,
+        "suffix": None,
+        "birth_date": None,
+        "gender": None,
+        "address": None,
+        "city": None,
+        "state": None,
+        "postal_code": None,
+        "country": None,
+        "phone": None,
+        "email": None,
+        "ssn": None,
+        "marital_status": None,
+        # Nouveaux champs multi-valués
+        "names": [],
+        "addresses": [],
+        "phones": [],
+        # Champs adresse de naissance
+        "birth_family": None,
+        "birth_address": None,
+        "birth_city": None,
+        "birth_state": None,
+        "birth_postal_code": None,
+        "birth_country": None,
+        "birth_place": None,
+        # Champs téléphones supplémentaires
+        "mobile": None,
+        "work_phone": None,
+        # PID-32: Identity Reliability Code
+        "identity_reliability_code": None
+    }
+    try:
+        lines = re.split(r"\r|\n", message)
+        pid = next((l for l in lines if l.startswith("PID")), None)
+        if not pid:
+            return out
+            
+        parts = pid.split("|")
+        
+        # Identifiants (PID-3)
+        out["identifiers"] = _parse_patient_identifiers(pid)
+        
+        # Nom (PID-5) - XPN multi-valué (répétitions ~)
+        if len(parts) > 5 and parts[5]:
+            # Parser toutes les répétitions de noms
+            name_repetitions = parts[5].split("~")
+            all_names = []
+            for name_rep in name_repetitions:
+                name_parts = name_rep.split("^")
+                name_data = {
+                    "family": name_parts[0] if len(name_parts) > 0 else "",
+                    "given": name_parts[1] if len(name_parts) > 1 else "",
+                    "middle": name_parts[2] if len(name_parts) > 2 else None,
+                    "suffix": name_parts[3] if len(name_parts) > 3 else None,
+                    "prefix": name_parts[4] if len(name_parts) > 4 else None,
+                    # XPN : family^given^middle^suffix^prefix^degree^type
+                    "type": name_parts[6] if len(name_parts) > 6 else None  # D=usuel, L=naissance
+                }
+                all_names.append(name_data)
+            
+            # Stocker toutes les répétitions
+            out["names"] = all_names
+            
+            # Pour compatibilité, garder le premier nom dans les champs simples
+            if all_names:
+                out["family"] = all_names[0]["family"]
+                out["given"] = all_names[0]["given"]
+                out["middle"] = all_names[0]["middle"]
+                out["prefix"] = all_names[0]["prefix"]
+                out["suffix"] = all_names[0]["suffix"]
+                
+                # Chercher nom de naissance (type L) si présent
+                birth_name = next((n for n in all_names if n.get("type") == "L"), None)
+                if birth_name:
+                    out["birth_family"] = birth_name["family"]
+                
+        # Date naissance (PID-7)
+        if len(parts) > 7 and parts[7]:
+            # Keep the raw HL7 date string for tests and also provide a
+            # parsed datetime as birth_date_dt when possible.
+            out["birth_date"] = parts[7]
+            try:
+                out["birth_date_dt"] = datetime.strptime(parts[7], "%Y%m%d")
+            except Exception:
+                out["birth_date_dt"] = None
+
+        # External id: first CX in PID-3 (raw value before component separators)
+        if len(parts) > 3 and parts[3]:
+            out["external_id"] = parts[3].split("^")[0]
+
+        # Genre (PID-8)
+        if len(parts) > 8:
+            out["gender"] = parts[8]
+            
+        # Adresse (PID-11) - XAD multi-valué (répétitions ~)
+        if len(parts) > 11 and parts[11]:
+            # Parser toutes les répétitions d'adresses
+            addr_repetitions = parts[11].split("~")
+            all_addresses = []
+            for addr_rep in addr_repetitions:
+                addr_parts = addr_rep.split("^")
+                addr_data = {
+                    "street": addr_parts[0] if len(addr_parts) > 0 else None,
+                    "other": addr_parts[1] if len(addr_parts) > 1 else None,
+                    "city": addr_parts[2] if len(addr_parts) > 2 else None,
+                    "state": addr_parts[3] if len(addr_parts) > 3 else None,
+                    "postal_code": addr_parts[4] if len(addr_parts) > 4 else None,
+                    "country": addr_parts[5] if len(addr_parts) > 5 else None,
+                    "type": addr_parts[6] if len(addr_parts) > 6 else None  # H=home, O=office, etc.
+                }
+                all_addresses.append(addr_data)
+            
+            # Stocker toutes les répétitions
+            out["addresses"] = all_addresses
+            
+            # Pour compatibilité, garder la première adresse dans les champs simples
+            if all_addresses:
+                out["address"] = all_addresses[0]["street"]
+                out["city"] = all_addresses[0]["city"]
+                out["state"] = all_addresses[0]["state"]
+                out["postal_code"] = all_addresses[0]["postal_code"]
+                out["country"] = all_addresses[0].get("country")
+                
+                # Si 2e adresse présente, la considérer comme adresse de naissance
+                if len(all_addresses) > 1:
+                    birth_addr = all_addresses[1]
+                    out["birth_address"] = birth_addr["street"]
+                    out["birth_city"] = birth_addr["city"]
+                    out["birth_state"] = birth_addr["state"]
+                    out["birth_postal_code"] = birth_addr["postal_code"]
+                    out["birth_country"] = birth_addr.get("country")
+            
+        # Téléphone (PID-13) - XTN multi-valué (répétitions ~)
+        if len(parts) > 13 and parts[13]:
+            # Parser toutes les répétitions de téléphones
+            phone_repetitions = parts[13].split("~")
+            all_phones = []
+            for phone_rep in phone_repetitions:
+                phone_parts = phone_rep.split("^")
+                phone_data = {
+                    "number": phone_parts[0] if len(phone_parts) > 0 else None,
+                    "type": phone_parts[2] if len(phone_parts) > 2 else None,  # PRN=primary, ORN=other, etc.
+                    "use": phone_parts[1] if len(phone_parts) > 1 else None   # HOME, WORK, CELL
+                }
+                all_phones.append(phone_data)
+            
+            # Stocker toutes les répétitions
+            out["phones"] = all_phones
+            
+            # Pour compatibilité, garder le premier téléphone dans le champ simple
+            if all_phones:
+                out["phone"] = all_phones[0]["number"]
+                
+                # Si d'autres téléphones présents, les stocker dans des champs dédiés
+                for i, phone_data in enumerate(all_phones[1:], start=1):
+                    if phone_data.get("use") == "CELL" or phone_data.get("type") == "CP":
+                        out["mobile"] = phone_data["number"]
+                    elif phone_data.get("use") == "WORK" or phone_data.get("type") == "WP":
+                        out["work_phone"] = phone_data["number"]
+            
+        # Champs spécifiques (PID-16 marital_status). PID-19 est interdit dans le profil FR
+        if len(parts) > 16 and parts[16]:
+            out["marital_status"] = parts[16]
+        # PID-18 = Patient Account Number (often used to reference a dossier)
+        if len(parts) > 18 and parts[18]:
+            out["account_number"] = parts[18]
+        
+        # PID-23: Lieu de naissance (Birth Place)
+        if len(parts) > 23 and parts[23]:
+            out["birth_place"] = parts[23]
+            # Si birth_city n'est pas déjà renseigné par une adresse, utiliser PID-23
+            if not out.get("birth_city"):
+                out["birth_city"] = parts[23]
+        
+        # PID-32: Identity Reliability Code (HL7 Table 0445)
+        # Note: PID-32 corresponds to index 31 (0-based array indexing)
+        if len(parts) > 31 and parts[31]:
+            out["identity_reliability_code"] = parts[31]
+            logger.debug(f"[_parse_pid] Set identity_reliability_code to '{parts[31]}' from PID[31]")
+        else:
+            logger.debug(f"[_parse_pid] PID-32 missing: parts length={len(parts)}, PID[31]='{parts[31] if len(parts) > 31 else 'INDEX_OUT_OF_RANGE'}'") 
+            
+    except Exception as e:
+        logger.error(f"Erreur parsing PID: {str(e)}")
+        
+    return out
+
+
+def _parse_nk1_segments(message: str) -> dict:
+    """Parse les segments NK1 et retourne deux listes prêtes à persister.
+
+    Heuristique: si dates de présence (NK1-8/9) ont composante heure (>=12 chars) -> venue contact.
+    Sinon patient contact.
+    """
+    lines = re.split(r"\r|\n", message)
+    nk1_lines = [l for l in lines if l.startswith("NK1|")]
+    patient_contacts = []
+    venue_contacts = []
+
+    def _parse_date(val: str):
+        if not val:
+            return None
+        if len(val) >= 8 and val[:8].isdigit():
+            from datetime import datetime as _dt
+            try:
+                return _dt.strptime(val[:8], "%Y%m%d").date()
+            except Exception:
+                return None
+        return None
+
+    def _parse_dt(val: str):
+        if not val:
+            return None
+        from datetime import datetime as _dt
+        try:
+            if len(val) >= 14 and val[:14].isdigit():
+                return _dt.strptime(val[:14], "%Y%m%d%H%M%S")
+            if len(val) >= 8 and val[:8].isdigit():
+                return _dt.strptime(val[:8], "%Y%m%d")
+        except Exception:
+            return None
+        return None
+
+    for raw in nk1_lines:
+        parts = raw.split("|")
+        if len(parts) < 4:
+            continue
+        sequence = int(parts[1] or "1") if parts[1].isdigit() else 1
+        name_comp = (parts[2].split("^") + ["", "", "", "", ""])[:5]
+        family, given, middle, suffix, prefix = name_comp
+        rel_comp = (parts[3].split("^") + ["", "", ""])[:3]
+        rel_code, rel_display, rel_system = rel_comp
+        addr_comp = (parts[4].split("^") + ["", "", "", "", "", ""])[:6]
+        line1, line2, city, state, postal, country = addr_comp
+        phone_home = parts[5] if len(parts) > 5 else ""
+        phone_work = parts[6] if len(parts) > 6 else ""
+        role = parts[7] if len(parts) > 7 else ""
+        start_raw = parts[8] if len(parts) > 8 else ""
+        end_raw = parts[9] if len(parts) > 9 else ""
+        gender = parts[15] if len(parts) > 15 else ""
+        birth_raw = parts[16] if len(parts) > 16 else ""
+        language = parts[20] if len(parts) > 20 else ""
+        reason = parts[29] if len(parts) > 29 else ""
+
+        is_venue = len(start_raw) >= 12 or len(end_raw) >= 12
+        if is_venue:
+            vc = VenueContact(
+                sequence=sequence,
+                family_name=family or "UNKNOWN",
+                given_name=given or None,
+                middle_name=middle or None,
+                suffix=suffix or None,
+                prefix=prefix or None,
+                relationship_code=rel_code or "OTH",
+                relationship_display=rel_display or None,
+                relationship_system=rel_system or "HL7-0063",
+                address_line1=line1 or None,
+                address_line2=line2 or None,
+                address_city=city or None,
+                address_postalcode=postal or None,
+                address_country=country or "FR",
+                phone_number=phone_home or None,
+                business_phone=phone_work or None,
+                contact_role=role or None,
+                start_datetime=_parse_dt(start_raw),
+                end_datetime=_parse_dt(end_raw),
+                gender=gender or None,
+                birth_date=_parse_date(birth_raw),
+                contact_reason=reason or None
+            )
+            venue_contacts.append(vc)
+        else:
+            pc = PatientContact(
+                sequence=sequence,
+                family_name=family or "UNKNOWN",
+                given_name=given or None,
+                middle_name=middle or None,
+                suffix=suffix or None,
+                prefix=prefix or None,
+                relationship_code=rel_code or "OTH",
+                relationship_display=rel_display or None,
+                relationship_system=rel_system or "HL7-0063",
+                address_line1=line1 or None,
+                address_line2=line2 or None,
+                address_city=city or None,
+                address_postalcode=postal or None,
+                address_country=country or "FR",
+                phone_number=phone_home or None,
+                business_phone=phone_work or None,
+                contact_role=role or None,
+                start_date=_parse_date(start_raw),
+                end_date=_parse_date(end_raw),
+                gender=gender or None,
+                birth_date=_parse_date(birth_raw),
+                primary_language=language or None,
+                contact_reason=reason or None
+            )
+            patient_contacts.append(pc)
+    return {"patient_contacts": patient_contacts, "venue_contacts": venue_contacts}
+
+
+def _parse_pd1(message: str) -> dict:
+    """Parse PD1 segment for useful fields.
+    Returns dict with keys: primary_care_provider, religion, language
+    PD1 is optional; be tolerant.
+    """
+    out = {"primary_care_provider": None, "religion": None, "language": None}
+    try:
+        lines = re.split(r"\r|\n", message)
+        pd1 = next((l for l in lines if l.startswith("PD1")), None)
+        if not pd1:
+            return out
+        parts = pd1.split("|")
+        # PD1-3 = patient primary care provider
+        if len(parts) > 3 and parts[3]:
+            out["primary_care_provider"] = parts[3].split("^")[0]
+        # PD1-2 = living arrangement (not used) ; religion sometimes in PID but check PD1-4
+        if len(parts) > 4 and parts[4]:
+            out["religion"] = parts[4]
+        # PD1-6 or PD1-7 may contain language; be tolerant and check PD1-6
+        if len(parts) > 6 and parts[6]:
+            out["language"] = parts[6]
+    except Exception:
+        pass
+    return out
+
+
+def _parse_hl7_datetime(s: Optional[str]) -> Optional[datetime]:
+    if not s:
+        return None
+    s = s.strip()
+    # common HL7 formats: YYYYMMDDHHMMSS or YYYYMMDD
+    for fmt in ("%Y%m%d%H%M%S", "%Y%m%d%H%M", "%Y%m%d"):
+        try:
+            return datetime.strptime(s[: len(fmt.replace("%", ""))], fmt)
+        except Exception:
+            try:
+                return datetime.strptime(s, fmt)
+            except Exception:
+                continue
+    # Solution de repli: ignore timezone/extra and try first 14 chars
+    try:
+        return datetime.strptime(s[:14], "%Y%m%d%H%M%S")
+    except Exception:
+        return None
+
+
+def _parse_pv1(message: str) -> dict:
+    """Extract a few PV1 fields we need: location, hospital_service, admit/discharge datetimes, patient_class."""
+    out = {
+        "location": "",
+        "previous_location": "",
+        "hospital_service": "",
+        "admit_time": None,
+        "discharge_time": None,
+        "patient_class": "",
+        "visit_number": None,
+    }
+    try:
+        lines = re.split(r"\r|\n", message)
+        pv1 = next((l for l in lines if l.startswith("PV1")), None)
+        if not pv1:
+            return out
+        parts = pv1.split("|")
+        # PV1 fields commonly: 2=patient class, 3=assigned patient location, 10=hospital service
+        if len(parts) > 2 and parts[2]:
+            out["patient_class"] = parts[2]
+        if len(parts) > 3 and parts[3]:
+            out["location"] = parts[3]
+        if len(parts) > 6 and parts[6]:
+            out["previous_location"] = parts[6]
+        if len(parts) > 10 and parts[10]:
+            out["hospital_service"] = parts[10]
+        # admit/discharge times
+        if len(parts) > 44 and parts[44]:
+            out["admit_time"] = _parse_hl7_datetime(parts[44])
+        if len(parts) > 45 and parts[45]:
+            out["discharge_time"] = _parse_hl7_datetime(parts[45])
+        # PV1-19 = Visit Number / Visit ID (often CX format)
+        if len(parts) > 19 and parts[19]:
+            out["visit_number"] = parts[19]
+    except Exception:
+        pass
+    return out
+
+
+def _parse_zbe(message: str) -> dict:
+    """Parse segment ZBE (extension IHE PAM France).
+    
+    Retourne:
+        dict avec clés: movement_id (ZBE-1), movement_datetime (ZBE-2), 
+        original_trigger (ZBE-6), movement_indicator (ZBE-9)
+    """
+    out = {
+        "movement_id": None,
+        "movement_datetime": None,
+        "original_trigger": None,
+        "movement_indicator": None,
+    }
+    try:
+        lines = re.split(r"\r|\n", message)
+        zbe = next((l for l in lines if l.startswith("ZBE")), None)
+        if not zbe:
+            return out
+        parts = zbe.split("|")
+        # ZBE-1: Identifiant du mouvement
+        if len(parts) > 1 and parts[1]:
+            out["movement_id"] = parts[1]
+        # ZBE-2: Date/heure du mouvement
+        if len(parts) > 2 and parts[2]:
+            out["movement_datetime"] = _parse_hl7_datetime(parts[2])
+        # ZBE-6: Type d'événement original (pour Z99)
+        if len(parts) > 6 and parts[6]:
+            out["original_trigger"] = parts[6]
+        # ZBE-9: Mode de traitement / Indicateur de mouvement
+        if len(parts) > 9 and parts[9]:
+            out["movement_indicator"] = parts[9].strip().upper()
+    except Exception:
+        pass
+    return out
+
+
+def _parse_mrg(message: str) -> dict:
+    """Parse segment MRG (Merge Patient Information) pour les messages A40/A47.
+    
+    Retourne:
+        dict avec clés: prior_patient_id (MRG-1), prior_patient_name (MRG-7)
+    """
+    out = {
+        "prior_patient_id": None,
+        "prior_patient_name": None,
+    }
+    try:
+        lines = re.split(r"\r|\n", message)
+        mrg = next((l for l in lines if l.startswith("MRG")), None)
+        if not mrg:
+            return out
+        parts = mrg.split("|")
+        # MRG-1: Prior Patient Identifier List
+        if len(parts) > 1 and parts[1]:
+            out["prior_patient_id"] = parts[1]
+        # MRG-7: Prior Patient Name
+        if len(parts) > 7 and parts[7]:
+            out["prior_patient_name"] = parts[7]
+    except Exception:
+        pass
+    return out
+
+
+def _has_segment(message: str, segment_name: str) -> bool:
+    """Vérifie si un segment est présent dans le message."""
+    lines = re.split(r"\r|\n", message)
+    return any(l.startswith(segment_name) for l in lines)
+
+
+def _validate_z99_original_message(message: str, session: Session) -> Optional[str]:
+    """Validate that Z99 message references an accepted original message.
+    
+    Returns:
+        None if validation passes
+        Error message string if validation fails
+    """
+    # Extract ZBE-1 (original movement_id)
+    zbe_data = _parse_zbe(message)
+    movement_id = zbe_data.get("movement_id")
+    
+    if not movement_id:
+        return "Z99 message missing ZBE-1 (original movement identifier)"
+    
+    # Find the original message by correlation_id (MSH-10 / movement_id)
+    original_msg = session.exec(
+        select(MessageLog)
+        .where(MessageLog.correlation_id == movement_id)
+        .order_by(MessageLog.created_at.desc())
+    ).first()
+    
+    if not original_msg:
+        return f"Original message with identifier '{movement_id}' not found"
+    
+    # Check if original message has an ACK
+    if not original_msg.ack_payload:
+        return f"Original message '{movement_id}' has no acknowledgment"
+    
+    # Extract ACK status from MSA-1 segment
+    ack_lines = re.split(r"\r|\n", original_msg.ack_payload)
+    msa_line = next((l for l in ack_lines if l.startswith("MSA")), None)
+    
+    if not msa_line:
+        return f"Original message '{movement_id}' ACK missing MSA segment"
+    
+    msa_parts = msa_line.split("|")
+    if len(msa_parts) < 2:
+        return f"Original message '{movement_id}' ACK has invalid MSA segment"
+    
+    ack_code = msa_parts[1].strip()
+    
+    # Only allow Z99 if original was accepted (AA = Application Accept, CA = Commit Accept)
+    if ack_code not in ["AA", "CA"]:
+        return f"Cannot modify message '{movement_id}': original was rejected with ACK code {ack_code}"
+    
+    return None
+
+
+def _handle_z99_updates(message: str, session: Session) -> None:
+    """Apply Z99 partial updates received over HL7.
+
+    For the sandbox/test environment we tolerate references to unknown
+    structures (dossiers, venues, mouvements, patients) by creating
+    placeholder records on-the-fly so that subsequent updates succeed.
+    """
+
+    def _ensure_patient(seq_hint: int, updates: dict) -> Patient:
+        identifier = updates.get("identifier") or f"Z99-{seq_hint:06d}"
+        patient = session.exec(select(Patient).where(Patient.identifier == identifier)).first()
+        if patient:
+            return patient
+
+        birth_date_raw = updates.get("date_naissance")
+        birth_date_obj = None
+        if birth_date_raw:
+            try:
+                birth_date_obj = datetime.strptime(birth_date_raw, "%Y%m%d").date()
+            except Exception:
+                birth_date_obj = None
+        patient = Patient(
+            patient_seq=get_next_sequence(session, "patient"),
+            identifier=identifier,
+            external_id=identifier,
+            family=updates.get("nom") or f"Patient Z99 {seq_hint}",
+            given=updates.get("prenom") or "Auto",
+            gender=updates.get("sexe") or "unknown",
+            birth_date=birth_date_obj,
+        )
+        session.add(patient)
+        session.flush()
+        logger.info("Created placeholder patient for Z99 update", extra={"identifier": identifier})
+        return patient
+
+    class DossierAlreadyExistsError(Exception):
+        pass
+
+    def _ensure_dossier(seq_value: int, updates: dict) -> Dossier:
+        dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == seq_value)).first()
+        if dossier:
+            raise DossierAlreadyExistsError(f"Un dossier avec le numéro {seq_value} existe déjà.")
+
+        patient = _ensure_patient(seq_value, updates)
+        dossier = Dossier(
+            dossier_seq=seq_value,
+            patient_id=patient.id,
+            uf_responsabilite=updates.get("uf_responsabilite") or "Z99-UF",
+            admit_time=datetime.now(timezone.utc),
+        )
+        session.add(dossier)
+        session.flush()
+        logger.info("Created placeholder dossier for Z99 update", extra={"dossier_seq": seq_value})
+        return dossier
+
+    def _ensure_venue(seq_value: int, updates: dict) -> Venue:
+        venue = session.exec(select(Venue).where(Venue.venue_seq == seq_value)).first()
+        if venue:
+            return venue
+
+        dossier_seq_hint = updates.get("dossier_seq")
+        try:
+            dossier_seq_value = int(dossier_seq_hint) if dossier_seq_hint else seq_value
+        except Exception:
+            dossier_seq_value = seq_value
+        dossier = _ensure_dossier(dossier_seq_value, updates)
+        venue = Venue(
+            venue_seq=seq_value,
+            dossier_id=dossier.id,
+            uf_responsabilite=updates.get("uf_responsabilite") or dossier.uf_responsabilite,
+            start_time=datetime.now(timezone.utc),
+            code=updates.get("code") or f"VEN-{seq_value}",
+            label=updates.get("label") or f"Venue Z99 {seq_value}",
+        )
+        session.add(venue)
+        session.flush()
+        logger.info("Created placeholder venue for Z99 update", extra={"venue_seq": seq_value})
+        return venue
+
+    def _ensure_mouvement(seq_value: int, updates: dict) -> Mouvement:
+        mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == seq_value)).first()
+        if mouvement:
+            return mouvement
+
+        venue_seq_hint = updates.get("venue_seq")
+        try:
+            venue_seq_value = int(venue_seq_hint) if venue_seq_hint else seq_value
+        except Exception:
+            venue_seq_value = seq_value
+        venue = _ensure_venue(venue_seq_value, updates)
+        mouvement = Mouvement(
+            mouvement_seq=seq_value,
+            venue_id=venue.id,
+            type=updates.get("type") or "Z99",
+            when=datetime.now(timezone.utc),
+            location=updates.get("location") or getattr(venue, "code", None),
+        )
+        session.add(mouvement)
+        session.flush()
+        logger.info("Created placeholder mouvement for Z99 update", extra={"mouvement_seq": seq_value})
+        return mouvement
+
+    try:
+        lines = re.split(r"\r|\n", message)
+        for seg in (l for l in lines if l.startswith("Z99")):
+            parts = seg.split("|")
+            if len(parts) < 4:
+                continue
+
+            entity = (parts[1] or "").strip()
+            seq_raw = (parts[2] or "").strip()
+            if not entity or not seq_raw:
+                continue
+
+            try:
+                seq_value = int(seq_raw)
+            except Exception:
+                logger.warning("Invalid sequence identifier in Z99 segment", extra={"segment": seg})
+                continue
+
+            updates: Dict[str, Optional[str]] = {}
+            fields = parts[3:]
+            for idx in range(0, len(fields), 2):
+                field_name = fields[idx].strip() if idx < len(fields) else ""
+                if not field_name:
+                    continue
+                updates[field_name] = fields[idx + 1] if idx + 1 < len(fields) else None
+
+            obj = None
+            entity_lc = entity.lower()
+            try:
+                if entity_lc.startswith("doss"):
+                    obj = _ensure_dossier(seq_value, updates)
+                elif entity_lc.startswith("ven"):
+                    obj = _ensure_venue(seq_value, updates)
+                elif entity_lc.startswith("mouv") or entity_lc.startswith("mvt"):
+                    obj = _ensure_mouvement(seq_value, updates)
+                elif entity_lc.startswith("pat"):
+                    obj = _ensure_patient(seq_value, updates)
+                else:
+                    logger.warning("Unsupported Z99 entity encountered", extra={"entity": entity})
+                    continue
+            except DossierAlreadyExistsError as e:
+                # Générer acquittement négatif avec libellé d'erreur compréhensible
+                ack = build_ack(message, code="AE", text=str(e))
+                logger.error(f"Rejet applicatif: {str(e)}")
+                return ack
+
+            if not obj:
+                continue
+
+            for field_name, value in updates.items():
+                if hasattr(obj, field_name) and value is not None:
+                    setattr(obj, field_name, value)
+            session.add(obj)
+
+        session.flush()
+    except Exception:
+        logger.exception("Error handling Z99 updates")
+
+
+def _validate_message_structure(msg: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
+    """Valide la structure d'un message HL7v2 et retourne les champs MSH.
+    
+    Args:
+        msg: Message HL7 déframé
+        
+    Returns:
+        (is_valid, error_text, msh_fields)
+    """
+    try:
+        # Vérification basique de la structure
+        if not msg or not msg.startswith("MSH"):
+            return False, "Invalid message structure", None
+            
+        # Parser l'en-tête
+        msh = parse_msh_fields(msg)
+        if not msh:
+            return False, "Failed to parse MSH segment", None
+            
+        # Vérifier les champs obligatoires
+        required_fields = ["sending_app", "sending_facility", "msg_type", "control_id"]
+        missing = [f for f in required_fields if not msh.get(f)]
+        if missing:
+            return False, f"Missing required MSH fields: {', '.join(missing)}", None
+            
+        return True, None, msh
+    except Exception as e:
+        return False, f"Message validation error: {str(e)}", None
+
+async def on_message_inbound_async(msg: str, session, endpoint) -> str:
+    """
+    Point d'entrée principal pour les messages HL7v2 IHE PAM entrants.
+    Implémente le profil IHE PAM (ITI-30/31) avec support des annulations.
+    
+    Types de messages supportés :
+    1. Gestion des admissions (ADT) :
+       - A01/A11 : Admission/Annulation
+       - A04/A23 : Inscription/Suppression
+       - A05/A38 : Pré-admission/Annulation
+       - A06/A07 : Changement type patient
+       
+    2. Mouvements patients :
+       - A02/A12 : Transfert/Annulation
+       - A21/A52 : Permission/Annulation
+       - A22/A53 : Retour/Annulation
+       
+    3. Sorties :
+       - A03/A13 : Sortie/Annulation
+       
+    4. Autres :
+       - A54/A55 : Changement médecin/Annulation
+       - Z99 : Mises à jour partielles (extension FR)
+       
+    Le traitement est transactionnel et journalisé via MessageLog.
+    Les acquittements sont construits selon les règles HL7v2.5.
+    
+    Args:
+        msg: Message HL7v2 déframé
+        session: Session SQLModel active
+        endpoint: Point de terminaison source (peut être None)
+        
+    Returns:
+        Message ACK formaté HL7v2 (AA=succès, AE=erreur applicative, AR=erreur système)
+    """
+    log = None
+    
+    # 1. Validation structurelle
+    is_valid, error_text, msh = _validate_message_structure(msg)
+    if not is_valid:
+        return build_ack(msg, ack_code="AR", text=error_text)
+        
+    ctrl_id = msh["control_id"]
+    msg_family = msh.get("type", "")
+    trigger = msh.get("trigger", "")
+
+    # 1.5. Idempotence check: avoid processing the same message twice
+    # Check if a MessageLog with the same control_id was already processed in the last hour
+    try:
+        from datetime import timedelta
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
+        existing_log = session.exec(
+            select(MessageLog)
+            .where(MessageLog.correlation_id == ctrl_id)
+            .where(MessageLog.created_at > cutoff_time)
+            .where(MessageLog.status.in_(["processed", "error", "rejected"]))
+            .order_by(MessageLog.created_at.desc())
+        ).first()
+        
+        if existing_log and existing_log.ack_payload:
+            logger.info(f"Message duplicate detected (MSH-10={ctrl_id}), returning previous ACK")
+            return existing_log.ack_payload
+    except Exception as e:
+        logger.warning(f"Error checking message idempotence: {e}")
+        # Continue processing if check fails; don't block on idempotence check errors
+
+    # Détermination per-endpoint du mode strict (priorité EJ > env)
+    import os as _os
+    strict_ej = False
+    try:
+        if endpoint and getattr(endpoint, "entite_juridique", None):
+            strict_ej = bool(getattr(endpoint.entite_juridique, "strict_pam_fr", False))
+        else:
+            strict_ej = _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}
+    except Exception:
+        strict_ej = _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}
+
+    if strict_ej and trigger == "A08":
+        return build_ack(
+            msg,
+            ack_code="AE",
+            text="Événement A08 désactivé (mode strict PAM FR per-EJ)"
+        )
+
+    # 2. Validation du type de message (support MFN M05 minimal pour structure)
+    if msg_family not in ("ADT", "MFN"):
+        return build_ack(
+            msg,
+            ack_code="AE",
+            text=f"Unsupported message type: {msg_family} (only ADT/MFN M05 supported)"
+        )
+
+    # MFN M05 handling: import structure locations (Service/UF/etc.) before returning ACK
+    if msg_family == "MFN" and trigger == "M05":
+        try:
+            from app.services.mfn_structure import process_mfn_message
+            results = process_mfn_message(msg.replace("\r", "\n"), session)
+            success_count = sum(1 for r in results if r.get("status") == "success")
+            ack = build_ack(msg, ack_code="AA", text=f"MFN M05 processed ({success_count} imported)")
+            # Log entry
+            log = MessageLog(
+                direction="in",
+                kind="MLLP",
+                endpoint_id=endpoint.id if endpoint else None,
+                correlation_id=ctrl_id,
+                payload=msg,
+                status="processed",
+                message_type=f"MFN^{trigger}",
+                ack_payload=ack,
+                created_at=datetime.now(timezone.utc),
+            )
+            session.add(log)
+            session.commit()
+            return ack
+        except Exception as exc:
+            ack = build_ack(msg, ack_code="AE", text=f"MFN M05 error: {str(exc)[:80]}")
+            log = MessageLog(
+                direction="in",
+                kind="MLLP",
+                endpoint_id=endpoint.id if endpoint else None,
+                correlation_id=ctrl_id,
+                payload=msg,
+                status="error",
+                message_type=f"MFN^{trigger}",
+                ack_payload=ack,
+                created_at=datetime.now(timezone.utc),
+            )
+            session.add(log)
+            session.commit()
+            return ack
+    
+    # 2.1. Validation des segments obligatoires selon le profil IHE PAM FR
+    # Messages de mouvement : ZBE obligatoire (sauf A28, A31, A40, A47 qui sont des messages d'identité)
+    movement_triggers = {"A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08",
+                         "A11", "A12", "A13", "A21", "A22", "A23", "A38",
+                         "A52", "A53", "A54", "A55"}
+    if strict_ej:
+        movement_triggers.discard("A08")
+    
+    if trigger in movement_triggers:
+        if not has_segment(msg, "ZBE"):
+            return build_ack(
+                msg,
+                ack_code="AE",
+                text=f"Segment ZBE obligatoire manquant pour le message ADT^{trigger}. Le profil IHE PAM France requiert le segment ZBE pour tous les messages de mouvement patient."
+            )
+    
+    # Messages A40 (fusion patients) et A47 (changement identifiant) : MRG obligatoire
+    if trigger in {"A40", "A47"}:
+        if not has_segment(msg, "MRG"):
+            return build_ack(
+                msg,
+                ack_code="AE",
+                text=f"Segment MRG obligatoire manquant pour le message ADT^{trigger}. Le segment MRG contient les informations d'identification du patient source pour la fusion."
+            )
+        
+    # 3. Initialisation du traitement transactionnel
+    try:
+        from contextlib import nullcontext
+        ctx = session.begin() if not session.in_transaction() else nullcontext()
+
+        with ctx:
+            log = MessageLog(
+                direction="in",
+                kind="MLLP",
+                endpoint_id=endpoint.id if endpoint else None,
+                correlation_id=ctrl_id,
+                payload=msg,
+                status="processing",
+                message_type=f"{msg_family}^{trigger}",
+                created_at=datetime.now(timezone.utc),
+            )
+            session.add(log)
+            session.flush()  # Persist immediately to get ID and avoid duplicates
+
+            # PAM validation (configurable per endpoint)
+            try:
+                val = validate_pam(msg, direction="in", profile=(getattr(endpoint, "pam_profile", None) or "IHE_PAM_FR"))
+                log.pam_validation_status = val.level
+                log.pam_validation_issues = json.dumps(val.to_dict().get("issues", []), ensure_ascii=False)
+                # Enforce rejection if configured and validation failed
+                if endpoint and getattr(endpoint, "pam_validate_enabled", False) and (getattr(endpoint, "pam_validate_mode", "warn") == "reject"):
+                    if val.level == "fail":
+                        log.status = "rejected"
+                        first_issue = (val.issues[0].message if val.issues else "Règles IHE PAM non respectées")
+                        ack = build_ack(msg, ack_code="AE", text=f"Validation IHE PAM échouée: {first_issue}")
+                        log.ack_payload = ack
+                        return ack
+            except Exception:
+                # Never block processing due to validator errors; log as warn-level issue
+                try:
+                    log.pam_validation_status = "warn"
+                    log.pam_validation_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
+                except Exception:
+                    pass
+
+            if trigger == "Z99":
+                # Validate that original message was accepted
+                validation_error = _validate_z99_original_message(msg, session)
+                if validation_error:
+                    log.status = "rejected"
+                    ack = build_ack(msg, ack_code="AR", text=validation_error)
+                    log.ack_payload = ack
+                    return ack
+                
+                try:
+                    ack_or_none = _handle_z99_updates(msg, session)
+                    if ack_or_none is not None:
+                        # Rejet applicatif, rollback session
+                        session.rollback()
+                        log.status = "rejected"
+                        log.ack_payload = ack_or_none
+                        return ack_or_none
+                    log.status = "processed"
+                    ack = build_ack(msg, ack_code="AA", text="Z99 updates applied")
+                except Exception as exc:
+                    logger.exception("Error processing Z99 message")
+                    session.rollback()
+                    log.status = "error"
+                    ack = build_ack(msg, ack_code="AE", text=f"Z99 processing failed: {str(exc)[:80]}")
+                log.ack_payload = ack
+                return ack
+
+            # Use infrastructure parsing modules (Phase 1 extraction)
+            pid_data = parse_pid(msg)
+            pv1_data = parse_pv1(msg)
+            zbe_data = parse_zbe(msg)
+            # Parse NK1 segments (contacts patient & venue) tôt pour persistance après création entités
+            nk1_data = _parse_nk1_segments(msg)
+
+            # Nouvelle logique inbound UPDATE/CANCEL basée sur ZBE-4/ZBE-5/ZBE-6
+            action = zbe_data.get("action")
+            original_trigger = zbe_data.get("original_trigger")
+            is_historic = zbe_data.get("is_historic")
+            nature = derive_nature(trigger, zbe_data.get("nature"))
+
+            modification_processed = False
+            if action in {"UPDATE", "CANCEL"}:
+                movement_id = zbe_data.get("movement_id")
+                admission_triggers = {"A01", "A04", "A05", "A06", "A07"}
+                # Solution de repli neutralisation si aucun mouvement_id pour admission initiale
+                if not movement_id and trigger in admission_triggers:
+                    # Vérifier absence de mouvements antérieurs
+                    has_prior = False
+                    try:
+                        first_ident = pid_data.get("identifiers")[0][0].split("^^^")[0] if pid_data.get("identifiers") else None
+                        if first_ident:
+                            patient_obj = session.exec(select(Patient).where(Patient.identifier == first_ident)).first()
+                            if patient_obj:
+                                prior_mvt = session.exec(
+                                    select(Mouvement)
+                                    .join(Venue)
+                                    .join(Dossier)
+                                    .where(Dossier.patient_id == patient_obj.id)
+                                    .order_by(Mouvement.mouvement_seq.desc())
+                                ).first()
+                                has_prior = prior_mvt is not None
+                    except Exception:
+                        pass
+                    if not has_prior:
+                        logger.warning(
+                            "UPDATE/CANCEL sans ZBE-1 sur trigger d'admission initiale: traité en INSERT (création mouvement)",
+                            extra={"trigger": trigger}
+                        )
+                        action = None
+                        zbe_data["action"] = None
+                # Si après Solution de repli on n'est plus en UPDATE/CANCEL -> sortir
+                if action not in {"UPDATE", "CANCEL"}:
+                    logger.debug("Neutralisation réussie; on saute la logique modification")
+                else:
+                    # Règles de validation restantes
+                    if not movement_id:
+                        log.status = "rejected"
+                        ack = build_ack(msg, ack_code="AE", text="ZBE-1 identifiant mouvement requis pour action UPDATE/CANCEL")
+                        log.ack_payload = ack
+                        return ack
+                    if not original_trigger:
+                        log.status = "rejected"
+                        ack = build_ack(msg, ack_code="AE", text=f"ZBE-6 trigger original requis pour action {action}")
+                        log.ack_payload = ack
+                        return ack
+                    # Recherche movement cible
+                    target_seq = None
+                    try:
+                        target_seq = int(movement_id.split("^")[0]) if movement_id and "^" in movement_id else int(movement_id)
+                    except Exception:
+                        target_seq = None
+                    existing_mvt = None
+                    if target_seq is not None:
+                        existing_mvt = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == target_seq)).first()
+                    if not existing_mvt and movement_id:
+                        existing_mvt = session.exec(select(Mouvement).where(Mouvement.type == movement_id)).first()
+                    if not existing_mvt:
+                        if action == "UPDATE" and trigger in admission_triggers:
+                            logger.info("UPDATE sans mouvement existant sur trigger admission: traité comme INSERT")
+                            action = None
+                            zbe_data["action"] = None
+                        else:
+                            log.status = "rejected"
+                            ack = build_ack(msg, ack_code="AE", text=f"Mouvement original '{movement_id}' introuvable pour {action}")
+                            log.ack_payload = ack
+                            return ack
+                    if action == "CANCEL" and existing_mvt:
+                        existing_mvt.status = "cancelled"
+                        session.add(existing_mvt); session.flush()
+                        logger.info("Mouvement annulé", extra={"movement_seq": existing_mvt.mouvement_seq})
+                    elif action == "UPDATE" and existing_mvt:
+                        if zbe_data.get("uf_medicale_code"):
+                            existing_mvt.uf_responsabilite = zbe_data.get("uf_medicale_code")
+                        if zbe_data.get("uf_soins_code"):
+                            existing_mvt.uf_soins_code = zbe_data.get("uf_soins_code")
+                            existing_mvt.uf_soins_label = zbe_data.get("uf_soins_label") or existing_mvt.uf_soins_code
+                        if nature:
+                            existing_mvt.nature = nature
+                        existing_mvt.original_trigger = original_trigger
+                        existing_mvt.action = action
+                        existing_mvt.is_historic = bool(is_historic)
+                        session.add(existing_mvt); session.flush()
+                        logger.info("Mouvement mis à jour", extra={"movement_seq": existing_mvt.mouvement_seq})
+
+            # Historique: si is_historic et timestamp passé, aucune restriction additionnelle ici (déjà validé format) mais log info
+            if is_historic:
+                logger.info("Historic movement ingested", extra={"movement_id": zbe_data.get("movement_id"), "trigger": trigger})
+
+            # Validation des transitions IHE PAM
+            # Récupérer le dernier événement du dossier/venue si applicable
+            previous_event = None
+            
+            # Stratégie 1 : Chercher par numéro de dossier (PID-18 Account Number)
+            # C'est la méthode la plus fiable car un dossier peut avoir plusieurs venues
+            account_number = pid_data.get("account_number")
+            if account_number:
+                # Extraire le numéro de dossier du CX (partie avant ^)
+                dossier_id_str = account_number.split("^")[0] if "^" in account_number else account_number
+                try:
+                    dossier_seq = int(dossier_id_str)
+                    dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == dossier_seq)).first()
+                    if dossier:
+                        # Chercher le dernier mouvement de ce dossier (toutes venues confondues)
+                        last_mouvement = session.exec(
+                            select(Mouvement)
+                            .join(Venue)
+                            .where(Venue.dossier_id == dossier.id)
+                            .order_by(Mouvement.mouvement_seq.desc())
+                        ).first()
+                        if last_mouvement and last_mouvement.trigger_event:
+                            previous_event = last_mouvement.trigger_event
+                            logger.debug(f"Found previous event '{previous_event}' from dossier {dossier_seq}")
+                except (ValueError, TypeError):
+                    pass
+            
+            # Stratégie 2 : Chercher par numéro de venue (PV1-19 Visit Number)
+            if not previous_event and pv1_data.get("visit_number"):
+                # Rechercher la venue existante pour connaître le dernier événement
+                visit_num_str = pv1_data["visit_number"]
+                # Extract ID part if CX format (ID^^^system^type)
+                visit_num_id = visit_num_str.split("^^^")[0] if "^^^" in visit_num_str else visit_num_str
+                try:
+                    venue = session.exec(
+                        select(Venue).where(Venue.venue_seq == int(visit_num_id))
+                    ).first()
+                except ValueError:
+                    # If not numeric, try as string identifier
+                    venue = session.exec(
+                        select(Venue).where(Venue.code == visit_num_id)
+                    ).first()
+                if venue:
+                    # Récupérer le dernier mouvement pour connaître le dernier événement
+                    last_mouvement = session.exec(
+                        select(Mouvement)
+                        .where(Mouvement.venue_id == venue.id)
+                        .order_by(Mouvement.mouvement_seq.desc())
+                    ).first()
+                    if last_mouvement and last_mouvement.trigger_event:
+                        previous_event = last_mouvement.trigger_event
+                        logger.debug(f"Found previous event '{previous_event}' from venue {visit_num_id}")
+            
+            # Stratégie 3 : Solution de repli - chercher le dernier événement du patient
+            # (utilisé quand ni dossier ni venue ne sont spécifiés)
+            if not previous_event:
+                # Si pas de visit_number, chercher le dernier événement du patient
+                # pour permettre des enchaînements sans numéro de venue explicite
+                if pid_data.get("identifiers"):
+                    first_ident = pid_data["identifiers"][0][0] if pid_data["identifiers"] else None
+                    if first_ident:
+                        # Extraire l'ID du CX (partie avant ^^^)
+                        patient_id = first_ident.split("^^^")[0] if "^^^" in first_ident else first_ident
+                        # Chercher le patient par identifier
+                        patient = session.exec(
+                            select(Patient).where(Patient.identifier == patient_id)
+                        ).first()
+                        if patient:
+                            # Chercher le dernier mouvement de ce patient
+                            last_mouvement = session.exec(
+                                select(Mouvement)
+                                .join(Venue)
+                                .join(Dossier)
+                                .where(Dossier.patient_id == patient.id)
+                                .order_by(Mouvement.mouvement_seq.desc())
+                            ).first()
+                            if last_mouvement and last_mouvement.trigger_event:
+                                previous_event = last_mouvement.trigger_event
+                                logger.debug(f"Found previous event '{previous_event}' from patient {patient_id}")
+            
+            # Validate transition using infrastructure layer (Phase 1 extraction)
+            is_valid, error_text = validate_transition(previous_event, trigger)
+            if not is_valid:
+                # Transition invalide : rejeter avec ACK AE
+                log.status = "rejected"
+                ack = build_ack(msg, ack_code="AE", text=error_text)
+                log.ack_payload = ack
+                return ack
+            
+            logger.info(
+                "Routing ADT message",
+                extra={"trigger": trigger, "patient_identifiers": pid_data.get("identifiers")},
+            )
+            # Extract EJ ID from endpoint for proper patient association
+            ej_id = endpoint.entite_juridique_id if endpoint and hasattr(endpoint, 'entite_juridique_id') else None
+            success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg, ej_id=ej_id)
+            logger.debug(f"IHE handler returned: success={success!r}, err={err!r}")
+
+            # --- Persistance des contacts après succès routage ---
+            if success:
+                try:
+                    # Récupérer patient créé/mis à jour (identifiant principal PID-3 première valeur)
+                    patient_obj = None
+                    if pid_data.get("identifiers"):
+                        first_ident_raw = pid_data["identifiers"][0][0]
+                        ident_value = first_ident_raw.split("^")[0]
+                        patient_obj = session.exec(select(Patient).where(Patient.identifier == ident_value)).first()
+
+                    # Récupérer venue si mouvement (présence ZBE ou trigger mouvement) pour VenueContact
+                    venue_obj = None
+                    movement_triggers_inner = {"A01","A02","A03","A04","A05","A06","A07","A08","A11","A12","A13","A21","A22","A23","A38","A52","A53","A54","A55"}
+                    if trigger in movement_triggers_inner and patient_obj:
+                        # Dernière venue du dossier du patient (créée dans handler admission)
+                        dossier_obj = None
+                        if patient_obj.dossiers:
+                            dossier_obj = sorted(patient_obj.dossiers, key=lambda d: d.dossier_seq)[-1]
+                        if dossier_obj and dossier_obj.venues:
+                            venue_obj = sorted(dossier_obj.venues, key=lambda v: v.venue_seq)[-1]
+
+                    # Persist PatientContact (uniquement messages identité A28/A31) ou si patient existe
+                    if patient_obj and nk1_data.get("patient_contacts"):
+                        for pc in nk1_data["patient_contacts"]:
+                            pc.patient_id = patient_obj.id
+                            # Set emergency flag/priority heuristics
+                            if pc.relationship_code in {"C"} or (pc.contact_role or "").upper() == "EMERGENCY":
+                                pc.is_emergency_contact = True
+                                pc.priority = 1
+                            else:
+                                pc.priority = pc.sequence or 99
+                            session.add(pc)
+                        session.flush()
+
+                    # Persist VenueContact (messages de mouvement) si venue trouvée
+                    if venue_obj and nk1_data.get("venue_contacts"):
+                        for vc in nk1_data["venue_contacts"]:
+                            vc.venue_id = venue_obj.id
+                            if (vc.contact_role or "").upper() in {"ACCOMPANYING"}:
+                                vc.is_accompanying = True
+                            session.add(vc)
+                        session.flush()
+                except Exception:
+                    logger.exception("Erreur persistance contacts NK1")
+
+            if success:
+                log.status = "processed"
+                text = f"Message {trigger} traité avec succès"
+                ack = build_ack(msg, ack_code="AA", text=text)
+            else:
+                log.status = "error"
+                text = err or f"Handler returned no result for {trigger}"
+                ack = build_ack(msg, ack_code="AE", text=text)
+
+            log.ack_payload = ack
+            return ack
+
+    except ValueError as ve:
+        logger.exception("Validation error while processing message")
+        error_text = f"Validation error: {str(ve)[:80]}"
+        ack = build_ack(msg, ack_code="AE", text=error_text)
+        if log:
+            log.status = "error"
+            log.ack_payload = ack
+        return ack
+
+    except Exception as e:
+        logger.exception("Critical error during message processing")
+        error_text = f"System error: {str(e)[:100]}"
+        ack = build_ack(msg, ack_code="AR", text=error_text)
+        try:
+            error_log = MessageLog(
+                direction="in",
+                kind="MLLP",
+                endpoint_id=endpoint.id if endpoint else None,
+                correlation_id=msh.get("control_id", ""),
+                message_type=f"{msg_family}^{trigger}",
+                status="error",
+                payload=msg,
+                ack_payload=ack,
+                created_at=datetime.utcnow(),
+            )
+            session.add(error_log)
+            session.commit()
+        except Exception:
+            logger.exception("Failed to write error MessageLog")
+        return ack
+
+
+class _OnMessageInboundCallable:
+    """Callable and awaitable wrapper for on_message_inbound.
+
+    Allows existing sync tests to call `on_message_inbound(msg, session, endpoint)`
+    and get a dict result, while also being awaitable for async tests that do
+    `await on_message_inbound(msg, session, endpoint)`.
+    """
+    def __init__(self, async_callable):
+        self._async = async_callable
+
+    def __call__(self, msg: str, session, endpoint=None):
+        """Sync call path: run the async handler in a new event loop."""
+        import asyncio
+
+        # Create the coroutine
+        coro = self._async(msg, session, endpoint)
+        # Check whether an event loop is already running in this thread.
+        # asyncio.get_running_loop() Lève a RuntimeError when no loop is running.
+        try:
+            # If there's a running loop in this thread, get_running_loop() will succeed.
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if not running_loop:
+            # No running loop in this thread: safe to run and Renvoie the sync-compatible dict
+            ack = asyncio.run(coro)
+            if isinstance(ack, str) and "MSA|AA" in ack:
+                return {"status": "success", "ack": ack}
+            else:
+                return {"status": "error", "ack": ack}
+
+        # There is a running loop. Try to submit the coroutine to that loop from
+        # another thread using run_coroutine_threadsafe (works when the loop runs
+        # in a different thread). If that fails, fall back to returning the
+        # coroutine for the caller to await.
+        try:
+            policy = asyncio.get_event_loop_policy()
+            loop_for_thread = policy.get_event_loop()
+            # If loop_for_thread is running and not the same as running_loop, attempt thread-safe submit
+            if loop_for_thread is not running_loop and getattr(loop_for_thread, "is_running", lambda: False)():
+                future = asyncio.run_coroutine_threadsafe(coro, loop_for_thread)
+                ack = future.result(timeout=10)
+                if isinstance(ack, str) and "MSA|AA" in ack:
+                    return {"status": "success", "ack": ack}
+                else:
+                    return {"status": "error", "ack": ack}
+        except Exception:
+            # Couldn't submit to running loop (likely same-thread loop); fall through
+            pass
+
+        # If we reach here the running loop is the same thread's loop. We cannot
+        # call asyncio.run() from this thread because it would raise. Instead,
+        # run the coroutine in a fresh thread where asyncio.run() is allowed.
+        try:
+            import threading, queue as _queue
+
+            q = _queue.Queue()
+
+            def _run_in_thread():
+                try:
+                    result = asyncio.run(coro)
+                    q.put((True, result))
+                except Exception as e:
+                    q.put((False, e))
+
+            thread = threading.Thread(target=_run_in_thread, daemon=True)
+            thread.start()
+            thread.join(timeout=15)
+            if not q.empty():
+                ok, val = q.get()
+                if not ok:
+                    raise val
+                ack = val
+                if isinstance(ack, str) and "MSA|AA" in ack:
+                    return {"status": "success", "ack": ack}
+                else:
+                    return {"status": "error", "ack": ack}
+        except Exception:
+            # If any of the above fails, fall back to returning the coroutine so
+            # async callers can await it.
+            return coro
+
+    def __await__(self):
+        # Support `await on_message_inbound(...)` usage by returning the
+        # coroutine's awaitable. This method will be called when the
+        # instance is awaited; but we must capture the parameters.
+        raise TypeError("Use 'await on_message_inbound_async(msg, session, endpoint)' instead")
+
+
+# Keep the explicit async function for awaited usage and for internal calls
+on_message_inbound = _OnMessageInboundCallable(on_message_inbound_async)
+
+# Also export the async function directly for tests that want to await it
+__all__ = ["on_message_inbound_async", "on_message_inbound"]

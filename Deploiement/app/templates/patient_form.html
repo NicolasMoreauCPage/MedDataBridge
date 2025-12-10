@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% block content %}
+{# Ensure `sample_data` exists to avoid Jinja UndefinedError when template
+   is rendered by routes that don't provide `sample_data` in the context. #}
+{% if sample_data is not defined %}
+  {% set sample_data = {} %}
+{% endif %}
+{% if sample_prefilled is not defined %}
+  {% set sample_prefilled = False %}
+{% endif %}
+<div class="max-w-6xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/patients" class="hover:text-blue-600 transition-colors">Patients</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{{ title|default('Nouveau patient', true) }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold">{{ title|default('Nouveau patient', true) }}</h1>
+            <p class="text-blue-100 mt-1">Formulaire de création/modification patient</p>
+          </div>
+        </div>
+        <div class="flex flex-col items-end gap-3 text-sm">
+          <a href="/patients" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg text-base">
+            ← Retour
+          </a>
+          {% if not patient %}
+          <button type="button" id="regenerate-sample" class="px-6 py-3 rounded-xl font-semibold bg-white text-indigo-700 hover:bg-slate-100 transition-all duration-200 shadow-md flex items-center gap-2 justify-center">
+            <span>🎲</span>
+            <span>Générer une identité réaliste</span>
+          </button>
+          <p id="sample-status" class="text-xs text-white/80 text-right" aria-live="polite">
+            {% if sample_prefilled %}
+              Identité exemple appliquée
+            {% else %}
+              Cliquez sur 🎲 pour générer une identité
+            {% endif %}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" action="{{ action_url }}" class="space-y-6" data-patient-form="true">
+    <div class="form-grid grid gap-4 md:gap-6">
+    
+    <!-- Section Identité -->
+    <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-indigo-50 via-blue-50 to-sky-50 px-8 py-5 font-bold text-slate-800 hover:from-indigo-100 hover:via-blue-100 hover:to-sky-100 transition-all duration-200 border-b-2 border-slate-200">
+        <span class="text-xl flex items-center gap-3">
+          <span class="text-2xl">👤</span>
+          <span>Identité du patient</span>
+        </span>
+      </summary>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Identifiant patient (IPP)</label>
+          <input type="text" name="identifier" value="{{ patient.identifier if patient else '' }}" 
+                 class="input-field" placeholder="Auto-généré (12 chiffres)">
+          <p class="text-xs text-slate-500 mt-1">IPP généré automatiquement lors de l'enregistrement. Les identifiants externes sont gérés dans la table identifier.</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Civilité
+            </label>
+            <select name="prefix" class="input-field">
+              <option value="">-- Choisir --</option>
+              <option value="M." {% if (patient and patient.prefix == 'M.') or (sample_data and sample_data.get('prefix') == 'M.') %}selected{% endif %}>M. (Monsieur)</option>
+              <option value="Mme" {% if (patient and patient.prefix == 'Mme') or (sample_data and sample_data.get('prefix') == 'Mme') %}selected{% endif %}>Mme (Madame)</option>
+              <option value="Mlle" {% if (patient and patient.prefix == 'Mlle') or (sample_data and sample_data.get('prefix') == 'Mlle') %}selected{% endif %}>Mlle (Mademoiselle)</option>
+            </select>
+          </div>
+          <div class="col-span-2"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1" for="family">
+              Nom <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="family" name="family" value="{{ (patient.family if patient and patient.family is not none else (sample_data.family if sample_data is defined and sample_data and sample_data.family is not none else '')) | default('', true) }}"
+                   required aria-required="true" data-required="true" aria-invalid="{{ 'true' if not patient or not patient.family }}"
+                   class="input-field{% if not patient or not patient.family %} border-red-500{% endif %}"
+                   placeholder="MARTIN">
+            {% if not patient or not patient.family %}
+            <p class="error-message form-error text-sm text-red-600 flex items-center gap-1 mt-1" data-for="family">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Ce champ est obligatoire
+            </p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Nom de naissance (nom de jeune fille)
+            </label>
+            <input type="text" name="birth_family" value="{{ (patient.birth_family if patient and patient.birth_family is not none else (sample_data.birth_family if sample_data and sample_data.birth_family is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="DUPONT">
+            <p class="text-xs text-slate-500 mt-1">PID-5 type L - Si différent du nom actuel</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1" for="given">
+              Prénom <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="given" name="given" value="{{ (patient.given if patient and patient.given is not none else (sample_data.given if sample_data and sample_data.given is not none else '')) | default('', true) }}"
+                   required aria-required="true" data-required="true" aria-invalid="{{ 'true' if not patient or not patient.given }}"
+                   class="input-field{% if not patient or not patient.given %} border-red-500{% endif %}"
+                   placeholder="Sophie">
+            {% if not patient or not patient.given %}
+            <p class="error-message form-error text-sm text-red-600 flex items-center gap-1 mt-1" data-for="given">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Ce champ est obligatoire
+            </p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Deuxième prénom
+            </label>
+            <input type="text" name="middle" value="{{ (patient.middle if patient and patient.middle is not none else (sample_data.middle if sample_data and sample_data.middle is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="Marie">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Suffixe
+            </label>
+            <input type="text" name="suffix" value="{{ (patient.suffix if patient and patient.suffix is not none else (sample_data.suffix if sample_data and sample_data.suffix is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="Jr., III, etc.">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Date de naissance
+            </label>
+            <input type="date" name="birth_date" value="{{ (patient.birth_date if patient and patient.birth_date is not none else (sample_data.birth_date if sample_data and sample_data.birth_date is not none else '')) | default('', true) }}" 
+                   class="input-field">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Sexe administratif
+            </label>
+            <select name="gender" class="input-field">
+              <option value="">-- Choisir --</option>
+              {% for opt in gender_options %}
+              <option value="{{ opt.value }}" {% if (patient and patient.gender == opt.value) or (sample_data and sample_data.get('gender') == opt.value) %}selected{% endif %}>
+                {{ opt.label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section Coordonnées -->
+    <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-emerald-50 via-teal-50 to-green-50 px-8 py-5 font-bold text-slate-800 hover:from-emerald-100 hover:via-teal-100 hover:to-green-100 transition-all duration-200 border-b-2 border-slate-200">
+        <span class="text-xl flex items-center gap-3">
+          <span class="text-2xl">📍</span>
+          <span>Coordonnées (domicile)</span>
+        </span>
+      </summary>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Adresse</label>
+            <input type="text" name="address" value="{{ (patient.address if patient and patient.address is not none else (sample_data.address if sample_data and sample_data.address is not none else '')) | default('', true) }}" 
+                 class="input-field" placeholder="15 rue Victor Hugo">
+          <p class="text-xs text-slate-500 mt-1">Numéro et rue - PID-11.1</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Ville</label>
+            <input type="text" name="city" value="{{ (patient.city if patient and patient.city is not none else (sample_data.city if sample_data and sample_data.city is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="Paris">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Code postal</label>
+            <input type="text" name="postal_code" value="{{ (patient.postal_code if patient and patient.postal_code is not none else (sample_data.postal_code if sample_data and sample_data.postal_code is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="75001">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Département/État</label>
+            <input type="text" name="state" value="{{ (patient.state if patient and patient.state is not none else (sample_data.state if sample_data and sample_data.state is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="Île-de-France">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Pays</label>
+          <select name="country" class="input-field">
+            <option value="">-- Choisir --</option>
+            {% for option in country_options %}
+            <option value="{{ option.value }}" {% if (patient and patient.country == option.value) or (sample_data and sample_data.get('country') == option.value) %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+          <p class="text-xs text-slate-500 mt-1">Code ISO 3 lettres - PID-11.6</p>
+        </div>
+
+        <div class="border-t pt-4 mt-4">
+          <h4 class="font-medium text-slate-700 mb-3">📞 Téléphones (PID-13 multi-valué)</h4>
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Téléphone fixe</label>
+              <input type="tel" name="phone" value="{{ (patient.phone if patient and patient.phone is not none else (sample_data.phone if sample_data and sample_data.phone is not none else '')) | default('', true) }}" 
+                     class="input-field" placeholder="0123456789">
+              <p class="text-xs text-slate-500 mt-1">Principal</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Mobile</label>
+              <input type="tel" name="mobile" value="{{ (patient.mobile if patient and patient.mobile is not none else (sample_data.mobile if sample_data and sample_data.mobile is not none else '')) | default('', true) }}" 
+                     class="input-field" placeholder="0612345678">
+              <p class="text-xs text-slate-500 mt-1">Type CP/CELL</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Téléphone pro</label>
+              <input type="tel" name="work_phone" value="{{ (patient.work_phone if patient and patient.work_phone is not none else (sample_data.work_phone if sample_data and sample_data.work_phone is not none else '')) | default('', true) }}" 
+                     class="input-field" placeholder="0498765432">
+              <p class="text-xs text-slate-500 mt-1">Type WP/WORK</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1" for="email">Email</label>
+            <input type="email" id="email" name="email" value="{{ (patient.email if patient and patient.email is not none else (sample_data.email if sample_data and sample_data.email is not none else '')) | default('', true) }}"
+                 class="input-field" placeholder="sophie.martin@example.com"
+                 aria-describedby="email_help">
+          <p id="email_help" class="text-xs text-slate-500 mt-1">Adresse email du patient (optionnelle)</p>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section Lieu de naissance -->
+    <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm">
+      <summary class="cursor-pointer bg-gradient-to-r from-purple-50 via-violet-50 to-fuchsia-50 px-8 py-5 font-bold text-slate-800 hover:from-purple-100 hover:via-violet-100 hover:to-fuchsia-100 transition-all duration-200 border-b-2 border-slate-200">
+        <span class="text-xl flex items-center gap-3">
+          <span class="text-2xl">🏥</span>
+          <span>Lieu de naissance</span>
+        </span>
+      </summary>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Adresse de naissance</label>
+            <input type="text" name="birth_address" value="{{ (patient.birth_address if patient and patient.birth_address is not none else (sample_data.birth_address if sample_data and sample_data.birth_address is not none else '')) | default('', true) }}" 
+                 class="input-field" placeholder="Maternité de la Croix-Rousse">
+          <p class="text-xs text-slate-500 mt-1">Établissement/Rue - PID-11 répétition 2</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Ville de naissance</label>
+            <input type="text" name="birth_city" value="{{ (patient.birth_city if patient and patient.birth_city is not none else (sample_data.birth_city if sample_data and sample_data.birth_city is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="Lyon">
+            <p class="text-xs text-slate-500 mt-1">PID-23</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Département/Région</label>
+            <input type="text" name="birth_state" value="{{ (patient.birth_state if patient and patient.birth_state is not none else (sample_data.birth_state if sample_data and sample_data.birth_state is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="Rhône">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Code postal</label>
+            <input type="text" name="birth_postal_code" value="{{ (patient.birth_postal_code if patient and patient.birth_postal_code is not none else (sample_data.birth_postal_code if sample_data and sample_data.birth_postal_code is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="69004">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Pays de naissance</label>
+          <select name="birth_country" class="input-field">
+            <option value="">-- Choisir --</option>
+            {% for option in country_options %}
+            <option value="{{ option.value }}" {% if (patient and patient.birth_country == option.value) or (sample_data and sample_data.get('birth_country') == option.value) %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section Informations administratives -->
+    <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm">
+      <summary class="cursor-pointer bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 px-8 py-5 font-bold text-slate-800 hover:from-amber-100 hover:via-orange-100 hover:to-yellow-100 transition-all duration-200 border-b-2 border-slate-200">
+        <span class="text-xl flex items-center gap-3">
+          <span class="text-2xl">📋</span>
+          <span>Informations administratives</span>
+        </span>
+      </summary>
+      <div class="p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">NIR (Numéro de sécurité sociale)</label>
+            <input type="text" name="nir" value="{{ (patient.nir if patient and patient.nir is not none else (sample_data.nir if sample_data and sample_data.nir is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="1 85 06 75 123 456 78" maxlength="21">
+            <p class="text-xs text-slate-500 mt-1">15 chiffres - PID-3 type NH</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Statut marital</label>
+            <select name="marital_status" class="input-field">
+              <option value="">-- Choisir --</option>
+              <option value="S" {% if (patient and patient.marital_status == 'S') or (sample_data and sample_data.get('marital_status') == 'S') %}selected{% endif %}>S - Célibataire</option>
+              <option value="M" {% if (patient and patient.marital_status == 'M') or (sample_data and sample_data.get('marital_status') == 'M') %}selected{% endif %}>M - Marié(e)</option>
+              <option value="D" {% if (patient and patient.marital_status == 'D') or (sample_data and sample_data.get('marital_status') == 'D') %}selected{% endif %}>D - Divorcé(e)</option>
+              <option value="W" {% if (patient and patient.marital_status == 'W') or (sample_data and sample_data.get('marital_status') == 'W') %}selected{% endif %}>W - Veuf/Veuve</option>
+              <option value="P" {% if (patient and patient.marital_status == 'P') or (sample_data and sample_data.get('marital_status') == 'P') %}selected{% endif %}>P - Partenariat/PACS</option>
+              <option value="A" {% if (patient and patient.marital_status == 'A') or (sample_data and sample_data.get('marital_status') == 'A') %}selected{% endif %}>A - Séparé(e)</option>
+              <option value="U" {% if (patient and patient.marital_status == 'U') or (sample_data and sample_data.get('marital_status') == 'U') %}selected{% endif %}>U - Non spécifié</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nationalité</label>
+            <input type="text" name="nationality" value="{{ (patient.nationality if patient and patient.nationality is not none else (sample_data.nationality if sample_data and sample_data.nationality is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="FRA">
+            <p class="text-xs text-slate-500 mt-1">Code pays ISO (ex: FRA, BEL, CHE)</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              Fiabilité de l'identité (PID-32)
+            </label>
+            <select name="identity_reliability_code" class="input-field">
+              <option value="">-- Choisir --</option>
+              <option value="VALI" {% if (patient and patient.identity_reliability_code == 'VALI') or (sample_data and sample_data.get('identity_reliability_code') == 'VALI') %}selected{% endif %}>VALI - Identité validée (avec INS qualifié)</option>
+              <option value="PROV" {% if (patient and patient.identity_reliability_code == 'PROV') or (sample_data and sample_data.get('identity_reliability_code') == 'PROV') %}selected{% endif %}>PROV - Identité provisoire</option>
+              <option value="VIDE" {% if (patient and patient.identity_reliability_code == 'VIDE') or (sample_data and sample_data.get('identity_reliability_code') == 'VIDE') %}selected{% endif %}>VIDE - Identité non qualifiée</option>
+              <option value="DOUB" {% if (patient and patient.identity_reliability_code == 'DOUB') or (sample_data and sample_data.get('identity_reliability_code') == 'DOUB') %}selected{% endif %}>DOUB - Doublon détecté</option>
+              <option value="DESA" {% if (patient and patient.identity_reliability_code == 'DESA') or (sample_data and sample_data.get('identity_reliability_code') == 'DESA') %}selected{% endif %}>DESA - Identité désactivée</option>
+              <option value="DPOT" {% if (patient and patient.identity_reliability_code == 'DPOT') or (sample_data and sample_data.get('identity_reliability_code') == 'DPOT') %}selected{% endif %}>DPOT - Dépôt provisoire</option>
+              <option value="IDVER" {% if (patient and patient.identity_reliability_code == 'IDVER') or (sample_data and sample_data.get('identity_reliability_code') == 'IDVER') %}selected{% endif %}>IDVER - Identité vérifiée</option>
+              <option value="CACH" {% if (patient and patient.identity_reliability_code == 'CACH') or (sample_data and sample_data.get('identity_reliability_code') == 'CACH') %}selected{% endif %}>CACH - Identité cachée</option>
+              <option value="ANOM" {% if (patient and patient.identity_reliability_code == 'ANOM') or (sample_data and sample_data.get('identity_reliability_code') == 'ANOM') %}selected{% endif %}>ANOM - Identité anonyme</option>
+            </select>
+            <p class="text-xs text-slate-500 mt-1">HL7 Table 0445 - Obligatoire IHE PAM France si INS présent</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nom de jeune fille de la mère</label>
+            <input type="text" name="mothers_maiden_name" value="{{ (patient.mothers_maiden_name if patient and patient.mothers_maiden_name is not none else (sample_data.mothers_maiden_name if sample_data and sample_data.mothers_maiden_name is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="LEFEBVRE">
+            <p class="text-xs text-slate-500 mt-1">Utilisé pour vérification d'identité</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Médecin traitant</label>
+            <input type="text" name="primary_care_provider" value="{{ (patient.primary_care_provider if patient and patient.primary_care_provider is not none else (sample_data.primary_care_provider if sample_data and sample_data.primary_care_provider is not none else '')) | default('', true) }}" 
+                   class="input-field" placeholder="Dr. DURAND">
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Boutons d'action -->
+    <div class="flex gap-4 pt-6">
+      <button type="submit" class="flex-1 md:flex-initial px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        Enregistrer le patient
+      </button>
+      <a href="/patients" class="px-8 py-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all duration-200 flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        Annuler
+      </a>
+    </div>
+    </div>
+  </form>
+
+  <!-- Note RGPD -->
+  <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+    <strong>ℹ️ Conformité RGPD France :</strong> Les données sensibles (race, religion) ne sont pas collectées conformément à la réglementation française (Article 9 RGPD + loi Informatique et Libertés).
+  </div>
+</div>
+
+<style>
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+  details summary::before {
+    content: '▶';
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.2s;
+  }
+  details[open] summary::before {
+    transform: rotate(90deg);
+  }
+  
+  /* Amélioration de la visibilité des champs input */
+  .input-field {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #cbd5e1; /* slate-300 - bordure plus épaisse */
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    background-color: #ffffff;
+  }
+  
+  .input-field:hover {
+    border-color: #94a3b8; /* slate-400 */
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.1);
+  }
+  
+  .input-field:focus {
+    outline: none;
+    border-color: #2563eb; /* blue-600 */
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background-color: #eff6ff; /* blue-50 */
+  }
+  
+  .input-field::placeholder {
+    color: #94a3b8; /* slate-400 */
+    font-style: italic;
+  }
+  
+  /* Select avec même style */
+  select.input-field {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+  
+  /* Input date avec style cohérent */
+  input[type="date"].input-field {
+    font-family: inherit;
+  }
+  
+  /* Amélioration des bordures rouges pour erreurs */
+  .input-field.border-red-500 {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2;
+  }
+  
+  .input-field.border-red-500:focus {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form[data-patient-form]');
+    const regenerateBtn = document.getElementById('regenerate-sample');
+    if (!form || !regenerateBtn) {
+      return;
+    }
+    const statusEl = document.getElementById('sample-status');
+    const defaultLabel = regenerateBtn.textContent;
+    const fieldNames = [
+      'prefix', 'family', 'given', 'middle', 'suffix', 'birth_family',
+      'birth_date', 'gender', 'address', 'city', 'state', 'postal_code',
+      'country', 'phone', 'mobile', 'work_phone', 'email', 'birth_address',
+      'birth_city', 'birth_state', 'birth_postal_code', 'birth_country',
+      'nir', 'marital_status', 'nationality', 'identity_reliability_code',
+      'mothers_maiden_name', 'primary_care_provider'
+    ];
+
+    regenerateBtn.addEventListener('click', async function () {
+      regenerateBtn.disabled = true;
+      regenerateBtn.textContent = 'Chargement...';
+      try {
+        const response = await fetch('/patients/sample-identity');
+        if (!response.ok) {
+          throw new Error('sample identity fetch failed');
+        }
+        const payload = await response.json();
+        const sample = payload.sample_data || payload;
+        applyValues(sample);
+        if (statusEl) {
+          statusEl.textContent = 'Nouvelle identité appliquée';
+          statusEl.classList.remove('text-rose-200');
+          statusEl.classList.add('text-emerald-200');
+        }
+      } catch (error) {
+        console.error(error);
+        if (statusEl) {
+          statusEl.textContent = "Impossible de générer une identité";
+          statusEl.classList.remove('text-emerald-200');
+          statusEl.classList.add('text-rose-200');
+        }
+      } finally {
+        regenerateBtn.disabled = false;
+        regenerateBtn.textContent = defaultLabel;
+      }
+    });
+
+    function applyValues(data) {
+      fieldNames.forEach(function (name) {
+        const input = form.querySelector('[name="' + name + '"]');
+        if (!input) {
+          return;
+        }
+        let value = data[name] || '';
+        if (input.tagName === 'INPUT' && input.type === 'date' && value) {
+          value = value.substring(0, 10);
+        }
+        input.value = value;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+  });
+</script>
+{% endblock %}

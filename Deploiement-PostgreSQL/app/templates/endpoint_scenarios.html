@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4 space-y-8">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/endpoints" class="hover:text-blue-600 transition-colors">Endpoints</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/endpoints/{{ endpoint.id }}" class="hover:text-blue-600 transition-colors">{{ endpoint.name }}</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Scénarios</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-500 rounded-2xl p-8 text-white relative overflow-hidden">
+    <div class="absolute inset-0 bg-black/10"></div>
+    <div class="relative z-10">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">Scénarios pour {{ endpoint.name }}</h1>
+          <p class="text-white/80 text-sm">Exécutez des scénarios multi-messages sur cet endpoint</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages flash -->
+  {% with messages = request.session.get('_messages', []) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      <div class="rounded-xl border px-4 py-3 text-sm flex items-center gap-2 {{ 'border-green-200 bg-green-50 text-green-700' if category == 'success' else 'border-red-200 bg-red-50 text-red-700' }}">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {% if category == 'success' %}
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          {% else %}
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          {% endif %}
+        </svg>
+        {{ message }}
+      </div>
+      {% endfor %}
+      {% set _ = request.session.pop('_messages') %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Liste des scénarios groupés par catégorie -->
+  {% set scenarios_by_category = {} %}
+  {% for scenario in scenarios %}
+    {% set cat = scenario.category or 'general' %}
+    {% if cat not in scenarios_by_category %}
+      {% set _ = scenarios_by_category.__setitem__(cat, []) %}
+    {% endif %}
+    {% set _ = scenarios_by_category[cat].append(scenario) %}
+  {% endfor %}
+
+  {% for category, cat_scenarios in scenarios_by_category.items()|sort %}
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+    <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+      <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+        </svg>
+        {{ category }}
+        <span class="text-sm text-slate-500 font-normal">({{ cat_scenarios|length }} scénario{{ 's' if cat_scenarios|length > 1 else '' }})</span>
+      </h2>
+    </div>
+    
+    <div class="divide-y divide-slate-100">
+      {% for scenario in cat_scenarios %}
+      <div class="px-6 py-4 hover:bg-slate-50 transition-colors">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-1">
+              <h3 class="text-base font-semibold text-slate-800">{{ scenario.name }}</h3>
+              <span class="px-2 py-0.5 text-xs font-medium rounded-full {{ 'bg-purple-100 text-purple-700' if scenario.protocol == 'HL7' else 'bg-blue-100 text-blue-700' }}">
+                {{ scenario.protocol }}
+              </span>
+            </div>
+            <p class="text-sm text-slate-600 mb-2">{{ scenario.description }}</p>
+            <div class="flex items-center gap-4 text-xs text-slate-500">
+              <span class="flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                </svg>
+                {{ scenario.steps|length if scenario.steps else '?' }} message{{ 's' if (scenario.steps|length or 0) > 1 else '' }}
+              </span>
+              {% if scenario.source_path %}
+              <span class="flex items-center gap-1" title="{{ scenario.source_path }}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Legacy
+              </span>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <!-- Exécuter -->
+            <form method="post" action="/endpoints/{{ endpoint.id }}/scenarios/{{ scenario.id }}/execute" class="inline">
+              <button type="submit" class="px-4 py-1.5 text-sm bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-colors shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Exécuter
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if not scenarios %}
+  <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+    <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-slate-500 text-lg mb-2">Aucun scénario disponible</p>
+    <p class="text-slate-400 text-sm">Importez des scénarios depuis la <a href="/scenarios" class="text-blue-600 hover:underline">page des scénarios</a>.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+from enum import Enum
+from typing import Dict, List, Any
+from app.models import DossierType
+
+# Énumérations pour les champs de type select
+class AdmissionType(str, Enum):
+    EMERGENCY = "emergency"
+    ELECTIVE = "elective"
+    NEWBORN = "newborn"
+    URGENT = "urgent"
+    OTHER = "other"
+
+    @classmethod
+    def choices(cls) -> List[Dict[str, str]]:
+        return [{"value": e.value, "label": e.value.capitalize()} for e in cls]
+
+class EndpointKind(str, Enum):
+    MLLP = "MLLP"
+    FHIR = "FHIR"
+    FILE = "FILE"
+
+    @classmethod
+    def choices(cls) -> List[Dict[str, str]]:
+        return [{"value": e.value, "label": e.value} for e in cls]
+
+class EndpointRole(str, Enum):
+    SENDER = "sender"
+    RECEIVER = "receiver"
+    BOTH = "both"
+
+    @classmethod
+    def choices(cls) -> List[Dict[str, str]]:
+        return [{"value": e.value, "label": e.value.capitalize()} for e in cls]
+
+class AuthKind(str, Enum):
+    NONE = "none"
+    BEARER = "bearer"
+
+    @classmethod
+    def choices(cls) -> List[Dict[str, str]]:
+        return [{"value": e.value, "label": e.value.capitalize()} for e in cls]
+
+class MovementType(str, Enum):
+    """
+    Types de mouvements métier propres au modèle (français, indépendants des standards HL7/FHIR).
+    Les correspondances avec les standards doivent être gérées dans des tables de mapping séparées.
+    """
+    ADMISSION = "admission"  # Admission en hospitalisation
+    TRANSFERT = "transfert"  # Transfert du patient
+    SORTIE = "sortie"        # Sortie définitive
+    CONSULTATION = "consultation"  # Admission urgences / consultation externe
+    PRE_ADMISSION = "pre_admission"  # Pré-admission
+    MUTATION = "mutation"    # Mutation vers consultation / urgence
+    RETOUR = "retour"        # Retour de consultation
+    ANNUL_ADMISSION = "annulation_admission"  # Annulation d'admission
+    ANNUL_TRANSFERT = "annulation_transfert"  # Annulation de transfert
+    ANNUL_SORTIE = "annulation_sortie"        # Annulation de sortie
+    PERMISSION = "permission"  # Permission de sortie (patient absent temporairement)
+
+    @classmethod
+    def choices(cls) -> List[Dict[str, str]]:
+        labels = {
+            "admission": "Admission en hospitalisation",
+            "transfert": "Transfert du patient",
+            "sortie": "Sortie définitive",
+            "consultation": "Consultation / urgences",
+            "pre_admission": "Pré-admission",
+            "mutation": "Mutation",
+            "retour": "Retour de consultation",
+            "annulation_admission": "Annulation d'admission",
+            "annulation_transfert": "Annulation de transfert",
+            "annulation_sortie": "Annulation de sortie",
+            "permission": "Permission de sortie",
+        }
+        return [{"value": e.value, "label": labels.get(e.value, e.value)} for e in cls]
+
+class MouvementStatus(str, Enum):
+    """Statuts possibles d'un mouvement"""
+    PENDING = "pending"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    
+    @classmethod
+    def choices(cls) -> List[Dict[str, str]]:
+        labels = {
+            "pending": "En attente",
+            "active": "En cours",
+            "completed": "Terminé",
+            "cancelled": "Annulé",
+        }
+        return [{"value": e.value, "label": labels.get(e.value, e.value.capitalize())} for e in cls]
+
+# Configuration des champs par modèle
+MODEL_FIELDS = {
+    "Patient": {
+        "required": ["family", "given"],
+        "select": {},
+        "help": {
+            "family": "Nom de famille du patient",
+            "given": "Prénom du patient",
+            "external_id": "Identifiant externe (ex: IPP)",
+            "birth_date": "Date de naissance (YYYYMMDD)",
+            "gender": "Genre (M/F/O)",
+        }
+    },
+    "Dossier": {
+        "required": ["patient_id", "admit_time"],
+        "select": {
+            "admission_type": AdmissionType,
+            "admission_source": "encounter-admission-fr",  # Vocabulaire pour source d'admission
+            "dossier_type": DossierType,
+        },
+        "help": {
+            "patient_id": "ID du patient existant dans la base",
+            "uf_responsabilite": "Unité fonctionnelle responsable du dossier (optionnel)",
+            "admit_time": "Date et heure d'admission",
+            "admission_type": "Type d'admission du patient",
+            "admission_source": "Source d'admission (Domicile, Transfert, etc.)",
+            "dossier_type": "Type de dossier (hospitalisé/externe/urgence)",
+        }
+    },
+    "SystemEndpoint": {
+        "required": ["name", "kind", "role"],
+        "select": {
+            "kind": EndpointKind,
+            "role": EndpointRole,
+            "auth_kind": AuthKind,
+        },
+        "help": {
+            "name": "Nom du système distant",
+            "kind": "Type de protocole (MLLP/FHIR)",
+            "role": "Rôle de l'endpoint (sender/receiver/both)",
+            "host": "Hôte pour MLLP (ex: 0.0.0.0 pour receiver)",
+            "port": "Port TCP pour MLLP",
+            "base_url": "URL de base pour FHIR (ex: https://fhir.example.com/fhir)",
+            "auth_kind": "Type d'authentification pour FHIR",
+        }
+    },
+    "Mouvement": {
+        "required": ["venue_id", "type", "when"],
+        "select": {
+            "type": MovementType,
+            "status": MouvementStatus,
+        },
+        "help": {
+            "venue_id": "Venue (séjour) concerné par le mouvement",
+            "type": "Type de mouvement ADT selon la norme IHE PAM",
+            "when": "Date et heure du mouvement",
+            "location": "Localisation complète du patient",
+            "from_location": "Localisation de départ (pour les transferts)",
+            "to_location": "Localisation d'arrivée (pour les transferts)",
+            "reason": "Motif ou raison du mouvement",
+            "performer": "Nom de l'intervenant ayant effectué le mouvement",
+            "status": "Statut actuel du mouvement",
+            "note": "Commentaire ou remarque libre",
+            "movement_type": "Type de mouvement (classification interne)",
+            "movement_reason": "Raison détaillée du mouvement",
+            "performer_role": "Rôle ou fonction de l'intervenant",
+        }
+    }
+}
+
+def get_field_config(model_name: str, field_name: str) -> Dict[str, Any]:
+    """Retourne la configuration d'un champ pour un modèle donné."""
+    if model_name not in MODEL_FIELDS:
+        return {}
+    
+    config = {"required": field_name in MODEL_FIELDS[model_name]["required"]}
+    
+    if field_name in MODEL_FIELDS[model_name]["select"]:
+        select_value = MODEL_FIELDS[model_name]["select"][field_name]
+        config["type"] = "select"
+        
+        # Si c'est une chaîne, c'est un nom de vocabulaire
+        if isinstance(select_value, str):
+            from app.services.vocabulary_lookup import get_vocabulary_options
+            config["options"] = get_vocabulary_options(select_value)
+        # Sinon c'est une classe Enum
+        else:
+            enum_class = select_value
+            # Use choices() if available, else Solution de repli to list of values
+            if hasattr(enum_class, "choices"):
+                config["options"] = enum_class.choices()
+            else:
+                config["options"] = [{"value": e.value, "label": str(e.value).capitalize()} for e in enum_class]
+    
+    if field_name in MODEL_FIELDS[model_name]["help"]:
+        config["help"] = MODEL_FIELDS[model_name]["help"][field_name]
+    
+    return config

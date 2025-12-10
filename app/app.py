@@ -41,6 +41,8 @@ from app.services.mllp_manager import MLLPManager
 from app.services.entity_events import register_entity_events
 from app.services.entity_events_structure import register_structure_entity_events
 from app.services.scheduler import start_scheduler, stop_scheduler
+import asyncio
+from app import runners as runners_module
 
 
 # Import ght router first to avoid circular imports
@@ -93,6 +95,14 @@ async def lifespan(app: FastAPI):
     testing = os.getenv("TESTING", "0") in ("1", "true", "True")
     if not testing:
         init_db()
+        # Provide the running asyncio loop to runners so synchronous handlers
+        # can schedule coroutines safely using run_coroutine_threadsafe.
+        try:
+            loop = asyncio.get_running_loop()
+            runners_module.set_event_loop(loop)
+            logging.info("Main asyncio loop registered with runners module")
+        except RuntimeError:
+            logging.getLogger(__name__).warning("No running asyncio loop available to register with runners")
         # Register entity event listeners for automatic message emission
         register_entity_events()
         register_structure_entity_events()

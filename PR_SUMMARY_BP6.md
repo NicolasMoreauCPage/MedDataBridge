@@ -1,11 +1,13 @@
 # PR: Implement BP6 Stateful PAM Sequence Validator & Strict Validation Enforcement
 
 ## Overview
+
 This PR implements comprehensive BP6/IHE-PAM-FR sequence-dependent validations through a new stateful validator module, enforces strictness by default, and ensures all validation messages are translated to French for compliance and user experience.
 
 ## Changes Summary
 
 ### New Files
+
 - **`app/services/pam_sequence_validator.py`**: Stateful PAM sequence validator implementing DB-aware BP6 checks
   - ZBE-1 identifier resolution (numeric + Identifier table lookup)
   - UPDATE/CANCEL reference verification
@@ -35,6 +37,7 @@ This PR implements comprehensive BP6/IHE-PAM-FR sequence-dependent validations t
 - **`tests/test_pam_bp6.py`**: BP6 scenario tests
 
 ### Modified Files
+
 - **`app/services/pam_validation.py`**:
   - Removed INS-C enforcement
   - Translates all stateless validation issues to French before returning
@@ -47,6 +50,7 @@ This PR implements comprehensive BP6/IHE-PAM-FR sequence-dependent validations t
 - **`Doc/BP6_ANALYSIS.md`**: Analysis of BP6 controls vs current validator (previously created)
 
 ### Test Coverage
+
 - **Stateless validator tests** (`tests/test_pam_stateless.py`):
   - PV1-19 missing for stay events
   - A02 requiring room and bed
@@ -67,16 +71,19 @@ This PR implements comprehensive BP6/IHE-PAM-FR sequence-dependent validations t
 ## Key Features
 
 ### Strictness by Default
+
 - Sequence validation errors block persistence by default
 - Configurable via `STRICT_PAM_SEQUENCE` environment variable (set to `True` by default)
 - Escalates certain warnings to errors when strict mode enabled
 
 ### French Localization
+
 - All validation issue messages translated to French
 - Includes code mapping + fallback transformations
 - ACKs and error responses contain French messages
 
 ### BP6 Conformance
+
 - Implements stateless checks: segment validation, identifier handling, PV1-19 presence
 - Implements stateful checks:
   - Reference resolution and validation
@@ -87,6 +94,7 @@ This PR implements comprehensive BP6/IHE-PAM-FR sequence-dependent validations t
   - Transition rule enforcement
 
 ### Example Validation & Replay
+
 - `scripts/validate_pam_examples.py`: Validates example HL7 files and reports issues
   - First 200 files: 199 with issues (mostly stateless)
   - 500 files: 499 with issues (ZBE_REF_NOT_FOUND reduced to 96 after replay)
@@ -96,33 +104,40 @@ This PR implements comprehensive BP6/IHE-PAM-FR sequence-dependent validations t
 
 ## Statistics
 
-### Test Coverage
+### Test Summary
+
 - Total tests: 9 (8 passed, 1 xfailed)
 - Validation rules added: 10+ BP6-specific checks
 
 ### Example Validation (500 files)
+
 **Stateless Issues**:
+
 - OPTIONAL_SEGMENTS: 474
 - ZBE8_ABSENT: 330
 - ZBE9_INVALID: 210
 - PID13 XTN invalid: 16
 
 **Stateful Issues**:
+
 - ZBE_REF_NOT_FOUND: 96 (reduced from 200+ before replay strategy)
 
 ## Integration Points
+
 - Message processing pipeline: `app/services/pam.py` → `process_pam_message()`
 - Validator integration: stateless + stateful validators run sequentially
 - Database: SQLModel session-based for stateful lookups
 - Error handling: French-language errors propagated to ACKs
 
 ## Deployment Notes
+
 - `STRICT_PAM_SEQUENCE=True` (default): Sequence failures block message persistence
 - `STRICT_PAM_SEQUENCE=False`: Sequence failures produce warnings but don't block
 - Requires database context for stateful checks (in-memory for tests, persistent for production)
 - All validation output automatically translated to French
 
 ## Future Enhancements
+
 - Reservation lifecycle state machine (explicit RESERVE/CONFIRM/CANCEL lifecycle)
 - Extended ZBE chain validation (deeper graph traversal, conflict detection)
 - Performance optimization for high-volume replay scenarios

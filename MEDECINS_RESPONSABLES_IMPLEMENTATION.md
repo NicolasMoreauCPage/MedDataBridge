@@ -5,6 +5,7 @@
 ## Résumé Exécutif
 
 Implémentation complète de la gestion des médecins responsables dans MedData Bridge, couvrant:
+
 - **Modèle de données** avec identification RPPS/ADELI
 - **Import automatique** depuis messages IHE PAM (PV1-7)
 - **Export automatique** dans messages générés (HL7 et FHIR)
@@ -107,17 +108,20 @@ class MedecinResponsable(SQLModel, table=True):
 #### Modifications
 
 1. **Import du service**:
+
    ```python
    from app.services.medecin_extractor import extract_and_store_medecin_from_pv1
    ```
 
 2. **Helper d'extraction PV1**:
+
    ```python
    def _extract_pv1_segment(message: str) -> Optional[str]:
        # Extrait le segment PV1 complet du message
    ```
 
 3. **Création Dossier** (ligne ~1014):
+
    ```python
    medecin = None
    if message:
@@ -132,6 +136,7 @@ class MedecinResponsable(SQLModel, table=True):
    ```
 
 4. **Création Mouvement** (ligne ~1248):
+
    ```python
    medecin = None
    if message:
@@ -179,13 +184,15 @@ pv1 = f"PV1||I|{location}|||{pv1_7}||^^^^^{uf_responsabilite}"
 #### Format Émis
 
 Exemple de PV1-7 généré:
-```
+
+```text
 PV1||I|CARDIO|||891020646^KENNOUCHE^Moussa Samir^^^^Dr^^^ADELI||^^^^^UF-CARDIO
 ```
 
 ### Génération FHIR (À compléter)
 
 **TODO**: Ajouter `Encounter.participant` avec:
+
 - `type.coding.code = "ATND"` (Attender)
 - `individual.reference = "Practitioner/{medecin_id}"`
 - Créer ressource `Practitioner` si nécessaire
@@ -197,11 +204,12 @@ PV1||I|CARDIO|||891020646^KENNOUCHE^Moussa Samir^^^^Dr^^^ADELI||^^^^^UF-CARDIO
 **Fichier**: `extract_medecins_from_archive.py`
 
 ### Objectif
+
 Analyser les 298 messages PAM archivés pour construire le référentiel initial des médecins.
 
 ### Résultats
 
-```
+```text
 📁 Messages analysés:
    Total:                    298
    Avec médecin (PV1-7):     2
@@ -339,21 +347,25 @@ Analyser les 298 messages PAM archivés pour construire le référentiel initial
 ## 10. Commandes Utiles
 
 ### Extraction Initiale
+
 ```bash
 .venv/bin/python3 extract_medecins_from_archive.py
 ```
 
 ### Vérifier Médecins en DB
+
 ```bash
 sqlite3 medbridge.db "SELECT * FROM medecinresponsable;"
 ```
 
 ### Compter Dossiers avec Médecin
+
 ```bash
 sqlite3 medbridge.db "SELECT COUNT(*) FROM dossier WHERE medecin_responsable_id IS NOT NULL;"
 ```
 
 ### Compter Mouvements avec Médecin
+
 ```bash
 sqlite3 medbridge.db "SELECT COUNT(*) FROM mouvement WHERE medecin_responsable_id IS NOT NULL;"
 ```

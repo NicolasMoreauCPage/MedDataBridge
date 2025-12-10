@@ -5,6 +5,7 @@
 ✅ **IMPLÉMENTÉ AVEC SUCCÈS**: Système d'intervalles temporels réalistes pour les scénarios hospitaliers
 
 ### 🎯 Objectif atteint
+
 > *"dans les scénarios, je veux aussi que les dates soient changées à la volée et ca doit refletait des encart de temps entre les messages qui soit realistes pour un passage à l'hopital, en fonction du scenario"*
 
 ## 📊 Statistiques
@@ -17,14 +18,16 @@
 ## 🏥 Types de workflows hospitaliers détectés
 
 ### 1. Emergency Admission (Urgences)
+
 - **Scénarios**: 1 (Materialized IHE hospitSimple)
-- **Caractéristiques**: 
+- **Caractéristiques**:
   - Séquence: A05 → A01 → A02 → A02 → A03
   - Ancrage: admission_minus_days (1 jour)
   - Jitter: 2-15 minutes
   - **Intervalles réalistes**: Consultation → Admission rapide (30min-2h), Transferts fréquents
 
-### 2. Planned Admission (Hospitalisation programmée)  
+### 2. Planned Admission (Hospitalisation programmée)
+
 - **Scénarios**: 2,3,5,8,9,10,11,12,13,14,15,16,17,18,19,20 (15 scénarios)
 - **Caractéristiques**:
   - Codes: A28, A31, A01, A11 (admissions programmées)
@@ -33,7 +36,8 @@
   - **Intervalles réalistes**: Délais plus longs entre événements (1-5 jours)
 
 ### 3. Consultation Only (Consultations externes)
-- **Scénarios**: 4,6 (2 scénarios) 
+
+- **Scénarios**: 4,6 (2 scénarios)
 - **Caractéristiques**:
   - Codes: A05, A04 (consultations/arrivées)
   - Ancrage: now (jour même)
@@ -41,6 +45,7 @@
   - **Intervalles réalistes**: Consultation dans la journée (15min-1h30)
 
 ### 4. Long Stay (Séjours longs)
+
 - **Scénarios**: 7 (1 scénario)
 - **Caractéristiques**:
   - Codes: A06 (changements d'unité)

@@ -162,7 +162,7 @@ Ces médecins sont maintenant disponibles pour :
    - Spécialité médicale
    - Coordonnées (email, téléphone)
    - RPPS (seulement ADELI)
-   
+
    Ces informations pourraient être complétées manuellement ou via un référentiel externe.
 
 3. **Messages sans médecin** : 296 messages (82.5%) n'ont pas de médecin dans PV1-7. Cela peut être normal pour :

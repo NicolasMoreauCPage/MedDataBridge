@@ -11,16 +11,19 @@
 
 **Source**: Messages IHE PAM (HL7) de l'archive EJ 5  
 **Répertoires traités**:
+
 - `/Archive/` (359 messages)
 - `/Error/` (875 messages)
 - Total: **1234 messages PAM**
 
 **Résultats**:
+
 - **928 messages** contiennent un médecin responsable (75.2%)
 - **12 médecins** extraits avec identifiants complets
 - **100%** ont RPPS **ET** ADELI (grâce au parsing des répétitions HL7)
 
 **Médecin principal**:
+
 - Dr **PICQUE Jean Baptiste** (RPPS: 10004773510, ADELI: 702001060)
 - **586 occurrences** dans les messages (63.1% des messages avec médecin)
 
@@ -41,6 +44,7 @@
 | **TOTAL** | **1864** |
 
 **Structure principale**:
+
 - **EJ**: GRGAP (FINESS: 700004591)
 - **EG**: 9 établissements géographiques
 - **Services**: 142 services médicaux et administratifs
@@ -63,13 +67,16 @@ xcn_field = "123456789^PICQUE^Jean Baptiste"
 xcn_field = "123456789^PICQUE^Jean Baptiste~10004773510^PICQUE^Jean Baptiste"
 ```
 
-**Impact**: 
+**Impact**:
+
 - Capture simultanée RPPS + ADELI depuis le même message
 - 12 médecins avec double identification au lieu de médecins incomplets
 
 ### Import MFN robuste
 
 **Caractéristiques**:
+
+- Parsing de messages HL7 MFN^M05 (segments LOC/LCH/LRL)
 - Parsing de messages HL7 MFN^M05 (segments LOC/LCH/LRL)
 - Gestion hiérarchique EJ → EG → Pôle → Service → UF → UH → Chambre → Lit
 - Création automatique de pôles par défaut pour rattacher les services
@@ -89,6 +96,7 @@ SELECT COUNT(*) FROM medecinresponsable WHERE rpps IS NOT NULL AND adeli IS NOT 
 ```
 
 **Top 3 médecins par occurrences**:
+
 1. Dr PICQUE Jean Baptiste: 586 occurrences (63.1%)
 2. Dr VEVBFEQF: 295 occurrences (31.8%)
 3. Dr autres: moins de 5% chacun
@@ -114,6 +122,7 @@ SELECT COUNT(*) FROM lit;                    -- 690
 ### Import FHIR → Interne
 
 **Encounter.participant[ATND]** → `MedecinResponsable`
+
 - Extraction du Practitioner contained ou référencé
 - Parsing des identifiers (RPPS/ADELI)
 - Création/mise à jour du médecin en base
@@ -122,6 +131,7 @@ SELECT COUNT(*) FROM lit;                    -- 690
 ### Export Interne → FHIR
 
 **Dossier/Mouvement** → `Encounter` avec Practitioner contained
+
 - Génération du Practitioner resource
 - Identifiers: RPPS (urn:oid:1.2.250.1.71.4.2.1) et ADELI (urn:oid:1.2.250.1.71.4.2.3)
 - Participant role: ATND (attending)
@@ -132,21 +142,26 @@ SELECT COUNT(*) FROM lit;                    -- 690
 ## 📁 Fichiers créés/modifiés
 
 ### Modèles
+
 - `app/models_practitioners.py`: Modèle MedecinResponsable
 
 ### Services
+
 - `app/services/medecin_extractor.py`: Extraction HL7 avec répétitions
 - `app/services/mfn_importer.py`: Import MFN structure (déjà existant)
 
 ### Converters FHIR
+
 - `app/converters/fhir_import_converter.py`: Import Practitioner depuis Encounter
 - `app/services/fhir_encounters.py`: Export Practitioner contained
 
 ### Scripts d'import
+
 - `import_medecins_from_pam_archive.py`: Extraction médecins PAM (1234 messages)
 - `import_mfn_test_ght.py`: Import structure MFN pour GHT Test
 
 ### Rapports
+
 - `RAPPORT_IMPORT_MEDECINS_PAM_COMPLET.md`: Détails extraction médecins
 - `RAPPORT_IMPORT_MFN_GHT_TEST.md`: Détails import structure
 - `MEDECINS_RESPONSABLES_IMPLEMENTATION.md`: Documentation complète
@@ -182,18 +197,21 @@ SELECT COUNT(*) FROM lit;                    -- 690
 
 ## 🎉 Conclusion
 
-**Mission accomplie**: 
+**Mission accomplie**:
+
 - ✅ 12 médecins responsables extraits avec identifiants complets
 - ✅ Structure hospitalière GHT Test importée (1864 entités)
 - ✅ Intégration FHIR bidirectionnelle opérationnelle
 - ✅ Base de données prête pour production
 
 **Qualité des données**:
+
 - 100% des médecins ont RPPS + ADELI
 - 75.2% des messages PAM contiennent un médecin
 - Relations hiérarchiques structure complètes et cohérentes
 
-**Prêt pour**: 
+**Prêt pour**:
+
 - Gestion des dossiers patients avec médecin responsable
 - Export/import FHIR avec Practitioner resources
 - Affectation des mouvements dans la structure

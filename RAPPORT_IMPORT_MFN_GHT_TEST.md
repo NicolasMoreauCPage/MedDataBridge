@@ -14,6 +14,7 @@ L'import du fichier MFN d'exemple a été réalisé avec succès pour le context
 ### Entités parsées
 
 Le message MFN contenait **1946 entités** réparties comme suit:
+
 - 1 Entité Juridique (M)
 - 9 Entités Géographiques (ETBL_GRPQ)
 - 142 Services (D)
@@ -51,16 +52,19 @@ Après l'import, la base de données contient (tous GHT confondus):
 ### Entités principales importées
 
 **Entité Juridique (EJ)**:
+
 - Code: 69
 - Nom: GRGAP
 - FINESS: 700004591
 
 **Entités Géographiques (EG)** - Exemples:
+
 - GI: "ne pas utiliser GIP"
-- 33: "Etablissement VAL"
+- 33: "Établissement VAL"
 - 69: "CENTRE HOSPITALIER - SITE DE REF1"
 
 **Services** - Exemples:
+
 - CPAG: "Ne pas utiliser CPage"
 - 0192, 0200, 0202, 0203, 0204... (services numérotés)
 - Total: 142 services importés
@@ -68,13 +72,14 @@ Après l'import, la base de données contient (tous GHT confondus):
 ### Notes techniques
 
 1. **Format MFN**: Le fichier utilise le format HL7 MFN^M05 avec segments LOC/LCH/LRL
-2. **Relations hiérarchiques**: Les relations parent-enfant ont été correctement établies via les segments LRL
-3. **Identifiants**: Les codes sources et identifiants globaux (ID_GLBL) ont été préservés
-4. **Pôles par défaut**: Des pôles par défaut ont été créés automatiquement pour rattacher les services aux EG
+1. **Relations hiérarchiques**: Les relations parent-enfant ont été correctement établies via les segments LRL
+1. **Identifiants**: Les codes sources et identifiants globaux (ID_GLBL) ont été préservés
+1. **Pôles par défaut**: Des pôles par défaut ont été créés automatiquement pour rattacher les services aux EG
 
 ### Logs d'import
 
 L'import a généré des logs détaillés pour chaque étape:
+
 - Parsing des 1946 entités MFN
 - Création/mise à jour des EJ et EG (1ère passe)
 - Liaison EG → EJ
@@ -94,6 +99,7 @@ Aucune entité n'a été ignorée (ignored: 0).
 ✅ **Intégrité des données**: Toutes les relations hiérarchiques (EJ → EG → Pôle → Service → UF → UH → Chambre → Lit) ont été correctement établies.
 
 ✅ **Prêt pour l'exploitation**: La structure est maintenant disponible pour:
+
 - Rattachement des dossiers patients
 - Affectation des mouvements
 - Gestion des médecins responsables par UF

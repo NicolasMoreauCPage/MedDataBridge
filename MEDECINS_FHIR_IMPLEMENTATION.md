@@ -21,7 +21,7 @@ L'intégration des médecins responsables dans les flux FHIR permet de :
 
 #### Import FHIR (`app/converters/fhir_import_converter.py`)
 
-**FHIRToEncounterConverter.convert_encounter()**
+##### FHIRToEncounterConverter.convert_encounter()
 
 1. Extrait `encounter.participant` avec `type.coding.code = "ATND"`
 2. Résout la référence vers `Practitioner` (contained ou externe)
@@ -120,6 +120,7 @@ L'intégration des médecins responsables dans les flux FHIR permet de :
 ```
 
 Vérifie :
+
 - Extraction du médecin depuis `Encounter.participant[ATND]`
 - Résolution du `Practitioner` contained
 - Création ou récupération du `MedecinResponsable`
@@ -132,6 +133,7 @@ Vérifie :
 ```
 
 Vérifie :
+
 - Génération de `Encounter.participant[ATND]`
 - Inclusion du `Practitioner` contained
 - Présence des identifiants RPPS/ADELI
@@ -202,6 +204,7 @@ Si aucun `medecin_responsable_id` n'est défini, l'export utilise `venue.attendi
 ## Statut
 
 ✅ **Complété** :
+
 - Modèle MedecinResponsable
 - Migration Alembic
 - Import FHIR (Encounter → MedecinResponsable)
@@ -210,6 +213,7 @@ Si aucun `medecin_responsable_id` n'est défini, l'export utilise `venue.attendi
 - Intégration avec PAM (HL7)
 
 ⏳ **En attente** :
+
 - Interface utilisateur (CRUD)
 - API REST pour la gestion des médecins
 - Validation avancée des identifiants

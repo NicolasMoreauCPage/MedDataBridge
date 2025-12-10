@@ -18,10 +18,12 @@
 ### État de la base de données
 
 **Avant import** : 2 médecins
+
 - KENNOUCHE Moussa Samir (ADELI: 891020646)
 - DURAND Jean-Pierre (RPPS: 12345678901) - créé par test
 
 **Après import** : 4 médecins (dont 3 médecins réels de l'EJ 5)
+
 - **KENNOUCHE Moussa Samir** (RPPS: 10004414727, ADELI: 891020646) ⭐ **RPPS ajouté**
 - DURAND Jean-Pierre (RPPS: 12345678901) - *(médecin de test)*
 - **PICQUE Jean Baptiste** (RPPS: 10100534436, ADELI: 101005344) ⭐ **NOUVEAU + RPPS ajouté**
@@ -89,18 +91,20 @@
 
 Les médecins ont été extraits du segment PV1, champ 7 (Attending Doctor) au format XCN :
 
-```
+```text
 PV1|1||SERVICE|||ID^FamilyName^GivenName^^^^Dr^^^AssigningAuthority
 ```
 
 Exemple :
-```
+
+```text
 PV1|1||CARDIO|||101005344^PICQUE^JEAN BAPTISTE^^^^Dr^^^ADELI
 ```
 
 ### Détection automatique
 
 Le système détecte automatiquement le type d'identifiant :
+
 - **9 chiffres** → ADELI
 - **11 chiffres** → RPPS
 
@@ -117,6 +121,7 @@ Le système a correctement évité de créer un doublon pour **KENNOUCHE Moussa 
 ### Intégrité des données
 
 Tous les médecins ont été créés avec :
+
 - ✅ Identifiant ADELI
 - ✅ Nom de famille
 - ✅ Prénom(s)
@@ -133,6 +138,7 @@ Le référentiel des médecins responsables passe de **2 à 4 entrées** (+100%)
 ### Traçabilité
 
 Les 63 messages PAM contenant un médecin peuvent maintenant être liés aux médecins responsables via :
+
 - `Dossier.medecin_responsable_id`
 - `Mouvement.medecin_responsable_id`
 - `UniteFonctionnelle.medecin_responsable_id`
@@ -140,6 +146,7 @@ Les 63 messages PAM contenant un médecin peuvent maintenant être liés aux mé
 ### Compatibilité
 
 Ces médecins sont maintenant disponibles pour :
+
 - ✅ Export HL7 PAM (PV1-7)
 - ✅ Export FHIR (Encounter.participant + Practitioner contained)
 - ✅ Import FHIR (avec dédoublonnage)
@@ -181,6 +188,7 @@ Ces médecins sont maintenant disponibles pour :
 - `RAPPORT_IMPORT_MEDECINS_PAM_EJ5.md` : Ce rapport
 
 **Script exécutable** :
+
 ```bash
 .venv/bin/python3 import_medecins_from_pam_archive.py
 ```

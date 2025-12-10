@@ -53,6 +53,7 @@
 ### Médecin principal
 
 **Dr PICQUE Jean Baptiste** est le médecin responsable dominant avec :
+
 - **586 occurrences** sur 928 messages avec médecin
 - **63.1%** de tous les cas
 - Présent dans les deux répertoires (Archive et Error)
@@ -60,6 +61,7 @@
 ### Médecins secondaires
 
 4 médecins représentent **92.4%** des cas :
+
 1. PICQUE (63.1%)
 2. MOUROT (14.4%)
 3. KENNOUCHE (8.1%)
@@ -80,11 +82,13 @@
 Tous les médecins ont été extraits avec leurs **deux identifiants nationaux** :
 
 ### RPPS (Répertoire Partagé des Professionnels de Santé)
+
 - ✅ 12 médecins avec RPPS (100%)
 - Format : 11 chiffres
 - Obligatoire pour les échanges nationaux
 
 ### ADELI (Automatisation DEs LIstes)
+
 - ✅ 12 médecins avec ADELI (100%)
 - Format : 9 chiffres (11 pour PICQUE et SOTO B.)
 - Identifiant historique départemental
@@ -114,6 +118,7 @@ PV1||O|SERVICE|||RPPS^NOM^PRENOM^^^^^^AUTHORITY^^^RPPS~ADELI^NOM^PRENOM^^^^^^AUT
 ### Gestion des répétitions
 
 Le parseur gère les **répétitions multiples** (séparateur `~`) pour capturer :
+
 - RPPS (11 chiffres)
 - ADELI (9 chiffres)
 - Nom et prénom
@@ -122,6 +127,7 @@ Le parseur gère les **répétitions multiples** (séparateur `~`) pour capturer
 ### Détection automatique
 
 Identification du type d'identifiant par :
+
 1. **Autorité d'attribution** (RPPS, ADELI dans le champ Authority)
 2. **Longueur** (11 chiffres = RPPS, 9 chiffres = ADELI)
 
@@ -130,15 +136,18 @@ Identification du type d'identifiant par :
 ## 💾 État de la base de données
 
 ### Avant traitement complet
+
 - 4 médecins (3 réels + 1 test)
 - Extraction partielle (Archive uniquement)
 
 ### Après traitement complet
+
 - **13 médecins** (12 réels de l'EJ 5 + 1 test)
 - Extraction complète (Archive + Error)
 - **9 nouveaux médecins intégrés**
 
 ### Médecins existants mis à jour
+
 - PICQUE : Déjà présent
 - MOUROT : Déjà présent
 - KENNOUCHE : Déjà présent
@@ -148,6 +157,7 @@ Identification du type d'identifiant par :
 ## 📍 Répartition géographique
 
 Tous les médecins ont un ADELI commençant par **89** ou **10** :
+
 - **89** : Département de l'Yonne (10 médecins)
 - **10** : Département de l'Aube (2 médecins : PICQUE et SOTO B.)
 
@@ -156,12 +166,14 @@ Tous les médecins ont un ADELI commençant par **89** ou **10** :
 ## 🎯 Qualité des données
 
 ### Points forts
+
 - ✅ Double identifiant RPPS + ADELI pour tous
 - ✅ Nom et prénom complets
 - ✅ Aucun doublon créé
 - ✅ Extraction depuis 100% des messages disponibles
 
 ### Points à améliorer
+
 - ⚠️ Spécialité médicale non disponible (pas dans PV1-7)
 - ⚠️ Coordonnées (email, téléphone) non disponibles
 - ⚠️ Titre (Dr, Pr) non systématiquement capturé
@@ -169,6 +181,7 @@ Tous les médecins ont un ADELI commençant par **89** ou **10** :
 ### Enrichissement recommandé
 
 Données à compléter manuellement ou via API RPPS :
+
 1. **Spécialité** : Cardiologie, Chirurgie, Médecine générale, etc.
 2. **Coordonnées** : Email, téléphone professionnel
 3. **Statut** : Libéral, hospitalier, mixte
@@ -179,13 +192,17 @@ Données à compléter manuellement ou via API RPPS :
 ## 🔄 Utilisation des données
 
 ### Export HL7 PAM
+
 Les médecins sont maintenant disponibles pour génération dans **PV1-7** :
+
 ```hl7
 PV1||I|SERVICE|||10100534436^PICQUE^JEAN BAPTISTE^^^^^^RPPS~101005344^PICQUE^JEAN BAPTISTE^^^^^^ADELI
 ```
 
 ### Export FHIR
+
 Génération de ressources **Practitioner** contained dans les **Encounter** :
+
 ```json
 {
   "resourceType": "Practitioner",
@@ -198,6 +215,7 @@ Génération de ressources **Practitioner** contained dans les **Encounter** :
 ```
 
 ### Import FHIR
+
 Dédoublonnage automatique lors de l'import d'Encounter avec Practitioner.
 
 ---
@@ -215,12 +233,14 @@ Dédoublonnage automatique lors de l'import d'Encounter avec Practitioner.
 ### Par type de message (estimation)
 
 Les messages avec médecin correspondent probablement à :
+
 - **A01** : Admission
 - **A04** : Enregistrement
 - **A02** : Transfert
 - **A03** : Sortie
 
 Les messages sans médecin correspondent probablement à :
+
 - **A08** : Mise à jour administrative
 - **A11** : Annulation
 
@@ -240,11 +260,13 @@ Les messages sans médecin correspondent probablement à :
 ## 📄 Scripts et fichiers
 
 ### Script principal
+
 ```bash
 .venv/bin/python3 import_medecins_from_pam_archive.py
 ```
 
 **Fonctionnalités** :
+
 - Traite tous les répertoires (Archive, Error, In, Out)
 - Gère les répétitions HL7 (`~`)
 - Dédoublonne automatiquement
@@ -252,6 +274,7 @@ Les messages sans médecin correspondent probablement à :
 - Affiche statistiques détaillées
 
 ### Fichiers générés
+
 - `import_medecins_from_pam_archive.py` : Script d'import
 - `RAPPORT_IMPORT_MEDECINS_PAM_COMPLET.md` : Ce rapport
 

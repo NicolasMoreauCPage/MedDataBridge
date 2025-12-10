@@ -80,11 +80,13 @@ _parse_practitioner_display(display) → Optional[Dict]
 
 1. Réinitialisation de l'historique Alembic
 2. Ajout manuel des colonnes manquantes :
+
    ```sql
    ALTER TABLE mouvement ADD COLUMN medecin_responsable_id INTEGER;
    ALTER TABLE dossier ADD COLUMN medecin_responsable_id INTEGER;
    ALTER TABLE unitefonctionnelle ADD COLUMN medecin_responsable_id INTEGER;
    ```
+
 3. Marquage de la migration comme appliquée
 
 **Statut final** : Migration `5fc898b68be8` appliquée, colonnes créées, système opérationnel.
@@ -94,6 +96,7 @@ _parse_practitioner_display(display) → Optional[Dict]
 **Test d'import** : `test_fhir_medecin_import.py`
 
 Résultats :
+
 - ✅ Encounter FHIR importé avec succès
 - ✅ Practitioner contained extrait et parsé
 - ✅ MedecinResponsable créé (Dr DURAND Jean-Pierre, RPPS:12345678901)
@@ -104,7 +107,8 @@ Résultats :
 **Test d'export** : `test_fhir_medecin_export.py`
 
 Résultats :
-- ✅ Encounter généré avec `participant[ATND]`
+
+- ✅ Encounter généréré avec `participant[ATND]`
 - ✅ Practitioner included dans `contained`
 - ✅ RPPS présent : 12345678901
 - ✅ Nom complet : Dr DURAND Jean-Pierre
@@ -141,7 +145,7 @@ Résultats :
 
 ## 🔄 Cycle complet fonctionnel
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     IMPORT FHIR                             │
 │                                                             │
@@ -195,7 +199,8 @@ Résultats :
 ### 1. Colonne manquante dans la base
 
 **Erreur** :
-```
+
+```text
 sqlite3.OperationalError: table mouvement has no column named medecin_responsable_id
 ```
 
@@ -206,7 +211,8 @@ sqlite3.OperationalError: table mouvement has no column named medecin_responsabl
 ### 2. Relations SQLAlchemy non résolues
 
 **Erreur** :
-```
+
+```text
 sqlalchemy.exc.InvalidRequestError: expression 'MedecinResponsable' failed to locate a name
 ```
 
@@ -256,7 +262,7 @@ sqlalchemy.exc.InvalidRequestError: expression 'MedecinResponsable' failed to lo
 
 ## 📞 Résumé pour l'utilisateur
 
-**Implémentation terminée avec succès !** 
+**Implémentation terminée avec succès !**
 
 Le système gère maintenant les médecins responsables dans les flux FHIR :
 
@@ -266,7 +272,8 @@ Le système gère maintenant les médecins responsables dans les flux FHIR :
 ✅ Intégration complète avec HL7 PAM (PV1-7)  
 ✅ Tests fonctionnels validés  
 
-**Médecins actuels dans la base** : 2  
+**Médecins actuels dans la base** : 2
+
 - KENNOUCHE Moussa Samir (ADELI: 891020646)
 - DURAND Jean-Pierre (RPPS: 12345678901)
 

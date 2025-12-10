@@ -13,7 +13,7 @@ def get_templates_with_filters(request: FastAPIRequest):
     """Retourne l'instance templates globale avec les filtres enregistrés"""
     return request.app.state.templates
 
-router = APIRouter(prefix="/ght", tags=["ght"])
+router = APIRouter(tags=["ght"])
 
 
 def _get_ej_or_404(session: Session, context: GHTContext, ej_id: int) -> EntiteJuridique:

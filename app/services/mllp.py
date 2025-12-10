@@ -15,7 +15,8 @@ Traces
 import asyncio
 import logging
 import os
-from typing import Callable, Awaitable
+import inspect
+from typing import Callable, Awaitable, List
 from datetime import datetime
 from sqlmodel import Session
 from app.models_endpoints import SystemEndpoint
@@ -32,7 +33,7 @@ def frame_hl7(message: str) -> bytes:
     """Encapsule un message HL7 en trame MLLP (VT <msg> FS CR)."""
     return START_BLOCK + message.encode("utf-8") + END_BLOCK + CARRIAGE_RETURN
 
-def deframe_hl7(stream: bytes) -> list[str]:
+def deframe_hl7(stream: bytes) -> List[str]:
     """Extrait les messages HL7 d'un flux de bytes MLLP.
 
     Retourne une liste de messages HL7 (déframés, codés en UTF-8). Les
@@ -136,7 +137,22 @@ async def start_mllp_server(
         peer = writer.get_extra_info("peername")
         logger.info(f"[MLLP] Connect {peer} -> {host}:{port} ({endpoint.name})")
         try:
-            data = await reader.read(65536)
+            # Read until we have at least one complete MLLP frame (END_BLOCK + CR).
+            # Using repeated small reads is robust to partial TCP segments.
+            buf = bytearray()
+            while True:
+                chunk = await reader.read(4096)
+                if not chunk:
+                    break
+                buf.extend(chunk)
+                # check for END_BLOCK followed by CARRIAGE_RETURN
+                end_idx = bytes(buf).find(END_BLOCK)
+                if end_idx >= 0:
+                    # ensure CR follows END_BLOCK (may be missing if truncated)
+                    if len(buf) > end_idx + 1 and bytes(buf)[end_idx + 1:end_idx + 2] == CARRIAGE_RETURN:
+                        break
+
+            data = bytes(buf)
             logger.info(f"[MLLP] RX {len(data)} bytes from {peer} on {host}:{port}")
             if TRACE:
                 logger.debug("[MLLP] RX HEX:\n" + _hexdump(data))
@@ -155,7 +171,17 @@ async def start_mllp_server(
                     logger.info(f"[MLLP] Frame {idx}/{len(messages)} MSH-10={ctrl or '∅'} MSH-9={f.get('msg_type')}")
                     with session_factory() as s:
                         try:
-                            ack = await on_message(msg, s, endpoint)
+                            # Support both async callables and sync wrappers that
+                            # may return a dict/str. Accept awaitable results.
+                            res = on_message(msg, s, endpoint)
+                            if inspect.isawaitable(res):
+                                ack = await res
+                            else:
+                                # sync wrapper returns dict {'status':..., 'ack': '...'} or directly str
+                                if isinstance(res, dict):
+                                    ack = res.get('ack')
+                                else:
+                                    ack = res
                             writer.write(frame_hl7(ack))
                             await writer.drain()
                             if TRACE:

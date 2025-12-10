@@ -1,5 +1,7 @@
 # app/runners.py
+from typing import Dict, List
 from datetime import datetime, timezone
+import asyncio
 from app.services.mllp_manager import MLLPManager
 from app.db_session_factory import session_factory
 from app.services.transport_inbound import on_message_inbound
@@ -8,9 +10,9 @@ manager = MLLPManager(session_factory, on_message_inbound)
 
 class RunnerRegistry:
     def __init__(self):
-        self._runners: dict[int, object] = {}
+        self._runners: Dict[int, object] = {}
 
-    def running_ids(self) -> list[int]:
+    def running_ids(self) -> List[int]:
         return list(self._runners.keys())
 
     def is_running(self, endpoint_id: int) -> bool:

@@ -5,6 +5,7 @@
 Le répertoire `Deploiement/` contient **TOUT** ce qui est nécessaire pour déployer MedData Bridge sur un serveur Fedora 7.9 **SANS connexion Internet** avec Python 3.8 et **SQLite**.
 
 ### 📊 Statistiques
+
 - **Taille totale** : ~26 MB
 - **Nombre de fichiers** : 410+
 - **Dépendances Python** : 51 packages (~23 MB)
@@ -16,6 +17,7 @@ Le répertoire `Deploiement/` contient **TOUT** ce qui est nécessaire pour dép
 ## 🎯 Différences avec la version PostgreSQL
 
 ### ✅ Avantages SQLite
+
 - **Installation simplifiée** : Pas besoin d'installer PostgreSQL
 - **Configuration minimale** : Pas de serveur de base de données à gérer
 - **Portable** : Base de données = 1 seul fichier
@@ -23,11 +25,13 @@ Le répertoire `Deploiement/` contient **TOUT** ce qui est nécessaire pour dép
 - **Maintenance simple** : Sauvegarde = copier 1 fichier
 
 ### ⚠️ Limitations SQLite
+
 - **Concurrence limitée** : Bon pour < 100 requêtes/seconde
 - **Pas de réplication** : Pour haute disponibilité, préférer PostgreSQL
 - **Pas de permissions granulaires** : SQLite = permissions fichier
 
 ### 💡 Recommandation
+
 - **SQLite** : Parfait pour déploiement initial, tests, production légère (<1000 patients/jour)
 - **PostgreSQL** : Nécessaire pour production intensive, haute disponibilité
 
@@ -35,7 +39,7 @@ Le répertoire `Deploiement/` contient **TOUT** ce qui est nécessaire pour dép
 
 ## 📂 Structure du Package
 
-```
+```text
 Deploiement/
 ├── README.md                    # Documentation complète
 ├── PACKAGE_INFO.md             # Ce fichier
@@ -75,6 +79,7 @@ Deploiement/
 ## 🚀 Installation Simplifiée (SQLite)
 
 ### ÉTAPE 1 : Sur votre poste (avec Internet) ✅ FAIT
+
 ```bash
 cd Deploiement/scripts
 ./download_dependencies.sh    # Télécharger packages Python (SANS psycopg)
@@ -82,6 +87,7 @@ cd Deploiement/scripts
 ```
 
 ### ÉTAPE 2 : Transférer vers le serveur
+
 ```bash
 # Créer l'archive
 cd /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge
@@ -92,6 +98,7 @@ scp meddata-bridge-sqlite-*.tar.gz user@serveur:/tmp/
 ```
 
 ### ÉTAPE 3 : Sur le serveur (SANS Internet)
+
 ```bash
 # Extraire
 cd /tmp
@@ -126,6 +133,7 @@ sudo systemctl status meddata-bridge
 ## 🔧 Configuration Minimale
 
 ### Fichier `.env` (SQLite)
+
 ```bash
 # Base de données SQLite (automatique)
 # Pas de DB_HOST, DB_PORT, DB_USER, DB_PASSWORD !
@@ -145,6 +153,7 @@ LOG_FILE=/var/log/meddata-bridge/app.log
 ```
 
 ### Génération de clés sécurisées
+
 ```bash
 # SECRET_KEY
 python3 -c "import secrets; print(secrets.token_hex(32))"
@@ -158,12 +167,14 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 ## 📋 Vérification Post-Installation
 
 ### Script automatique
+
 ```bash
 cd /tmp/Deploiement/scripts
 ./verify_installation.sh
 ```
 
 ### Vérifications manuelles
+
 ```bash
 # Service actif
 sudo systemctl status meddata-bridge
@@ -184,6 +195,7 @@ sudo journalctl -u meddata-bridge -n 50 --no-pager
 ## 💾 Sauvegarde SQLite
 
 ### Base de données
+
 ```bash
 # Backup (simple copie de fichier)
 sudo cp /opt/meddata-bridge/data/meddata.db \
@@ -200,6 +212,7 @@ sudo chown meddata:meddata /opt/meddata-bridge/data/meddata.db
 ```
 
 ### Backup automatique (cron)
+
 ```bash
 # Créer script de backup
 cat > /opt/meddata-bridge/scripts/backup_db.sh << 'EOF'
@@ -260,22 +273,26 @@ sudo systemctl restart meddata-bridge
 ## 📚 Documentation
 
 ### Fichiers fournis
+
 1. **README.md** - Guide complet avec troubleshooting
 2. **PACKAGE_INFO.md** - Ce fichier (spécifique SQLite)
 3. **CHECKLIST.md** - Liste de contrôle installation
 4. **VERSION.txt** - Informations de version
 
 ### Documentation en ligne
+
 Une fois déployée :
-- Guide utilisateur : http://localhost:8000/guide
-- Documentation API : http://localhost:8000/api-docs
-- Standards IHE PAM : http://localhost:8000/documentation
+
+- Guide utilisateur : <http://localhost:8000/guide>
+- Documentation API : <http://localhost:8000/api-docs>
+- Standards IHE PAM : <http://localhost:8000/documentation>
 
 ---
 
 ## 🔒 Sécurité
 
 ### Permissions fichiers critiques
+
 ```bash
 # Base de données
 sudo chown meddata:meddata /opt/meddata-bridge/data/meddata.db
@@ -290,6 +307,7 @@ sudo chmod 750 /var/log/meddata-bridge/
 ```
 
 ### Firewall (optionnel)
+
 ```bash
 # Limiter accès au port 8000
 sudo firewall-cmd --zone=public --add-port=8000/tcp --permanent
@@ -305,6 +323,7 @@ sudo firewall-cmd --reload
 ## 🆘 Dépannage
 
 ### Problème : Service ne démarre pas
+
 ```bash
 # Vérifier les logs
 sudo journalctl -u meddata-bridge -n 100 --no-pager
@@ -319,6 +338,7 @@ python3 -m uvicorn app.app:app --host 0.0.0.0 --port 8000
 ```
 
 ### Problème : Base de données verrouillée
+
 ```bash
 # SQLite est verrouillé si plusieurs processus écrivent
 # Vérifier qu'un seul uvicorn tourne
@@ -329,6 +349,7 @@ sudo systemctl restart meddata-bridge
 ```
 
 ### Problème : Permissions
+
 ```bash
 # Réinitialiser les permissions
 sudo chown -R meddata:meddata /opt/meddata-bridge
@@ -352,6 +373,7 @@ Installation SQLite (plus simple que PostgreSQL) :
 - [ ] Script `verify_installation.sh` passé ✅
 
 **Pas besoin de** :
+
 - ❌ Installer PostgreSQL
 - ❌ Configurer utilisateur DB
 - ❌ Gérer des mots de passe DB
@@ -359,11 +381,12 @@ Installation SQLite (plus simple que PostgreSQL) :
 
 ---
 
-## 🎉 Package SQLite Prêt !
+## 🎉 Package SQLite Prêt
 
 Le package `Deploiement/` est **complet et optimisé pour SQLite** - déploiement sur Fedora 7.9 sans connexion Internet.
 
 **Avantages SQLite** :
+
 - ✅ **Installation 2x plus rapide** (pas de PostgreSQL)
 - ✅ **Configuration minimale** (2 clés à générer)
 - ✅ **Maintenance simple** (1 fichier à sauvegarder)
@@ -379,6 +402,7 @@ tar -czf meddata-bridge-sqlite-$(date +%Y%m%d).tar.gz Deploiement/
 **Durée d'installation estimée** : 10-15 minutes (vs 20-30 min avec PostgreSQL)
 
 **Compatibilité testée** :
+
 - ✅ Fedora 7.9+
 - ✅ Python 3.8+
 - ✅ SQLite 3.x (intégré à Python)

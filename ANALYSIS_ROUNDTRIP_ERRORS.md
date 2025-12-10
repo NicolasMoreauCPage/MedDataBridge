@@ -312,7 +312,7 @@ Step 1: ?^? → AR (Invalid message structure)
 
 ### 🔴 P0 - URGENT (Bloquant)
 
-**1. Valider les HL7 à l'import**
+#### 1. Valider les HL7 à l'import
 
 ```
 Vérifier présence:
@@ -322,7 +322,7 @@ Vérifier présence:
 ✓ Format valide (pas de caractères invalides)
 ```
 
-**2. Enrichir les HL7 défaillants**
+#### 2. Enrichir les HL7 défaillants
 
 ```
 Si MSH incomplet → ajouter les champs ou rejeter
@@ -334,7 +334,7 @@ Si MRG manquant (A40/A47) → rejeter
 
 ### 🟡 P1 - HIGH (Important)
 
-**3. Tester avec scénarios simples d'abord**
+#### 3. Tester avec scénarios simples d'abord
 
 ```
 Commencer par les 14 scénarios A28/A31 qui marchent
@@ -342,7 +342,7 @@ Progressivement mixer avec admissions/transfers
 Valider les patterns avec les données réelles
 ```
 
-**4. Adapter le validateur PAM pour import**
+#### 4. Adapter le validateur PAM pour import
 
 ```
 Mode 1: "STRICT" - Production (ZBE obligatoire)
@@ -351,7 +351,7 @@ Mode 2: "LENIENT" - Import (ZBE optionnel, auto-génération)
 
 ### 🟢 P2 - MEDIUM (Nice-to-have)
 
-**5. Générer automatiquement les segments manquants**
+#### 5. Générer automatiquement les segments manquants
 
 ```
 Si ZBE absent et A01 → générer ZBE avec ADMISSION
@@ -359,7 +359,7 @@ Si ZBE-1 absent et Z99 → générer ID unique
 Si MRG manquant → générer ou ignorer selon contexte
 ```
 
-**6. Documenter profil PAM-FR**
+#### 6. Documenter profil PAM-FR
 
 ```
 Clarifier les segments obligatoires par trigger
@@ -410,7 +410,7 @@ Après correction (estimation):
 ❌ Rejets (AR):         5-10%  (malformed only)
 ```
 
-### Facteurs d'amélioration:
+### Facteurs d'amélioration
 
 1. **MSH Fields** (44 A28 messages): +8% si corrigés
 2. **ZBE Segments** (150 messages): +20% si ajoutés
@@ -433,13 +433,13 @@ Après correction (estimation):
 
 ❌ **Les rejets sont des problèmes d'import, pas du code**
 
-### Prochaines étapes:
+### Prochaines étapes
 
 1. **Nettoyer les HL7 importés** (ajouter MSH + ZBE)
 2. **OU** adapter le validateur pour les HL7 incomplets
 3. **RE-TESTER** avec HL7 corrigés
 
-### Status Global:
+### Status Global
 
 ```
 🟢 Architecture: VALIDE (rejette les invalides)

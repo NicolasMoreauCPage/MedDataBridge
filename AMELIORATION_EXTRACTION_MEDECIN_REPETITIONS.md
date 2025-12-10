@@ -17,12 +17,14 @@ PV1||O|7700|R|||101005344^PICQUE^JEAN BAPTISTE^^^^^^ASIP-SANTE-PS&1.2.250.1.71.4
 ```
 
 **Structure décomposée** :
+
 - **Répétition 1** : `101005344^PICQUE^JEAN BAPTISTE^^^^^^...^^^ADELI` → ADELI
 - **Répétition 2** : `10100534436^PICQUE^JEAN BAPTISTE^^^^^^...^^^RPPS` → RPPS
 
 ### Comportement initial
 
 L'ancienne version de `extract_medecin_from_pv1_7()` ne traitait que la **première répétition**, ce qui aboutissait à :
+
 - ✅ ADELI capturé : 101005344
 - ❌ RPPS ignoré : 10100534436
 
@@ -35,11 +37,13 @@ L'ancienne version de `extract_medecin_from_pv1_7()` ne traitait que la **premi�
 **Changements clés** :
 
 1. **Découpage des répétitions** :
+
    ```python
    repetitions = attending_doctor.split('~')
    ```
 
 2. **Boucle sur toutes les répétitions** :
+
    ```python
    for xcn_str in repetitions:
        xcn_data = parse_xcn_field(xcn_str)
@@ -113,6 +117,7 @@ Cela permet de compléter le RPPS sur un médecin déjà existant avec seulement
 ### Compatibilité
 
 L'amélioration est **rétrocompatible** :
+
 - Les messages avec une seule répétition fonctionnent toujours
 - Les messages sans médecin sont gérés correctement
 - Les médecins existants sont mis à jour sans doublon
@@ -128,6 +133,7 @@ L'amélioration est **rétrocompatible** :
 ```
 
 **Résultats** :
+
 - ✅ 359 messages traités
 - ✅ 63 messages avec médecin
 - ✅ 3 médecins uniques identifiés
@@ -143,13 +149,14 @@ L'amélioration est **rétrocompatible** :
 
 Le séparateur de répétitions HL7 est `~` (tilde). Un champ peut contenir plusieurs valeurs :
 
-```
+```text
 Field~Repetition1~Repetition2~Repetition3
 ```
 
 ### Cas d'usage dans PV1-7
 
 Les systèmes peuvent envoyer :
+
 - **Plusieurs identifiants** : RPPS + ADELI + Numéro interne
 - **Plusieurs médecins** : Médecin traitant + Médecin référent
 - **Plusieurs rôles** : Médecin responsable + Médecin prescripteur
@@ -160,7 +167,7 @@ Notre implémentation traite le cas **multiple identifiants pour un même médec
 
 ## 🔄 Flux de traitement
 
-```
+```text
 Message HL7
     ↓
 Extraction PV1-7

@@ -2,7 +2,7 @@
 
 ## 🎯 Architecture Recommandée
 
-```
+```text
 Internet/Réseau
      ↓
 Port 80/443 (Nginx) ← Reverse Proxy
@@ -15,6 +15,7 @@ SQLite (meddata.db)
 ## ✅ Pourquoi Nginx ?
 
 ### Avantages
+
 - ✅ **Sécurité** : Pas besoin de lancer uvicorn en root
 - ✅ **SSL/TLS** : Support HTTPS avec Let's Encrypt
 - ✅ **Performance** : Cache, compression gzip, fichiers statiques
@@ -23,6 +24,7 @@ SQLite (meddata.db)
 - ✅ **Logs** : Séparation logs Nginx / application
 
 ### Inconvénients port 80 direct (sans Nginx)
+
 - ❌ Besoin de lancer uvicorn en **root** (risque sécurité)
 - ❌ Pas de SSL facile
 - ❌ Pas de cache ou compression
@@ -33,6 +35,7 @@ SQLite (meddata.db)
 ## 📦 Installation sur le Serveur
 
 ### Étape 1 : Installer MedData Bridge
+
 ```bash
 # Installer l'application d'abord
 cd /tmp/Deploiement/scripts
@@ -40,6 +43,7 @@ sudo ./install_on_server.sh
 ```
 
 ### Étape 2 : Installer et Configurer Nginx
+
 ```bash
 # Script automatique fourni
 cd /tmp/Deploiement/scripts
@@ -47,6 +51,7 @@ sudo ./install_nginx.sh
 ```
 
 Le script vous demandera de choisir :
+
 1. **HTTP simple (port 80)** - Accès immédiat sans SSL
 2. **HTTPS (port 443)** - Avec certificats SSL (production)
 3. **Accès par IP** - Sans nom de domaine
@@ -56,6 +61,7 @@ Le script vous demandera de choisir :
 ## 🔧 Configuration Manuelle (si nécessaire)
 
 ### Installation Nginx
+
 ```bash
 # Sur Fedora
 sudo dnf install nginx
@@ -66,6 +72,7 @@ sudo systemctl start nginx
 ```
 
 ### Copier la Configuration
+
 ```bash
 # Copier le fichier fourni
 sudo cp /tmp/Deploiement/config/nginx-meddata-bridge.conf \
@@ -79,6 +86,7 @@ sudo systemctl reload nginx
 ```
 
 ### Configurer le Firewall
+
 ```bash
 # Ouvrir le port HTTP
 sudo firewall-cmd --permanent --add-service=http
@@ -91,6 +99,7 @@ sudo firewall-cmd --reload
 ```
 
 ### Configurer SELinux (si activé)
+
 ```bash
 # Autoriser Nginx à se connecter au backend
 sudo setsebool -P httpd_can_network_connect 1
@@ -101,15 +110,18 @@ sudo setsebool -P httpd_can_network_connect 1
 ## 🌐 Options de Configuration
 
 ### Option 1 : HTTP Simple (port 80)
+
 **Recommandé pour** : Démarrage rapide, réseau interne, tests
 
 La configuration par défaut dans le fichier fourni.
 
 **Accès** :
+
 - `http://IP_SERVEUR/`
 - `http://localhost/` (depuis le serveur)
 
 ### Option 2 : HTTPS avec Let's Encrypt (port 443)
+
 **Recommandé pour** : Production, accès Internet
 
 ```bash
@@ -124,9 +136,11 @@ sudo certbot --nginx -d meddata.votre-domaine.com
 ```
 
 **Accès** :
+
 - `https://meddata.votre-domaine.com/`
 
 ### Option 3 : Certificats Auto-signés (tests SSL)
+
 ```bash
 # Créer répertoire SSL
 sudo mkdir -p /etc/nginx/ssl
@@ -150,6 +164,7 @@ sudo nginx -t && sudo systemctl reload nginx
 ## 🔍 Vérification de l'Installation
 
 ### Test Nginx
+
 ```bash
 # Statut Nginx
 sudo systemctl status nginx
@@ -162,6 +177,7 @@ sudo tail -f /var/log/nginx/meddata-access.log
 ```
 
 ### Test Application
+
 ```bash
 # Depuis le serveur
 curl http://localhost/
@@ -174,6 +190,7 @@ sudo systemctl status meddata-bridge
 ```
 
 ### Test Complet
+
 ```bash
 # HTTP
 curl -I http://IP_SERVEUR/
@@ -188,6 +205,7 @@ curl -I http://IP_SERVEUR/
 ## 📝 Maintenance
 
 ### Recharger la Configuration
+
 ```bash
 # Après modification config
 sudo nginx -t
@@ -195,6 +213,7 @@ sudo systemctl reload nginx
 ```
 
 ### Voir les Logs
+
 ```bash
 # Logs Nginx
 sudo tail -f /var/log/nginx/meddata-access.log
@@ -205,6 +224,7 @@ sudo journalctl -u meddata-bridge -f
 ```
 
 ### Redémarrer les Services
+
 ```bash
 # Redémarrer Nginx
 sudo systemctl restart nginx
@@ -221,6 +241,7 @@ sudo systemctl restart nginx meddata-bridge
 ## 🔒 Sécurité Avancée
 
 ### Rate Limiting (anti-DDoS)
+
 Ajouter dans `/etc/nginx/conf.d/meddata-bridge.conf` :
 
 ```nginx
@@ -236,6 +257,7 @@ location /api/ {
 ```
 
 ### Filtrage par IP
+
 ```nginx
 # Autoriser seulement certaines IP
 location /admin/ {
@@ -246,7 +268,9 @@ location /admin/ {
 ```
 
 ### Headers de Sécurité Complets
+
 Déjà inclus dans la configuration fournie :
+
 - `X-Frame-Options` : Protection clickjacking
 - `X-Content-Type-Options` : Protection MIME sniffing
 - `X-XSS-Protection` : Protection XSS
@@ -257,6 +281,7 @@ Déjà inclus dans la configuration fournie :
 ## 🆘 Dépannage
 
 ### Problème : Nginx ne démarre pas
+
 ```bash
 # Vérifier la configuration
 sudo nginx -t
@@ -269,6 +294,7 @@ sudo netstat -tlnp | grep :80
 ```
 
 ### Problème : 502 Bad Gateway
+
 **Cause** : Nginx ne peut pas joindre uvicorn (port 8000)
 
 ```bash
@@ -283,6 +309,7 @@ sudo setsebool -P httpd_can_network_connect 1
 ```
 
 ### Problème : 404 sur fichiers statiques
+
 ```bash
 # Vérifier le chemin dans la config
 cat /etc/nginx/conf.d/meddata-bridge.conf | grep static
@@ -295,6 +322,7 @@ sudo chmod -R 755 /opt/meddata-bridge/app/static/
 ```
 
 ### Problème : Certificat SSL expiré
+
 ```bash
 # Vérifier expiration
 sudo certbot certificates
@@ -311,6 +339,7 @@ sudo certbot renew --dry-run
 ## 📊 Performance
 
 ### Activer le Cache
+
 Ajouter dans la config Nginx :
 
 ```nginx
@@ -330,6 +359,7 @@ location / {
 ```
 
 ### Monitoring
+
 ```bash
 # Activer stub_status dans /etc/nginx/nginx.conf
 server {
@@ -365,7 +395,7 @@ curl http://127.0.0.1:8080/nginx_status
 
 Après installation complète :
 
-```
+```text
 ✅ Nginx écoute sur le port 80 (HTTP) ou 443 (HTTPS)
 ✅ Uvicorn tourne en arrière-plan sur le port 8000
 ✅ Les requêtes externes passent par Nginx

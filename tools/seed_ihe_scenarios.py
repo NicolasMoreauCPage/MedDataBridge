@@ -3,6 +3,10 @@ Importe tous les scénarios HL7 IHE PAM depuis un dossier local (ex: Doc/example
 Ce script est idempotent : il ne duplique pas les scénarios déjà présents.
 """
 import os
+import sys
+# Ajouter le répertoire parent au path pour pouvoir importer les modules app
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from pathlib import Path
 from app.db import engine
 from app.models_scenarios import InteropScenario, InteropScenarioStep

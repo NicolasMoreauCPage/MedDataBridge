@@ -8,12 +8,14 @@ Behavior:
 - Walks the repository root and adds files to the zip excluding common
   development artefacts, cache files, large deployment bundles, and data files.
 - Excludes: .git, .venv, venv, __pycache__, *.pyc, packages*, reports, Deploiement,
-  *.zip, *.log, *.db, *.sqlite*, and other cache/compilation files.
+  *.zip, *.tar.gz, *.whl, *.egg, *.log, *.db, *.sqlite*, and other cache/compilation files.
+- CRITICAL: Excludes all existing ZIP files, Python packages (.whl/.egg), and large archives
+  to prevent creating massive deployment bundles.
 """
 import argparse
 import os
 import zipfile
-from datetime import datetime
+from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 
@@ -56,6 +58,10 @@ EXCLUDE_PATTERNS = [
     '.zip',
     '.tar.gz',
     '.tgz',
+    '.7z',
+    '.rar',
+    '.bz2',
+    '.xz',
     '.db',
     '.sqlite',
     '.sqlite3',
@@ -63,6 +69,8 @@ EXCLUDE_PATTERNS = [
     'meddata.log',
     '.DS_Store',
     'Thumbs.db',
+    '.whl',
+    '.egg',
 ]
 
 
@@ -81,6 +89,16 @@ def should_exclude(path, root):
         return True
     # exclude large data files
     if any(rel.endswith(ext) for ext in ['.db', '.sqlite', '.sqlite3']):
+        return True
+    # EXCLUSION CRITIQUE: Tous les fichiers ZIP existants
+    if path.endswith('.zip'):
+        return True
+    # EXCLUSION CRITIQUE: Tous les fichiers d'archive
+    archive_extensions = ['.tar.gz', '.tgz', '.7z', '.rar', '.bz2', '.xz']
+    if any(path.endswith(ext) for ext in archive_extensions):
+        return True
+    # EXCLUSION CRITIQUE: Fichiers de packages Python volumineux
+    if path.endswith('.whl') or path.endswith('.egg'):
         return True
     for pat in EXCLUDE_PATTERNS:
         if path.endswith(pat):
@@ -114,7 +132,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', '-o', help='Output zip path', default=None)
     args = parser.parse_args()
-    now = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
+    now = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
     default_name = f'meddatabridge-source-{now}.zip'
     out = args.output or os.path.join(os.getcwd(), default_name)
     print(f'Creating source zip: {out}')

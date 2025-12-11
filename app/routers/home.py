@@ -27,15 +27,23 @@ def home(request: Request, session=Depends(get_session)):
             },
         )
 
+    # Récupérer les IDs des entités juridiques du GHT pour filtrer
+    ej_ids = session.exec(
+        select(EntiteJuridique.id).where(EntiteJuridique.ght_context_id == ght_context.id)
+    ).all()
+
     patients = session.exec(
-        select(Patient).where(Patient.ght_context_id == ght_context.id) if hasattr(Patient, "ght_context_id") else select(Patient)
+        select(Patient).where(Patient.ght_context_id == ght_context.id)
     ).all()
+    
     dossiers = session.exec(
-        select(Dossier).where(Dossier.ght_context_id == ght_context.id) if hasattr(Dossier, "ght_context_id") else select(Dossier)
+        select(Dossier).where(Dossier.entite_juridique_id.in_(ej_ids)) if ej_ids else select(Dossier).where(Dossier.id == None)
     ).all()
+    
     venues = session.exec(
-        select(Venue).where(Venue.ght_context_id == ght_context.id) if hasattr(Venue, "ght_context_id") else select(Venue)
+        select(Venue).where(Venue.entite_juridique_id.in_(ej_ids)) if ej_ids else select(Venue).where(Venue.id == None)
     ).all()
+    
     recent_messages = session.exec(select(MessageLog).order_by(MessageLog.created_at.desc()).limit(10)).all()
     
     # Récupérer les EJ du GHT

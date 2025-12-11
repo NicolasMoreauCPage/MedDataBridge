@@ -63,6 +63,43 @@ def list_dossiers(
     ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie"], "rows": rows}
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
+@router.get("/{dossier_id}", response_class=HTMLResponse)
+def show_dossier(dossier_id: int, request: Request, session=Depends(get_session)):
+    dossier = dossiers_service.get_dossier(session, dossier_id)
+    if not dossier:
+        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
+    
+    # Charger les relations nécessaires
+    patient = session.exec(
+        select(Patient).where(Patient.id == dossier.patient_id)
+    ).first()
+    
+    # Vérifier l'accès au dossier via le GHT
+    ght_context = getattr(request.state, "ght_context", None)
+    if ght_context:
+        # Le dossier doit appartenir à une EJ du GHT
+        from app.models_structure import EntiteJuridique
+        ej_ids = session.exec(
+            select(EntiteJuridique.id).where(EntiteJuridique.ght_context_id == ght_context.id)
+        ).all()
+        if dossier.entite_juridique_id not in ej_ids:
+            return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
+    
+    venues = session.exec(
+        select(Venue).where(Venue.dossier_id == dossier_id).order_by(Venue.start_time)
+    ).all()
+    
+    return get_templates_with_filters(request).TemplateResponse(
+        request, 
+        "dossier_detail.html", 
+        {
+            "request": request,
+            "dossier": dossier,
+            "patient": patient,
+            "venues": venues,
+        }
+    )
+
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(request: Request, session=Depends(get_session)):
     patient_context = getattr(request.state, "patient_context", None)

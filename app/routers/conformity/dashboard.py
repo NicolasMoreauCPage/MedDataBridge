@@ -40,11 +40,14 @@ def conformity_home(request: Request, session: Session = Depends(get_session)):
     # Calculer métriques rapides pour chaque EJ
     ej_stats = []
     for ej in ej_list:
-        # Compter messages 7 derniers jours
+        # Compter messages 7 derniers jours via jointure avec SystemEndpoint
         cutoff = datetime.utcnow() - timedelta(days=7)
-        count_stmt = select(MessageLog).where(
+        from app.models_endpoints import SystemEndpoint
+        count_stmt = select(MessageLog).join(
+            SystemEndpoint, MessageLog.endpoint_id == SystemEndpoint.id
+        ).where(
             and_(
-                MessageLog.ej_id == ej.id,
+                SystemEndpoint.entite_juridique_id == ej.id,
                 MessageLog.created_at >= cutoff
             )
         )

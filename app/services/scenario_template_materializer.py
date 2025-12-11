@@ -19,7 +19,9 @@ from sqlmodel import Session, select
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep, InteropScenario, InteropScenarioStep
 from app.models_structure import EntiteJuridique, UniteFonctionnelle
-from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq, generate_venue_seq
+from app.services.identifier_generator import generate_identifier
+from app.models_identifiers import IdentifierType
+from app.models_structure import IdentifierNamespace
 from app.models_scenario_config import (
     ScenarioEJConfig, 
     get_location_for_event, 
@@ -88,12 +90,12 @@ def _ts_offset(base_ts: str, minutes: int) -> str:
 def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dict:
     """Génère les identifiants uniques pour un scénario.
     
-    Utilise les générateurs basés sur timestamp pour garantir l'unicité:
-    - IPP: 12 chiffres, préfixe configurable ou '9' + timestamp (generate_patient_seq)
-    - NDA: 9 chiffres, préfixe configurable ou '9' + timestamp (generate_dossier_seq)
-    - venue_seq: 10 chiffres, préfixe '8' + timestamp (generate_venue_seq)
+    Utilise le service centralisé identifier_generator pour garantir l'unicité:
+    - IPP: toujours génération timestamp via generate_identifier()
+    - NDA: toujours génération timestamp via generate_identifier()  
+    - venue_seq: génération via generate_identifier() pour VENUE
     
-    Respecte les préfixes configurés via ipp_prefix et nda_prefix des options.
+    Applique les préfixes configurés via ipp_prefix et nda_prefix des options.
     
     Returns:
         Dict avec:
@@ -105,27 +107,54 @@ def _generate_identifiers(session: Session, opts: MaterializationOptions) -> dic
     if not opts.generate_identifiers:
         return data
     
-    # Génération basée sur timestamp pour unicité garantie
-    ipp_base = str(generate_patient_seq())  # Format: "9" + 11 chiffres timestamp
-    nda_base = str(generate_dossier_seq())  # Format: "9" + 8 chiffres timestamp
-    venue_seq = str(generate_venue_seq())   # Format: "8" + chiffres timestamp
+    # Récupérer le namespace (par défaut ou spécifié)
+    namespace = None
+    if opts.namespace_oid:
+        namespace = session.exec(
+            select(IdentifierNamespace).where(IdentifierNamespace.system == opts.namespace_oid)
+        ).first()
+    
+    # Si pas de namespace spécifié, utiliser un namespace par défaut pour les scénarios
+    if not namespace:
+        # Chercher un namespace par défaut pour les scénarios de test
+        namespace = session.exec(
+            select(IdentifierNamespace)
+            .where(IdentifierNamespace.system.like("urn:oid:1.2.250.%"))  # Namespace de test
+            .limit(1)
+        ).first()
+    
+    # Génération via le service centralisé
+    if namespace:
+        ipp_base = generate_identifier(session, namespace, IdentifierType.IPP)
+        nda_base = generate_identifier(session, namespace, IdentifierType.NDA)
+        venue_seq = generate_identifier(session, namespace, IdentifierType.VN)
+    else:
+        # Fallback si pas de namespace trouvé
+        from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq, generate_venue_seq
+        ipp_base = str(generate_patient_seq())
+        nda_base = str(generate_dossier_seq())
+        venue_seq = str(generate_venue_seq())
     
     # Appliquer les préfixes configurés si fournis
     # IPP: remplacer le préfixe initial par le préfixe configuré
     if opts.ipp_prefix:
-        # Garder la partie numérique du base (sans le "9" initial)
-        # et ajouter le préfixe configuré
-        ipp_numeric = ipp_base[1:]  # Enlever le "9" initial
-        ipp = f"{opts.ipp_prefix}{ipp_numeric}"
+        # Pour IPP, le format est toujours "9" + 11 chiffres, on peut remplacer le "9" par le préfixe
+        if ipp_base.startswith("9") and len(ipp_base) == 12:
+            ipp_numeric = ipp_base[1:]  # Enlever le "9" initial
+            ipp = f"{opts.ipp_prefix}{ipp_numeric}"
+        else:
+            ipp = f"{opts.ipp_prefix}{ipp_base}"
     else:
         ipp = ipp_base
     
     # NDA: remplacer le préfixe initial par le préfixe configuré
     if opts.nda_prefix:
-        # Garder la partie numérique du base (sans le "9" initial)
-        # et ajouter le préfixe configuré
-        nda_numeric = nda_base[1:]  # Enlever le "9" initial
-        nda = f"{opts.nda_prefix}{nda_numeric}"
+        # Pour NDA, le format est toujours "9" + 8 chiffres, on peut remplacer le "9" par le préfixe
+        if nda_base.startswith("9") and len(nda_base) == 9:
+            nda_numeric = nda_base[1:]  # Enlever le "9" initial
+            nda = f"{opts.nda_prefix}{nda_numeric}"
+        else:
+            nda = f"{opts.nda_prefix}{nda_base}"
     else:
         nda = nda_base
     

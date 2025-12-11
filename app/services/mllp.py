@@ -123,7 +123,7 @@ def _hexdump(b: bytes, width: int = 16) -> str:
 async def start_mllp_server(
     host: str, port: int,
     on_message: Callable[[str, Session, SystemEndpoint], Awaitable[str]],
-    endpoint: SystemEndpoint,
+    endpoint_name: str,
     session_factory: Callable[[], Session]
 ):
     """Démarre un serveur MLLP asyncio.
@@ -135,7 +135,7 @@ async def start_mllp_server(
     """
     async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         peer = writer.get_extra_info("peername")
-        logger.info(f"[MLLP] Connect {peer} -> {host}:{port} ({endpoint.name})")
+        logger.info(f"[MLLP] Connect {peer} -> {host}:{port} ({endpoint_name})")
         try:
             # Read until we have at least one complete MLLP frame (END_BLOCK + CR).
             # Using repeated small reads is robust to partial TCP segments.

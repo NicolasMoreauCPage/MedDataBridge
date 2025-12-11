@@ -6,7 +6,6 @@ from starlette.responses import RedirectResponse
 from app.db import get_session
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
 from app.models_identifiers import Identifier
-from app.middleware.ght_context import get_active_ght_context
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -15,28 +14,33 @@ def get_templates_with_filters(request: FastAPIRequest):
 
 router = APIRouter(tags=["ght"])
 
+def get_context_or_404(session: Session, context_id: int) -> GHTContext:
+    context = session.get(GHTContext, context_id)
+    if not context:
+        raise HTTPException(status_code=404, detail="Contexte non trouvé")
+    return context
 
-def _get_ej_or_404(session: Session, context: GHTContext, ej_id: int) -> EntiteJuridique:
-    """Helper pour récupérer une EJ ou lever 404"""
-    ej = session.exec(
+
+def get_ej_or_404(
+    session: Session, context: GHTContext, ej_id: int
+) -> EntiteJuridique:
+    entite = session.exec(
         select(EntiteJuridique)
         .where(EntiteJuridique.id == ej_id)
         .where(EntiteJuridique.ght_context_id == context.id)
     ).first()
-    if not ej:
-        raise HTTPException(status_code=404, detail="Entité juridique not found")
-    return ej
+    if not entite:
+        raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    return entite
 
 @router.get("/{ght_id}/namespaces/new")
 async def new_namespace(
     request: Request,
     ght_id: int,
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Formulaire création namespace"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
 
     return get_templates_with_filters(request).TemplateResponse(
         request,
@@ -50,12 +54,10 @@ async def new_namespace(
 async def create_namespace(
     request: Request,
     ght_id: int,
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Création namespace"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
 
     form = await request.form()
     
@@ -114,12 +116,10 @@ async def view_namespace(
     request: Request,
     ght_id: int,  
     namespace_id: int,
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Vue détaillée namespace"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
         
     namespace = session.exec(
         select(IdentifierNamespace)
@@ -148,12 +148,10 @@ async def edit_namespace(
     request: Request,
     ght_id: int,
     namespace_id: int, 
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Formulaire édition namespace"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
 
     namespace = session.exec(
         select(IdentifierNamespace)
@@ -176,12 +174,10 @@ async def update_namespace(
     request: Request,
     ght_id: int,
     namespace_id: int,
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Mise à jour namespace"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
 
     namespace = session.exec(
         select(IdentifierNamespace)
@@ -252,14 +248,17 @@ async def new_ej_namespace(
     request: Request,
     ght_id: int,
     ej_id: int,
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Formulaire création namespace pour une EJ"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
     
-    ej = _get_ej_or_404(session, context, ej_id)
+    try:
+        ej = get_ej_or_404(session, context, ej_id)
+    except HTTPException:
+        # If EJ doesn't exist, redirect to EJ list
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/admin/ght/{ght_id}", status_code=302)
 
     return get_templates_with_filters(request).TemplateResponse(
         request,
@@ -276,14 +275,18 @@ async def create_ej_namespace(
     request: Request,
     ght_id: int,
     ej_id: int,
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Création namespace pour une EJ"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
     
-    ej = _get_ej_or_404(session, context, ej_id)
+    try:
+        ej = get_ej_or_404(session, context, ej_id)
+    except HTTPException:
+        # If EJ doesn't exist, redirect to EJ list
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/admin/ght/{ght_id}", status_code=302)
+    
     form = await request.form()
     
     # Validation basique
@@ -327,14 +330,12 @@ async def edit_ej_namespace(
     ght_id: int,
     ej_id: int,
     namespace_id: int, 
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Formulaire édition namespace EJ"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
 
-    ej = _get_ej_or_404(session, context, ej_id)
+    ej = get_ej_or_404(session, context, ej_id)
     
     namespace = session.exec(
         select(IdentifierNamespace)
@@ -360,14 +361,12 @@ async def update_ej_namespace(
     ght_id: int,
     ej_id: int,
     namespace_id: int,
-    session: Session = Depends(get_session),
-    context: GHTContext = Depends(get_active_ght_context)
+    session: Session = Depends(get_session)
 ):
     """Mise à jour namespace EJ"""
-    if not context or context.id != ght_id:
-        raise HTTPException(status_code=404, detail="GHT context not found")
+    context = get_context_or_404(session, ght_id)
 
-    ej = _get_ej_or_404(session, context, ej_id)
+    ej = get_ej_or_404(session, context, ej_id)
     
     namespace = session.exec(
         select(IdentifierNamespace)

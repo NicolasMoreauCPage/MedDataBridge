@@ -35,6 +35,18 @@
                         Voir tout &rarr;
                     </a>
                 </span>
+                {% elif no_ej_context %}
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="text-amber-600">⚠️</div>
+                        <div class="text-sm text-amber-800">
+                            <strong>Aucun établissement sélectionné</strong> - Affichage de toutes les structures.
+                            <a href="/admin/ght" class="text-amber-700 underline hover:text-amber-900 ml-2">
+                                Sélectionner un établissement →
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 {% endif %}
             </div>
             <div class="flex items-center gap-4">
@@ -277,10 +289,9 @@ function renderDetails(details) {
                 class="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800">
             Modifier
         </button>
-        <a href="/structure/${details.type}/${details.id}/map" 
-           class="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800">
-            Voir sur le plan
-        </a>
+        <span class="px-3 py-1.5 text-sm text-slate-400">
+            Voir sur le plan (bientôt disponible)
+        </span>
     `;
     document.getElementById('detailActions').innerHTML = actionsHtml;
     

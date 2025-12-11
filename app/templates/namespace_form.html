@@ -33,7 +33,7 @@
     </div>
 
     <!-- Formulaire -->
-    <form method="POST" action="{% if namespace %}/admin/ght/{{ context.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/namespaces/new{% endif %}" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
+    <form method="POST" action="{% if entite %}{% if namespace %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/namespaces/new{% endif %}{% else %}{% if namespace %}/admin/ght/{{ context.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/namespaces/new{% endif %}{% endif %}" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
         <!-- Identité -->
         <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-8 py-6 border-b-2 border-slate-200">
             <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">

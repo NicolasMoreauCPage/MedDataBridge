@@ -230,6 +230,13 @@ def generate_identifier(
     pattern = prefix_override if prefix_override else namespace.prefix_pattern
     mode = namespace.prefix_mode or "fixed"
 
+    # Cas spécial : IPP et NDA utilisent toujours la génération timestamp
+    if identifier_type in (IdentifierType.IPP, IdentifierType.NDA):
+        if identifier_type == IdentifierType.IPP:
+            return str(generate_patient_seq())
+        elif identifier_type == IdentifierType.NDA:
+            return str(generate_dossier_seq())
+
     # Cas 1: Pattern de préfixe (mode par défaut)
     if pattern:
         with _GEN_LOCK:
@@ -251,7 +258,7 @@ def generate_identifier(
                 namespace_system=namespace.system,
             )
 
-    # Cas 3: Timestamp (optionnel, si explicitement demandé)
+    # Cas 3: Timestamp (pour autres types d'identifiants)
     if mode == "timestamp":
         if identifier_type == IdentifierType.IPP:
             return str(generate_patient_seq())

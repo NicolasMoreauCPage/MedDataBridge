@@ -80,21 +80,35 @@ async def get_structure_tree(
     if changed:
         session.commit()
     
-    # Strict EJ filtering: if EJ context is present, only Renvoie EGs for that EJ (never Solution de repli to all EGs)
+@api_router.get("/tree")
+async def get_structure_tree(
+    session: Session = Depends(get_session),
+    ej: Optional[int] = Query(None, description="ID de l'établissement juridique à filtrer"),
+    eg_ids: Optional[str] = Query(None, description="Liste d'IDs d'entités géographiques séparés par des virgules")
+):
+    # Apply scheduled status updates
+    changed = False
+    for model in (Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit):
+        entities = session.exec(select(model)).all()
+        if apply_scheduled_status(entities):
+            changed = True
+    if changed:
+        session.commit()
+    
+    # Strict EJ filtering: if EJ context is present, only return EGs for that EJ
     query = select(EntiteGeographique)
     ej_context = ej
-    import inspect
-    request = None
-    for frame in inspect.stack():
-        if "request" in frame.frame.f_locals:
-            request = frame.frame.f_locals["request"]
-            break
-    if not ej_context and request:
-        ght_ctx = getattr(request.state, "ght_context", None)
-        if ght_ctx and hasattr(ght_ctx, "ej_id"):
-            ej_context = getattr(ght_ctx, "ej_id")
-        elif ght_ctx and hasattr(ght_ctx, "ej") and hasattr(ght_ctx.ej, "id"):
-            ej_context = getattr(ght_ctx.ej, "id")
+    # Try to get EJ from session if not provided
+    if not ej_context:
+        # Get request from middleware context
+        import inspect
+        request = None
+        for frame in inspect.stack():
+            if "request" in frame.frame.f_locals:
+                request = frame.frame.f_locals["request"]
+                break
+        if request:
+            ej_context = request.session.get("ej_context_id")
     eg_id_list = None
     if eg_ids:
         eg_id_list = [int(id_str) for id_str in eg_ids.split(',')]
@@ -257,13 +271,9 @@ async def structure_dashboard(
     
     # Patch: always filter by EJ context if available
     ej_context = ej
-    # Try to get EJ from GHT context if not provided
+    # Try to get EJ from session if not provided
     if not ej_context:
-        ght_ctx = getattr(request.state, "ght_context", None)
-        if ght_ctx and hasattr(ght_ctx, "ej_id"):
-            ej_context = getattr(ght_ctx, "ej_id")
-        elif ght_ctx and hasattr(ght_ctx, "ej") and hasattr(ght_ctx.ej, "id"):
-            ej_context = getattr(ght_ctx.ej, "id")
+        ej_context = request.session.get("ej_context_id")
     if ej_context:
         egs = session.exec(
             select(EntiteGeographique)
@@ -271,6 +281,11 @@ async def structure_dashboard(
         ).all()
         context["filtered_ej_id"] = ej_context
         context["filtered_egs"] = [eg.id for eg in egs]
+    else:
+        # If no EJ context, show all EGs (fallback for when no EJ is selected)
+        egs = session.exec(select(EntiteGeographique)).all()
+        context["filtered_egs"] = [eg.id for eg in egs]
+        context["no_ej_context"] = True  # Flag to show message in template
     return get_templates_with_filters(request).TemplateResponse(request, "structure_new.html", context)
 
 @router.post("/import/hl7")

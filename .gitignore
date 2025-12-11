@@ -12,6 +12,7 @@ venv/
 # Fichiers temporaires
 *.log
 *.sqlite3
+*.zip
 
 # Base de données SQLite (garder uniquement medbridge.db en production)
 *.db

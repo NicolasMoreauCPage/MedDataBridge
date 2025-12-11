@@ -5,7 +5,7 @@ lors de son dernier envoi sur une EJ donnée.
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 from sqlmodel import Session, select, func, and_
 
 from app.models_scenarios import InteropScenario
@@ -177,7 +177,7 @@ def get_scenarios_status_for_ej(
     session: Session,
     ej_id: int,
     only_failed: bool = False,
-) -> list[ScenarioStatus]:
+) -> List[ScenarioStatus]:
     """Récupère le statut de tous les scénarios pour une EJ donnée.
     
     Si only_failed=True, retourne seulement les scénarios en erreur/sans ACK AA.
@@ -235,7 +235,7 @@ def get_scenarios_status_for_ej(
 def get_scenarios_with_status(
     session: Session,
     filter_by_status: Optional[str] = None,  # None|all_aa|some_aa|error|no_run
-) -> list[tuple[InteropScenario, Optional[ScenarioStatus]]]:
+) -> List[tuple[InteropScenario, Optional[ScenarioStatus]]]:
     """Récupère tous les scénarios avec leur statut de dernier run."""
     
     scenarios = session.exec(

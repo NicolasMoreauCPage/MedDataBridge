@@ -20,9 +20,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema - Remove external_id column from patient table."""
-    # Drop external_id column from patient table (only table that has it)
-    with op.batch_alter_table('patient', schema=None) as batch_op:
-        batch_op.drop_column('external_id')
+    # Drop external_id column from patient table if it exists
+    conn = op.get_bind()
+    insp = sa.inspect(conn)
+    columns = [col['name'] for col in insp.get_columns('patient')]
+    if 'external_id' in columns:
+        with op.batch_alter_table('patient', schema=None) as batch_op:
+            batch_op.drop_column('external_id')
 
 
 def downgrade() -> None:

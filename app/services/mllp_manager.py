@@ -14,7 +14,7 @@ Concurrence
 
  # app/services/mllp_manager.py
 import asyncio
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 from contextlib import suppress
 from sqlmodel import select
 from app.models_endpoints import SystemEndpoint
@@ -34,7 +34,7 @@ class MLLPManager:
         self._by_addr: Dict[Tuple[str,int], int] = {}
         self._lock = asyncio.Lock()
 
-    def running_ids(self) -> list[int]:
+    def running_ids(self) -> List[int]:
         """Retourne la liste des endpoint_ids actuellement en écoute."""
         return list(self.servers.keys())
 

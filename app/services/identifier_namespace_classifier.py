@@ -6,7 +6,7 @@ identifiant principal ou identifiant externe selon que son namespace
 correspond à celui de l'Entité Juridique (EJ) ou non.
 """
 
-from typing import Optional, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 from sqlmodel import select, Session
 
 from app.models_structure import EntiteJuridique
@@ -34,7 +34,7 @@ class IdentifierNamespaceClassifier:
     def __init__(self, session: Session):
         self.session = session
 
-    def get_ej_namespaces(self, ej_id: int, identifier_type: Optional[IdentifierType] = None) -> list[IdentifierNamespace]:
+    def get_ej_namespaces(self, ej_id: int, identifier_type: Optional[IdentifierType] = None) -> List[IdentifierNamespace]:
         """
         Récupère tous les namespaces configurés pour une EJ donnée.
 
@@ -64,7 +64,7 @@ class IdentifierNamespaceClassifier:
         entite_juridique_id: Optional[int] = None,
         ght_context_id: Optional[int] = None,
         identifier_type: Optional[IdentifierType] = None
-    ) -> list[IdentifierNamespace]:
+    ) -> List[IdentifierNamespace]:
         """
         Récupère tous les namespaces configurés selon la hiérarchie structurelle,
         du plus spécifique au plus général.
@@ -130,7 +130,7 @@ class IdentifierNamespaceClassifier:
         entite_juridique_id: Optional[int] = None,
         ght_context_id: Optional[int] = None,
         identifier_type: Optional[IdentifierType] = None
-    ) -> list[IdentifierNamespace]:
+    ) -> List[IdentifierNamespace]:
         """
         Récupère tous les namespaces applicables à un emplacement structurel donné,
         en traversant la hiérarchie du plus spécifique au plus général.
@@ -257,7 +257,7 @@ class IdentifierNamespaceClassifier:
 
     def process_patient_identifiers(
         self,
-        identifiers_data: list[Tuple[str, str, IdentifierType]],
+        identifiers_data: List[Tuple[str, str, IdentifierType]],
         ej_id: Optional[int] = None,
         location_hierarchy: Optional[Dict[str, Optional[int]]] = None
     ) -> Dict[str, Any]:
@@ -302,7 +302,7 @@ class IdentifierNamespaceClassifier:
 
     def process_dossier_identifiers(
         self,
-        identifiers_data: list[Tuple[str, str, IdentifierType]],
+        identifiers_data: List[Tuple[str, str, IdentifierType]],
         ej_id: Optional[int] = None,
         location_hierarchy: Optional[Dict[str, Optional[int]]] = None
     ) -> Dict[str, Any]:
@@ -332,7 +332,7 @@ class IdentifierNamespaceClassifier:
 
     def process_venue_identifiers(
         self,
-        identifiers_data: list[Tuple[str, str, IdentifierType]],
+        identifiers_data: List[Tuple[str, str, IdentifierType]],
         ej_id: Optional[int] = None,
         location_hierarchy: Optional[Dict[str, Optional[int]]] = None
     ) -> Dict[str, Any]:
@@ -344,7 +344,7 @@ class IdentifierNamespaceClassifier:
 
     def process_mouvement_identifiers(
         self,
-        identifiers_data: list[Tuple[str, str, IdentifierType]],
+        identifiers_data: List[Tuple[str, str, IdentifierType]],
         ej_id: Optional[int] = None,
         location_hierarchy: Optional[Dict[str, Optional[int]]] = None
     ) -> Dict[str, Any]:
@@ -357,7 +357,7 @@ class IdentifierNamespaceClassifier:
 
 def classify_incoming_identifiers(
     session: Session,
-    identifiers_data: list[Tuple[str, str, IdentifierType]],
+    identifiers_data: List[Tuple[str, str, IdentifierType]],
     entity_type: str,
     ej_id: Optional[int] = None,
     location_hierarchy: Optional[Dict[str, Optional[int]]] = None

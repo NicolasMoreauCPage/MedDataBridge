@@ -22,6 +22,7 @@ from app.models_endpoints import SystemEndpoint, MessageLog
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique, EntiteGeographique
 from app.models_identifiers import Identifier
+from app.models_practitioners import MedecinResponsable  # Import for FK resolution
 from app import models_scenarios  # ensure scenario models are registered
 try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)
     from app.services.scenario_template_init import init_scenario_templates  # noqa: E402

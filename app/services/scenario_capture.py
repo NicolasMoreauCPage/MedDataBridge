@@ -14,14 +14,14 @@ Architecture :
 3. Matérialisation : utilise scenario_template_materializer.py (comme templates IHE)
 """
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional, Tuple
 from sqlmodel import Session, select
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
 from app.models import Dossier, Venue, Mouvement
 
 
-def _infer_semantic_event(mouvement: Mouvement, venue: Venue) -> tuple[str, str, str]:
+def _infer_semantic_event(mouvement: Mouvement, venue: Venue) -> Tuple[str, str, str]:
     """
     Infère le code sémantique, HL7 event et rôle depuis un Mouvement.
     
@@ -161,7 +161,7 @@ def capture_dossier_as_template(
     return template
 
 
-def list_captured_templates(db: Session) -> list[ScenarioTemplate]:
+def list_captured_templates(db: Session) -> List[ScenarioTemplate]:
     """
     Liste tous les templates capturés depuis des dossiers réels.
     """

@@ -48,7 +48,7 @@ def _collect_workflow_context(venue_id: int, session: Session) -> Dict[str, obje
         .join(Chambre.unite_hebergement)
         .join(UniteHebergement.unite_fonctionnelle)
         .join(UniteFonctionnelle.service)
-        .where(Lit.status == LocationStatus.ACTIVE)
+        .where(Lit.operational_status == "active")
     ).all()
     
     # Organiser les données par service/UF/etc

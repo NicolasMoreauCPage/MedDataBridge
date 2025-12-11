@@ -23,26 +23,24 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # SQLite doesn't support ADD COLUMN with constraints, so we use batch mode
+    # Idempotent: only add columns if they do not already exist
+    from sqlalchemy import inspect
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    columns = [col['name'] for col in inspector.get_columns('scenario_ej_config')]
+    def add_if_missing(batch_op, colname, coldef):
+        if colname not in columns:
+            batch_op.add_column(coldef)
     with op.batch_alter_table('scenario_ej_config', schema=None) as batch_op:
-        # Chambre/Lit Hospitalisation
-        batch_op.add_column(sa.Column('chambre_hospitalisation', sa.String(20), nullable=True))
-        batch_op.add_column(sa.Column('lit_hospitalisation', sa.String(20), nullable=True))
-        
-        # Chambre Consultation (pas de lit)
-        batch_op.add_column(sa.Column('chambre_consultation', sa.String(20), nullable=True))
-        
-        # Chambre/Lit Urgences
-        batch_op.add_column(sa.Column('chambre_urgences', sa.String(20), nullable=True))
-        batch_op.add_column(sa.Column('lit_urgences', sa.String(20), nullable=True))
-        
-        # Chambre/Lit Mutation
-        batch_op.add_column(sa.Column('chambre_mutation', sa.String(20), nullable=True))
-        batch_op.add_column(sa.Column('lit_mutation', sa.String(20), nullable=True))
-        
-        # Médecin traitant (PV1-8)
-        batch_op.add_column(sa.Column('medecin_traitant_rpps', sa.String(11), nullable=True))
-        batch_op.add_column(sa.Column('medecin_traitant_nom', sa.String(100), nullable=True))
+        add_if_missing(batch_op, 'chambre_hospitalisation', sa.Column('chambre_hospitalisation', sa.String(20), nullable=True))
+        add_if_missing(batch_op, 'lit_hospitalisation', sa.Column('lit_hospitalisation', sa.String(20), nullable=True))
+        add_if_missing(batch_op, 'chambre_consultation', sa.Column('chambre_consultation', sa.String(20), nullable=True))
+        add_if_missing(batch_op, 'chambre_urgences', sa.Column('chambre_urgences', sa.String(20), nullable=True))
+        add_if_missing(batch_op, 'lit_urgences', sa.Column('lit_urgences', sa.String(20), nullable=True))
+        add_if_missing(batch_op, 'chambre_mutation', sa.Column('chambre_mutation', sa.String(20), nullable=True))
+        add_if_missing(batch_op, 'lit_mutation', sa.Column('lit_mutation', sa.String(20), nullable=True))
+        add_if_missing(batch_op, 'medecin_traitant_rpps', sa.Column('medecin_traitant_rpps', sa.String(11), nullable=True))
+        add_if_missing(batch_op, 'medecin_traitant_nom', sa.Column('medecin_traitant_nom', sa.String(100), nullable=True))
 
 
 def downgrade() -> None:

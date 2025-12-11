@@ -1,6 +1,6 @@
 """Service d'agrégation statistiques pour dashboard scénarios."""
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Dict, List, Optional
 from sqlmodel import Session, select, func, and_, or_
 
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
@@ -107,7 +107,7 @@ def get_ack_distribution(
     scenario_id: Optional[int] = None,
     endpoint_id: Optional[int] = None,
     days_back: int = 30
-) -> dict[str, int]:
+) -> Dict[str, int]:
     """Agrège distribution des codes ACK.
     
     Returns:
@@ -129,7 +129,7 @@ def get_ack_distribution(
     
     steps = session.exec(query).all()
     
-    distribution: dict[str, int] = {}
+    distribution: Dict[str, int] = {}
     for step in steps:
         code = step.ack_code if step.ack_code else "null"
         distribution[code] = distribution.get(code, 0) + 1
@@ -142,7 +142,7 @@ def get_scenario_timeline(
     scenario_id: Optional[int] = None,
     endpoint_id: Optional[int] = None,
     days_back: int = 30
-) -> list[dict]:
+) -> List[dict]:
     """Agrège timeline d'exécutions par jour.
     
     Returns:
@@ -162,7 +162,7 @@ def get_scenario_timeline(
     runs = session.exec(query).all()
     
     # Grouper par date
-    daily_stats: dict[str, dict] = {}
+    daily_stats: Dict[str, dict] = {}
     for run in runs:
         if not run.started_at:
             continue
@@ -200,7 +200,7 @@ def get_scenario_timeline(
 def get_step_error_summary(
     session: Session,
     run_id: int
-) -> list[dict]:
+) -> List[dict]:
     """Résume les erreurs par step pour un run donné.
     
     Returns:
@@ -230,7 +230,7 @@ def get_scenario_comparison(
     endpoint_id: Optional[int] = None,
     days_back: int = 30,
     limit: int = 10
-) -> list[dict]:
+) -> List[dict]:
     """Compare performances de plusieurs scénarios.
     
     Returns:
@@ -251,7 +251,7 @@ def get_scenario_comparison(
     results = session.exec(query).all()
     
     # Grouper par scénario
-    scenario_stats: dict[int, dict] = {}
+    scenario_stats: Dict[int, dict] = {}
     for run, scenario in results:
         sid = scenario.id
         if sid not in scenario_stats:

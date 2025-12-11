@@ -87,6 +87,18 @@ def main():
         # init_extended_demo.py gère déjà la population, donc juste un message
         print("✓ Population incluse dans init_extended_demo.py\n")
 
+
+    # 5. Import scénarios IHE HL7
+    print("=" * 60)
+    print("ÉTAPE 5/5 : Import des scénarios IHE HL7 (Doc/examples)")
+    print("=" * 60)
+    try:
+        run([sys.executable, "tools/seed_ihe_scenarios.py", "Doc/examples"], check=True)
+        print("✓ Scénarios IHE HL7 importés\n")
+    except (CalledProcessError, FileNotFoundError) as e:
+        print(f"✗ Échec import scénarios IHE HL7: {e}")
+        sys.exit(1)
+
     # Résumé final
     print("=" * 60)
     print("✅ INITIALISATION COMPLÈTE TERMINÉE")
@@ -100,6 +112,7 @@ def main():
     print("  • Namespaces   : 13 (IPP/NDA/VENUE par EJ + global)")
     if not args.skip_population:
         print("  • Population   : 120 patients, dossiers et mouvements")
+    print("  • Scénarios IHE HL7 : importés depuis Doc/examples")
     print("\nLe serveur peut être démarré avec:")
     print("  uvicorn app.app:app --reload")
     print("\nAccès admin: http://localhost:8000/admin/ght/1/ej/1")

@@ -5,7 +5,7 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 from sqlmodel import Session, select
 
@@ -468,7 +468,7 @@ async def send_scenario(
     session.refresh(run)
 
     # Pré-calcul avancé de recalage temporel si activé (uniquement si pas dry_run ou si on veut aperçu cohérent)
-    payload_overrides: dict[int, str] = {}
+    payload_overrides: Dict[int, str] = {}
     if update_dates and use_advanced_timeplan:
         try:
             hl7_steps = [s for s in steps if s.message_format.lower() == "hl7"]

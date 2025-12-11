@@ -61,6 +61,19 @@ rsync -av \
 # Copier alembic.ini
 cp "${PROJECT_ROOT}/alembic.ini" "${DEPLOY_DIR}/"
 
+# Copier init_db.py (nécessaire pour initialiser la base)
+echo "📊 Copie du script d'initialisation de la base..."
+cp "${PROJECT_ROOT}/init_db.py" "${DEPLOY_DIR}/"
+
+# Copier le dossier tools/ (scripts d'initialisation)
+echo "🛠️  Copie des outils d'initialisation..."
+mkdir -p "${DEPLOY_DIR}/tools"
+rsync -av \
+    --exclude='__pycache__' \
+    --exclude='*.pyc' \
+    "${PROJECT_ROOT}/tools/" \
+    "${DEPLOY_DIR}/tools/"
+
 # Copier les fichiers de configuration
 echo "⚙️  Copie des fichiers de configuration..."
 cp "${PROJECT_ROOT}/requirements.txt" "${DEPLOY_DIR}/config/requirements-original.txt"

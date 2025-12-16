@@ -113,21 +113,21 @@ def vocabulary_detail(system_id: int, request: Request, session: Session = Depen
         with session.no_autoflush:
             for mapping in source_value.mappings:
                 target_system = mapping.target_system
-            if target_system.system_type == target_type:
-                target_value = session.exec(
-                    select(VocabularyValue)
-                    .where(VocabularyValue.system_id == target_system.id)
-                    .where(VocabularyValue.code == mapping.target_code)
-                ).first()
-                if target_value:
-                    return _value_entry(target_value)
-                return {
-                    "code": mapping.target_code,
-                    "display": mapping.target_code,
-                    "definition": None,
-                    "is_active": True,
-                    "order": None,
-                }
+                if target_system.system_type == target_type:
+                    target_value = session.exec(
+                        select(VocabularyValue)
+                        .where(VocabularyValue.system_id == target_system.id)
+                        .where(VocabularyValue.code == mapping.target_code)
+                    ).first()
+                    if target_value:
+                        return _value_entry(target_value)
+                    return {
+                        "code": mapping.target_code,
+                        "display": mapping.target_code,
+                        "definition": None,
+                        "is_active": True,
+                        "order": None,
+                    }
         return None
 
     rows = []

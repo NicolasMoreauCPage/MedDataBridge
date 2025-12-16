@@ -18,9 +18,13 @@ def _ensure_vocabularies(session: Session) -> None:
 
         init_vocabularies(session)
         session.commit()
-    except Exception:
+    except Exception as e:
         session.rollback()
-        raise
+        # Log the error but don't crash the application
+        import logging
+        logging.error(f"Failed to initialize vocabularies: {e}")
+        # Don't re-raise - allow the application to continue without vocabularies
+        # The endpoints will handle missing vocabularies gracefully
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -86,6 +90,7 @@ def list_vocabularies(request: Request, session: Session = Depends(get_session))
 @router.get("/{system_id}", response_class=HTMLResponse)
 def vocabulary_detail(system_id: int, request: Request, session: Session = Depends(get_session)):
     """Détail d'un système de vocabulaire avec ses valeurs"""
+    _ensure_vocabularies(session)
     system = session.get(VocabularySystem, system_id)
     if not system:
         raise HTTPException(status_code=404, detail="Système de vocabulaire non trouvé")

@@ -116,7 +116,13 @@ async def lifespan(app: FastAPI):
                 init_vocabularies(sess)
                 logging.info("Vocabulaires initialisés")
             
-            await mllp_manager.reload_all(sess)
+            # Démarrer les serveurs MLLP pour tous les endpoints configurés
+            try:
+                await mllp_manager.reload_all(sess)
+                logging.info("Serveurs MLLP démarrés")
+            except Exception as e:
+                logging.error(f"Erreur lors du démarrage des serveurs MLLP: {e}")
+                logging.warning("L'application continue sans les serveurs MLLP")
         finally:
             sess.close()
         

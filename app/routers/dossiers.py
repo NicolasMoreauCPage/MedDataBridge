@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from datetime import datetime
 from typing import List, Optional
 from app.db import get_session
-from app.models import Dossier, Patient, DossierType
+from app.models import Dossier, Patient, DossierType, Venue
 from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import ScenarioBinding, InteropScenario
 from app.services import dossiers_service

@@ -5,7 +5,7 @@ Ce module expose:
 - Liste des messages par EJ avec détail validation
 - Vue de comparaison messages
 """
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select, and_
 from datetime import datetime, timedelta
@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from app.db import get_session
 from app.models_structure import EntiteJuridique
 from app.models_endpoints import MessageLog
+from app.models_shared import SystemEndpoint
 from app.services.conformity.metrics import get_ej_summary
 from app.dependencies.ght import require_ght_context
 
@@ -88,8 +89,28 @@ def conformity_home(request: Request, session: Session = Depends(get_session)):
     })
 
 
+@router.post("/ej/{ej_id:int}/strict-pam-fr", response_class=RedirectResponse)
+async def toggle_strict_pam_fr(
+    ej_id: int, 
+    strict_pam_fr: bool = Form(...),
+    request: Request = None,
+    session: Session = Depends(get_session)
+):
+    """Active/désactive le mode strict IHE PAM France pour une EJ."""
+    ej = session.get(EntiteJuridique, ej_id)
+    if not ej:
+        raise HTTPException(status_code=404, detail="EJ not found")
+    
+    ej.strict_pam_fr = strict_pam_fr
+    session.add(ej)
+    session.commit()
+    
+    # Rediriger vers la page de conformité
+    return RedirectResponse(url="/conformity", status_code=303)
+
+
 @router.get("/ej/{ej_id:int}", response_class=HTMLResponse)
-def ej_dashboard(ej_id: int, request: Request, session: Session = Depends(get_session)):
+async def ej_dashboard(ej_id: int, request: Request, session: Session = Depends(get_session)):
     """Dashboard détaillé pour une EJ spécifique."""
     templates = get_templates(request)
     
@@ -108,7 +129,7 @@ def ej_dashboard(ej_id: int, request: Request, session: Session = Depends(get_se
 
 
 @router.get("/ej/{ej_id:int}/messages", response_class=HTMLResponse)
-def ej_messages(ej_id: int, request: Request, session: Session = Depends(get_session)):
+async def ej_messages(ej_id: int, request: Request, session: Session = Depends(get_session)):
     """Liste des messages pour une EJ avec détail validation."""
     templates = get_templates(request)
     
@@ -120,9 +141,9 @@ def ej_messages(ej_id: int, request: Request, session: Session = Depends(get_ses
     
     # Récupérer messages des 30 derniers jours
     cutoff = datetime.utcnow() - timedelta(days=30)
-    stmt = select(MessageLog).where(
+    stmt = select(MessageLog).join(SystemEndpoint, MessageLog.endpoint_id == SystemEndpoint.id).where(
         and_(
-            MessageLog.ej_id == ej_id,
+            SystemEndpoint.entite_juridique_id == ej_id,
             MessageLog.created_at >= cutoff
         )
     ).order_by(MessageLog.created_at.desc())

@@ -13,6 +13,7 @@ from collections import Counter
 
 from app.models_endpoints import MessageLog
 from app.models_structure import EntiteJuridique
+from app.models_shared import SystemEndpoint
 
 
 def compute_conformity_rate(
@@ -34,10 +35,10 @@ def compute_conformity_rate(
     """
     cutoff = datetime.utcnow() - timedelta(days=days)
     
-    # Requête de base
-    stmt = select(MessageLog).where(
+    # Requête de base avec jointure vers SystemEndpoint pour obtenir l'EJ
+    stmt = select(MessageLog).join(SystemEndpoint, MessageLog.endpoint_id == SystemEndpoint.id).where(
         and_(
-            MessageLog.ej_id == ej_id,
+            SystemEndpoint.entite_juridique_id == ej_id,
             MessageLog.created_at >= cutoff
         )
     )
@@ -101,9 +102,9 @@ def get_recurring_issues(
     """
     cutoff = datetime.utcnow() - timedelta(days=days)
     
-    stmt = select(MessageLog).where(
+    stmt = select(MessageLog).join(SystemEndpoint, MessageLog.endpoint_id == SystemEndpoint.id).where(
         and_(
-            MessageLog.ej_id == ej_id,
+            SystemEndpoint.entite_juridique_id == ej_id,
             MessageLog.created_at >= cutoff,
             MessageLog.pam_validation_issues.isnot(None)
         )
@@ -163,9 +164,9 @@ def get_timeline_metrics(
     """
     cutoff = datetime.utcnow() - timedelta(days=days)
     
-    stmt = select(MessageLog).where(
+    stmt = select(MessageLog).join(SystemEndpoint, MessageLog.endpoint_id == SystemEndpoint.id).where(
         and_(
-            MessageLog.ej_id == ej_id,
+            SystemEndpoint.entite_juridique_id == ej_id,
             MessageLog.created_at >= cutoff
         )
     )

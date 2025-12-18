@@ -27,7 +27,8 @@ def get_templates_with_filters(request: FastAPIRequest):
 router = APIRouter(
     prefix="/dossiers",
     tags=["dossiers"],
-    dependencies=[Depends(require_ght_context)],
+    dependencies=[Depends(require_ght_context)]
+)
 
 # GET endpoints remain as they are for now
 @router.get("", response_class=HTMLResponse)

@@ -62,6 +62,15 @@ if [ -d "$DESTDIR" ]; then
   fi
 fi
 
+# Rotate backups: keep only the N most recent backups
+KEEP_BACKUPS=7
+echo "Pruning backups to keep last $KEEP_BACKUPS entries"
+if [ -d "$BACKUPDIR" ]; then
+  # list backups sorted by time, skip the most recent $KEEP_BACKUPS and remove the rest
+  cd "$BACKUPDIR" || true
+  ls -1t | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r sudo rm -rf -- || true
+fi
+
 echo "Unzipping $TMPFILE to $DESTDIR"
 sudo mkdir -p "$DESTDIR"
 sudo unzip -o "$TMPFILE" -d "$DESTDIR"

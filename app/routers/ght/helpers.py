@@ -1,5 +1,5 @@
 """Helper functions for GHT routes: form fields, validation, entity getters"""
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union, Any
 from fastapi import HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -35,12 +35,20 @@ def get_context_or_404(session: Session, context_id: int) -> GHTContext:
 
 
 def get_ej_or_404(
-    session: Session, context: GHTContext, ej_id: int
+    session: Session, context: Union[int, GHTContext], ej_id: int
 ) -> EntiteJuridique:
+    # Accept either a context object or a context id
+    if isinstance(context, int):
+        context_obj = session.get(GHTContext, context)
+        if not context_obj:
+            raise HTTPException(status_code=404, detail="Contexte non trouvé")
+    else:
+        context_obj = context
+
     entite = session.exec(
         select(EntiteJuridique)
         .where(EntiteJuridique.id == ej_id)
-        .where(EntiteJuridique.ght_context_id == context.id)
+        .where(EntiteJuridique.ght_context_id == context_obj.id)
     ).first()
     if not entite:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
@@ -48,12 +56,20 @@ def get_ej_or_404(
 
 
 def get_entite_geo_or_404(
-    session: Session, entite: EntiteJuridique, eg_id: int
+    session: Session, entite: Union[int, EntiteJuridique], eg_id: int
 ) -> EntiteGeographique:
+    # Accept either an EntiteJuridique object or its id
+    if isinstance(entite, int):
+        entite_obj = session.get(EntiteJuridique, entite)
+        if not entite_obj:
+            raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    else:
+        entite_obj = entite
+
     entite_geo = session.exec(
         select(EntiteGeographique)
         .where(EntiteGeographique.id == eg_id)
-        .where(EntiteGeographique.entite_juridique_id == entite.id)
+        .where(EntiteGeographique.entite_juridique_id == entite_obj.id)
     ).first()
     if not entite_geo:
         raise HTTPException(status_code=404, detail="Entité géographique non trouvée")
@@ -61,12 +77,20 @@ def get_entite_geo_or_404(
 
 
 def get_pole_or_404(
-    session: Session, entite_geo: EntiteGeographique, pole_id: int
+    session: Session, entite_geo: Union[int, EntiteGeographique], pole_id: int
 ) -> Pole:
+    # Accept either an EntiteGeographique object or its id
+    if isinstance(entite_geo, int):
+        eg_obj = session.get(EntiteGeographique, entite_geo)
+        if not eg_obj:
+            raise HTTPException(status_code=404, detail="Entité géographique non trouvée")
+    else:
+        eg_obj = entite_geo
+
     pole = session.exec(
         select(Pole)
         .where(Pole.id == pole_id)
-        .where(Pole.entite_geo_id == entite_geo.id)
+        .where(Pole.entite_geo_id == eg_obj.id)
     ).first()
     if not pole:
         raise HTTPException(status_code=404, detail="Pôle non trouvé")
@@ -74,12 +98,20 @@ def get_pole_or_404(
 
 
 def get_service_or_404(
-    session: Session, pole: Pole, service_id: int
+    session: Session, pole: Union[int, Pole], service_id: int
 ) -> Service:
+    # Accept either a Pole object or its id
+    if isinstance(pole, int):
+        pole_obj = session.get(Pole, pole)
+        if not pole_obj:
+            raise HTTPException(status_code=404, detail="Pôle non trouvé")
+    else:
+        pole_obj = pole
+
     service = session.exec(
         select(Service)
         .where(Service.id == service_id)
-        .where(Service.pole_id == pole.id)
+        .where(Service.pole_id == pole_obj.id)
     ).first()
     if not service:
         raise HTTPException(status_code=404, detail="Service non trouvé")
@@ -87,12 +119,20 @@ def get_service_or_404(
 
 
 def get_uf_or_404(
-    session: Session, service: Service, uf_id: int
+    session: Session, service: Union[int, Service], uf_id: int
 ) -> UniteFonctionnelle:
+    # Accept either a Service object or its id
+    if isinstance(service, int):
+        service_obj = session.get(Service, service)
+        if not service_obj:
+            raise HTTPException(status_code=404, detail="Service non trouvé")
+    else:
+        service_obj = service
+
     uf = session.exec(
         select(UniteFonctionnelle)
         .where(UniteFonctionnelle.id == uf_id)
-        .where(UniteFonctionnelle.service_id == service.id)
+        .where(UniteFonctionnelle.service_id == service_obj.id)
     ).first()
     if not uf:
         raise HTTPException(status_code=404, detail="Unité fonctionnelle non trouvée")
@@ -100,12 +140,20 @@ def get_uf_or_404(
 
 
 def get_uh_or_404(
-    session: Session, uf: UniteFonctionnelle, uh_id: int
+    session: Session, uf: Union[int, UniteFonctionnelle], uh_id: int
 ) -> UniteHebergement:
+    # Accept either a UniteFonctionnelle object or its id
+    if isinstance(uf, int):
+        uf_obj = session.get(UniteFonctionnelle, uf)
+        if not uf_obj:
+            raise HTTPException(status_code=404, detail="Unité fonctionnelle non trouvée")
+    else:
+        uf_obj = uf
+
     uh = session.exec(
         select(UniteHebergement)
         .where(UniteHebergement.id == uh_id)
-        .where(UniteHebergement.unite_fonctionnelle_id == uf.id)
+        .where(UniteHebergement.unite_fonctionnelle_id == uf_obj.id)
     ).first()
     if not uh:
         raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
@@ -113,12 +161,20 @@ def get_uh_or_404(
 
 
 def get_chambre_or_404(
-    session: Session, uh: UniteHebergement, chambre_id: int
+    session: Session, uh: Union[int, UniteHebergement], chambre_id: int
 ) -> Chambre:
+    # Accept either a UniteHebergement object or its id
+    if isinstance(uh, int):
+        uh_obj = session.get(UniteHebergement, uh)
+        if not uh_obj:
+            raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
+    else:
+        uh_obj = uh
+
     chambre = session.exec(
         select(Chambre)
         .where(Chambre.id == chambre_id)
-        .where(Chambre.unite_hebergement_id == uh.id)
+        .where(Chambre.unite_hebergement_id == uh_obj.id)
     ).first()
     if not chambre:
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
@@ -126,12 +182,20 @@ def get_chambre_or_404(
 
 
 def get_lit_or_404(
-    session: Session, chambre: Chambre, lit_id: int
+    session: Session, chambre: Union[int, Chambre], lit_id: int
 ) -> Lit:
+    # Accept either a Chambre object or its id
+    if isinstance(chambre, int):
+        chambre_obj = session.get(Chambre, chambre)
+        if not chambre_obj:
+            raise HTTPException(status_code=404, detail="Chambre non trouvée")
+    else:
+        chambre_obj = chambre
+
     lit = session.exec(
         select(Lit)
         .where(Lit.id == lit_id)
-        .where(Lit.chambre_id == chambre.id)
+        .where(Lit.chambre_id == chambre_obj.id)
     ).first()
     if not lit:
         raise HTTPException(status_code=404, detail="Lit non trouvé")

@@ -210,7 +210,14 @@ def new_endpoint(request: Request, session=Depends(get_session)):
     
     # Récupérer les GHT et EJ disponibles
     ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
-    ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
+    # If a GHT context is active, limit EJs to that GHT to avoid showing EJs from other GHTs
+    if ght_ctx:
+        ejs = session.exec(select(EntiteJuridique).where(
+            EntiteJuridique.is_active == True,
+            EntiteJuridique.ght_context_id == ght_ctx.id
+        )).all()
+    else:
+        ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
     # Contexts from request
     ght_ctx = getattr(request.state, 'ght_context', None)
     ej_ctx = getattr(request.state, 'ej_context', None)

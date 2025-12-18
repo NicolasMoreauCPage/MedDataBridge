@@ -28,7 +28,6 @@ router = APIRouter(
     prefix="/dossiers",
     tags=["dossiers"],
     dependencies=[Depends(require_ght_context)],
-)
 
 # GET endpoints remain as they are for now
 @router.get("", response_class=HTMLResponse)
@@ -41,6 +40,8 @@ def list_dossiers(
 ):
     ej_context = getattr(request.state, "ej_context", None)
     ej_id = getattr(ej_context, "id", None)
+    # Temporairement forcer ej_id à None pour test
+    ej_id = None
     
     dossiers = dossiers_service.get_dossiers(
         session,
@@ -60,7 +61,12 @@ def list_dossiers(
             "detail_url": f"/dossiers/{d.id}", "edit_url": f"/dossiers/{d.id}/edit",
         } for d in dossiers
     ]
-    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie"], "rows": rows}
+    actions = [
+        {"type": "link", "label": "Export FHIR", "url": "/dossiers/export/fhir"},
+        {"type": "link", "label": "Import FHIR", "url": "/dossiers/import/fhir"}
+    ]
+
+    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie"], "rows": rows, "new_url": "/dossiers/new", "actions": actions, "show_actions": True}
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 @router.get("/{dossier_id}", response_class=HTMLResponse)

@@ -80,21 +80,6 @@ async def get_structure_tree(
     if changed:
         session.commit()
     
-@api_router.get("/tree")
-async def get_structure_tree(
-    session: Session = Depends(get_session),
-    ej: Optional[int] = Query(None, description="ID de l'établissement juridique à filtrer"),
-    eg_ids: Optional[str] = Query(None, description="Liste d'IDs d'entités géographiques séparés par des virgules")
-):
-    # Apply scheduled status updates
-    changed = False
-    for model in (Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit):
-        entities = session.exec(select(model)).all()
-        if apply_scheduled_status(entities):
-            changed = True
-    if changed:
-        session.commit()
-    
     # Strict EJ filtering: if EJ context is present, only return EGs for that EJ
     query = select(EntiteGeographique)
     ej_context = ej

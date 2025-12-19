@@ -1,5 +1,6 @@
 """Helper functions for GHT routes: form fields, validation, entity getters"""
 from typing import Dict, List, Optional, Union, Any
+import logging
 from fastapi import HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -28,19 +29,24 @@ templates = Jinja2Templates(directory="app/templates")
 
 # Entity getters with 404 handling
 def get_context_or_404(session: Session, context_id: int) -> GHTContext:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     context = session.get(GHTContext, context_id)
     if not context:
+        logger.info("get_context_or_404: missing context_id=%s", context_id)
         raise HTTPException(status_code=404, detail="Contexte non trouvé")
+    logger.info("get_context_or_404: resolved context_id=%s -> id=%s", context_id, getattr(context, "id", None))
     return context
 
 
 def get_ej_or_404(
     session: Session, context: Union[int, GHTContext], ej_id: int
 ) -> EntiteJuridique:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either a context object or a context id
     if isinstance(context, int):
         context_obj = session.get(GHTContext, context)
         if not context_obj:
+            logger.info("get_ej_or_404: missing context_id=%s", context)
             raise HTTPException(status_code=404, detail="Contexte non trouvé")
     else:
         context_obj = context
@@ -51,17 +57,21 @@ def get_ej_or_404(
         .where(EntiteJuridique.ght_context_id == context_obj.id)
     ).first()
     if not entite:
+        logger.info("get_ej_or_404: missing ej_id=%s for context_id=%s", ej_id, getattr(context_obj, "id", None))
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    logger.info("get_ej_or_404: resolved ej_id=%s under context_id=%s", ej_id, context_obj.id)
     return entite
 
 
 def get_entite_geo_or_404(
     session: Session, entite: Union[int, EntiteJuridique], eg_id: int
 ) -> EntiteGeographique:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either an EntiteJuridique object or its id
     if isinstance(entite, int):
         entite_obj = session.get(EntiteJuridique, entite)
         if not entite_obj:
+            logger.info("get_entite_geo_or_404: missing entite_juridique_id=%s", entite)
             raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
     else:
         entite_obj = entite
@@ -72,17 +82,21 @@ def get_entite_geo_or_404(
         .where(EntiteGeographique.entite_juridique_id == entite_obj.id)
     ).first()
     if not entite_geo:
+        logger.info("get_entite_geo_or_404: missing eg_id=%s for entite_juridique_id=%s", eg_id, getattr(entite_obj, "id", None))
         raise HTTPException(status_code=404, detail="Entité géographique non trouvée")
+    logger.info("get_entite_geo_or_404: resolved eg_id=%s under entite_juridique_id=%s", eg_id, entite_obj.id)
     return entite_geo
 
 
 def get_pole_or_404(
     session: Session, entite_geo: Union[int, EntiteGeographique], pole_id: int
 ) -> Pole:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either an EntiteGeographique object or its id
     if isinstance(entite_geo, int):
         eg_obj = session.get(EntiteGeographique, entite_geo)
         if not eg_obj:
+            logger.info("get_pole_or_404: missing entite_geo_id=%s", entite_geo)
             raise HTTPException(status_code=404, detail="Entité géographique non trouvée")
     else:
         eg_obj = entite_geo
@@ -93,17 +107,21 @@ def get_pole_or_404(
         .where(Pole.entite_geo_id == eg_obj.id)
     ).first()
     if not pole:
+        logger.info("get_pole_or_404: missing pole_id=%s for entite_geo_id=%s", pole_id, getattr(eg_obj, "id", None))
         raise HTTPException(status_code=404, detail="Pôle non trouvé")
+    logger.info("get_pole_or_404: resolved pole_id=%s under entite_geo_id=%s", pole_id, eg_obj.id)
     return pole
 
 
 def get_service_or_404(
     session: Session, pole: Union[int, Pole], service_id: int
 ) -> Service:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either a Pole object or its id
     if isinstance(pole, int):
         pole_obj = session.get(Pole, pole)
         if not pole_obj:
+            logger.info("get_service_or_404: missing pole_id=%s", pole)
             raise HTTPException(status_code=404, detail="Pôle non trouvé")
     else:
         pole_obj = pole
@@ -114,17 +132,21 @@ def get_service_or_404(
         .where(Service.pole_id == pole_obj.id)
     ).first()
     if not service:
+        logger.info("get_service_or_404: missing service_id=%s for pole_id=%s", service_id, getattr(pole_obj, "id", None))
         raise HTTPException(status_code=404, detail="Service non trouvé")
+    logger.info("get_service_or_404: resolved service_id=%s under pole_id=%s", service_id, pole_obj.id)
     return service
 
 
 def get_uf_or_404(
     session: Session, service: Union[int, Service], uf_id: int
 ) -> UniteFonctionnelle:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either a Service object or its id
     if isinstance(service, int):
         service_obj = session.get(Service, service)
         if not service_obj:
+            logger.info("get_uf_or_404: missing service_id=%s", service)
             raise HTTPException(status_code=404, detail="Service non trouvé")
     else:
         service_obj = service
@@ -135,17 +157,21 @@ def get_uf_or_404(
         .where(UniteFonctionnelle.service_id == service_obj.id)
     ).first()
     if not uf:
+        logger.info("get_uf_or_404: missing uf_id=%s for service_id=%s", uf_id, getattr(service_obj, "id", None))
         raise HTTPException(status_code=404, detail="Unité fonctionnelle non trouvée")
+    logger.info("get_uf_or_404: resolved uf_id=%s under service_id=%s", uf_id, service_obj.id)
     return uf
 
 
 def get_uh_or_404(
     session: Session, uf: Union[int, UniteFonctionnelle], uh_id: int
 ) -> UniteHebergement:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either a UniteFonctionnelle object or its id
     if isinstance(uf, int):
         uf_obj = session.get(UniteFonctionnelle, uf)
         if not uf_obj:
+            logger.info("get_uh_or_404: missing uf_id=%s", uf)
             raise HTTPException(status_code=404, detail="Unité fonctionnelle non trouvée")
     else:
         uf_obj = uf
@@ -156,17 +182,21 @@ def get_uh_or_404(
         .where(UniteHebergement.unite_fonctionnelle_id == uf_obj.id)
     ).first()
     if not uh:
+        logger.info("get_uh_or_404: missing uh_id=%s for uf_id=%s", uh_id, getattr(uf_obj, "id", None))
         raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
+    logger.info("get_uh_or_404: resolved uh_id=%s under uf_id=%s", uh_id, uf_obj.id)
     return uh
 
 
 def get_chambre_or_404(
     session: Session, uh: Union[int, UniteHebergement], chambre_id: int
 ) -> Chambre:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either a UniteHebergement object or its id
     if isinstance(uh, int):
         uh_obj = session.get(UniteHebergement, uh)
         if not uh_obj:
+            logger.info("get_chambre_or_404: missing uh_id=%s", uh)
             raise HTTPException(status_code=404, detail="Unité d'hébergement non trouvée")
     else:
         uh_obj = uh
@@ -177,17 +207,21 @@ def get_chambre_or_404(
         .where(Chambre.unite_hebergement_id == uh_obj.id)
     ).first()
     if not chambre:
+        logger.info("get_chambre_or_404: missing chambre_id=%s for uh_id=%s", chambre_id, getattr(uh_obj, "id", None))
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
+    logger.info("get_chambre_or_404: resolved chambre_id=%s under uh_id=%s", chambre_id, uh_obj.id)
     return chambre
 
 
 def get_lit_or_404(
     session: Session, chambre: Union[int, Chambre], lit_id: int
 ) -> Lit:
+    logger = logging.getLogger("mdbridge.ght.helpers")
     # Accept either a Chambre object or its id
     if isinstance(chambre, int):
         chambre_obj = session.get(Chambre, chambre)
         if not chambre_obj:
+            logger.info("get_lit_or_404: missing chambre_id=%s", chambre)
             raise HTTPException(status_code=404, detail="Chambre non trouvée")
     else:
         chambre_obj = chambre
@@ -198,7 +232,9 @@ def get_lit_or_404(
         .where(Lit.chambre_id == chambre_obj.id)
     ).first()
     if not lit:
+        logger.info("get_lit_or_404: missing lit_id=%s for chambre_id=%s", lit_id, getattr(chambre_obj, "id", None))
         raise HTTPException(status_code=404, detail="Lit non trouvé")
+    logger.info("get_lit_or_404: resolved lit_id=%s under chambre_id=%s", lit_id, chambre_obj.id)
     return lit
 
 

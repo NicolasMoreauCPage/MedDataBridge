@@ -1,0 +1,255 @@
+# app/services/hprim/hprim_service.py
+"""
+Service principal HPRIM
+Orchestration des fonctionnalités de cotation des actes
+"""
+
+import logging
+from datetime import datetime
+from typing import List, Optional, Dict, Any
+
+from app.models.hprim_models import (
+    HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
+    HprimActeCCAM, HprimMessageType, HprimAction
+)
+from .hprim_validator import HprimValidator, HprimValidationError
+from .hprim_xml import HprimXmlService
+
+logger = logging.getLogger(__name__)
+
+
+class HprimService:
+    """Service principal pour la gestion HPRIM"""
+
+    def __init__(self):
+        self.validator = HprimValidator()
+        self.xml_service = HprimXmlService()
+
+    def creer_message_actes_ccam(
+        self,
+        emetteur_id: str,
+        emetteur_nom: str,
+        destinataire_id: str,
+        destinataire_nom: str,
+        patient: HprimPatient,
+        acteur: HprimProfessionnel,
+        actes: List[HprimActeCCAM],
+        message_id: Optional[str] = None
+    ) -> HprimMessage:
+        """
+        Crée un message HPRIM pour des actes CCAM
+
+        Args:
+            emetteur_id: ID de l'émetteur (FINESS)
+            emetteur_nom: Nom de l'émetteur
+            destinataire_id: ID du destinataire (FINESS)
+            destinataire_nom: Nom du destinataire
+            patient: Informations patient
+            acteur: Médecin acteur
+            actes: Liste des actes CCAM
+            message_id: ID du message (auto-généré si None)
+
+        Returns:
+            Message HPRIM prêt à être généré
+        """
+        if not message_id:
+            message_id = f"MSG_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        entete = HprimEnteteMessage(
+            emetteur_id=emetteur_id,
+            emetteur_nom=emetteur_nom,
+            destinataire_id=destinataire_id,
+            destinataire_nom=destinataire_nom,
+            date_emission=datetime.now(),
+            message_id=message_id,
+            message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
+        )
+
+        return HprimMessage(
+            entete=entete,
+            patient=patient,
+            acteur=acteur,
+            actes_ccam=actes
+        )
+
+    def valider_message(self, message: HprimMessage) -> List[HprimValidationError]:
+        """
+        Valide un message HPRIM complet
+
+        Args:
+            message: Message à valider
+
+        Returns:
+            Liste des erreurs de validation
+        """
+        return self.validator.validate_message_complet(message)
+
+    def generer_xml(self, message: HprimMessage, valider: bool = True) -> str:
+        """
+        Génère le XML d'un message HPRIM
+
+        Args:
+            message: Message à convertir
+            valider: Si True, valide avant génération
+
+        Returns:
+            XML string en ISO-8859-1
+
+        Raises:
+            HprimValidationError: Si validation échoue et valider=True
+        """
+        if valider:
+            erreurs = self.valider_message(message)
+            if erreurs:
+                raise HprimValidationError(
+                    "VALIDATION_FAILED",
+                    f"Validation échouée: {len(erreurs)} erreur(s)",
+                    "message"
+                ) from erreurs[0]
+
+        return self.xml_service.generate_xml(message)
+
+    def traiter_message_xml(self, xml_string: str) -> Dict[str, Any]:
+        """
+        Traite un message XML entrant (parsing + validation)
+
+        Args:
+            xml_string: XML reçu
+
+        Returns:
+            Dictionnaire avec résultat du traitement
+        """
+        try:
+            # Validation encodage
+            if not self.xml_service.validate_encoding(xml_string):
+                return {
+                    "succes": False,
+                    "erreur": "Encodage invalide (ISO-8859-1 requis)",
+                    "type_erreur": "ENCODING"
+                }
+
+            # Parsing XML
+            message = self.xml_service.parse_xml(xml_string)
+
+            # Validation contenu
+            erreurs = self.valider_message(message)
+
+            if erreurs:
+                return {
+                    "succes": False,
+                    "erreur": f"Validation échouée: {len(erreurs)} erreur(s)",
+                    "erreurs": [e.__dict__ for e in erreurs],
+                    "type_erreur": "VALIDATION"
+                }
+
+            return {
+                "succes": True,
+                "message": message,
+                "type_message": message.entete.message_type.value
+            }
+
+        except Exception as e:
+            logger.error(f"Erreur traitement XML: {e}")
+            return {
+                "succes": False,
+                "erreur": str(e),
+                "type_erreur": "TRAITEMENT"
+            }
+
+    def creer_acte_ccam_simple(
+        self,
+        code_acte: str,
+        code_activite: str,
+        code_phase: str,
+        executant_rpps: str,
+        date_execution: datetime,
+        quantite: int = 1,
+        modificateurs: Optional[List[str]] = None,
+        montant: Optional[float] = None
+    ) -> HprimActeCCAM:
+        """
+        Crée un acte CCAM simple avec les paramètres minimaux
+
+        Args:
+            code_acte: Code CCAM (AAAA999)
+            code_activite: Code activité (01-99)
+            code_phase: Code phase (00-99)
+            executant_rpps: RPPS du médecin exécutant
+            date_execution: Date d'exécution
+            quantite: Quantité (défaut: 1)
+            modificateurs: Liste des modificateurs (optionnel)
+            montant: Montant en euros (optionnel)
+
+        Returns:
+            Objet HprimActeCCAM
+        """
+        # Créer l'exécutant
+        executant = HprimProfessionnel(
+            nom="INCONNU",  # À compléter avec les vraies données
+            prenom="INCONNU",
+            numero_rpps=executant_rpps
+        )
+
+        # Créer les modificateurs
+        mods = []
+        if modificateurs:
+            from app.models.hprim_models import HprimModificateur
+            for mod in modificateurs:
+                mods.append(HprimModificateur(code=mod))
+
+        # Créer le montant
+        montant_obj = None
+        if montant:
+            from app.models.hprim_models import HprimMontant
+            from decimal import Decimal
+            montant_obj = HprimMontant(valeur=Decimal(str(montant)))
+
+        # Générer l'identifiant
+        identifiant = f"CCAM_{code_acte}_{date_execution.strftime('%Y%m%d_%H%M%S')}"
+
+        return HprimActeCCAM(
+            identifiant=identifiant,
+            code_acte=code_acte,
+            code_activite=code_activite,
+            code_phase=code_phase,
+            execute_date=date_execution,
+            executant=executant,
+            modificateurs=mods,
+            quantite=quantite,
+            montant=montant_obj
+        )
+
+    def generer_acquittement(
+        self,
+        message_original: HprimMessage,
+        statut: str = "OK",
+        erreurs: Optional[List[Dict[str, Any]]] = None
+    ) -> str:
+        """
+        Génère un acquittement pour un message
+
+        Args:
+            message_original: Message original
+            statut: Statut de l'acquittement (OK, ERREUR)
+            erreurs: Liste des erreurs (optionnel)
+
+        Returns:
+            XML d'acquittement
+        """
+        # TODO: Implémenter la génération d'acquittement
+        raise NotImplementedError("Génération d'acquittement non implémentée")
+
+    def get_statistiques_validation(self) -> Dict[str, Any]:
+        """
+        Retourne des statistiques sur les validations effectuées
+
+        Returns:
+            Dictionnaire de statistiques
+        """
+        # TODO: Implémenter les statistiques
+        return {
+            "validations_total": 0,
+            "erreurs_total": 0,
+            "types_erreur": {},
+            "performance_moyenne": 0.0
+        }

@@ -30,6 +30,12 @@ router = APIRouter(
     dependencies=[Depends(require_ght_context)]
 )
 
+# Separate router for routes that don't require GHT context
+public_router = APIRouter(
+    prefix="/dossiers",
+    tags=["dossiers-public"],
+)
+
 # Separate router for API endpoints without GHT context requirement
 api_router = APIRouter(
     prefix="/dossiers/api",
@@ -88,7 +94,7 @@ def list_dossiers(
     ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie"], "rows": rows, "new_url": "/dossiers/new", "actions": actions, "show_actions": True}
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
-@router.get("/{dossier_id}", response_class=HTMLResponse)
+@public_router.get("/{dossier_id}", response_class=HTMLResponse)
 def show_dossier(dossier_id: int, request: Request, session=Depends(get_session)):
     dossier = dossiers_service.get_dossier(session, dossier_id)
     if not dossier:
@@ -99,7 +105,7 @@ def show_dossier(dossier_id: int, request: Request, session=Depends(get_session)
         select(Patient).where(Patient.id == dossier.patient_id)
     ).first()
     
-    # Vérifier l'accès au dossier via le GHT
+    # Vérifier l'accès au dossier via le GHT (optionnel)
     ght_context = getattr(request.state, "ght_context", None)
     if ght_context:
         # Le dossier doit appartenir à une EJ du GHT
@@ -301,31 +307,87 @@ def api_list_dossiers(session=Depends(get_session)):
         for d in dossiers
     ]
 
-@api_router.post("/dossiers", response_class=JSONResponse)
-def api_create_dossier(
-    patient_id: int,
-    admit_time: str,
-    dossier_type: str = "HOSPITALISE",
-    uf_responsabilite: int = None,
+@api_router.get("/search", response_class=JSONResponse)
+def api_search_dossiers(
+    q: str = Query(..., description="Terme de recherche (numéro dossier, nom patient)"),
+    limit: int = Query(10, description="Nombre maximum de résultats"),
     session=Depends(get_session)
 ):
-    """API endpoint to create a dossier"""
+    """API endpoint pour rechercher des dossiers par numéro ou nom de patient"""
     try:
-        from app.models import DossierType
-        dt = DossierType(dossier_type) if dossier_type else DossierType.HOSPITALISE
-        
-        dossier_data = DossierCreateSchema(
-            patient_id=patient_id,
-            uf_responsabilite=uf_responsabilite,
-            dossier_type=dt,
-            admit_time=datetime.fromisoformat(admit_time)
-        )
-        dossier = dossiers_service.create_dossier(session=session, dossier_data=dossier_data)
+        from sqlalchemy import or_, func
+        from app.models import Patient
+
+        # Recherche par numéro de dossier ou nom/prénom patient
+        stmt = select(Dossier).options(
+            selectinload(Dossier.patient),
+            selectinload(Dossier.medecin_responsable)
+        ).where(
+            or_(
+                func.cast(Dossier.dossier_seq, String).like(f"%{q}%"),
+                Dossier.patient.has(Patient.family.ilike(f"%{q}%")),
+                Dossier.patient.has(Patient.given.ilike(f"%{q}%"))
+            )
+        ).limit(limit)
+
+        result = session.exec(stmt)
+        dossiers = result.all()
+
+        return [
+            {
+                "id": d.id,
+                "dossier_seq": d.dossier_seq,
+                "patient": {
+                    "family": d.patient.family,
+                    "given": d.patient.given
+                },
+                "admit_time": d.admit_time.isoformat() if d.admit_time else None,
+                "medecin_responsable": {
+                    "nom": d.medecin_responsable.nom if d.medecin_responsable else None,
+                    "prenom": d.medecin_responsable.prenom if d.medecin_responsable else None
+                } if d.medecin_responsable else None,
+                "current_state": d.current_state
+            }
+            for d in dossiers
+        ]
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+@api_router.get("/{dossier_id}", response_class=JSONResponse)
+def api_get_dossier(
+    dossier_id: int,
+    session=Depends(get_session)
+):
+    """API endpoint pour récupérer les détails d'un dossier"""
+    try:
+        stmt = select(Dossier).options(
+            selectinload(Dossier.patient),
+            selectinload(Dossier.medecin_responsable)
+        ).where(Dossier.id == dossier_id)
+
+        result = session.exec(stmt)
+        dossier = result.first()
+
+        if not dossier:
+            return JSONResponse(status_code=404, content={"detail": "Dossier non trouvé"})
+
         return {
             "id": dossier.id,
-            "patient_id": dossier.patient_id,
-            "dossier_type": dossier.dossier_type.value if dossier.dossier_type else None,
+            "dossier_seq": dossier.dossier_seq,
+            "patient": {
+                "family": dossier.patient.family,
+                "given": dossier.patient.given,
+                "birth_date": dossier.patient.birth_date.isoformat() if dossier.patient.birth_date else None
+            },
             "admit_time": dossier.admit_time.isoformat() if dossier.admit_time else None,
+            "discharge_time": dossier.discharge_time.isoformat() if dossier.discharge_time else None,
+            "dossier_type": dossier.dossier_type.value if dossier.dossier_type else None,
+            "medecin_responsable": {
+                "nom": dossier.medecin_responsable.nom if dossier.medecin_responsable else None,
+                "prenom": dossier.medecin_responsable.prenom if dossier.medecin_responsable else None
+            } if dossier.medecin_responsable else None,
+            "current_state": dossier.current_state,
+            "uf_responsabilite": dossier.uf_responsabilite
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})

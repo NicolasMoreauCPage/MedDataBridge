@@ -232,6 +232,7 @@ def create_app() -> FastAPI:
     # 2. Entity and core data routes - all have their own prefixes
     app.include_router(patients.router)
     app.include_router(dossiers.router)
+    app.include_router(dossiers.public_router)
     app.include_router(dossiers.api_router)
     app.include_router(venues.router)
     app.include_router(mouvements.router)

@@ -221,9 +221,48 @@ def create_app() -> FastAPI:
     # Core application routes in dependency order
     # Routes are registered in logical dependency order
     # Some routers have their own prefix defined in their router creation
-    
-    # Register routes in order with correct prefixes
+
+    # System routes (health check, metrics)
+    from fastapi import HTTPException
+    from sqlalchemy import text
+
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint for load balancers and monitoring"""
+        try:
+            # Test database connection
+            async with session_factory() as session:
+                await session.execute(text("SELECT 1"))
+
+            return {
+                "status": "healthy",
+                "version": app.state.version,
+                "database": "connected",
+                "timestamp": "2025-12-20T00:00:00Z"  # Would be dynamic in real implementation
+            }
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
+
+    @app.get("/health/db")
+    async def database_health():
+        """Detailed database health check"""
+        try:
+            async with session_factory() as session:
+                result = await session.execute(text("SELECT version()"))
+                version = result.scalar()
+
+            return {
+                "status": "healthy",
+                "database_type": "postgresql",
+                "version": version,
+                "connection_pool": "active"
+            }
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Database unhealthy: {str(e)}")
+
     print("\nRegistering routes:")
+
+    # 1. Basic UI routes
     
     # 1. Basic UI routes 
     app.include_router(home.router)

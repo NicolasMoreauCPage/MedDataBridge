@@ -6,7 +6,8 @@ from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 )
-from app.models import Patient, Dossier, Venue, Mouvement, Sequence
+from app.models import Patient, Dossier, Venue, Mouvement
+from app.models import Sequence
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.fhir_export_service import FHIRExportService
 

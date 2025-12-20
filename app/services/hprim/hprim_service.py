@@ -8,9 +8,9 @@ import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
-from app.models.hprim_models import (
+from app.hprim_models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
-    HprimActeCCAM, HprimMessageType, HprimAction
+    HprimActeCCAM, HprimMessageType, HprimAction, HprimVenue
 )
 from .hprim_validator import HprimValidator, HprimValidationError
 from .hprim_xml import HprimXmlService
@@ -34,6 +34,7 @@ class HprimService:
         patient: HprimPatient,
         acteur: HprimProfessionnel,
         actes: List[HprimActeCCAM],
+        venue: Optional[HprimVenue] = None,
         message_id: Optional[str] = None
     ) -> HprimMessage:
         """
@@ -47,6 +48,7 @@ class HprimService:
             patient: Informations patient
             acteur: Médecin acteur
             actes: Liste des actes CCAM
+            venue: Informations de venue (optionnel)
             message_id: ID du message (auto-généré si None)
 
         Returns:
@@ -69,6 +71,7 @@ class HprimService:
             entete=entete,
             patient=patient,
             acteur=acteur,
+            venue=venue,
             actes_ccam=actes
         )
 
@@ -193,14 +196,14 @@ class HprimService:
         # Créer les modificateurs
         mods = []
         if modificateurs:
-            from app.models.hprim_models import HprimModificateur
+            from app.hprim_models import HprimModificateur
             for mod in modificateurs:
                 mods.append(HprimModificateur(code=mod))
 
         # Créer le montant
         montant_obj = None
         if montant:
-            from app.models.hprim_models import HprimMontant
+            from app.hprim_models import HprimMontant
             from decimal import Decimal
             montant_obj = HprimMontant(valeur=Decimal(str(montant)))
 

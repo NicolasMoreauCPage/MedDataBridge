@@ -63,11 +63,13 @@ from app.routers import (
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
-    interface_testing, test_scenario_generator, ui_test_scenarios
+    interface_testing, test_scenario_generator, ui_test_scenarios, ccam
 )
 
 from app.routers.ght.ej import router as ej_router
 from app.routers.ght.structure import router as structure_router
+from app.routers import roundtrip_hprim
+from app.routers import cotation_modern
 
 
 # --- PATCH: Logging to file and console, DEBUG level ---
@@ -273,6 +275,36 @@ def create_app() -> FastAPI:
     app.include_router(transport.router)  # Has own prefix
     app.include_router(endpoints.router)  # Has own prefix
     app.include_router(ihe.router)  # Has own prefix /ihe
+    
+    # HPRIM CCAM integration
+    try:
+        from app.api import hprim_ccam
+        app.include_router(hprim_ccam.router)
+        print(" - HPRIM CCAM router mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM CCAM router not available: {e}")
+    
+    # HPRIM NGAP, UCD, LPP integration
+    try:
+        from app.api import ngap, ucd, lpp, contracts, ccam
+        from app.routers import ngap as ngap_router
+        app.include_router(ngap.router)
+        app.include_router(ucd.router)
+        app.include_router(lpp.router)
+        app.include_router(contracts.router)
+        app.include_router(ccam.router)
+        app.include_router(ngap_router.router)
+        print(" - HPRIM NGAP/UCD/LPP/Contracts/CCAM routers mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM NGAP/UCD/LPP/Contracts/CCAM routers not available: {e}")
+    
+    # Roundtrip HPRIM router
+    app.include_router(roundtrip_hprim.router)
+    print(" - Roundtrip HPRIM router mounted at /roundtrip-hprim")
+    # Nouvelle IHM Cotation moderne (UX/UI pro)
+    app.include_router(cotation_modern.router)
+    print(" - Cotation moderne router mounted at /cotation-modern")
+    
     print(" - Integration routers mounted")
     
     # 6. Utilities and workflow

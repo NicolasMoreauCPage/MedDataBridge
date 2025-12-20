@@ -8,7 +8,8 @@ from sqlmodel import SQLModel
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from app.models import Patient, Dossier, Venue, Mouvement, Sequence
+from app.models import Patient, Dossier, Venue, Mouvement
+from app.models import Sequence
 from app.models_contacts import PatientContact, VenueContact
 from app.models_endpoints import SystemEndpoint, MessageLog
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping

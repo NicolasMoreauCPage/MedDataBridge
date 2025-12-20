@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from xmlschema import XMLSchema, XMLSchemaValidationError
 from lxml import etree
 
-from app.models.hprim_models import (
+from app.hprim_models import (
     HprimActeCCAM, HprimActeNGAP, HprimActeLPP, HprimActeUCD,
     HprimProfessionnel, HprimPatient, HprimEnteteMessage
 )

@@ -23,7 +23,8 @@ from sqlmodel import Session, select
 from subprocess import CalledProcessError, run
 
 from app.db import init_db, engine, get_next_sequence
-from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
+from app.models import Patient, Dossier, Venue, Mouvement, DossierType
+from app.models import Sequence
 from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from seed_hl7_scenarios import seed_hl7_scenarios
 from app.models_structure import (

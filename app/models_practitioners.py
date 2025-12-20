@@ -54,6 +54,17 @@ class MedecinResponsable(SQLModel, table=True):
     )
     dossiers: List["Dossier"] = Relationship(back_populates="medecin_responsable")
     mouvements: List["Mouvement"] = Relationship(back_populates="medecin_responsable")
+    ngap_acts: List["NGAPAct"] = Relationship(back_populates="prestataire")
+    ucd_acts: List["UCDAct"] = Relationship(back_populates="prestataire")
+    lpp_acts: List["LPPAct"] = Relationship(back_populates="prestataire")
+    ccam_acts_executant: List["CCAMAct"] = Relationship(
+        back_populates="executant",
+        sa_relationship_kwargs={"foreign_keys": "CCAMAct.executant_id"}
+    )
+    ccam_acts_prescripteur: List["CCAMAct"] = Relationship(
+        back_populates="prescripteur",
+        sa_relationship_kwargs={"foreign_keys": "CCAMAct.prescripteur_id"}
+    )
     
     def __repr__(self):
         name = f"{self.prefix or ''} {self.given_name or ''} {self.family_name or ''}".strip()

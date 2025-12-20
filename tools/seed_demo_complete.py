@@ -20,7 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlmodel import Session, select
 from app.db import engine, init_db, get_next_sequence
-from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
+from app.models import Patient, Dossier, Venue, Mouvement, DossierType
+from app.models import Sequence
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit

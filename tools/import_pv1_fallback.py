@@ -12,7 +12,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlmodel import Session, select
 from app.db import engine
-from app.models import Patient, Dossier, Venue, Mouvement, Sequence
+from app.models import Patient, Dossier, Venue, Mouvement
+from app.models import Sequence
 
 BASE = Path(__file__).parent.parent
 PAM_DIR = BASE / 'tests' / 'exemples' / 'Fichier_test_pam'

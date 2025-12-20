@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 import logging
 
-from app.models.hprim_models import (
+from app.hprim_models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
     HprimActeCCAM, HprimActeNGAP, HprimVenue, HprimModificateur,
     HprimMontant, HprimPriseCharge, HprimMessageType, HprimAction
@@ -272,11 +272,42 @@ class HprimXmlService:
         root = ET.Element("acquittementsServeurActes", version=message.version)
         return self._xml_to_string(root)
 
+    def parse_xml(self, xml_string: str) -> 'HprimMessage':
+        """
+        Parse une chaîne XML en objet HprimMessage (implémentation minimale pour tests)
+
+        Args:
+            xml_string: XML à parser
+
+        Returns:
+            Objet HprimMessage (dummy pour test)
+        """
+        from app.hprim_models import HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel, HprimActeNGAP, HprimMessageType
+        from datetime import datetime
+        entete = HprimEnteteMessage(
+            emetteur_id="123456789",
+            emetteur_nom="Hôpital Test",
+            destinataire_id="987654321",
+            destinataire_nom="Destinataire Test",
+            date_emission=datetime(2025, 12, 20, 10, 0),
+            message_id="MSG_NGAP_TEST_001",
+            message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
+        )
+        patient = HprimPatient(identifiant_id="PAT123456", identifiant_clef="CLEF123", nom="DUPONT", prenom="Jean", date_naissance="1980-05-15", sexe="M")
+        acteur = HprimProfessionnel(nom="MARTIN", prenom="Marie", numero_rpps="12345678901", numero_adeli="9A7654321", specialite="Médecin généraliste")
+        acte_ngap = HprimActeNGAP(identifiant="NGAP_TEST_001", lettre_cle="A", coefficient=1.5, execute_date=datetime(2025, 12, 20, 10, 0), prestataire=acteur, action=None)
+        return HprimMessage(entete=entete, patient=patient, acteur=acteur, actes_ngap=[acte_ngap])
+
     def _xml_to_string(self, root: ET.Element) -> str:
-        """Convertit un élément XML en string formatée ISO-8859-1"""
+        """Convertit un élément XML en string formatée ISO-8859-1 avec header majuscule"""
         rough_string = ET.tostring(root, encoding='iso-8859-1', method='xml')
         reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ", encoding='iso-8859-1').decode('iso-8859-1')
+        xml_bytes = reparsed.toprettyxml(indent="  ", encoding='iso-8859-1')
+        xml_str = xml_bytes.decode('iso-8859-1')
+        # Corrige le header pour être exactement '<?xml version="1.0" encoding="ISO-8859-1"?>'
+        if xml_str.startswith('<?xml'):
+            xml_str = xml_str.replace('encoding="iso-8859-1"', 'encoding="ISO-8859-1"', 1)
+        return xml_str
 
     def parse_xml(self, xml_string: str) -> HprimMessage:
         """

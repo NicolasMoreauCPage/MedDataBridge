@@ -307,6 +307,7 @@
     </ul>
     <ul class="flex items-center gap-6" role="menubar">
         <li role="none"><a role="menuitem" href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">Tableau de bord</a></li>
+        <li role="none"><a role="menuitem" href="/cotation-modern" class="px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition font-semibold">Cotation moderne</a></li>
         <li class="relative group" data-test-nav="ressources">
           <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-purple-50 hover:text-purple-700 focus:outline-none transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,11 +339,12 @@
                 <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Spec API (Markdown)</a>
                 
                 <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">IHE PAM</p>
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">IHE PAM & HPRIM</p>
                 <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration</a>
                 <a href="/documentation/pam-workflows" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Workflows</a>
                 <a href="/Doc/IHE_PAM_TECHNIQUE.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Technique (HTML)</a>
                 <a href="/Doc/IHE_PAM_INTEGRATION_COMPLETE_FR.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration (complète)</a>
+                <a href="/docs/HPRIM_XML_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">HPRIM XML — Documentation</a>
 
                 <hr class="my-2 border-slate-100">
                 <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Outils & exemples</p>
@@ -414,6 +416,7 @@
         <div>
           <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Navigation rapide</p>
           <a href="/" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau de bord</a>
+          <a href="/cotation-modern" class="block rounded-xl px-3 py-2 hover:bg-green-50 font-semibold">Cotation moderne</a>
           {% if request.state.ght_context %}
           <a href="/messages" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Messages</a>
           {% endif %}

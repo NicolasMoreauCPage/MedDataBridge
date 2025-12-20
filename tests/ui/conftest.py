@@ -57,7 +57,7 @@ def ght_context(page, test_server):
 
 @pytest.fixture
 def patient_context(page, test_server):
-    """Create a minimal patient via API and set the browser patient context cookie.
+    """Create a minimal patient via API and set the browser patient context cookie and session.
 
     Returns the created patient id.
     """
@@ -75,6 +75,18 @@ def patient_context(page, test_server):
                 # Navigate to context setter so cookie is set
                 page.goto(f"{test_server}/context/patient/{pid}", timeout=10000)
                 page.wait_for_load_state("networkidle")
+                # Force sessionStorage and cookie for patient_id (for FastAPI/Starlette session)
+                try:
+                    page.evaluate(f"window.sessionStorage.setItem('patient_id', '{pid}')")
+                except Exception:
+                    pass
+                # Set cookie for patient_id if possible (for fallback in middleware)
+                try:
+                    page.context.add_cookies([
+                        {"name": "patient_id", "value": str(pid), "url": test_server}
+                    ])
+                except Exception:
+                    pass
                 return pid
     except Exception:
         return None

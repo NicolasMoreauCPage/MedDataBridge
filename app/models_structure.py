@@ -179,6 +179,9 @@ class Chambre(SQLModel, table=True):
     type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
     gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de la chambre")
     operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de la chambre")
+    is_generic: Optional[bool] = Field(default=False, description="Chambre générique (ZGEN) permettant occupation multiple")
+    max_occupancy: Optional[int] = Field(default=1, description="Occupation maximale autorisée (ignoré pour chambres génériques)")
+    venues: List["Venue"] = Relationship(back_populates="chambre")
 
 class Lit(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -206,6 +209,9 @@ class Lit(SQLModel, table=True):
     type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
     gender_usage: Optional[str] = Field(default=None, description="Genre d'usage du lit")
     operational_status: Optional[str] = Field(default=None, description="Statut opérationnel du lit")
+    is_generic: Optional[bool] = Field(default=False, description="Lit générique (ZGEN) permettant occupation multiple")
+    max_occupancy: Optional[int] = Field(default=1, description="Occupation maximale autorisée (ignoré pour lits génériques)")
+    venues: List["Venue"] = Relationship(back_populates="lit")
 
 from datetime import datetime
 from typing import Optional, List

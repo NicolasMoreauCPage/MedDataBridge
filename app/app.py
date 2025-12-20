@@ -62,7 +62,8 @@ from app.routers import (
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
-    documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper
+    documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
+    interface_testing, test_scenario_generator, ui_test_scenarios
 )
 
 from app.routers.ght.ej import router as ej_router
@@ -229,6 +230,7 @@ def create_app() -> FastAPI:
     # 2. Entity and core data routes - all have their own prefixes
     app.include_router(patients.router)
     app.include_router(dossiers.router)
+    app.include_router(dossiers.api_router)
     app.include_router(venues.router)
     app.include_router(mouvements.router)
     print(" - Core entity routers mounted with their prefixes")
@@ -281,6 +283,10 @@ def create_app() -> FastAPI:
     app.include_router(validation.router)  # Validation hors contexte
     app.include_router(documentation.router)  # Documentation
     app.include_router(conformity.router)  # Conformité par EJ
+    app.include_router(interface_testing.router)  # Tests d'interfaces GAM/GAP
+    app.include_router(interface_testing.ui_router)  # UI des tests d'interfaces
+    app.include_router(test_scenario_generator.router)  # API générateur de scénarios
+    app.include_router(ui_test_scenarios.router)  # UI générateur de scénarios
     print(" - Validation and conformity routers mounted")
     # Context management (patient/dossier quick set/clear)
     try:

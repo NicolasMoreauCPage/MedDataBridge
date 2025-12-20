@@ -140,7 +140,10 @@ def import_mouvement_from_hl7(hl7_message: str, venue, session) -> Optional[Mouv
     pv1 = next((s for s in segments if s.startswith('PV1|')), None)
     zbe = next((s for s in segments if s.startswith('ZBE|')), None)
     if not msh or not evn or not pid or not pv1:
-        return None
+        raise ValueError("HL7 message incomplet : segment obligatoire manquant (MSH, EVN, PID, PV1)")
+    if not venue or not hasattr(venue, 'id'):
+        raise ValueError("Contexte manquant : venue non définie ou incomplète")
+    # Optionnel : vérifier patient/dossier si nécessaire
 
     # Extraire le type de mouvement HL7 (ex: ADT^A01)
     msh_fields = msh.split('|')
@@ -224,15 +227,15 @@ def import_mouvement_from_hl7(hl7_message: str, venue, session) -> Optional[Mouv
         mouvement_seq=mouvement_seq,
     )
     
-    # ✅ NOUVEAU: Valider cohérence A06/A07
+    # ✅ NE PAS bloquer la création du mouvement sur une incohérence A06/A07
+    # La validation doit être faite par le validateur, pas ici.
+    # On peut logguer l'avertissement mais on crée toujours le mouvement.
     coherence_error = validate_a06_a07_coherence(m, hl7_code, session)
     if coherence_error:
-        # Log warning but don't block (allow override if needed)
         import logging
         logging.warning(f"A06/A07 coherence issue: {coherence_error}")
-        # Optionally: set flag on mouvement for manual review
+        # Optionnel: annoter le mouvement pour suivi manuel
         # m.has_validation_warning = True
         # m.validation_warning_msg = coherence_error
-    
     session.add(m)
     return m

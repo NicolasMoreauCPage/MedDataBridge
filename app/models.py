@@ -222,6 +222,8 @@ class Venue(SQLModel, table=True):
     assigned_location: Optional[str] = None                  # localisation assignée (lit/chambre)
     dossier_id: int = Field(foreign_key="dossier.id")
     entite_juridique_id: Optional[int] = Field(default=None, foreign_key="entitejuridique.id")
+    chambre_id: Optional[int] = Field(default=None, foreign_key="chambre.id")  # Chambre assignée
+    lit_id: Optional[int] = Field(default=None, foreign_key="lit.id")          # Lit assigné
     uf_responsabilite: Optional[str] = None
     # ZBE segment fields (IHE PAM France)
     # uf_responsabilite (above) = UF médicale (ZBE-7), uf_soins (below) = UF de soins (ZBE-8)
@@ -233,6 +235,8 @@ class Venue(SQLModel, table=True):
     mouvements: List["Mouvement"] = Relationship(back_populates="venue")
     identifiers: List["Identifier"] = Relationship(back_populates="venue")
     contacts: List["VenueContact"] = Relationship(back_populates="venue")
+    chambre: Optional["Chambre"] = Relationship(back_populates="venues")
+    lit: Optional["Lit"] = Relationship(back_populates="venues")
 
  # --- Mouvement (appartient à une Venue) ---
 # ...existing code...

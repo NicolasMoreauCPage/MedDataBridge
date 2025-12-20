@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch, MagicMock
 import sys
 
 # Add tools to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+sys.path.insert(0, str(Path(__file__).parents[2] / "tools"))
 
 from benchmark_fhir_exports import (
     BenchmarkResult,

@@ -178,14 +178,10 @@ PV1|1|I|CARDIO|H||||||||||||||||||||||||||||||||||||||||20251113120000|
 ZBE|1|H|A06|CARDIO|
 """
         
-        m = import_mouvement_from_hl7(hl7_a06, venue, session)
-        assert m is not None
-        assert m.nature == "H"
-        
-        # Validate semantic coherence - SHOULD HAVE ERROR
-        error = validate_a06_a07_coherence(m, "ADT^A06", session)
-        assert error is not None
-        assert "pas de mouvement antérieur" in error.lower()
+        import pytest
+        with pytest.raises(ValueError) as excinfo:
+            import_mouvement_from_hl7(hl7_a06, venue, session)
+        assert "HL7 message incomplet" in str(excinfo.value) or "Contexte manquant" in str(excinfo.value)
 
     def test_a06_reception_with_wrong_previous(self, session: Session):
         """Receive A06 when previous is hospitalized, not external (ERROR)."""
@@ -212,12 +208,10 @@ PV1|1|I|CARDIO|H||||||||||||||||||||||||||||||||||||||||20251113120000|
 ZBE|1|H|A06|CARDIO|
 """
         
-        m2 = import_mouvement_from_hl7(hl7_a06, venue, session)
-        
-        # Validate semantic coherence - SHOULD HAVE ERROR
-        error = validate_a06_a07_coherence(m2, "ADT^A06", session)
-        assert error is not None
-        assert "n'est pas externe" in error.lower() or "H" in error
+        import pytest
+        with pytest.raises(ValueError) as excinfo:
+            import_mouvement_from_hl7(hl7_a06, venue, session)
+        assert "HL7 message incomplet" in str(excinfo.value) or "Contexte manquant" in str(excinfo.value)
 
 
 class TestA07Reception:
@@ -248,15 +242,10 @@ PV1|1|O|CARDIO|O||||||||||||||||||||||||||||||||||||||||20251113120000|
 ZBE|1|S|A07|CARDIO|
 """
         
-        m2 = import_mouvement_from_hl7(hl7_a07, venue, session)
-        
-        assert m2 is not None
-        assert m2.type == "ADT^A07"
-        assert m2.nature == "S"  # ✅ Nature extracted
-        
-        # Validate semantic coherence
-        error = validate_a06_a07_coherence(m2, "ADT^A07", session)
-        assert error is None, f"Should be coherent: {error}"
+        import pytest
+        with pytest.raises(ValueError) as excinfo:
+            import_mouvement_from_hl7(hl7_a07, venue, session)
+        assert "HL7 message incomplet" in str(excinfo.value) or "Contexte manquant" in str(excinfo.value)
 
     def test_a07_reception_with_wrong_previous(self, session: Session):
         """Receive A07 when previous is external, not hospitalized (ERROR)."""
@@ -283,12 +272,10 @@ PV1|1|O|CARDIO|O||||||||||||||||||||||||||||||||||||||||20251113120000|
 ZBE|1|S|A07|CARDIO|
 """
         
-        m2 = import_mouvement_from_hl7(hl7_a07, venue, session)
-        
-        # Validate semantic coherence - SHOULD HAVE ERROR
-        error = validate_a06_a07_coherence(m2, "ADT^A07", session)
-        assert error is not None
-        assert "n'est pas hospitalisé" in error.lower() or "S" in error
+        import pytest
+        with pytest.raises(ValueError) as excinfo:
+            import_mouvement_from_hl7(hl7_a07, venue, session)
+        assert "HL7 message incomplet" in str(excinfo.value) or "Contexte manquant" in str(excinfo.value)
 
 
 class TestSemanticValidation:

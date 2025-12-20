@@ -169,11 +169,14 @@ def test_state_transitions(page, test_server, ght_context, patient_context):
             if patient_id:
                 assert safe_navigate(page, f"{test_server}/context/patient/{patient_id}"), "Failed to set patient context"
     except Exception:
-        # If API or context endpoints are unavailable, continue and let the subsequent
-        # assertion fail in a way that's informative.
         pass
 
-    assert safe_navigate(page, f"{test_server}/dossiers/new/"), "Failed to load form"
+    # Utilise explicitement le patient_id dans l'URL pour garantir le contexte côté backend
+    patient_id = patient_context if patient_context else None
+    url = f"{test_server}/dossiers/new/"
+    if patient_id:
+        url = f"{test_server}/dossiers/new?patient_id={patient_id}"
+    assert safe_navigate(page, url), "Failed to load form"
     
     # Wait for form and its elements to be ready (give more time in full-suite runs)
     try:
@@ -292,3 +295,198 @@ def test_dark_mode(page, test_server):
     bg_color = input.evaluate("el => getComputedStyle(el).backgroundColor")
     # Accepte slate-800 (dark) ou blanc (clair) selon le mode effectif
     assert bg_color in ["rgb(30, 41, 59)", "rgb(255, 255, 255)"]
+
+
+def test_dossier_form_validation(page, test_server, ght_context, patient_context):
+    """Test validation of required fields in the dossier form."""
+    assert wait_for_ready(test_server), "Server not ready"
+
+    # Navigate to dossier form
+    assert safe_navigate(page, f"{test_server}/dossiers/new/"), "Failed to load dossier form"
+
+    # Wait for form to be visible
+    page.wait_for_selector("form", state="visible", timeout=20000)
+
+    # Try to submit without filling required fields
+    submit_btn = page.locator("button[type=submit]")
+    submit_btn.click()
+
+    # Check for error messages
+    error_locator = page.locator(".error-message, .form-error")
+    expect(error_locator).to_have_count_greater_than(0)
+
+
+def test_dossier_form_successful_submit(page, test_server, ght_context, patient_context):
+    """Test successful dossier form submission."""
+    assert wait_for_ready(test_server), "Server not ready"
+
+    # Ensure we have a patient context
+    if not patient_context:
+        # Create a patient first
+        patient_resp = page.request.post(
+            f"{test_server}/patients/api/patients",
+            data=json.dumps({"family": "DossierForm", "given": "Test"}),
+            headers={"Content-Type": "application/json"}
+        )
+        assert patient_resp.ok, "Failed to create test patient"
+        patient_data = patient_resp.json()
+        patient_id = patient_data.get('id')
+        # Set patient context
+        page.goto(f"{test_server}/context/patient/{patient_id}", wait_until="domcontentloaded")
+    else:
+        patient_id = patient_context
+
+    # Navigate to dossier form
+    assert safe_navigate(page, f"{test_server}/dossiers/new/"), "Failed to load dossier form"
+
+    # Wait for form to be ready
+    page.wait_for_selector("form", state="visible", timeout=20000)
+    page.wait_for_load_state("networkidle")
+
+    # Fill required fields
+    page.select_option("select[name=current_state]", "Hospitalisé")
+    page.select_option("select[name=event_code]", "A01")
+
+    # Submit form
+    submit_btn = page.locator("button[type=submit]")
+    submit_btn.click()
+
+    # Wait for response - could be redirect or success message
+    page.wait_for_timeout(2000)
+
+    # Check for success indicators
+    success_indicators = [
+        ".toast-success",
+        ".alert-success",
+        "[role='alert']",
+        ".success-message"
+    ]
+
+    success_found = False
+    for indicator in success_indicators:
+        try:
+            element = page.locator(indicator)
+            if element.is_visible():
+                success_found = True
+                break
+        except:
+            continue
+
+    # If no success indicator, check if we were redirected (common success pattern)
+    if not success_found:
+        current_url = page.url
+        if "dossiers" in current_url and "new" not in current_url:
+            success_found = True
+
+    assert success_found, "Dossier creation should show success or redirect"
+
+
+def test_dossier_state_transitions(page, test_server, ght_context, patient_context):
+    """Test dossier state transition validation."""
+    assert wait_for_ready(test_server), "Server not ready"
+
+    # Create a patient and dossier first
+    if not patient_context:
+        patient_resp = page.request.post(
+            f"{test_server}/patients/api/patients",
+            data=json.dumps({"family": "StateTransition", "given": "Test"}),
+            headers={"Content-Type": "application/json"}
+        )
+        assert patient_resp.ok, "Failed to create test patient"
+        patient_data = patient_resp.json()
+        patient_id = patient_data.get('id')
+        page.goto(f"{test_server}/context/patient/{patient_id}", wait_until="domcontentloaded")
+    else:
+        patient_id = patient_context
+
+    # Create a dossier
+    dossier_resp = page.request.post(
+        f"{test_server}/dossiers/api/dossiers",
+        data=json.dumps({
+            "patient_id": patient_id,
+            "admit_time": "2024-01-01T10:00:00Z"
+        }),
+        headers={"Content-Type": "application/json"}
+    )
+    assert dossier_resp.ok, "Failed to create test dossier"
+    dossier_data = dossier_resp.json()
+    dossier_id = dossier_data.get('id')
+
+    # Navigate to dossier edit page
+    assert safe_navigate(page, f"{test_server}/dossiers/{dossier_id}/edit"), f"Failed to load dossier edit for ID {dossier_id}"
+
+    # Wait for form
+    page.wait_for_selector("form", state="visible", timeout=20000)
+
+    # Try invalid state transition
+    page.select_option("select[name=current_state]", "Hospitalisé")
+    page.select_option("select[name=event_code]", "A03")  # Invalid transition from Hospitalisé
+
+    # Submit and check for error
+    submit_btn = page.locator("button[type=submit]")
+    submit_btn.click()
+
+    page.wait_for_timeout(1000)  # Wait for validation
+
+    # Check for error message
+    error_selectors = [
+        ".error-message",
+        ".form-error",
+        ".transition-error",
+        "[data-error-transition]"
+    ]
+
+    error_found = False
+    for selector in error_selectors:
+        try:
+            error_element = page.locator(selector)
+            if error_element.is_visible():
+                error_found = True
+                break
+        except:
+            continue
+
+    assert error_found, "Invalid state transition should show error message"
+
+
+def test_venue_form_validation(page, test_server, ght_context):
+    """Test venue form validation."""
+    assert wait_for_ready(test_server), "Server not ready"
+
+    # Navigate to venues page first to find creation link
+    assert safe_navigate(page, f"{test_server}/venues/"), "Failed to load venues page"
+
+    # Look for create venue link/button
+    create_selectors = [
+        "a[href*='new']",
+        ".create-venue",
+        "[data-create-venue]",
+        "a[href$='/venues/new']"
+    ]
+
+    create_found = False
+    for selector in create_selectors:
+        try:
+            create_link = page.locator(selector).first
+            if create_link.is_visible():
+                create_link.click()
+                page.wait_for_load_state("networkidle")
+                create_found = True
+                break
+        except:
+            continue
+
+    if create_found:
+        # Wait for venue form
+        page.wait_for_selector("form", state="visible", timeout=10000)
+
+        # Try to submit without required fields
+        submit_btn = page.locator("button[type=submit]")
+        submit_btn.click()
+
+        # Check for validation errors
+        error_locator = page.locator(".error-message, .form-error")
+        expect(error_locator).to_have_count_greater_than(0)
+    else:
+        # If no create form, skip this test
+        pytest.skip("Venue creation form not accessible in current UI state")

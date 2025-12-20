@@ -37,7 +37,7 @@
     </div>
 
     <!-- Formulaire -->
-    <form method="POST" action="{% if entite %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/edit{% else %}/admin/ght/{{ context.id }}/ej/new{% endif %}" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
+    <form method="POST" action="{% if entite %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/edit{% else %}/admin/ght/{{ context.id }}/ej/new{% endif %}" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden ej-form" data-ej-form>
         <!-- Identité -->
         <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-8 py-6 border-b-2 border-slate-200">
             <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">

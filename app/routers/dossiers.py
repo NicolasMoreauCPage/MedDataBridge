@@ -1,6 +1,9 @@
+
+
+# --- ALL IMPORTS AT TOP ---
 from fastapi import APIRouter, Depends, Request, Form, Query
 import os
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select, Session
 from sqlalchemy.orm import selectinload
@@ -17,7 +20,22 @@ from app.services.scenario_capture import capture_dossier_as_template
 from app.form_config import get_field_config
 from app.utils.flash import flash
 from app.dependencies.ght import require_ght_context
+from app.models_structure import GHTContext
 from app.models_structure import UniteFonctionnelle, Service, Pole, EntiteGeographique
+
+# Router definition after imports
+router = APIRouter(
+    prefix="/dossiers",
+    tags=["dossiers"],
+    dependencies=[Depends(require_ght_context)]
+)
+
+# Separate router for API endpoints without GHT context requirement
+api_router = APIRouter(
+    prefix="/dossiers/api",
+    tags=["dossiers-api"],
+)
+
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -107,16 +125,41 @@ def show_dossier(dossier_id: int, request: Request, session=Depends(get_session)
         }
     )
 
+from typing import Optional
 @router.get("/new", response_class=HTMLResponse)
-def new_dossier(request: Request, session=Depends(get_session)):
-    patient_context = getattr(request.state, "patient_context", None)
-    if not patient_context:
-        return RedirectResponse("/patients", status_code=303)
-    
+def new_dossier(
+    request: Request,
+    patient_id: Optional[str] = Query(None),
+    session: Session = Depends(get_session),
+):
+    print(f"[DEBUG] Incoming query_params: {request.query_params}, patient_id={patient_id} (type={type(patient_id)})")
+    # Utilise le contexte patient injecté par le middleware ou l'injecte pour les tests UI
+    try:
+        patient_context = getattr(request.state, "patient_context", None)
+        print(f"[DEBUG] patient_id={patient_id}, patient_context={patient_context}")
+        db_patient = None
+        if not patient_context and patient_id is not None:
+            from app.models import Patient
+            try:
+                pid_int = int(patient_id)
+                db_patient = session.get(Patient, pid_int)
+            except Exception as e:
+                print(f"[DEBUG] Exception converting patient_id to int or fetching patient: {e}")
+                db_patient = None
+            print(f"[DEBUG] db_patient from id={patient_id}: {db_patient}")
+            if db_patient:
+                request.state.patient_context = db_patient
+                patient_context = db_patient
+        print(f"[DEBUG] patient_context after injection: {patient_context}")
+        if not patient_context:
+            print(f"[DEBUG] Redirecting to /patients: patient_context missing for patient_id={patient_id}")
+            return RedirectResponse("/patients", status_code=303)
+    except Exception as e:
+        print(f"[EXCEPTION in /dossiers/new]: {e}")
+        raise
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
     ej_id = getattr(request.state, "ej_context.id", None)
     uf_options = dossiers_service.get_uf_options(session, ej_id) if ej_id else []
-    
     dossier_type_opts = [{"value": dt.value, "label": dt.name.replace('_', ' ').capitalize()} for dt in DossierType]
     fields = [
         {"name": "uf_responsabilite", "label": "UF de responsabilité", "type": "select", "options": uf_options, "empty_message": "Aucune UF disponible. Sélectionnez d'abord un contexte EJ (Établissement Juridique) ou créez des structures organisationnelles."},
@@ -241,3 +284,48 @@ def delete_dossier(dossier_id: int, request: Request, session=Depends(get_sessio
         flash(request, f"Erreur lors de la suppression du dossier: {e}", "error")
 
     return RedirectResponse(url="/dossiers", status_code=303)
+
+# API endpoints
+@api_router.get("/dossiers", response_class=JSONResponse)
+def api_list_dossiers(session=Depends(get_session)):
+    """API endpoint to list all dossiers"""
+    dossiers = dossiers_service.get_dossiers(session)
+    return [
+        {
+            "id": d.id,
+            "patient_id": d.patient_id,
+            "dossier_type": d.dossier_type.value if d.dossier_type else None,
+            "admit_time": d.admit_time.isoformat() if d.admit_time else None,
+            "discharge_time": d.discharge_time.isoformat() if d.discharge_time else None,
+        }
+        for d in dossiers
+    ]
+
+@api_router.post("/dossiers", response_class=JSONResponse)
+def api_create_dossier(
+    patient_id: int,
+    admit_time: str,
+    dossier_type: str = "HOSPITALISE",
+    uf_responsabilite: int = None,
+    session=Depends(get_session)
+):
+    """API endpoint to create a dossier"""
+    try:
+        from app.models import DossierType
+        dt = DossierType(dossier_type) if dossier_type else DossierType.HOSPITALISE
+        
+        dossier_data = DossierCreateSchema(
+            patient_id=patient_id,
+            uf_responsabilite=uf_responsabilite,
+            dossier_type=dt,
+            admit_time=datetime.fromisoformat(admit_time)
+        )
+        dossier = dossiers_service.create_dossier(session=session, dossier_data=dossier_data)
+        return {
+            "id": dossier.id,
+            "patient_id": dossier.patient_id,
+            "dossier_type": dossier.dossier_type.value if dossier.dossier_type else None,
+            "admit_time": dossier.admit_time.isoformat() if dossier.admit_time else None,
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})

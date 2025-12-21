@@ -253,7 +253,63 @@ class IdentifierNamespaceClassifier:
             if hasattr(ns, 'code') and ns.code == system:
                 return True, None
 
-        return False, system  # Identifiant externe avec namespace
+        return False, system  # Identifiant externe
+
+    def classify_hprim_identifiers(
+        self,
+        emetteur_id: str,
+        emetteur_system: str,
+        destinataire_id: str,
+        destinataire_system: str,
+        is_emission: bool,
+        ej_id: int,
+        identifier_type: IdentifierType = IdentifierType.IPP
+    ) -> Dict[str, Tuple[bool, Optional[str]]]:
+        """
+        Classifie les identifiants émetteur/destinataire HPRIM selon le contexte émission/réception.
+
+        Logique HPRIM :
+        - En RÉCEPTION : émetteur = externe (autre établissement), destinataire = interne (nous)
+        - En ÉMISSION : émetteur = interne (nous), destinataire = externe (autre établissement)
+
+        Args:
+            emetteur_id: ID de l'émetteur
+            emetteur_system: Système/namespace de l'émetteur
+            destinataire_id: ID du destinataire
+            destinataire_system: Système/namespace du destinataire
+            is_emission: True si c'est une émission, False si c'est une réception
+            ej_id: ID de l'entité juridique locale
+            identifier_type: Type d'identifiant (défaut: EJ pour établissements)
+
+        Returns:
+            Dictionnaire avec classification pour émetteur et destinataire :
+            {
+                "emetteur": (is_main_identifier, external_namespace),
+                "destinataire": (is_main_identifier, external_namespace)
+            }
+        """
+        # Récupérer les namespaces de l'EJ locale
+        ej_namespaces = self.get_ej_namespaces(ej_id, identifier_type)
+
+        def _is_local_namespace(system: str) -> bool:
+            """Vérifie si un système correspond aux namespaces locaux"""
+            for ns in ej_namespaces:
+                if ns.system == system or ns.oid == system:
+                    return True
+            return False
+
+        result = {}
+
+        if is_emission:
+            # ÉMISSION : émetteur = interne (nous), destinataire = externe
+            result["emetteur"] = (True, None)  # Toujours principal pour l'émetteur en émission
+            result["destinataire"] = (_is_local_namespace(destinataire_system), destinataire_system)
+        else:
+            # RÉCEPTION : émetteur = externe, destinataire = interne (nous)
+            result["emetteur"] = (_is_local_namespace(emetteur_system), emetteur_system)
+            result["destinataire"] = (True, None)  # Toujours principal pour le destinataire en réception
+
+        return result
 
     def process_patient_identifiers(
         self,
@@ -403,3 +459,41 @@ def classify_incoming_identifiers(
     else:
         # Cette branche ne devrait jamais être atteinte à cause de la vérification ci-dessus
         raise ValueError(f"Type d'entité non supporté: {entity_type}")
+
+
+def classify_hprim_identifiers(
+    session: Session,
+    emetteur_id: str,
+    emetteur_system: str,
+    destinataire_id: str,
+    destinataire_system: str,
+    is_emission: bool,
+    ej_id: int,
+    identifier_type: IdentifierType = IdentifierType.IPP
+) -> Dict[str, Tuple[bool, Optional[str]]]:
+    """
+    Fonction utilitaire pour classifier les identifiants HPRIM émetteur/destinataire.
+
+    Args:
+        session: Session de base de données
+        emetteur_id: ID de l'émetteur
+        emetteur_system: Système/namespace de l'émetteur
+        destinataire_id: ID du destinataire
+        destinataire_system: Système/namespace du destinataire
+        is_emission: True si émission, False si réception
+        ej_id: ID de l'entité juridique locale
+        identifier_type: Type d'identifiant
+
+    Returns:
+        Classification des identifiants émetteur/destinataire
+    """
+    classifier = IdentifierNamespaceClassifier(session)
+    return classifier.classify_hprim_identifiers(
+        emetteur_id=emetteur_id,
+        emetteur_system=emetteur_system,
+        destinataire_id=destinataire_id,
+        destinataire_system=destinataire_system,
+        is_emission=is_emission,
+        ej_id=ej_id,
+        identifier_type=identifier_type
+    )

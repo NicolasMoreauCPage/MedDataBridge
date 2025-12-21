@@ -204,12 +204,20 @@ Exemple: `AAFA001`, `EBLA003`, etc.
 ```xml
 <enteteMessage>
   <emetteur>
-    <id>FINESS_123456789</id>
-    <nom>EHPAD LES ROSIERS</nom>
+    <agents>
+      <agent categorie="acteur">
+        <code>FINESS_123456789</code>
+        <libelle>EHPAD LES ROSIERS</libelle>
+      </agent>
+    </agents>
   </emetteur>
   <destinataire>
-    <id>FINESS_987654321</id>
-    <nom>CENTRE HOSPITALIER</nom>
+    <agents>
+      <agent categorie="acteur">
+        <code>FINESS_987654321</code>
+        <libelle>CENTRE HOSPITALIER</libelle>
+      </agent>
+    </agents>
   </destinataire>
   <dateEmission>2024-01-15T10:30:00</dateEmission>
   <message>
@@ -218,6 +226,8 @@ Exemple: `AAFA001`, `EBLA003`, etc.
   </message>
 </enteteMessage>
 ```
+
+**Note:** La structure utilise `agents/agent` pour modéliser les acteurs émetteurs/destinataires, permettant une représentation générique des entités avec code et libellé. Cette approche offre plus de flexibilité que la structure simple `id/nom` pour les échanges inter-établissements.
 
 ### Types d'Événements
 - **evenementServeurIntervention**: Interventions médicales

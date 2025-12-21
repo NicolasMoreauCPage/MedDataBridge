@@ -268,19 +268,24 @@ class HprimXmlService:
         return self._xml_to_string(root)
 
     def _add_entete_message(self, parent: ET.Element, entete: HprimEnteteMessage):
-        """Ajoute l'en-tête du message"""
+        """Ajoute l'en-tête du message
+
+        Structure HPRIM adoptée : agents/agent/code/libelle
+        Cette approche permet une modélisation générique des acteurs (émetteurs/destinataires)
+        offrant plus de flexibilité que la structure simple id/nom.
+        """
         # Identifiant et date
         ET.SubElement(parent, "{%s}identifiantMessage" % self.NAMESPACE).text = entete.message_id or "MSG001"
         ET.SubElement(parent, "{%s}dateHeureProduction" % self.NAMESPACE).text = entete.date_emission.isoformat()
 
-        # Émetteur
+        # Émetteur - Structure agents/agent pour flexibilité
         emetteur = ET.SubElement(parent, "{%s}emetteur" % self.NAMESPACE)
         agents = ET.SubElement(emetteur, "{%s}agents" % self.NAMESPACE)
         agent = ET.SubElement(agents, "{%s}agent" % self.NAMESPACE, categorie="acteur")
         ET.SubElement(agent, "{%s}code" % self.NAMESPACE).text = entete.emetteur_id
         ET.SubElement(agent, "{%s}libelle" % self.NAMESPACE).text = entete.emetteur_nom
 
-        # Destinataire
+        # Destinataire - Structure agents/agent pour flexibilité
         destinataire = ET.SubElement(parent, "{%s}destinataire" % self.NAMESPACE)
         agents = ET.SubElement(destinataire, "{%s}agents" % self.NAMESPACE)
         agent = ET.SubElement(agents, "{%s}agent" % self.NAMESPACE, categorie="acteur")
@@ -725,6 +730,8 @@ class HprimXmlService:
             raise ValueError("Éléments emetteur et destinataire requis manquants dans l'en-tête")
 
         # Extraire les informations depuis la structure agents/agent
+        # Cette structure permet une modélisation générique des acteurs
+        # Plus flexible que id/nom direct pour les échanges inter-établissements
         emetteur_agent = emetteur.find(".//{http://www.hprim.org/hprimXML}agents")
         if emetteur_agent is not None:
             emetteur_agent = emetteur_agent.find(".//{http://www.hprim.org/hprimXML}agent")

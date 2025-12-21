@@ -83,7 +83,7 @@ def list_dossiers(
                       getattr(d, 'dossier_type', DossierType.HOSPITALISE).value.capitalize(),
                       d.admit_time.strftime("%d/%m/%Y %H:%M") if d.admit_time else None,
                       d.discharge_time.strftime("%d/%m/%Y %H:%M") if d.discharge_time else None],
-            "detail_url": f"/dossiers/{d.id}", "edit_url": f"/dossiers/{d.id}/edit",
+            "detail_url": f"/dossiers/{d.id}", "edit_url": f"/dossiers/{d.id}/edit", "cotation_url": f"/dossiers/{d.id}/cotation",
         } for d in dossiers
     ]
     actions = [

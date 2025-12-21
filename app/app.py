@@ -229,16 +229,30 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health_check():
         """Health check endpoint for load balancers and monitoring"""
+        from app.db import session_factory
+        import asyncio
+
+        def check_db():
+            session = session_factory()
+            try:
+                session.execute(text("SELECT 1"))
+                return True
+            except Exception:
+                return False
+            finally:
+                session.close()
+
         try:
-            # Test database connection
-            async with session_factory() as session:
-                await session.execute(text("SELECT 1"))
+            # Test database connection in a thread pool
+            result = await asyncio.get_event_loop().run_in_executor(None, check_db)
+            if not result:
+                raise Exception("Database connection failed")
 
             return {
                 "status": "healthy",
                 "version": app.state.version,
                 "database": "connected",
-                "timestamp": "2025-12-20T00:00:00Z"  # Would be dynamic in real implementation
+                "timestamp": "2025-12-20T00:00:00Z"
             }
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")

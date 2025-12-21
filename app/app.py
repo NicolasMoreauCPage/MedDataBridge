@@ -63,7 +63,7 @@ from app.routers import (
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
-    interface_testing, test_scenario_generator, ui_test_scenarios, ccam
+    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp
 )
 
 from app.routers.ght.ej import router as ej_router
@@ -340,17 +340,43 @@ def create_app() -> FastAPI:
     
     # HPRIM NGAP, UCD, LPP integration
     try:
-        from app.api import ngap, ucd, lpp, contracts, ccam
+        from app.api import ngap, contracts, ccam
         from app.routers import ngap as ngap_router
         app.include_router(ngap.router)
-        app.include_router(ucd.router)
-        app.include_router(lpp.router)
         app.include_router(contracts.router)
         app.include_router(ccam.router)
         app.include_router(ngap_router.router)
-        print(" - HPRIM NGAP/UCD/LPP/Contracts/CCAM routers mounted")
+        print(" - HPRIM NGAP/Contracts/CCAM routers mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM NGAP/UCD/LPP/Contracts/CCAM routers not available: {e}")
+        logging.getLogger(__name__).warning(f"HPRIM NGAP/Contracts/CCAM routers not available: {e}")
+    
+    # HPRIM UCD router
+    try:
+        from app.api import ucd
+        from app.routers import ucd as ucd_router
+        app.include_router(ucd.router)
+        app.include_router(ucd_router.router)
+        print(" - HPRIM UCD routers mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM UCD routers not available: {e}")
+    
+    # HPRIM LPP router
+    try:
+        from app.api import lpp
+        from app.routers import lpp as lpp_router
+        app.include_router(lpp.router)
+        app.include_router(lpp_router.router)
+        print(" - HPRIM LPP routers mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM LPP routers not available: {e}")
+    
+    # HPRIM Management interfaces
+    try:
+        from app.routers import hprim_management
+        app.include_router(hprim_management.router)
+        print(" - HPRIM Management router mounted at /hprim")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM Management router not available: {e}")
     
     # Roundtrip HPRIM router
     app.include_router(roundtrip_hprim.router)

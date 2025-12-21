@@ -111,12 +111,12 @@ def show_dossier(dossier_id: int, request: Request):
         # Vérifier l'accès au dossier via le GHT (optionnel)
         ght_context = getattr(request.state, "ght_context", None)
         if ght_context:
-            # Le dossier doit appartenir à une EJ du GHT
+            # Le dossier doit appartenir à une EJ du GHT, ou ne pas avoir d'EJ assignée
             from app.models_structure import EntiteJuridique
             ej_ids = session.exec(
                 select(EntiteJuridique.id).where(EntiteJuridique.ght_context_id == ght_context.id)
             ).all()
-            if dossier.entite_juridique_id not in ej_ids:
+            if dossier.entite_juridique_id is not None and dossier.entite_juridique_id not in ej_ids:
                 return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"title": "Dossier introuvable"}, status_code=404)
 
         venues = session.exec(

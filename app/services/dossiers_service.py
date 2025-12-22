@@ -109,6 +109,22 @@ def delete_dossier(session: Session, dossier: Dossier):
         raise
 
 
+def create_dossier(session: Session, patient_id: int, ej_id: int, dossier_type: str = "hospitalise", admit_time: Optional[datetime] = None) -> Dossier:
+    """Crée un dossier simple pour un patient."""
+    seq = get_next_sequence(session, "dossier")
+    dossier = Dossier(
+        dossier_seq=seq,
+        patient_id=patient_id,
+        ej_id=ej_id,
+        dossier_type=dossier_type,
+        admit_time=admit_time or datetime.now(),
+    )
+    session.add(dossier)
+    session.commit()
+    session.refresh(dossier)
+    return dossier
+
+
 def create_dossier_with_pre_admit_venue(session: Session, dossier_data: DossierCreateSchema, patient: Patient) -> Dossier:
     """Crée un dossier et une venue de pré-admission associée.
 

@@ -227,6 +227,42 @@ def setup_test_db():
         sess.close()
 
     yield
+
+
+@pytest.fixture(autouse=True, scope='function')
+def clean_db_tables():
+    """Clean all database tables between tests to ensure test isolation."""
+    from app.db import session_factory
+    from sqlalchemy import text
+
+    sess = session_factory()
+    try:
+        # Get all table names from the database
+        result = sess.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"))
+        table_names = [row[0] for row in result.fetchall()]
+
+        # Disable foreign key constraints temporarily
+        sess.execute(text("PRAGMA foreign_keys = OFF;"))
+
+        # Truncate all tables in reverse order to handle foreign keys
+        for table_name in reversed(table_names):
+            try:
+                sess.execute(text(f"DELETE FROM {table_name};"))
+            except Exception:
+                # Some tables might have issues, skip them
+                pass
+
+        # Reset sequences
+        sess.execute(text("DELETE FROM sqlite_sequence;"))
+
+        # Re-enable foreign key constraints
+        sess.execute(text("PRAGMA foreign_keys = ON;"))
+
+        sess.commit()
+    finally:
+        sess.close()
+
+
 import os
 
 # Ensure the application runs in testing mode during pytest runs so

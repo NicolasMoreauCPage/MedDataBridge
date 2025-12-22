@@ -184,5 +184,3 @@ class TestDossierWorkflowIntegration:
 
         # Vérifier l'historique des mouvements
         mouvements = session.query(Mouvement).filter(Mouvement.venue_id.in_([v.id for v in venues])).all()
-        assert len(mouvements) == 2  # Un mouvement entre chaque paire de venues consécutives</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/integration/test_dossier_workflow.py

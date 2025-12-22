@@ -8,6 +8,7 @@ from sqlmodel import SQLModel, Field, Relationship, Session
 
 from app.models_identifiers import Identifier, IdentifierType
 import app.models_contacts
+import app.models_structure
 
 if TYPE_CHECKING:
     from app.models_contacts import PatientContact, VenueContact
@@ -449,3 +450,5 @@ class Contract(SQLModel, table=True):
     dossier: Dossier = Relationship(back_populates="contracts")
 
 
+# Export models from models_structure for convenience
+from app.models_structure import Chambre, Lit

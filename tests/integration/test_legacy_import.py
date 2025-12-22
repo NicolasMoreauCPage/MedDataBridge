@@ -447,5 +447,3 @@ class TestLegacyImport:
         if not cleaned.get('given'):
             cleaned['given'] = 'INCONNU'
 
-        return cleaned</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/integration/test_legacy_import.py

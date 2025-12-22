@@ -292,5 +292,3 @@ if __name__ == "__main__":
     print(f"🔀 Couverture branches: {metrics['coverage']['branch']:.1f}%")
     print(f"📝 Couverture lignes: {metrics['coverage']['line']:.1f}%")
 
-    print("✅ Rapports de couverture générés")</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/coverage/test_coverage_reports.py

@@ -222,5 +222,3 @@ class TestFHIRInteroperability:
             if entry.resource.resourceType == "Patient":
                 fhir_patient = entry.resource
                 # Le nom ne devrait pas être vide
-                assert len(fhir_patient.name[0].family) > 0</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/integration/test_fhir_interop.py

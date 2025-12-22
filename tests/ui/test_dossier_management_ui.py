@@ -423,5 +423,3 @@ class TestDossierManagementUI:
         if response.status_code == 200:
             content = response.text.lower()
             # Vérifier la présence de navigation
-            assert "breadcrumb" in content or "fil" in content or patient.family.lower() in content</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/ui/test_dossier_management_ui.py

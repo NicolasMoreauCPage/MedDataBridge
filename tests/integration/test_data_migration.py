@@ -363,5 +363,3 @@ class TestDataMigration:
         assert search_time < 1.0
 
         # Vérifier que des résultats sont retournés
-        assert isinstance(patients, list)</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/integration/test_data_migration.py

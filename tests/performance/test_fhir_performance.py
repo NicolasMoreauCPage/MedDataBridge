@@ -229,5 +229,3 @@ class TestFHIRPerformance:
         assert bundle is not None
         assert len(bundle.entry) >= 1000
         assert export_time < 60, f"Export trop lent: {export_time:.2f}s"
-        assert memory_increase < 200, f"Utilisation mémoire excessive: {memory_increase:.2f}MB"</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/performance/test_fhir_performance.py

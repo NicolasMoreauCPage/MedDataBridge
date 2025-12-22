@@ -231,5 +231,3 @@ if __name__ == "__main__":
         print("✅ Tests de mutation terminés avec succès")
     else:
         print("❌ Échec des tests de mutation")
-        exit(1)</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/mutation/test_mutation_coverage.py

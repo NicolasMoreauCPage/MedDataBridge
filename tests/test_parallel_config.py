@@ -214,5 +214,4 @@ def code_quality_config():
         "function_length_limit": 50,
         "duplicate_code_threshold": 3,
         "test_coverage_minimum": 85
-    }</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/test_parallel_config.py
+    }

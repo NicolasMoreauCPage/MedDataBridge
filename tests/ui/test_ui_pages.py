@@ -1,4 +1,5 @@
 import os
+import uuid
 from fastapi.testclient import TestClient
 
 # Ensure app runs in testing mode to avoid DB/scheduler start
@@ -116,7 +117,7 @@ def test_dossier_detail_page_content():
             from datetime import datetime
             dossier = Dossier(
                 patient_id=patient.id,
-                dossier_seq=999,
+                dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
                 entite_juridique_id=1,  # Assumer qu'il y a au moins une EJ
                 admit_time=datetime.now()  # Champ requis
             )
@@ -288,7 +289,7 @@ def test_cotation_integration_in_dossiers():
             from datetime import datetime
             dossier = Dossier(
                 patient_id=patient.id,
-                dossier_seq=888,
+                dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
                 entite_juridique_id=1,
                 admit_time=datetime.now()  # Champ requis
             )

@@ -8,6 +8,7 @@ This test suite validates that:
 
 import pytest
 from datetime import datetime, timedelta
+import uuid
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.services.emit_on_create import generate_pam_hl7
 from app.services.pam_validation import validate_pam
@@ -56,18 +57,18 @@ def test_a06_external_to_hospitalized_auto_detection(ght_context, db_session):
     session.add(patient)
     session.commit()
     
-    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=100001, dossier_type="externe", admit_time=datetime.now())
+    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_type="externe", admit_time=datetime.now())
     session.add(dossier)
     session.commit()
     
-    venue = Venue(venue_seq=200101, dossier_id=dossier.id, ej_id=ej_id, start_time=dossier.admit_time,
+    venue = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, ej_id=ej_id, start_time=dossier.admit_time,
                   uf_responsabilite="CONSULT", nature="S", uf_soins_code="4040", uf_soins_label="Soins externes")
     session.add(venue)
     session.commit()
     
     # First movement: external (S)
     now = datetime.now()
-    mouvement1 = Mouvement(venue_id=venue.id, mouvement_seq=2001, when=now, ej_id=ej_id,
+    mouvement1 = Mouvement(venue_id=venue.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=now, ej_id=ej_id,
                            uf_responsabilite="CONSULT", nature="S", uf_soins_code="4040", uf_soins_label="Soins externes", action="INSERT")
     session.add(mouvement1)
     session.commit()
@@ -77,7 +78,7 @@ def test_a06_external_to_hospitalized_auto_detection(ght_context, db_session):
     print(f"\n✓ Mouvement 1 (external, nature=S): ADT^{code_1}")
     
     # Second movement: hospitalized (H) on same venue → A06
-    mouvement2 = Mouvement(venue_id=venue.id, mouvement_seq=2002, when=now + timedelta(hours=2), ej_id=ej_id,
+    mouvement2 = Mouvement(venue_id=venue.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=now + timedelta(hours=2), ej_id=ej_id,
                            uf_responsabilite="CARDIO", nature="H", uf_soins_code="2020", uf_soins_label="Soins généraux", action="INSERT")
     session.add(mouvement2)
     session.commit()
@@ -108,18 +109,18 @@ def test_a07_hospitalized_to_external_auto_detection(ght_context, db_session):
     session.add(patient)
     session.commit()
     
-    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=100002, dossier_type="hospitalise", admit_time=datetime.now())
+    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_type="hospitalise", admit_time=datetime.now())
     session.add(dossier)
     session.commit()
     
-    venue = Venue(venue_seq=200201, dossier_id=dossier.id, ej_id=ej_id, start_time=dossier.admit_time,
+    venue = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, ej_id=ej_id, start_time=dossier.admit_time,
                   uf_responsabilite="CARDIO", nature="H", uf_soins_code="2020", uf_soins_label="Soins généraux")
     session.add(venue)
     session.commit()
     
     # First movement: hospitalized (H)
     now = datetime.now()
-    mouvement1 = Mouvement(venue_id=venue.id, mouvement_seq=2101, when=now, ej_id=ej_id,
+    mouvement1 = Mouvement(venue_id=venue.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=now, ej_id=ej_id,
                            uf_responsabilite="CARDIO", nature="H", uf_soins_code="2020", uf_soins_label="Soins généraux", action="INSERT")
     session.add(mouvement1)
     session.commit()
@@ -129,7 +130,7 @@ def test_a07_hospitalized_to_external_auto_detection(ght_context, db_session):
     print(f"\n✓ Mouvement 1 (hospitalized, nature=H): ADT^{code_1}")
     
     # Second movement: external (S) on same venue → A07
-    mouvement2 = Mouvement(venue_id=venue.id, mouvement_seq=2102, when=now + timedelta(days=3), ej_id=ej_id,
+    mouvement2 = Mouvement(venue_id=venue.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=now + timedelta(days=3), ej_id=ej_id,
                            uf_responsabilite="CONSULT", nature="S", uf_soins_code="4040", uf_soins_label="Soins externes", action="INSERT")
     session.add(mouvement2)
     session.commit()
@@ -160,17 +161,17 @@ def test_no_a06_a07_without_history(ght_context, db_session):
     session.add(patient)
     session.commit()
     
-    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=100003, dossier_type="hospitalise", admit_time=datetime.now())
+    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_type="hospitalise", admit_time=datetime.now())
     session.add(dossier)
     session.commit()
     
-    venue = Venue(venue_seq=200301, dossier_id=dossier.id, ej_id=ej_id, start_time=dossier.admit_time,
+    venue = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, ej_id=ej_id, start_time=dossier.admit_time,
                   uf_responsabilite="CARDIO", nature="H", uf_soins_code="2020", uf_soins_label="Soins généraux")
     session.add(venue)
     session.commit()
     
     # First movement (no previous history)
-    mouvement = Mouvement(venue_id=venue.id, mouvement_seq=2201, when=datetime.now(), ej_id=ej_id,
+    mouvement = Mouvement(venue_id=venue.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=datetime.now(), ej_id=ej_id,
                           uf_responsabilite="CARDIO", nature="H", uf_soins_code="2020", uf_soins_label="Soins généraux", action="INSERT")
     session.add(mouvement)
     session.commit()

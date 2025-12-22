@@ -8,6 +8,7 @@ Tests complets pour:
 """
 
 import pytest
+import uuid
 from datetime import datetime
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
@@ -77,7 +78,7 @@ class TestA06Reception:
 
         # Historique: mouvement externe (S)
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=venue.id,
             type="ADT^A04",
             nature="S",
@@ -125,7 +126,7 @@ class TestA07Reception:
 
         # Historique: mouvement hospitalisé (H)
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=venue.id,
             type="ADT^A01",
             nature="H",
@@ -178,7 +179,7 @@ class TestSemanticValidation:
 
         # Historique
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=venue.id,
             nature="S",
             when=datetime(2025, 11, 1, 10, 0, 0),
@@ -203,7 +204,7 @@ class TestWorkflowIntegration:
 
         # Historique
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=venue.id,
             type="ADT^A04",
             nature="S",

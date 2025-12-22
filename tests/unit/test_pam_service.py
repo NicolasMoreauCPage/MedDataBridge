@@ -43,7 +43,7 @@ class TestPAMService:
         )
         venue = Venue(
             id=2,
-            venue_seq=2,
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             code="TEST001",
             dossier_id=2,
             entite_juridique_id=1,
@@ -90,7 +90,7 @@ class TestPAMService:
         )
         venue = Venue(
             id=3,
-            venue_seq=3,
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             code="TEST002",
             dossier_id=3,
             entite_juridique_id=1,
@@ -226,7 +226,7 @@ ZBE|1|20240101120000|||INSERT|N|||CARDIO|MED"""
         )
         venue = Venue(
             id=5,
-            venue_seq=5,
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             code="TEST001",
             dossier_id=5,
             entite_juridique_id=1,

@@ -684,6 +684,56 @@ def sample_ej(session: Session, sample_ght):
 
 
 @pytest.fixture
+def sample_uf(session: Session, sample_ej):
+    """Crée et retourne une unité fonctionnelle de test"""
+    from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle
+    
+    # Créer la hiérarchie si nécessaire
+    eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == sample_ej.id)).first()
+    if not eg:
+        eg = EntiteGeographique(
+            name="Test EG",
+            code="EG001",
+            entite_juridique_id=sample_ej.id
+        )
+        session.add(eg)
+        session.commit()
+    
+    pole = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).first()
+    if not pole:
+        pole = Pole(
+            identifier="POLE_TEST",
+            name="Pôle Test",
+            entite_geo_id=eg.id
+        )
+        session.add(pole)
+        session.commit()
+    
+    service = session.exec(select(Service).where(Service.pole_id == pole.id)).first()
+    if not service:
+        service = Service(
+            identifier="SRV_TEST",
+            name="Service Test",
+            pole_id=pole.id
+        )
+        session.add(service)
+        session.commit()
+    
+    uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).first()
+    if not uf:
+        uf = UniteFonctionnelle(
+            identifier="UF_TEST_FIXTURE",
+            name="UF Test Fixture",
+            service_id=service.id
+        )
+        session.add(uf)
+        session.commit()
+        session.refresh(uf)
+    
+    return uf
+
+
+@pytest.fixture
 def sample_dossier(session: Session, sample_patient, sample_ej):
     """Crée et retourne un dossier de test"""
     from app.models import Dossier

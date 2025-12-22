@@ -9,7 +9,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 from sqlmodel import Session
 
-from app.models import Patient, Dossier
+from app.models import Patient, Dossier, DossierType
 from app.services.patients_service import PatientCreateSchema, create_patient
 from app.services.dossiers_service import DossierCreateSchema, create_dossier_with_pre_admit_venue
 from app.services.fhir_export_service import FHIRExportService
@@ -24,7 +24,7 @@ class TestFHIRInteroperability:
     """Tests d'intégration pour l'interopérabilité FHIR"""
 
     @pytest.mark.asyncio
-    async def test_fhir_export_import_roundtrip(self, session: Session, sample_ght):
+    async def test_fhir_export_import_roundtrip(self, session: Session, sample_ej, sample_uf):
         """Test roundtrip export FHIR → import FHIR"""
 
         # Créer des données de test
@@ -34,23 +34,19 @@ class TestFHIRInteroperability:
             birth_date="1990-01-01",
             gender="F"
         )
-        patient = create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ght.id)
+        patient = create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ej.ght_context_id)
 
         dossier_data = DossierCreateSchema(
-            uf_responsabilite="UF001",
-            dossier_type="hospitalise",
-            admit_time=datetime.now()
+            uf_responsabilite=sample_uf.identifier,
+            dossier_type=DossierType.HOSPITALISE,
+            admit_time=datetime.now(),
+            admission_source="Test Source",
+            attending_provider="Test Provider"
         )
         dossier = create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
 
-        # Créer une EJ pour l'export
-        ej = EntiteJuridique(
-            name="Test EJ FHIR",
-            code="EJFHIR",
-            ght_context_id=sample_ght.id
-        )
-        session.add(ej)
-        session.commit()
+        # Utiliser l'EJ de test
+        ej = sample_ej
 
         # Exporter en FHIR
         export_service = FHIRExportService(session, "http://localhost:8000/fhir")
@@ -112,6 +108,47 @@ class TestFHIRInteroperability:
         session.add(ej)
         session.commit()
 
+        # Créer UF pour l'EJ
+        from app.models_structure import UniteFonctionnelle, Service, Pole, EntiteGeographique
+        eg = EntiteGeographique(
+            name="Test EG",
+            entite_juridique_id=ej.id
+        )
+        session.add(eg)
+        session.commit()
+
+        pole = Pole(
+            name="Test Pole",
+            entite_geo_id=eg.id
+        )
+        session.add(pole)
+        session.commit()
+
+        service = Service(
+            name="Test Service",
+            pole_id=pole.id
+        )
+        session.add(service)
+        session.commit()
+
+        uf = UniteFonctionnelle(
+            name="Test UF",
+            identifier="UFTEST",
+            service_id=service.id
+        )
+        session.add(uf)
+        session.commit()
+
+        # Créer dossier et venue pour lier le patient à l'EJ
+        dossier_data = DossierCreateSchema(
+            uf_responsabilite=uf.identifier,
+            dossier_type=DossierType.HOSPITALISE,
+            admit_time=datetime.now(),
+            admission_source="Test Source",
+            attending_provider="Test Provider"
+        )
+        dossier = create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
+
         # Exporter et vérifier la conformité FHIR
         export_service = FHIRExportService(session, "http://localhost:8000/fhir")
         patient_bundle = export_service.export_patients(ej)
@@ -122,28 +159,57 @@ class TestFHIRInteroperability:
 
         # Pour chaque entry patient, vérifier les éléments requis
         for entry in patient_bundle.entry:
-            if entry.resource.resourceType == "Patient":
-                fhir_patient = entry.resource
+            resource = entry.resource
+            if isinstance(resource, dict):
+                resource_type = resource.get('resourceType')
+            else:
+                resource_type = getattr(resource, 'resourceType', None)
+            
+            if resource_type == "Patient":
+                fhir_patient = resource
 
                 # Vérifier les éléments de base
-                assert hasattr(fhir_patient, 'resourceType')
-                assert fhir_patient.resourceType == "Patient"
+                if isinstance(fhir_patient, dict):
+                    assert 'resourceType' in fhir_patient
+                    assert fhir_patient['resourceType'] == "Patient"
+                    
+                    # Vérifier nom
+                    assert 'name' in fhir_patient
+                    assert len(fhir_patient['name']) > 0
+                    assert 'family' in fhir_patient['name'][0]
+                    assert fhir_patient['name'][0]['family'] is not None
+                    
+                    # Vérifier date de naissance si présente
+                    if 'birthDate' in fhir_patient and fhir_patient['birthDate']:
+                        birth_date = fhir_patient['birthDate']
+                        # Doit être au format YYYY-MM-DD
+                        assert len(birth_date) == 10
+                        assert birth_date[4] == '-'
+                        assert birth_date[7] == '-'
+                    
+                    # Vérifier genre si présent
+                    if 'gender' in fhir_patient and fhir_patient['gender']:
+                        assert fhir_patient['gender'] in ['male', 'female', 'other', 'unknown']
+                else:
+                    assert hasattr(fhir_patient, 'resourceType')
+                    assert fhir_patient.resourceType == "Patient"
 
-                # Vérifier nom
-                assert hasattr(fhir_patient, 'name')
-                assert len(fhir_patient.name) > 0
-                assert fhir_patient.name[0].family is not None
+                    # Vérifier nom
+                    assert hasattr(fhir_patient, 'name')
+                    assert len(fhir_patient.name) > 0
+                    assert 'family' in fhir_patient.name[0]
+                    assert fhir_patient.name[0]['family'] is not None
 
-                # Vérifier date de naissance si présente
-                if hasattr(fhir_patient, 'birthDate') and fhir_patient.birthDate:
-                    # Doit être au format YYYY-MM-DD
-                    assert len(fhir_patient.birthDate) == 10
-                    assert fhir_patient.birthDate[4] == '-'
-                    assert fhir_patient.birthDate[7] == '-'
+                    # Vérifier date de naissance si présente
+                    if hasattr(fhir_patient, 'birthDate') and fhir_patient.birthDate:
+                        # Doit être au format YYYY-MM-DD
+                        assert len(fhir_patient.birthDate) == 10
+                        assert fhir_patient.birthDate[4] == '-'
+                        assert fhir_patient.birthDate[7] == '-'
 
-                # Vérifier genre si présent
-                if hasattr(fhir_patient, 'gender') and fhir_patient.gender:
-                    assert fhir_patient.gender in ['male', 'female', 'other', 'unknown']
+                    # Vérifier genre si présent
+                    if hasattr(fhir_patient, 'gender') and fhir_patient.gender:
+                        assert fhir_patient.gender in ['male', 'female', 'other', 'unknown']
 
     @pytest.mark.asyncio
     async def test_fhir_external_system_exchange(self, session: Session, sample_ght):

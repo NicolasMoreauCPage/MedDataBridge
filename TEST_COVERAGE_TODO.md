@@ -144,15 +144,15 @@
   - [x] Test rate limiting (simulé) ✅ **DONE**
   - [x] Test gestion sessions ✅ **DONE**
 
-### 3.4 🔄 Tests de Migration et Données
-- [ ] **Créer `tests/integration/test_data_migration.py`**
-  - [ ] Test migration schémas DB
-  - [ ] Test transformation données existantes
-- [ ] **Créer `tests/integration/test_legacy_import.py`**
-  - [ ] Test import données legacy
-  - [ ] Test validation et nettoyage
+### 3.4 🔄 Tests de Migration et Données ✅ **COMPLETED**
+- [x] **Créer `tests/integration/test_data_migration.py`** ✅ **DONE**
+  - [x] Test migration schémas DB ✅ **DONE**
+  - [x] Test transformation données existantes ✅ **DONE**
+- [x] **Créer `tests/integration/test_legacy_import.py`** ✅ **DONE**
+  - [x] Test import données legacy ✅ **DONE**
+  - [x] Test validation et nettoyage ✅ **DONE**
 
-### 3.5 🎨 Tests d'Interface Utilisateur
+### 3.5 🎨 Tests d'Interface Utilisateur 🚀 **STARTING**
 - [ ] **Créer `tests/ui/test_patient_management_ui.py`**
   - [ ] Test formulaires création/édition patients
   - [ ] Test navigation et contexte

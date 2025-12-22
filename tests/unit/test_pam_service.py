@@ -58,7 +58,7 @@ class TestPAMService:
         # Créer un mouvement existant il y a 5 minutes
         existing_movement = Mouvement(
             id=2,
-            mouvement_seq=2,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=2,
             entite_juridique_id=1,
             when=datetime(2024, 1, 1, 9, 55),  # naive datetime
@@ -105,7 +105,7 @@ class TestPAMService:
         # Créer un mouvement existant
         existing_movement = Mouvement(
             id=3,
-            mouvement_seq=3,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=3,
             entite_juridique_id=1,
             when=datetime(2024, 1, 1, 10, 0),  # naive datetime
@@ -234,7 +234,7 @@ ZBE|1|20240101120000|||INSERT|N|||CARDIO|MED"""
         )
         mouvement = Mouvement(
             id=5,
-            mouvement_seq=5,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=5,
             entite_juridique_id=1,
             when=datetime(2024, 1, 1, 10, 0),  # naive datetime

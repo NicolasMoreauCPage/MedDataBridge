@@ -152,15 +152,15 @@
   - [x] Test import données legacy ✅ **DONE**
   - [x] Test validation et nettoyage ✅ **DONE**
 
-### 3.5 🎨 Tests d'Interface Utilisateur 🚀 **STARTING**
-- [ ] **Créer `tests/ui/test_patient_management_ui.py`**
-  - [ ] Test formulaires création/édition patients
-  - [ ] Test navigation et contexte
-- [ ] **Créer `tests/ui/test_dossier_management_ui.py`**
-  - [ ] Test interface gestion dossiers
-  - [ ] Test workflow médical UI
+### 3.5 🎨 Tests d'Interface Utilisateur ✅ **COMPLETED**
+- [x] **Créer `tests/ui/test_patient_management_ui.py`** ✅ **DONE**
+  - [x] Test formulaires création/édition patients ✅ **DONE**
+  - [x] Test navigation et contexte ✅ **DONE**
+- [x] **Créer `tests/ui/test_dossier_management_ui.py`** ✅ **DONE**
+  - [x] Test interface gestion dossiers ✅ **DONE**
+  - [x] Test workflow médical UI ✅ **DONE**
 
-### 3.6 🤖 Tests Automatisés et CI/CD
+### 3.6 🤖 Tests Automatisés et CI/CD 🚀 **STARTING**
 - [ ] **Configurer tests parallèles** pour accélérer CI
 - [ ] **Ajouter tests de mutation** (mutmut)
 - [ ] **Créer rapports couverture automatiques**

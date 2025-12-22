@@ -2,6 +2,7 @@
 Tests pour les identifiants de mouvements et le segment ZBE dans les messages HL7 PAM.
 """
 import pytest
+import uuid
 from datetime import datetime
 from sqlmodel import Session, select
 
@@ -15,7 +16,7 @@ def test_mouvement_has_identifier_relationship(session: Session):
     """Vérifie que le modèle Mouvement supporte les identifiants."""
     # Créer un patient
     patient = Patient(
-        patient_seq=1,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         family="DUPONT",
         given="Jean",
         birth_date="19800101",
@@ -26,7 +27,7 @@ def test_mouvement_has_identifier_relationship(session: Session):
     
     # Créer un dossier
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         uf_responsabilite="3620",
         admit_time=datetime.now()
@@ -36,7 +37,7 @@ def test_mouvement_has_identifier_relationship(session: Session):
     
     # Créer une venue
     venue = Venue(
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         uf_responsabilite="3620",
         start_time=datetime.now(),
@@ -47,7 +48,7 @@ def test_mouvement_has_identifier_relationship(session: Session):
     
     # Créer un mouvement
     mouvement = Mouvement(
-        mouvement_seq=1,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         venue_id=venue.id,
         type="A02",
         when=datetime.now(),

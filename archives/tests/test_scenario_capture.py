@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta
 from sqlmodel import SQLModel, Session, create_engine
 
@@ -15,13 +16,13 @@ def test_capture_creates_steps_from_movements():
     with Session(engine) as session:
         patient = Patient(family="Doe")
         session.add(patient); session.commit(); session.refresh(patient)
-        dossier = Dossier(patient_id=patient.id, dossier_seq=1, admit_time=datetime.utcnow())
+        dossier = Dossier(patient_id=patient.id, dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, admit_time=datetime.utcnow())
         session.add(dossier); session.commit(); session.refresh(dossier)
-        venue = Venue(dossier_id=dossier.id, venue_seq=1, start_time=dossier.admit_time)
+        venue = Venue(dossier_id=dossier.id, venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, start_time=dossier.admit_time)
         session.add(venue); session.commit(); session.refresh(venue)
         base = dossier.admit_time
-        m1 = Mouvement(venue_id=venue.id, mouvement_seq=1, when=base, trigger_event="A01")
-        m2 = Mouvement(venue_id=venue.id, mouvement_seq=2, when=base + timedelta(minutes=30), trigger_event="A02")
+        m1 = Mouvement(venue_id=venue.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=base, trigger_event="A01")
+        m2 = Mouvement(venue_id=venue.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=base + timedelta(minutes=30), trigger_event="A02")
         session.add(m1); session.add(m2); session.commit()
         scenario = capture_dossier_as_scenario(session, dossier)
         session.refresh(scenario)

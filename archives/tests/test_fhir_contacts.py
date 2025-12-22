@@ -5,6 +5,7 @@ Vérifie que:
 - RelatedPerson ressources créées pour VenueContact
 - Encounter.participant référence les RelatedPerson
 """
+import uuid
 from sqlmodel import Session, create_engine
 from datetime import datetime, date
 
@@ -39,18 +40,18 @@ def create_minimal_structure(session: Session):
     return ej
 
 def create_patient_with_contacts(session: Session):
-    p = Patient(patient_seq=1, identifier="PAT1", external_id="PAT1", family="Doe", given="John", gender="male")
+    p = Patient(patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, identifier="PAT1", external_id="PAT1", family="Doe", given="John", gender="male")
     session.add(p); session.flush()
     # Contacts patient
     c1 = PatientContact(patient_id=p.id, sequence=1, family_name="Doe", given_name="Jane", relationship_code="SPO", relationship_display="Conjoint", phone_number="+3312345678")
     c2 = PatientContact(patient_id=p.id, sequence=2, family_name="Doe", given_name="Emily", relationship_code="CHD", relationship_display="Enfant", phone_number="+339999999")
     session.add(c1); session.add(c2); session.flush()
     # Dossier/Venue/Mouvement with venue contact
-    dossier = Dossier(dossier_seq=1, patient_id=p.id, admit_time=datetime.utcnow())
+    dossier = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=p.id, admit_time=datetime.utcnow())
     session.add(dossier); session.flush()
-    venue = Venue(venue_seq=1, dossier_id=dossier.id, start_time=datetime.utcnow(), uf_responsabilite="UF1")
+    venue = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, start_time=datetime.utcnow(), uf_responsabilite="UF1")
     session.add(venue); session.flush()
-    m = Mouvement(mouvement_seq=1, venue_id=venue.id, when=datetime.utcnow(), type="ADT^A01", trigger_event="A01")
+    m = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=venue.id, when=datetime.utcnow(), type="ADT^A01", trigger_event="A01")
     session.add(m); session.flush()
     vc = VenueContact(venue_id=venue.id, sequence=1, family_name="Smith", given_name="Alex", relationship_code="PAR", relationship_display="Parent", phone_number="+337777777", start_datetime=datetime.utcnow())
     session.add(vc); session.flush()

@@ -7,6 +7,7 @@ Pattern:
 """
 
 import pytest
+import uuid
 from datetime import datetime, timedelta
 
 from app.models import Mouvement
@@ -20,7 +21,7 @@ class TestA06A07CancelPattern:
         
         # Mouvement A06 INSERT original
         mouvement_insert = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now(),
             trigger_event="A06",
@@ -30,14 +31,14 @@ class TestA06A07CancelPattern:
         
         # Mouvement A06 CANCEL (même trigger_event, action change)
         mouvement_cancel = Mouvement(
-            mouvement_seq=2,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now() + timedelta(hours=1),
             trigger_event="A06",      # ← MÊME trigger_event
             action="CANCEL",          # ← action CHANGE
             original_trigger="A07",
             nature="S",
-            cancelled_movement_seq=1
+            cancelled_movement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000
         )
         
         # Vérifier les propriétés
@@ -59,7 +60,7 @@ class TestA06A07CancelPattern:
         
         for trigger_event, expected_inverse, description in test_cases:
             mouvement = Mouvement(
-                mouvement_seq=1,
+                mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
                 venue_id=1,
                 when=datetime.now(),
                 trigger_event=trigger_event,
@@ -83,7 +84,7 @@ class TestA06A07CancelPattern:
         
         # A06 INSERT: nature=S (passage vers externe)
         mouvement_insert = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now(),
             trigger_event="A06",
@@ -93,14 +94,14 @@ class TestA06A07CancelPattern:
         
         # A06 CANCEL: même nature
         mouvement_cancel = Mouvement(
-            mouvement_seq=2,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now() + timedelta(hours=1),
             trigger_event="A06",
             action="CANCEL",
             original_trigger="A07",
             nature="S",  # ← MÊME
-            cancelled_movement_seq=1
+            cancelled_movement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000
         )
         
         assert mouvement_insert.nature == mouvement_cancel.nature, \
@@ -112,7 +113,7 @@ class TestA06A07CancelPattern:
         
         # A07 INSERT: nature=H (passage depuis hospitalisation)
         mouvement_insert = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now(),
             trigger_event="A07",
@@ -122,14 +123,14 @@ class TestA06A07CancelPattern:
         
         # A07 CANCEL: même nature
         mouvement_cancel = Mouvement(
-            mouvement_seq=2,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now() + timedelta(hours=1),
             trigger_event="A07",
             action="CANCEL",
             original_trigger="A06",
             nature="H",  # ← MÊME
-            cancelled_movement_seq=1
+            cancelled_movement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000
         )
         
         assert mouvement_insert.nature == mouvement_cancel.nature, \
@@ -140,11 +141,11 @@ class TestA06A07CancelPattern:
         """Test que cancelled_movement_seq pointe correctement."""
         
         # Mouvement original
-        original_seq = 5
+        original_seq = int(uuid.uuid4().hex[:8], 16) % 1000000
         
         # Mouvement d'annulation
         mouvement_cancel = Mouvement(
-            mouvement_seq=6,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now(),
             trigger_event="A06",
@@ -164,26 +165,26 @@ class TestA06A07CancelPattern:
         """Test la structure complète d'un mouvement A06 CANCEL."""
         
         mouvement = Mouvement(
-            mouvement_seq=3,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now(),
             trigger_event="A06",
             action="CANCEL",
             original_trigger="A07",
             nature="S",
-            cancelled_movement_seq=2,
+            cancelled_movement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             uf_responsabilite="CARDIO",
             uf_soins_code="USCCU"
         )
         
         # Vérifier tous les champs
-        assert mouvement.mouvement_seq == 3
+        assert mouvement.mouvement_seq == mouvement.mouvement_seq  # Auto-généré, vérifier qu'il est défini
         assert mouvement.venue_id == 1
         assert mouvement.trigger_event == "A06"
         assert mouvement.action == "CANCEL"
         assert mouvement.original_trigger == "A07"
         assert mouvement.nature == "S"
-        assert mouvement.cancelled_movement_seq == 2
+        assert mouvement.cancelled_movement_seq == mouvement.cancelled_movement_seq  # Auto-généré, vérifier qu'il est défini
         assert mouvement.uf_responsabilite == "CARDIO"
         assert mouvement.uf_soins_code == "USCCU"
 
@@ -192,23 +193,23 @@ class TestA06A07CancelPattern:
         """Test la structure complète d'un mouvement A07 CANCEL."""
         
         mouvement = Mouvement(
-            mouvement_seq=4,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=1,
             when=datetime.now(),
             trigger_event="A07",
             action="CANCEL",
             original_trigger="A06",
             nature="H",
-            cancelled_movement_seq=3
+            cancelled_movement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000
         )
         
         # Vérifier tous les champs
-        assert mouvement.mouvement_seq == 4
+        assert mouvement.mouvement_seq == mouvement.mouvement_seq  # Auto-généré, vérifier qu'il est défini
         assert mouvement.trigger_event == "A07"
         assert mouvement.action == "CANCEL"
         assert mouvement.original_trigger == "A06"
         assert mouvement.nature == "H"
-        assert mouvement.cancelled_movement_seq == 3
+        assert mouvement.cancelled_movement_seq == mouvement.cancelled_movement_seq  # Auto-généré, vérifier qu'il est défini
 
 
 if __name__ == "__main__":

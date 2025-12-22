@@ -120,7 +120,7 @@ class TestLegacyImport:
             transformed_data = self._transform_legacy_venue_data(legacy_venue, created_venues)
 
             # Créer la venue
-            venue = create_venue(session=session, venue_data=transformed_data, ght_context_id=sample_ght.id)
+            venue = create_venue(session=session, venue_data=transformed_data)
             created_venues[legacy_venue["code"]] = venue
 
             assert venue.id is not None
@@ -462,4 +462,6 @@ class TestLegacyImport:
             cleaned['family'] = 'INCONNU'
         if not cleaned.get('given'):
             cleaned['given'] = 'INCONNU'
+
+        return cleaned
 

@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, create_engine, Session
 from datetime import datetime, timezone
+import uuid
 
 from app.models import Venue, Mouvement
 from app.models_identifiers import Identifier, IdentifierType
@@ -22,17 +23,17 @@ def test_update_references_existing_mouvement():
         session.add(patient)
         session.flush()
 
-        dossier = Dossier(dossier_seq=2001, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
+        dossier = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
         session.add(dossier)
         session.flush()
 
         # Create a venue
-        v = Venue(venue_seq=1001, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
+        v = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
         session.add(v)
         session.flush()
 
         # Create a movement and identifier
-        m = Mouvement(mouvement_seq=5001, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01")
+        m = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01")
         session.add(m)
         session.flush()
 
@@ -60,15 +61,15 @@ def test_update_references_cancelled_mouvement():
         session.add(patient)
         session.flush()
 
-        dossier = Dossier(dossier_seq=2002, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
+        dossier = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
         session.add(dossier)
         session.flush()
 
-        v = Venue(venue_seq=1002, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
+        v = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
         session.add(v)
         session.flush()
 
-        m = Mouvement(mouvement_seq=5002, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01", status="cancelled")
+        m = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01", status="cancelled")
         session.add(m)
         session.flush()
 
@@ -96,16 +97,16 @@ def test_a01_a02_a03_sequence_allowed():
         session.add(patient)
         session.flush()
 
-        dossier = Dossier(dossier_seq=2003, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
+        dossier = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
         session.add(dossier)
         session.flush()
 
-        v = Venue(venue_seq=1003, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
+        v = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
         session.add(v)
         session.flush()
 
         # Create initial A01 movement
-        m1 = Mouvement(mouvement_seq=5003, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01")
+        m1 = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01")
         session.add(m1)
         session.flush()
 
@@ -120,7 +121,7 @@ def test_a01_a02_a03_sequence_allowed():
         assert res_a02.is_valid
 
         # Now simulate adding the A02 movement to DB
-        m2 = Mouvement(mouvement_seq=5004, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A02")
+        m2 = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A02")
         session.add(m2)
         session.flush()
 

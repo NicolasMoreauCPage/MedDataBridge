@@ -12,6 +12,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import psutil
 import os
+from sqlmodel import Session
 
 from app.app import app
 
@@ -303,7 +304,7 @@ class TestUCDLPPLoadTesting:
         assert total_time < 30, f"Test de charge trop lent: {total_time:.2f}s pour {num_requests} requêtes"
 
     @pytest.mark.slow
-    def test_ucd_bulk_acts_creation(self, session: Session, sample_ght):
+    async def test_ucd_bulk_acts_creation(self, session: Session, sample_ght):
         """Test création en masse d'actes UCD (1000+ actes)"""
         from app.services.patients_service import PatientCreateSchema, create_patient
         from app.services.dossiers_service import DossierCreateSchema, create_dossier_with_pre_admit_venue

@@ -1,4 +1,5 @@
 import pytest
+import uuid
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.services.emit_on_create import generate_pam_hl7, generate_fhir
 from app.services.pam_validation import validate_pam
@@ -57,13 +58,13 @@ def test_ihms_workflow(ght_context, db_session):
     validate_all_standards(patient, "patient", session, operation="update")
 
     # 3. Dossier creation
-    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=100001, dossier_type="hospitalise", admit_time=datetime.now())
+    dossier = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_type="hospitalise", admit_time=datetime.now())
     session.add(dossier)
     session.commit()
 
     # 4. Venue creation (hospitalized)
     venue = Venue(
-        venue_seq=100101,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         ej_id=ej_id,
         start_time=dossier.admit_time,
@@ -77,12 +78,12 @@ def test_ihms_workflow(ght_context, db_session):
     validate_all_standards(venue, "venue", session)
 
     # 5. Venue creation (external)
-    dossier2 = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=100002, dossier_type="externe", admit_time=datetime.now())
+    dossier2 = Dossier(patient_id=patient.id, ej_id=ej_id, dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_type="externe", admit_time=datetime.now())
     session.add(dossier2)
     session.commit()
 
     venue2 = Venue(
-        venue_seq=100102,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier2.id,
         ej_id=ej_id,
         start_time=dossier2.admit_time,
@@ -98,7 +99,7 @@ def test_ihms_workflow(ght_context, db_session):
     # 6. Mouvement creation (admission)
     mouvement_adm = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1001,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",  # UF médicale responsable
@@ -113,7 +114,7 @@ def test_ihms_workflow(ght_context, db_session):
     # 7. Mouvement creation (transfer)
     mouvement_trans = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1002,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",
@@ -128,7 +129,7 @@ def test_ihms_workflow(ght_context, db_session):
     # 8. Mouvement creation (discharge)
     mouvement_sortie = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1003,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",

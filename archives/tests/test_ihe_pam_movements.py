@@ -5,6 +5,7 @@ Also tests action (INSERT, UPDATE, CANCEL) and ZBE segments
 """
 
 import pytest
+import uuid
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.services.emit_on_create import generate_pam_hl7, generate_fhir
 from app.services.pam_validation import validate_pam
@@ -57,10 +58,14 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     session.add(patient)
     session.commit()
     
+    # Generate unique sequence numbers
+    dossier_seq = int(uuid.uuid4().hex[:8], 16) % 1000000
+    venue_seq = int(uuid.uuid4().hex[:8], 16) % 1000000
+    
     dossier = Dossier(
         patient_id=patient.id,
         ej_id=ej_id,
-        dossier_seq=100001,
+        dossier_seq=dossier_seq,
         dossier_type="hospitalise",
         admit_time=datetime.now()
     )
@@ -70,9 +75,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     # Test 1: A01 - Admit Patient (initial admission)
     print("\n[TEST 1/8] ADT^A01 - ADMIT PATIENT")
     print("-" * 80)
+    mouvement_seq_a01 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_a01 = Mouvement(
         venue_id=None,  # Will be set after venue creation
-        mouvement_seq=2001,
+        mouvement_seq=mouvement_seq_a01,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",
@@ -83,7 +89,7 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     )
     # Create venue for A01
     venue1 = Venue(
-        venue_seq=200101,
+        venue_seq=venue_seq,
         dossier_id=dossier.id,
         ej_id=ej_id,
         start_time=dossier.admit_time,
@@ -111,9 +117,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     # Test 2: A02 - Transfer Patient
     print("\n[TEST 2/8] ADT^A02 - TRANSFER PATIENT")
     print("-" * 80)
+    mouvement_seq_a02 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_a02 = Mouvement(
         venue_id=venue1.id,
-        mouvement_seq=2002,
+        mouvement_seq=mouvement_seq_a02,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="NEURO",  # Different UF
@@ -139,9 +146,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     # Test 3: A03 - Discharge/End Visit
     print("\n[TEST 3/8] ADT^A03 - DISCHARGE/END VISIT")
     print("-" * 80)
+    mouvement_seq_a03 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_a03 = Mouvement(
         venue_id=venue1.id,
-        mouvement_seq=2003,
+        mouvement_seq=mouvement_seq_a03,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="NEURO",
@@ -167,10 +175,12 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     print("\n[TEST 4/8] ADT^A06 - CHANGE OUTPATIENT TO INPATIENT")
     print("-" * 80)
     # Create external venue first
+    dossier_seq_2 = int(uuid.uuid4().hex[:8], 16) % 1000000
+    venue_seq_2 = int(uuid.uuid4().hex[:8], 16) % 1000000
     dossier2 = Dossier(
         patient_id=patient.id,
         ej_id=ej_id,
-        dossier_seq=100002,
+        dossier_seq=dossier_seq_2,
         dossier_type="externe",
         admit_time=datetime.now()
     )
@@ -178,7 +188,7 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     session.commit()
     
     venue2 = Venue(
-        venue_seq=200102,
+        venue_seq=venue_seq_2,
         dossier_id=dossier2.id,
         ej_id=ej_id,
         start_time=dossier2.admit_time,
@@ -190,9 +200,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     session.add(venue2)
     session.commit()
     
+    mouvement_seq_a06 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_a06 = Mouvement(
         venue_id=venue2.id,
-        mouvement_seq=2004,
+        mouvement_seq=mouvement_seq_a06,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",  # Change to inpatient UF
@@ -217,9 +228,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     # Test 5: A07 - Change Inpatient to Outpatient
     print("\n[TEST 5/8] ADT^A07 - CHANGE INPATIENT TO OUTPATIENT")
     print("-" * 80)
+    mouvement_seq_a07 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_a07 = Mouvement(
         venue_id=venue1.id,
-        mouvement_seq=2005,
+        mouvement_seq=mouvement_seq_a07,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CONSULT",  # Change to outpatient
@@ -244,9 +256,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     # Test 6: A12 - Cancel Admission
     print("\n[TEST 6/8] ADT^A12 - CANCEL ADMISSION")
     print("-" * 80)
+    mouvement_seq_a12 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_a12 = Mouvement(
         venue_id=venue1.id,
-        mouvement_seq=2006,
+        mouvement_seq=mouvement_seq_a12,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",
@@ -273,9 +286,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     # Test 7: A13 - Cancel Discharge
     print("\n[TEST 7/8] ADT^A13 - CANCEL DISCHARGE")
     print("-" * 80)
+    mouvement_seq_a13 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_a13 = Mouvement(
         venue_id=venue1.id,
-        mouvement_seq=2007,
+        mouvement_seq=mouvement_seq_a13,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="NEURO",
@@ -302,9 +316,10 @@ def test_ihe_pam_movement_message_types(ght_context, db_session):
     # Test 8: Z99 - Modification (generic event)
     print("\n[TEST 8/8] ADT^Z99 - MODIFICATION (GENERIC CUSTOM EVENT)")
     print("-" * 80)
+    mouvement_seq_z99 = int(uuid.uuid4().hex[:8], 16) % 1000000
     mouvement_z99 = Mouvement(
         venue_id=venue1.id,
-        mouvement_seq=2008,
+        mouvement_seq=mouvement_seq_z99,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",

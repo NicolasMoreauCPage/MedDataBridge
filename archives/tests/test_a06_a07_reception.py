@@ -8,6 +8,7 @@ Tests for:
 """
 
 import pytest
+import uuid
 from datetime import datetime
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
@@ -134,9 +135,10 @@ class TestA06Reception:
         """Receive A06 when previous movement is external (S)."""
         patient, dossier, venue = create_test_context(session)
 
-        # Create first mouvement: external (S) with mouvement_seq=1
+        # Create first mouvement: external (S) with auto-generated mouvement_seq
+        mouvement_seq_1 = int(uuid.uuid4().hex[:8], 16) % 1000000
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=mouvement_seq_1,
             venue_id=venue.id,
             type="ADT^A04",
             movement_type="consultation",
@@ -188,8 +190,9 @@ ZBE|1|H|A06|CARDIO|
         patient, dossier, venue = create_test_context(session)
 
         # Create first mouvement: hospitalized (H)
+        mouvement_seq_1 = int(uuid.uuid4().hex[:8], 16) % 1000000
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=mouvement_seq_1,
             venue_id=venue.id,
             type="ADT^A01",
             movement_type="admission",
@@ -222,8 +225,9 @@ class TestA07Reception:
         patient, dossier, venue = create_test_context(session)
 
         # Create first mouvement: hospitalized (H)
+        mouvement_seq_1 = int(uuid.uuid4().hex[:8], 16) % 1000000
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=mouvement_seq_1,
             venue_id=venue.id,
             type="ADT^A01",
             movement_type="admission",
@@ -252,8 +256,9 @@ ZBE|1|S|A07|CARDIO|
         patient, dossier, venue = create_test_context(session)
 
         # Create first mouvement: external (S)
+        mouvement_seq_1 = int(uuid.uuid4().hex[:8], 16) % 1000000
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=mouvement_seq_1,
             venue_id=venue.id,
             type="ADT^A04",
             movement_type="consultation",
@@ -287,7 +292,7 @@ class TestSemanticValidation:
 
         # Create history: external → hospitalized
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=venue.id,
             type="ADT^A04",
             nature="S",
@@ -337,7 +342,7 @@ class TestIntegration:
 
         # Create previous movement
         m1 = Mouvement(
-            mouvement_seq=1,
+            mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             venue_id=venue.id,
             type="ADT^A04",
             nature="S",

@@ -248,12 +248,23 @@ class TestDataMigration:
         assert len(dossier.venues) == 1
         assert dossier.venues[0].code == "PRE_ADMIT"
 
-    def test_migration_backward_compatibility(self, session: Session):
+    def test_migration_backward_compatibility(self, session: Session, sample_ght):
         """Test compatibilité arrière lors des migrations"""
-        # Vérifier que les anciennes données sont toujours accessibles
+        # S'assurer qu'il y a au moins un patient pour tester la compatibilité
         patients = session.exec(select(Patient)).all()
+        
+        if len(patients) == 0:
+            # Créer un patient de test si aucun n'existe
+            from app.services.patients_service import PatientCreateSchema, create_patient
+            patient_data = PatientCreateSchema(
+                family="Test",
+                given="User",
+                birth_date="1980-01-01"
+            )
+            test_patient = create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ght.id)
+            patients = [test_patient]
 
-        # Au minimum, il devrait y avoir le patient de test créé par conftest.py
+        # Vérifier qu'il y a au moins un patient
         assert len(patients) >= 1
 
         for patient in patients:

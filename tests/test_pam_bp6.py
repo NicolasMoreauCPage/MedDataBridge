@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, create_engine, Session
 import pytest
+import uuid
 from datetime import datetime, timezone
 
 from app.services.pam_sequence_validator import validate_pam_sequence
@@ -38,16 +39,16 @@ def test_bed_occupied_warning():
         session.add(patient)
         session.flush()
 
-        dossier = Dossier(dossier_seq=3001, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
+        dossier = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
         session.add(dossier)
         session.flush()
 
-        v = Venue(venue_seq=3001, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
+        v = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
         session.add(v)
         session.flush()
 
         # Existing movement occupying room R1 bed B1 (to_location contains '^R1^B1')
-        m = Mouvement(mouvement_seq=6001, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01", to_location="^R1^B1")
+        m = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=v.id, when=datetime.now(timezone.utc), trigger_event="A01", to_location="^R1^B1")
         session.add(m)
         session.commit()
 
@@ -75,17 +76,17 @@ def test_transition_not_allowed_error():
         session.add(patient)
         session.flush()
 
-        dossier = Dossier(dossier_seq=3002, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
+        dossier = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
         session.add(dossier)
         session.flush()
 
-        v = Venue(venue_seq=3002, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
+        v = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
         session.add(v)
         session.flush()
 
         # Last movement recorded is an A02 (transfer), so incoming A01 is not allowed
         # according to the transition table. Use venue_seq as venue_id to match validator lookup.
-        m = Mouvement(mouvement_seq=6002, venue_id=v.venue_seq, when=datetime.now(timezone.utc), trigger_event="A02")
+        m = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=v.venue_seq, when=datetime.now(timezone.utc), trigger_event="A02")
         session.add(m)
         session.commit()
 

@@ -5,6 +5,7 @@ Tests du workflow complet : UI -> API -> Service -> Base de données
 """
 
 import pytest
+import uuid
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 from datetime import datetime
@@ -29,7 +30,7 @@ class TestUCDIntegration:
         return Dossier(
             id=1,
             patient_id=1,
-            dossier_seq=1,
+            dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             type="hospitalise",
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -131,7 +132,7 @@ class TestLPPIntegration:
         return Dossier(
             id=1,
             patient_id=1,
-            dossier_seq=1,
+            dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
             type="hospitalise",
             created_at=datetime.now(),
             updated_at=datetime.now()

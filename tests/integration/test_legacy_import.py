@@ -80,15 +80,15 @@ class TestLegacyImport:
         }
 
         # Transformer et créer le dossier
-        from app.services.dossiers_service import DossierCreateSchema
+        from app.services.dossiers_service import DossierCreateSchema, create_dossier_with_pre_admit_venue
         transformed_data = self._transform_legacy_dossier_data(legacy_dossier_data)
         dossier_data = DossierCreateSchema(**transformed_data)
-        dossier = create_dossier(session=session, dossier_data=dossier_data, ght_context_id=sample_ght.id)
+        dossier = create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
 
         # Vérifier que le dossier est créé
         assert dossier.id is not None
         assert dossier.patient_id == patient.id
-        assert dossier.admission_datetime is not None
+        assert dossier.admit_time is not None
 
     def test_legacy_venue_import_hierarchy(self, session: Session, sample_ght):
         """Test import de venues legacy avec hiérarchie"""
@@ -393,7 +393,11 @@ class TestLegacyImport:
             'date_naissance': 'birth_date',
             'family': 'family',
             'given': 'given',
-            'birth_date': 'birth_date'
+            'birth_date': 'birth_date',
+            # Support pour les champs en majuscules
+            'NOM': 'family',
+            'PRENOM': 'given', 
+            'DATE_NAISSANCE': 'birth_date'
         }
 
         for legacy_field, new_field in field_mappings.items():
@@ -410,11 +414,23 @@ class TestLegacyImport:
 
     def _transform_legacy_dossier_data(self, legacy_data: dict) -> dict:
         """Transforme les données dossier legacy"""
+        from datetime import datetime
+        from app.models import DossierType
+        
         transformed = {}
 
         # Mapping basique
         transformed['patient_id'] = legacy_data.get('patient_id')
-        transformed['admission_datetime'] = legacy_data.get('date_admission')
+        
+        # Mapping des champs requis pour DossierCreateSchema
+        transformed['admit_time'] = datetime.fromisoformat(legacy_data.get('date_admission'))
+        transformed['dossier_type'] = DossierType.HOSPITALISE  # Default to hospitalise
+        
+        # Champs optionnels avec valeurs par défaut
+        transformed['uf_responsabilite'] = legacy_data.get('service', 'Médecine Interne')
+        transformed['admission_source'] = 'Legacy Import'
+        transformed['attending_provider'] = 'Dr. Legacy'
+        transformed['current_state'] = 'Importé depuis legacy'
 
         return transformed
 

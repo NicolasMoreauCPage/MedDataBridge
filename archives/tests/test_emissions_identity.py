@@ -115,7 +115,7 @@ async def test_dossier_venue_mouvement_emissions_on_insert_update():
         await _wait_bg()
 
         # Create a Mouvement
-        m = Mouvement(mouvement_seq=0, venue_id=v.id, type="ADT^A01", when=datetime.utcnow())
+        m = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=v.id, type="ADT^A01", when=datetime.utcnow())
         s.add(m)
         s.commit()
         await _wait_bg()

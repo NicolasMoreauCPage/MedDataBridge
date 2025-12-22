@@ -1,0 +1,371 @@
+#!/usr/bin/env python3
+"""
+Tests pour les ressources génériques (ZGEN) - chambres et lits sans contraintes d'occupation
+"""
+
+import pytest
+import uuid
+from sqlmodel import Session, select
+from app.models_structure import Chambre, Lit
+from app.models import Venue, Patient
+from app.services.structure_validation import (
+    is_generic_resource,
+    validate_room_occupancy,
+    validate_bed_occupancy,
+    auto_detect_generic_resources,
+    get_available_rooms,
+    get_available_beds
+)
+from app.db import get_session
+
+
+class TestGenericResources:
+    """Tests pour les ressources génériques ZGEN"""
+
+    def test_is_generic_resource_detection(self):
+        """Test de la détection automatique des ressources génériques"""
+        # Ressources génériques
+        assert is_generic_resource("ZGEN-001")
+        assert is_generic_resource("zgen-002")  # Case insensitive
+        assert is_generic_resource("ZGEN_TEST")
+
+        # Test des ressources non génériques
+        assert not is_generic_resource("CH001")
+        assert not is_generic_resource("LIT-123")
+        assert not is_generic_resource("")
+        assert not is_generic_resource(None)
+
+    def test_generic_room_occupancy_validation(self, session: Session):
+        """Test de validation d'occupation pour chambres génériques"""
+        # Créer une chambre générique
+        generic_room = Chambre(
+            identifier="ZGEN-TEST",
+            name="Chambre Générique Test",
+            is_generic=True,
+            max_occupancy=999
+        )
+        session.add(generic_room)
+        session.commit()
+
+        # Créer une chambre normale
+        normal_room = Chambre(
+            identifier="CH001",
+            name="Chambre Normale",
+            is_generic=False,
+            max_occupancy=1
+        )
+        session.add(normal_room)
+        session.commit()
+
+        # Créer un patient de test
+        patient = Patient(
+            family="Test",
+            given="Patient",
+            identifier="test-patient"
+        )
+        session.add(patient)
+        session.commit()
+
+        # Test chambre générique : toujours disponible
+        assert validate_room_occupancy(session, generic_room.id, patient.id)
+
+        # Test chambre normale : disponible si pas occupée
+        assert validate_room_occupancy(session, normal_room.id, patient.id)
+
+        # Occuper la chambre normale
+        venue = Venue(
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
+            patient_id=patient.id,
+            dossier_id=patient.dossiers[0].id if patient.dossiers else 1,
+            chambre_id=normal_room.id,
+            start_time="2025-12-20T10:00:00"
+        )
+        session.add(venue)
+        session.commit()
+
+        # Chambre normale maintenant occupée
+        assert not validate_room_occupancy(session, normal_room.id, patient.id) 
+
+        # Chambre générique toujours disponible même si "occupée"
+        venue_generic = Venue(
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
+            patient_id=patient.id,
+            dossier_id=patient.dossiers[0].id if patient.dossiers else 1,
+            chambre_id=generic_room.id,
+            start_time="2025-12-20T10:00:00"
+        )
+        session.add(venue_generic)
+        session.commit()
+
+        assert validate_room_occupancy(session, generic_room.id, patient.id) 
+
+    def test_generic_bed_occupancy_validation(self, session: Session):
+        """Test de validation d'occupation pour lits génériques"""
+        # Créer un lit générique
+        generic_bed = Lit(
+            identifier="ZGEN-LIT-001",
+            name="Lit Générique Test",
+            is_generic=True,
+            max_occupancy=999
+        )
+        session.add(generic_bed)
+
+        # Créer un lit normal
+        normal_bed = Lit(
+            identifier="LIT001",
+            name="Lit Normal",
+            is_generic=False,
+            max_occupancy=1
+        )
+        session.add(normal_bed)
+        session.commit()
+
+        # Créer un patient de test
+        patient = Patient(
+            family="Test",
+            given="Patient",
+            identifier="test-patient-bed"
+        )
+        session.add(patient)
+        session.commit()
+
+        # Test lit générique : toujours disponible
+        assert validate_bed_occupancy(session, generic_bed.id, patient.id) 
+
+        # Test lit normal : disponible si pas occupé
+        assert validate_bed_occupancy(session, normal_bed.id, patient.id) 
+
+        # Occuper le lit normal
+        venue = Venue(
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
+            dossier_id=1,
+            patient_id=patient.id,
+            lit_id=normal_bed.id,
+            start_time="2025-12-20T10:00:00"
+        )
+        session.add(venue)
+        session.commit()
+
+        # Lit normal maintenant occupé
+        assert not validate_bed_occupancy(session, normal_bed.id, patient.id) 
+
+        # Lit générique toujours disponible
+        assert validate_bed_occupancy(session, generic_bed.id, patient.id) 
+
+    def test_auto_detect_generic_resources(self, session: Session):
+        """Test de l'auto-détection des ressources génériques"""
+        # Créer des ressources avec identifiants ZGEN
+        chambre_zgen = Chambre(
+            identifier="ZGEN-ROOM-001",
+            name="Chambre ZGEN",
+            is_generic=False  # Pas encore marqué
+        )
+        session.add(chambre_zgen)
+
+        lit_zgen = Lit(
+            identifier="ZGEN-BED-001",
+            name="Lit ZGEN",
+            is_generic=False  # Pas encore marqué
+        )
+        session.add(lit_zgen)
+
+        # Créer des ressources normales
+        chambre_normal = Chambre(
+            identifier="CH002",
+            name="Chambre Normale",
+            is_generic=False
+        )
+        session.add(chambre_normal)
+
+        session.commit()
+
+        # Vérifier avant auto-détection
+        assert not chambre_zgen.is_generic
+        assert not lit_zgen.is_generic
+
+        # Lancer l'auto-détection
+        auto_detect_generic_resources(session)
+
+        # Recharger depuis la base
+        session.refresh(chambre_zgen)
+        session.refresh(lit_zgen)
+        session.refresh(chambre_normal)
+
+        # Vérifier après auto-détection
+        assert chambre_zgen.is_generic 
+        assert chambre_zgen.max_occupancy == 999
+        assert lit_zgen.is_generic 
+        assert lit_zgen.max_occupancy == 999
+        assert not chambre_normal.is_generic  # Non modifié
+
+    def test_get_available_rooms_with_generic(self, session: Session):
+        """Test de récupération des chambres disponibles incluant génériques"""
+        # Créer chambres génériques
+        generic_room = Chambre(
+            identifier="ZGEN-001",
+            name="Chambre Générique",
+            is_generic=True
+        )
+        session.add(generic_room)
+
+        # Créer chambre normale disponible
+        normal_room_available = Chambre(
+            identifier="CH001",
+            name="Chambre Normale Disponible",
+            is_generic=False,
+            max_occupancy=1
+        )
+        session.add(normal_room_available)
+
+        # Créer chambre normale occupée
+        normal_room_occupied = Chambre(
+            identifier="CH002",
+            name="Chambre Normale Occupée",
+            is_generic=False,
+            max_occupancy=1
+        )
+        session.add(normal_room_occupied)
+        session.commit()
+
+        # Occuper la chambre normale
+        patient = Patient(family="Test", given="Patient", identifier="test-patient")
+        session.add(patient)
+        session.commit()
+
+        venue = Venue(
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
+            dossier_id=1,
+            patient_id=patient.id,
+            chambre_id=normal_room_occupied.id,
+            start_time="2025-12-20T10:00:00"
+        )
+        session.add(venue)
+        session.commit()
+
+        # Récupérer les chambres disponibles
+        available_rooms = get_available_rooms(session)
+
+        # Vérifier que la chambre générique et la normale disponible sont incluses
+        room_ids = [r.id for r in available_rooms]
+        assert generic_room.id in room_ids
+        assert normal_room_available.id in room_ids
+        assert normal_room_occupied.id not in room_ids
+
+    def test_get_available_beds_with_generic(self, session: Session):
+        """Test de récupération des lits disponibles incluant génériques"""
+        # Créer lits génériques
+        generic_bed = Lit(
+            identifier="ZGEN-LIT-001",
+            name="Lit Générique",
+            is_generic=True
+        )
+        session.add(generic_bed)
+
+        # Créer lit normal disponible
+        normal_bed_available = Lit(
+            identifier="LIT001",
+            name="Lit Normal Disponible",
+            is_generic=False,
+            max_occupancy=1
+        )
+        session.add(normal_bed_available)
+
+        # Créer lit normal occupé
+        normal_bed_occupied = Lit(
+            identifier="LIT002",
+            name="Lit Normal Occupé",
+            is_generic=False,
+            max_occupancy=1
+        )
+        session.add(normal_bed_occupied)
+        session.commit()
+
+        # Occuper le lit normal
+        patient = Patient(family="Test", given="Patient", identifier="test-patient-bed")
+        session.add(patient)
+        session.commit()
+
+        venue = Venue(
+            venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
+            dossier_id=1,
+            patient_id=patient.id,
+            lit_id=normal_bed_occupied.id,
+            start_time="2025-12-20T10:00:00"
+        )
+        session.add(venue)
+        session.commit()
+
+        # Récupérer les lits disponibles
+        available_beds = get_available_beds(session)
+
+        # Vérifier que le lit générique et le normal disponible sont incluses
+        bed_ids = [b.id for b in available_beds]
+        assert generic_bed.id in bed_ids
+        assert normal_bed_available.id in bed_ids
+        assert normal_bed_occupied.id not in bed_ids
+
+
+class TestGenericResourcesIntegration:
+    """Tests d'intégration pour les ressources génériques"""
+
+    def test_generic_resources_in_workflow(self, session: Session):
+        """Test que les ressources génériques fonctionnent dans un workflow complet"""
+        # Créer une chambre générique
+        chambre = Chambre(
+            identifier="ZGEN-WORKFLOW",
+            name="Chambre Workflow Test",
+            is_generic=True
+        )
+        session.add(chambre)
+
+        # Créer un lit dans cette chambre
+        lit = Lit(
+            identifier="ZGEN-LIT-WORKFLOW",
+            name="Lit Workflow Test",
+            chambre_id=chambre.id,
+            is_generic=True
+        )
+        session.add(lit)
+        session.commit()
+
+        # Créer plusieurs patients
+        patients = []
+        for i in range(5):
+            patient = Patient(
+                family=f"Test{i}",
+                given=f"Patient{i}",
+                identifier=f"test-patient-{i}"
+            )
+            session.add(patient)
+            patients.append(patient)
+        session.commit()
+
+        # Créer des venues pour tous les patients dans la même chambre/lit générique
+        for i, patient in enumerate(patients):
+            venue = Venue(
+                venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
+                dossier_id=1,
+                patient_id=patient.id,
+                chambre_id=chambre.id,
+                lit_id=lit.id,
+                start_time="2025-12-20T10:00:00"
+            )
+            session.add(venue)
+        session.commit()
+
+        # Vérifier que toutes les venues sont acceptées (pas de contrainte)
+        venues_count = session.exec(
+            select(Venue).where(Venue.chambre_id == chambre.id)
+        ).all()
+
+        assert len(venues_count) == 5  # Tous les patients dans la même chambre
+
+        venues_lit_count = session.exec(
+            select(Venue).where(Venue.lit_id == lit.id)
+        ).all()
+
+        assert len(venues_lit_count) == 5  # Tous les patients dans le même lit
+
+        # Vérifier que la validation d'occupation retourne toujours True
+        for patient in patients:
+            assert validate_room_occupancy(session, chambre.id, patient.id)

@@ -8,6 +8,7 @@ Principe :
 4. Vérifier que le ScenarioTemplate reste intact (snapshot indépendant)
 """
 import pytest
+import uuid
 from datetime import datetime, timedelta
 from sqlmodel import Session, create_engine, select
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
@@ -68,7 +69,7 @@ def test_template_independence_after_dossier_modification(test_session: Session)
     
     venue = Venue(
         dossier_id=dossier.id,
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         service_code="URG",
         uf_responsabilite="URG",
         start_time=datetime.now(),
@@ -79,7 +80,7 @@ def test_template_independence_after_dossier_modification(test_session: Session)
     
     mvt = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         type_mouvement="ENTREE",
         date_heure_mouvement=datetime.now(),
     )
@@ -140,7 +141,7 @@ def test_template_independence_after_dossier_deletion(test_session: Session):
     
     venue = Venue(
         dossier_id=dossier.id,
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         service_code="MED",
         uf_responsabilite="MEDECINE",
         start_time=datetime.now(),
@@ -151,13 +152,13 @@ def test_template_independence_after_dossier_deletion(test_session: Session):
     
     mvt1 = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         type_mouvement="ENTREE",
         date_heure_mouvement=datetime.now(),
     )
     mvt2 = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=2,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         type_mouvement="SORTIE",
         date_heure_mouvement=datetime.now() + timedelta(hours=2),
     )
@@ -220,7 +221,7 @@ def test_template_no_foreign_key_to_dossier(test_session: Session):
     
     venue = Venue(
         dossier_id=dossier.id,
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         service_code="TEST",
         start_time=datetime.now(),
         statut="EN_COURS",
@@ -230,7 +231,7 @@ def test_template_no_foreign_key_to_dossier(test_session: Session):
     
     mvt = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         type_mouvement="ENTREE",
         date_heure_mouvement=datetime.now(),
     )

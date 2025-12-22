@@ -4,6 +4,7 @@ Demonstrates that all messages are validated without errors by the internal vali
 """
 
 import pytest
+import uuid
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.services.emit_on_create import generate_pam_hl7, generate_fhir
 from app.services.pam_validation import validate_pam
@@ -78,7 +79,7 @@ def test_all_messages_validate_without_error(ght_context, db_session):
     dossier = Dossier(
         patient_id=patient.id,
         ej_id=ej_id,
-        dossier_seq=100001,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_type="hospitalise",
         admit_time=datetime.now()
     )
@@ -94,7 +95,7 @@ def test_all_messages_validate_without_error(ght_context, db_session):
     print("\n[4/7] VENUE CREATION - HOSPITALIZED (CARDIOLOGY)")
     print("-" * 80)
     venue = Venue(
-        venue_seq=100101,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         ej_id=ej_id,
         start_time=dossier.admit_time,
@@ -124,7 +125,7 @@ def test_all_messages_validate_without_error(ght_context, db_session):
     dossier2 = Dossier(
         patient_id=patient.id,
         ej_id=ej_id,
-        dossier_seq=100002,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_type="externe",
         admit_time=datetime.now()
     )
@@ -132,7 +133,7 @@ def test_all_messages_validate_without_error(ght_context, db_session):
     session.commit()
 
     venue2 = Venue(
-        venue_seq=100102,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier2.id,
         ej_id=ej_id,
         start_time=dossier2.admit_time,
@@ -161,7 +162,7 @@ def test_all_messages_validate_without_error(ght_context, db_session):
     print("-" * 80)
     mouvement_adm = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1001,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",
@@ -190,7 +191,7 @@ def test_all_messages_validate_without_error(ght_context, db_session):
     print("-" * 80)
     mouvement_trans = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1002,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",
@@ -214,7 +215,7 @@ def test_all_messages_validate_without_error(ght_context, db_session):
     # Discharge movement (additional)
     mouvement_sortie = Mouvement(
         venue_id=venue.id,
-        mouvement_seq=1003,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         when=datetime.now(),
         ej_id=ej_id,
         uf_responsabilite="CARDIO",

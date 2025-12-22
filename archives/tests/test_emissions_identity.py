@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from datetime import datetime
 import pytest
 from sqlmodel import Session, select
@@ -51,7 +52,7 @@ def _new_patient() -> Patient:
         given="John",
         birth_date="19800101",
         gender="M",
-        patient_seq=0,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         external_id="TEST-PAT-001",
     )
 
@@ -95,13 +96,13 @@ async def test_dossier_venue_mouvement_emissions_on_insert_update():
         s.commit()
         # wait for patient logs
         await _wait_bg()
-        d = Dossier(dossier_seq=0, patient_id=p.id, uf_responsabilite="UF1", admit_time=datetime.utcnow())
+        d = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=p.id, uf_responsabilite="UF1", admit_time=datetime.utcnow())
         s.add(d)
         s.commit()
         await _wait_bg()
 
         # Create a Venue (admission)
-        v = Venue(venue_seq=0, code="VENUE-TST-1", label="Test Venue", uf_responsabilite="UF1", start_time=datetime.utcnow())
+        v = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, code="VENUE-TST-1", label="Test Venue", uf_responsabilite="UF1", start_time=datetime.utcnow())
         v.dossier_id = d.id
         s.add(v)
         s.commit()

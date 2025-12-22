@@ -1,5 +1,6 @@
 """Tests du service d'export FHIR."""
 import pytest
+import uuid
 from datetime import datetime
 from sqlmodel import Session, SQLModel, create_engine
 from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
@@ -148,7 +149,7 @@ def test_data_fixture(session: Session):
 
     # Dossier 
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         admit_time=datetime.now()
     )
@@ -158,7 +159,7 @@ def test_data_fixture(session: Session):
 
     # Venue
     venue = Venue(
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         uf_responsabilite=uf.identifier,  # Link to UF by its identifier
         start_time=datetime.now()
@@ -180,7 +181,7 @@ def test_data_fixture(session: Session):
     # Mouvements
     now = datetime.now()
     mvt1 = Mouvement(
-        mouvement_seq=1,  # Required field
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,  # Required field
         venue_id=venue.id,
         when=now,  # Required field
         action_code="ADMIT",

@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime
 from sqlmodel import Session, select
 
@@ -12,11 +13,11 @@ from app.services.hl7_generator import generate_update_message
 def _build_core_entities(session: Session):
     patient = Patient(family="EJ", given="Strict", birth_date="1985-02-02", gender="male")
     session.add(patient); session.commit(); session.refresh(patient)
-    dossier = Dossier(dossier_seq=701, patient_id=patient.id, uf_responsabilite="UF-EJ", admit_time=datetime.utcnow(), dossier_type=DossierType.HOSPITALISE)
+    dossier = Dossier(dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, patient_id=patient.id, uf_responsabilite="UF-EJ", admit_time=datetime.utcnow(), dossier_type=DossierType.HOSPITALISE)
     session.add(dossier); session.commit(); session.refresh(dossier)
-    venue = Venue(venue_seq=701, dossier_id=dossier.id, uf_responsabilite="UF-EJ", start_time=datetime.utcnow(), code="LOC-EJ", label="Loc EJ")
+    venue = Venue(venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, dossier_id=dossier.id, uf_responsabilite="UF-EJ", start_time=datetime.utcnow(), code="LOC-EJ", label="Loc EJ")
     session.add(venue); session.commit(); session.refresh(venue)
-    mouvement = Mouvement(mouvement_seq=701, venue_id=venue.id, when=datetime.utcnow(), location="LOC-EJ/BOX", trigger_event="A01")
+    mouvement = Mouvement(mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, venue_id=venue.id, when=datetime.utcnow(), location="LOC-EJ/BOX", trigger_event="A01")
     session.add(mouvement); session.commit(); session.refresh(mouvement)
     return patient, dossier, venue, mouvement
 

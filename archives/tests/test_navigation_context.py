@@ -1,5 +1,6 @@
 """Tests pour la navigation avec contexte des venues et mouvements"""
 import pytest
+import uuid
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 from datetime import datetime
@@ -18,7 +19,7 @@ def test_venues_with_dossier_context(client: TestClient, session: Session):
     """Test de la liste des venues avec un contexte dossier valide"""
     # Créer un patient
     patient = Patient(
-        patient_seq=1,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         family="Test",
         given="Patient",
         birth_date="1990-01-01",
@@ -30,7 +31,7 @@ def test_venues_with_dossier_context(client: TestClient, session: Session):
     
     # Créer un dossier
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         uf_responsabilite="UF001",
         admit_time=datetime.now()
@@ -41,7 +42,7 @@ def test_venues_with_dossier_context(client: TestClient, session: Session):
     
     # Créer une venue
     venue = Venue(
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         uf_responsabilite="UF001",
         start_time=datetime.now()
@@ -66,7 +67,7 @@ def test_mouvements_with_venue_context(client: TestClient, session: Session):
     """Test de la liste des mouvements avec un contexte venue valide"""
     # Créer un patient
     patient = Patient(
-        patient_seq=1,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         family="Test",
         given="Patient",
         birth_date="1990-01-01",
@@ -78,7 +79,7 @@ def test_mouvements_with_venue_context(client: TestClient, session: Session):
     
     # Créer un dossier
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         uf_responsabilite="UF001",
         admit_time=datetime.now()
@@ -89,7 +90,7 @@ def test_mouvements_with_venue_context(client: TestClient, session: Session):
     
     # Créer une venue
     venue = Venue(
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         uf_responsabilite="UF001",
         start_time=datetime.now()
@@ -100,7 +101,7 @@ def test_mouvements_with_venue_context(client: TestClient, session: Session):
     
     # Créer un mouvement
     mouvement = Mouvement(
-        mouvement_seq=1,
+        mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         venue_id=venue.id,
         type="ADT^A01",
         when=datetime.now(),
@@ -126,7 +127,7 @@ def test_new_venue_with_dossier(client: TestClient, session: Session):
     """Test de la création d'une venue avec un dossier valide"""
     # Créer un patient et un dossier
     patient = Patient(
-        patient_seq=1,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         family="Test",
         given="Patient",
         birth_date="1990-01-01",
@@ -137,7 +138,7 @@ def test_new_venue_with_dossier(client: TestClient, session: Session):
     session.refresh(patient)
     
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         uf_responsabilite="UF001",
         admit_time=datetime.now()
@@ -163,7 +164,7 @@ def test_new_mouvement_with_venue(client: TestClient, session: Session):
     """Test de la création d'un mouvement avec une venue valide"""
     # Créer la hiérarchie complète
     patient = Patient(
-        patient_seq=1,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         family="Test",
         given="Patient",
         birth_date="1990-01-01",
@@ -174,7 +175,7 @@ def test_new_mouvement_with_venue(client: TestClient, session: Session):
     session.refresh(patient)
     
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         uf_responsabilite="UF001",
         admit_time=datetime.now()
@@ -184,7 +185,7 @@ def test_new_mouvement_with_venue(client: TestClient, session: Session):
     session.refresh(dossier)
     
     venue = Venue(
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         uf_responsabilite="UF001",
         start_time=datetime.now()
@@ -203,7 +204,7 @@ def test_venue_breadcrumbs(client: TestClient, session: Session):
     """Test que le fil d'Ariane est correct pour les venues"""
     # Créer la hiérarchie
     patient = Patient(
-        patient_seq=1,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         family="Dupont",
         given="Jean",
         birth_date="1990-01-01",
@@ -214,7 +215,7 @@ def test_venue_breadcrumbs(client: TestClient, session: Session):
     session.refresh(patient)
     
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         uf_responsabilite="UF001",
         admit_time=datetime.now()
@@ -234,7 +235,7 @@ def test_mouvement_breadcrumbs(client: TestClient, session: Session):
     """Test que le fil d'Ariane est correct pour les mouvements"""
     # Créer la hiérarchie complète
     patient = Patient(
-        patient_seq=1,
+        patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         family="Martin",
         given="Paul",
         birth_date="1985-05-15",
@@ -245,7 +246,7 @@ def test_mouvement_breadcrumbs(client: TestClient, session: Session):
     session.refresh(patient)
     
     dossier = Dossier(
-        dossier_seq=1,
+        dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         patient_id=patient.id,
         uf_responsabilite="UF001",
         admit_time=datetime.now()
@@ -255,7 +256,7 @@ def test_mouvement_breadcrumbs(client: TestClient, session: Session):
     session.refresh(dossier)
     
     venue = Venue(
-        venue_seq=1,
+        venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000,
         dossier_id=dossier.id,
         uf_responsabilite="UF001",
         start_time=datetime.now()

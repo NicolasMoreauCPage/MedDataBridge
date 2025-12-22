@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+import uuid
 from sqlmodel import create_engine, SQLModel, Session, select
 from datetime import datetime
 
@@ -199,14 +200,15 @@ async def test_integration_create_entities(session):
 
 def test_z99_updates(session):
     # create a dossier and commit
-    d = Dossier(dossier_seq=12345, patient_id=1, uf_responsabilite="OLD", admit_time="2025-05-13T08:16:08")
+    dossier_seq = int(uuid.uuid4().hex[:8], 16) % 1000000
+    d = Dossier(dossier_seq=dossier_seq, patient_id=1, uf_responsabilite="OLD", admit_time="2025-05-13T08:16:08")
     session.add(d)
     session.commit()
     session.refresh(d)
 
-    msg = "Z99|Dossier|12345|uf_responsabilite|NEW_UF\r"
+    msg = f"Z99|Dossier|{dossier_seq}|uf_responsabilite|NEW_UF\r"
     _handle_z99_updates(msg, session)
-    d2 = session.exec(select(Dossier).where(Dossier.dossier_seq == 12345)).first()
+    d2 = session.exec(select(Dossier).where(Dossier.dossier_seq == dossier_seq)).first()
     assert d2.uf_responsabilite == "NEW_UF"
 
 

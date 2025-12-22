@@ -1,4 +1,5 @@
 import pytest
+import uuid
 from datetime import datetime
 from sqlmodel import Session
 
@@ -28,16 +29,16 @@ def test_parse_zbe_segment_integration_format():
 
 
 def make_minimal_dossier(session: Session):
-    p = Patient(family="Test", given="User", identifier="P123", patient_seq=1, birth_date="19900101", gender="F")
+    p = Patient(family="Test", given="User", identifier="P123", patient_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, birth_date="19900101", gender="F")
     session.add(p)
     session.flush()
-    d = Dossier(patient_id=p.id, dossier_seq=1, admit_time=datetime.utcnow())
+    d = Dossier(patient_id=p.id, dossier_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, admit_time=datetime.utcnow())
     session.add(d)
     session.flush()
-    v = Venue(dossier_id=d.id, venue_seq=1, start_time=datetime.utcnow())
+    v = Venue(dossier_id=d.id, venue_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, start_time=datetime.utcnow())
     session.add(v)
     session.flush()
-    m = Mouvement(venue_id=v.id, mouvement_seq=1, when=datetime.utcnow(), movement_type="admission", type="ADT^A01")
+    m = Mouvement(venue_id=v.id, mouvement_seq=int(uuid.uuid4().hex[:8], 16) % 1000000, when=datetime.utcnow(), movement_type="admission", type="ADT^A01")
     session.add(m)
     session.commit()
     session.refresh(d)

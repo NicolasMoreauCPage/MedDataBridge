@@ -3,11 +3,12 @@ import logging
 from fastapi import APIRouter, Depends, Request, Form, Body
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from sqlmodel import select
+from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from app.db import get_session
-from app.dependencies.ght import require_ght_context
-from app.models import Patient, Dossier, DossierType
-from app.routers.contacts import get_templates
+from app.schemas.patient import PatientFormData
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema, PatientUpdateSchema
 from app.services.scenario_identity_generator import (
@@ -16,6 +17,11 @@ from app.services.scenario_identity_generator import (
 )
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.utils.flash import flash
+from app.models import Patient
+
+def get_templates(request: Request):
+    """Retourne l'instance templates globale avec les filtres enregistrés"""
+    return request.app.state.templates
 
 logger = logging.getLogger(__name__)
 
@@ -132,41 +138,59 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
 
 @router.post("/{patient_id:int}/edit")
 def update_patient_from_form(
-    patient_id: int, session: Session = Depends(get_session),
-    # Form fields are captured here and passed to the service
-    external_id: str = Form(None), family: str = Form(...), given: str = Form(...),
-    birth_date: str = Form(None), gender: str = Form(None), middle: str = Form(None),
-    prefix: str = Form(None), suffix: str = Form(None), birth_family: str = Form(None),
-    address: str = Form(None), city: str = Form(None), state: str = Form(None),
-    postal_code: str = Form(None), country: str = Form(None), phone: str = Form(None),
-    mobile: str = Form(None), work_phone: str = Form(None), email: str = Form(None),
-    birth_address: str = Form(None), birth_city: str = Form(None), birth_state: str = Form(None),
-    birth_postal_code: str = Form(None), birth_country: str = Form(None),
-    marital_status: str = Form(None), mothers_maiden_name: str = Form(None),
-    primary_care_provider: str = Form(None), nir: str = Form(None),
-    nationality: str = Form(None), identity_reliability_code: str = Form(None),
+    patient_id: int,
+    patient_data: PatientFormData = Depends(),
     request: Request = None,
+    session: Session = Depends(get_session)
 ):
     """Handles the submission of the patient edit form."""
     patient = session.get(Patient, patient_id)
     if not patient:
         return HTMLResponse("Patient introuvable", status_code=404)
 
-    update_data = PatientUpdateSchema(
-        external_id=external_id, family=family, given=given, birth_date=birth_date,
-        gender=gender, middle=middle, prefix=prefix, suffix=suffix, birth_family=birth_family,
-        address=address, city=city, state=state, postal_code=postal_code, country=country,
-        phone=phone, mobile=mobile, work_phone=work_phone, email=email,
-        birth_address=birth_address, birth_city=birth_city, birth_state=birth_state,
-        birth_postal_code=birth_postal_code, birth_country=birth_country,
-        marital_status=marital_status, mothers_maiden_name=mothers_maiden_name,
-        primary_care_provider=primary_care_provider, nir=nir, nationality=nationality,
-        identity_reliability_code=identity_reliability_code
-    )
-    
-    patients_service.update_patient(session=session, patient=patient, patient_data=update_data)
-    flash(request, "Patient mis à jour avec succès", "success")
-    return RedirectResponse(url=f"/patients/{patient_id}", status_code=303)
+    is_ajax = request.headers.get('accept') == 'application/json' if request else False
+    try:
+        patient_update_data = PatientUpdateSchema(
+            external_id=patient_data.external_id,
+            family=patient_data.family,
+            given=patient_data.given,
+            middle=patient_data.middle,
+            prefix=patient_data.prefix,
+            suffix=patient_data.suffix,
+            birth_family=patient_data.birth_family,
+            birth_date=patient_data.birth_date,
+            gender=patient_data.gender,
+            address=patient_data.address,
+            city=patient_data.city,
+            state=patient_data.state,
+            postal_code=patient_data.postal_code,
+            country=patient_data.country,
+            phone=patient_data.phone,
+            mobile=patient_data.mobile,
+            work_phone=patient_data.work_phone,
+            email=patient_data.email,
+            birth_address=patient_data.birth_address,
+            birth_city=patient_data.birth_city,
+            birth_state=patient_data.birth_state,
+            birth_postal_code=patient_data.birth_postal_code,
+            birth_country=patient_data.birth_country,
+            nir=patient_data.nir,
+            marital_status=patient_data.marital_status,
+            nationality=patient_data.nationality,
+            identity_reliability_code=patient_data.identity_reliability_code,
+            mothers_maiden_name=patient_data.mothers_maiden_name,
+            primary_care_provider=patient_data.primary_care_provider
+        )
+
+        patients_service.update_patient(session=session, patient=patient, patient_data=patient_update_data)
+        flash(request, "Patient mis à jour avec succès", "success")
+        return RedirectResponse(url=f"/patients/{patient_id}", status_code=303)
+    except Exception as e:
+        logger.error(f"Patient update failed: {e}", exc_info=True)
+        if is_ajax:
+            return JSONResponse(status_code=500, content={"detail": str(e)})
+        flash(request, f"Erreur lors de la mise à jour: {str(e)}", "error")
+        return RedirectResponse(url=f"/patients/{patient_id}/edit", status_code=303)
 
 
 @router.post("/{patient_id:int}/delete")
@@ -206,34 +230,43 @@ def new_patient_form(request: Request):
 
 @router.post("/new")
 async def create_patient_from_form(
-    request: Request, session: Session = Depends(get_session),
-    # Form fields are captured here to be passed to the service
-    external_id: str = Form(None), family: str = Form(...), given: str = Form(...),
-    middle: str = Form(None), prefix: str = Form(None), suffix: str = Form(None),
-    birth_family: str = Form(None), birth_date: str = Form(None), gender: str = Form(None),
-    address: str = Form(None), city: str = Form(None), state: str = Form(None),
-    postal_code: str = Form(None), country: str = Form(None), phone: str = Form(None),
-    mobile: str = Form(None), work_phone: str = Form(None), email: str = Form(None),
-    birth_address: str = Form(None), birth_city: str = Form(None), birth_state: str = Form(None),
-    birth_postal_code: str = Form(None), birth_country: str = Form(None),
-    nir: str = Form(None), marital_status: str = Form(None), nationality: str = Form(None),
-    identity_reliability_code: str = Form(None), mothers_maiden_name: str = Form(None),
-    primary_care_provider: str = Form(None),
+    patient_data: PatientFormData = Depends(),
+    request: Request = None,
+    session: Session = Depends(get_session)
 ):
     """Handles the submission of the new patient form."""
-    is_ajax = request.headers.get('accept') == 'application/json'
+    is_ajax = request.headers.get('accept') == 'application/json' if request else False
     try:
-        patient_data = PatientCreateSchema(
-            external_id=external_id, family=family, given=given, middle=middle, prefix=prefix,
-            suffix=suffix, birth_family=birth_family, birth_date=birth_date, gender=gender,
-            address=address, city=city, state=state, postal_code=postal_code, country=country,
-            phone=phone, mobile=mobile, work_phone=work_phone, email=email,
-            birth_address=birth_address, birth_city=birth_city, birth_state=birth_state,
-            birth_postal_code=birth_postal_code, birth_country=birth_country, nir=nir,
-            marital_status=marital_status, nationality=nationality,
-            identity_reliability_code=identity_reliability_code,
-            mothers_maiden_name=mothers_maiden_name,
-            primary_care_provider=primary_care_provider
+        patient_create_data = PatientCreateSchema(
+            external_id=patient_data.external_id,
+            family=patient_data.family,
+            given=patient_data.given,
+            middle=patient_data.middle,
+            prefix=patient_data.prefix,
+            suffix=patient_data.suffix,
+            birth_family=patient_data.birth_family,
+            birth_date=patient_data.birth_date,
+            gender=patient_data.gender,
+            address=patient_data.address,
+            city=patient_data.city,
+            state=patient_data.state,
+            postal_code=patient_data.postal_code,
+            country=patient_data.country,
+            phone=patient_data.phone,
+            mobile=patient_data.mobile,
+            work_phone=patient_data.work_phone,
+            email=patient_data.email,
+            birth_address=patient_data.birth_address,
+            birth_city=patient_data.birth_city,
+            birth_state=patient_data.birth_state,
+            birth_postal_code=patient_data.birth_postal_code,
+            birth_country=patient_data.birth_country,
+            nir=patient_data.nir,
+            marital_status=patient_data.marital_status,
+            nationality=patient_data.nationality,
+            identity_reliability_code=patient_data.identity_reliability_code,
+            mothers_maiden_name=patient_data.mothers_maiden_name,
+            primary_care_provider=patient_data.primary_care_provider
         )
         
         ght_context = getattr(request.state, "ght_context", None)

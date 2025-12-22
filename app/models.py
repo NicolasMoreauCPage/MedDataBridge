@@ -447,3 +447,5 @@ class Contract(SQLModel, table=True):
     description: Optional[str] = Field(default=None, description="Description")
 
     dossier: Dossier = Relationship(back_populates="contracts")
+
+

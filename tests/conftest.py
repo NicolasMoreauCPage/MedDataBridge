@@ -624,3 +624,80 @@ def dossier_psy_day_hospital_recurring_fixture(session: Session, dossier_psy_day
 
     session.commit()
     return data
+
+
+# Fixtures utilitaires pour créer des données de test courantes
+
+@pytest.fixture
+def sample_patient(session: Session):
+    """Crée et retourne un patient de test"""
+    from app.models import Patient
+    patient = Patient(
+        family="Dupont",
+        given="Jean",
+        birth_date="1990-01-15"
+    )
+    session.add(patient)
+    session.commit()
+    session.refresh(patient)
+    return patient
+
+
+@pytest.fixture
+def sample_ght(session: Session):
+    """Crée et retourne un contexte GHT de test"""
+    from app.models_structure import GHTContext
+    ght = GHTContext(name="Test GHT", code="TST")
+    session.add(ght)
+    session.commit()
+    session.refresh(ght)
+    return ght
+
+
+@pytest.fixture
+def sample_ej(session: Session, sample_ght):
+    """Crée et retourne une entité juridique de test"""
+    from app.models_structure import EntiteJuridique
+    ej = EntiteJuridique(
+        name="Test EJ",
+        code="EJ001",
+        ght_context_id=sample_ght.id
+    )
+    session.add(ej)
+    session.commit()
+    session.refresh(ej)
+    return ej
+
+
+@pytest.fixture
+def sample_dossier(session: Session, sample_patient, sample_ej):
+    """Crée et retourne un dossier de test"""
+    from app.models import Dossier
+    from datetime import datetime
+
+    # Utiliser une séquence unique pour éviter les conflits
+    try:
+        from app.db import get_next_sequence
+        dossier_seq = get_next_sequence(session, "dossier")
+    except Exception:
+        # Fallback: utiliser un timestamp pour l'unicité
+        import time
+        dossier_seq = int(time.time() * 1000) % 1000000
+
+    dossier = Dossier(
+        dossier_seq=dossier_seq,
+        patient_id=sample_patient.id,
+        admit_time=datetime.now(),
+        entite_juridique_id=sample_ej.id
+    )
+    session.add(dossier)
+    session.commit()
+    session.refresh(dossier)
+    return dossier
+
+
+@pytest.fixture
+def authenticated_client(client, sample_ght):
+    """Client FastAPI avec contexte GHT défini"""
+    # Le contexte GHT est déjà défini automatiquement dans la fixture client
+    return client

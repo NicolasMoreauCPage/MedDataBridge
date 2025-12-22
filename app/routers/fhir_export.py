@@ -88,7 +88,7 @@ async def export_patients(
     service = FHIRExportService(session, fhir_url)
     
     # Exporter les patients
-    bundle = service.export_patients(ej, limit=limit, offset=offset)
+    bundle = service.export_patients(ej)
     
     return bundle.dict()
 

@@ -9,7 +9,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 
 from app.models import UCDAct, Dossier
-from app.schemas.ucd import UCDActCreate, UCDActResponse
+from app.schemas.ucd import UCDActCreate, UCDActUpdate, UCDActResponse
 
 
 class UCDService:
@@ -68,29 +68,30 @@ class UCDService:
 
         return [UCDActResponse(**act.__dict__) for act in acts]
 
-    async def update_act(self, act_id: int, act_data: UCDActCreate) -> UCDActResponse:
+    async def update_act(self, act_id: int, act_data: UCDActUpdate) -> UCDActResponse:
         """Mettre à jour un acte UCD"""
         act = self.db.get(UCDAct, act_id)
         if not act:
             raise HTTPException(status_code=404, detail="Acte UCD non trouvé")
 
-        # Validation
-        if not act_data.code_cip or len(act_data.code_cip) != 13 or not act_data.code_cip.isdigit():
+        # Validation des champs fournis
+        if act_data.code_cip is not None and (not act_data.code_cip or len(act_data.code_cip) != 13 or not act_data.code_cip.isdigit()):
             raise HTTPException(status_code=400, detail="Code CIP-13 invalide")
 
-        if act_data.quantite <= 0:
+        if act_data.quantite is not None and act_data.quantite <= 0:
             raise HTTPException(status_code=400, detail="Quantité doit être positive")
 
-        if act_data.prix_unitaire <= 0:
+        if act_data.prix_unitaire is not None and act_data.prix_unitaire <= 0:
             raise HTTPException(status_code=400, detail="Prix unitaire doit être positif")
 
-        if act_data.montant_total <= 0:
+        if act_data.montant_total is not None and act_data.montant_total <= 0:
             raise HTTPException(status_code=400, detail="Montant total doit être positif")
 
-        # Vérification cohérence calcul
-        expected_total = act_data.prix_unitaire * act_data.quantite
-        if abs(act_data.montant_total - expected_total) > 0.01:
-            raise HTTPException(status_code=400, detail="Montant total incohérent avec prix unitaire * quantité")
+        # Vérification cohérence calcul si prix_unitaire et quantite sont fournis
+        if act_data.prix_unitaire is not None and act_data.quantite is not None and act_data.montant_total is not None:
+            expected_total = act_data.prix_unitaire * act_data.quantite
+            if abs(act_data.montant_total - expected_total) > 0.01:
+                raise HTTPException(status_code=400, detail="Montant total incohérent avec prix unitaire * quantité")
 
         # Mise à jour
         for field, value in act_data.__dict__.items():

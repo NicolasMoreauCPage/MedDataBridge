@@ -842,7 +842,10 @@ class HprimXmlService:
 
         # Pour l'instant, on ne parse pas la date d'émission et le message
         date_emission = datetime.now()
-        message_id = "MSG001"
+        
+        # Parser l'identifiant du message
+        message_id_elem = entete_elem.find(".//{http://www.hprim.org/hprimXML}identifiantMessage")
+        message_id = message_id_elem.text if message_id_elem is not None and message_id_elem.text else "MSG001"
 
         return HprimEnteteMessage(
             message_id=message_id,

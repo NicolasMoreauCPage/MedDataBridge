@@ -382,7 +382,7 @@ def create_app() -> FastAPI:
     app.include_router(roundtrip_hprim.router)
     print(" - Roundtrip HPRIM router mounted at /roundtrip-hprim")
     # Nouvelle IHM Cotation moderne (UX/UI pro)
-    app.include_router(cotation_modern.router)
+    app.include_router(cotation_modern.router, prefix="/cotation-modern")
     print(" - Cotation moderne router mounted at /cotation-modern")
     
     print(" - Integration routers mounted")

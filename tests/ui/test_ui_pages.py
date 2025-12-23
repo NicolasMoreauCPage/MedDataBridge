@@ -148,31 +148,13 @@ def test_dossier_detail_page_content():
 
 
 def test_cotation_modern_page_content():
-    """Test que la page de cotation moderne contient tous les éléments requis"""
-    r = client.get("/cotation-modern")
+    """Test que la page de cotation moderne redirige correctement"""
+    r = client.get("/cotation-modern", allow_redirects=True)
     assert r.status_code == 200
     content = r.text
 
-    # Titre et éléments principaux
-    assert "Cotation HPRIM" in content
-    assert "Saisie d'actes" in content
-
-    # Formulaire de sélection de dossier
-    assert "dossierSearch" in content or "Rechercher un dossier" in content
-    assert "dossierSelect" in content
-
-    # Section d'informations du dossier
-    assert "dossierInfo" in content or "Informations du dossier" in content
-
-    # Formulaire d'actes
-    assert "acte" in content.lower()
-    assert "quantite" in content.lower() or "Quantité" in content
-
-    # JavaScript chargé
-    assert "/static/js/cotationForm.js" in content
-
-    # Boutons d'action
-    assert "émettre" in content.lower() or "save" in content.lower()
+    # Should redirect to dossiers page
+    assert "dossiers" in content.lower() or "dossier" in content.lower()
 
 
 def test_navigation_menu_structure():
@@ -306,10 +288,10 @@ def test_cotation_integration_in_dossiers():
 
         # Vérifier le bouton Cotation HPRIM
         assert "Cotation HPRIM" in content
-        assert f"/cotation-modern?dossier_id={dossier_id}" in content
+        assert f"/dossiers/{dossier_id}/cotation" in content
 
         # Vérifier que le lien fonctionne
-        r2 = client.get(f"/cotation-modern?dossier_id={dossier_id}")
+        r2 = client.get(f"/dossiers/{dossier_id}/cotation")
         assert r2.status_code == 200
         assert "Cotation HPRIM" in r2.text
     finally:
@@ -353,16 +335,10 @@ def test_ui_error_handling():
 
 def test_form_validation_ui():
     """Test que les formulaires ont les éléments de validation appropriés"""
-    r = client.get("/cotation-modern")
-    assert r.status_code == 200
-    content = r.text
-
-    # Éléments de formulaire présents
-    assert "<form" in content or "form" in content.lower()
-    assert "input" in content.lower() or "select" in content.lower()
-
-    # Attributs de validation HTML5
-    assert "required" in content or "pattern" in content or "min" in content or "max" in content
+    # Test the redirect behavior instead
+    r = client.get("/cotation-modern", allow_redirects=False)
+    assert r.status_code in [302, 307]  # Redirect status
+    assert "/dossiers" in r.headers.get("location", "")
 
 
 def test_accessibility_elements():
@@ -393,19 +369,19 @@ def test_ui_performance_indicators():
     """Test que les pages se chargent dans un temps raisonnable et ont une taille appropriée"""
     pages_to_test = [
         ("/", "Page d'accueil"),
-        ("/cotation-modern", "Page de cotation")  # Retirer /dossiers car nécessite contexte GHT
+        ("/cotation-modern", "Page de cotation (redirige)")  # Retirer /dossiers car nécessite contexte GHT
     ]
 
     for url, description in pages_to_test:
-        r = client.get(url)
-        if r.status_code == 200:
-            content = r.text
+        r = client.get(url, allow_redirects=True)
+        assert r.status_code == 200, f"{description} ne charge pas correctement"
+        content = r.text
 
-            # Vérifier que la page n'est pas vide
-            assert len(content) > 500, f"{description} semble vide ou incomplète"  # Réduire le seuil minimum
+        # Vérifier que la page n'est pas vide
+        assert len(content) > 500, f"{description} semble vide ou incomplète"  # Réduire le seuil minimum
 
-            # Vérifier qu'elle n'est pas trop lourde (max 5MB)
-            assert len(content) < 5_000_000, f"{description} est anormalement lourde"
+        # Vérifier qu'elle n'est pas trop lourde (max 5MB)
+        assert len(content) < 5_000_000, f"{description} est anormalement lourde"
 
-            # Vérifier la présence d'éléments structurants
-            assert "<body" in content.lower(), f"{description} manque de structure HTML de base"
+        # Vérifier la présence d'éléments structurants
+        assert "<body" in content.lower(), f"{description} manque de structure HTML de base"

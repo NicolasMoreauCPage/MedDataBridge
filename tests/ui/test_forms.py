@@ -307,13 +307,20 @@ def test_dossier_form_validation(page, test_server, ght_context, patient_context
     # Wait for form to be visible
     page.wait_for_selector("form", state="visible", timeout=20000)
 
+    # Clear the admit_time field to make it empty
+    admit_time_field = page.locator("input[name='admit_time']")
+    admit_time_field.clear()
+
     # Try to submit without filling required fields
     submit_btn = page.locator("button[type=submit]")
     submit_btn.click()
 
-    # Check for error messages
-    error_locator = page.locator(".error-message, .form-error")
-    expect(error_locator).to_have_count_greater_than(0)
+    # Wait for client-side validation or AJAX response
+    page.wait_for_timeout(1000)
+    
+    # Check for error messages (either client-side field errors or toast messages)
+    error_locator = page.locator(".error-message, .form-error, .bg-red-50[role='alert']")
+    expect(error_locator).to_have_count(1)
 
 
 def test_dossier_form_successful_submit(page, test_server, ght_context, patient_context):
@@ -471,8 +478,10 @@ def test_venue_form_validation(page, test_server, ght_context):
             if create_link.is_visible():
                 create_link.click()
                 page.wait_for_load_state("networkidle")
-                create_found = True
-                break
+                # Check if we actually got to a form (not a 400 error)
+                if page.locator("form").count() > 0:
+                    create_found = True
+                    break
         except:
             continue
 
@@ -485,8 +494,8 @@ def test_venue_form_validation(page, test_server, ght_context):
         submit_btn.click()
 
         # Check for validation errors
-        error_locator = page.locator(".error-message, .form-error")
-        expect(error_locator).to_have_count_greater_than(0)
+        error_locator = page.locator(".error-message, .form-error, .bg-red-50[role='alert']")
+        expect(error_locator).to_have_count(1)
     else:
         # If no create form, skip this test
         pytest.skip("Venue creation form not accessible in current UI state")

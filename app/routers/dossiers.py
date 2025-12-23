@@ -1,8 +1,9 @@
 
 
 # --- ALL IMPORTS AT TOP ---
-from fastapi import APIRouter, Depends, Request, Form, Query
+from fastapi import APIRouter, Depends, Request, Form, Query, Body
 import os
+import logging
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select, Session
@@ -22,6 +23,8 @@ from app.utils.flash import flash
 from app.dependencies.ght import require_ght_context
 from app.models_structure import GHTContext
 from app.models_structure import UniteFonctionnelle, Service, Pole, EntiteGeographique
+
+logger = logging.getLogger(__name__)
 
 # Router definition after imports
 router = APIRouter(
@@ -395,4 +398,43 @@ def api_get_dossier(
             "uf_responsabilite": dossier.uf_responsabilite
         }
     except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+
+@api_router.post("/dossiers", response_class=JSONResponse, summary="API for creating a dossier")
+async def api_create_dossier(
+    patient_id: int = Body(...),
+    dossier_type: str = Body("hospitalise"),
+    admit_time: str = Body(...),
+    uf_responsabilite: str = Body(None),
+    admission_source: str = Body(None),
+    attending_provider: str = Body(None),
+    current_state: str = Body("Pas de venue courante"),
+    session=Depends(get_session)
+):
+    """API REST endpoint to create a dossier, typically used by integration tests."""
+    try:
+        from datetime import datetime
+        # Handle 'Z' suffix for UTC timezone which is not supported by fromisoformat
+        if admit_time.endswith('Z'):
+            admit_time = admit_time[:-1] + '+00:00'
+        admit_dt = datetime.fromisoformat(admit_time)
+        patient = session.get(Patient, patient_id)
+        if not patient:
+            return JSONResponse(status_code=404, content={"detail": "Patient not found"})
+        
+        dossier_data = DossierCreateSchema(
+            uf_responsabilite=uf_responsabilite,
+            dossier_type=dossier_type,
+            admission_source=admission_source,
+            attending_provider=attending_provider,
+            admit_time=admit_dt,
+            current_state=current_state
+        )
+        dossier = dossiers_service.create_dossier_with_pre_admit_venue(
+            session=session, dossier_data=dossier_data, patient=patient
+        )
+        return {"id": dossier.id, "dossier_seq": dossier.dossier_seq}
+    except Exception as e:
+        logger.error(f"API dossier creation failed: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"detail": str(e)})

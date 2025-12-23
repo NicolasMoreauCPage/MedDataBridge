@@ -23,6 +23,17 @@ class MockCacheService:
     
     def get(self, key):
         return {"revoked": True} if key in self.blacklist else None
+    
+    def get_stats(self):
+        return {
+            "enabled": True,
+            "used_memory": "1MB",
+            "total_connections": 10,
+            "total_commands": 100,
+            "keyspace_hits": 80,
+            "keyspace_misses": 20,
+            "hit_rate": 80.0
+        }
 
 mock_cache = MockCacheService()
 

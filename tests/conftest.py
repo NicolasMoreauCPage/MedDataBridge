@@ -235,10 +235,28 @@ def clean_db_tables():
     from app.db import session_factory, engine
     from sqlalchemy import text
     from app.models import SQLModel
+    import time
 
-    # Drop all tables and recreate them - more reliable than trying to clean
-    SQLModel.metadata.drop_all(bind=engine)
-    SQLModel.metadata.create_all(bind=engine)
+    # Close all active connections to avoid "database table is locked" errors
+    engine.dispose()
+
+    # Retry mechanism for database operations
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Drop all tables and recreate them - more reliable than trying to clean
+            SQLModel.metadata.drop_all(bind=engine)
+            SQLModel.metadata.create_all(bind=engine)
+            break  # Success, exit retry loop
+        except Exception as e:
+            if attempt < max_retries - 1:
+                # Wait a bit before retrying
+                time.sleep(0.1)
+                # Force close connections again
+                engine.dispose()
+            else:
+                # Last attempt failed, re-raise the exception
+                raise e
 
 
 import os

@@ -153,12 +153,15 @@ def get_last_scenario_status(
     
     # Récupérer l'EJ si c'est pas fourni
     ej_name = None
-    if endpoint_id and not ej_id:
+    if ej_id:
+        ej = session.get(EntiteJuridique, ej_id)
+        ej_name = ej.name if ej else f"EJ {ej_id}"
+    elif endpoint_id:
         endpoint = session.get(SystemEndpoint, endpoint_id)
-        if endpoint and endpoint.ej_id:
-            ej = session.get(EntiteJuridique, endpoint.ej_id)
-            ej_name = ej.name if ej else f"EJ {endpoint.ej_id}"
-            ej_id = endpoint.ej_id
+        if endpoint and endpoint.entite_juridique_id:
+            ej = session.get(EntiteJuridique, endpoint.entite_juridique_id)
+            ej_name = ej.name if ej else f"EJ {endpoint.entite_juridique_id}"
+            ej_id = endpoint.entite_juridique_id
     
     return ScenarioStatus(
         scenario_id=scenario_id,
@@ -185,7 +188,7 @@ def get_scenarios_status_for_ej(
     
     # Récupérer tous les endpoints de cette EJ
     endpoints = session.exec(
-        select(SystemEndpoint).where(SystemEndpoint.ej_id == ej_id)
+        select(SystemEndpoint).where(SystemEndpoint.entite_juridique_id == ej_id)
     ).all()
     
     if not endpoints:

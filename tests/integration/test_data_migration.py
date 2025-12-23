@@ -277,6 +277,7 @@ class TestDataMigration:
     def test_migration_performance_large_dataset(self, session: Session, sample_ght):
         """Test performance de migration sur gros volumes de données"""
         import time
+        from app.services.patients_service import PatientCreateSchema, create_patient
 
         # Créer un grand nombre de patients pour tester la performance
         start_time = time.time()
@@ -299,13 +300,13 @@ class TestDataMigration:
         assert creation_time < 30  # Moins de 30 secondes pour 100 patients
 
         # Vérifier que tous les patients sont bien créés
-        count = session.exec(select(Patient).where(Patient.family.like("Family%"))).count()
+        count = len(session.exec(select(Patient).where(Patient.family.like("Family%"))).all())
         assert count >= 100
 
     def test_migration_rollback_simulation(self, session: Session):
         """Test simulation de rollback de migration"""
         # Compter les patients avant
-        initial_count = session.exec(select(Patient)).count()
+        initial_count = len(session.exec(select(Patient)).all())
 
         # Simuler une migration qui échoue
         try:
@@ -324,7 +325,7 @@ class TestDataMigration:
             session.rollback()
 
         # Vérifier que le nombre de patients n'a pas changé
-        final_count = session.exec(select(Patient)).count()
+        final_count = len(session.exec(select(Patient)).all())
         assert final_count == initial_count
 
     def test_migration_data_integrity_constraints(self, session: Session):

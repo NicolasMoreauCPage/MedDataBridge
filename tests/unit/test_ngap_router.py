@@ -64,9 +64,12 @@ class TestNGAPRouter:
             mock_template.assert_called_once()
             call_args = mock_template.call_args
             assert call_args[0][0] == "ngap/dossier_acts.html"
-            assert call_args[0][1]["dossier"] == dossier
+            # Check that the dossier passed to template has the correct id
+            template_dossier = call_args[0][1]["dossier"]
+            assert template_dossier.id == dossier.id
+            assert template_dossier.patient_id == dossier.patient_id
             assert call_args[0][1]["acts"] == [{"id": 1, "lettre_cle": "C", "coefficient": 1.0}]
-            assert "NGAP - Dossier #1001" in call_args[0][1]["title"]
+            assert f"NGAP - Dossier #{template_dossier.dossier_seq}" == call_args[0][1]["title"]
 
     def test_ngap_by_dossier_not_found(self, client: TestClient):
         """Test consultation actes NGAP d'un dossier inexistant."""

@@ -139,7 +139,11 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
 @router.post("/{patient_id:int}/edit")
 def update_patient_from_form(
     patient_id: int,
-    patient_data: PatientFormData = Depends(),
+    family: str = Form(...),
+    given: str = Form(...),
+    birth_date: str = Form(None),
+    gender: str = Form(None),
+    identifier: str = Form(None),
     request: Request = None,
     session: Session = Depends(get_session)
 ):
@@ -151,35 +155,11 @@ def update_patient_from_form(
     is_ajax = request.headers.get('accept') == 'application/json' if request else False
     try:
         patient_update_data = PatientUpdateSchema(
-            external_id=patient_data.external_id,
-            family=patient_data.family,
-            given=patient_data.given,
-            middle=patient_data.middle,
-            prefix=patient_data.prefix,
-            suffix=patient_data.suffix,
-            birth_family=patient_data.birth_family,
-            birth_date=patient_data.birth_date,
-            gender=patient_data.gender,
-            address=patient_data.address,
-            city=patient_data.city,
-            state=patient_data.state,
-            postal_code=patient_data.postal_code,
-            country=patient_data.country,
-            phone=patient_data.phone,
-            mobile=patient_data.mobile,
-            work_phone=patient_data.work_phone,
-            email=patient_data.email,
-            birth_address=patient_data.birth_address,
-            birth_city=patient_data.birth_city,
-            birth_state=patient_data.birth_state,
-            birth_postal_code=patient_data.birth_postal_code,
-            birth_country=patient_data.birth_country,
-            nir=patient_data.nir,
-            marital_status=patient_data.marital_status,
-            nationality=patient_data.nationality,
-            identity_reliability_code=patient_data.identity_reliability_code,
-            mothers_maiden_name=patient_data.mothers_maiden_name,
-            primary_care_provider=patient_data.primary_care_provider
+            identifier=identifier,
+            family=family,
+            given=given,
+            birth_date=birth_date,
+            gender=gender
         )
 
         patients_service.update_patient(session=session, patient=patient, patient_data=patient_update_data)

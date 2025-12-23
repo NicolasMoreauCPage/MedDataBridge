@@ -80,12 +80,7 @@ def update_dossier(
         dossier.admit_time = update_data.admit_time
         dossier.dossier_seq = update_data.dossier_seq
 
-        session.refresh(dossier, attribute_names=["venues"])
-        if dossier.venues:
-            dossier.venues[0].uf_responsabilite = update_data.uf_responsabilite
-        
-        session.add(dossier)
-        attributes.flag_modified(dossier, "dossier_type")
+        session.merge(dossier)
         session.commit()
         session.refresh(dossier)
 
@@ -109,7 +104,7 @@ def delete_dossier(session: Session, dossier: Dossier):
         raise
 
 
-def create_dossier(session: Session, patient_id: int, ej_id: int, dossier_type: str = "hospitalise", admit_time: Optional[datetime] = None) -> Dossier:
+def create_dossier(session: Session, patient_id: int, ej_id: int, dossier_type: DossierType = DossierType.HOSPITALISE, admit_time: Optional[datetime] = None) -> Dossier:
     """Crée un dossier simple pour un patient."""
     seq = get_next_sequence(session, "dossier")
     dossier = Dossier(

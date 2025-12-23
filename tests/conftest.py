@@ -403,11 +403,8 @@ if str(REPO_ROOT) not in sys.path:
 FULL_APP_AVAILABLE = True
 try:
     # Only check that the app module is importable; do not wire anything here.
-    # Skip import in testing mode to avoid FastAPI initialization
-    import os
-    if os.getenv("TESTING", "0") not in ("1", "true", "True"):
-        import importlib
-        importlib.import_module("app.app")
+    import importlib
+    importlib.import_module("app.app")
 except Exception:
     FULL_APP_AVAILABLE = False
 

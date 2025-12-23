@@ -69,7 +69,7 @@ fake_users_db: Dict[str, UserInDB] = {
         username="admin",
         email="admin@example.com",
         # Password: "admin" (bcrypt hashed)
-        hashed_password="$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5yx3zf8xKqw0.",
+        hashed_password="$2b$12$aLbYNHIBy.8fKOqN.hFOSu5sLN6BrLriowFe300LsQajYhBNhy.Y2",
         roles=["admin", "user"],
         is_active=True
     ),
@@ -78,7 +78,7 @@ fake_users_db: Dict[str, UserInDB] = {
         username="user",
         email="user@example.com",
         # Password: "user" (bcrypt hashed)
-        hashed_password="$2b$12$7qlKjQeOG3ZWHbrXdD1pGuLX9dwxZxOv3D7K7XOC.qXpTfZ7r3rRC",
+        hashed_password="$2b$12$Uy/7mVKjNIvebrLBQAgbA.WV0VWfe6mmRv.15bMqdTtIZdoxJRBky",
         roles=["user"],
         is_active=True
     )

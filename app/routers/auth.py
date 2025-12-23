@@ -82,7 +82,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     
     return Token(
         access_token=access_token,
-        refresh_token=refresh_token
+        refresh_token=refresh_token,
+        roles=user.roles
     )
 
 
@@ -124,7 +125,8 @@ async def login_json(login_data: LoginRequest):
     
     return Token(
         access_token=access_token,
-        refresh_token=refresh_token
+        refresh_token=refresh_token,
+        roles=user.roles
     )
 
 

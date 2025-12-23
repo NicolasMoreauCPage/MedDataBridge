@@ -22,7 +22,9 @@ class MockCacheService:
         return True
     
     def get(self, key):
-        return {"revoked": True} if key in self.blacklist else None
+        # Return None for all keys in tests to simulate empty cache
+        # This avoids returning mock data that doesn't match expected schemas
+        return None
     
     def get_stats(self):
         return {

@@ -22,19 +22,13 @@ class TestFHIRPerformance:
     """Tests de performance pour FHIR"""
 
     @pytest.mark.slow
-    def test_fhir_bulk_export_patients(self, session: Session, sample_ght):
+    def test_fhir_bulk_export_patients(self, session: Session, sample_uf):
         """Test export FHIR de gros volumes de patients"""
 
-        # Créer une EJ pour l'export
-        ej = EntiteJuridique(
-            name="Performance Test EJ",
-            code="EJPERF",
-            ght_context_id=sample_ght.id
-        )
-        session.add(ej)
-        session.commit()
+        # Utiliser l'EJ du sample_uf
+        ej = sample_uf.service.pole.entite_geo.entite_juridique
 
-        # Créer 500 patients
+        # Créer 500 patients avec dossiers et venues dans l'UF
         patients = []
         start_time = time.time()
 
@@ -44,11 +38,26 @@ class TestFHIRPerformance:
                 given=f"PerfGiven{i:03d}",
                 birth_date=f"{1950 + (i % 50):04d}-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}"
             )
-            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ght.id)
+            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=ej.ght_context_id)
+            
+            # Créer un dossier pour ce patient
+            dossier_data = DossierCreateSchema(
+                uf_responsabilite=sample_uf.identifier,
+                dossier_type="hospitalise",
+                admission_source="urgence",
+                attending_provider="Dr. Performance",
+                admit_time=datetime.now()
+            )
+            dossier = create_dossier_with_pre_admit_venue(
+                session=session, 
+                dossier_data=dossier_data, 
+                patient=patient
+            )
+            
             patients.append(patient)
 
         creation_time = time.time() - start_time
-        print(f"Création de 500 patients: {creation_time:.2f}s")
+        print(f"Création de 500 patients avec dossiers: {creation_time:.2f}s")
 
         # Exporter tous les patients en FHIR
         export_service = FHIRExportService(session, "http://localhost:8000/fhir")
@@ -70,17 +79,11 @@ class TestFHIRPerformance:
         assert bundle_size < 50, f"Bundle trop volumineux: {bundle_size:.2f}MB"
 
     @pytest.mark.slow
-    def test_fhir_bulk_export_with_dossiers(self, session: Session, sample_ght):
+    def test_fhir_bulk_export_with_dossiers(self, session: Session, sample_uf):
         """Test export FHIR avec dossiers et actes"""
 
-        # Créer EJ
-        ej = EntiteJuridique(
-            name="Bulk Export Test",
-            code="EJBULK",
-            ght_context_id=sample_ght.id
-        )
-        session.add(ej)
-        session.commit()
+        # Utiliser l'EJ du sample_uf
+        ej = sample_uf.service.pole.entite_geo.entite_juridique
 
         # Créer 100 patients avec dossiers
         start_time = time.time()
@@ -92,12 +95,14 @@ class TestFHIRPerformance:
                 given=f"BulkGiven{i:03d}",
                 birth_date=f"{1970 + (i % 30):04d}-01-01"
             )
-            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ght.id)
+            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=ej.ght_context_id)
 
             # Dossier
             dossier_data = DossierCreateSchema(
-                uf_responsabilite="UF001",
+                uf_responsabilite=sample_uf.identifier,
                 dossier_type="hospitalise",
+                admission_source="urgence",
+                attending_provider="Dr. Bulk",
                 admit_time=datetime.now()
             )
             create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
@@ -106,7 +111,7 @@ class TestFHIRPerformance:
         print(f"Création de 100 patients + dossiers: {setup_time:.2f}s")
 
         # Exporter
-        export_service = FHIRExportService(session, "http://localhost:8000/fhir")
+        export_service = FHIRExportService(session, "http://localhost:8000/fhir", enable_cache=False)
         start_time = time.time()
 
         patient_bundle = export_service.export_patients(ej)
@@ -123,17 +128,11 @@ class TestFHIRPerformance:
         assert export_time < 20, f"Export trop lent: {export_time:.2f}s"
 
     @pytest.mark.slow
-    def test_fhir_complex_queries_performance(self, session: Session, sample_ght):
+    def test_fhir_complex_queries_performance(self, session: Session, sample_uf):
         """Test performance des requêtes FHIR complexes"""
 
-        # Créer EJ
-        ej = EntiteJuridique(
-            name="Complex Query Test",
-            code="EJQUERY",
-            ght_context_id=sample_ght.id
-        )
-        session.add(ej)
-        session.commit()
+        # Utiliser l'EJ du sample_uf
+        ej = sample_uf.service.pole.entite_geo.entite_juridique
 
         # Créer des données variées
         patients_data = [
@@ -153,11 +152,22 @@ class TestFHIRPerformance:
                 gender=gender,
                 city=city
             )
-            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ght.id)
+            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=ej.ght_context_id)
+            
+            # Créer un dossier pour ce patient
+            dossier_data = DossierCreateSchema(
+                uf_responsabilite=sample_uf.identifier,
+                dossier_type="hospitalise",
+                admission_source="urgence",
+                attending_provider="Dr. Query",
+                admit_time=datetime.now()
+            )
+            create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
+            
             patients.append(patient)
 
         # Test export avec filtres (simulé via service)
-        export_service = FHIRExportService(session, "http://localhost:8000/fhir")
+        export_service = FHIRExportService(session, "http://localhost:8000/fhir", enable_cache=False)
 
         # Mesurer export complet
         start_time = time.time()
@@ -176,7 +186,7 @@ class TestFHIRPerformance:
         matching_patients = [p for p in full_bundle.entry
                            if p.resource.resourceType == "Patient"
                            and hasattr(p.resource, 'name')
-                           and p.resource.name[0].family == "Dupont"]
+                           and p.resource.name[0]['family'] == "Dupont"]
         search_time = time.time() - search_start
 
         print(f"Recherche patients Dupont: {search_time:.4f}s, trouvés: {len(matching_patients)}")
@@ -186,35 +196,39 @@ class TestFHIRPerformance:
         assert len(matching_patients) == 50  # 50 Dupont
 
     @pytest.mark.slow
-    def test_fhir_memory_usage_large_export(self, session: Session, sample_ght):
+    def test_fhir_memory_usage_large_export(self, session: Session, sample_uf):
         """Test utilisation mémoire lors d'export FHIR volumineux"""
 
         import psutil
         import os
 
-        # Créer EJ
-        ej = EntiteJuridique(
-            name="Memory Test EJ",
-            code="EJMEM",
-            ght_context_id=sample_ght.id
-        )
-        session.add(ej)
-        session.commit()
+        # Utiliser l'EJ du sample_uf
+        ej = sample_uf.service.pole.entite_geo.entite_juridique
 
-        # Créer 1000 patients
+        # Créer 1000 patients avec dossiers
         for i in range(1000):
             patient_data = PatientCreateSchema(
                 family=f"MemFamily{i:04d}",
                 given=f"MemGiven{i:04d}",
                 birth_date="1980-01-01"
             )
-            create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ght.id)
+            patient = create_patient(session=session, patient_data=patient_data, ght_context_id=ej.ght_context_id)
+            
+            # Créer un dossier pour ce patient
+            dossier_data = DossierCreateSchema(
+                uf_responsabilite=sample_uf.identifier,
+                dossier_type="hospitalise",
+                admission_source="urgence",
+                attending_provider="Dr. Memory",
+                admit_time=datetime.now()
+            )
+            create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
 
         # Mesurer utilisation mémoire
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB
 
-        export_service = FHIRExportService(session, "http://localhost:8000/fhir")
+        export_service = FHIRExportService(session, "http://localhost:8000/fhir", enable_cache=False)
         start_time = time.time()
 
         bundle = export_service.export_patients(ej)

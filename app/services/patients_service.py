@@ -88,6 +88,10 @@ def update_patient(
     """
     Met à jour un patient existant en base de données.
     """
+    # Vérifier que le patient existe en base
+    if patient.id is None or session.get(Patient, patient.id) is None:
+        raise ValueError(f"Patient with id {patient.id} not found")
+    
     update_data = patient_data.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(patient, key, value)

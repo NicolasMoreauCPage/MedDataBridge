@@ -526,9 +526,12 @@ def client_fixture(session: Session):
     from app.db import get_session, engine as _engine
 
     def override_get_session():
-        from app.db import engine
-        with Session(engine) as session:
+        # Use the test session - yield it directly without context manager
+        # This ensures the same session is used throughout the test
+        try:
             yield session
+        finally:
+            pass  # Don't close the session, let the test fixture handle it
 
     app = create_app()
     app.dependency_overrides[get_session] = override_get_session

@@ -88,6 +88,7 @@ async def edit_namespace(
     oid: str = Form(...),
     system: str = Form(...),
     type: str = Form(...),
+    is_active: str = Form("true"),
     session: Session = Depends(get_session),
 ):
     """Modifie un namespace existant."""
@@ -101,8 +102,10 @@ async def edit_namespace(
     namespace.oid = oid
     namespace.system = system
     namespace.type = type
+    namespace.is_active = is_active.lower() in ('true', '1', 'yes', 'on')
     
     session.add(namespace)
     session.commit()
+    session.refresh(namespace)  # Refresh to get updated data
     flash(request, f"Namespace {name} modifié avec succès", "success")
     return RedirectResponse(url=f"/admin/ght/{context_id}", status_code=303)

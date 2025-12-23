@@ -9,7 +9,15 @@ import subprocess
 import os
 from pathlib import Path
 
+# Vérifier si mutmut est disponible
+try:
+    import mutmut
+    MUTMUT_AVAILABLE = True
+except ImportError:
+    MUTMUT_AVAILABLE = False
 
+
+@pytest.mark.skipif(not MUTMUT_AVAILABLE, reason="mutmut package not installed")
 @pytest.mark.slow
 @pytest.mark.mutation
 class TestMutationCoverage:

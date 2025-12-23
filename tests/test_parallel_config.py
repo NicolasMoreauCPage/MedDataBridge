@@ -117,7 +117,7 @@ def mutation_config():
 
 
 # Métriques de performance pour CI/CD
-class TestMetrics:
+class TestMetricsCollector:
     """Collecte de métriques de test pour CI/CD"""
 
     def __init__(self):

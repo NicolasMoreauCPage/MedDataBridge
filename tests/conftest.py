@@ -13,19 +13,19 @@ warnings.filterwarnings("ignore", category=SAWarning)
 class MockCacheService:
     def __init__(self):
         self.blacklist = set()
-    
+
     def exists(self, key):
         return key in self.blacklist
-    
+
     def set(self, key, value, ttl=None):
         self.blacklist.add(key)
         return True
-    
+
     def get(self, key):
         # Return None for all keys in tests to simulate empty cache
         # This avoids returning mock data that doesn't match expected schemas
         return None
-    
+
     def get_stats(self):
         return {
             "enabled": True,
@@ -295,6 +295,65 @@ def clean_db_tables():
             else:
                 # Last attempt failed, re-raise the exception
                 raise e
+
+
+# Test categorization markers for better organization and selective running
+def pytest_configure(config):
+    """Register custom markers for test categorization."""
+    config.addinivalue_line("markers", "unit: Unit tests (fast, isolated)")
+    config.addinivalue_line("markers", "integration: Integration tests (slower, test real components)")
+    config.addinivalue_line("markers", "ui: UI tests (require browser/playwright)")
+    config.addinivalue_line("markers", "api: API endpoint tests")
+    config.addinivalue_line("markers", "security: Security-related tests")
+    config.addinivalue_line("markers", "performance: Performance tests")
+    config.addinivalue_line("markers", "flaky: Tests that may fail intermittently")
+    config.addinivalue_line("markers", "slow: Tests that take longer than 30 seconds")
+    config.addinivalue_line("markers", "critical: Critical functionality tests")
+
+
+@pytest.fixture(scope='function')
+def isolated_session():
+    """Provide an isolated database session that rolls back all changes."""
+    from app.db import session_factory
+    session = session_factory()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+
+
+@pytest.fixture(scope='function')
+def test_patient(isolated_session):
+    """Create a test patient for use in tests."""
+    from app.models import Patient
+    patient = Patient(
+        family="TestPatient",
+        given="User",
+        birth_date=datetime(1990, 1, 1).date()
+    )
+    isolated_session.add(patient)
+    isolated_session.commit()
+    isolated_session.refresh(patient)
+    return patient
+
+
+@pytest.fixture(scope='function')
+def test_dossier(isolated_session, test_patient):
+    """Create a test dossier for use in tests."""
+    from app.models import Dossier
+    from app.db import get_next_sequence
+
+    dossier_seq = get_next_sequence(isolated_session, "dossier")
+    dossier = Dossier(
+        dossier_seq=dossier_seq,
+        patient_id=test_patient.id,
+        admit_time=datetime.utcnow()
+    )
+    isolated_session.add(dossier)
+    isolated_session.commit()
+    isolated_session.refresh(dossier)
+    return dossier
 
 
 import os

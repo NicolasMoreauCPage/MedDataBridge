@@ -23,6 +23,7 @@ def session():
         s.rollback()
 
 
+@pytest.mark.unit
 def test_parse_mrg_segment():
     """Test parsing du segment MRG"""
     message = (

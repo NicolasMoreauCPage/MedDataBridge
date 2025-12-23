@@ -21,6 +21,6 @@ def test_cotation_modern_nav_link():
 
 def test_cotation_modern_js_loaded():
     # Test the redirect behavior
-    r = client.get("/cotation-modern", allow_redirects=False)
+    r = client.get("/cotation-modern/", allow_redirects=False)
     assert r.status_code in [302, 307]  # Redirect status
     assert "/dossiers" in r.headers.get("location", "")

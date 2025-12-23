@@ -293,7 +293,7 @@ def test_cotation_integration_in_dossiers():
         # Vérifier que le lien fonctionne
         r2 = client.get(f"/dossiers/{dossier_id}/cotation")
         assert r2.status_code == 200
-        assert "Cotation HPRIM" in r2.text
+        assert "Cotation d'Actes Médicaux" in r2.text
     finally:
         session.close()
 
@@ -336,7 +336,7 @@ def test_ui_error_handling():
 def test_form_validation_ui():
     """Test que les formulaires ont les éléments de validation appropriés"""
     # Test the redirect behavior instead
-    r = client.get("/cotation-modern", allow_redirects=False)
+    r = client.get("/cotation-modern/", allow_redirects=False)
     assert r.status_code in [302, 307]  # Redirect status
     assert "/dossiers" in r.headers.get("location", "")
 

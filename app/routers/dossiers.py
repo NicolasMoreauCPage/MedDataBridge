@@ -139,6 +139,11 @@ def show_dossier(dossier_id: int, request: Request):
     finally:
         session.close()
 
+@public_router.get("/{dossier_id}/cotation", response_class=RedirectResponse)
+def redirect_dossier_cotation(dossier_id: int):
+    """Redirige vers la page de cotation moderne pour ce dossier"""
+    return RedirectResponse(url=f"/cotation-modern?dossier_id={dossier_id}", status_code=302)
+
 from typing import Optional
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(

@@ -236,6 +236,8 @@ class Venue(SQLModel, table=True):
     uf_soins_code: Optional[str] = None
     uf_soins_label: Optional[str] = None
     nature: Optional[str] = None  # Movement nature code (S,H,M,L,D,SM)
+    hospital_service: Optional[str] = None  # Service hospitalier
+    attending_provider: Optional[str] = None  # Médecin responsable
     start_time: datetime
     dossier: Dossier = Relationship(back_populates="venues")
     mouvements: List["Mouvement"] = Relationship(back_populates="venue")

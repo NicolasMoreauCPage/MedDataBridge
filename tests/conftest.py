@@ -3,6 +3,9 @@ import pytest
 
 os.environ.setdefault("TESTING", "1")
 
+# Configure pytest-asyncio
+pytestmark = pytest.mark.asyncio
+
 # Suppress a noisy SQLAlchemy SAWarning triggered by in-memory vocabulary mapping
 # objects that may be created detached from the session during startup/meta init.
 import warnings
@@ -418,8 +421,8 @@ def session_fixture():
         # Some tests expect session.refresh(obj) to Renvoie the object
         _orig_refresh = session.refresh
 
-        def _refresh_and_return(obj):
-            _orig_refresh(obj)
+        def _refresh_and_return(obj, *args, **kwargs):
+            _orig_refresh(obj, *args, **kwargs)
             return obj
 
         session.refresh = _refresh_and_return

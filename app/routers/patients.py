@@ -210,50 +210,79 @@ def new_patient_form(request: Request):
 
 @router.post("/new")
 async def create_patient_from_form(
-    patient_data: PatientFormData = Depends(),
-    request: Request = None,
-    session: Session = Depends(get_session)
+    request: Request,
+    session: Session = Depends(get_session),
+    # Form fields
+    external_id: str = Form(None),
+    family: str = Form(...),
+    given: str = Form(...),
+    middle: str = Form(None),
+    prefix: str = Form(None),
+    suffix: str = Form(None),
+    birth_family: str = Form(None),
+    birth_date: str = Form(None),
+    gender: str = Form(None),
+    address: str = Form(None),
+    city: str = Form(None),
+    state: str = Form(None),
+    postal_code: str = Form(None),
+    country: str = Form(None),
+    phone: str = Form(None),
+    mobile: str = Form(None),
+    work_phone: str = Form(None),
+    email: str = Form(None),
+    birth_address: str = Form(None),
+    birth_city: str = Form(None),
+    birth_state: str = Form(None),
+    birth_postal_code: str = Form(None),
+    birth_country: str = Form(None),
+    nir: str = Form(None),
+    marital_status: str = Form(None),
+    nationality: str = Form(None),
+    identity_reliability_code: str = Form(None),
+    mothers_maiden_name: str = Form(None),
+    primary_care_provider: str = Form(None)
 ):
     """Handles the submission of the new patient form."""
     is_ajax = request.headers.get('accept') == 'application/json' if request else False
     try:
         patient_create_data = PatientCreateSchema(
-            external_id=patient_data.external_id,
-            family=patient_data.family,
-            given=patient_data.given,
-            middle=patient_data.middle,
-            prefix=patient_data.prefix,
-            suffix=patient_data.suffix,
-            birth_family=patient_data.birth_family,
-            birth_date=patient_data.birth_date,
-            gender=patient_data.gender,
-            address=patient_data.address,
-            city=patient_data.city,
-            state=patient_data.state,
-            postal_code=patient_data.postal_code,
-            country=patient_data.country,
-            phone=patient_data.phone,
-            mobile=patient_data.mobile,
-            work_phone=patient_data.work_phone,
-            email=patient_data.email,
-            birth_address=patient_data.birth_address,
-            birth_city=patient_data.birth_city,
-            birth_state=patient_data.birth_state,
-            birth_postal_code=patient_data.birth_postal_code,
-            birth_country=patient_data.birth_country,
-            nir=patient_data.nir,
-            marital_status=patient_data.marital_status,
-            nationality=patient_data.nationality,
-            identity_reliability_code=patient_data.identity_reliability_code,
-            mothers_maiden_name=patient_data.mothers_maiden_name,
-            primary_care_provider=patient_data.primary_care_provider
+            external_id=external_id,
+            family=family,
+            given=given,
+            middle=middle,
+            prefix=prefix,
+            suffix=suffix,
+            birth_family=birth_family,
+            birth_date=birth_date,
+            gender=gender,
+            address=address,
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            country=country,
+            phone=phone,
+            mobile=mobile,
+            work_phone=work_phone,
+            email=email,
+            birth_address=birth_address,
+            birth_city=birth_city,
+            birth_state=birth_state,
+            birth_postal_code=birth_postal_code,
+            birth_country=birth_country,
+            nir=nir,
+            marital_status=marital_status,
+            nationality=nationality,
+            identity_reliability_code=identity_reliability_code,
+            mothers_maiden_name=mothers_maiden_name,
+            primary_care_provider=primary_care_provider
         )
         
         ght_context = getattr(request.state, "ght_context", None)
         ght_context_id = getattr(ght_context, "id", None)
         
         patient = patients_service.create_patient(
-            session=session, patient_data=patient_data, ght_context_id=ght_context_id
+            session=session, patient_data=patient_create_data, ght_context_id=ght_context_id
         )
         flash(request, f"Patient {patient.given} {patient.family} créé avec succès", "success")
 

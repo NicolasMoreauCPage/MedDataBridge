@@ -201,7 +201,7 @@ class MetricsCollector:
         """Récupère les métriques."""
         if operation:
             metrics = self.metrics.get(operation, {})
-            if metrics and metrics["count"] > 0:
+            if metrics and "count" in metrics and metrics["count"] > 0:
                 metrics["avg_duration"] = metrics["total_duration"] / metrics["count"]
                 metrics["success_rate"] = metrics["success_count"] / metrics["count"]
             return metrics
@@ -210,7 +210,7 @@ class MetricsCollector:
         result = {}
         for op, metrics in self.metrics.items():
             result[op] = dict(metrics)
-            if metrics["count"] > 0:
+            if "count" in metrics and metrics["count"] > 0:
                 result[op]["avg_duration"] = metrics["total_duration"] / metrics["count"]
                 result[op]["success_rate"] = metrics["success_count"] / metrics["count"]
         

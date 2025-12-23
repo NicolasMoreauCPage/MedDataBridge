@@ -755,6 +755,7 @@ def sample_ej(session: Session, sample_ght):
 def sample_uf(session: Session, sample_ej):
     """Crée et retourne une unité fonctionnelle de test"""
     from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle
+    from sqlmodel import select
     
     # Créer la hiérarchie si nécessaire
     eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == sample_ej.id)).first()

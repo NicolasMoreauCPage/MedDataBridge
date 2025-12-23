@@ -73,11 +73,17 @@ class FHIRRelatedPerson(BaseModel):
     address: Optional[Dict[str, Any]] = None
     period: Optional[FHIRPeriod] = None
 
+class FHIRBundleEntry(BaseModel):
+    """Entrée de bundle FHIR."""
+    resource: Union[FHIRLocation, FHIRPatient, FHIREncounter, Dict[str, Any]]
+    request: Optional[Dict[str, str]] = None
+
 class FHIRBundle(BaseModel):
     """Bundle FHIR."""
     resourceType: str = "Bundle"
     type: str = "transaction"
-    entry: List[Dict[str, Any]]
+    entry: List[FHIRBundleEntry]
+    meta: Optional[Dict[str, Any]] = None
 
 class HL7ToFHIRConverter:
     """Convertisseur de données HL7 vers FHIR."""
@@ -120,15 +126,15 @@ class HL7ToFHIRConverter:
 
     @staticmethod
     def create_bundle_entry(resource: Union[FHIRLocation, FHIRPatient, FHIREncounter],
-                          method: str = "POST") -> Dict[str, Any]:
+                          method: str = "POST") -> FHIRBundleEntry:
         """Crée une entrée de bundle FHIR."""
-        return {
-            "resource": resource.dict(exclude_none=True, by_alias=True),
-            "request": {
+        return FHIRBundleEntry(
+            resource=resource,
+            request={
                 "method": method,
                 "url": f"{resource.resourceType}"
             }
-        }
+        )
 
 class StructureToFHIRConverter:
     """Convertisseur de structure vers FHIR."""

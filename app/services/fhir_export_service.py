@@ -242,7 +242,7 @@ class FHIRExportService:
             entries_count=len(entries)
         )
         
-        bundle = FHIRBundle(entry=entries)
+        bundle = FHIRBundle(type='collection', entry=entries)
         
         # Mise en cache
         if self.cache and self.enable_cache:
@@ -346,7 +346,13 @@ class FHIRExportService:
                 f"{patient.family} {patient.given}"
             )
         
-        bundle = FHIRBundle(entry=entries)
+        bundle = FHIRBundle(
+            type='collection',
+            entry=entries,
+            meta={
+                "lastUpdated": datetime.now().isoformat()
+            }
+        )
         
         # Mise en cache (TTL court car patients changent souvent)
         if self.cache and self.enable_cache:
@@ -497,7 +503,7 @@ class FHIRExportService:
             # Append related persons to bundle after encounter
             entries.extend(related_person_entries)
         
-        bundle = FHIRBundle(entry=entries)
+        bundle = FHIRBundle(type='collection', entry=entries)
         
         # Mise en cache (TTL très court car venues changent en temps réel)
         if self.cache and self.enable_cache:

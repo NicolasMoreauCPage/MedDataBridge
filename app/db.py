@@ -24,6 +24,7 @@ from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridiqu
 from app.models_identifiers import Identifier
 from app.models_practitioners import MedecinResponsable  # Import for FK resolution
 from app import models_scenarios  # ensure scenario models are registered
+from app import models_scenario_runs  # ensure scenario execution run models are registered
 try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)
     from app.services.scenario_template_init import init_scenario_templates  # noqa: E402
 except Exception:  # pragma: no cover

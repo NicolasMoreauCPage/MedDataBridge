@@ -5,23 +5,24 @@ os.environ.setdefault("TESTING", "1")
 
 # Suppress a noisy SQLAlchemy SAWarning triggered by in-memory vocabulary mapping
 # objects that may be created detached from the session during startup/meta init.
-# Ideally the mapping creation code should be fixed, but for test runs we silence
-# the warning to keep output readable and focus on test failures.
 import warnings
 from sqlalchemy.exc import SAWarning
 warnings.filterwarnings("ignore", category=SAWarning)
 
-from app.db import init_db, session_factory
-from app.models import Patient, Dossier, Venue
-from app.models_structure import GHTContext
-from app.models_shared import SystemEndpoint
-from sqlmodel import select
+# Delay heavy imports until needed
 from datetime import datetime
 
 
 @pytest.fixture(autouse=True, scope='session')
 def setup_test_db():
     """Initialize the in-memory DB and create minimal records used by UI pages."""
+    # Import here to avoid loading SQLAlchemy at conftest import time
+    from app.db import init_db, session_factory
+    from app.models import Patient, Dossier, Venue
+    from app.models_structure import GHTContext
+    from app.models_shared import SystemEndpoint
+    from sqlmodel import select
+
     init_db()
     sess = session_factory()
     try:

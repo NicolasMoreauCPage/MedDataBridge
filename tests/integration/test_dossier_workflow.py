@@ -87,7 +87,7 @@ class TestDossierWorkflowIntegration:
         sortie = create_mouvement(session=session, mouvement_data=sortie_data)
 
         # Vérifier la sortie
-        assert sortie.event_code == "A03"
+        assert sortie.trigger_event == "A03"
         session.refresh(dossier)
         # Le dossier devrait être clôturé après A03
 
@@ -115,6 +115,8 @@ class TestDossierWorkflowIntegration:
         dossier_data = DossierCreateSchema(
             uf_responsabilite="UF001",
             dossier_type="externe",
+            admission_source="URGENCES",
+            attending_provider="Dr. Test",
             admit_time=datetime.now()
         )
         dossier = create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
@@ -150,6 +152,8 @@ class TestDossierWorkflowIntegration:
         dossier_data = DossierCreateSchema(
             uf_responsabilite="UF002",
             dossier_type="hospitalise",
+            admission_source="URGENCES",
+            attending_provider="Dr. Multiple",
             admit_time=datetime.now()
         )
         dossier = create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)

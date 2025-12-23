@@ -9,6 +9,30 @@ import warnings
 from sqlalchemy.exc import SAWarning
 warnings.filterwarnings("ignore", category=SAWarning)
 
+# Mock cache service for tests
+class MockCacheService:
+    def __init__(self):
+        self.blacklist = set()
+    
+    def exists(self, key):
+        return key in self.blacklist
+    
+    def set(self, key, value, ttl=None):
+        self.blacklist.add(key)
+        return True
+    
+    def get(self, key):
+        return {"revoked": True} if key in self.blacklist else None
+
+mock_cache = MockCacheService()
+
+# Mock the cache service module
+import sys
+from unittest.mock import MagicMock
+cache_service_mock = MagicMock()
+cache_service_mock.get_cache_service.return_value = mock_cache
+sys.modules['app.services.cache_service'] = cache_service_mock
+
 # Delay heavy imports until needed
 from datetime import datetime
 

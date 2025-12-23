@@ -40,7 +40,7 @@ class TestInputValidation:
 
         for malicious_input in malicious_inputs:
             # Test via API
-            response = client.post("/api/patients", json={
+            response = client.post("/patients/api/patients", json={
                 "family": malicious_input,
                 "given": "Test",
                 "birth_date": "1980-01-01"
@@ -128,7 +128,7 @@ class TestInputValidation:
         ]
 
         for payload in malformed_payloads:
-            response = client.post("/api/patients", json=payload)
+            response = client.post("/patients/api/patients", json=payload)
 
             # L'API devrait gérer gracieusement les données malformées
             # Soit accepter et corriger, soit rejeter explicitement
@@ -209,7 +209,7 @@ class TestInputValidation:
         # Test champs trop longs
         long_string = "A" * 10000  # 10KB
 
-        response = client.post("/api/patients", json={
+        response = client.post("/patients/api/patients", json={
             "family": long_string,
             "given": "Test",
             "birth_date": "1980-01-01"

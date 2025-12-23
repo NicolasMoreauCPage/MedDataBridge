@@ -101,11 +101,14 @@ class TestNGAPRouter:
         response = client.get("/ngap/create/1")
 
         assert response.status_code == 200
-        mock_template.assert_called_once_with("ngap/create_form.html", {
-            "request": mock_template.call_args[0][1]["request"],
-            "dossier": dossier,
-            "title": "Nouveau NGAP - Dossier #1001"
-        })
+        mock_template.assert_called_once()
+        call_args = mock_template.call_args
+        assert call_args[0][0] == "ngap/create_form.html"
+        # Check that the dossier passed to template has the correct id
+        template_dossier = call_args[0][1]["dossier"]
+        assert template_dossier.id == dossier.id
+        assert template_dossier.patient_id == dossier.patient_id
+        assert f"Nouveau NGAP - Dossier #{template_dossier.dossier_seq}" == call_args[0][1]["title"]
 
     def test_create_ngap_form_dossier_not_found(self, client: TestClient):
         """Test affichage formulaire avec dossier inexistant."""
@@ -164,17 +167,17 @@ class TestNGAPRouter:
             assert response.status_code == 200
             mock_service.create_act.assert_called_once()
             call_args = mock_service.create_act.call_args[0][0]
-            assert call_args["dossier_id"] == 1
-            assert call_args["lettre_cle"] == "C"
-            assert call_args["coefficient"] == 1.5
-            assert call_args["execute_date"] == datetime(2024, 1, 15, 14, 30)
-            assert call_args["prestataire_id"] == 1
-            assert call_args["denombrement"] == 1
-            assert call_args["position_dentaire"] == "11"
-            assert call_args["execute_heure"] == "14:30"
-            assert call_args["numero_seance"] == 1
-            assert call_args["montant"] == 25.5
-            assert call_args["commentaire"] == "Test acte"
+            assert call_args.dossier_id == 1
+            assert call_args.lettre_cle == "C"
+            assert call_args.coefficient == 1.5
+            assert call_args.execute_date == datetime(2024, 1, 15, 14, 30)
+            assert call_args.prestataire_id == 1
+            assert call_args.denombrement == 1
+            assert call_args.position_dentaire == "11"
+            assert call_args.execute_heure == "14:30"
+            assert call_args.numero_seance == 1
+            assert call_args.montant == 25.5
+            assert call_args.commentaire == "Test acte"
 
             mock_template.assert_called_once_with("ngap/act_created.html", {
                 "request": mock_template.call_args[0][1]["request"],

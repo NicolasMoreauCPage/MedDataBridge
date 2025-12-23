@@ -402,7 +402,21 @@ def setup_database():
     # Drop tables after each test to keep isolation
     from app.db import engine as _engine
 
-    SQLModel.metadata.drop_all(_engine)
+    # Dispose of all connections first to avoid locks
+    _engine.dispose()
+
+    # Add retry mechanism for table dropping
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            SQLModel.metadata.drop_all(_engine)
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"Failed to drop tables after {max_retries} attempts: {e}")
+                raise
+            time.sleep(0.1)  # Brief pause before retry
 
 
 @pytest.fixture(name="client")

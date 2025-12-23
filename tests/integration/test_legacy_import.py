@@ -242,7 +242,7 @@ class TestLegacyImport:
 
         # Vérifier qu'il n'y a pas eu de création de doublons
         # (selon la logique métier, les doublons peuvent être rejetés ou fusionnés)
-        total_patients = session.exec(select(Patient).where(Patient.family == "DUPONT")).count()
+        total_patients = len(session.exec(select(Patient).where(Patient.family == "DUPONT")).all())
 
         # Soit 1 patient (fusion), soit plus si la logique permet les doublons
         assert total_patients >= 1

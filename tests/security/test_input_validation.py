@@ -196,7 +196,7 @@ class TestInputValidation:
 
                 # Vérifier que la table n'a pas été supprimée
                 from sqlmodel import select
-                count = session.exec(select(Patient)).count()
+                count = len(session.exec(select(Patient)).all())
                 assert count > 0  # La table existe toujours
 
             except Exception as e:

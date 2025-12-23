@@ -65,7 +65,7 @@ class TestFHIRPerformance:
         assert export_time < 30, f"Export trop lent: {export_time:.2f}s pour 500 patients"
 
         # Vérifier la taille du bundle
-        bundle_size = len(str(patient_bundle.dict())) / 1024 / 1024  # MB
+        bundle_size = len(str(patient_bundle.model_dump())) / 1024 / 1024  # MB
         print(f"Taille du bundle: {bundle_size:.2f}MB")
         assert bundle_size < 50, f"Bundle trop volumineux: {bundle_size:.2f}MB"
 

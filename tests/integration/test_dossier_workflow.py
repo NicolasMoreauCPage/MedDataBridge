@@ -54,7 +54,7 @@ class TestDossierWorkflowIntegration:
             venue_id=pre_admit_venue.id,
             event_code="A01",
             movement_datetime=datetime.now(),
-            location="Chambre 101"
+            to_location="Chambre 101"
         )
         mouvement = create_mouvement(session=session, mouvement_data=mouvement_data)
 

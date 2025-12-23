@@ -297,7 +297,7 @@ class TestLegacyImport:
     def test_legacy_import_transaction_rollback(self, session: Session, sample_ght):
         """Test rollback de transaction lors d'import legacy échoué"""
         # Compter les patients avant l'import
-        initial_count = session.exec(select(Patient)).count()
+        initial_count = len(session.exec(select(Patient)).all())
 
         # Simuler un import qui échoue partiellement
         legacy_batch = [
@@ -332,7 +332,7 @@ class TestLegacyImport:
             session.rollback()
 
         # Vérifier que le nombre de patients n'a pas changé significativement
-        final_count = session.exec(select(Patient)).count()
+        final_count = len(session.exec(select(Patient)).all())
         assert abs(final_count - initial_count) <= 1  # Au plus 1 patient créé
 
     def test_legacy_import_data_consistency_validation(self, session: Session, sample_ght):

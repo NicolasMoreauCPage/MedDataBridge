@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from app.app import create_app  # just for typing, not used at runtime
-
 router = APIRouter()
 
 @router.get('/menu', response_class=HTMLResponse)

@@ -16,6 +16,21 @@
           animation: {
             'fadeIn': 'fadeIn 200ms ease-in',
             'slideIn': 'slideIn 200ms ease-out',
+            'fade-in': 'fadeIn 300ms ease-out',
+            'slide-up': 'slideUp 400ms cubic-bezier(0.16, 1, 0.3, 1)',
+            'scale-in': 'scaleIn 250ms ease-out',
+            'bounce-in': 'bounceIn 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+            'page-enter': 'pageEnter 400ms cubic-bezier(0.16, 1, 0.3, 1)',
+            'page-exit': 'pageExit 300ms cubic-bezier(0.4, 0, 1, 1)',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideIn: { '0%': { transform: 'translateX(-10px)', opacity: '0' }, '100%': { transform: 'translateX(0)', opacity: '1' } },
+            slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+            scaleIn: { '0%': { transform: 'scale(0.95)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } },
+            bounceIn: { '0%': { transform: 'scale(0.3)', opacity: '0' }, '50%': { transform: 'scale(1.05)' }, '70%': { transform: 'scale(0.9)' }, '100%': { transform: 'scale(1)', opacity: '1' } },
+            pageEnter: { '0%': { transform: 'translateY(8px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+            pageExit: { '0%': { transform: 'translateY(0)', opacity: '1' }, '100%': { transform: 'translateY(-8px)', opacity: '0' } },
           }
         }
       },
@@ -124,8 +139,8 @@
     }
   </style>
 </head>
-<body class="font-sans" role="document">
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-3 focus:py-2 focus:rounded-md">Aller au contenu</a>
+<body class="font-sans animate-page-enter" role="document">
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95" role="banner">
     <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
       <a href="/" class="flex items-center gap-3 text-lg font-semibold text-primary transition-all duration-200 hover:opacity-80 group">
@@ -533,7 +548,7 @@
   </header>
 
   <div class="min-h-screen flex flex-col">
-    <main id="main-content" role="main" class="flex-1 mx-auto max-w-content px-4 py-6">
+    <main id="main-content" role="main" class="flex-1 mx-auto max-w-content px-4 py-6 animate-fade-in">
       {% if request.state and request.state.flash_messages %}
         <div class="space-y-2 mb-6" aria-live="polite">
           {% for flash in request.state.flash_messages %}

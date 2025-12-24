@@ -65,7 +65,7 @@ from app.routers import (
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
     interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp
 )
-    from app.routers import menu
+from app.routers import menu
 
 from app.routers.ght.ej import router as ej_router
 from app.routers.ght.structure import router as structure_router

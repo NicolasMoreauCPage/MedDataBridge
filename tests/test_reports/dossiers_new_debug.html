@@ -1,0 +1,781 @@
+<!DOCTYPE html><html lang="fr" class="font-sans" data-theme="light"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patients</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="http://127.0.0.1:54875/static/css/forms.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { 'sans': ['Inter', 'sans-serif'] },
+          maxWidth: { 'content': '1200px' },
+          colors: { 'primary': '#2563eb', 'accent': '#0ea5e9' },
+          animation: {
+            'fadeIn': 'fadeIn 200ms ease-in',
+            'slideIn': 'slideIn 200ms ease-out',
+          }
+        }
+      },
+      darkMode: 'media'
+    }
+  </script>
+  <meta name="description" content="Interface de gestion des données médicales et interopérabilité FHIR/HL7">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;🏥&lt;/text&gt;&lt;/svg&gt;">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #f8fafc; /* slate-50 */
+      --color-surface: #ffffff;
+      --color-border: #e2e8f0; /* slate-200 */
+      --color-text: #1f2937; /* slate-800 */
+      --color-muted: #64748b; /* slate-500 */
+      --color-accent: #2563eb; /* primary */
+      --color-accent-alt: #0ea5e9; /* accent */
+      --color-success: #10b981; /* green-500 */
+      --color-warning: #f59e0b; /* amber-500 */
+      --color-danger: #ef4444; /* red-500 */
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f172a; /* slate-900 */
+        --color-surface: #1e293b; /* slate-800 */
+        --color-border: #334155; /* slate-700 */
+        --color-text: #f1f5f9; /* slate-100 */
+        --color-muted: #94a3b8; /* slate-400 */
+        --color-accent: #3b82f6; /* blue-500 */
+        --color-accent-alt: #06b6d4; /* cyan-500 */
+      }
+    }
+    [data-theme="dark"] {
+      --color-bg: #0f172a;
+      --color-surface: #1e293b;
+      --color-border: #334155;
+      --color-text: #f1f5f9;
+      --color-muted: #94a3b8;
+      --color-accent: #3b82f6;
+      --color-accent-alt: #06b6d4;
+    }
+    body { background: var(--color-bg); color: var(--color-text); min-height: 100vh; }
+    .surface { background: var(--color-surface); }
+    .border-theme { border-color: var(--color-border); }
+    .text-muted { color: var(--color-muted); }
+    .text-accent { color: var(--color-accent); }
+    .bg-accent { background: var(--color-accent); }
+    .bg-surface { background: var(--color-surface); }
+    
+    /* Smooth transitions globales */
+    * { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Cards avec hover élégant */
+    .card-hover {
+      transition: all 200ms ease-in-out;
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* Buttons avec feedback */
+    button:not(:disabled):active {
+      transform: scale(0.98);
+    }
+    
+    /* Focus visible pour accessibilité */
+    *:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
+    /* Flash message animations */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-1rem);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+        transform: scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+
+    .animate-slideDown {
+      animation: slideDown 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .animate-fadeOut {
+      animation: fadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+  </style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:Inter, sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0, 0, 0, 0);white-space:nowrap;border-width:0}.invisible{visibility:hidden}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.left-0{left:0px}.right-0{right:0px}.right-4{right:1rem}.top-0{top:0px}.top-4{top:1rem}.top-full{top:100%}.z-40{z-index:40}.z-50{z-index:50}.mx-3{margin-left:0.75rem;margin-right:0.75rem}.mx-auto{margin-left:auto;margin-right:auto}.my-2{margin-top:0.5rem;margin-bottom:0.5rem}.mb-1{margin-bottom:0.25rem}.ml-1{margin-left:0.25rem}.mt-2{margin-top:0.5rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mt-0\.5{margin-top:0.125rem}.mt-auto{margin-top:auto}.block{display:block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-10{height:2.5rem}.h-3{height:0.75rem}.h-3\.5{height:0.875rem}.h-4{height:1rem}.h-6{height:1.5rem}.h-16{height:4rem}.h-8{height:2rem}.min-h-screen{min-height:100vh}.w-10{width:2.5rem}.w-3{width:0.75rem}.w-3\.5{width:0.875rem}.w-4{width:1rem}.w-6{width:1.5rem}.w-72{width:18rem}.w-80{width:20rem}.w-\[480px\]{width:480px}.w-\[520px\]{width:520px}.w-16{width:4rem}.w-48{width:12rem}.w-8{width:2rem}.w-full{width:100%}.min-w-full{min-width:100%}.max-w-content{max-width:1200px}.max-w-md{max-width:28rem}.flex-1{flex:1 1 0%}.cursor-not-allowed{cursor:not-allowed}.cursor-pointer{cursor:pointer}.select-none{-webkit-user-select:none;user-select:none}.list-none{list-style-type:none}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-1\.5{gap:0.375rem}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-x-2 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.5rem * var(--tw-space-x-reverse));margin-left:calc(0.5rem * calc(1 - var(--tw-space-x-reverse)))}.divide-y > :not([hidden]) ~ :not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px * var(--tw-divide-y-reverse))}.divide-slate-100 > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(241 245 249 / var(--tw-divide-opacity, 1))}.divide-slate-200 > :not([hidden]) ~ :not([hidden]){--tw-divide-opacity:1;border-color:rgb(226 232 240 / var(--tw-divide-opacity, 1))}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.rounded-md{border-radius:0.375rem}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-blue-200{--tw-border-opacity:1;border-color:rgb(191 219 254 / var(--tw-border-opacity, 1))}.border-slate-100{--tw-border-opacity:1;border-color:rgb(241 245 249 / var(--tw-border-opacity, 1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240 / var(--tw-border-opacity, 1))}.border-slate-300{--tw-border-opacity:1;border-color:rgb(203 213 225 / var(--tw-border-opacity, 1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/95{background-color:rgb(255 255 255 / 0.95)}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-primary{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-primary\/5{background-color:rgb(37 99 235 / 0.05)}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252 / var(--tw-bg-opacity, 1))}.bg-gradient-to-br{background-image:linear-gradient(to bottom right, var(--tw-gradient-stops))}.bg-gradient-to-b{background-image:linear-gradient(to bottom, var(--tw-gradient-stops))}.bg-gradient-to-r{background-image:linear-gradient(to right, var(--tw-gradient-stops))}.from-blue-500{--tw-gradient-from:#3b82f6 var(--tw-gradient-from-position);--tw-gradient-to:rgb(59 130 246 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-slate-50{--tw-gradient-from:#f8fafc var(--tw-gradient-from-position);--tw-gradient-to:rgb(248 250 252 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-white{--tw-gradient-from:#fff var(--tw-gradient-from-position);--tw-gradient-to:rgb(255 255 255 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.to-blue-600{--tw-gradient-to:#2563eb var(--tw-gradient-to-position)}.to-slate-100{--tw-gradient-to:#f1f5f9 var(--tw-gradient-to-position)}.to-slate-50{--tw-gradient-to:#f8fafc var(--tw-gradient-to-position)}.p-2{padding:0.5rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-12{padding-top:3rem;padding-bottom:3rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.pl-2{padding-left:0.5rem}.pt-3{padding-top:0.75rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.font-sans{font-family:Inter, sans-serif}.font-mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-2xl{font-size:1.5rem;line-height:2rem}.font-medium{font-weight:500}.font-semibold{font-weight:600}.font-bold{font-weight:700}.uppercase{text-transform:uppercase}.leading-4{line-height:1rem}.tracking-wide{letter-spacing:0.025em}.tracking-wider{letter-spacing:0.05em}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-green-700{--tw-text-opacity:1;color:rgb(21 128 61 / var(--tw-text-opacity, 1))}.text-primary{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity, 1))}.text-slate-900{--tw-text-opacity:1;color:rgb(15 23 42 / var(--tw-text-opacity, 1))}.opacity-0{opacity:0}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-200{transition-duration:200ms}.first\:rounded-t-xl:first-child{border-top-left-radius:0.75rem;border-top-right-radius:0.75rem}.last\:rounded-b-xl:last-child{border-bottom-right-radius:0.75rem;border-bottom-left-radius:0.75rem}.hover\:bg-blue-100:hover{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-50:hover{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.hover\:bg-emerald-50:hover{--tw-bg-opacity:1;background-color:rgb(236 253 245 / var(--tw-bg-opacity, 1))}.hover\:bg-green-50:hover{--tw-bg-opacity:1;background-color:rgb(240 253 244 / var(--tw-bg-opacity, 1))}.hover\:bg-orange-50:hover{--tw-bg-opacity:1;background-color:rgb(255 247 237 / var(--tw-bg-opacity, 1))}.hover\:bg-purple-50:hover{--tw-bg-opacity:1;background-color:rgb(250 245 255 / var(--tw-bg-opacity, 1))}.hover\:bg-red-50:hover{--tw-bg-opacity:1;background-color:rgb(254 242 242 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-100:hover{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-600:hover{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:bg-primary\/10:hover{background-color:rgb(37 99 235 / 0.1)}.hover\:bg-slate-50:hover{--tw-bg-opacity:1;background-color:rgb(248 250 252 / var(--tw-bg-opacity, 1))}.hover\:text-blue-700:hover{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.hover\:text-green-700:hover{--tw-text-opacity:1;color:rgb(21 128 61 / var(--tw-text-opacity, 1))}.hover\:text-purple-700:hover{--tw-text-opacity:1;color:rgb(126 34 206 / var(--tw-text-opacity, 1))}.hover\:text-red-700:hover{--tw-text-opacity:1;color:rgb(185 28 28 / var(--tw-text-opacity, 1))}.hover\:text-primary:hover{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.hover\:opacity-80:hover{opacity:0.8}.hover\:shadow-md:hover{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.focus\:not-sr-only:focus{position:static;width:auto;height:auto;padding:0;margin:0;overflow:visible;clip:auto;white-space:normal}.focus\:absolute:focus{position:absolute}.focus\:left-4:focus{left:1rem}.focus\:top-4:focus{top:1rem}.focus\:z-50:focus{z-index:50}.focus\:rounded-md:focus{border-radius:0.375rem}.focus\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.focus\:bg-white:focus{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.focus\:px-3:focus{padding-left:0.75rem;padding-right:0.75rem}.focus\:py-2:focus{padding-top:0.5rem;padding-bottom:0.5rem}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.focus\:ring-primary\/20:focus{--tw-ring-color:rgb(37 99 235 / 0.2)}.focus\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246 / var(--tw-ring-opacity, 1))}.focus\:ring-primary\/50:focus{--tw-ring-color:rgb(37 99 235 / 0.5)}.focus\:ring-offset-2:focus{--tw-ring-offset-width:2px}.group:focus-within .group-focus-within\:visible{visibility:visible}.group:focus-within .group-focus-within\:opacity-100{opacity:1}.group:hover .group-hover\:visible{visibility:visible}.group:hover .group-hover\:opacity-100{opacity:1}.group:hover .group-hover\:shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}@media (min-width: 768px){.md\:col-span-3{grid-column:span 3 / span 3}.md\:block{display:block}.md\:flex{display:flex}.md\:hidden{display:none}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:items-center{align-items:center}}@media (min-width: 1024px){.lg\:flex-row{flex-direction:row}.lg\:items-center{align-items:center}.lg\:justify-between{justify-content:space-between}}</style></head>
+<body class="font-sans" role="document">
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-3 focus:py-2 focus:rounded-md">Aller au contenu</a>
+  <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95" role="banner">
+    <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
+      <a href="/" class="flex items-center gap-3 text-lg font-semibold text-primary transition-all duration-200 hover:opacity-80 group">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md group-hover:shadow-lg transition-all duration-200">MD</span>
+        <div class="flex flex-col leading-4">
+          <span class="font-semibold text-base">MedData Bridge</span>
+          <span class="text-[11px] text-slate-500">Plateforme d'interopérabilité</span>
+        </div>
+      </a>
+      <div class="flex items-center gap-2">
+        
+          <a href="/context/ght/2" class="hidden md:flex items-center gap-2 rounded-full bg-blue-50 hover:bg-blue-100 px-3 py-1 text-sm text-blue-700 transition-colors" title="Contexte GHT actif - Cliquer pour voir les EJ de ce GHT">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>TEST</span>
+            <span class="text-xs text-blue-500">• TEST</span>
+            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+          </a>
+        
+        
+        
+        
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-xs text-slate-500">
+        
+      </div>
+      <div class="md:hidden">
+        <button id="menu-btn" class="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" aria-label="Menu principal">
+          <svg class="w-6 h-6 text-slate-700 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+      </div>
+    </div>
+
+  <nav class="hidden md:block border-t border-theme surface" aria-label="Navigation principale" role="navigation">
+  <div class="mx-auto max-w-content px-4 py-2 flex justify-between items-center text-sm text-slate-600">
+    <ul class="flex items-center gap-6" role="menubar">
+        
+        <li class="relative group" data-test-nav="structure">
+          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 focus:outline-none transition">
+            <div class="flex items-center gap-1" data-test-label="structure">
+              <!-- Building icon for structure -->
+              <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V7a2 2 0 012-2h10a2 2 0 012 2v14M9 7v4m6-4v4M9 13h6"></path>
+              </svg>
+              Structure
+            </div>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
+            <div class="w-[520px] grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Vue d'ensemble</p>
+                <a href="/structure" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau structurel</a>
+                <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
+                <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche avancée</a>
+                
+                  <a href="/admin/ght" class="mx-3 mt-2 block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 hover:bg-blue-100" title="Sélectionnez un EJ pour filtrer les listes">
+                    <span class="font-medium">→ Sélectionner un établissement</span>
+                  </a>
+                
+              </div>
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 flex items-center gap-2">
+                  Gestion par niveau
+                  
+                    <span class="text-[10px] text-slate-400">(sélectionnez un EJ pour filtrer)</span>
+                  
+                </p>
+                <div class="grid grid-cols-2 gap-1 text-sm">
+                  <a href="/structure/eg" class="rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
+                  <a href="/structure/poles" class="rounded-xl px-3 py-2 hover:bg-blue-50">Pôles</a>
+                  <a href="/structure/services" class="rounded-xl px-3 py-2 hover:bg-blue-50">Services</a>
+                  <a href="/structure/ufs" class="rounded-xl px-3 py-2 hover:bg-blue-50">UF</a>
+                  <a href="/structure/uh" class="rounded-xl px-3 py-2 hover:bg-blue-50">UH</a>
+                  <a href="/structure/chambres" class="rounded-xl px-3 py-2 hover:bg-blue-50">Chambres</a>
+                  <a href="/structure/lits" class="rounded-xl px-3 py-2 hover:bg-blue-50">Lits</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+        
+        
+        <li class="relative group" data-test-nav="activites">
+          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 focus:outline-none transition" data-test-toggle="activites">
+            <div class="flex items-center gap-1">
+              <!-- Neutral clipboard icon to avoid lock confusion -->
+              <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6M9 11h6M9 15h6M5 7h.01M5 11h.01M5 15h.01M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"></path>
+              </svg>
+              <span data-test-label="activites">Activités</span>
+            </div>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition" data-test-menu="activites">
+            <div class="w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+              <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">Suivi des prises en charge</p>
+              <div class="grid grid-cols-1 gap-1">
+                <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50 bg-blue-50 text-blue-700" data-test-link="patients">👥 Patients</a>
+                <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50 font-semibold text-green-700" data-test-link="dossiers">📋 Dossiers &amp; Cotation</a>
+                <a href="/venues" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="venues">🏥 Venues</a>
+                <a href="/mouvements" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">🔄 Mouvements</a>
+              </div>
+            </div>
+          </div>
+        </li>
+        
+        <li class="relative group" data-test-nav="interop">
+          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 focus:outline-none transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            Interopérabilité
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
+            <div class="w-[480px] grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Messages</p>
+                <a href="/messages" class="block rounded-xl px-3 py-2 hover:bg-green-50">Tous les messages</a>
+                <a href="/messages/by-dossier" class="block rounded-xl px-3 py-2 hover:bg-green-50">Par dossier</a>
+                <a href="/messages/rejections" class="block rounded-xl px-3 py-2 hover:bg-green-50">Messages rejetés</a>
+                <a href="/messages/send" class="block rounded-xl px-3 py-2 hover:bg-green-50">Envoi de message</a>
+              </div>
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">HPRIM</p>
+                <a href="/hprim/test-files" class="block rounded-xl px-3 py-2 hover:bg-green-50">📁 Fichiers de test</a>
+                <a href="/hprim/import" class="block rounded-xl px-3 py-2 hover:bg-green-50">📤 Import HPRIM</a>
+                <a href="/roundtrip-hprim" class="block rounded-xl px-3 py-2 hover:bg-green-50">🔄 Roundtrip HPRIM</a>
+                <a href="/cotation-modern" class="block rounded-xl px-3 py-2 hover:bg-green-50">💰 Cotation moderne</a>
+              </div>
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Configuration</p>
+                <a href="/endpoints" class="block rounded-xl px-3 py-2 hover:bg-green-50">Endpoints</a>
+                <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-green-50">Scénarios IHE PAM</a>
+                <a href="/validation" class="block rounded-xl px-3 py-2 hover:bg-green-50">Validation HL7</a>
+                <a href="/conformity" class="block rounded-xl px-3 py-2 hover:bg-green-50">Conformité IHE</a>
+              </div>
+            </div>
+          </div>
+        </li>
+    </ul>
+    <ul class="flex items-center gap-6" role="menubar">
+        <li role="none"><a role="menuitem" href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">Tableau de bord</a></li>
+        <li class="relative group" data-test-nav="ressources">
+          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-purple-50 hover:text-purple-700 focus:outline-none transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Ressources
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="absolute right-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
+            <div class="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Guides et références</p>
+                <a href="/guide" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide utilisateur</a>
+                <a href="/api-docs" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation API</a>
+                <a href="https://www.hl7.org/fhir/" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">FHIR (specification R4)</a>
+
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Programme</p>
+                <a href="/documentation" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Index Documentation</a>
+                <a href="/docs/PROGRAM_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Programme — Vue d'ensemble</a>
+                <a href="/docs/architecture.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Architecture technique</a>
+                <a href="/docs/api_guide.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide API développeur</a>
+                <a href="/docs/user_guide.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide utilisateur complet</a>
+                <a href="/docs/models_reference.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Référence des modèles</a>
+                
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">FHIR</p>
+                <a href="/documentation/fhir-reception-emission" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Réception &amp; Émission</a>
+                <a href="/documentation/fhir-reception-emission-complete" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Documentation complète (API)</a>
+                <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Spec API (Markdown)</a>
+                
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">IHE PAM &amp; HPRIM</p>
+                <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration</a>
+                <a href="/documentation/pam-workflows" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Workflows</a>
+                <a href="/Doc/IHE_PAM_TECHNIQUE.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Technique (HTML)</a>
+                <a href="/Doc/IHE_PAM_INTEGRATION_COMPLETE_FR.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration (complète)</a>
+                <a href="/docs/HPRIM_XML_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">HPRIM XML — Documentation</a>
+
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Outils &amp; exemples</p>
+                <a href="/examples/hl7v2" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Exemples HL7 v2 (A01/A04/A06...)</a>
+                <a href="/examples/mfn" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Exemples MFN</a>
+                <a href="/examples/fhir-bundles" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Bundles FHIR d'exemple</a>
+                <a href="/tools/endpoints-test" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Endpoints de test internes</a>
+                <a href="/tools/mllp" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide de connexion MLLP</a>
+                
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Scénarios</p>
+                <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Scénarios d'interopérabilité</a>
+                <a href="/scenarios/templates" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Templates de scénarios</a>
+                <a href="/scenarios/runs" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Dashboard des exécutions</a>
+                <a href="/config/scenario-ej" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Configuration UF/Médecins par EJ</a>
+                <a href="/docs/SCENARIOS_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Documentation scénarios</a>
+
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Référence technique</p>
+                <a href="/docs/AUTHENTICATION.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Authentification &amp; JWT</a>
+                <a href="/docs/cache_redis.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Cache Redis</a>
+                <a href="/docs/benchmark_guide.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide de performance</a>
+                <a href="/docs/identifier_prefixes.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Préfixes d'identifiants</a>
+                <a href="/docs/token_rotation.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Rotation des tokens</a>
+                <a href="/docs/vocabulary_contacts.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Vocabulaire contacts</a>
+                
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Checklists &amp; dépannage</p>
+                <a href="/docs/checklist_interop.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Checklist qualification d'interopérabilité</a>
+                <a href="/docs/troubleshooting.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Résolution des problèmes &amp; diagnostics</a>
+                
+                <hr class="my-2 border-slate-100">
+                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">MFN</p>
+                <a href="/Doc/MFN_INTEGRATION_COMPLETE_FR.html" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation MFN (structure, import, génération)</a>
+              </div>
+          </div>
+        </li>
+        <li class="relative group" data-test-nav="administration">
+          <button class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-700 focus:outline-none transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            Administration
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+          <div class="absolute right-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
+            <div class="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+              <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Configuration</p>
+              <a href="/sqladmin" class="block rounded-xl px-3 py-2 hover:bg-red-50">Administration</a>
+              <a href="/vocabularies" class="block rounded-xl px-3 py-2 hover:bg-red-50">📚 Listes de valeurs</a>
+              <hr class="my-2 border-slate-200">
+              <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Monitoring</p>
+              <a href="/dashboard" class="block rounded-xl px-3 py-2 hover:bg-emerald-50">📊 Dashboard principal</a>
+              <a href="/cache-dashboard" class="block rounded-xl px-3 py-2 hover:bg-emerald-50">🗄️ Cache Redis</a>
+              <a href="/metrics/dashboard" class="block rounded-xl px-3 py-2 hover:bg-emerald-50">📈 Métriques opérations</a>
+            </div>
+          </div>
+        </li>
+    </ul>
+  </div>
+    </nav>
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2" style="opacity: 1; visibility: visible;">
+      <!-- Les toasts seront insérés ici dynamiquement -->
+    </div>
+
+    <!-- Mobile menu -->
+  <div id="mobile-menu" class="md:hidden hidden border-t border-slate-200 bg-white" role="navigation" aria-label="Menu mobile">
+      <div class="px-4 py-4 space-y-4 text-sm text-slate-700">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Navigation rapide</p>
+          <a href="/" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau de bord</a>
+          <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-green-50 font-semibold">Dossiers &amp; Cotation</a>
+          
+          <a href="/messages" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Messages</a>
+          
+        </div>
+        
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-2" data-test-section="activites">
+            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            Activités
+          </p>
+          <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Patients</a>
+          <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50 font-semibold text-green-700">📋 Dossiers &amp; Cotation</a>
+          <a href="/venues" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Venues</a>
+          <a href="/mouvements" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Mouvements</a>
+          <a href="/forms" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Formulaires</a>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-2" data-test-section="structure">
+            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            Structure
+          </p>
+          
+            <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un EJ pour accéder au tableau structurel">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"></path></svg>
+              Tableau structurel
+            </span>
+          
+          <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
+          <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche structure</a>
+          
+            <a href="/admin/ght" class="mt-2 block rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-blue-50">Sélectionner un EJ</a>
+          
+          <div class="pl-2 space-y-1">
+            <a href="/structure/eg" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
+            <a href="/structure/poles" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Pôles</a>
+            <a href="/structure/services" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Services</a>
+            <a href="/structure/ufs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">UF</a>
+            <a href="/structure/uh" class="block rounded-xl px-3 py-2 hover:bg-blue-50">UH</a>
+            <a href="/structure/chambres" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Chambres</a>
+            <a href="/structure/lits" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Lits</a>
+          </div>
+        </div>
+        
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1" data-test-section="interop">Interopérabilité</p>
+          <a href="/messages" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Messages</a>
+          <a href="/messages/send" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Injecter HL7/FHIR</a>
+          <a href="/endpoints" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Points d'accès</a>
+          <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Scénarios IHE</a>
+          <a href="/standards" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Standards</a>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1" data-test-section="ressources">Ressources</p>
+          <a href="/guide" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Guide utilisateur</a>
+          <a href="/api-docs" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Documentation API</a>
+          <a href="https://www.hl7.org/fhir/" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR (specification R4)</a>
+          <hr class="my-2 border-slate-100">
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Programme</p>
+          <a href="/documentation" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Index Documentation</a>
+          <a href="/docs/PROGRAM_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Programme — Vue d'ensemble</a>
+          <a href="/docs/architecture.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Architecture</a>
+          <a href="/docs/api_guide.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Guide API</a>
+          <a href="/docs/user_guide.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Guide utilisateur</a>
+          <hr class="my-2 border-slate-100">
+          <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">FHIR</p>
+          <a href="/documentation/fhir-reception-emission" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR — Réception &amp; Émission</a>
+          <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR — Spec API</a>
+          <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-blue-50">IHE PAM — Intégration</a>
+          <a href="/Doc/IHE_PAM_TECHNIQUE.html" class="block rounded-xl px-3 py-2 hover:bg-blue-50">IHE PAM — Technique (HTML)</a>
+        </div>
+        <a href="/admin" class="block rounded-xl px-3 py-2 bg-slate-900 text-white text-center">Administration</a>
+      </div>
+    </div>
+
+    <script>
+      const btn = document.getElementById('menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      if (btn && menu) {
+        btn.addEventListener('click', () => {
+          menu.classList.toggle('hidden');
+        });
+      }
+    </script>
+  </header>
+
+  <div class="min-h-screen flex flex-col">
+    <main id="main-content" role="main" class="flex-1 mx-auto max-w-content px-4 py-6">
+      
+      
+
+
+<div class="mb-6">
+  
+<nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
+  
+  
+  <span class="text-slate-900 font-medium">Patients</span>
+  
+  
+</nav>
+
+</div>
+
+
+
+<div class="bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Patients</h1>
+      
+    </div>
+    
+    <div class="flex flex-wrap items-center gap-3">
+      
+      
+
+      
+        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors" @click="showFilters = !showFilters">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+          </svg>
+          Filtrer
+        </button>
+      
+
+      
+        
+<a href="/patients/new" class="inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-primary text-white hover:bg-blue-600 focus:ring-primary/50 shadow-sm hover:shadow-md px-4 py-2.5 text-sm ">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+  Nouveau
+</a>
+
+
+      
+
+      
+        
+<details class="relative">
+  <summary class="list-none inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 cursor-pointer select-none">
+    <span>Actions</span>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+    </svg>
+  </summary>
+  <div class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50">
+    
+      
+        <a href="/patients/export/fhir" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl">
+          Export FHIR
+        </a>
+      
+    
+      
+        <a href="/patients/import/fhir" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl">
+          Import FHIR
+        </a>
+      
+    
+  </div>
+</details>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+  <div x-show="showFilters">
+    
+<div class="bg-white p-4 rounded-xl border border-slate-200 mb-6">
+  <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4" data-forms-manager="1">
+    
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">
+          Nom
+        </label>
+        
+          <input type="text" name="name" value="" placeholder="Rechercher par nom" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        
+      </div>
+    
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">
+          Genre
+        </label>
+        
+          <select name="gender" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">Tous</option>
+            
+              <option value="male">
+                Homme
+              </option>
+            
+              <option value="female">
+                Femme
+              </option>
+            
+          </select>
+        
+      </div>
+    
+    <div class="md:col-span-3 flex justify-end gap-3">
+      <a href="/patients" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">
+        Réinitialiser
+      </a>
+      <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+        Appliquer les filtres
+      </button>
+    </div>
+  </form>
+</div>
+
+  </div>
+
+
+
+<div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+  
+  
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          
+            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              ID
+            </th>
+          
+            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              ExtID
+            </th>
+          
+            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Nom
+            </th>
+          
+            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Date naiss.
+            </th>
+          
+            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Genre
+            </th>
+          
+          
+            <th class="relative px-6 py-3.5 text-right">
+              <span class="sr-only">Actions</span>
+            </th>
+          
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-slate-100">
+        
+          <tr>
+            <td colspan="6" class="px-6 py-12">
+              
+<div class="text-center py-12 px-4">
+  
+  <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-400 mb-4">
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+  </div>
+  
+  <h3 class="text-lg font-semibold text-slate-900 mb-2">Aucun élément</h3>
+  
+  <p class="text-sm text-slate-600 max-w-md mx-auto mb-6">Aucun élément ne correspond à vos critères. Modifiez vos filtres ou créez un nouvel élément.</p>
+  
+  
+  <a href="/patients/new" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white hover:bg-blue-600 transition-colors">
+    Nouveau
+  </a>
+  
+</div>
+
+            </td>
+          </tr>
+        
+      </tbody>
+    </table>
+  </div>
+
+  
+  
+</div>
+
+
+    </main>
+
+    <footer class="border-t border-slate-200 bg-gradient-to-b from-white to-slate-50 mt-auto">
+      <div class="mx-auto max-w-content px-4 py-8 text-sm text-slate-600">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div class="flex items-center gap-4">
+            <div class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white font-mono text-lg shadow-md">
+              MD
+            </div>
+            <div class="flex flex-col">
+              <span class="font-bold text-slate-800 text-base">MedData Bridge</span>
+              <span class="text-xs text-slate-500">Plateforme d'interopérabilité santé</span>
+              <span class="text-xs text-slate-400 mt-0.5">by CPage</span>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-3 text-xs text-slate-500">
+              <span class="px-2 py-1 rounded-md bg-slate-100 text-slate-600 font-mono">v1.0.0-alpha</span>
+              <span class="text-slate-400">•</span>
+              <span>© 2025 MedData Bridge</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <a href="/documentation" class="text-slate-600 hover:text-primary transition-colors flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                Documentation
+              </a>
+              <a href="/api/docs" class="text-slate-600 hover:text-primary transition-colors flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                API
+              </a>
+              <a aria-label="Signaler un problème par mail" title="Signaler un problème / demande d'évolution" href="mailto:nicolas.moreau@cpage.fr?subject=%5BMedDataBridge%5D%20Signalement%20probl%C3%A8me%20ou%20demande%20d%27%C3%A9volution" class="inline-flex items-center gap-2 rounded-lg bg-primary/5 px-3 py-2 text-primary hover:bg-primary/10 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span class="font-medium">Signaler un problème</span>
+              </a>
+            </div>
+            <div class="text-xs text-slate-400">
+              Propulsé par FastAPI • Tailwind CSS
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="http://127.0.0.1:54875/static/js/forms.js"></script>
+  
+  <!-- Hotkeys -->
+  <script>
+    document.addEventListener('keydown', (e) => {
+      // Alt+A -> Admin
+      if (e.altKey && e.key === 'a') {
+        window.location.href = '/admin';
+      }
+      // Alt+D -> Documentation
+      if (e.altKey && e.key === 'd') {
+        window.location.href = '/documentation';
+      }
+      // Alt+H -> Home
+      if (e.altKey && e.key === 'h') {
+        window.location.href = '/';
+      }
+    });
+  </script>
+  
+  <!-- Current page indicator -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const path = window.location.pathname;
+      document.querySelectorAll('nav a').forEach(link => {
+        if (link.getAttribute('href') === path) {
+          link.classList.add('bg-blue-50', 'text-blue-700');
+        }
+      });
+    });
+  </script>
+
+  <!-- Defensive: hide any small left-floating accidental nav pill that overlaps content
+       This runs only when a stray element contains 'Tableau de bord' and appears
+       positioned near the left edge with a narrow width (heuristic). It avoids
+       touching legitimate nav links. -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        const candidates = Array.from(document.body.querySelectorAll('*'));
+        candidates.forEach(el => {
+          if (!el || !el.innerText) return;
+          const txt = el.innerText.trim();
+          if (!/Tableau\s+de\s+bord/i.test(txt)) return;
+          const rect = el.getBoundingClientRect();
+          // Heuristic: small width and positioned near left edge of viewport
+          if (rect.width < 160 && rect.left < 120 && rect.height > 16) {
+            el.style.display = 'none';
+            console.debug('Hidden stray left pill element containing "Tableau de bord"', el);
+          }
+        });
+      } catch (e) {
+        console.error('Defensive UI cleanup script failed', e);
+      }
+    });
+  </script>
+
+  <!-- Alpine.js pour interactivité -->
+  <script defer="" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+
+</body></html>

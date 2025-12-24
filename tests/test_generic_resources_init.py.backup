@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""
+Tests d'intégration pour l'initialisation des ressources génériques ZGEN
+"""
+
+import pytest
+from sqlmodel import Session, select
+from app.models_structure import Chambre, Lit
+from app.services.structure_validation import auto_detect_generic_resources
+
+
+class TestGenericResourcesInitialization:
+    """Tests d'initialisation automatique des ressources ZGEN"""
+
+    def test_auto_detect_marks_zgen_resources(self, session: Session):
+        """Test que auto_detect_generic_resources marque correctement les ZGEN"""
+        # Créer des ressources avec identifiants ZGEN
+        chambre_zgen1 = Chambre(
+            identifier="ZGEN-001",
+            name="Chambre Générique 1",
+            is_generic=False  # Pas encore marqué
+        )
+        chambre_zgen2 = Chambre(
+            identifier="zgen-002",  # Minuscules
+            name="Chambre Générique 2",
+            is_generic=False
+        )
+        chambre_normal = Chambre(
+            identifier="CH001",
+            name="Chambre Normale",
+            is_generic=False
+        )
+
+        lit_zgen = Lit(
+            identifier="ZGEN-LIT-001",
+            name="Lit Générique",
+            is_generic=False
+        )
+        lit_normal = Lit(
+            identifier="LIT001",
+            name="Lit Normal",
+            is_generic=False
+        )
+
+        session.add_all([chambre_zgen1, chambre_zgen2, chambre_normal, lit_zgen, lit_normal])
+        session.commit()
+
+        # Vérifier l'état initial
+        assert chambre_zgen1not is_generic
+        assert chambre_zgen1.max_occupancy == 1
+        assert chambre_zgen2not is_generic
+        assert chambre_normalnot is_generic
+        assert lit_zgennot is_generic
+        assert lit_normalnot is_generic
+
+        # Lancer l'auto-détection
+        auto_detect_generic_resources(session)
+
+        # Recharger les objets depuis la base
+        session.refresh(chambre_zgen1)
+        session.refresh(chambre_zgen2)
+        session.refresh(chambre_normal)
+        session.refresh(lit_zgen)
+        session.refresh(lit_normal)
+
+        # Vérifier que les ZGEN sont maintenant génériques
+        assert chambre_zgen1.is_generic 
+        assert chambre_zgen1.max_occupancy == 999
+        assert chambre_zgen2.is_generic 
+        assert chambre_zgen2.max_occupancy == 999
+        assert lit_zgen.is_generic 
+        assert lit_zgen.max_occupancy == 999
+
+        # Vérifier que les normales ne sont pas modifiées
+        assert chambre_normalnot is_generic
+        assert chambre_normal.max_occupancy == 1
+        assert lit_normalnot is_generic
+        assert lit_normal.max_occupancy == 1
+
+    def test_auto_detect_preserves_existing_generic_flags(self, session: Session):
+        """Test que l'auto-détection ne modifie pas les flags déjà définis"""
+        # Créer une chambre déjà marquée comme générique
+        chambre_pre_marked = Chambre(
+            identifier="ZGEN-PREMARKED",
+            name="Chambre Pré-marquée",
+            is_generic=True,
+            max_occupancy=500  # Valeur personnalisée
+        )
+
+        # Créer une chambre ZGEN pas encore marquée
+        chambre_auto_mark = Chambre(
+            identifier="ZGEN-AUTO",
+            name="Chambre Auto-marquée",
+            is_generic=False
+        )
+
+        session.add_all([chambre_pre_marked, chambre_auto_mark])
+        session.commit()
+
+        # Lancer l'auto-détection
+        auto_detect_generic_resources(session)
+
+        # Recharger
+        session.refresh(chambre_pre_marked)
+        session.refresh(chambre_auto_mark)
+
+        # La pré-marquée garde ses valeurs
+        assert chambre_pre_marked.is_generic 
+        assert chambre_pre_marked.max_occupancy == 500
+
+        # L'auto-marquée est maintenant générique
+        assert chambre_auto_mark.is_generic 
+        assert chambre_auto_mark.max_occupancy == 999
+
+    def test_auto_detect_case_insensitive(self, session: Session):
+        """Test que la détection est insensible à la casse"""
+        chambres = [
+            Chambre(identifier="ZGEN-UPPER", name="Upper", is_generic=False),
+            Chambre(identifier="zgen-lower", name="Lower", is_generic=False),
+            Chambre(identifier="Zgen-Mixed", name="Mixed", is_generic=False),
+        ]
+
+        session.add_all(chambres)
+        session.commit()
+
+        auto_detect_generic_resources(session)
+
+        for chambre in chambres:
+            session.refresh(chambre)
+            assert chambre.is_generic 
+            assert chambre.max_occupancy == 999
+
+    def test_auto_detect_partial_zgen_identifiers(self, session: Session):
+        """Test avec des identifiants qui commencent par ZGEN"""
+        chambres = [
+            Chambre(identifier="ZGEN", name="Exact", is_generic=False),
+            Chambre(identifier="ZGEN-123", name="With numbers", is_generic=False),
+            Chambre(identifier="ZGEN_TEST", name="With underscore", is_generic=False),
+            Chambre(identifier="NOT-ZGEN", name="Not ZGEN", is_generic=False),
+            Chambre(identifier="ZGENXTRA", name="ZGENXTRA", is_generic=False),  # Commence par ZGEN
+        ]
+
+        session.add_all(chambres)
+        session.commit()
+
+        auto_detect_generic_resources(session)
+
+        # Recharger et vérifier
+        for chambre in chambres:
+            session.refresh(chambre)
+            if chambre.identifier.startswith("ZGEN"):
+                assert chambre.is_generic, f"Should be generic: {chambre.identifier}"
+                assert chambre.max_occupancy == 999
+            else:
+                assert not chambre.is_generic, f"Should not be generic: {chambre.identifier}"
+                assert chambre.max_occupancy == 1</content>
+<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/test_generic_resources_init.py

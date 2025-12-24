@@ -295,12 +295,7 @@ async def _send_hl7_step(
     ack_payload = ""
     status = "error"
     try:
-        maybe = send_mllp(endpoint.host, endpoint.port, payload_to_send)
-        # Support both async and sync monkeypatched implementations
-        if hasattr(maybe, "__await"):
-            ack_payload = await maybe
-        else:
-            ack_payload = maybe
+        ack_payload = await send_mllp(endpoint.host, endpoint.port, payload_to_send)
         status = "sent" if ack_payload else "unknown"
     except Exception as exc:
         ack_payload = str(exc)

@@ -55,7 +55,7 @@ class MLLPManager:
                     host=endpoint.host,
                     port=endpoint.port,
                     on_message=self.on_message,
-                    endpoint_name=endpoint.name,
+                    endpoint=endpoint,
                     session_factory=self.session_factory,
                 )
             except OSError as e:

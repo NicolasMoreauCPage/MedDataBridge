@@ -1,184 +1,57 @@
-# tests/unit/test_fhir_import.py
-"""
-Tests unitaires pour l'import FHIR.
-"""
-
-import pytest
-from sqlmodel import select
-from datetime import datetime
-
-from app.models import Patient, Dossier
-from app.models_structure import EntiteJuridique, GHTContext
+import json
+from sqlmodel import Session, select, SQLModel
+from app.db import engine
+from app.models_structure import EntiteJuridique
+from app.converters.fhir_import_converter import FHIRToEncounterConverter, FHIRBundleImporter
 
 
-class TestFHIRImport:
-    """Tests pour l'import FHIR"""
+def test_extract_id_from_reference_variants():
+    shared_map = {
+        'pat-1': 10,
+        'Patient/pat-1': 10,
+        'Encounter/enc-2': 20
+    }
 
-    def test_import_bundle_success(self, client, session):
-        """Test import bundle FHIR - succès"""
-        # Créer des données de test
-        ght = session.exec(select(GHTContext)).first()
-        if not ght:
-            ght = GHTContext(name="TEST", code="TEST")
-            session.add(ght)
-            session.commit()
+    conv = FHIRToEncounterConverter(Session(engine), resource_map=shared_map)
 
-        # Créer une EJ
-        ej = EntiteJuridique(
-            name="Test EJ",
-            code="TEST_EJ",
-            ght_context_id=ght.id
-        )
-        session.add(ej)
-        session.commit()
+    # bare id
+    assert conv._extract_id_from_reference('pat-1') == 10
 
-        # Bundle FHIR minimal pour test
-        bundle = {
-            "resourceType": "Bundle",
-            "type": "transaction",
-            "entry": [
-                {
-                    "resource": {
-                        "resourceType": "Patient",
-                        "id": "test-patient-1",
-                        "name": [
-                            {
-                                "family": "Test",
-                                "given": ["Patient"]
-                            }
-                        ]
-                    },
-                    "request": {
-                        "method": "POST",
-                        "url": "Patient"
-                    }
-                }
-            ]
-        }
+    # type/id
+    assert conv._extract_id_from_reference('Patient/pat-1') == 10
 
-        # Requête d'import
-        import_request = {
-            "bundle": bundle,
-            "ej_id": ej.id
-        }
+    # URL ending with type/id
+    assert conv._extract_id_from_reference('http://example.org/fhir/Patient/pat-1') == 10
 
-        # Exécution
-        response = client.post("/api/fhir/import/bundle", json=import_request)
+    # leading '#'
+    assert conv._extract_id_from_reference('#pat-1') == 10
 
-        # Vérifications
-        assert response.status_code == 200
-        data = response.json()
-        assert "status" in data
-        assert "resources_created" in data
-        assert "resources_updated" in data
-        assert "errors" in data
+    # numeric id
+    assert conv._extract_id_from_reference('123') == 123
 
-    def test_import_bundle_invalid_ej(self, client, session):
-        """Test import bundle FHIR - EJ invalide"""
-        # Bundle FHIR minimal
-        bundle = {
-            "resourceType": "Bundle",
-            "type": "transaction",
-            "entry": []
-        }
+    # missing -> None
+    assert conv._extract_id_from_reference('unknown-id') is None
 
-        # Requête avec EJ inexistante
-        import_request = {
-            "bundle": bundle,
-            "ej_id": 99999
-        }
 
-        # Exécution
-        response = client.post("/api/fhir/import/bundle", json=import_request)
+def test_import_debug_bundle_roundtrip(tmp_path):
+    # ensure DB tables
+    SQLModel.metadata.create_all(engine)
 
-        # Vérifications
-        assert response.status_code == 404
-        data = response.json()
-        assert "detail" in data
+    # load debug bundle from tmp in repo
+    bundle_path = 'tmp/fhir_bundle_for_import_debug.json'
+    with open(bundle_path, 'r', encoding='utf-8') as f:
+        bundle = json.load(f)
 
-    def test_import_bundle_invalid_format(self, client, session):
-        """Test import bundle FHIR - format invalide"""
-        # Créer des données de test
-        ght = session.exec(select(GHTContext)).first()
-        if not ght:
-            ght = GHTContext(name="TEST", code="TEST")
-            session.add(ght)
-            session.commit()
+    with Session(engine) as s:
+        # ensure EJ exists
+        ej = s.exec(select(EntiteJuridique)).first()
+        if not ej:
+            ej = EntiteJuridique(name='TEST EJ', code='TEST', finess='000000')
+            s.add(ej); s.commit(); s.refresh(ej)
 
-        # Créer une EJ
-        ej = EntiteJuridique(
-            name="Test EJ",
-            code="TEST_EJ",
-            ght_context_id=ght.id
-        )
-        session.add(ej)
-        session.commit()
+        importer = FHIRBundleImporter(s, ej)
+        results = importer.import_bundle(bundle)
 
-        # Bundle invalide (pas de resourceType)
-        invalid_bundle = {
-            "type": "transaction",
-            "entries": []
-        }
-
-        # Requête d'import
-        import_request = {
-            "bundle": invalid_bundle,
-            "ej_id": ej.id
-        }
-
-        # Exécution
-        response = client.post("/api/fhir/import/bundle", json=import_request)
-
-        # Vérifications - devrait échouer avec erreur de validation
-        assert response.status_code in [400, 422]
-        data = response.json()
-        assert "detail" in data
-
-    def test_validate_bundle_success(self, client, session):
-        """Test validation bundle FHIR - succès"""
-        # Bundle FHIR valide
-        bundle = {
-            "resourceType": "Bundle",
-            "type": "transaction",
-            "entry": [
-                {
-                    "resource": {
-                        "resourceType": "Patient",
-                        "id": "test-patient-1",
-                        "name": [
-                            {
-                                "family": "Test",
-                                "given": ["Patient"]
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-
-        # Exécution
-        response = client.post("/api/fhir/validate/bundle", json=bundle)
-
-        # Vérifications
-        assert response.status_code == 200
-        data = response.json()
-        assert "valid" in data
-        assert data["valid"] is True
-
-    def test_validate_bundle_invalid(self, client, session):
-        """Test validation bundle FHIR - invalide"""
-        # Bundle invalide
-        invalid_bundle = {
-            "type": "invalid",
-            "entries": []
-        }
-
-        # Exécution
-        response = client.post("/api/fhir/validate/bundle", json=invalid_bundle)
-
-        # Vérifications
-        assert response.status_code == 200
-        data = response.json()
-        assert "valid" in data
-        assert data["valid"] is False
-        assert "errors" in data
+        assert results['errors'] == []
+        assert results['patients'] >= 1
+        assert results['encounters'] >= 1

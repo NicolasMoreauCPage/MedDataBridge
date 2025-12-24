@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select, Session
 from sqlalchemy.orm import selectinload
+from sqlalchemy import String
 from datetime import datetime
 from typing import List, Optional
 from app.db import get_session
@@ -68,8 +69,6 @@ def list_dossiers(
 ):
     ej_context = getattr(request.state, "ej_context", None)
     ej_id = getattr(ej_context, "id", None)
-    # Temporairement forcer ej_id à None pour test
-    ej_id = None
     
     dossiers = dossiers_service.get_dossiers(
         session,

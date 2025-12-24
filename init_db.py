@@ -17,6 +17,8 @@ Ce script orchestre dans l'ordre:
 4. Endpoints MLLP/FHIR (12 endpoints: 3 par EJ)
 5. Namespaces d'identifiants (13: IPP/NDA/VENUE par EJ + global structure)
 6. Population de patients (120 par défaut avec dossiers et mouvements)
+7. Scénarios IHE HL7 (depuis Doc/examples)
+8. Scénarios d'intégration HL7/HPRIM (159 scénarios depuis interfaces.integration)
 
 Tous les appels sont idempotents: re-exécuter ce script est safe.
 """
@@ -90,13 +92,24 @@ def main():
 
     # 5. Import scénarios IHE HL7
     print("=" * 60)
-    print("ÉTAPE 5/5 : Import des scénarios IHE HL7 (Doc/examples)")
+    print("ÉTAPE 5/6 : Import des scénarios IHE HL7 (Doc/examples)")
     print("=" * 60)
     try:
         run([sys.executable, "tools/seed_ihe_scenarios.py", "Doc/examples"], check=True)
         print("✓ Scénarios IHE HL7 importés\n")
     except (CalledProcessError, FileNotFoundError) as e:
         print(f"✗ Échec import scénarios IHE HL7: {e}")
+        sys.exit(1)
+
+    # 6. Import scénarios d'intégration HL7/HPRIM
+    print("=" * 60)
+    print("ÉTAPE 6/6 : Import des scénarios d'intégration HL7/HPRIM")
+    print("=" * 60)
+    try:
+        run([sys.executable, "seed_scenarios_from_db.py"], check=True)
+        print("✓ Scénarios d'intégration HL7/HPRIM importés\n")
+    except (CalledProcessError, FileNotFoundError) as e:
+        print(f"✗ Échec import scénarios d'intégration: {e}")
         sys.exit(1)
 
     # Résumé final
@@ -113,6 +126,7 @@ def main():
     if not args.skip_population:
         print("  • Population   : 120 patients, dossiers et mouvements")
     print("  • Scénarios IHE HL7 : importés depuis Doc/examples")
+    print("  • Scénarios d'intégration : 159 scénarios HL7/HPRIM")
     print("\nLe serveur peut être démarré avec:")
     print("  uvicorn app.app:app --reload")
     print("\nAccès admin: http://localhost:8000/admin/ght/1/ej/1")

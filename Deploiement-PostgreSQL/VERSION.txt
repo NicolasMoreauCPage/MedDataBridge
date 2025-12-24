@@ -1,6 +1,0 @@
-MedData Bridge - Package de déploiement
-Date: 2025-12-10 06:29:19
-Branche: main
-Commit: 66789af
-Python requis: 3.8+
-OS cible: Fedora 7.9

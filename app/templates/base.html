@@ -107,35 +107,54 @@
       outline-offset: 2px;
     }
 
-    /* Flash message animations */
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-1rem);
+    /* Optimisations responsive pour animations */
+    @media (max-width: 768px) {
+      /* Réduire les animations complexes sur mobile pour performance */
+      .card-hover {
+        transition: none;
       }
-      to {
-        opacity: 1;
-        transform: translateY(0);
+      .card-hover:active {
+        transform: scale(0.98);
       }
-    }
-
-    @keyframes fadeOut {
-      from {
-        opacity: 1;
-        transform: scale(1);
-      }
-      to {
-        opacity: 0;
-        transform: scale(0.95);
+      
+      /* Désactiver les animations de hover sur mobile */
+      @media (hover: none) {
+        .card-hover:hover {
+          transform: none;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
       }
     }
-
-    .animate-slideDown {
-      animation: slideDown 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Optimisations pour écrans tactiles */
+    @media (hover: none) and (pointer: coarse) {
+      /* Réduire les délais d'animation pour feedback tactile immédiat */
+      .animate-fade-in,
+      .animate-slide-up,
+      .animate-scale-in,
+      .animate-bounce-in {
+        animation-duration: 0.2s;
+      }
+      
+      /* Feedback tactile pour les boutons */
+      button:not(:disabled):active,
+      a[role="button"]:active,
+      .card-hover:active {
+        transform: scale(0.96);
+        transition: transform 0.1s ease-out;
+      }
     }
-
-    .animate-fadeOut {
-      animation: fadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    
+    /* Préférences utilisateur : réduire les animations */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>

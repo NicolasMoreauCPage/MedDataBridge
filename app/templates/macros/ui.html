@@ -281,11 +281,11 @@
    ============================================ #}
 
 {% macro empty_state(title, description='', icon=None, action_label='', action_href='', illustration='default') %}
-<div class="text-center py-16 px-4 animate-fade-in">
+<div class="text-center py-12 px-4 sm:py-16 animate-fade-in">
   {% if illustration == 'messages' %}
   <!-- Illustration pour messages vides -->
-  <div class="mb-8 relative">
-    <svg class="w-32 h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
+  <div class="mb-6 sm:mb-8 relative">
+    <svg class="w-24 h-24 sm:w-32 sm:h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
       <circle cx="60" cy="60" r="45" stroke="currentColor" stroke-width="2" opacity="0.3"/>
       <circle cx="60" cy="60" r="35" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
       <g transform="translate(45, 45)">
@@ -298,8 +298,8 @@
       <path d="M35 35 L45 45 L55 35" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
     </svg>
     <div class="absolute inset-0 flex items-center justify-center">
-      <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center animate-pulse">
-        <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center animate-pulse">
+        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
         </svg>
       </div>
@@ -307,8 +307,8 @@
   </div>
   {% elif illustration == 'patients' %}
   <!-- Illustration pour patients vides -->
-  <div class="mb-8 relative">
-    <svg class="w-32 h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
+  <div class="mb-6 sm:mb-8 relative">
+    <svg class="w-24 h-24 sm:w-32 sm:h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
       <circle cx="60" cy="60" r="45" stroke="currentColor" stroke-width="2" opacity="0.3"/>
       <circle cx="60" cy="60" r="35" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
       <g transform="translate(45, 42)">
@@ -320,8 +320,8 @@
       </g>
     </svg>
     <div class="absolute inset-0 flex items-center justify-center">
-      <div class="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center animate-pulse">
-        <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center animate-pulse">
+        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
       </div>
@@ -329,8 +329,8 @@
   </div>
   {% elif illustration == 'structures' %}
   <!-- Illustration pour structures vides -->
-  <div class="mb-8 relative">
-    <svg class="w-32 h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
+  <div class="mb-6 sm:mb-8 relative">
+    <svg class="w-24 h-24 sm:w-32 sm:h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
       <rect x="25" y="35" width="70" height="45" rx="3" stroke="currentColor" stroke-width="2" opacity="0.3"/>
       <rect x="35" y="45" width="50" height="8" rx="1" fill="currentColor" opacity="0.4"/>
       <rect x="35" y="57" width="35" height="6" rx="1" fill="currentColor" opacity="0.4"/>
@@ -339,8 +339,8 @@
       <text x="60" y="35" text-anchor="middle" font-size="8" fill="currentColor" opacity="0.6">HÔPITAL</text>
     </svg>
     <div class="absolute inset-0 flex items-center justify-center">
-      <div class="w-16 h-16 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center animate-pulse">
-        <svg class="w-8 h-8 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center animate-pulse">
+        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
         </svg>
       </div>
@@ -348,8 +348,8 @@
   </div>
   {% elif illustration == 'search' %}
   <!-- Illustration pour recherche vide -->
-  <div class="mb-8 relative">
-    <svg class="w-32 h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
+  <div class="mb-6 sm:mb-8 relative">
+    <svg class="w-24 h-24 sm:w-32 sm:h-32 mx-auto text-slate-300" viewBox="0 0 120 120" fill="none">
       <circle cx="45" cy="45" r="25" stroke="currentColor" stroke-width="2" opacity="0.3"/>
       <circle cx="45" cy="45" r="15" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
       <path d="M55 55 L65 65" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
@@ -362,8 +362,8 @@
       <path d="M85 20 L95 30 L105 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
     </svg>
     <div class="absolute inset-0 flex items-center justify-center">
-      <div class="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center animate-pulse">
-        <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center animate-pulse">
+        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
       </div>
@@ -371,14 +371,14 @@
   </div>
   {% else %}
   <!-- Illustration par défaut -->
-  <div class="mb-8">
-    <div class="w-32 h-32 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
+  <div class="mb-6 sm:mb-8">
+    <div class="w-24 h-24 sm:w-32 sm:h-32 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
       {% if icon %}
       <div class="text-slate-400">
         {{ icon|safe }}
       </div>
       {% else %}
-      <svg class="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-12 h-12 sm:w-16 sm:h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-.98-5.625-2.508"/>
       </svg>
       {% endif %}
@@ -386,12 +386,12 @@
   </div>
   {% endif %}
 
-  <h3 class="text-xl font-semibold text-slate-900 mb-3">{{ title }}</h3>
+  <h3 class="text-lg sm:text-xl font-semibold text-slate-900 mb-3">{{ title }}</h3>
   {% if description %}
-  <p class="text-slate-600 max-w-md mx-auto mb-8 leading-relaxed">{{ description }}</p>
+  <p class="text-slate-600 max-w-sm sm:max-w-md mx-auto mb-6 sm:mb-8 leading-relaxed text-sm sm:text-base px-2">{{ description }}</p>
   {% endif %}
   {% if action_label and action_href %}
-  <a href="{{ action_href }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+  <a href="{{ action_href }}" class="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl text-sm sm:text-base">
     {{ action_label }}
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>

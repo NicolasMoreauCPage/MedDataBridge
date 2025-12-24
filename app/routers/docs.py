@@ -58,12 +58,12 @@ async def endpoints_test_page(request: Request):
 
 @router.get("/docs/{filename}", response_class=HTMLResponse)
 async def docs_markdown(request: Request, filename: str):
-    """Serve simple markdown files from the Doc/ folder (basic renderer)."""
+    """Serve simple markdown files from the docs/ folder (basic renderer)."""
     from pathlib import Path
     import markdown
     import re
 
-    DOC_ROOT = Path(__file__).parent.parent.parent / "Doc"
+    DOC_ROOT = Path(__file__).parent.parent.parent / "docs"
     doc_path = DOC_ROOT / filename
     if not doc_path.exists():
         return get_templates_with_filters(request).TemplateResponse(
@@ -77,7 +77,7 @@ async def docs_markdown(request: Request, filename: str):
         # If a static HTML exists, prefer to redirect to it so the static file
         # is served directly (preserves full HTML rendering produced by pandoc).
         from fastapi.responses import RedirectResponse
-        static_url = request.url_for('doc') if False else f"/Doc/{html_equiv.name}"
+        static_url = request.url_for('doc') if False else f"/docs/{html_equiv.name}"
         return RedirectResponse(url=static_url)
 
     # Otherwise render markdown on the fly

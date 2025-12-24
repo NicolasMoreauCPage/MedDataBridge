@@ -1,6 +1,6 @@
-"""Router pour envelopper les docs HTML statiques du dossier /Doc avec le template base.html
+"""Router pour envelopper les docs HTML statiques du dossier /docs avec le template base.html
 
-Ce routeur intercepte les fichiers HTML du dossier /Doc et les enveloppe dans
+Ce routeur intercepte les fichiers HTML du dossier /docs et les enveloppe dans
 le template base.html pour qu'ils aient le bandeau, le menu et le style du programme.
 
 Les fichiers non-HTML (images, etc.) sont servis directement sans enveloppe.
@@ -20,13 +20,13 @@ def get_templates_with_filters(request: FastAPIRequest):
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-DOC_ROOT = Path(__file__).parent.parent.parent / "Doc"
+DOC_ROOT = Path(__file__).parent.parent.parent / "docs"
 
 
-@router.get("/Doc/{file_path:path}", response_class=HTMLResponse)
+@router.get("/docs/{file_path:path}", response_class=HTMLResponse)
 async def serve_wrapped_doc(request: Request, file_path: str):
     """
-    Enveloppe les fichiers HTML du dossier /Doc avec le template base.html.
+    Enveloppe les fichiers HTML du dossier /docs avec le template base.html.
     Fichiers non-HTML sont servis directement.
     
     Cela garantit que tous les documents HTML ont:
@@ -36,7 +36,7 @@ async def serve_wrapped_doc(request: Request, file_path: str):
     
     Args:
         request: Requête FastAPI
-        file_path: Chemin du fichier depuis /Doc
+        file_path: Chemin du fichier depuis /docs
     
     Returns:
         HTMLResponse avec le fichier HTML enveloppé dans base.html,
@@ -48,7 +48,7 @@ async def serve_wrapped_doc(request: Request, file_path: str):
     
     doc_file = DOC_ROOT / file_path
     
-    # Vérifier que le fichier existe et est dans le répertoire /Doc
+    # Vérifier que le fichier existe et est dans le répertoire /docs
     try:
         doc_file = doc_file.resolve()
         DOC_ROOT_resolved = DOC_ROOT.resolve()

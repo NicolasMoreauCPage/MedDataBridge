@@ -241,18 +241,3 @@ jobs:
       run: |
         echo "✅ Pipeline réussi"
         # Envoyer notification succès
-
-# Configuration des environnements
-environments:
-  staging:
-    url: https://staging-api.example.com
-  production:
-    url: https://api.example.com
-
-# Configuration des secrets requis
-# AWS_ACCESS_KEY_ID
-# AWS_SECRET_ACCESS_KEY
-# DOCKER_REGISTRY_USERNAME
-# DOCKER_REGISTRY_PASSWORD
-# AZURE_CREDENTIALS (pour azd)</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.github/workflows/ci-cd.yml

@@ -1,8 +1,6 @@
 # .github/workflows/ci-cd.yml
-"""
-Configuration GitHub Actions pour CI/CD avec tests automatisés
-Pipeline complet: tests parallèles, couverture, sécurité, déploiement
-"""
+# Configuration GitHub Actions pour CI/CD avec tests automatisés
+# Pipeline complet: tests parallèles, couverture, sécurité, déploiement
 
 name: CI/CD Pipeline
 

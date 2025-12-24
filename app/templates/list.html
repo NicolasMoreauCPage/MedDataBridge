@@ -84,9 +84,19 @@
   {# Info bar #}
   {% if rows %}
   <div class="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-    <p class="text-sm text-slate-600">
-      <span class="font-semibold text-slate-900">{{ rows|length }}</span> élément(s)
-    </p>
+    <div class="flex items-center gap-4">
+      <p class="text-sm text-slate-600">
+        <span class="font-semibold text-slate-900">{{ rows|length }}</span> élément(s)
+      </p>
+      {% if rows and rows[0].detail_url %}
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Cliquez sur une ligne pour voir les détails
+        </div>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 
@@ -108,14 +118,44 @@
       </thead>
       <tbody class="bg-white divide-y divide-slate-100">
         {% for row in rows %}
-          <tr class="hover:bg-blue-50/50 transition-colors {% if row.css_class %}{{ row.css_class }}{% endif %}">
+          <tr class="hover:bg-blue-50/50 transition-colors {% if row.css_class %}{{ row.css_class }}{% endif %} {% if row.detail_url %}cursor-pointer hover:shadow-sm{% endif %}" {% if row.detail_url %}onclick="window.location.href='{{ row.detail_url }}'"{% endif %}>
             {% for cell in row.cells %}
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                 {% if row.detail_url and loop.first %}
-                  <a href="{{ row.detail_url }}" class="hover:text-primary font-medium transition-colors">{{ cell if cell is not none else '' }}</a>
+                  <div class="flex items-center gap-3">
+                    {# Indicateur visuel stylisé #}
+                    <div class="flex-shrink-0">
+                      {% if cell in ('✅', '⚠️', '❌', '⏹️') %}
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium
+                          {% if cell == '✅' %}bg-green-100 text-green-800 border border-green-200
+                          {% elif cell == '⚠️' %}bg-yellow-100 text-yellow-800 border border-yellow-200
+                          {% elif cell == '❌' %}bg-red-100 text-red-800 border border-red-200
+                          {% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                          {{ cell }}
+                        </div>
+                      {% else %}
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                          </svg>
+                        </div>
+                      {% endif %}
+                    </div>
+                    <div class="font-medium text-slate-900 hover:text-primary transition-colors">
+                      {% if cell not in ('✅', '⚠️', '❌', '⏹️') %}
+                        {{ cell if cell is not none else '' }}
+                      {% endif %}
+                    </div>
+                  </div>
                 {% elif loop.index0 == 0 and cell in ('✅', '⚠️', '❌', '⏹️') %}
-                  {# Indicateur visuel #}
-                  <span class="text-lg" title="{{ row.status or 'Statut inconnu' }}">{{ cell }}</span>
+                  {# Indicateur visuel stylisé pour les lignes sans detail_url #}
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium
+                    {% if cell == '✅' %}bg-green-100 text-green-800 border border-green-200
+                    {% elif cell == '⚠️' %}bg-yellow-100 text-yellow-800 border border-yellow-200
+                    {% elif cell == '❌' %}bg-red-100 text-red-800 border border-red-200
+                    {% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                    {{ cell }}
+                  </div>
                 {% elif loop.index == 4 or loop.index == 5 %} {# Colonne type:4, status:5 (0-based) #}
                   {{ cell|safe if cell is not none else '' }}
                 {% else %}
@@ -128,9 +168,12 @@
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex items-center justify-end gap-2">
                   {% if row.detail_url %}
-                    <a href="{{ row.detail_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                      Voir
+                    <a href="{{ row.detail_url }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium shadow-sm">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                      Voir détails
                     </a>
                   {% endif %}
                   {% if row.cotation_url %}

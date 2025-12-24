@@ -5,7 +5,7 @@ from app.models_structure import GHTContext, EntiteJuridique
 from app.models import Patient
 from pathlib import Path
 import tempfile
-from tools.import_test_exemples import import_structure_mfn, import_pam_messages
+from scripts.tools.import_test_exemples import import_structure_mfn, import_pam_messages
 
 router = APIRouter(prefix="/import", tags=["import"])
 

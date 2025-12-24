@@ -67,6 +67,7 @@ def list_scenarios(
                     status.last_run_at.strftime("%Y-%m-%d %H:%M") if status.last_run_at else "—",
                 ],
                 "detail_url": f"/scenarios/{scenario.id}",
+                "id": scenario.id,
                 "css_class": status.css_class,
             }
         )
@@ -91,6 +92,9 @@ def list_scenarios(
             {"label": "⏹️  Jamais exécutés", "value": "no_run"},
         ],
     }
+    # Provide endpoints for inline bulk execution (compact mode)
+    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True)).order_by(SystemEndpoint.kind, SystemEndpoint.name)).all()
+    ctx["all_endpoints"] = endpoints
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 

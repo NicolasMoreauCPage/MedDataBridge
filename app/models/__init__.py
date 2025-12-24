@@ -14,22 +14,12 @@ from app.models import (
     NGAPAct,
     UCDAct,
     LPPAct,
-    CCAMAct,
-)
+    """app.models package placeholder.
 
-from app.models_identifiers import Identifier, IdentifierType
+    This file exists so `import app.models` resolves as a package. The real
+    models are defined in app/models.py module; avoid re-exporting here to
+    prevent import cycles during test collection.
+    """
 
-__all__ = [
-    "SQLModel",
-    "Sequence",
+    __all__ = []
     "Patient",
-    "Dossier",
-    "Venue",
-    "Mouvement",
-    "NGAPAct",
-    "UCDAct",
-    "LPPAct",
-    "CCAMAct",
-    "Identifier",
-    "IdentifierType",
-]

@@ -6,4 +6,5 @@ prevent import cycles during test collection.
 """
 
 __all__ = []
-    Sequence,
+__all__ = []
+

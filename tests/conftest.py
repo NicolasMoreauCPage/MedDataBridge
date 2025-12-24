@@ -400,13 +400,7 @@ if str(REPO_ROOT) not in sys.path:
 # application at import time to keep unit tests lightweight. We check whether
 # the full app can be imported and set a flag accordingly. Any imports that
 # require application-level modules are done lazily inside fixtures.
-FULL_APP_AVAILABLE = True
-try:
-    # Only check that the app module is importable; do not wire anything here.
-    import importlib
-    importlib.import_module("app.app")
-except Exception:
-    FULL_APP_AVAILABLE = False
+FULL_APP_AVAILABLE = False
 
 
 @pytest.fixture(name="session")

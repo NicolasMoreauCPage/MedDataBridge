@@ -159,6 +159,7 @@
   </style>
 </head>
 <body class="font-sans animate-page-enter" role="document">
+  {% import 'components.html' as components %}
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95" role="banner">
     <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
@@ -253,9 +254,9 @@
                     </div>
                   </div>
                 {% else %}
-                  <a href="/admin/ght" class="mx-3 mt-2 block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 hover:bg-blue-100" title="Sélectionnez un EJ pour filtrer les listes">
-                    <span class="font-medium">→ Sélectionner un établissement</span>
-                  </a>
+                      <a href="/admin/ght" class="mx-3 mt-2 block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 hover:bg-blue-100" title="Sélectionnez un EJ pour filtrer les listes">
+                      <span class="font-medium">→ Sélectionner un établissement</span>
+                    </a>
                 {% endif %}
               </div>
               <div>
@@ -328,7 +329,7 @@
                 <a href="/validation" class="block rounded-xl px-3 py-2 hover:bg-green-50">Validation HL7</a>
                 <a href="/conformity" class="block rounded-xl px-3 py-2 hover:bg-green-50 text-amber-700">
                   Conformité IHE
-                  <span class="ml-1 text-xs text-amber-600">⚠️ Contexte requis</span>
+                  {{ components.context_badge('Contexte requis') }}
                 </a>
                 <div class="border-t border-slate-200 mt-2 pt-2">
                   <p class="px-3 py-1 text-xs text-slate-500">Outils de développement</p>
@@ -346,11 +347,11 @@
                 <a href="/hprim/import" class="block rounded-xl px-3 py-2 hover:bg-green-50">📤 Import HPRIM</a>
                 <a href="/cotation-modern" class="block rounded-xl px-3 py-2 hover:bg-green-50 text-amber-700">
                   💰 Cotation moderne
-                  <span class="ml-1 text-xs text-amber-600">⚠️ Contexte requis</span>
+                  {{ components.context_badge('Contexte requis') }}
                 </a>
                 <a href="/endpoints" class="block rounded-xl px-3 py-2 hover:bg-green-50 text-amber-700">
                   Endpoints
-                  <span class="ml-1 text-xs text-amber-600">⚠️ Contexte requis</span>
+                  {{ components.context_badge('Contexte requis') }}
                 </a>
               </div>
             </div>
@@ -503,10 +504,11 @@
                 <svg class="w-3.5 h-3.5 text-slate-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
               </span>
             {% endif %}
-          {% else %}
-            <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-1" title="Sélectionnez un EJ pour accéder au tableau structurel">
+            {% else %}
+            <span class="block rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed flex items-center gap-2" title="Sélectionnez un EJ pour accéder au tableau structurel">
               <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
               Tableau structurel
+              {{ components.context_badge('EJ requis') }}
             </span>
           {% endif %}
           <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
@@ -527,7 +529,7 @@
               </div>
             </div>
           {% else %}
-            <a href="/admin/ght" class="mt-2 block rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-blue-50">Sélectionner un EJ</a>
+                  <a href="/admin/ght" class="mt-2 block rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-blue-50">Sélectionner un EJ</a>
           {% endif %}
           <div class="pl-2 space-y-1">
             <a href="/structure/eg" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>

@@ -180,6 +180,14 @@
 </span>
 {% endmacro %}
 
+{# Badge indiquant qu'une action/entrée nécessite un contexte (EJ/GHT/Patient) #}
+{% macro context_badge(label='Contexte requis') %}
+<span title="Nécessite un contexte" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11V7a4 4 0 10-8 0v4h8zM5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"/></svg>
+  <span>{{ label }}</span>
+</span>
+{% endmacro %}
+
 {# Carte d'aperçu #}
 {% macro preview_card(title, content, footer=None, image_url=None) %}
 <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">

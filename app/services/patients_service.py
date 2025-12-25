@@ -37,9 +37,37 @@ class PatientCreateSchema(BaseModel):
     mothers_maiden_name: Optional[str] = None
     primary_care_provider: Optional[str] = None
 
-class PatientUpdateSchema(PatientCreateSchema):
+class PatientUpdateSchema(BaseModel):
     """Schéma de données pour la mise à jour d'un patient."""
-    pass
+    identifier: Optional[str] = None
+    family: Optional[str] = None
+    given: Optional[str] = None
+    middle: Optional[str] = None
+    prefix: Optional[str] = None
+    suffix: Optional[str] = None
+    birth_family: Optional[str] = None
+    birth_date: Optional[str] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+    phone: Optional[str] = None
+    mobile: Optional[str] = None
+    work_phone: Optional[str] = None
+    email: Optional[str] = None
+    birth_address: Optional[str] = None
+    birth_city: Optional[str] = None
+    birth_state: Optional[str] = None
+    birth_postal_code: Optional[str] = None
+    birth_country: Optional[str] = None
+    nir: Optional[str] = None
+    marital_status: Optional[str] = None
+    nationality: Optional[str] = None
+    identity_reliability_code: Optional[str] = None
+    mothers_maiden_name: Optional[str] = None
+    primary_care_provider: Optional[str] = None
 
 def create_patient(
     session: Session, 
@@ -92,14 +120,12 @@ def update_patient(
     if patient.id is None or session.get(Patient, patient.id) is None:
         raise ValueError(f"Patient with id {patient.id} not found")
     
-    update_data = patient_data.dict(exclude_unset=True)
+    update_data = patient_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
-        setattr(patient, key, value)
+        if value is not None:  # Only update non-None values
+            setattr(patient, key, value)
     
     session.add(patient)
-    # Force la détection de modification pour les événements SQLAlchemy
-    attributes.flag_modified(patient, "family")
-    session.flush()
     session.commit()
     session.refresh(patient)
     return patient

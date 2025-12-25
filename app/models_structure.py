@@ -230,8 +230,13 @@ class EntiteJuridique(SQLModel, table=True):
     address_line1: Optional[str] = None
     address_line2: Optional[str] = None
     address_line3: Optional[str] = None
+    address_line: Optional[str] = None  # For backward compatibility
     address_city: Optional[str] = None
     address_postalcode: Optional[str] = None
+    postal_code: Optional[str] = None  # For backward compatibility
+    city: Optional[str] = None  # For backward compatibility
+    country: Optional[str] = None  # For backward compatibility
+    updated_at: Optional[datetime] = None  # For backward compatibility
     opening_date: Optional[datetime] = None
     activation_date: Optional[datetime] = None
     start_date: Optional[datetime] = Field(default=None)

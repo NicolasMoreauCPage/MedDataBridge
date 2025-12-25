@@ -8,6 +8,7 @@ from scripts.utils.hl7_import_validator import (
     HL7ImportValidator,
     ValidationResult,
     HL7ValidationReport,
+    HL7ImportQualityReport,
 )
 
-__all__ = ["HL7ImportValidator", "ValidationResult", "HL7ValidationReport"]
+__all__ = ["HL7ImportValidator", "ValidationResult", "HL7ValidationReport", "HL7ImportQualityReport"]

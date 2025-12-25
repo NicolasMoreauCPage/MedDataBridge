@@ -108,4 +108,4 @@ async def edit_namespace(
     session.commit()
     session.refresh(namespace)  # Refresh to get updated data
     flash(request, f"Namespace {name} modifié avec succès", "success")
-    return RedirectResponse(url=f"/admin/ght/{context_id}", status_code=303)
+    return RedirectResponse(url=f"/admin/ght/{context_id}/namespaces/{namespace.id}", status_code=303)

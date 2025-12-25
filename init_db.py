@@ -344,6 +344,8 @@ def main():
         from app import models  # Importe tous les modèles pour SQLModel.metadata
         from app import models_scenarios
         from app import models_workflows
+        from app import models_shared
+        from app import models_structure
         from sqlmodel import SQLModel
 
         # Créer les tables manuellement sans déclencher l'import automatique des templates
@@ -366,7 +368,7 @@ def main():
         print("ÉTAPE 2/4 : Initialisation des vocabulaires")
         print("=" * 60)
         try:
-            run([sys.executable, "tools/init_vocabularies.py"], check=True)
+            run([sys.executable, "scripts/tools/init_vocabularies.py"], check=True)
             print("✓ Vocabulaires initialisés\n")
         except (CalledProcessError, FileNotFoundError) as e:
             print(f"✗ Échec vocabulaires: {e}")
@@ -379,7 +381,7 @@ def main():
     print("ÉTAPE 3/4 : Structure multi-EJ + endpoints + namespaces")
     print("=" * 60)
     try:
-        run([sys.executable, "tools/init_extended_demo.py"], check=True)
+        run([sys.executable, "scripts/tools/init_extended_demo.py"], check=True)
         print("✓ Structure, endpoints et namespaces créés\n")
     except (CalledProcessError, FileNotFoundError) as e:
         print(f"✗ Échec structure étendue: {e}")

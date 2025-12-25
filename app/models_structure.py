@@ -1,9 +1,37 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
+from enum import Enum
 
 if TYPE_CHECKING:
     from app.models_practitioners import MedecinResponsable
+
+# --- ENUMS ---
+
+class LocationStatus(str, Enum):
+    """https://hl7.org/fhir/R4/valueset-location-status.html"""
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    INACTIVE = "inactive"
+
+class LocationMode(str, Enum):
+    """https://hl7.org/fhir/R4/valueset-location-mode.html"""
+    INSTANCE = "instance"
+    KIND = "kind"
+    HOSPITALIZATION = "hospitalization"
+    AMBULATORY = "ambulatory"
+    VIRTUAL = "virtual"
+
+class LocationPhysicalType(str, Enum):
+    """http://terminology.hl7.org/ValueSet/location-physical-type + extensions FHIR France"""
+    SI = "si"     # Site
+    BU = "bu"     # Bâtiment
+    WI = "wi"     # Aile (Wing)
+    WA = "wa"     # Unité de soins (Ward)
+    LV = "lv"     # Niveau/Étage (Level)
+    FL = "fl"     # Étage
+    RO = "ro"     # Chambre
+    BD = "bd"     # Lit
 
 class Pole(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -30,6 +58,7 @@ class Pole(SQLModel, table=True):
     status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
     responsible_id: Optional[str] = None
     mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
+    physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
 
 class Service(SQLModel, table=True):
     service_type: Optional[str] = Field(default=None, description="Type de service FHIR (MCO, SSR, etc.)")
@@ -274,33 +303,6 @@ class GHTContext(SQLModel, table=True):
     entites_juridiques: List["EntiteJuridique"] = Relationship(back_populates="ght_context")
     endpoints: List["SystemEndpoint"] = Relationship(back_populates="ght_context")
 
-# --- ENUMS ---
-
-class LocationStatus(str, Enum):
-    """https://hl7.org/fhir/R4/valueset-location-status.html"""
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-    INACTIVE = "inactive"
-
-class LocationMode(str, Enum):
-    """https://hl7.org/fhir/R4/valueset-location-mode.html"""
-    INSTANCE = "instance"
-    KIND = "kind"
-    HOSPITALIZATION = "hospitalization"
-    AMBULATORY = "ambulatory"
-    VIRTUAL = "virtual"
-
-class LocationPhysicalType(str, Enum):
-    """http://terminology.hl7.org/ValueSet/location-physical-type + extensions FHIR France"""
-    SI = "si"     # Site
-    BU = "bu"     # Bâtiment
-    WI = "wi"     # Aile (Wing)
-    WA = "wa"     # Unité de soins (Ward)
-    LV = "lv"     # Niveau/Étage (Level)
-    FL = "fl"     # Étage
-    RO = "ro"     # Chambre
-    BD = "bd"     # Lit
-
 # --- MODELS ---
 
 class EntiteGeographique(SQLModel, table=True):
@@ -347,6 +349,28 @@ class EntiteGeographique(SQLModel, table=True):
     type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
     gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de la structure")
     operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de la structure")
+    # Catégorisation
+    category_code: Optional[str] = None  # Code catégorie établissement
+    category_name: Optional[str] = None
+    category_sae: Optional[str] = None
+    city_insee_code: Optional[str] = None
+    # État
+    is_active: bool = Field(default=True)
+    # Dates (format HL7 YYYYMMDD pour compatibilité tests)
+    opening_date: Optional[str] = None
+    activation_date: Optional[str] = None
+    closing_date: Optional[str] = None
+    deactivation_date: Optional[str] = None
+    # Responsable(s)
+    responsible_id: Optional[str] = None
+    responsible_name: Optional[str] = None
+    responsible_firstname: Optional[str] = None
+    responsible_rpps: Optional[str] = None
+    responsible_adeli: Optional[str] = None
+    responsible_specialty: Optional[str] = None
+    # Métadonnées
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class IdentifierNamespace(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

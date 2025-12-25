@@ -32,6 +32,27 @@ class LocationPhysicalType(str, Enum):
     FL = "fl"     # Étage
     RO = "ro"     # Chambre
     BD = "bd"     # Lit
+    VE = "ve"     # Véhicule
+    HO = "ho"     # Maison/Domicile
+    CA = "ca"     # Cabinet
+    RD = "rd"     # Route
+    AREA = "area" # Zone
+    JDN = "jdn"   # Jurisdiction
+    # Caractéristiques de chambre selon IHE PAM
+    PRESSION_NEGATIVE = "pression_negative"  # Chambre à pression négative
+    CARCERAL = "carceral"                    # Chambre carcérale
+    CAPITONNE = "capitonne"                  # Chambre capitonnée
+    # Types de chambre selon FHIR France
+    STANDARD = "standard"                    # Chambre standard
+    PRESSION_POSITIVE = "pression_positive"  # Chambre à pression positive
+    # Types de location selon FHIR France
+    COULOIR = "couloir"                      # Couloir
+    BOX = "box"                              # Box
+    PLATEAU_TECHNIQUE = "plateau_technique"  # Plateau technique
+    POINT_COLLECTE = "point_collecte"        # Point de collecte
+    POINT_LIVRAISON = "point_livraison"      # Point de livraison
+    SALLE_EXAMEN = "salle_examen"            # Salle d'examen
+    SALLE_CONSULTATION = "salle_consultation" # Salle de consultation
 
 class Pole(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -45,6 +66,7 @@ class Pole(SQLModel, table=True):
     address_line3: Optional[str] = None
     address_city: Optional[str] = None
     address_postalcode: Optional[str] = None
+    address_country: Optional[str] = "FR"
     opening_date: Optional[datetime] = None
     activation_date: Optional[datetime] = None
     closing_date: Optional[datetime] = None
@@ -73,6 +95,7 @@ class Service(SQLModel, table=True):
     address_line3: Optional[str] = None
     address_city: Optional[str] = None
     address_postalcode: Optional[str] = None
+    address_country: Optional[str] = "FR"
     opening_date: Optional[datetime] = None
     activation_date: Optional[datetime] = None
     closing_date: Optional[datetime] = None
@@ -83,7 +106,13 @@ class Service(SQLModel, table=True):
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="service")
     status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
     mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
+    physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
     responsible_id: Optional[str] = None
+    responsible_name: Optional[str] = None
+    responsible_firstname: Optional[str] = None
+    responsible_rpps: Optional[str] = None
+    responsible_adeli: Optional[str] = None
+    responsible_specialty: Optional[str] = None
     typology: Optional[str] = Field(default=None, description="Typologie du service")
     uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
     etage: Optional[str] = Field(default=None, description="Étage du service")
@@ -127,6 +156,7 @@ class UniteFonctionnelle(SQLModel, table=True):
     address_line3: Optional[str] = None
     address_city: Optional[str] = None
     address_postalcode: Optional[str] = None
+    address_country: Optional[str] = "FR"
     opening_date: Optional[datetime] = None
     activation_date: Optional[datetime] = None
     closing_date: Optional[datetime] = None
@@ -145,6 +175,9 @@ class UniteFonctionnelle(SQLModel, table=True):
         link_model=UniteFonctionnelleActivityLink,
     )
     namespaces: List["IdentifierNamespace"] = Relationship(back_populates="unite_fonctionnelle")
+    status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
+    mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
+    physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
     typology: Optional[str] = Field(default=None, description="Typologie de l'unité fonctionnelle")
     uf_type: Optional[str] = Field(default=None, description="Type d'unité fonctionnelle")
     etage: Optional[str] = Field(default=None, description="Étage de l'unité fonctionnelle")
@@ -180,6 +213,10 @@ class UniteHebergement(SQLModel, table=True):
     type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
     gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de l'unité d'hébergement")
     operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de l'unité d'hébergement")
+    status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
+    mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
+    physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
+    address_country: Optional[str] = "FR"
 
 class Chambre(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -211,6 +248,10 @@ class Chambre(SQLModel, table=True):
     is_generic: Optional[bool] = Field(default=False, description="Chambre générique (ZGEN) permettant occupation multiple")
     max_occupancy: Optional[int] = Field(default=1, description="Occupation maximale autorisée (ignoré pour chambres génériques)")
     venues: List["Venue"] = Relationship(back_populates="chambre")
+    status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
+    mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
+    physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
+    address_country: Optional[str] = "FR"
 
 class Lit(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -241,6 +282,10 @@ class Lit(SQLModel, table=True):
     is_generic: Optional[bool] = Field(default=False, description="Lit générique (ZGEN) permettant occupation multiple")
     max_occupancy: Optional[int] = Field(default=1, description="Occupation maximale autorisée (ignoré pour lits génériques)")
     venues: List["Venue"] = Relationship(back_populates="lit")
+    status: Optional[str] = Field(default="active", description="Statut FHIR Location (active, suspended, inactive)")
+    mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
+    physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
+    address_country: Optional[str] = "FR"
 
 from datetime import datetime
 from typing import Optional, List
@@ -417,38 +462,6 @@ class LocationMode(str, Enum):
     HOSPITALIZATION = "hospitalization"
     AMBULATORY = "ambulatory"
     VIRTUAL = "virtual"
-
-class LocationPhysicalType(str, Enum):
-    """http://terminology.hl7.org/ValueSet/location-physical-type + extensions FHIR France"""
-    SI = "si"     # Site
-    BU = "bu"     # Bâtiment
-    WI = "wi"     # Aile (Wing)
-    WA = "wa"     # Unité de soins (Ward)
-    LV = "lv"     # Niveau/Étage (Level)
-    FL = "fl"     # Étage
-    RO = "ro"     # Chambre
-    BD = "bd"     # Lit
-    VE = "ve"     # Véhicule
-    HO = "ho"     # Maison/Domicile
-    CA = "ca"     # Cabinet
-    RD = "rd"     # Route
-    AREA = "area" # Zone
-    JDN = "jdn"   # Jurisdiction
-    # Caractéristiques de chambre selon IHE PAM
-    PRESSION_NEGATIVE = "pression_negative"  # Chambre à pression négative
-    CARCERAL = "carceral"                    # Chambre carcérale
-    CAPITONNE = "capitonne"                  # Chambre capitonnée
-    # Types de chambre selon FHIR France
-    STANDARD = "standard"                    # Chambre standard
-    PRESSION_POSITIVE = "pression_positive"  # Chambre à pression positive
-    # Types de location selon FHIR France
-    COULOIR = "couloir"                      # Couloir
-    BOX = "box"                              # Box
-    PLATEAU_TECHNIQUE = "plateau_technique"  # Plateau technique
-    POINT_COLLECTE = "point_collecte"        # Point de collecte
-    POINT_LIVRAISON = "point_livraison"      # Point de livraison
-    SALLE_EXAMEN = "salle_examen"            # Salle d'examen
-    SALLE_CONSULTATION = "salle_consultation" # Salle de consultation
 
 class LocationPositionType(str, Enum):
     """Positions dans une chambre selon IHE PAM France"""

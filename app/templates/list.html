@@ -11,12 +11,12 @@
 {% endif %}
 
 {# Header avec titre et actions #}
-<div class="bg-gradient-to-r from-bg-main to-bg-alt rounded-2xl border border-theme p-6 mb-6 shadow-sm">
+<div class="bg-gradient-to-r from-white to-gray-50 rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm">
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-bold text-title">{{ title|default('Liste', true) }}</h1>
+      <h1 class="text-2xl font-bold text-gray-900">{{ title|default('Liste', true) }}</h1>
       {% if subtitle %}
-      <p class="text-muted mt-1">{{ subtitle }}</p>
+      <p class="text-gray-600 mt-1">{{ subtitle }}</p>
       {% endif %}
     </div>
     
@@ -24,7 +24,7 @@
       {# Filtre de statut (si fourni) #}
       {% if filter_options %}
         <form method="get" class="inline-block">
-          <select name="filter_status" onchange="this.form.submit()" class="rounded-lg border-theme shadow-sm focus:border-accent focus:ring-2 focus:ring-accent/20 text-sm transition-colors">
+          <select name="filter_status" onchange="this.form.submit()" class="rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm transition-colors">
             {% for opt in filter_options %}
               <option value="{{ opt.value or '' }}" {% if filter_status == opt.value %}selected{% endif %}>
                 {{ opt.label }}
@@ -37,7 +37,7 @@
       {% if filters %}
         <button 
           type="button"
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-main bg-bg border border-theme rounded-lg hover:bg-alt transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           @click="showFilters = !showFilters"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,11 +60,11 @@
 
 {# Onglets contextuels (facultatif) #}
 {% if tabs %}
-  <div class="mb-4 border-b border-theme">
+  <div class="mb-4 border-b border-gray-200">
     <nav class="-mb-px flex gap-6" aria-label="Tabs">
       {% for t in tabs %}
         <a href="{{ t.url }}"
-           class="whitespace-nowrap py-3 px-1 border-b-2 text-sm font-medium {{ 'border-accent text-accent' if t.active else 'border-transparent text-muted hover:text-main hover:border-theme' }}">
+           class="whitespace-nowrap py-3 px-1 border-b-2 text-sm font-medium {{ 'border-blue-500 text-blue-600' if t.active else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
           {{ t.label }}
         </a>
       {% endfor %}
@@ -80,13 +80,13 @@
 {% endif %}
 
 {# Tableau principal #}
-<div class="bg-bg border border-theme rounded-2xl shadow-sm overflow-hidden">
+<div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
   {# Info bar #}
   {% if rows %}
-  <div class="px-6 py-3 bg-alt border-b border-theme flex items-center justify-between">
+  <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
     <div class="flex items-center gap-4">
-      <p class="text-sm text-muted">
-        <span class="font-semibold text-title">{{ rows|length }}</span> élément(s)
+      <p class="text-sm text-gray-600">
+        <span class="font-semibold text-gray-900">{{ rows|length }}</span> élément(s)
       </p>
       {% if rows and rows[0].detail_url %}
         <div class="flex items-center gap-2 text-xs text-slate-500">

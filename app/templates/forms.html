@@ -2,37 +2,37 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-muted mb-6">
-    <a href="/" class="hover:text-accent transition-colors">🏠 Accueil</a>
-    <span class="text-divider">/</span>
-    <span class="text-title font-medium">{{ title }}</span>
+    <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-gray-400">/</span>
+    <span class="text-gray-900 font-medium">{{ title }}</span>
   </nav>
 
   <!-- Header -->
   <div class="mb-8">
-    <div class="bg-gradient-to-r from-accent via-accent-alt to-accent-2 rounded-2xl p-8 text-on-accent shadow-lg">
+    <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 rounded-2xl p-8 text-white shadow-lg">
       <div class="flex items-center space-x-4">
-        <div class="bg-bg/20 backdrop-blur-sm rounded-xl p-3">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
           <div class="text-3xl">🔹</div>
         </div>
         <div>
-          <h1 class="text-3xl font-bold text-title">{{ title }}</h1>
+          <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
         </div>
       </div>
     </div>
   </div>
 
-  <h2 class="text-2xl font-bold text-accent mb-6">{{ title }}</h2>
+  <h2 class="text-2xl font-bold text-blue-600 mb-6">{{ title }}</h2>
   {% if error %}
-    <div class="p-4 bg-error-bg border border-error rounded-xl flex items-center gap-3 mb-4 animate-fadeIn">
-      <svg class="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 mb-4 animate-fadeIn">
+      <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <span class="text-error-text">{{ error }}</span>
+      <span class="text-red-800">{{ error }}</span>
     </div>
   {% endif %}
 
-  <form method="post" class="bg-bg rounded-xl border border-theme shadow-sm p-8 max-w-2xl mx-auto" {% if action_url %}action="{{ action_url }}"{% endif %} novalidate role="form">
+  <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-2xl mx-auto" {% if action_url %}action="{{ action_url }}"{% endif %} novalidate role="form">
     <div class="grid gap-6">
       {% for field in fields %}
         <div class="space-y-2 relative group">
@@ -40,18 +40,18 @@
           {% set help_id = field.name + '_help' %}
           {% set error_id = field.name + '_error' %}
           <label for="{{ field_id }}" class="flex items-baseline gap-2">
-            <span class="text-sm font-medium text-main">{{ field.label }}</span>
+            <span class="text-sm font-medium text-gray-700">{{ field.label }}</span>
             {% if field.required %}
-              <span class="text-error font-medium" aria-hidden="true">*</span>
+              <span class="text-red-500 font-medium" aria-hidden="true">*</span>
             {% endif %}
             {% if field.help %}
               <div id="{{ help_id }}" class="relative inline-block">
-                <button type="button" class="text-muted hover:text-accent" aria-label="Plus d'informations sur {{ field.label }}" aria-describedby="{{ help_id }}_tooltip">
+                <button type="button" class="text-gray-500 hover:text-blue-600" aria-label="Plus d'informations sur {{ field.label }}" aria-describedby="{{ help_id }}_tooltip">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
-                <div id="{{ help_id }}_tooltip" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-accent text-on-accent text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10" role="tooltip">
+                <div id="{{ help_id }}_tooltip" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-blue-600 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10" role="tooltip">
                   <span class="text-xs">{{ field.help }}</span>
                   <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-accent"></div>
                 </div>
@@ -62,7 +62,7 @@
             <div class="relative">
               <select
                 id="{{ field_id }}"
-                class="w-full rounded-xl border border-theme bg-bg px-3 py-2 pr-8 text-main appearance-none focus:outline-none focus:ring-2 focus:ring-accent {% if field.error %}border-error ring-error{% endif %}"
+                class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 pr-8 text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 {% if field.error %}border-red-300 ring-red-500{% endif %}"
                 name="{{ field.name }}"
                 {% if field.required %}required aria-required="true" data-required="true"{% endif %}
                 aria-invalid="{% if field.error %}true{% else %}false{% endif %}"

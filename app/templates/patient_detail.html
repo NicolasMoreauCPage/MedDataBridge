@@ -4,41 +4,41 @@
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center gap-2 text-sm text-muted">
-    <a href="/" class="hover:text-accent transition-colors">Accueil</a>
+  <nav class="flex items-center gap-2 text-sm text-gray-600">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    <a href="/patients" class="hover:text-accent transition-colors">Patients</a>
+    <a href="/patients" class="hover:text-blue-600 transition-colors">Patients</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-title font-medium">{{ patient.family }} {{ patient.given }}</span>
+    <span class="text-gray-900 font-medium">{{ patient.family }} {{ patient.given }}</span>
   </nav>
 
   <!-- Header avec gradient -->
-  <div class="bg-gradient-to-r from-accent via-accent-alt to-accent-2 rounded-2xl p-8 text-on-accent relative overflow-hidden shadow-xl">
+  <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 rounded-2xl p-8 text-white relative overflow-hidden shadow-xl">
     <div class="absolute inset-0 bg-black/10"></div>
-    <div class="absolute -right-10 -top-10 w-40 h-40 bg-bg/10 rounded-full blur-3xl"></div>
+    <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
     
     <div class="relative z-10 flex items-start justify-between">
       <div class="flex items-start gap-5">
         <!-- Avatar -->
-        <div class="w-20 h-20 rounded-2xl bg-bg/20 backdrop-blur flex items-center justify-center text-3xl font-bold">
+        <div class="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold">
           {{ patient.given[0] if patient.given else '?' }}{{ patient.family[0] if patient.family else '?' }}
         </div>
         <div>
           <div class="flex items-center gap-3 mb-2">
             {% if patient.prefix %}
-            <span class="text-on-accent/70 text-sm">{{ patient.prefix }}</span>
+            <span class="text-white/70 text-sm">{{ patient.prefix }}</span>
             {% endif %}
-            <h1 class="text-3xl font-bold text-title">{{ patient.family|upper }} {{ patient.given }}</h1>
+            <h1 class="text-3xl font-bold text-white">{{ patient.family|upper }} {{ patient.given }}</h1>
           </div>
           <div class="flex items-center gap-3 mt-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg/10 backdrop-blur text-sm font-medium">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
               </svg>
               IPP: {{ patient.identifier or patient.id }}
             </span>
             {% if patient.birth_date %}
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg/10 backdrop-blur text-sm font-medium">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-sm font-medium">
               🎂 {{ patient.birth_date }}
             </span>
             {% endif %}
@@ -48,13 +48,13 @@
 
       <!-- Actions rapides -->
       <div class="flex gap-2">
-        <a href="/timeline/patient/{{ patient.id }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-bg/10 backdrop-blur border-2 border-bg/30 rounded-xl hover:bg-bg/20 transition-all">
+        <a href="/timeline/patient/{{ patient.id }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-white/10 backdrop-blur border-2 border-white/30 rounded-xl hover:bg-white/20 transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           Timeline
         </a>
-        <a href="/patients/{{ patient.id }}/edit" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-bg text-accent rounded-xl hover:bg-accent-bg transition-all shadow-lg">
+        <a href="/patients/{{ patient.id }}/edit" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all shadow-lg">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
           </svg>
@@ -69,8 +69,8 @@
     <!-- Colonne principale -->
     <div class="lg:col-span-2 space-y-6">
       <!-- Identité -->
-      <details class="bg-bg rounded-2xl border-2 border-theme overflow-hidden shadow-sm" open>
-        <summary class="cursor-pointer bg-gradient-to-r from-alt to-bg px-6 py-4 font-semibold text-main hover:from-bg hover:to-alt transition-colors flex items-center gap-3">
+      <details class="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-sm" open>
+        <summary class="cursor-pointer bg-gradient-to-r from-gray-50 to-white px-6 py-4 font-semibold text-gray-900 hover:from-white hover:to-gray-50 transition-colors flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -81,23 +81,23 @@
         <div class="p-6">
           <dl class="grid grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <dt class="text-xs font-medium text-muted uppercase tracking-wide mb-1">Nom</dt>
-              <dd class="text-base font-semibold text-title">{{ patient.family|default('-', true) }}</dd>
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Nom</dt>
+              <dd class="text-base font-semibold text-gray-900">{{ patient.family|default('-', true) }}</dd>
             </div>
             <div>
-              <dt class="text-xs font-medium text-muted uppercase tracking-wide mb-1">Prénom</dt>
-              <dd class="text-base font-semibold text-title">{{ patient.given|default('-', true) }}</dd>
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Prénom</dt>
+              <dd class="text-base font-semibold text-gray-900">{{ patient.given|default('-', true) }}</dd>
             </div>
             {% if patient.birth_family %}
             <div>
-              <dt class="text-xs font-medium text-muted uppercase tracking-wide mb-1">Nom de naissance</dt>
-              <dd class="text-base text-main">{{ patient.birth_family }}</dd>
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Nom de naissance</dt>
+              <dd class="text-base text-gray-700">{{ patient.birth_family }}</dd>
             </div>
             {% endif %}
             {% if patient.middle %}
             <div>
-              <dt class="text-xs font-medium text-muted uppercase tracking-wide mb-1">Deuxième prénom</dt>
-              <dd class="text-base text-main">{{ patient.middle }}</dd>
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Deuxième prénom</dt>
+              <dd class="text-base text-gray-700">{{ patient.middle }}</dd>
             </div>
             {% endif %}
             <div>

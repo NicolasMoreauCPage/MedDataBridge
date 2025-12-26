@@ -4,57 +4,57 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-muted mb-6">
-        <a href="/" class="hover:text-accent transition-colors">🏠 Accueil</a>
-        <span class="text-divider">/</span>
-        <span class="text-title font-medium">Configuration des points de transport pour</span>
+    <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+        <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+        <span class="text-gray-400">/</span>
+        <span class="text-gray-900 font-medium">Configuration des points de transport pour</span>
   </nav>
 
   <!-- Header -->
   <div class="mb-8">
-    <div class="bg-gradient-to-r from-accent via-accent-alt to-accent-2 rounded-2xl p-8 text-on-accent shadow-lg">
+    <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 rounded-2xl p-8 text-white shadow-lg">
       <div class="flex items-center space-x-4">
-        <div class="bg-bg/20 backdrop-blur-sm rounded-xl p-3">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
           <div class="text-3xl">🔹</div>
         </div>
         <div>
-          <h1 class="text-3xl font-bold text-title">Configuration des points de transport pour</h1>
+          <h1 class="text-3xl font-bold text-white">Configuration des points de transport pour</h1>
         </div>
       </div>
     </div>
   </div>
 
-    <h2 class="text-2xl font-bold text-accent mb-6">Configuration des points de transport pour {{ endpoint.name|default('', true) }}</h2>
+    <h2 class="text-2xl font-bold text-blue-600 mb-6">Configuration des points de transport pour {{ endpoint.name|default('', true) }}</h2>
     <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-main">Serveurs MLLP</h3>
-            <a href="/endpoints/{{ endpoint.id }}/mllp/new" class="px-4 py-2 rounded-lg bg-accent text-on-accent hover:bg-accent-alt transition">Nouveau serveur MLLP</a>
+            <h3 class="text-lg font-semibold text-gray-900">Serveurs MLLP</h3>
+            <a href="/endpoints/{{ endpoint.id }}/mllp/new" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">Nouveau serveur MLLP</a>
         </div>
         {% if mllp_configs %}
-            <div class="bg-bg rounded-xl shadow-sm border border-theme overflow-x-auto" role="region" aria-label="Liste des serveurs MLLP">
-                <table class="min-w-full divide-y divide-theme" role="table">
-                    <thead class="bg-alt">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto" role="region" aria-label="Liste des serveurs MLLP">
+                <table class="min-w-full divide-y divide-gray-200" role="table">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Nom</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Port</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-muted uppercase">État</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-muted uppercase">Actions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Port</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">État</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-bg divide-y divide-theme" role="rowgroup">
+                    <tbody class="bg-white divide-y divide-gray-200" role="rowgroup">
                         {% for config in mllp_configs %}
-                        <tr class="hover:bg-alt" role="row">
-                            <td class="px-6 py-4 text-sm font-medium text-title" role="cell">{{ config.name|default('', true) }}</td>
-                            <td class="px-6 py-4 text-sm text-muted">{{ config.port|default('', true) }}</td>
+                        <tr class="hover:bg-gray-50" role="row">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900" role="cell">{{ config.name|default('', true) }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ config.port|default('', true) }}</td>
                             <td class="px-6 py-4 text-sm">
                                 {% if config.is_enabled %}
-                                    <span class="px-2 py-1 text-xs font-semibold text-success text-success-bg rounded-full">Actif</span>
+                                    <span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">Actif</span>
                                 {% else %}
-                                    <span class="px-2 py-1 text-xs font-semibold text-muted bg-alt rounded-full">Inactif</span>
+                                    <span class="px-2 py-1 text-xs font-semibold text-gray-600 bg-gray-100 rounded-full">Inactif</span>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 text-sm text-right">
-                                <a href="/endpoints/{{ endpoint.id }}/mllp/{{ config.id }}/edit" class="text-accent hover:underline">Modifier</a>
+                                <a href="/endpoints/{{ endpoint.id }}/mllp/{{ config.id }}/edit" class="text-blue-600 hover:underline">Modifier</a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -62,8 +62,8 @@
                 </table>
             </div>
         {% else %}
-            <div class="bg-alt rounded-xl border border-theme p-8 text-center">
-                <p class="text-muted">Aucun serveur MLLP configuré</p>
+            <div class="bg-gray-50 rounded-xl border border-gray-200 p-8 text-center">
+                <p class="text-gray-600">Aucun serveur MLLP configuré</p>
             </div>
         {% endif %}
     </div>
@@ -72,30 +72,30 @@
     <!-- FHIR Configurations -->
     <div>
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-medium text-main">Points FHIR</h3>
+            <h3 class="text-xl font-medium text-gray-900">Points FHIR</h3>
             <a href="/endpoints/{{ endpoint.id }}/fhir/new" 
-               class="px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent-alt">
+               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 Nouveau point FHIR
             </a>
         </div>
 
         {% if fhir_configs %}
-        <div class="bg-bg shadow-sm rounded-xl border border-theme overflow-hidden">
+        <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
             <div class="overflow-x-auto" role="region" aria-label="Points FHIR configurés">
-            <table class="min-w-full divide-y divide-theme" role="table">
-                <thead class="bg-alt">
+            <table class="min-w-full divide-y divide-gray-200" role="table">
+                <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Nom</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">URL</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Version</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">État</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Version</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">État</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="bg-bg divide-y divide-theme" role="rowgroup">
+                <tbody class="bg-white divide-y divide-gray-200" role="rowgroup">
                     {% for config in fhir_configs %}
                     <tr role="row">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-title" role="cell">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" role="cell">
                             {{ config.name if config.name is not none else '' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">

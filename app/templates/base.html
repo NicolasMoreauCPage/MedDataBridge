@@ -4,39 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title|default('MedData Bridge') }}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/output.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='css/forms.css') }}">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { 'sans': ['Inter', 'sans-serif'] },
-          maxWidth: { 'content': '1200px' },
-          colors: { 'primary': '#2563eb', 'accent': '#0ea5e9' },
-          animation: {
-            'fadeIn': 'fadeIn 200ms ease-in',
-            'slideIn': 'slideIn 200ms ease-out',
-            'fade-in': 'fadeIn 300ms ease-out',
-            'slide-up': 'slideUp 400ms cubic-bezier(0.16, 1, 0.3, 1)',
-            'scale-in': 'scaleIn 250ms ease-out',
-            'bounce-in': 'bounceIn 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-            'page-enter': 'pageEnter 400ms cubic-bezier(0.16, 1, 0.3, 1)',
-            'page-exit': 'pageExit 300ms cubic-bezier(0.4, 0, 1, 1)',
-          },
-          keyframes: {
-            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-            slideIn: { '0%': { transform: 'translateX(-10px)', opacity: '0' }, '100%': { transform: 'translateX(0)', opacity: '1' } },
-            slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-            scaleIn: { '0%': { transform: 'scale(0.95)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } },
-            bounceIn: { '0%': { transform: 'scale(0.3)', opacity: '0' }, '50%': { transform: 'scale(1.05)' }, '70%': { transform: 'scale(0.9)' }, '100%': { transform: 'scale(1)', opacity: '1' } },
-            pageEnter: { '0%': { transform: 'translateY(8px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-            pageExit: { '0%': { transform: 'translateY(0)', opacity: '1' }, '100%': { transform: 'translateY(-8px)', opacity: '0' } },
-          }
-        }
-      },
-      darkMode: 'media'
-    }
-  </script>
   <meta name="description" content="Interface de gestion des données médicales et interopérabilité FHIR/HL7">
   <meta name="theme-color" content="#2563eb">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
@@ -44,20 +13,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* Variables CSS essentielles pour le dark mode et branding */
     :root {
-      --color-bg: #f8fafc; /* slate-50 */
-      --color-surface: #ffffff;
-      --color-border: #e2e8f0; /* slate-200 */
-      --color-text: #1f2937; /* slate-800 */
-      --color-muted: #64748b; /* slate-500 */
-      --color-accent: #2563eb; /* primary */
-      --color-accent-alt: #0ea5e9; /* accent */
-      --color-success: #10b981; /* green-500 */
-      --color-warning: #f59e0b; /* amber-500 */
-      --color-danger: #ef4444; /* red-500 */
-      --color-heading: #0f172a; /* slate-900 */
-      --color-code-bg: #f1f5f9; /* slate-100 */
+      --color-bg: #f8fafc; /* slate-50 - page background */
+      --color-surface: #ffffff; /* card backgrounds */
+      --color-border: #e2e8f0; /* slate-200 - borders */
+      --color-text: #1f2937; /* slate-800 - primary text */
+      --color-muted: #64748b; /* slate-500 - secondary text */
+      --color-accent: #2563eb; /* blue-600 - primary accent */
+      --color-success: #10b981; /* green-500 - success states */
+      --color-warning: #f59e0b; /* amber-500 - warning states */
+      --color-danger: #ef4444; /* red-500 - error states */
     }
+
+    /* Dark mode support */
     @media (prefers-color-scheme: dark) {
       :root {
         --color-bg: #0f172a; /* slate-900 */
@@ -66,11 +35,9 @@
         --color-text: #f1f5f9; /* slate-100 */
         --color-muted: #94a3b8; /* slate-400 */
         --color-accent: #3b82f6; /* blue-500 */
-        --color-accent-alt: #06b6d4; /* cyan-500 */
-        --color-heading: #f1f5f9; /* slate-100 */
-        --color-code-bg: #1e293b; /* slate-800 */
       }
     }
+
     [data-theme="dark"] {
       --color-bg: #0f172a;
       --color-surface: #1e293b;
@@ -78,17 +45,14 @@
       --color-text: #f1f5f9;
       --color-muted: #94a3b8;
       --color-accent: #3b82f6;
-      --color-accent-alt: #06b6d4;
-      --color-heading: #f1f5f9;
-      --color-code-bg: #1e293b;
     }
-    body { background: var(--color-bg); color: var(--color-text); min-height: 100vh; }
-    .surface { background: var(--color-surface); }
-    .border-theme { border-color: var(--color-border); }
-    .text-muted { color: var(--color-muted); }
-    .text-accent { color: var(--color-accent); }
-    .bg-accent { background: var(--color-accent); }
-    .bg-surface { background: var(--color-surface); }
+
+    /* Styles de base - maintenant minimalistes */
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+    }
     
     /* Smooth transitions globales */
     * { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
@@ -221,8 +185,30 @@
           {{ components.status_badge('error', 'ACK en erreur (' ~ request.state.error_message_count ~ ')') }}
         </a>
         {% endif %}
+        <!-- Theme toggle button -->
+        <button id="theme-toggle" class="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" aria-label="Basculer le thème" title="Basculer entre thème clair et sombre">
+          <!-- Sun icon for light theme -->
+          <svg id="theme-icon-light" class="w-4 h-4 text-slate-700 dark:hidden transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <!-- Moon icon for dark theme -->
+          <svg id="theme-icon-dark" class="w-4 h-4 text-slate-300 hidden dark:block transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
       </div>
-      <div class="md:hidden">
+      <div class="md:hidden flex items-center gap-2">
+        <!-- Theme toggle button (mobile) -->
+        <button id="theme-toggle-mobile" class="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" aria-label="Basculer le thème" title="Basculer entre thème clair et sombre">
+          <!-- Sun icon for light theme -->
+          <svg id="theme-icon-light-mobile" class="w-5 h-5 text-slate-700 dark:hidden transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <!-- Moon icon for dark theme -->
+          <svg id="theme-icon-dark-mobile" class="w-5 h-5 text-slate-300 hidden dark:block transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
         <button id="menu-btn" class="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" aria-label="Menu principal">
           <svg class="w-6 h-6 text-slate-700 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
@@ -692,6 +678,50 @@
         console.error('Defensive UI cleanup script failed', e);
       }
     });
+
+    // Gestionnaire de thème (light/dark)
+    const themeToggle = {
+      init() {
+        this.theme = localStorage.getItem('theme') || 'light';
+        this.applyTheme();
+      },
+      
+      toggle() {
+        this.theme = this.theme === 'light' ? 'dark' : 'light';
+        this.applyTheme();
+        localStorage.setItem('theme', this.theme);
+      },
+      
+      applyTheme() {
+        const html = document.documentElement;
+        if (this.theme === 'dark') {
+          html.classList.add('dark');
+        } else {
+          html.classList.remove('dark');
+        }
+        // Also set data-theme for any custom CSS that might use it
+        html.setAttribute('data-theme', this.theme);
+      }
+    };
+    
+    // Initialiser le thème au chargement
+    themeToggle.init();
+    
+    // Event listeners pour les boutons de thème
+    document.addEventListener('DOMContentLoaded', function() {
+      const themeBtn = document.getElementById('theme-toggle');
+      const themeBtnMobile = document.getElementById('theme-toggle-mobile');
+      
+      if (themeBtn) {
+        themeBtn.addEventListener('click', () => window.themeToggle.toggle());
+      }
+      if (themeBtnMobile) {
+        themeBtnMobile.addEventListener('click', () => window.themeToggle.toggle());
+      }
+    });
+    
+    // Exposer globalement pour les boutons
+    window.themeToggle = themeToggle;
   </script>
 
   <!-- Alpine.js pour interactivité -->

@@ -9,10 +9,34 @@ Ce fichier suit la progression détaillée de la refonte UI/UX basée sur l'audi
 - [x] Refactoriser tous les boutons/alerts pour utiliser ces macros — *fait 2025-12-26, cf. branche uxui-restart-2025-12-26*
 - [x] Ajouter un état vide + CTA sur toutes les listes principales — *fait 2025-12-26, cf. branche uxui-restart-2025-12-26*
 
-## 2. Design tokens & palette
-- [ ] Définir une palette officielle et variables CSS dans `vars.css`
-- [ ] Extraire tous les tokens (couleurs, radius, spacing) dans un seul fichier
-- [ ] Préparer le support dark mode (structure CSS)
+## 2. Design system maintenable (standard)
+- [x] Installer Tailwind CSS en mode build (purge, config locale, pas de CDN) — *fait 2025-12-26*
+- [x] Ajouter DaisyUI (ou une autre librairie UI compatible Tailwind) pour accélérer la création de composants accessibles et cohérents — *fait 2025-12-26*
+- [x] Nettoyer les tokens CSS maison pour ne garder que les overrides nécessaires (branding, dark mode, etc.) — *fait 2025-12-26*
+- [x] Documenter la palette et la typographie dans la config Tailwind — *fait 2025-12-26*
+- [x] Préparer le support dark mode via Tailwind et DaisyUI — *implémentation complète avec toggle faite 2025-12-26*
+
+## 3. Améliorations UI/UX avancées
+- [x] Implémenter le dark mode complet avec toggle — *fait 2025-12-26*
+- [ ] Ajouter des composants DaisyUI (modals, tooltips, dropdowns)
+- [ ] Créer un sélecteur de thème (light/dark/auto)
+- [ ] Optimiser les animations et transitions
+
+## 2.5 Migration templates vers Tailwind
+- [x] Migrer `base.html` pour utiliser le CSS compilé au lieu du CDN — *fait 2025-12-26*
+- [x] Migrer `list.html` : remplacer tokens personnalisés par classes Tailwind — *fait 2025-12-26*
+- [x] Migrer `forms.html` : remplacer tokens personnalisés par classes Tailwind — *fait 2025-12-26*
+- [x] Migrer `patient_detail.html` : remplacer tokens personnalisés par classes Tailwind — *fait 2025-12-26*
+- [x] Migrer `endpoint_transport.html` : remplacer tokens personnalisés par classes Tailwind — *fait 2025-12-26*
+- [x] Migrer `examples_hl7v2.html` : remplacer tokens personnalisés par classes Tailwind — *fait 2025-12-26*
+- [x] Tester tous les templates migrés pour s'assurer du bon rendu — *fait 2025-12-26*
+
+## 3. Prochaines étapes (optionnel)
+- [ ] Migrer les templates restants (dashboard.html, endpoint_detail.html, etc.) vers Tailwind
+- [ ] Ajouter DaisyUI pour des composants UI plus riches (modals, tooltips, etc.)
+- [ ] Implémenter le dark mode
+- [ ] Optimiser les performances CSS (purge plus aggressive)
+- [ ] Créer un styleguide pour documenter les composants
 
 ## 3. Typographie & spacing
 - [ ] Hiérarchie typographique claire (h1..h4, Inter partout)
@@ -20,10 +44,10 @@ Ce fichier suit la progression détaillée de la refonte UI/UX basée sur l'audi
 
 
 ## 4. Composants réutilisables
-- Centraliser tous les composants UI (boutons, inputs, alerts, badges, table rows, modals) dans `components.html` (macros Jinja).
-- Refactoriser tous les templates pour utiliser ces macros systématiquement.
-- Documenter chaque macro avec exemples d’usage.
-- Ajouter des tests visuels pour chaque composant clé.
+- Utiliser les composants DaisyUI/Tailwind natifs partout où c’est pertinent (boutons, inputs, alerts, badges, modals, etc.).
+- Refactoriser les macros Jinja pour ne faire que l’assemblage logique, pas le style.
+- Documenter chaque macro avec exemples d’usage (README ou doc inline).
+- Ajouter une page de styleguide pour visualiser tous les composants clés.
 
 ## 5. Iconographie & microcopy
 - Remplacer tous les emojis par des icônes SVG cohérentes (Heroicons).
@@ -59,9 +83,8 @@ Ce fichier suit la progression détaillée de la refonte UI/UX basée sur l'audi
 - Quick-preview et highlight des erreurs dans les messages.
 
 ## 10. Performance & assets
-- Passer Tailwind en build (purge) pour réduire le poids du CSS.
-- Limiter la config CDN runtime en production.
-- Compiler les CSS utilitaires.
+- Utiliser Tailwind compilé pour un CSS minimal et performant (purge automatique).
+- Supprimer le CDN Tailwind en production.
 - Optimiser le chargement des assets (icônes, images, SVG inline).
 
 ## 11. Accessibilité

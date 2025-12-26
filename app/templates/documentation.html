@@ -220,7 +220,7 @@
                     </a>
                     <span class="badge-matches">{{ result.matches }} match(es)</span>
                 </div>
-                <div class="text-muted mb-2" style="font-size: 0.75rem;">
+                <div class="text-gray-500 mb-2" style="font-size: 0.75rem;">
                     {{ result.category }} › {{ result.filename }}
                 </div>
                 {% if result.snippet %}
@@ -232,7 +232,7 @@
         {% else %}
         <div class="no-results">
             <p>Aucun résultat trouvé pour "{{ search_query }}"</p>
-            <p class="text-muted">Essayez avec d'autres mots-clés</p>
+            <p class="text-gray-500">Essayez avec d'autres mots-clés</p>
         </div>
         {% endif %}
         

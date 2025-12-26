@@ -387,6 +387,12 @@ def create_app() -> FastAPI:
     print(" - Roundtrip HPRIM router mounted at /roundtrip-hprim")
     # Nouvelle IHM Cotation moderne (UX/UI pro)
     app.include_router(cotation_modern.router, prefix="/cotation-modern")
+    try:
+        from app.routers import cotation_selector
+        app.include_router(cotation_selector.router)
+        print(" - Cotation selector router mounted at /cotation-modern/select")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Cotation selector router not available: {e}")
     print(" - Cotation moderne router mounted at /cotation-modern")
     
     print(" - Integration routers mounted")

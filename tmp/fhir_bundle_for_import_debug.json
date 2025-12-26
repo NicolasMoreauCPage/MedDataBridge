@@ -1,0 +1,1 @@
+{"resourceType":"Bundle","type":"transaction","entry":[{"resource":{"resourceType":"Patient","id":"pat-1","name":[{"family":"Test","given":["Patient"]}]},"request":{"method":"POST","url":"Patient"}},{"resource":{"resourceType":"Encounter","id":"enc-1","status":"finished","subject":{"reference":"Patient/pat-1"}},"request":{"method":"POST","url":"Encounter"}}]}

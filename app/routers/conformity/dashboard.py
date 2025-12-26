@@ -105,8 +105,16 @@ async def toggle_strict_pam_fr(
     session.add(ej)
     session.commit()
     
-    # Rediriger vers la page de conformité
-    return RedirectResponse(url="/conformity", status_code=303)
+    # Vérifier si c'est une requête AJAX
+    is_ajax = request and request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    if is_ajax:
+        # Pour les requêtes AJAX, retourner JSON avec succès
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"success": True, "strict_pam_fr": strict_pam_fr})
+    else:
+        # Pour les soumissions normales, rediriger
+        return RedirectResponse(url="/conformity", status_code=303)
 
 
 @router.get("/ej/{ej_id:int}", response_class=HTMLResponse)

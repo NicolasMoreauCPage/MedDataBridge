@@ -52,6 +52,33 @@ sys.modules['app.services.cache_service'] = cache_service_mock
 # Delay heavy imports until needed
 from datetime import datetime
 
+# Initialize the test db at import time for integration tests
+from app.db import init_db, session_factory
+from sqlmodel import Session
+
+init_db()
+sess = session_factory()
+try:
+    from app.vocabulary_init import init_vocabularies
+    init_vocabularies(sess)
+
+    from app.models_structure import GHTContext
+    from sqlmodel import select
+    context = sess.exec(select(GHTContext)).first()
+    if not context:
+        context = GHTContext(name="DEMO GHT", code="GHT-DEMO")
+        sess.add(context)
+        sess.commit()
+        sess.refresh(context)
+
+    from app.services.structure_seed import ensure_extended_demo_ght, ensure_endpoints_for_context, ensure_namespaces_for_context, EXTENDED_GHT_DATA
+    ensure_extended_demo_ght(sess, context)
+    finess_list = [ej["entite_juridique"]["finess_ej"] for ej in EXTENDED_GHT_DATA.get("juridical_entities", [])]
+    ensure_endpoints_for_context(sess, context, finess_list)
+    ensure_namespaces_for_context(sess, context, finess_list)
+finally:
+    sess.close()
+
 
 @pytest.fixture(autouse=True, scope='session')
 def setup_test_db():
@@ -66,11 +93,24 @@ def setup_test_db():
     init_db()
     sess = session_factory()
     try:
-        # Create a GHTContext if none exists
-        if not sess.exec(select(GHTContext)).first():
-            g = GHTContext(name="TESTGHT", code="TEST")
-            sess.add(g)
+        # Initialize vocabularies
+        from app.vocabulary_init import init_vocabularies
+        init_vocabularies(sess)
+
+        # Create or get GHTContext
+        context = sess.exec(select(GHTContext)).first()
+        if not context:
+            context = GHTContext(name="DEMO GHT", code="GHT-DEMO")
+            sess.add(context)
             sess.commit()
+            sess.refresh(context)
+
+        # Initialize extended demo structure
+        from app.services.structure_seed import ensure_extended_demo_ght, ensure_endpoints_for_context, ensure_namespaces_for_context, EXTENDED_GHT_DATA
+        ensure_extended_demo_ght(sess, context)
+        finess_list = [ej["entite_juridique"]["finess_ej"] for ej in EXTENDED_GHT_DATA.get("juridical_entities", [])]
+        ensure_endpoints_for_context(sess, context, finess_list)
+        ensure_namespaces_for_context(sess, context, finess_list)
 
         # Create a minimal Patient/Dossier/Venue trio if missing
         if not sess.exec(select(Patient)).first():
@@ -400,7 +440,7 @@ if str(REPO_ROOT) not in sys.path:
 # application at import time to keep unit tests lightweight. We check whether
 # the full app can be imported and set a flag accordingly. Any imports that
 # require application-level modules are done lazily inside fixtures.
-FULL_APP_AVAILABLE = False
+FULL_APP_AVAILABLE = True  # Assume available unless proven otherwise
 
 
 @pytest.fixture(name="session")

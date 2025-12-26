@@ -241,7 +241,7 @@ def test_update_namespace_success(client: TestClient, session: Session):
     )
 
     assert response.status_code == 303  # Redirect after update
-    assert f"/admin/ght/{ght.id}" in response.headers["location"]
+    assert f"/admin/ght/{ght.id}/namespaces/{namespace.id}" in response.headers["location"]
 
     # Vérifier la mise à jour
     updated_ns = session.get(IdentifierNamespace, namespace.id)

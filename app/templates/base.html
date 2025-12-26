@@ -55,6 +55,8 @@
       --color-success: #10b981; /* green-500 */
       --color-warning: #f59e0b; /* amber-500 */
       --color-danger: #ef4444; /* red-500 */
+      --color-heading: #0f172a; /* slate-900 */
+      --color-code-bg: #f1f5f9; /* slate-100 */
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -65,6 +67,8 @@
         --color-muted: #94a3b8; /* slate-400 */
         --color-accent: #3b82f6; /* blue-500 */
         --color-accent-alt: #06b6d4; /* cyan-500 */
+        --color-heading: #f1f5f9; /* slate-100 */
+        --color-code-bg: #1e293b; /* slate-800 */
       }
     }
     [data-theme="dark"] {
@@ -75,6 +79,8 @@
       --color-muted: #94a3b8;
       --color-accent: #3b82f6;
       --color-accent-alt: #06b6d4;
+      --color-heading: #f1f5f9;
+      --color-code-bg: #1e293b;
     }
     body { background: var(--color-bg); color: var(--color-text); min-height: 100vh; }
     .surface { background: var(--color-surface); }
@@ -369,69 +375,58 @@
             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
           <div class="absolute right-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
-            <div class="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Guides et références</p>
-                <a href="/guide" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide utilisateur</a>
+            <div class="w-[900px] grid grid-cols-3 gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">Guides utilisateur</p>
+                <a href="/guide" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide utilisateur complet</a>
                 <a href="/api-docs" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation API</a>
-                <a href="https://www.hl7.org/fhir/" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">FHIR (specification R4)</a>
 
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Programme</p>
-                <a href="/documentation" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Index Documentation</a>
-                <a href="/docs/PROGRAM_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Programme — Vue d'ensemble</a>
+                <hr class="my-3 border-slate-100">
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">Programme</p>
+                <a href="/docs/PROGRAM_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Vue d'ensemble</a>
                 <a href="/docs/architecture.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Architecture technique</a>
                 <a href="/docs/api_guide.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide API développeur</a>
-                <a href="/docs/user_guide.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide utilisateur complet</a>
                 <a href="/docs/models_reference.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Référence des modèles</a>
-                
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">FHIR</p>
-                <a href="/documentation/fhir-reception-emission" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Réception & Émission</a>
-                <a href="/documentation/fhir-reception-emission-complete" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Documentation complète (API)</a>
-                <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR — Spec API (Markdown)</a>
-                
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">IHE PAM & HPRIM</p>
-                <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration</a>
-                <a href="/documentation/pam-workflows" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Workflows</a>
-                <a href="/Doc/IHE_PAM_TECHNIQUE.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Technique (HTML)</a>
-                <a href="/Doc/IHE_PAM_INTEGRATION_COMPLETE_FR.html" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM — Intégration (complète)</a>
-                <a href="/docs/HPRIM_XML_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">HPRIM XML — Documentation</a>
+              </div>
 
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Outils & exemples</p>
-                <a href="/examples/hl7v2" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Exemples HL7 v2 (A01/A04/A06...)</a>
-                <a href="/examples/mfn" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Exemples MFN</a>
-                <a href="/examples/fhir-bundles" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Bundles FHIR d'exemple</a>
-                <a href="/tools/endpoints-test" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Endpoints de test internes</a>
-                <a href="/tools/mllp" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide de connexion MLLP</a>
-                
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Scénarios</p>
-                <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Scénarios d'interopérabilité</a>
-                <a href="/scenarios/templates" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Templates de scénarios</a>
-                <a href="/scenarios/runs" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Dashboard des exécutions</a>
-                <a href="/config/scenario-ej" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Configuration UF/Médecins par EJ</a>
-                <a href="/docs/SCENARIOS_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Documentation scénarios</a>
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">Standards FHIR</p>
+                <a href="https://www.hl7.org/fhir/" target="_blank" rel="noopener" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR R4 - Spécification officielle</a>
+                <a href="/documentation/fhir-reception-emission" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR - Réception & Émission</a>
+                <a href="/documentation/fhir-reception-emission-complete" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR - API complète</a>
+                <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">FHIR - Spécification API</a>
 
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Référence technique</p>
+                <hr class="my-3 border-slate-100">
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">IHE PAM & HPRIM</p>
+                <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM - Intégration</a>
+                <a href="/documentation/pam-workflows" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM - Workflows</a>
+                <a href="/docs/IHE_PAM_TECHNIQUE.html" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM - Technique</a>
+                <a href="/docs/IHE_PAM_INTEGRATION_COMPLETE_FR.html" class="block rounded-xl px-3 py-2 hover:bg-purple-50">IHE PAM - Intégration complète</a>
+                <a href="/docs/api/HPRIM_XML_DOCUMENTATION.md" class="block rounded-xl px-3 py-2 hover:bg-green-50">HPRIM XML - Documentation</a>
+              </div>
+
+              <div>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">Référence technique</p>
                 <a href="/docs/AUTHENTICATION.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Authentification & JWT</a>
                 <a href="/docs/cache_redis.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Cache Redis</a>
                 <a href="/docs/benchmark_guide.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Guide de performance</a>
                 <a href="/docs/identifier_prefixes.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Préfixes d'identifiants</a>
                 <a href="/docs/token_rotation.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Rotation des tokens</a>
                 <a href="/docs/vocabulary_contacts.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Vocabulaire contacts</a>
-                
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">Checklists & dépannage</p>
-                <a href="/docs/checklist_interop.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Checklist qualification d'interopérabilité</a>
-                <a href="/docs/troubleshooting.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Résolution des problèmes & diagnostics</a>
-                
-                <hr class="my-2 border-slate-100">
-                <p class="px-3 py-1 text-xs uppercase tracking-wide text-slate-400">MFN</p>
-                <a href="/Doc/MFN_INTEGRATION_COMPLETE_FR.html" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation MFN (structure, import, génération)</a>
+
+                <hr class="my-3 border-slate-100">
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">Outils & diagnostics</p>
+                <a href="/docs/checklist_interop.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Checklist interopérabilité</a>
+                <a href="/docs/troubleshooting.md" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Résolution des problèmes</a>
+                <a href="/docs/MFN_INTEGRATION_COMPLETE_FR.html" class="block rounded-xl px-3 py-2 hover:bg-purple-50">Documentation MFN</a>
+
+                <hr class="my-3 border-slate-100">
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 font-semibold">Scénarios & tests</p>
+                <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Gestion des scénarios</a>
+                <a href="/scenarios/runs" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Exécutions des scénarios</a>
+                <a href="/config/scenario-ej" class="block rounded-xl px-3 py-2 hover:bg-orange-50">Configuration EJ</a>
               </div>
+            </div>
           </div>
         </li>
         <li class="relative group" data-test-nav="administration">

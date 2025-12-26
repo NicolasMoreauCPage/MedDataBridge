@@ -5,7 +5,7 @@
     <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
     <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">{{ title|default('Page') }}</span>
+    <span class="text-slate-800 font-medium">{{ title }}</span>
   </nav>
 
   <!-- Header -->
@@ -16,7 +16,7 @@
           <div class="text-3xl">🔹</div>
         </div>
         <div>
-          <h1 class="text-3xl font-bold">{{ title|default('Page') }}</h1>
+          <h1 class="text-3xl font-bold">{{ title }}</h1>
         </div>
       </div>
     </div>
@@ -30,7 +30,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
         </svg>
       </div>
-      <h2 class="text-2xl font-bold text-slate-900 mb-2">{{ title|default('Confirmer la suppression') }}</h2>
+      <h2 class="text-2xl font-bold text-slate-900 mb-2">{{ title or 'Confirmer la suppression' }}</h2>
       <p class="text-slate-600">Êtes-vous sûr de vouloir supprimer <strong>{{ object_label }}</strong> ?</p>
       <p class="text-sm text-red-600 mt-2">Cette action est irréversible.</p>
     </div>

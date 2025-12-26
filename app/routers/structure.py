@@ -481,6 +481,80 @@ async def list_poles_api(
         session.commit()
     return poles
 
+@api_router.get("/poles/{pole_id}")
+async def get_pole_api(
+    pole_id: int,
+    session: Session = Depends(get_session)
+):
+    """API endpoint retournant un pôle avec ses valeurs effectives"""
+    pole = session.get(Pole, pole_id)
+    if not pole:
+        raise HTTPException(status_code=404, detail="Pôle non trouvé")
+
+    # Retourner les données avec valeurs effectives
+    return {
+        "id": pole.id,
+        "identifier": pole.identifier,
+        "name": pole.name,
+        "short_name": pole.short_name,
+        "description": pole.description,
+
+        # Valeurs locales
+        "local_operational_status": pole.operational_status,
+        "local_status": pole.status,
+        "local_mode": pole.mode,
+        "local_physical_type": pole.physical_type,
+        "local_etage": pole.etage,
+        "local_aile": pole.aile,
+        "local_opening_date": pole.opening_date,
+        "local_activation_date": pole.activation_date,
+        "local_closing_date": pole.closing_date,
+        "local_deactivation_date": pole.deactivation_date,
+
+        # Valeurs effectives (avec héritage)
+        "effective_operational_status": pole.get_effective_operational_status(),
+        "effective_status": pole.get_effective_status(),
+        "effective_mode": pole.get_effective_mode(),
+        "effective_physical_type": pole.get_effective_physical_type(),
+        "effective_etage": pole.get_effective_etage(),
+        "effective_aile": pole.get_effective_aile(),
+        "effective_opening_date": pole.get_effective_opening_date(),
+        "effective_activation_date": pole.get_effective_activation_date(),
+        "effective_closing_date": pole.get_effective_closing_date(),
+        "effective_deactivation_date": pole.get_effective_deactivation_date(),
+
+        # Métadonnées d'héritage
+        "inheritance_info": {
+            "operational_status_inherited": pole.operational_status != pole.get_effective_operational_status() and pole.get_effective_operational_status() is not None,
+            "status_inherited": pole.status != pole.get_effective_status() and pole.get_effective_status() is not None,
+            "mode_inherited": pole.mode != pole.get_effective_mode() and pole.get_effective_mode() is not None,
+            "physical_type_inherited": pole.physical_type != pole.get_effective_physical_type() and pole.get_effective_physical_type() is not None,
+            "etage_inherited": pole.etage != pole.get_effective_etage() and pole.get_effective_etage() is not None,
+            "aile_inherited": pole.aile != pole.get_effective_aile() and pole.get_effective_aile() is not None,
+            "opening_date_inherited": pole.opening_date != pole.get_effective_opening_date() and pole.get_effective_opening_date() is not None,
+            "activation_date_inherited": pole.activation_date != pole.get_effective_activation_date() and pole.get_effective_activation_date() is not None,
+            "closing_date_inherited": pole.closing_date != pole.get_effective_closing_date() and pole.get_effective_closing_date() is not None,
+            "deactivation_date_inherited": pole.deactivation_date != pole.get_effective_deactivation_date() and pole.get_effective_deactivation_date() is not None,
+        },
+
+        # Relations
+        "entite_geo_id": pole.entite_geo_id,
+        "entite_geographique": {
+            "id": pole.entite_geographique.id,
+            "name": pole.entite_geographique.name,
+            "identifier": pole.entite_geographique.identifier
+        } if pole.entite_geographique else None,
+
+        # Statistiques
+        "stats": {
+            "services_count": len(pole.services) if hasattr(pole, 'services') else 0,
+        },
+
+        # Timestamps
+        "created_at": pole.created_at,
+        "updated_at": pole.updated_at,
+    }
+
 @router.post("/poles", response_model=Pole)
 async def create_pole(
     pole: Pole,
@@ -612,6 +686,84 @@ async def list_services_api(
     if apply_scheduled_status(services):
         session.commit()
     return services
+
+@api_router.get("/services/{service_id}")
+async def get_service_api(
+    service_id: int,
+    session: Session = Depends(get_session)
+):
+    """API endpoint retournant un service avec ses valeurs effectives"""
+    service = session.get(Service, service_id)
+    if not service:
+        raise HTTPException(status_code=404, detail="Service non trouvé")
+
+    # Retourner les données avec valeurs effectives
+    return {
+        "id": service.id,
+        "identifier": service.identifier,
+        "name": service.name,
+        "short_name": service.short_name,
+        "description": service.description,
+        "service_type": service.service_type,
+
+        # Valeurs locales
+        "local_operational_status": service.operational_status,
+        "local_status": service.status,
+        "local_mode": service.mode,
+        "local_physical_type": service.physical_type,
+        "local_etage": service.etage,
+        "local_aile": service.aile,
+        "local_type_chambre": service.type_chambre,
+        "local_opening_date": service.opening_date,
+        "local_activation_date": service.activation_date,
+        "local_closing_date": service.closing_date,
+        "local_deactivation_date": service.deactivation_date,
+
+        # Valeurs effectives (avec héritage)
+        "effective_operational_status": service.get_effective_operational_status(),
+        "effective_status": service.get_effective_status(),
+        "effective_mode": service.get_effective_mode(),
+        "effective_physical_type": service.get_effective_physical_type(),
+        "effective_etage": service.get_effective_etage(),
+        "effective_aile": service.get_effective_aile(),
+        "effective_type_chambre": service.get_effective_type_chambre(),
+        "effective_opening_date": service.get_effective_opening_date(),
+        "effective_activation_date": service.get_effective_activation_date(),
+        "effective_closing_date": service.get_effective_closing_date(),
+        "effective_deactivation_date": service.get_effective_deactivation_date(),
+
+        # Métadonnées d'héritage
+        "inheritance_info": {
+            "operational_status_inherited": service.operational_status != service.get_effective_operational_status() and service.get_effective_operational_status() is not None,
+            "status_inherited": service.status != service.get_effective_status() and service.get_effective_status() is not None,
+            "mode_inherited": service.mode != service.get_effective_mode() and service.get_effective_mode() is not None,
+            "physical_type_inherited": service.physical_type != service.get_effective_physical_type() and service.get_effective_physical_type() is not None,
+            "etage_inherited": service.etage != service.get_effective_etage() and service.get_effective_etage() is not None,
+            "aile_inherited": service.aile != service.get_effective_aile() and service.get_effective_aile() is not None,
+            "type_chambre_inherited": service.type_chambre != service.get_effective_type_chambre() and service.get_effective_type_chambre() is not None,
+            "opening_date_inherited": service.opening_date != service.get_effective_opening_date() and service.get_effective_opening_date() is not None,
+            "activation_date_inherited": service.activation_date != service.get_effective_activation_date() and service.get_effective_activation_date() is not None,
+            "closing_date_inherited": service.closing_date != service.get_effective_closing_date() and service.get_effective_closing_date() is not None,
+            "deactivation_date_inherited": service.deactivation_date != service.get_effective_deactivation_date() and service.get_effective_deactivation_date() is not None,
+        },
+
+        # Relations
+        "pole_id": service.pole_id,
+        "pole": {
+            "id": service.pole.id,
+            "name": service.pole.name,
+            "identifier": service.pole.identifier
+        } if service.pole else None,
+
+        # Statistiques
+        "stats": {
+            "unites_fonctionnelles_count": len(service.unites_fonctionnelles) if hasattr(service, 'unites_fonctionnelles') else 0,
+        },
+
+        # Timestamps
+        "created_at": service.created_at,
+        "updated_at": service.updated_at,
+    }
 
 @router.post("/services", response_model=Service)
 async def create_service(
@@ -754,6 +906,80 @@ async def list_unites_fonctionnelles_api(
     if apply_scheduled_status(ufs):
         session.commit()
     return ufs
+
+@api_router.get("/ufs/{uf_id}")
+async def get_unite_fonctionnelle_api(
+    uf_id: int,
+    session: Session = Depends(get_session)
+):
+    """API endpoint retournant une unité fonctionnelle avec ses valeurs effectives"""
+    uf = session.get(UniteFonctionnelle, uf_id)
+    if not uf:
+        raise HTTPException(status_code=404, detail="UF non trouvée")
+
+    # Retourner les données avec valeurs effectives
+    return {
+        "id": uf.id,
+        "identifier": uf.identifier,
+        "name": uf.name,
+        "short_name": uf.short_name,
+        "description": uf.description,
+
+        # Valeurs locales
+        "local_operational_status": uf.operational_status,
+        "local_status": uf.status,
+        "local_mode": uf.mode,
+        "local_physical_type": uf.physical_type,
+        "local_etage": uf.etage,
+        "local_aile": uf.aile,
+        "local_opening_date": uf.opening_date,
+        "local_activation_date": uf.activation_date,
+        "local_closing_date": uf.closing_date,
+        "local_deactivation_date": uf.deactivation_date,
+
+        # Valeurs effectives (avec héritage)
+        "effective_operational_status": uf.get_effective_operational_status(),
+        "effective_status": uf.get_effective_status(),
+        "effective_mode": uf.get_effective_mode(),
+        "effective_physical_type": uf.get_effective_physical_type(),
+        "effective_etage": uf.get_effective_etage(),
+        "effective_aile": uf.get_effective_aile(),
+        "effective_opening_date": uf.get_effective_opening_date(),
+        "effective_activation_date": uf.get_effective_activation_date(),
+        "effective_closing_date": uf.get_effective_closing_date(),
+        "effective_deactivation_date": uf.get_effective_deactivation_date(),
+
+        # Métadonnées d'héritage
+        "inheritance_info": {
+            "operational_status_inherited": uf.operational_status != uf.get_effective_operational_status() and uf.get_effective_operational_status() is not None,
+            "status_inherited": uf.status != uf.get_effective_status() and uf.get_effective_status() is not None,
+            "mode_inherited": uf.mode != uf.get_effective_mode() and uf.get_effective_mode() is not None,
+            "physical_type_inherited": uf.physical_type != uf.get_effective_physical_type() and uf.get_effective_physical_type() is not None,
+            "etage_inherited": uf.etage != uf.get_effective_etage() and uf.get_effective_etage() is not None,
+            "aile_inherited": uf.aile != uf.get_effective_aile() and uf.get_effective_aile() is not None,
+            "opening_date_inherited": uf.opening_date != uf.get_effective_opening_date() and uf.get_effective_opening_date() is not None,
+            "activation_date_inherited": uf.activation_date != uf.get_effective_activation_date() and uf.get_effective_activation_date() is not None,
+            "closing_date_inherited": uf.closing_date != uf.get_effective_closing_date() and uf.get_effective_closing_date() is not None,
+            "deactivation_date_inherited": uf.deactivation_date != uf.get_effective_deactivation_date() and uf.get_effective_deactivation_date() is not None,
+        },
+
+        # Relations
+        "service_id": uf.service_id,
+        "service": {
+            "id": uf.service.id,
+            "name": uf.service.name,
+            "identifier": uf.service.identifier
+        } if uf.service else None,
+
+        # Statistiques
+        "stats": {
+            "unites_hebergement_count": len(uf.unites_hebergement) if hasattr(uf, 'unites_hebergement') else 0,
+        },
+
+        # Timestamps
+        "created_at": uf.created_at,
+        "updated_at": uf.updated_at,
+    }
 
 @router.post("/ufs", response_model=UniteFonctionnelle)
 async def create_unite_fonctionnelle(
@@ -1246,6 +1472,82 @@ async def list_chambres(
         session.commit()
     return chambres
 
+@api_router.get("/chambres/{chambre_id}")
+async def get_chambre_api(
+    chambre_id: int,
+    session: Session = Depends(get_session)
+):
+    """API endpoint retournant une chambre avec ses valeurs effectives"""
+    chambre = session.get(Chambre, chambre_id)
+    if not chambre:
+        raise HTTPException(status_code=404, detail="Chambre non trouvée")
+
+    # Retourner les données avec valeurs effectives
+    return {
+        "id": chambre.id,
+        "identifier": chambre.identifier,
+        "name": chambre.name,
+        "description": chambre.description,
+        "type_chambre": chambre.type_chambre,
+        "gender_usage": chambre.gender_usage,
+        "max_occupancy": chambre.max_occupancy,
+
+        # Valeurs locales
+        "local_operational_status": chambre.operational_status,
+        "local_status": chambre.status,
+        "local_mode": chambre.mode,
+        "local_physical_type": chambre.physical_type,
+        "local_etage": chambre.etage,
+        "local_aile": chambre.aile,
+        "local_opening_date": chambre.opening_date,
+        "local_activation_date": chambre.activation_date,
+        "local_closing_date": chambre.closing_date,
+        "local_deactivation_date": chambre.deactivation_date,
+
+        # Valeurs effectives (avec héritage)
+        "effective_operational_status": chambre.get_effective_operational_status(),
+        "effective_status": chambre.get_effective_status(),
+        "effective_mode": chambre.get_effective_mode(),
+        "effective_physical_type": chambre.get_effective_physical_type(),
+        "effective_etage": chambre.get_effective_etage(),
+        "effective_aile": chambre.get_effective_aile(),
+        "effective_opening_date": chambre.get_effective_opening_date(),
+        "effective_activation_date": chambre.get_effective_activation_date(),
+        "effective_closing_date": chambre.get_effective_closing_date(),
+        "effective_deactivation_date": chambre.get_effective_deactivation_date(),
+
+        # Métadonnées d'héritage
+        "inheritance_info": {
+            "operational_status_inherited": chambre.operational_status != chambre.get_effective_operational_status() and chambre.get_effective_operational_status() is not None,
+            "status_inherited": chambre.status != chambre.get_effective_status() and chambre.get_effective_status() is not None,
+            "mode_inherited": chambre.mode != chambre.get_effective_mode() and chambre.get_effective_mode() is not None,
+            "physical_type_inherited": chambre.physical_type != chambre.get_effective_physical_type() and chambre.get_effective_physical_type() is not None,
+            "etage_inherited": chambre.etage != chambre.get_effective_etage() and chambre.get_effective_etage() is not None,
+            "aile_inherited": chambre.aile != chambre.get_effective_aile() and chambre.get_effective_aile() is not None,
+            "opening_date_inherited": chambre.opening_date != chambre.get_effective_opening_date() and chambre.get_effective_opening_date() is not None,
+            "activation_date_inherited": chambre.activation_date != chambre.get_effective_activation_date() and chambre.get_effective_activation_date() is not None,
+            "closing_date_inherited": chambre.closing_date != chambre.get_effective_closing_date() and chambre.get_effective_closing_date() is not None,
+            "deactivation_date_inherited": chambre.deactivation_date != chambre.get_effective_deactivation_date() and chambre.get_effective_deactivation_date() is not None,
+        },
+
+        # Relations
+        "unite_hebergement_id": chambre.unite_hebergement_id,
+        "unite_hebergement": {
+            "id": chambre.unite_hebergement.id,
+            "name": chambre.unite_hebergement.name,
+            "identifier": chambre.unite_hebergement.identifier
+        } if chambre.unite_hebergement else None,
+
+        # Statistiques
+        "stats": {
+            "lits_count": len(chambre.lits) if hasattr(chambre, 'lits') else 0,
+        },
+
+        # Timestamps
+        "created_at": chambre.created_at,
+        "updated_at": chambre.updated_at,
+    }
+
 @router.post("/chambres", response_model=Chambre)
 async def create_chambre(
     request: Request,
@@ -1333,6 +1635,78 @@ async def list_lits_api(
     if apply_scheduled_status(lits):
         session.commit()
     return lits
+
+@api_router.get("/lits/{lit_id}")
+async def get_lit_api(
+    lit_id: int,
+    session: Session = Depends(get_session)
+):
+    """API endpoint retournant un lit avec ses valeurs effectives"""
+    lit = session.get(Lit, lit_id)
+    if not lit:
+        raise HTTPException(status_code=404, detail="Lit non trouvé")
+
+    # Retourner les données avec valeurs effectives
+    return {
+        "id": lit.id,
+        "identifier": lit.identifier,
+        "name": lit.name,
+        "description": lit.description,
+        "max_occupancy": lit.max_occupancy,
+
+        # Valeurs locales
+        "local_operational_status": lit.operational_status,
+        "local_status": lit.status,
+        "local_mode": lit.mode,
+        "local_physical_type": lit.physical_type,
+        "local_etage": lit.etage,
+        "local_aile": lit.aile,
+        "local_opening_date": lit.opening_date,
+        "local_activation_date": lit.activation_date,
+        "local_closing_date": lit.closing_date,
+        "local_deactivation_date": lit.deactivation_date,
+
+        # Valeurs effectives (avec héritage)
+        "effective_operational_status": lit.get_effective_operational_status(),
+        "effective_status": lit.get_effective_status(),
+        "effective_mode": lit.get_effective_mode(),
+        "effective_physical_type": lit.get_effective_physical_type(),
+        "effective_etage": lit.get_effective_etage(),
+        "effective_aile": lit.get_effective_aile(),
+        "effective_opening_date": lit.get_effective_opening_date(),
+        "effective_activation_date": lit.get_effective_activation_date(),
+        "effective_closing_date": lit.get_effective_closing_date(),
+        "effective_deactivation_date": lit.get_effective_deactivation_date(),
+
+        # Métadonnées d'héritage
+        "inheritance_info": {
+            "operational_status_inherited": lit.operational_status != lit.get_effective_operational_status() and lit.get_effective_operational_status() is not None,
+            "status_inherited": lit.status != lit.get_effective_status() and lit.get_effective_status() is not None,
+            "mode_inherited": lit.mode != lit.get_effective_mode() and lit.get_effective_mode() is not None,
+            "physical_type_inherited": lit.physical_type != lit.get_effective_physical_type() and lit.get_effective_physical_type() is not None,
+            "etage_inherited": lit.etage != lit.get_effective_etage() and lit.get_effective_etage() is not None,
+            "aile_inherited": lit.aile != lit.get_effective_aile() and lit.get_effective_aile() is not None,
+            "opening_date_inherited": lit.opening_date != lit.get_effective_opening_date() and lit.get_effective_opening_date() is not None,
+            "activation_date_inherited": lit.activation_date != lit.get_effective_activation_date() and lit.get_effective_activation_date() is not None,
+            "closing_date_inherited": lit.closing_date != lit.get_effective_closing_date() and lit.get_effective_closing_date() is not None,
+            "deactivation_date_inherited": lit.deactivation_date != lit.get_effective_deactivation_date() and lit.get_effective_deactivation_date() is not None,
+        },
+
+        # Relations
+        "chambre_id": lit.chambre_id,
+        "chambre": {
+            "id": lit.chambre.id,
+            "name": lit.chambre.name,
+            "identifier": lit.chambre.identifier
+        } if lit.chambre else None,
+
+        # Statistiques
+        "stats": {},
+
+        # Timestamps
+        "created_at": lit.created_at,
+        "updated_at": lit.updated_at,
+    }
 
 @router.post("/lits", response_model=Lit)
 async def create_lit(

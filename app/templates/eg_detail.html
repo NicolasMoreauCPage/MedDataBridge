@@ -143,12 +143,12 @@
                     <div>
                         <dt class="text-slate-500">Adresse</dt>
                         <dd class="text-slate-900">
-                            {% if geo.address_line1 %}
-                                {{ geo.address_line1 }}<br>
-                                {% if geo.address_line2 %}{{ geo.address_line2 }}<br>{% endif %}
-                                {% if geo.address_line3 %}{{ geo.address_line3 }}<br>{% endif %}
-                                {{ geo.address_postalcode }} {{ geo.address_city }}
-                                {% if geo.address_country %}<br>{{ geo.address_country }}{% endif %}
+                            {% if geo.inherited_inherited_address_line1 %}
+                                {{ geo.inherited_inherited_address_line1 }}<br>
+                                {% if geo.inherited_inherited_address_line2 %}{{ geo.inherited_inherited_address_line2 }}<br>{% endif %}
+                                {% if geo.inherited_inherited_address_line3 %}{{ geo.inherited_inherited_address_line3 }}<br>{% endif %}
+                                {{ geo.inherited_inherited_address_postalcode }} {{ geo.inherited_inherited_address_city }}
+                                {% if geo.inherited_inherited_address_country %}<br>{{ geo.inherited_inherited_address_country }}{% endif %}
                             {% else %}
                                 —
                             {% endif %}

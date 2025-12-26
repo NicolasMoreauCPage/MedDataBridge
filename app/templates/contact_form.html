@@ -119,25 +119,25 @@
       </h3>
       <div class="space-y-4">
         <div>
-          <label for="address_line1" class="block text-sm font-bold text-slate-700 mb-2">Adresse ligne 1</label>
-          <input type="text" name="address_line1" id="address_line1" placeholder="15 rue Victor Hugo" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.address_line1|default('', true) if contact else '' }}">
+          <label for="inherited_address_line1" class="block text-sm font-bold text-slate-700 mb-2">Adresse ligne 1</label>
+          <input type="text" name="inherited_address_line1" id="inherited_address_line1" placeholder="15 rue Victor Hugo" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_line1|default('', true) if contact else '' }}">
         </div>
         <div>
-          <label for="address_line2" class="block text-sm font-bold text-slate-700 mb-2">Complément d'adresse</label>
-          <input type="text" name="address_line2" id="address_line2" placeholder="Bâtiment A, 3ème étage" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.address_line2|default('', true) if contact else '' }}">
+          <label for="inherited_address_line2" class="block text-sm font-bold text-slate-700 mb-2">Complément d'adresse</label>
+          <input type="text" name="inherited_address_line2" id="inherited_address_line2" placeholder="Bâtiment A, 3ème étage" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_line2|default('', true) if contact else '' }}">
         </div>
         <div class="grid md:grid-cols-3 gap-6">
           <div>
-            <label for="address_postalcode" class="block text-sm font-bold text-slate-700 mb-2">Code postal</label>
-            <input type="text" name="address_postalcode" id="address_postalcode" placeholder="75001" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.address_postalcode|default('', true) if contact else '' }}">
+            <label for="inherited_address_postalcode" class="block text-sm font-bold text-slate-700 mb-2">Code postal</label>
+            <input type="text" name="inherited_address_postalcode" id="inherited_address_postalcode" placeholder="75001" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_postalcode|default('', true) if contact else '' }}">
           </div>
           <div>
-            <label for="address_city" class="block text-sm font-bold text-slate-700 mb-2">Ville</label>
-            <input type="text" name="address_city" id="address_city" placeholder="Paris" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.address_city|default('', true) if contact else '' }}">
+            <label for="inherited_address_city" class="block text-sm font-bold text-slate-700 mb-2">Ville</label>
+            <input type="text" name="inherited_address_city" id="inherited_address_city" placeholder="Paris" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_city|default('', true) if contact else '' }}">
           </div>
           <div>
-            <label for="address_country" class="block text-sm font-bold text-slate-700 mb-2">Pays</label>
-            <input type="text" name="address_country" id="address_country" placeholder="FRA" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.address_country|default('', true) if contact else '' }}">
+            <label for="inherited_address_country" class="block text-sm font-bold text-slate-700 mb-2">Pays</label>
+            <input type="text" name="inherited_address_country" id="inherited_address_country" placeholder="FRA" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_country|default('', true) if contact else '' }}">
           </div>
         </div>
       </div>

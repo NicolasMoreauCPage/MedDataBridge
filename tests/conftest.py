@@ -78,40 +78,44 @@ def asyncio_run_safe(coro):
 # Preserve the original asyncio.run before overriding it so the safe wrapper
 # can call the real implementation and avoid recursion.
 _original_asyncio_run = asyncio.run
-# Monkeypatch the asyncio.run name so tests/scripts that call asyncio.run
-# indirectly benefit from the safe wrapper.
+# Override asyncio.run with the safe wrapper to handle cases where
+# an event loop is already running (e.g., in pytest-asyncio tests).
 asyncio.run = asyncio_run_safe
 
-# Initialize the test db at import time for integration tests
-from app.db import init_db, session_factory
-from sqlmodel import Session
+ # Optional import-time DB initialization/seeding used by some integration scripts.
+ # Disabled by default during pytest runs to avoid interfering with test fixtures
+ # which recreate and clean the database per-test. Set environment variable
+ # IMPORT_SEED=1 to enable this behavior when needed outside the test runner.
+if os.getenv("IMPORT_SEED", "0") in ("1", "true", "True"):
+    from app.db import init_db, session_factory
+    from sqlmodel import Session
 
-init_db()
-sess = session_factory()
-try:
-    from app.vocabulary_init import init_vocabularies
-    init_vocabularies(sess)
+    init_db()
+    sess = session_factory()
+    try:
+        from app.vocabulary_init import init_vocabularies
+        init_vocabularies(sess)
 
-    from app.models_structure import GHTContext
-    from sqlmodel import select
-    context = sess.exec(select(GHTContext)).first()
-    if not context:
-        context = GHTContext(name="DEMO GHT", code="GHT-DEMO")
-        sess.add(context)
-        sess.commit()
-        sess.refresh(context)
+        from app.models_structure import GHTContext
+        from sqlmodel import select
+        context = sess.exec(select(GHTContext)).first()
+        if not context:
+            context = GHTContext(name="DEMO GHT", code="GHT-DEMO")
+            sess.add(context)
+            sess.commit()
+            sess.refresh(context)
 
-    from app.services.structure_seed import ensure_extended_demo_ght, ensure_endpoints_for_context, ensure_namespaces_for_context, EXTENDED_GHT_DATA
-    ensure_extended_demo_ght(sess, context)
-    finess_list = [ej["entite_juridique"]["finess_ej"] for ej in EXTENDED_GHT_DATA.get("juridical_entities", [])]
-    ensure_endpoints_for_context(sess, context, finess_list)
-    ensure_namespaces_for_context(sess, context, finess_list)
-finally:
-    sess.close()
+        from app.services.structure_seed import ensure_extended_demo_ght, ensure_endpoints_for_context, ensure_namespaces_for_context, EXTENDED_GHT_DATA
+        ensure_extended_demo_ght(sess, context)
+        finess_list = [ej["entite_juridique"]["finess_ej"] for ej in EXTENDED_GHT_DATA.get("juridical_entities", [])]
+        ensure_endpoints_for_context(sess, context, finess_list)
+        ensure_namespaces_for_context(sess, context, finess_list)
+    finally:
+        sess.close()
 
 
 @pytest.fixture(autouse=True, scope='function')
-def setup_test_db():
+def setup_test_db(clean_db_tables):
     """Initialize the in-memory DB and create minimal records used by UI pages."""
     # Import here to avoid loading SQLAlchemy at conftest import time
     from app.db import init_db, session_factory
@@ -135,83 +139,25 @@ def setup_test_db():
             sess.commit()
             sess.refresh(context)
 
-        # Initialize extended demo structure
-        from app.services.structure_seed import ensure_extended_demo_ght, ensure_endpoints_for_context, ensure_namespaces_for_context, EXTENDED_GHT_DATA
-        ensure_extended_demo_ght(sess, context)
-        finess_list = [ej["entite_juridique"]["finess_ej"] for ej in EXTENDED_GHT_DATA.get("juridical_entities", [])]
-        ensure_endpoints_for_context(sess, context, finess_list)
-        ensure_namespaces_for_context(sess, context, finess_list)
+        # NOTE: heavy structure seeding (entite_juridique, namespaces, endpoints)
+        # is intentionally omitted in unit tests to avoid pre-inserting entities
+        # that individual unit tests expect to create themselves (causes PK collisions).
+        # If full demo structure is required for integration tests, enable
+        # it by setting the IMPORT_SEED environment variable before running pytest.
 
-        # Create a minimal Patient/Dossier/Venue trio if missing
-        if not sess.exec(select(Patient)).first():
-            # Patient requires family (nom); provide minimal required fields
-            p = Patient(family="Test", given="User")
-            sess.add(p)
-            sess.commit()
-            # Create a Dossier with an explicit dossier_seq using the sequence helper
-            try:
-                from app.db import get_next_sequence
-                dossier_seq = get_next_sequence(sess, "dossier")
-            except Exception:
-                dossier_seq = None
-
-            if dossier_seq:
-                d = Dossier(dossier_seq=dossier_seq, patient_id=p.id, admit_time=datetime.utcnow())
-            else:
-                # Solution de repli: rely on before_flush auto-assignment if sequence helper unavailable
-                d = Dossier(patient_id=p.id, admit_time=datetime.utcnow())
-
-            sess.add(d)
-            sess.commit()
-
-            # Venue requires a venue_seq (no auto-assignment). Use get_next_sequence to populate it.
-            try:
-                from app.db import get_next_sequence
-                venue_seq = get_next_sequence(sess, "venue")
-            except Exception:
-                venue_seq = None
-
-            if venue_seq:
-                v = Venue(venue_seq=venue_seq, dossier_id=d.id, start_time=datetime.utcnow())
-            else:
-                # Last-resort: provide a numeric placeholder to satisfy NOT NULL constraint
-                v = Venue(venue_seq=1, dossier_id=d.id, start_time=datetime.utcnow())
-
-            sess.add(v)
-            sess.commit()
+        # NOTE: Minimal Patient/Dossier/Venue trio creation removed to avoid conflicts
+        # with unit tests that create their own test data with specific IDs.
 
         # Ensure at least one SystemEndpoint exists
         if not sess.exec(select(SystemEndpoint)).first():
             se = SystemEndpoint(name="local", kind="FILE")
             sess.add(se)
             sess.commit()
-        # Ensure minimal legal entity / geographic entity and namespaces exist
-        try:
-            from app.models_structure import EntiteJuridique, EntiteGeographique, IdentifierNamespace
-            # Create an EntiteJuridique if missing
-            if not sess.exec(select(EntiteJuridique)).first():
-                ej = EntiteJuridique(name="Test EJ", finess_ej="999999999", is_active=True)
-                sess.add(ej)
-                sess.commit()
-            else:
-                ej = sess.exec(select(EntiteJuridique)).first()
-
-            # Create an EntiteGeographique linked to the EJ
-            if not sess.exec(select(EntiteGeographique)).first():
-                eg = EntiteGeographique(name="Test EG", finess="999999999", entite_juridique_id=(ej.id if ej else None))
-                sess.add(eg)
-                sess.commit()
-            else:
-                eg = sess.exec(select(EntiteGeographique)).first()
-
-            # Create a basic IdentifierNamespace so identifier lookups in UI succeed
-            if not sess.exec(select(IdentifierNamespace)).first():
-                ns = IdentifierNamespace(name="TEST-IPP", system="urn:medbridge:test:ipp", type="IPP", ght_context_id=None, entite_juridique_id=(ej.id if ej else None), entite_geographique_id=(eg.id if eg else None))
-                sess.add(ns)
-                sess.commit()
-        except Exception:
-            # If any structure models are missing in a trimmed test environment, skip seeding
-            pass
+        # NOTE: creating minimal EntiteJuridique/EntiteGeographique/IdentifierNamespace
+        # is skipped in unit tests to avoid primary key collisions when tests
+        # create their own entities with fixed ids. If a test requires a demo
+        # EJ to exist, enable IMPORT_SEED=1 to perform full seeding at import time
+        # or create the required objects within the test itself using fixtures.
 
         # Create a minimal vocabulary system (administrative gender) used by some templates
         try:

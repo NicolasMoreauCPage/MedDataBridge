@@ -142,6 +142,24 @@ def update_patient(
         raise ValueError(f"Patient with id {patient.id} not found")
     
     update_data = patient_data.model_dump(exclude_unset=True)
+    # Handle birth_date conversion
+    if "birth_date" in update_data:
+        birth_date_raw = update_data["birth_date"]
+        birth_date_obj = None
+        if birth_date_raw:
+            from datetime import datetime, date
+            if isinstance(birth_date_raw, str):
+                try:
+                    # Gère les formats YYYY-MM-DD et YYYYMMDD
+                    if len(birth_date_raw) == 8 and birth_date_raw.isdigit():
+                        birth_date_obj = datetime.strptime(birth_date_raw, "%Y%m%d").date()
+                    else:
+                        birth_date_obj = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
+                except Exception:
+                    birth_date_obj = None
+            elif isinstance(birth_date_raw, date):
+                birth_date_obj = birth_date_raw
+        update_data["birth_date"] = birth_date_obj
     # Sanitize string values to prevent encoding issues on commit
     import unicodedata
     def _sanitize(val):

@@ -62,7 +62,7 @@
             {% if entites_juridiques %}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for ej in entites_juridiques %}
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 card-hover">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold">{{ ej.name|default('', true) }}</h3>
                         {% if ej.is_active %}
@@ -153,8 +153,8 @@
             </div>
         </form>
         <div class="modal-action">
-            <button type="button" onclick="closeCloneModal()" class="btn">Annuler</button>
-            <button type="submit" form="cloneForm" class="btn btn-primary">Cloner la structure</button>
+            <button type="button" onclick="closeCloneModal()" class="btn btn-hover-lift">Annuler</button>
+            <button type="submit" form="cloneForm" class="btn btn-primary btn-hover-lift">Cloner la structure</button>
         </div>
     </div>
 </div>

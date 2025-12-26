@@ -5,7 +5,6 @@ from sqlmodel import Session, select
 from typing import Optional
 from app.db import get_session
 from app.models import Dossier, Patient
-from app.auth import get_current_user
 from sqlalchemy import func
 
 router = APIRouter(prefix="/cotation-modern", tags=["cotation_selector"])
@@ -31,7 +30,6 @@ def search_dossiers(
     per_page: int = Query(20, ge=1, le=100),
     ght_id: Optional[int] = Query(None),
     session: Session = Depends(get_session),
-    user = Depends(get_current_user),
 ) -> JSONResponse:
     """Search dossiers by patient family/given or birth_date (YYYY-MM-DD).
 
@@ -50,13 +48,13 @@ def search_dossiers(
         try:
             date_val = date.fromisoformat(q)
             stmt_date_count = select(Dossier).join(Patient).where(Patient.birth_date == date_val)
-            # apply ght scoping if provided and user is not admin
-            if ght_id is not None and "admin" not in getattr(user, 'roles', []):
+            # apply ght scoping if provided
+            if ght_id is not None:
                 stmt_date_count = stmt_date_count.where(Patient.ght_context_id == ght_id)
             total_rows = session.exec(stmt_date_count).all()
             total = len(total_rows)
             stmt_date = select(Dossier, Patient).join(Patient).where(Patient.birth_date == date_val).offset((page - 1) * per_page).limit(per_page)
-            if ght_id is not None and "admin" not in getattr(user, 'roles', []):
+            if ght_id is not None:
                 stmt_date = stmt_date.where(Patient.ght_context_id == ght_id)
             rows = session.exec(stmt_date).all()
             for d, p in rows:
@@ -81,7 +79,7 @@ def search_dossiers(
                 (func.lower(Patient.family).like(pattern_lower)) | (func.lower(Patient.given).like(pattern_lower))
             )
         )
-        if ght_id is not None and "admin" not in getattr(user, 'roles', []):
+        if ght_id is not None:
             base_stmt = base_stmt.where(Patient.ght_context_id == ght_id)
 
         # Count total matching

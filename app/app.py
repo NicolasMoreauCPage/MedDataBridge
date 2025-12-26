@@ -31,6 +31,7 @@ from sqlmodel import select
 
 from app.middleware.flash import FlashMessageMiddleware
 from app.middleware.ght_context import GHTContextMiddleware
+from app.middleware.version import VersionMiddleware
 
 from app.db import init_db, engine, get_session
 from app import models_scenarios  # ensure scenario models are registered
@@ -143,10 +144,12 @@ async def lifespan(app: FastAPI):
             await stop_scheduler()
             await mllp_manager.stop_all()
 
+from app.version import get_version
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="MedBridge - Healthcare Interoperability Platform",
-        version="1.0.0-alpha",
+        version=get_version(),
         lifespan=lifespan,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
@@ -201,6 +204,7 @@ def create_app() -> FastAPI:
     # PUIS SessionMiddleware en dernier.
     app.add_middleware(FlashMessageMiddleware)
     app.add_middleware(GHTContextMiddleware)
+    app.add_middleware(VersionMiddleware)
 
     session_secret = (
         os.getenv("SESSION_SECRET_KEY")

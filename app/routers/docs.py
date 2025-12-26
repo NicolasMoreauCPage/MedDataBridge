@@ -132,3 +132,29 @@ async def standards_docs_legacy(
 ):
     """Alias conservé pour compatibilité avec l'ancien chemin."""
     return await standards_docs(request, session)
+
+
+@router.get("/changelog", response_class=HTMLResponse)
+async def changelog(request: Request):
+    """Affiche le changelog de l'application."""
+    import markdown
+    from pathlib import Path
+
+    # Lire le fichier CHANGELOG.md
+    changelog_path = Path(__file__).parent.parent.parent / "docs" / "CHANGELOG.md"
+    try:
+        with open(changelog_path, "r", encoding="utf-8") as f:
+            changelog_md = f.read()
+        # Convertir Markdown en HTML
+        changelog_html = markdown.markdown(changelog_md, extensions=['fenced_code', 'tables'])
+    except FileNotFoundError:
+        changelog_html = "<p>Changelog non disponible.</p>"
+
+    return get_templates_with_filters(request).TemplateResponse(
+        "changelog.html",
+        {
+            "request": request,
+            "title": "Changelog - MedData Bridge",
+            "changelog_html": changelog_html
+        }
+    )

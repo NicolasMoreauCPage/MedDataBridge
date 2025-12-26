@@ -22,6 +22,7 @@
       --color-text: #1f2937; /* slate-800 - primary text */
       --color-muted: #64748b; /* slate-500 - secondary text */
       --color-accent: #2563eb; /* blue-600 - primary accent */
+      --color-accent-alt: #0ea5e9; /* cyan-500 - secondary accent */
       --color-success: #10b981; /* green-500 - success states */
       --color-warning: #f59e0b; /* amber-500 - warning states */
       --color-danger: #ef4444; /* red-500 - error states */
@@ -36,6 +37,7 @@
         --color-text: #f1f5f9; /* slate-100 */
         --color-muted: #94a3b8; /* slate-400 */
         --color-accent: #3b82f6; /* blue-500 */
+        --color-accent-alt: #06b6d4; /* cyan-500 */
       }
     }
 
@@ -46,7 +48,16 @@
       --color-text: #f1f5f9;
       --color-muted: #94a3b8;
       --color-accent: #3b82f6;
+      --color-accent-alt: #06b6d4;
     }
+
+    /* Classes utilitaires pour les couleurs accent */
+    .text-accent { color: var(--color-accent); }
+    .bg-accent { background-color: var(--color-accent); }
+    .text-accent-alt { color: var(--color-accent-alt); }
+    .bg-accent-alt { background-color: var(--color-accent-alt); }
+    .from-accent { --tw-gradient-from: var(--color-accent); --tw-gradient-stops: var(--color-accent), var(--tw-gradient-to, rgba(37, 99, 235, 0)); }
+    .to-accent-alt { --tw-gradient-to: var(--color-accent-alt); }
 
     /* Styles de base - maintenant minimalistes */
     body {
@@ -974,6 +985,48 @@
 
   <!-- Conteneur de toasts pour les notifications -->
   {{ toast_container() }}
+
+  <!-- Footer avec version et changelog -->
+  <footer class="border-t border-border bg-gradient-to-b from-surface to-surface/95 mt-auto backdrop-blur-sm">
+    <div class="mx-auto max-w-content px-4 py-6">
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-alt text-white text-sm font-bold shadow-sm">
+            MD
+          </span>
+          <div class="flex flex-col">
+            <span class="font-semibold text-heading text-sm">MedData Bridge</span>
+            <span class="text-xs text-muted">Plateforme d'interopérabilité santé</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-3 text-xs text-muted">
+            <span class="px-2 py-1 rounded-md bg-surface border text-heading font-mono text-xs">v{{ request.state.version|default('1.0.0-alpha.1') }}</span>
+            <span class="text-muted">•</span>
+            <span>© 2025 MedData Bridge</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="/docs/changelog" class="text-muted hover:text-accent transition-colors flex items-center gap-1.5 text-xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Changelog
+            </a>
+            <a href="/api/docs" class="text-muted hover:text-accent transition-colors flex items-center gap-1.5 text-xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+              </svg>
+              API
+            </a>
+          </div>
+          <div class="text-xs text-muted">
+            Propulsé par FastAPI • Tailwind CSS
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
 
 </body>
 </html>

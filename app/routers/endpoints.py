@@ -356,6 +356,9 @@ def detail_endpoint(endpoint_id: int, request: Request, session=Depends(get_sess
     ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
     ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
     
+    # Récupérer tous les endpoints pour l'association anti-rebond
+    all_endpoints = session.exec(select(SystemEndpoint)).all()
+    
     # Pour les endpoints FILE, "running" = is_enabled (scanner automatique)
     # Pour les endpoints MLLP/FHIR, "running" = dans le registry
     if e.kind == "FILE":
@@ -367,7 +370,8 @@ def detail_endpoint(endpoint_id: int, request: Request, session=Depends(get_sess
         "e": e,
         "is_running": is_running,
         "ghts": ghts,
-        "ejs": ejs
+        "ejs": ejs,
+        "all_endpoints": all_endpoints
     })
 
 # ========= AJOUTS =========
@@ -382,6 +386,7 @@ def update_endpoint(
     is_enabled: str = Form("true"),
     ght_context_id: str = Form(None),
     entite_juridique_id: str = Form(None),
+    linked_endpoint_id: str = Form(None),
     host: str = Form(None),
     port: int = Form(None),
     sending_app: str = Form(None),
@@ -396,6 +401,15 @@ def update_endpoint(
     archive_path: str = Form(None),
     error_path: str = Form(None),
     file_extensions: str = Form(None),
+    ftp_host: str = Form(None),
+    ftp_port: int = Form(None),
+    ftp_username: str = Form(None),
+    ftp_password: str = Form(None),
+    ftp_use_sftp: str = Form("false"),
+    ftp_remote_inbox_path: str = Form(None),
+    ftp_remote_outbox_path: str = Form(None),
+    ftp_remote_archive_path: str = Form(None),
+    ftp_remote_error_path: str = Form(None),
     session=Depends(get_session),
 ):
     e = session.get(SystemEndpoint, endpoint_id)
@@ -410,6 +424,7 @@ def update_endpoint(
         # Re-render with error instead of raising to keep user in the form
         ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
         ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
+        all_endpoints = session.exec(select(SystemEndpoint)).all()
         # Pour les endpoints FILE, "running" = is_enabled
         is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
         return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", {
@@ -417,6 +432,7 @@ def update_endpoint(
             "is_running": is_running,
             "ghts": ghts,
             "ejs": ejs,
+            "all_endpoints": all_endpoints,
             "error": "Un endpoint doit être rattaché à un GHT Context ou à une Entité Juridique",
         }, status_code=400)
 
@@ -432,6 +448,7 @@ def update_endpoint(
             # Re-render form with error message
             ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
             ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
+            all_endpoints = session.exec(select(SystemEndpoint)).all()
             # Pour les endpoints FILE, "running" = is_enabled
             is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
             return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", {
@@ -439,6 +456,7 @@ def update_endpoint(
                 "is_running": is_running,
                 "ghts": ghts,
                 "ejs": ejs,
+                "all_endpoints": all_endpoints,
                 "error": "L'établissement choisi n'appartient pas au GHT sélectionné",
             }, status_code=400)
 
@@ -448,12 +466,18 @@ def update_endpoint(
     e.is_enabled = _bool_from_str(is_enabled, True)
     e.ght_context_id = ght_id
     e.entite_juridique_id = ej_id
+    e.linked_endpoint_id = int(linked_endpoint_id) if linked_endpoint_id and linked_endpoint_id.strip() else None
     e.host, e.port = host, port
     e.sending_app, e.sending_facility = sending_app, sending_facility
     e.receiving_app, e.receiving_facility = receiving_app, receiving_facility
     e.base_url, e.auth_kind, e.auth_token = base_url, auth_kind, auth_token
     e.inbox_path, e.outbox_path, e.archive_path = inbox_path, outbox_path, archive_path
     e.error_path, e.file_extensions = error_path, file_extensions
+    e.ftp_host, e.ftp_port = ftp_host, ftp_port
+    e.ftp_username, e.ftp_password = ftp_username, ftp_password
+    e.ftp_use_sftp = _bool_from_str(ftp_use_sftp, False)
+    e.ftp_remote_inbox_path, e.ftp_remote_outbox_path = ftp_remote_inbox_path, ftp_remote_outbox_path
+    e.ftp_remote_archive_path, e.ftp_remote_error_path = ftp_remote_archive_path, ftp_remote_error_path
     e.updated_at = datetime.now(timezone.utc)
 
     session.add(e); session.commit()

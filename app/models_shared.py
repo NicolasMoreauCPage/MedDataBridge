@@ -6,7 +6,7 @@ from sqlmodel import SQLModel, Field, Relationship
 # Forward-declare types for static analysis without creating import cycles
 if TYPE_CHECKING:  # pragma: no cover - import only for type checkers
     from app.models_structure import GHTContext, EntiteJuridique
-    from app.models_endpoints import MLLPConfig, FHIRConfig
+    from app.models_endpoints import MLLPConfig, FHIRConfig, FTPConfig
 
 class MessageLog(SQLModel, table=True):
     __table_args__ = {'extend_existing': True}  # Allow redefinition
@@ -36,6 +36,8 @@ class EndpointKind(str):
     MLLP = "MLLP"
     FHIR = "FHIR"
     FILE = "FILE"
+    FTP = "FTP"
+    SFTP = "SFTP"
 
 class SystemEndpoint(SQLModel, table=True):
     """Représente un point d'intégration système (serveur FHIR, endpoint MLLP)"""
@@ -59,6 +61,24 @@ class SystemEndpoint(SQLModel, table=True):
     fhir_configs: Optional[List["FHIRConfig"]] = Relationship(
         back_populates="endpoint", sa_relationship_kwargs={"lazy": "selectin"}
     )
+    ftp_configs: Optional[List["FTPConfig"]] = Relationship(
+        back_populates="endpoint", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    # Association pour éviter les rebonds (endpoint lié pour éviter les boucles)
+    linked_endpoint_id: Optional[int] = Field(
+        default=None,
+        foreign_key="systemendpoint.id",
+        description="Endpoint associé pour éviter les rebonds (ex: si endpoint A reçoit, ne pas envoyer sur endpoint B lié)"
+    )
+    linked_endpoint: Optional["SystemEndpoint"] = Relationship(
+        back_populates="linked_by_endpoints",
+        sa_relationship_kwargs={"remote_side": "SystemEndpoint.id", "lazy": "selectin"}
+    )
+    linked_by_endpoints: Optional[List["SystemEndpoint"]] = Relationship(
+        back_populates="linked_endpoint",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
     # Pour MLLP
     host: Optional[str] = None  # Hostname/IP
@@ -79,6 +99,17 @@ class SystemEndpoint(SQLModel, table=True):
     archive_path: Optional[str] = None  # Directory for processed messages
     error_path: Optional[str] = None  # Directory for failed messages
     file_extensions: Optional[str] = None  # Comma-separated list (e.g., ".hl7,.txt")
+
+    # Pour FTP/SFTP
+    ftp_host: Optional[str] = None  # FTP/SFTP server hostname
+    ftp_port: Optional[int] = None  # Port (21 for FTP, 22 for SFTP)
+    ftp_username: Optional[str] = None  # Username for authentication
+    ftp_password: Optional[str] = None  # Password for authentication
+    ftp_use_sftp: bool = Field(default=False)  # True for SFTP, False for FTP
+    ftp_remote_inbox_path: Optional[str] = None  # Remote directory to read from
+    ftp_remote_outbox_path: Optional[str] = None  # Remote directory to write to
+    ftp_remote_archive_path: Optional[str] = None  # Remote archive directory
+    ftp_remote_error_path: Optional[str] = None  # Remote error directory
 
     # Emission type configuration
     emit_hl7_pam: bool = Field(default=True, description="Émet HL7 IHE PAM (identité/mouvements)")

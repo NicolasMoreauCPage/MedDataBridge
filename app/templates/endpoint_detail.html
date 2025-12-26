@@ -26,6 +26,14 @@
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
             </svg>
+            {% elif e.kind == 'FTP' %}
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+            </svg>
+            {% elif e.kind == 'SFTP' %}
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
             {% else %}
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
@@ -123,10 +131,10 @@
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">Type</label>
             <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="kind" required>
-              {% set kinds = ['MLLP','FHIR','FILE'] %}
+              {% set kinds = ['MLLP','FHIR','FILE','FTP','SFTP'] %}
               {% for k in kinds %}
               <option value="{{ k }}" {% if e.kind==k %}selected{% endif %}>
-                {{ '🔌' if k == 'MLLP' else ('🔥' if k == 'FHIR' else '📁') }} {{ k }}
+                {{ '🔌' if k == 'MLLP' else ('🔥' if k == 'FHIR' else ('📁' if k == 'FILE' else ('📤' if k == 'FTP' else '🔐'))) }} {{ k }}
               </option>
               {% endfor %}
             </select>
@@ -162,6 +170,46 @@
             </select>
             <p class="text-xs text-slate-500 mt-1.5">Obligatoire pour endpoints identité/mouvements (ADT)</p>
           </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section: Association d'endpoints (anti-rebond) -->
+    <details class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-amber-50 to-amber-100 px-6 py-4 font-semibold text-slate-800 hover:from-amber-100 hover:to-amber-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"/>
+          </svg>
+        </div>
+        <span class="text-lg">Association d'endpoints (Anti-rebond)</span>
+      </summary>
+      <div class="p-6">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <h4 class="font-semibold text-amber-800 mb-1">Prévention des rebonds</h4>
+              <p class="text-sm text-amber-700">Associez cet endpoint à un autre pour éviter l'envoi de messages en boucle. Par exemple, si cet endpoint reçoit une création d'identité, il n'enverra pas de message de création sur l'endpoint associé.</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">Endpoint lié (anti-rebond)</label>
+          <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all" name="linked_endpoint_id">
+            <option value="">🔄 Aucun (pas de protection anti-rebond)</option>
+            {% for other_e in all_endpoints %}
+            {% if other_e.id != e.id %}
+            <option value="{{ other_e.id }}" {% if e.linked_endpoint_id == other_e.id %}selected{% endif %}>
+              {{ '🔌' if other_e.kind == 'MLLP' else ('🔥' if other_e.kind == 'FHIR' else ('📁' if other_e.kind == 'FILE' else ('📤' if other_e.kind == 'FTP' else '🔐'))) }}
+              {{ other_e.name }} ({{ other_e.kind }})
+            </option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          <p class="text-xs text-slate-500 mt-1.5">Les messages reçus sur cet endpoint ne seront pas retransmis vers l'endpoint lié</p>
         </div>
       </div>
     </details>
@@ -276,6 +324,66 @@
             <label class="block text-sm font-medium text-slate-700 mb-2">Extensions fichier</label>
             <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono text-sm" name="file_extensions" value="{{ e.file_extensions or '' }}" placeholder=".hl7,.txt,.xml">
             <p class="text-xs text-slate-500 mt-1.5">Extensions surveillées, séparées par des virgules</p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section: Configuration FTP/SFTP -->
+    <details class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <summary class="cursor-pointer bg-gradient-to-r from-cyan-50 to-cyan-100 px-6 py-4 font-semibold text-slate-800 hover:from-cyan-100 hover:to-cyan-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+          </svg>
+        </div>
+        <span class="text-lg">Configuration FTP/SFTP</span>
+      </summary>
+      <div class="p-6">
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Host</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" name="ftp_host" value="{{ e.ftp_host or '' }}" placeholder="ftp.example.com">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Port</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" type="number" name="ftp_port" value="{{ e.ftp_port or '' }}" placeholder="21">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Username</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" name="ftp_username" value="{{ e.ftp_username or '' }}" placeholder="user">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Password</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" type="password" name="ftp_password" value="{{ e.ftp_password or '' }}" placeholder="password">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Protocole</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" name="ftp_use_sftp">
+              <option value="false" {% if not e.ftp_use_sftp %}selected{% endif %}>📤 FTP</option>
+              <option value="true" {% if e.ftp_use_sftp %}selected{% endif %}>🔐 SFTP</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-6 pt-6 border-t border-slate-200">
+          <h4 class="text-sm font-semibold text-slate-700 mb-4">📁 Chemins distants</h4>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">📥 Inbox distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_inbox_path" value="{{ e.ftp_remote_inbox_path or '' }}" placeholder="/remote/inbox">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">📤 Outbox distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_outbox_path" value="{{ e.ftp_remote_outbox_path or '' }}" placeholder="/remote/outbox">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">📦 Archive distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_archive_path" value="{{ e.ftp_remote_archive_path or '' }}" placeholder="/remote/archive">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">⚠️ Error distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_error_path" value="{{ e.ftp_remote_error_path or '' }}" placeholder="/remote/error">
+            </div>
           </div>
         </div>
       </div>

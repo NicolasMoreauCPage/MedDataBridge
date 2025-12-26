@@ -19,7 +19,7 @@ Ce fichier suit la progression détaillée de la refonte UI/UX basée sur l'audi
 ## 3. Améliorations UI/UX avancées
 - [x] Implémenter le dark mode complet avec toggle — *fait 2025-12-26*
 - [x] Ajouter des composants DaisyUI (modals, tooltips, dropdowns) — *modals et tooltips remplacés 2025-12-26*
-- [ ] Créer un sélecteur de thème (light/dark/auto)
+- [x] Créer un sélecteur de thème (light/dark/auto) — *dropdown DaisyUI avec 3 options 2025-12-26*
 - [ ] Optimiser les animations et transitions
 
 ## 2.5 Migration templates vers Tailwind

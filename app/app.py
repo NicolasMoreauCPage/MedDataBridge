@@ -35,6 +35,8 @@ from config.settings import settings
 from app.middleware.flash import FlashMessageMiddleware
 from app.middleware.ght_context import GHTContextMiddleware
 from app.middleware.version import VersionMiddleware
+from app.middleware.error_handler import ErrorHandlingMiddleware, RequestLoggingMiddleware
+from app.metrics import MetricsMiddleware
 
 from app.db import init_db, engine, get_session
 from app import models_scenarios  # ensure scenario models are registered
@@ -67,7 +69,7 @@ from app.routers import (
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
-    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp
+    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks
 )
 from app.routers import menu
 
@@ -78,17 +80,8 @@ from app.routers import cotation_modern
 
 
 # --- PATCH: Logging to file and console, DEBUG level ---
-LOG_FILE = settings.log_file
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
-if settings.mllp_trace:
-    logging.getLogger("mllp").setLevel(logging.DEBUG)
+from app.logging_config import setup_logging
+setup_logging()
 
 # Instance unique du manager et publication via app.state
 # - `session_factory` fournit des sessions DB courtes et sûres côté workers.
@@ -195,19 +188,23 @@ def create_app() -> FastAPI:
     static_dir = str(Path(__file__).parent / "static")
     app.mount("/static", StaticFiles(directory=static_dir, html=True, check_dir=True), name="static")
 
-    # NOTE: Montage du dossier /Doc retiré - les documentations HTML sont maintenant
-    # servies via le routeur doc_wrapper qui les enveloppe dans le template base.html
-    # pour garantir une cohérence de style et de navigation avec le reste du programme.
-    # doc_dir = str(Path(__file__).parent.parent / "Doc")
-    # app.mount("/Doc", StaticFiles(directory=doc_dir, html=True, check_dir=True), name="doc")
+    # Middlewares dans l'ordre d'exécution (dernier ajouté = premier exécuté)
+    # 1. Error handling (en dernier pour capturer toutes les erreurs)
+    app.add_middleware(ErrorHandlingMiddleware)
 
-    # Session et contexte GHT: IMPORTANT - dans Starlette, le dernier middleware
-    # ajouté est exécuté en premier. Nous voulons que SessionMiddleware s'exécute
-    # AVANT FlashMessageMiddleware et GHTContextMiddleware pour que request.session
-    # soit disponible dans ces middlewares. Donc on ajoute d'abord Flash/GHT,
-    # PUIS SessionMiddleware en dernier.
+    # 2. Request logging
+    app.add_middleware(RequestLoggingMiddleware)
+
+    # 3. Metrics collection (avant les autres pour capturer toutes les requêtes)
+    app.add_middleware(MetricsMiddleware)
+
+    # 4. Flash messages
     app.add_middleware(FlashMessageMiddleware)
+
+    # 4. GHT context
     app.add_middleware(GHTContextMiddleware)
+
+    # 5. Version middleware
     app.add_middleware(VersionMiddleware)
 
     session_secret = settings.secret_key
@@ -237,32 +234,27 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health_check():
         """Health check endpoint for load balancers and monitoring"""
-        from app.db import session_factory
-        import asyncio
-
-        def check_db():
-            session = session_factory()
-            try:
-                session.execute(text("SELECT 1"))
-                return True
-            except Exception:
-                return False
-            finally:
-                session.close()
+        from app.db import get_db_health
+        from app.cache import cache
 
         try:
-            # Test database connection in a thread pool
-            result = await asyncio.get_event_loop().run_in_executor(None, check_db)
-            if not result:
-                raise Exception("Database connection failed")
+            # Test database connection
+            db_health = get_db_health()
+            if db_health.get("status") != "healthy":
+                raise Exception(f"Database unhealthy: {db_health}")
+
+            # Test cache
+            cache_stats = cache.get_stats()
 
             return {
                 "status": "healthy",
                 "version": app.state.version,
-                "database": "connected",
-                "timestamp": "2025-12-20T00:00:00Z"
+                "database": db_health,
+                "cache": cache_stats,
+                "timestamp": "2025-12-27T00:00:00Z"
             }
         except Exception as e:
+            logger.error(f"Health check failed: {e}")
             raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
 
     @app.get("/health/db")
@@ -281,6 +273,16 @@ def create_app() -> FastAPI:
             }
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"Database unhealthy: {str(e)}")
+
+    @app.get("/metrics")
+    async def metrics_endpoint():
+        """Métriques de performance et monitoring au format JSON"""
+        from app.metrics import metrics
+        return metrics.get_metrics()
+
+    # System routes - Tasks API
+    app.include_router(tasks.router)
+    print(" - Tasks API router mounted at /api/tasks")
 
     print("\nRegistering routes:")
 

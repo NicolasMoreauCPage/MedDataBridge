@@ -56,14 +56,36 @@ if settings.testing:
         # manage their own schema creation as some fixtures do.
         pass
 else:
-    engine = create_engine(
-        settings.database_url,
-        echo=False,
-        pool_size=settings.db_pool_size,
-        max_overflow=settings.db_max_overflow,
-        pool_timeout=settings.db_pool_timeout,
-        pool_pre_ping=True  # Check connections before using
-    )
+    # Configuration avancée du pool de connexions pour SQLite
+    from sqlalchemy.pool import StaticPool, QueuePool
+
+    # Pour SQLite, utiliser StaticPool en production pour éviter les problèmes de threading
+    # mais QueuePool pour les tests si nécessaire
+    pool_class = StaticPool if not settings.testing else QueuePool
+
+    # Préparer les arguments du moteur selon le type de base
+    engine_kwargs = {
+        "echo": settings.db_echo,
+        "poolclass": pool_class,
+        "pool_pre_ping": True,  # Vérifier les connexions avant utilisation
+        "pool_recycle": 3600,  # Recycler les connexions après 1 heure
+    }
+
+    # Paramètres de pool seulement pour les bases non-SQLite
+    if "sqlite" not in settings.database_url.lower():
+        engine_kwargs.update({
+            "pool_size": settings.db_pool_size,
+            "max_overflow": settings.db_max_overflow,
+            "pool_timeout": settings.db_pool_timeout,
+        })
+    else:
+        # Pour SQLite, paramètres spécifiques
+        engine_kwargs["connect_args"] = {
+            "check_same_thread": False,  # Permettre l'accès multi-thread pour SQLite
+            "timeout": 30.0,  # Timeout de connexion
+        }
+
+    engine = create_engine(settings.database_url, **engine_kwargs)
 
 def init_db() -> None:
     """Crée les tables si elles n'existent pas (idempotent)."""
@@ -299,3 +321,57 @@ def _before_flush(session, flush_context, instances):
 
 
 event.listen(Session, "before_flush", _before_flush)
+
+
+def get_db_health() -> dict:
+    """Vérifie la santé de la base de données et retourne les métriques."""
+    try:
+        with Session(engine) as session:
+            # Test de connexion simple
+            result = session.execute(text("SELECT 1"))
+            result.scalar()
+
+            # Récupérer des métriques SQLite si applicable
+            metrics = {"status": "healthy", "connection": "ok"}
+
+            if "sqlite" in str(engine.url):
+                try:
+                    import sqlite3
+                    conn = sqlite3.connect("medbridge.db")
+                    cursor = conn.cursor()
+
+                    # Métriques SQLite
+                    cursor.execute("PRAGMA journal_mode;")
+                    metrics["journal_mode"] = cursor.fetchone()[0]
+
+                    cursor.execute("PRAGMA synchronous;")
+                    metrics["synchronous"] = cursor.fetchone()[0]
+
+                    cursor.execute("PRAGMA cache_size;")
+                    metrics["cache_size_kb"] = cursor.fetchone()[0]
+
+                    cursor.execute("PRAGMA page_count;")
+                    metrics["page_count"] = cursor.fetchone()[0]
+
+                    cursor.execute("PRAGMA page_size;")
+                    metrics["page_size"] = cursor.fetchone()[0]
+
+                    conn.close()
+                except Exception as e:
+                    metrics["sqlite_metrics_error"] = str(e)
+
+            return metrics
+
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+
+
+def optimize_db_connection():
+    """Optimise la connexion à la base de données (appelable manuellement)."""
+    try:
+        with engine.connect() as conn:
+            # Test de la connexion
+            conn.execute(text("SELECT 1"))
+            print("[INFO] Connexion à la base de données optimisée")
+    except Exception as e:
+        print(f"[WARN] Erreur lors de l'optimisation de la connexion DB: {e}")

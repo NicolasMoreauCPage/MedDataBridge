@@ -202,8 +202,14 @@ class MetricsCollector:
         if operation:
             metrics = self.metrics.get(operation, {})
             if metrics and "count" in metrics and metrics["count"] > 0:
-                metrics["avg_duration"] = metrics["total_duration"] / metrics["count"]
-                metrics["success_rate"] = metrics["success_count"] / metrics["count"]
+                total = metrics.get("total_duration") if "total_duration" in metrics else metrics.get("total")
+                if total is None:
+                    # no duration information available
+                    metrics["avg_duration"] = None
+                else:
+                    metrics["avg_duration"] = total / metrics["count"] if metrics["count"] else None
+                # success_rate guard
+                metrics["success_rate"] = (metrics.get("success_count", 0) / metrics["count"]) if metrics["count"] else None
             return metrics
         
         # Retourner toutes les métriques
@@ -211,8 +217,12 @@ class MetricsCollector:
         for op, metrics in self.metrics.items():
             result[op] = dict(metrics)
             if "count" in metrics and metrics["count"] > 0:
-                result[op]["avg_duration"] = metrics["total_duration"] / metrics["count"]
-                result[op]["success_rate"] = metrics["success_count"] / metrics["count"]
+                total = metrics.get("total_duration") if "total_duration" in metrics else metrics.get("total")
+                if total is None:
+                    result[op]["avg_duration"] = None
+                else:
+                    result[op]["avg_duration"] = total / metrics["count"] if metrics["count"] else None
+                result[op]["success_rate"] = (metrics.get("success_count", 0) / metrics["count"]) if metrics["count"] else None
         
         return result
     

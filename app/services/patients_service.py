@@ -80,6 +80,27 @@ def create_patient(
     """
     identifier_val = patient_data.identifier or str(uuid4())
     data = patient_data.dict()
+    # Sanitize string values to avoid encoding errors (lone surrogates etc.)
+    import unicodedata
+    def _sanitize(val):
+        if isinstance(val, str):
+            try:
+                # Normalize to NFC and replace any surrogate codepoints (which
+                # SQLite/DB drivers cannot encode) with the Unicode replacement
+                # character. This avoids PendingRollbackError during commit.
+                normalized = unicodedata.normalize('NFC', val)
+                # Replace surrogate range U+D800..U+DFFF
+                cleaned = ''.join(
+                    (ch if not (0xD800 <= ord(ch) <= 0xDFFF) else '\uFFFD')
+                    for ch in normalized
+                )
+                return cleaned
+            except Exception:
+                return val
+        return val
+
+    for k, v in list(data.items()):
+        data[k] = _sanitize(v)
     birth_date_raw = data.get("birth_date")
     birth_date_obj = None
     if birth_date_raw:
@@ -121,6 +142,23 @@ def update_patient(
         raise ValueError(f"Patient with id {patient.id} not found")
     
     update_data = patient_data.model_dump(exclude_unset=True)
+    # Sanitize string values to prevent encoding issues on commit
+    import unicodedata
+    def _sanitize(val):
+        if isinstance(val, str):
+            try:
+                normalized = unicodedata.normalize('NFC', val)
+                cleaned = ''.join(
+                    (ch if not (0xD800 <= ord(ch) <= 0xDFFF) else '\uFFFD')
+                    for ch in normalized
+                )
+                return cleaned
+            except Exception:
+                return val
+        return val
+
+    for key, value in list(update_data.items()):
+        update_data[key] = _sanitize(value)
     for key, value in update_data.items():
         if value is not None:  # Only update non-None values
             setattr(patient, key, value)

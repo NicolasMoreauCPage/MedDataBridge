@@ -42,6 +42,15 @@ if os.getenv("TESTING", "0") in ("1", "true", "True"):
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    # When running tests in-process (TESTING=1) we need the schema
+    # created on the in-memory engine so TestClient-based tests can
+    # operate without requiring an explicit init_db() call.
+    try:
+        SQLModel.metadata.create_all(engine)
+    except Exception:
+        # If schema creation fails for any reason, allow tests to
+        # manage their own schema creation as some fixtures do.
+        pass
 else:
     engine = create_engine(
         "sqlite:///./medbridge.db",

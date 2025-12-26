@@ -15,7 +15,7 @@ Ces tests couvrent les fonctionnalités principales.
 
 import unittest
 from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
+from datetime import datetime, date
 from fastapi import Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 

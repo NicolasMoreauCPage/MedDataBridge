@@ -1516,7 +1516,7 @@ def seed_demo_population(
         session.flush()  # ensure patient.id
         created_patients += 1
 
-        # Créer l'objet Identifier lié au patient
+        # Create an Identifier if an IPP value/namespace exists (optional)
         if ipp_value and ipp_namespace:
             identifier = Identifier(
                 value=ipp_value,
@@ -1525,119 +1525,121 @@ def seed_demo_population(
                 status="active",
                 assigned_date=datetime.utcnow(),
                 last_updated=datetime.utcnow(),
-                patient_id=patient.id
+                patient_id=patient.id,
             )
             session.add(identifier)
-            r = random.random()
-            if r < admit_ratio:
-                dossier_type = DossierType.HOSPITALISE
-            elif r < admit_ratio + urgence_ratio:
-                dossier_type = DossierType.URGENCE
-            else:
-                dossier_type = DossierType.EXTERNE
 
-            # Dates réalistes pour le séjour
-            from datetime import timedelta
-            admit_dt = datetime.utcnow() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 12))
-            discharge_dt = admit_dt + timedelta(days=random.randint(1, 10), hours=random.randint(1, 12))
-            # Sélectionner une UF de responsabilité et une UF d'hébergement pour l'EJ
-            from app.models_structure import UniteFonctionnelle
-            ufs_resp = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id.is_not(None))).all()
-            ufs_ej = [uf for uf in ufs_resp if getattr(uf.service, 'pole', None) and getattr(uf.service.pole, 'entite_geo', None) and getattr(uf.service.pole.entite_geo, 'entite_juridique_id', None) == ej_id]
-            uf_resp = random.choice(ufs_ej) if ufs_ej else None
-            uf_heberg = random.choice(ufs_ej) if ufs_ej else None
-            dossier = Dossier(
-                dossier_seq=get_next_sequence(session, "dossier"),
-                patient_id=patient.id,
-                admit_time=admit_dt,
-                discharge_time=discharge_dt if dossier_type in [DossierType.HOSPITALISE, DossierType.URGENCE] else None,
-                dossier_type=dossier_type,
-                entite_juridique_id=ej_id,
-                uf_responsabilite=uf_resp.um_code if uf_resp else None,
-                uf_hebergement=uf_heberg.um_code if uf_heberg else None,
-            )
-            session.add(dossier)
-            session.flush()  # ensure IDs
-            created_dossiers += 1
+        # Decide dossier type and create dossier/venue/mouvements regardless
+        r = random.random()
+        if r < admit_ratio:
+            dossier_type = DossierType.HOSPITALISE
+        elif r < admit_ratio + urgence_ratio:
+            dossier_type = DossierType.URGENCE
+        else:
+            dossier_type = DossierType.EXTERNE
 
-            # Venue & mouvements selon type
-            venue_start = admit_dt + timedelta(hours=random.randint(0, 3))
-            venue = Venue(
-                venue_seq=get_next_sequence(session, "venue"),
-                dossier_id=dossier.id,
-                start_time=venue_start,
-                assigned_location=_pick_lit(i),
-                entite_juridique_id=ej_id,
-            )
-            session.add(venue)
-            session.flush()
-            created_venues += 1
+        # Dates réalistes pour le séjour
+        from datetime import timedelta
+        admit_dt = datetime.utcnow() - timedelta(days=random.randint(1, 30), hours=random.randint(0, 12))
+        discharge_dt = admit_dt + timedelta(days=random.randint(1, 10), hours=random.randint(1, 12))
+        # Sélectionner une UF de responsabilité et une UF d'hébergement pour l'EJ
+        from app.models_structure import UniteFonctionnelle
+        ufs_resp = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id.is_not(None))).all()
+        ufs_ej = [uf for uf in ufs_resp if getattr(uf.service, 'pole', None) and getattr(uf.service.pole, 'entite_geo', None) and getattr(uf.service.pole.entite_geo, 'entite_juridique_id', None) == ej_id]
+        uf_resp = random.choice(ufs_ej) if ufs_ej else None
+        uf_heberg = random.choice(ufs_ej) if ufs_ej else None
+        dossier = Dossier(
+            dossier_seq=get_next_sequence(session, "dossier"),
+            patient_id=patient.id,
+            admit_time=admit_dt,
+            discharge_time=discharge_dt if dossier_type in [DossierType.HOSPITALISE, DossierType.URGENCE] else None,
+            dossier_type=dossier_type,
+            entite_juridique_id=ej_id,
+            uf_responsabilite=uf_resp.um_code if uf_resp else None,
+            uf_hebergement=uf_heberg.um_code if uf_heberg else None,
+        )
+        session.add(dossier)
+        session.flush()  # ensure IDs
+        created_dossiers += 1
 
-            # Admission mouvement
-            m_adm = Mouvement(
-                mouvement_seq=get_next_sequence(session, "mouvement"),
-                venue_id=venue.id,
-                type=None,
-                trigger_event="A01",
-                when=venue_start,
-                to_location=venue.assigned_location,
-                movement_type="admission",
-                entite_juridique_id=ej_id,
-            )
-            session.add(m_adm)
-            created_mouvements += 1
+        # Venue & mouvements selon type
+        venue_start = admit_dt + timedelta(hours=random.randint(0, 3))
+        venue = Venue(
+            venue_seq=get_next_sequence(session, "venue"),
+            dossier_id=dossier.id,
+            start_time=venue_start,
+            assigned_location=_pick_lit(i),
+            entite_juridique_id=ej_id,
+        )
+        session.add(venue)
+        session.flush()
+        created_venues += 1
 
-            if dossier_type == DossierType.HOSPITALISE:
-                # Optionnel transfert vers un autre lit
-                if random.random() < 0.3:
-                    new_loc = _pick_lit(i + 17)
-                    transfer_dt = venue_start + timedelta(days=random.randint(0, 5), hours=random.randint(1, 8))
-                    m_tx = Mouvement(
-                        mouvement_seq=get_next_sequence(session, "mouvement"),
-                        venue_id=venue.id,
-                        type=None,
-                        trigger_event="A02",
-                        when=transfer_dt,
-                        from_location=venue.assigned_location,
-                        to_location=new_loc,
-                        movement_type="transfer",
-                        entite_juridique_id=ej_id,
-                    )
-                    session.add(m_tx)
-                    created_mouvements += 1
-                    venue.assigned_location = new_loc
-                # Discharge
-                if random.random() < 0.9:  # la majorité sont sortis
-                    discharge_dt = discharge_dt
-                    m_dis = Mouvement(
-                        mouvement_seq=get_next_sequence(session, "mouvement"),
-                        venue_id=venue.id,
-                        type=None,
-                        trigger_event="A03",
-                        when=discharge_dt,
-                        from_location=venue.assigned_location,
-                        movement_type="discharge",
-                        entite_juridique_id=ej_id,
-                    )
-                    session.add(m_dis)
-                    created_mouvements += 1
-            elif dossier_type == DossierType.URGENCE:
-                # Sortie rapide
+        # Admission mouvement
+        m_adm = Mouvement(
+            mouvement_seq=get_next_sequence(session, "mouvement"),
+            venue_id=venue.id,
+            type=None,
+            trigger_event="A01",
+            when=venue_start,
+            to_location=venue.assigned_location,
+            movement_type="admission",
+            entite_juridique_id=ej_id,
+        )
+        session.add(m_adm)
+        created_mouvements += 1
+
+        if dossier_type == DossierType.HOSPITALISE:
+            # Optionnel transfert vers un autre lit
+            if random.random() < 0.3:
+                new_loc = _pick_lit(i + 17)
+                transfer_dt = venue_start + timedelta(days=random.randint(0, 5), hours=random.randint(1, 8))
+                m_tx = Mouvement(
+                    mouvement_seq=get_next_sequence(session, "mouvement"),
+                    venue_id=venue.id,
+                    type=None,
+                    trigger_event="A02",
+                    when=transfer_dt,
+                    from_location=venue.assigned_location,
+                    to_location=new_loc,
+                    movement_type="transfer",
+                    entite_juridique_id=ej_id,
+                )
+                session.add(m_tx)
+                created_mouvements += 1
+                venue.assigned_location = new_loc
+            # Discharge
+            if random.random() < 0.9:  # la majorité sont sortis
+                discharge_dt = discharge_dt
                 m_dis = Mouvement(
                     mouvement_seq=get_next_sequence(session, "mouvement"),
                     venue_id=venue.id,
                     type=None,
                     trigger_event="A03",
-                    when=datetime.utcnow(),
+                    when=discharge_dt,
                     from_location=venue.assigned_location,
                     movement_type="discharge",
                     entite_juridique_id=ej_id,
                 )
                 session.add(m_dis)
                 created_mouvements += 1
-            else:
-                # EXTERNE : pas de mouvement supplémentaire
-                pass
+        elif dossier_type == DossierType.URGENCE:
+            # Sortie rapide
+            m_dis = Mouvement(
+                mouvement_seq=get_next_sequence(session, "mouvement"),
+                venue_id=venue.id,
+                type=None,
+                trigger_event="A03",
+                when=datetime.utcnow(),
+                from_location=venue.assigned_location,
+                movement_type="discharge",
+                entite_juridique_id=ej_id,
+            )
+            session.add(m_dis)
+            created_mouvements += 1
+        else:
+            # EXTERNE : pas de mouvement supplémentaire
+            pass
 
     session.commit()
     return {

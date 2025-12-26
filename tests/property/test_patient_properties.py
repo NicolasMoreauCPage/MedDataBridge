@@ -12,6 +12,16 @@ from datetime import date, datetime
 
 from app.models import Patient
 from app.services.patients_service import PatientCreateSchema, create_patient, update_patient, PatientUpdateSchema
+import unicodedata
+
+
+def _expected_sanitize(val: str) -> str:
+    """Sanitize input the same way the service does for comparison in tests."""
+    if not isinstance(val, str):
+        return val
+    normalized = unicodedata.normalize('NFC', val)
+    cleaned = ''.join((ch if not (0xD800 <= ord(ch) <= 0xDFFF) else '\uFFFD') for ch in normalized)
+    return cleaned
 
 
 @composite
@@ -47,8 +57,8 @@ class TestPatientProperties:
 
         # Verify data integrity
         assert patient.id is not None
-        assert patient.family == patient_data["family"]
-        assert patient.given == patient_data["given"]
+        assert patient.family == _expected_sanitize(patient_data["family"])
+        assert patient.given == _expected_sanitize(patient_data["given"])
         assert str(patient.birth_date) == patient_data["birth_date"]
 
         # Verify database consistency
@@ -93,9 +103,9 @@ class TestPatientProperties:
 
         patient = create_patient(session=session, patient_data=patient_data)
 
-        # Verify the name was stored correctly
-        assert patient.family == name_input
-        assert len(patient.family) == len(name_input)
+        # Verify the name was stored correctly (service sanitizes some characters)
+        assert patient.family == _expected_sanitize(name_input)
+        assert len(patient.family) == len(_expected_sanitize(name_input))
 
     @given(st.dates(min_value=date(1900, 1, 1), max_value=date(2020, 12, 31)))
     @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])

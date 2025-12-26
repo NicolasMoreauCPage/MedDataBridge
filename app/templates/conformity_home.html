@@ -64,7 +64,7 @@
           </span>
           
           <!-- Switch pour activer/désactiver -->
-          <form method="post" action="/conformity/ej/{{ stat.ej.id }}/strict-pam-fr" class="inline">
+          <form id="strict-form-{{ stat.ej.id }}" method="post" action="/conformity/ej/{{ stat.ej.id }}/strict-pam-fr" class="inline">
             <input type="hidden" name="strict_pam_fr" value="{{ 'false' if stat.ej.strict_pam_fr else 'true' }}">
             <button type="submit" 
                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {% if stat.ej.strict_pam_fr %}bg-purple-600{% else %}bg-slate-200{% endif %}">
@@ -94,3 +94,84 @@
   {% endif %}
 </div>
 {% endblock %}
+
+<script>
+// Gestion asynchrone du toggle mode strict
+document.addEventListener('DOMContentLoaded', function() {
+    // Pour chaque formulaire de mode strict
+    document.querySelectorAll('form[id^="strict-form-"]').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Empêcher la soumission normale
+            
+            const formData = new FormData(this);
+            const ejId = this.id.replace('strict-form-', '');
+            const button = this.querySelector('button');
+            const badge = this.parentElement.querySelector('span');
+            
+            // Désactiver le bouton pendant le traitement
+            button.disabled = true;
+            button.style.opacity = '0.6';
+            
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Mettre à jour l'interface localement
+                    updateStrictModeUI(ejId, data.strict_pam_fr);
+                    
+                    // Mettre à jour le formulaire pour le prochain toggle
+                    const hiddenInput = this.querySelector('input[name="strict_pam_fr"]');
+                    hiddenInput.value = data.strict_pam_fr ? 'false' : 'true';
+                    
+                } else {
+                    console.error('Erreur lors du toggle:', response.status);
+                    // En cas d'erreur, recharger la page
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Erreur réseau:', error);
+                // En cas d'erreur, recharger la page
+                window.location.reload();
+            } finally {
+                // Réactiver le bouton
+                button.disabled = false;
+                button.style.opacity = '1';
+            }
+        });
+    });
+});
+
+// Fonction pour mettre à jour l'interface du mode strict
+function updateStrictModeUI(ejId, isStrict) {
+    const form = document.getElementById(`strict-form-${ejId}`);
+    const badge = form.parentElement.querySelector('span');
+    const button = form.querySelector('button');
+    const toggle = button.querySelector('span');
+    
+    // Mettre à jour le badge
+    if (isStrict) {
+        badge.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800';
+        badge.innerHTML = '🔒 Mode strict PAM FR';
+    } else {
+        badge.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-600';
+        badge.innerHTML = '🔓 Mode strict PAM FR';
+    }
+    
+    // Mettre à jour le switch
+    if (isStrict) {
+        button.className = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-purple-600';
+        toggle.className = 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6';
+    } else {
+        button.className = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-slate-200';
+        toggle.className = 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1';
+    }
+}
+</script>

@@ -58,7 +58,13 @@ async def endpoints_test_page(request: Request):
 
 @router.get("/docs/{filename}", response_class=HTMLResponse)
 async def docs_markdown(request: Request, filename: str):
-    """Serve simple markdown files from the docs/ folder (basic renderer)."""
+    """Serve simple markdown files from the docs/ folder.
+
+    This endpoint now uses the shared `doc_wrapper.html` so that Markdown
+    rendering is consistent with other documentation paths. It extracts the
+    first ATX H1 ("# Title") as the document title and removes it from the
+    rendered content to avoid duplicate titles in the banner.
+    """
     from pathlib import Path
     import markdown
     import re
@@ -71,21 +77,38 @@ async def docs_markdown(request: Request, filename: str):
             {"request": request, "structure": {}, "error": f"Document non trouvé: {filename}", "current_doc": None}
         )
 
-    # Prefer a pre-generated HTML file if present (same base name .html)
+    # Prefer a pre-generated HTML file if present (same base name .html).
+    # Only redirect when the original request is for a Markdown file
+    # (avoid redirecting when the requested filename already is .html,
+    # which caused a self-redirect loop).
     html_equiv = doc_path.with_suffix('.html')
-    if html_equiv.exists():
-        # If a static HTML exists, prefer to redirect to it so the static file
-        # is served directly (preserves full HTML rendering produced by pandoc).
+    if filename.lower().endswith('.md') and html_equiv.exists():
         from fastapi.responses import RedirectResponse
-        static_url = request.url_for('doc') if False else f"/docs/{html_equiv.name}"
+        static_url = f"/docs/{html_equiv.name}"
         return RedirectResponse(url=static_url)
 
-    # Otherwise render markdown on the fly
-    content = doc_path.read_text(encoding="utf-8")
-    html = markdown.markdown(content, extensions=["fenced_code", "tables", "toc"])
+    # Read raw content and, for Markdown, extract first H1 as title
+    raw = doc_path.read_text(encoding="utf-8")
+    doc_title = None
+    content_raw = raw
+    if filename.lower().endswith('.md'):
+        m = re.search(r'^[ \t]*#\s+(.+)$', raw, flags=re.MULTILINE)
+        if m:
+            doc_title = m.group(1).strip()
+            # remove first H1 line and a following blank line if present
+            content_raw = re.sub(r'^[ \t]*#\s+(.+)\n?', '', raw, count=1, flags=re.MULTILINE)
+            content_raw = re.sub(r'^\n', '', content_raw, count=1)
+
+    # Render markdown to HTML
+    html = markdown.markdown(content_raw, extensions=["fenced_code", "tables", "toc", "nl2br", "extra"]) if filename.lower().endswith('.md') else raw
+
+    # Fallback title if none extracted
+    if not doc_title:
+        doc_title = Path(filename).stem.replace('_', ' ').title()
+
     return get_templates_with_filters(request).TemplateResponse(
-        "generic_doc.html",
-        {"request": request, "doc_content": html, "doc_title": filename}
+        "doc_wrapper.html",
+        {"request": request, "doc_content": html, "doc_title": doc_title, "doc_filename": filename}
     )
 
 @router.get("/standards", response_class=HTMLResponse)

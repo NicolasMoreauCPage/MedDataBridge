@@ -18,7 +18,7 @@ Ce fichier suit la progression détaillée de la refonte UI/UX basée sur l'audi
 
 ## 3. Améliorations UI/UX avancées
 - [x] Implémenter le dark mode complet avec toggle — *fait 2025-12-26*
-- [ ] Ajouter des composants DaisyUI (modals, tooltips, dropdowns)
+- [x] Ajouter des composants DaisyUI (modals, tooltips, dropdowns) — *modals et tooltips remplacés 2025-12-26*
 - [ ] Créer un sélecteur de thème (light/dark/auto)
 - [ ] Optimiser les animations et transitions
 

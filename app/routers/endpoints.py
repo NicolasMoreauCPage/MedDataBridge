@@ -208,6 +208,10 @@ def new_endpoint(request: Request, session=Depends(get_session)):
     from app.models_structure import GHTContext, EntiteJuridique
     from sqlmodel import select
     
+    # Contexts from request
+    ght_ctx = getattr(request.state, 'ght_context', None)
+    ej_ctx = getattr(request.state, 'ej_context', None)
+    
     # Récupérer les GHT et EJ disponibles
     ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
     # If a GHT context is active, limit EJs to that GHT to avoid showing EJs from other GHTs
@@ -218,9 +222,6 @@ def new_endpoint(request: Request, session=Depends(get_session)):
         )).all()
     else:
         ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
-    # Contexts from request
-    ght_ctx = getattr(request.state, 'ght_context', None)
-    ej_ctx = getattr(request.state, 'ej_context', None)
     
     ght_options = [{"value": "", "label": "(Aucun)"}] + [{"value": str(g.id), "label": g.name} for g in ghts]
     ej_options = [{"value": "", "label": "(Aucun)"}] + [{"value": str(e.id), "label": f"{e.name} (FINESS: {e.finess_ej})"} for e in ejs]
@@ -240,6 +241,11 @@ def new_endpoint(request: Request, session=Depends(get_session)):
         {"type": "subsection", "label": "Structure", "icon": "building"},
         {"label": "HL7 MFN (Structure)", "name": "emit_hl7_mfn", "type": "checkbox", "value": True, "help": "Émet les messages MFN (structure) pour la gestion des structures."},
         {"label": "FHIR Structure (Location/Organization)", "name": "emit_fhir_structure", "type": "checkbox", "value": True, "help": "Émet les ressources FHIR de structure (Location, Organization)."},
+        {"type": "subsection", "label": "Cotation HPRIM XML", "icon": "file-text"},
+        {"label": "HPRIM CCAM (Actes médicaux)", "name": "emit_hprim_ccam", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation des actes CCAM."},
+        {"label": "HPRIM NGAP (GHS)", "name": "emit_hprim_ngap", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation NGAP/GHS."},
+        {"label": "HPRIM UCD (Médicaments)", "name": "emit_hprim_ucd", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation des médicaments."},
+        {"label": "HPRIM LPP (Dispositifs implantables)", "name": "emit_hprim_lpp", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation des dispositifs implantables."},
         {"type": "divider"},
         {"type": "section", "label": "Contexte d'établissement", "icon": "hospital", "help": "Associez le endpoint à un GHT ou à un établissement juridique."},
         {"label": "GHT Context", "name": "ght_context_id", "type": "select", "options": ght_options, "help": "Obligatoire pour endpoints structure (MFN)", "value": (str(ght_ctx.id) if ght_ctx else None), "hidden": (True if ght_ctx else False), "empty_message": "Aucun GHT actif disponible. Créez d'abord un contexte GHT depuis le menu Contextes > GHT."},
@@ -290,6 +296,10 @@ def create_endpoint(
     emit_hl7_mfn: bool = Form(False),
     emit_fhir_structure: bool = Form(False),
     emit_fhir_identity: bool = Form(False),
+    emit_hprim_ccam: bool = Form(False),
+    emit_hprim_ngap: bool = Form(False),
+    emit_hprim_ucd: bool = Form(False),
+    emit_hprim_lpp: bool = Form(False),
     session=Depends(get_session),
 ):
     # Debug: print all incoming form data
@@ -339,7 +349,11 @@ def create_endpoint(
         emit_hl7_pam=bool(emit_hl7_pam),
         emit_hl7_mfn=bool(emit_hl7_mfn),
         emit_fhir_structure=bool(emit_fhir_structure),
-        emit_fhir_identity=bool(emit_fhir_identity)
+        emit_fhir_identity=bool(emit_fhir_identity),
+        emit_hprim_ccam=bool(emit_hprim_ccam),
+        emit_hprim_ngap=bool(emit_hprim_ngap),
+        emit_hprim_ucd=bool(emit_hprim_ucd),
+        emit_hprim_lpp=bool(emit_hprim_lpp)
     )
     session.add(e); session.commit()
     return RedirectResponse(url="/endpoints", status_code=status.HTTP_303_SEE_OTHER)
@@ -410,6 +424,14 @@ def update_endpoint(
     ftp_remote_outbox_path: str = Form(None),
     ftp_remote_archive_path: str = Form(None),
     ftp_remote_error_path: str = Form(None),
+    emit_hl7_pam: bool = Form(False),
+    emit_hl7_mfn: bool = Form(False),
+    emit_fhir_structure: bool = Form(False),
+    emit_fhir_identity: bool = Form(False),
+    emit_hprim_ccam: bool = Form(False),
+    emit_hprim_ngap: bool = Form(False),
+    emit_hprim_ucd: bool = Form(False),
+    emit_hprim_lpp: bool = Form(False),
     session=Depends(get_session),
 ):
     e = session.get(SystemEndpoint, endpoint_id)
@@ -478,6 +500,14 @@ def update_endpoint(
     e.ftp_use_sftp = _bool_from_str(ftp_use_sftp, False)
     e.ftp_remote_inbox_path, e.ftp_remote_outbox_path = ftp_remote_inbox_path, ftp_remote_outbox_path
     e.ftp_remote_archive_path, e.ftp_remote_error_path = ftp_remote_archive_path, ftp_remote_error_path
+    e.emit_hl7_pam = bool(emit_hl7_pam)
+    e.emit_hl7_mfn = bool(emit_hl7_mfn)
+    e.emit_fhir_structure = bool(emit_fhir_structure)
+    e.emit_fhir_identity = bool(emit_fhir_identity)
+    e.emit_hprim_ccam = bool(emit_hprim_ccam)
+    e.emit_hprim_ngap = bool(emit_hprim_ngap)
+    e.emit_hprim_ucd = bool(emit_hprim_ucd)
+    e.emit_hprim_lpp = bool(emit_hprim_lpp)
     e.updated_at = datetime.now(timezone.utc)
 
     session.add(e); session.commit()

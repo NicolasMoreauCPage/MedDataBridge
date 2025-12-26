@@ -96,7 +96,8 @@
           Cliquez sur une ligne pour voir les détails
         </div>
       {% endif %}
-      {# Legend for status icons #}
+      {# Legend for status icons - only show on scenario pages #}
+      {% if '/scenarios' in request.url.path %}
       <div class="ml-6 text-xs text-slate-600 flex items-center gap-3">
         <div class="flex items-center gap-1">
           <span title="Jamais exécuté">⏹️</span>
@@ -115,6 +116,7 @@
           <span class="ml-1">Erreur</span>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
   {% endif %}

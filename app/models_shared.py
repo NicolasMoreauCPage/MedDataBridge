@@ -116,6 +116,10 @@ class SystemEndpoint(SQLModel, table=True):
     emit_hl7_mfn: bool = Field(default=True, description="Émet HL7 MFN (structure)")
     emit_fhir_structure: bool = Field(default=True, description="Émet FHIR structure (Location/Organization)")
     emit_fhir_identity: bool = Field(default=True, description="Émet FHIR identité/mouvements (Patient/Encounter)")
+    emit_hprim_ccam: bool = Field(default=False, description="Émet HPRIM XML CCAM (cotation actes)")
+    emit_hprim_ngap: bool = Field(default=False, description="Émet HPRIM XML NGAP (cotation GHS)")
+    emit_hprim_ucd: bool = Field(default=False, description="Émet HPRIM XML UCD (cotation dispositifs)")
+    emit_hprim_lpp: bool = Field(default=False, description="Émet HPRIM XML LPP (cotation médicaments)")
 
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)

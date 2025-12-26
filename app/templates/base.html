@@ -130,7 +130,7 @@
 </head>
 <body class="font-sans animate-page-enter" role="document">
   {% import 'components.html' as components %}
-  {% import 'macros/ui.html' as ui %}
+  {% from 'macros/ui.html' import icon, breadcrumbs as ui_breadcrumbs, status_bar, toast_container %}
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-surface focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-surface/95" role="banner">
     <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
@@ -295,7 +295,7 @@
       'tooltip': 'Messages en attente de traitement'
     }) %}
   {% endif %}
-  {{ ui.status_bar(statuses) }}
+  {{ status_bar(statuses) }}
 
   <nav class="hidden md:block border-t border-theme surface" aria-label="Navigation principale" role="navigation">
   <div class="mx-auto max-w-content px-4 py-2 flex justify-between items-center text-sm text-slate-600">
@@ -973,7 +973,7 @@
   <script defer src="{{ url_for('static', path='js/alpine.min.js') }}"></script>
 
   <!-- Conteneur de toasts pour les notifications -->
-  {{ ui.toast_container() }}
+  {{ toast_container() }}
 
 </body>
 </html>

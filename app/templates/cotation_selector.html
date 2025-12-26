@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Sélection Dossier - Cotation moderne{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <div class="bg-white rounded-xl shadow-lg p-6">
+    <h1 class="text-2xl font-semibold mb-4">Cotation moderne — Sélection du dossier</h1>
+    <p class="text-slate-600 mb-4">Recherchez un dossier par nom de patient ou date de naissance (YYYY-MM-DD) et cliquez pour ouvrir la cotation.</p>
+    <div class="flex gap-3">
+      <input id="searchInput" placeholder="Nom patient / prénom / date (ex: Martin, Alice, 1980-05-10)" class="flex-1 border border-slate-200 rounded-lg px-3 py-2" />
+      <button id="searchBtn" class="btn-primary">Rechercher</button>
+    </div>
+
+    <div id="results" class="mt-4 space-y-3"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('searchInput');
+  const btn = document.getElementById('searchBtn');
+  const results = document.getElementById('results');
+
+  async function doSearch(q) {
+    results.innerHTML = '<div class="text-slate-500">Recherche en cours...</div>';
+    try {
+      const resp = await fetch(`/cotation-modern/search?q=${encodeURIComponent(q)}`);
+      if (!resp.ok) throw new Error('Erreur réseau');
+      const data = await resp.json();
+      if (!data || data.length === 0) {
+        results.innerHTML = '<div class="text-slate-500">Aucun dossier trouvé.</div>';
+        return;
+      }
+      results.innerHTML = data.map(d => `
+        <div class="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between">
+          <div>
+            <div class="font-semibold">Dossier #${d.dossier_seq || d.dossier_id} — ${d.patient_family} ${d.patient_given}</div>
+            <div class="text-sm text-slate-500">ID: ${d.dossier_id} • Patient ID: ${d.patient_id}</div>
+          </div>
+          <div>
+            <a href="/cotation-modern/dossiers/${d.dossier_id}/cotation" class="btn-primary">Ouvrir</a>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      results.innerHTML = `<div class="text-red-600">Erreur: ${e.message}</div>`;
+    }
+  }
+
+  // Debounce helper
+  function debounce(fn, wait) {
+    let t = null;
+    return function(...args) {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
+
+  const debouncedSearch = debounce((val) => {
+    if (!val || val.trim() === '') {
+      results.innerHTML = '';
+      return;
+    }
+    doSearch(val);
+  }, 300);
+
+  btn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    const q = input.value.trim();
+    if (!q) return;
+    doSearch(q);
+  });
+
+  input.addEventListener('input', (ev) => {
+    debouncedSearch(ev.target.value);
+  });
+
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      const q = input.value.trim();
+      if (!q) return;
+      doSearch(q);
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -12,7 +12,7 @@
 
 {% if identifiers %}
 <div class="card mt-3">
-  <div class="card-header bg-info text-white">
+  <div class="card-header bg-accent text-on-accent">
     <h5 class="mb-0">
       <i class="bi bi-fingerprint"></i> Identifiants {{ entity_type }}
     </h5>
@@ -34,11 +34,11 @@
           {% for ident in identifiers %}
           <tr>
             <td>
-              <code class="text-primary">{{ ident.value }}</code>
+              <code class="text-accent">{{ ident.value }}</code>
             </td>
             <td>
               {% if ident.system %}
-                <span class="badge bg-secondary">{{ ident.system }}</span>
+                <span class="badge bg-alt text-main">{{ ident.system }}</span>
               {% else %}
                 <span class="text-muted">-</span>
               {% endif %}
@@ -52,18 +52,18 @@
             </td>
             <td>
               {% if ident.type %}
-                <span class="badge bg-light text-dark">{{ ident.type }}</span>
+                <span class="badge bg-bg text-main">{{ ident.type }}</span>
               {% else %}
                 <span class="text-muted">-</span>
               {% endif %}
             </td>
             <td>
               {% if ident.status == 'active' %}
-                <span class="badge bg-success">Actif</span>
+                <span class="badge bg-success text-on-success">Actif</span>
               {% elif ident.status == 'inactive' %}
-                <span class="badge bg-secondary">Inactif</span>
+                <span class="badge bg-alt text-muted">Inactif</span>
               {% elif ident.status == 'deprecated' %}
-                <span class="badge bg-warning">Obsolète</span>
+                <span class="badge bg-warning text-on-warning">Obsolète</span>
               {% else %}
                 <span class="text-muted">-</span>
               {% endif %}

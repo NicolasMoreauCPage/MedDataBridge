@@ -130,6 +130,7 @@
 </head>
 <body class="font-sans animate-page-enter" role="document">
   {% import 'components.html' as components %}
+  {% import 'macros/ui.html' as ui %}
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-surface focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-surface/95" role="banner">
     <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
@@ -294,7 +295,7 @@
       'tooltip': 'Messages en attente de traitement'
     }) %}
   {% endif %}
-  {{ status_bar(statuses) }}
+  {{ ui.status_bar(statuses) }}
 
   <nav class="hidden md:block border-t border-theme surface" aria-label="Navigation principale" role="navigation">
   <div class="mx-auto max-w-content px-4 py-2 flex justify-between items-center text-sm text-slate-600">
@@ -378,12 +379,12 @@
                 </div>
               </div>
               <div>
-                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Cotations HPRIM</p>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Codage Prestations</p>
                 <div class="grid grid-cols-1 gap-1">
-                  <a href="/cotation-modern/select" title="Sélectionnez d'abord un dossier (recherche)" class="block rounded-xl px-3 py-2 hover:bg-blue-50 text-amber-700">
-                    💰 Cotation moderne
+                  <a href="/cotation-modern/select" title="Sélectionnez d'abord un séjour (recherche)" class="block rounded-xl px-3 py-2 hover:bg-blue-50 text-amber-700">
+                    💰 Codage prestations
                     {{ components.context_badge('Contexte requis') }}
-                    <span class="sr-only"> (nécessite un dossier)</span>
+                    <span class="sr-only"> (nécessite un séjour)</span>
                   </a>
                   <a href="/hprim/import?type=ccam" class="block rounded-xl px-3 py-2 hover:bg-blue-50">🏥 CCAM</a>
                   <a href="/hprim/import?type=ngap" class="block rounded-xl px-3 py-2 hover:bg-blue-50">👨‍⚕️ NGAP</a>
@@ -972,7 +973,7 @@
   <script defer src="{{ url_for('static', path='js/alpine.min.js') }}"></script>
 
   <!-- Conteneur de toasts pour les notifications -->
-  {{ toast_container() }}
+  {{ ui.toast_container() }}
 
 </body>
 </html>

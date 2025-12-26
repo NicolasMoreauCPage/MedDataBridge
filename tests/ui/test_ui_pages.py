@@ -281,19 +281,19 @@ def test_cotation_integration_in_dossiers():
 
         dossier_id = dossier.id
 
-        # Tester que le bouton Cotation HPRIM est présent
+        # Tester que le bouton Coder les prestations est présent
         r = client.get(f"/dossiers/{dossier_id}")
         assert r.status_code == 200
         content = r.text
 
-        # Vérifier le bouton Cotation HPRIM
-        assert "Cotation HPRIM" in content
+        # Vérifier le bouton Coder les prestations
+        assert "Coder les prestations" in content
         assert f"/dossiers/{dossier_id}/cotation" in content
 
         # Vérifier que le lien fonctionne (devrait rediriger vers la nouvelle interface)
         r2 = client.get(f"/dossiers/{dossier_id}/cotation", follow_redirects=True)
         assert r2.status_code == 200
-        assert "Cotation" in r2.text  # Vérifier que c'est une page de cotation
+        assert "Codage des prestations médicales" in r2.text  # Vérifier que c'est une page de codage
     finally:
         session.close()
 

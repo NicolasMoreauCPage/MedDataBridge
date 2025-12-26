@@ -1,18 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}Sélection Dossier - Cotation moderne{% endblock %}
+{% block title %}Codage des Prestations - Sélection du séjour{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto px-4 py-8">
-  <div class="bg-white rounded-xl shadow-lg p-6">
-    <h1 class="text-2xl font-semibold mb-4">Cotation moderne — Sélection du dossier</h1>
-    <p class="text-slate-600 mb-4">Recherchez un dossier par nom de patient ou date de naissance (YYYY-MM-DD) et cliquez pour ouvrir la cotation.</p>
-    <div class="flex gap-3">
-      <input id="searchInput" aria-autocomplete="list" aria-controls="results" aria-expanded="false" placeholder="Nom patient / prénom / date (ex: Martin, Alice, 1980-05-10)" class="flex-1 border border-slate-200 rounded-lg px-3 py-2" />
-      <button id="searchBtn" class="btn-primary">Rechercher</button>
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="bg-white rounded-xl shadow-lg p-8">
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-stethoscope text-2xl text-white"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-slate-800 mb-2">Codage des Prestations Médicales</h1>
+      <p class="text-slate-600">Sélectionnez le séjour patient pour coder les interventions et prestations réalisées</p>
     </div>
 
-    <div id="results" class="mt-4 space-y-3" role="listbox" aria-label="Résultats de recherche"></div>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div class="flex items-start gap-3">
+        <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+        <div>
+          <h3 class="font-semibold text-blue-900 mb-1">Processus de codage</h3>
+          <p class="text-sm text-blue-800">
+            Recherchez un séjour patient, sélectionnez-le, puis codez les interventions médicales et prestations réalisées pendant l'hospitalisation.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 mb-4">
+      <input id="searchInput"
+             aria-autocomplete="list"
+             aria-controls="results"
+             aria-expanded="false"
+             placeholder="Rechercher par nom du patient, prénom, ou date d'admission (JJ/MM/AAAA)"
+             class="flex-1 border-2 border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+      <button id="searchBtn" class="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 shadow-md hover:shadow-lg transition-all">
+        <i class="fas fa-search mr-2"></i>Rechercher
+      </button>
+    </div>
+
+    <div id="results" class="mt-4 space-y-3" role="listbox" aria-label="Résultats de recherche séjours"></div>
 
     <div id="pagination" class="mt-4 flex items-center gap-3 text-sm text-slate-600"></div>
   </div>

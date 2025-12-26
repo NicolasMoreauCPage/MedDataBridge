@@ -122,34 +122,34 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700">Ligne d'adresse</label>
-                                <input type="text" name="address_line1" value="{{ form.address_line1 if form else '' }}"
+                                <input type="text" name="inherited_address_line1" value="{{ form.inherited_inherited_address_line1 if form else '' }}"
                                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700">Complément</label>
-                                <input type="text" name="address_line2" value="{{ form.address_line2 if form else '' }}"
+                                <input type="text" name="inherited_address_line2" value="{{ form.inherited_inherited_address_line2 if form else '' }}"
                                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700">Complément additionnel</label>
-                            <input type="text" name="address_line3" value="{{ form.address_line3 if form else '' }}"
+                            <input type="text" name="inherited_address_line3" value="{{ form.inherited_inherited_address_line3 if form else '' }}"
                                    class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700">Code postal</label>
-                                <input type="text" name="address_postalcode" value="{{ form.address_postalcode if form else '' }}"
+                                <input type="text" name="inherited_address_postalcode" value="{{ form.inherited_inherited_address_postalcode if form else '' }}"
                                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700">Ville</label>
-                                <input type="text" name="address_city" value="{{ form.address_city if form else '' }}"
+                                <input type="text" name="inherited_address_city" value="{{ form.inherited_inherited_address_city if form else '' }}"
                                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700">Pays</label>
-                                <input type="text" name="address_country" value="{{ form.address_country if form and form.address_country else 'FR' }}"
+                                <input type="text" name="inherited_address_country" value="{{ form.inherited_inherited_address_country if form and form.inherited_inherited_address_country else 'FR' }}"
                                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
                         </div>

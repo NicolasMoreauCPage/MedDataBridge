@@ -82,6 +82,50 @@ class Pole(SQLModel, table=True):
     mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
     physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
 
+    # Héritage intelligent : Pole hérite des statuts opérationnels de l'EntiteGeographique
+    def get_effective_operational_status(self) -> Optional[str]:
+        """Statut opérationnel effectif (hérité de l'entité géographique)"""
+        return self.entite_geo.operational_status if self.entite_geo else None
+
+    def get_effective_status(self) -> Optional[str]:
+        """Statut effectif (propre ou hérité de l'entité géographique)"""
+        return self.status or (self.entite_geo.status if self.entite_geo else None)
+
+    def get_effective_mode(self) -> Optional[str]:
+        """Mode effectif (propre ou hérité de l'entité géographique)"""
+        return self.mode or (self.entite_geo.mode if self.entite_geo else None)
+
+    # Héritage des informations physiques depuis l'entité géographique
+    def get_effective_etage(self) -> Optional[str]:
+        """Étage effectif (hérité de l'entité géographique)"""
+        return self.entite_geo.etage if self.entite_geo else None
+
+    def get_effective_aile(self) -> Optional[str]:
+        """Aile effective (hérité de l'entité géographique)"""
+        return self.entite_geo.aile if self.entite_geo else None
+
+    def get_effective_type_chambre(self) -> Optional[str]:
+        """Type de chambre effectif (propre ou hérité de l'entité géographique)"""
+        return self.type_chambre or (self.entite_geo.type_chambre if self.entite_geo else None)
+
+    # Héritage des dates depuis l'entité géographique
+    def get_effective_opening_date(self) -> Optional[datetime]:
+        """Date d'ouverture effective (propre ou héritée de l'entité géographique)"""
+        return self.opening_date or (self.entite_geo.opening_date if self.entite_geo else None)
+
+    def get_effective_activation_date(self) -> Optional[datetime]:
+        """Date d'activation effective (propre ou héritée de l'entité géographique)"""
+        return self.activation_date or (self.entite_geo.activation_date if self.entite_geo else None)
+
+    def get_effective_closing_date(self) -> Optional[datetime]:
+        """Date de fermeture effective (propre ou héritée de l'entité géographique)"""
+        return self.closing_date or (self.entite_geo.closing_date if self.entite_geo else None)
+
+    def get_effective_deactivation_date(self) -> Optional[datetime]:
+        """Date de désactivation effective (propre ou héritée de l'entité géographique)"""
+        return self.deactivation_date or (self.entite_geo.deactivation_date if self.entite_geo else None)
+
+
 class Service(SQLModel, table=True):
     service_type: Optional[str] = Field(default=None, description="Type de service FHIR (MCO, SSR, etc.)")
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -120,6 +164,50 @@ class Service(SQLModel, table=True):
     type_chambre: Optional[str] = Field(default=None, description="Type de chambre")
     gender_usage: Optional[str] = Field(default=None, description="Genre d'usage du service")
     operational_status: Optional[str] = Field(default=None, description="Statut opérationnel du service")
+
+    # Héritage intelligent : Service hérite des statuts opérationnels du Pole parent
+    def get_effective_operational_status(self) -> Optional[str]:
+        """Statut opérationnel effectif (propre ou hérité du pôle)"""
+        return self.operational_status or (self.pole.get_effective_operational_status() if self.pole else None)
+
+    def get_effective_status(self) -> Optional[str]:
+        """Statut effectif (propre ou hérité du pôle)"""
+        return self.status or (self.pole.get_effective_status() if self.pole else None)
+
+    def get_effective_mode(self) -> Optional[str]:
+        """Mode effectif (propre ou hérité du pôle)"""
+        return self.mode or (self.pole.get_effective_mode() if self.pole else None)
+
+    # Héritage des informations physiques depuis les niveaux supérieurs
+    def get_effective_etage(self) -> Optional[str]:
+        """Étage effectif (hérité du pôle)"""
+        return self.pole.get_effective_etage() if self.pole else None
+
+    def get_effective_aile(self) -> Optional[str]:
+        """Aile effective (hérité du pôle)"""
+        return self.pole.get_effective_aile() if self.pole else None
+
+    def get_effective_type_chambre(self) -> Optional[str]:
+        """Type de chambre effectif (propre ou hérité du pôle)"""
+        return self.type_chambre or (self.pole.get_effective_type_chambre() if self.pole else None)
+
+    # Héritage des dates depuis les niveaux supérieurs
+    def get_effective_opening_date(self) -> Optional[datetime]:
+        """Date d'ouverture effective (propre ou héritée du pôle)"""
+        return self.opening_date or (self.pole.get_effective_opening_date() if self.pole else None)
+
+    def get_effective_activation_date(self) -> Optional[datetime]:
+        """Date d'activation effective (propre ou héritée du pôle)"""
+        return self.activation_date or (self.pole.get_effective_activation_date() if self.pole else None)
+
+    def get_effective_closing_date(self) -> Optional[datetime]:
+        """Date de fermeture effective (propre ou héritée du pôle)"""
+        return self.closing_date or (self.pole.get_effective_closing_date() if self.pole else None)
+
+    def get_effective_deactivation_date(self) -> Optional[datetime]:
+        """Date de désactivation effective (propre ou héritée du pôle)"""
+        return self.deactivation_date or (self.pole.get_effective_deactivation_date() if self.pole else None)
+
 
 class UniteFonctionnelleActivityLink(SQLModel, table=True):
     """Table de liaison UF <-> UFActivity (many-to-many)."""
@@ -186,6 +274,50 @@ class UniteFonctionnelle(SQLModel, table=True):
     gender_usage: Optional[str] = Field(default=None, description="Genre d'usage de l'unité fonctionnelle")
     operational_status: Optional[str] = Field(default=None, description="Statut opérationnel de l'unité fonctionnelle")
 
+    # Héritage intelligent : UniteFonctionnelle hérite des statuts opérationnels du Service parent
+    def get_effective_operational_status(self) -> Optional[str]:
+        """Statut opérationnel effectif (propre ou hérité du service)"""
+        return self.operational_status or (self.service.get_effective_operational_status() if self.service else None)
+
+    def get_effective_status(self) -> Optional[str]:
+        """Statut effectif (propre ou hérité du service)"""
+        return self.status or (self.service.get_effective_status() if self.service else None)
+
+    def get_effective_mode(self) -> Optional[str]:
+        """Mode effectif (propre ou hérité du service)"""
+        return self.mode or (self.service.get_effective_mode() if self.service else None)
+
+    # Héritage des informations physiques depuis les niveaux supérieurs
+    def get_effective_etage(self) -> Optional[str]:
+        """Étage effectif (hérité du service/pôle)"""
+        return self.service.get_effective_etage() if self.service else None
+
+    def get_effective_aile(self) -> Optional[str]:
+        """Aile effective (hérité du service/pôle)"""
+        return self.service.get_effective_aile() if self.service else None
+
+    def get_effective_type_chambre(self) -> Optional[str]:
+        """Type de chambre effectif (propre ou hérité du service/pôle)"""
+        return self.type_chambre or (self.service.get_effective_type_chambre() if self.service else None)
+
+    # Héritage des dates depuis les niveaux supérieurs
+    def get_effective_opening_date(self) -> Optional[datetime]:
+        """Date d'ouverture effective (propre ou héritée du service/pôle)"""
+        return self.opening_date or (self.service.get_effective_opening_date() if self.service else None)
+
+    def get_effective_activation_date(self) -> Optional[datetime]:
+        """Date d'activation effective (propre ou héritée du service/pôle)"""
+        return self.activation_date or (self.service.get_effective_activation_date() if self.service else None)
+
+    def get_effective_closing_date(self) -> Optional[datetime]:
+        """Date de fermeture effective (propre ou héritée du service/pôle)"""
+        return self.closing_date or (self.service.get_effective_closing_date() if self.service else None)
+
+    def get_effective_deactivation_date(self) -> Optional[datetime]:
+        """Date de désactivation effective (propre ou héritée du service/pôle)"""
+        return self.deactivation_date or (self.service.get_effective_deactivation_date() if self.service else None)
+
+
 class UniteHebergement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     identifier: Optional[str] = Field(default=None, index=True, unique=True)
@@ -217,6 +349,55 @@ class UniteHebergement(SQLModel, table=True):
     mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
     physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
     address_country: Optional[str] = "FR"
+
+    # Héritage intelligent : UniteHebergement hérite des statuts opérationnels de l'UniteFonctionnelle parente
+    def get_effective_operational_status(self) -> Optional[str]:
+        """Statut opérationnel effectif (propre ou hérité de l'unité fonctionnelle)"""
+        return self.operational_status or (self.unite_fonctionnelle.get_effective_operational_status() if self.unite_fonctionnelle else None)
+
+    def get_effective_status(self) -> Optional[str]:
+        """Statut effectif (propre ou hérité de l'unité fonctionnelle)"""
+        return self.status or (self.unite_fonctionnelle.get_effective_status() if self.unite_fonctionnelle else None)
+
+    def get_effective_mode(self) -> Optional[str]:
+        """Mode effectif (propre ou hérité de l'unité fonctionnelle)"""
+        return self.mode or (self.unite_fonctionnelle.get_effective_mode() if self.unite_fonctionnelle else None)
+
+    # Héritage des informations physiques depuis les niveaux supérieurs
+    def get_effective_etage(self) -> Optional[str]:
+        """Étage effectif (hérité de l'unité fonctionnelle/service/pôle)"""
+        return self.unite_fonctionnelle.get_effective_etage() if self.unite_fonctionnelle else None
+
+    def get_effective_aile(self) -> Optional[str]:
+        """Aile effective (hérité de l'unité fonctionnelle/service/pôle)"""
+        return self.unite_fonctionnelle.get_effective_aile() if self.unite_fonctionnelle else None
+
+    def get_effective_type_chambre(self) -> Optional[str]:
+        """Type de chambre effectif (propre ou hérité de l'unité fonctionnelle/service/pôle)"""
+        return self.type_chambre or (self.unite_fonctionnelle.get_effective_type_chambre() if self.unite_fonctionnelle else None)
+
+    # Héritage des dates depuis les niveaux supérieurs
+    def get_effective_opening_date(self) -> Optional[datetime]:
+        """Date d'ouverture effective (propre ou héritée de l'unité fonctionnelle/service/pôle)"""
+        return self.opening_date or (self.unite_fonctionnelle.get_effective_opening_date() if self.unite_fonctionnelle else None)
+
+    def get_effective_activation_date(self) -> Optional[datetime]:
+        """Date d'activation effective (propre ou héritée de l'unité fonctionnelle/service/pôle)"""
+        return self.activation_date or (self.unite_fonctionnelle.get_effective_activation_date() if self.unite_fonctionnelle else None)
+
+    def get_effective_closing_date(self) -> Optional[datetime]:
+        """Date de fermeture effective (propre ou héritée de l'unité fonctionnelle/service/pôle)"""
+        return self.closing_date or (self.unite_fonctionnelle.get_effective_closing_date() if self.unite_fonctionnelle else None)
+
+    def get_effective_deactivation_date(self) -> Optional[datetime]:
+        """Date de désactivation effective (propre ou héritée de l'unité fonctionnelle/service/pôle)"""
+        return self.deactivation_date or (self.unite_fonctionnelle.get_effective_deactivation_date() if self.unite_fonctionnelle else None)
+
+    # Gender usage est défini à ce niveau et hérité par les chambres et lits
+    def get_effective_gender_usage(self) -> Optional[str]:
+        """Genre d'usage effectif (défini à ce niveau pour les unités d'hébergement)"""
+        return self.gender_usage
+
 
 class Chambre(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -253,6 +434,55 @@ class Chambre(SQLModel, table=True):
     physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
     address_country: Optional[str] = "FR"
 
+    # Héritage intelligent : Chambre hérite des statuts opérationnels de l'UniteHebergement parente
+    def get_effective_operational_status(self) -> Optional[str]:
+        """Statut opérationnel effectif (propre ou hérité de l'unité d'hébergement)"""
+        return self.operational_status or (self.unite_hebergement.get_effective_operational_status() if self.unite_hebergement else None)
+
+    def get_effective_status(self) -> Optional[str]:
+        """Statut effectif (propre ou hérité de l'unité d'hébergement)"""
+        return self.status or (self.unite_hebergement.get_effective_status() if self.unite_hebergement else None)
+
+    def get_effective_mode(self) -> Optional[str]:
+        """Mode effectif (propre ou hérité de l'unité d'hébergement)"""
+        return self.mode or (self.unite_hebergement.get_effective_mode() if self.unite_hebergement else None)
+
+    # Héritage des informations physiques depuis les niveaux supérieurs
+    def get_effective_etage(self) -> Optional[str]:
+        """Étage effectif (hérité de l'unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.unite_hebergement.get_effective_etage() if self.unite_hebergement else None
+
+    def get_effective_aile(self) -> Optional[str]:
+        """Aile effective (hérité de l'unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.unite_hebergement.get_effective_aile() if self.unite_hebergement else None
+
+    def get_effective_type_chambre(self) -> Optional[str]:
+        """Type de chambre effectif (propre ou hérité de l'unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.type_chambre or (self.unite_hebergement.get_effective_type_chambre() if self.unite_hebergement else None)
+
+    # Héritage des dates depuis les niveaux supérieurs
+    def get_effective_opening_date(self) -> Optional[datetime]:
+        """Date d'ouverture effective (propre ou héritée de l'unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.opening_date or (self.unite_hebergement.get_effective_opening_date() if self.unite_hebergement else None)
+
+    def get_effective_activation_date(self) -> Optional[datetime]:
+        """Date d'activation effective (propre ou héritée de l'unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.activation_date or (self.unite_hebergement.get_effective_activation_date() if self.unite_hebergement else None)
+
+    def get_effective_closing_date(self) -> Optional[datetime]:
+        """Date de fermeture effective (propre ou héritée de l'unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.closing_date or (self.unite_hebergement.get_effective_closing_date() if self.unite_hebergement else None)
+
+    def get_effective_deactivation_date(self) -> Optional[datetime]:
+        """Date de désactivation effective (propre ou héritée de l'unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.deactivation_date or (self.unite_hebergement.get_effective_deactivation_date() if self.unite_hebergement else None)
+
+    # Gender usage hérité de l'unité d'hébergement (ou propre si défini)
+    def get_effective_gender_usage(self) -> Optional[str]:
+        """Genre d'usage effectif (propre ou hérité de l'unité d'hébergement)"""
+        return self.gender_usage or (self.unite_hebergement.get_effective_gender_usage() if self.unite_hebergement else None)
+
+
 class Lit(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     identifier: Optional[str] = Field(default=None, index=True, unique=True)
@@ -286,6 +516,55 @@ class Lit(SQLModel, table=True):
     mode: Optional[str] = Field(default="instance", description="Mode FHIR Location (instance, kind)")
     physical_type: Optional[LocationPhysicalType] = Field(default=None, description="Type physique de l'entité géographique (site, bâtiment, etc.)")
     address_country: Optional[str] = "FR"
+
+    # Héritage intelligent : Lit hérite des statuts opérationnels de la Chambre parente
+    def get_effective_operational_status(self) -> Optional[str]:
+        """Statut opérationnel effectif (propre ou hérité de la chambre)"""
+        return self.operational_status or (self.chambre.get_effective_operational_status() if self.chambre else None)
+
+    def get_effective_status(self) -> Optional[str]:
+        """Statut effectif (propre ou hérité de la chambre)"""
+        return self.status or (self.chambre.get_effective_status() if self.chambre else None)
+
+    def get_effective_mode(self) -> Optional[str]:
+        """Mode effectif (propre ou hérité de la chambre)"""
+        return self.mode or (self.chambre.get_effective_mode() if self.chambre else None)
+
+    # Héritage des informations physiques depuis les niveaux supérieurs
+    def get_effective_etage(self) -> Optional[str]:
+        """Étage effectif (hérité de la chambre/unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.chambre.get_effective_etage() if self.chambre else None
+
+    def get_effective_aile(self) -> Optional[str]:
+        """Aile effective (hérité de la chambre/unité d'hébergement/fonctionnelle/service/pôle)"""
+        return self.chambre.get_effective_aile() if self.chambre else None
+
+    def get_effective_type_chambre(self) -> Optional[str]:
+        """Type de chambre effectif (propre ou hérité de la chambre/hébergement/fonctionnelle/service/pôle)"""
+        return self.type_chambre or (self.chambre.get_effective_type_chambre() if self.chambre else None)
+
+    # Héritage des dates depuis les niveaux supérieurs
+    def get_effective_opening_date(self) -> Optional[datetime]:
+        """Date d'ouverture effective (propre ou héritée de la chambre/hébergement/fonctionnelle/service/pôle)"""
+        return self.opening_date or (self.chambre.get_effective_opening_date() if self.chambre else None)
+
+    def get_effective_activation_date(self) -> Optional[datetime]:
+        """Date d'activation effective (propre ou héritée de la chambre/hébergement/fonctionnelle/service/pôle)"""
+        return self.activation_date or (self.chambre.get_effective_activation_date() if self.chambre else None)
+
+    def get_effective_closing_date(self) -> Optional[datetime]:
+        """Date de fermeture effective (propre ou héritée de la chambre/hébergement/fonctionnelle/service/pôle)"""
+        return self.closing_date or (self.chambre.get_effective_closing_date() if self.chambre else None)
+
+    def get_effective_deactivation_date(self) -> Optional[datetime]:
+        """Date de désactivation effective (propre ou héritée de la chambre/hébergement/fonctionnelle/service/pôle)"""
+        return self.deactivation_date or (self.chambre.get_effective_deactivation_date() if self.chambre else None)
+
+    # Gender usage hérité de la chambre (qui l'hérite de l'unité d'hébergement)
+    def get_effective_gender_usage(self) -> Optional[str]:
+        """Genre d'usage effectif (hérité de la chambre/unité d'hébergement)"""
+        return self.gender_usage or (self.chambre.get_effective_gender_usage() if self.chambre else None)
+
 
 from datetime import datetime
 from typing import Optional, List

@@ -29,6 +29,9 @@ from pathlib import Path
 from sqladmin import Admin, ModelView
 from sqlmodel import select
 
+# Import de la configuration centralisée
+from config.settings import settings
+
 from app.middleware.flash import FlashMessageMiddleware
 from app.middleware.ght_context import GHTContextMiddleware
 from app.middleware.version import VersionMiddleware
@@ -75,16 +78,16 @@ from app.routers import cotation_modern
 
 
 # --- PATCH: Logging to file and console, DEBUG level ---
-LOG_FILE = os.getenv("MEDDATA_LOG_FILE", "meddata.log")
+LOG_FILE = settings.log_file
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=getattr(logging, settings.log_level.upper()),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     handlers=[
         logging.FileHandler(LOG_FILE, encoding="utf-8"),
         logging.StreamHandler()
     ]
 )
-if os.getenv("MLLP_TRACE", "0") in ("1","true","True"):
+if settings.mllp_trace:
     logging.getLogger("mllp").setLevel(logging.DEBUG)
 
 # Instance unique du manager et publication via app.state
@@ -97,7 +100,7 @@ async def lifespan(app: FastAPI):
     # En tests, on ne veut pas initialiser la DB de production (medbridge.db) ni démarrer
     # des serveurs MLLP en arrière-plan. Les tests surchargent l'accès DB via
     # des overrides, on saute donc init/reload quand TESTING est présent.
-    testing = os.getenv("TESTING", "0") in ("1", "true", "True")
+    testing = settings.testing
     if not testing:
         init_db()
         # Provide the running asyncio loop to runners so synchronous handlers
@@ -133,7 +136,7 @@ async def lifespan(app: FastAPI):
         
         # Démarrer le scheduler pour le polling des endpoints FILE
         # Par défaut: 60 secondes (1 minute). Configurable via FILE_POLL_INTERVAL
-        poll_interval = int(os.getenv("FILE_POLL_INTERVAL", "60"))
+        poll_interval = settings.file_poll_interval
         await start_scheduler(poll_interval)
         logging.info(f"File endpoint polling started (interval: {poll_interval}s)")
 
@@ -148,12 +151,13 @@ from app.version import get_version
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="MedBridge - Healthcare Interoperability Platform",
-        version=get_version(),
+        title=settings.app_name,
+        version=settings.app_version,
         lifespan=lifespan,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
-        openapi_url="/api/openapi.json"
+        openapi_url="/api/openapi.json",
+        debug=settings.debug
     )
 
     print("\nFastAPI app initialization")
@@ -184,8 +188,8 @@ def create_app() -> FastAPI:
     templates.env.filters["format_hl7_payload"] = format_hl7_payload
     # Stocker dans app.state pour accès dans les routes si besoin
     app.state.templates = templates
-    # Store version from pyproject.toml
-    app.state.version = "1.0.0-alpha"
+    # Store version from settings
+    app.state.version = settings.app_version
 
     # Servir les fichiers statiques (CSS/JS)
     static_dir = str(Path(__file__).parent / "static")
@@ -206,15 +210,11 @@ def create_app() -> FastAPI:
     app.add_middleware(GHTContextMiddleware)
     app.add_middleware(VersionMiddleware)
 
-    session_secret = (
-        os.getenv("SESSION_SECRET_KEY")
-        or os.getenv("SESSION_SECRET")
-        or os.getenv("SECRET_KEY")
-    )
-    if not session_secret:
+    session_secret = settings.secret_key
+    if not session_secret or session_secret == "change-me-in-production":
         session_secret = secrets.token_urlsafe(32)
         logging.getLogger(__name__).warning(
-            "SESSION_SECRET_KEY non défini - utilisation d'un secret éphémère pour cette instance"
+            "SECRET_KEY non défini ou par défaut - utilisation d'un secret éphémère pour cette instance"
         )
     app.add_middleware(SessionMiddleware, secret_key=session_secret)
 

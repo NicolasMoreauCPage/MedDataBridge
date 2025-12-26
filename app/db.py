@@ -35,7 +35,11 @@ from app import models_workflows  # ensure workflow models are registered
 # Use in-memory SQLite for tests, file-based otherwise
 import os
 from sqlalchemy.pool import StaticPool
-if os.getenv("TESTING", "0") in ("1", "true", "True"):
+
+# Import de la configuration centralisée
+from config.settings import settings
+
+if settings.testing:
     engine = create_engine(
         "sqlite:///:memory:",
         echo=False,
@@ -53,44 +57,60 @@ if os.getenv("TESTING", "0") in ("1", "true", "True"):
         pass
 else:
     engine = create_engine(
-        "sqlite:///./medbridge.db",
+        settings.database_url,
         echo=False,
-        pool_size=20,  # Increased from default 5
-        max_overflow=30,  # Increased from default 10
-        pool_timeout=60,  # Increased from default 30
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+        pool_timeout=settings.db_pool_timeout,
         pool_pre_ping=True  # Check connections before using
     )
 
 def init_db() -> None:
     """Crée les tables si elles n'existent pas (idempotent)."""
     SQLModel.metadata.create_all(engine)
-    # Active le mode WAL pour SQLite afin d'améliorer la gestion des accès concurrents
+    # Optimisations SQLite avancées pour la performance et la robustesse
     try:
         import sqlite3
         conn = sqlite3.connect("medbridge.db")
-        conn.execute("PRAGMA journal_mode=WAL;")
-        # Create helpful indexes for search performance if they do not exist
-        try:
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_family_lower ON patient(lower(family));")
-        except Exception:
-            # Some SQLite builds don't allow function-based indexes; fallback to simple index
-            try:
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_family ON patient(family);")
-            except Exception:
-                pass
-        try:
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_given_lower ON patient(lower(given));")
-        except Exception:
-            try:
-                conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_given ON patient(given);")
-            except Exception:
-                pass
 
-        # Dossier.patient_id index
-        try:
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_patient_id ON dossier(patient_id);")
-        except Exception:
-            pass
+        # Optimisations de performance
+        conn.execute("PRAGMA journal_mode=WAL;")  # Mode WAL pour accès concurrents
+        conn.execute("PRAGMA synchronous=NORMAL;")  # Balance performance/sécurité
+        conn.execute("PRAGMA cache_size=-64000;")  # 64MB cache (négatif = KB)
+        conn.execute("PRAGMA temp_store=MEMORY;")  # Tables temporaires en RAM
+        conn.execute("PRAGMA mmap_size=268435456;")  # 256MB mmap pour gros fichiers
+        conn.execute("PRAGMA page_size=4096;")  # Taille de page optimisée
+
+        # Index pour les performances de recherche
+        # Patients
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_family ON patient(family);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_given ON patient(given);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_identifier ON patient(identifier);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_ght_context ON patient(ght_context_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_entite_juridique ON patient(entite_juridique_id);")
+
+        # Dossiers
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_patient_id ON dossier(patient_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_venue_id ON dossier(venue_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_entite_juridique ON dossier(entite_juridique_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_type ON dossier(type);")
+
+        # Venues
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_venue_entite_juridique ON venue(entite_juridique_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_venue_name ON venue(name);")
+
+        # Mouvements
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_dossier_id ON mouvement(dossier_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_venue_id ON mouvement(venue_id);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_date ON mouvement(date);")
+
+        # Messages et endpoints
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_created_at ON messagelog(created_at);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_endpoint_id ON messagelog(endpoint_id);")
+
+        # Vocabulaires
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_vocabulary_system ON vocabularyvalue(system);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_vocabulary_code ON vocabularyvalue(code);")
 
         # Try to create an FTS5 table for patient text search (optional, best-effort)
         try:
@@ -101,9 +121,12 @@ def init_db() -> None:
         except Exception:
             # ignore if FTS not available
             pass
+
+        conn.commit()
         conn.close()
+        print("[INFO] Optimisations SQLite appliquées avec succès")
     except Exception as e:
-        print(f"[WARN] Impossible d'activer WAL: {e}")
+        print(f"[WARN] Erreur lors des optimisations SQLite: {e}")
     # Initialisation idempotente des templates de scénarios abstraits (IHE, démo...)
     if init_scenario_templates:
         with Session(engine) as _s:

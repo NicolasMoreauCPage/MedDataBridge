@@ -4,24 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title|default('MedData Bridge') }}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="{{ url_for('static', path='css/forms.css') }}">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { 'sans': ['Inter', 'sans-serif'] },
-          maxWidth: { 'content': '1200px' },
-          colors: { 'primary': '#2563eb', 'accent': '#0ea5e9' },
-          animation: {
-            'fadeIn': 'fadeIn 200ms ease-in',
-            'slideIn': 'slideIn 200ms ease-out',
-          }
-        }
-      },
-      darkMode: 'media'
-    }
-  </script>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/output.css') }}">
   <meta name="description" content="Interface de gestion des données médicales et interopérabilité FHIR/HL7">
   <meta name="theme-color" content="#2563eb">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
@@ -613,7 +596,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="{{ url_for('static', path='js/forms.js') }}"></script>
+  <script defer src="{{ url_for('static', path='js/forms.js') }}"></script>
   
   <!-- Hotkeys -->
   <script>
@@ -671,7 +654,7 @@
   </script>
 
   <!-- Alpine.js pour interactivité -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="{{ url_for('static', path='js/alpine.min.js') }}"></script>
 
 </body>
 </html>

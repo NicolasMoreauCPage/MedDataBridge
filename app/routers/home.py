@@ -72,3 +72,8 @@ def home(request: Request, session=Depends(get_session)):
 def api_documentation(request: Request):
     """Documentation des APIs FHIR et HL7"""
     return get_templates_with_filters(request).TemplateResponse(request, "api_docs.html")
+
+@router.get("/styleguide", response_class=HTMLResponse)
+def styleguide(request: Request):
+    """Guide des composants UI de l'application"""
+    return get_templates_with_filters(request).TemplateResponse(request, "styleguide.html")

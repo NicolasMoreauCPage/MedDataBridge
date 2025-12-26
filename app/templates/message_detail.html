@@ -36,7 +36,7 @@
               {{ m.kind }}
             </span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur text-sm font-medium">
-              {{ '📥 IN' if m.direction == 'in' else '📤 OUT' }}
+              {{ icon('arrow-right-on-rectangle', 'w-4 h-4') if m.direction == 'in' else icon('arrow-left-on-rectangle', 'w-4 h-4') }} {{ 'IN' if m.direction == 'in' else 'OUT' }}
             </span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold
               {% if m.status in ['ack_error','error'] %}bg-red-500/90 text-white
@@ -76,12 +76,12 @@
       </div>
 
       <div>
-        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">🔗 Correlation ID</dt>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">{{ icon('link', 'w-4 h-4') }} Correlation ID</dt>
         <dd class="text-sm font-mono text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">{{ m.correlation_id or '—' }}</dd>
       </div>
 
       <div class="md:col-span-2 lg:col-span-3 pt-4 border-t border-slate-200">
-        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">✅ Validation IHE PAM</dt>
+        <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{{ icon('check', 'w-4 h-4') }} Validation IHE PAM</dt>
         <dd>
           {% if m.pam_validation_status == 'fail' %}
             <span class="inline-flex items-center gap-1.5 rounded-xl bg-red-100 text-red-800 px-4 py-2 text-sm font-semibold">

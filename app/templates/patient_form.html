@@ -11,7 +11,7 @@
 <div class="max-w-6xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <a href="/" class="hover:text-blue-600 transition-colors">{{ icon('home', 'w-4 h-4') }} Accueil</a>
     <span class="text-slate-400">/</span>
     <a href="/patients" class="hover:text-blue-600 transition-colors">Patients</a>
     <span class="text-slate-400">/</span>
@@ -39,14 +39,14 @@
           </a>
           {% if not patient %}
           <button type="button" id="regenerate-sample" class="px-6 py-3 rounded-xl font-semibold bg-white text-indigo-700 hover:bg-slate-100 transition-all duration-200 shadow-md flex items-center gap-2 justify-center">
-            <span>🎲</span>
+            <span>{{ icon('rocket-launch', 'w-4 h-4') }}</span>
             <span>Générer une identité réaliste</span>
           </button>
           <p id="sample-status" class="text-xs text-white/80 text-right" aria-live="polite">
             {% if sample_prefilled %}
               Identité exemple appliquée
             {% else %}
-              Cliquez sur 🎲 pour générer une identité
+              Cliquez sur {{ icon('rocket-launch', 'w-3 h-3') }} pour générer une identité
             {% endif %}
           </p>
           {% endif %}
@@ -62,7 +62,7 @@
     <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm" open>
       <summary class="cursor-pointer bg-gradient-to-r from-indigo-50 via-blue-50 to-sky-50 px-8 py-5 font-bold text-slate-800 hover:from-indigo-100 hover:via-blue-100 hover:to-sky-100 transition-all duration-200 border-b-2 border-slate-200">
         <span class="text-xl flex items-center gap-3">
-          <span class="text-2xl">👤</span>
+          <span class="text-2xl">{{ icon('user', 'w-8 h-8') }}</span>
           <span>Identité du patient</span>
         </span>
       </summary>
@@ -180,7 +180,7 @@
     <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm" open>
       <summary class="cursor-pointer bg-gradient-to-r from-emerald-50 via-teal-50 to-green-50 px-8 py-5 font-bold text-slate-800 hover:from-emerald-100 hover:via-teal-100 hover:to-green-100 transition-all duration-200 border-b-2 border-slate-200">
         <span class="text-xl flex items-center gap-3">
-          <span class="text-2xl">📍</span>
+          <span class="text-2xl">{{ icon('home', 'w-8 h-8') }}</span>
           <span>Coordonnées (domicile)</span>
         </span>
       </summary>
@@ -259,7 +259,7 @@
     <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm">
       <summary class="cursor-pointer bg-gradient-to-r from-purple-50 via-violet-50 to-fuchsia-50 px-8 py-5 font-bold text-slate-800 hover:from-purple-100 hover:via-violet-100 hover:to-fuchsia-100 transition-all duration-200 border-b-2 border-slate-200">
         <span class="text-xl flex items-center gap-3">
-          <span class="text-2xl">🏥</span>
+          <span class="text-2xl">{{ icon('home', 'w-8 h-8') }}</span>
           <span>Lieu de naissance</span>
         </span>
       </summary>
@@ -306,7 +306,7 @@
     <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm">
       <summary class="cursor-pointer bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 px-8 py-5 font-bold text-slate-800 hover:from-amber-100 hover:via-orange-100 hover:to-yellow-100 transition-all duration-200 border-b-2 border-slate-200">
         <span class="text-xl flex items-center gap-3">
-          <span class="text-2xl">📋</span>
+          <span class="text-2xl">{{ icon('clipboard', 'w-8 h-8') }}</span>
           <span>Informations administratives</span>
         </span>
       </summary>
@@ -394,9 +394,8 @@
     </div>
   </form>
 
-  <!-- Note RGPD -->
   <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-    <strong>ℹ️ Conformité RGPD France :</strong> Les données sensibles (race, religion) ne sont pas collectées conformément à la réglementation française (Article 9 RGPD + loi Informatique et Libertés).
+    <strong>{{ icon('information-circle', 'w-4 h-4') }} Conformité RGPD France :</strong> Les données sensibles (race, religion) ne sont pas collectées conformément à la réglementation française (Article 9 RGPD + loi Informatique et Libertés).
   </div>
 </div>
 

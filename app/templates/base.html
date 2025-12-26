@@ -50,8 +50,7 @@
 
     /* Styles de base - maintenant minimalistes */
     body {
-      background: var(--color-bg);
-      color: var(--color-text);
+      @apply bg-gray-50 text-slate-800;
       min-height: 100vh;
     }
     
@@ -74,7 +73,7 @@
     
     /* Focus visible pour accessibilité */
     *:focus-visible {
-      outline: 2px solid var(--color-accent);
+      @apply outline-blue-500;
       outline-offset: 2px;
     }
 
@@ -259,6 +258,43 @@
         </button>
       </div>
     </div>
+
+  {# Status bar - Affichage des statuts système dans la barre top #}
+  {% set statuses = [] %}
+  {% if request and request.state and request.state.error_message_count is defined and request.state.error_message_count > 0 %}
+    {% set _ = statuses.append({
+      'label': 'ACK en erreur',
+      'icon': 'exclamation',
+      'count': request.state.error_message_count,
+      'url': '/messages?status=error',
+      'classes': 'bg-red-100 text-red-800 hover:bg-red-200',
+      'count_classes': 'bg-red-200 text-red-900',
+      'tooltip': 'Messages avec erreurs d\'accusé de réception'
+    }) %}
+  {% endif %}
+  {% if request and request.state and request.state.warning_count is defined and request.state.warning_count > 0 %}
+    {% set _ = statuses.append({
+      'label': 'Avertissements',
+      'icon': 'exclamation',
+      'count': request.state.warning_count,
+      'url': '/warnings',
+      'classes': 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+      'count_classes': 'bg-amber-200 text-amber-900',
+      'tooltip': 'Messages avec avertissements'
+    }) %}
+  {% endif %}
+  {% if request and request.state and request.state.pending_count is defined and request.state.pending_count > 0 %}
+    {% set _ = statuses.append({
+      'label': 'En attente',
+      'icon': 'clock',
+      'count': request.state.pending_count,
+      'url': '/pending',
+      'classes': 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+      'count_classes': 'bg-blue-200 text-blue-900',
+      'tooltip': 'Messages en attente de traitement'
+    }) %}
+  {% endif %}
+  {{ status_bar(statuses) }}
 
   <nav class="hidden md:block border-t border-theme surface" aria-label="Navigation principale" role="navigation">
   <div class="mx-auto max-w-content px-4 py-2 flex justify-between items-center text-sm text-slate-600">
@@ -668,7 +704,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="{{ url_for('static', path='js/forms.js') }}"></script>
+  <script defer src="{{ url_for('static', path='js/forms.js') }}"></script>
   
   <!-- Hotkeys -->
   <script>
@@ -787,10 +823,156 @@
     
     // Exposer globalement pour les boutons
     window.themeToggle = themeToggle;
+    
+    // Système de toasts/notifications
+    const toastSystem = {
+      container: null,
+      
+      init() {
+        this.container = document.getElementById('toast-container');
+      },
+      
+      show(message, type = 'info', duration = 5000) {
+        if (!this.container) this.init();
+        
+        const id = 'toast-' + Date.now();
+        const toastHtml = `
+          <div id="${id}" class="alert alert-${type} shadow-lg max-w-sm animate-in slide-in-from-right-full duration-300" role="alert" aria-live="assertive">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                ${this.getIcon(type)}
+              </svg>
+              <span class="flex-1">${message}</span>
+              <button class="btn btn-sm btn-circle btn-ghost" onclick="toastSystem.dismiss('${id}')" aria-label="Fermer la notification">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+        
+        this.container.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // Auto-dismiss après la durée spécifiée
+        if (duration > 0) {
+          setTimeout(() => this.dismiss(id), duration);
+        }
+        
+        return id;
+      },
+      
+      dismiss(id) {
+        const toast = document.getElementById(id);
+        if (toast) {
+          toast.classList.add('animate-out', 'slide-out-to-right-full', 'duration-300');
+          setTimeout(() => toast.remove(), 300);
+        }
+      },
+      
+      getIcon(type) {
+        const icons = {
+          success: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>',
+          error: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>',
+          warning: '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>',
+          info: '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>'
+        };
+        return icons[type] || icons.info;
+      }
+    };
+    
+    // Initialiser le système de toasts
+    document.addEventListener('DOMContentLoaded', function() {
+      toastSystem.init();
+    });
+    
+    // Exposer globalement
+    window.toastSystem = toastSystem;
+    
+    // Système de loaders pour formulaires
+    const loadingSystem = {
+      showOverlay(message = 'Chargement en cours...') {
+        const overlayHtml = `
+          <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="loading-title">
+            <div class="bg-base-100 rounded-lg p-6 shadow-xl max-w-sm mx-4">
+              <div class="flex items-center gap-4">
+                <div class="inline-block animate-spin rounded-full border-2 border-primary border-t-transparent w-8 h-8" role="status" aria-label="Chargement en cours"></div>
+                <div>
+                  <h3 id="loading-title" class="font-semibold text-lg">${message}</h3>
+                  <p class="text-sm opacity-70">Veuillez patienter...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', overlayHtml);
+      },
+      
+      hideOverlay() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+          overlay.remove();
+        }
+      },
+      
+      setButtonLoading(button, loading = true, loadingText = 'Chargement...') {
+        if (loading) {
+          button.disabled = true;
+          button.innerHTML = `
+            <span class="loading-text">${loadingText}</span>
+            <div class="inline-block animate-spin rounded-full border-2 border-current border-t-transparent w-4 h-4 ml-2" role="status" aria-label="Chargement en cours"></div>
+          `;
+          button.classList.add('loading');
+        } else {
+          button.disabled = false;
+          button.innerHTML = button.dataset.originalText || 'Soumettre';
+          button.classList.remove('loading');
+        }
+      }
+    };
+    
+    // Gestion automatique des formulaires
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-loading pour les formulaires avec data-auto-loading
+      document.querySelectorAll('form[data-auto-loading]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+          const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+          if (submitBtn) {
+            submitBtn.dataset.originalText = submitBtn.textContent || submitBtn.value;
+            loadingSystem.setButtonLoading(submitBtn, true, form.dataset.loadingText || 'Chargement...');
+          }
+          
+          // Afficher overlay si demandé
+          if (form.dataset.showOverlay === 'true') {
+            loadingSystem.showOverlay(form.dataset.overlayMessage || 'Traitement en cours...');
+          }
+        });
+      });
+      
+      // Gestion des erreurs de formulaire
+      document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+          // Reset loading state après un court délai si pas de redirection
+          setTimeout(() => {
+            const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+            if (submitBtn && submitBtn.disabled) {
+              loadingSystem.setButtonLoading(submitBtn, false);
+              loadingSystem.hideOverlay();
+            }
+          }, 100);
+        });
+      });
+    });
+    
+    // Exposer globalement
+    window.loadingSystem = loadingSystem;
   </script>
 
   <!-- Alpine.js pour interactivité -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="{{ url_for('static', path='js/alpine.min.js') }}"></script>
+
+  <!-- Conteneur de toasts pour les notifications -->
+  {{ toast_container() }}
 
 </body>
 </html>

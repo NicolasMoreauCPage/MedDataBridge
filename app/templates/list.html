@@ -100,19 +100,19 @@
       {% if '/scenarios' in request.url.path %}
       <div class="ml-6 text-xs text-slate-600 flex items-center gap-3">
         <div class="flex items-center gap-1">
-          <span title="Jamais exécuté">⏹️</span>
+          <span title="Jamais exécuté">{{ icon('x', 'w-3 h-3') }}</span>
           <span class="ml-1">Jamais exécuté</span>
         </div>
         <div class="flex items-center gap-1">
-          <span title="Succès">✅</span>
+          <span title="Succès">{{ icon('check', 'w-3 h-3') }}</span>
           <span class="ml-1">Succès</span>
         </div>
         <div class="flex items-center gap-1">
-          <span title="Partiellement réussi">⚠️</span>
+          <span title="Partiellement réussi">{{ icon('exclamation', 'w-3 h-3') }}</span>
           <span class="ml-1">Partiel</span>
         </div>
         <div class="flex items-center gap-1">
-          <span title="Échec">❌</span>
+          <span title="Échec">{{ icon('x', 'w-3 h-3') }}</span>
           <span class="ml-1">Erreur</span>
         </div>
       </div>
@@ -343,30 +343,21 @@ document.addEventListener('DOMContentLoaded', function() {
 </style>
 
 <!-- Modal de confirmation de suppression (DaisyUI) -->
-<div id="deleteModal" class="modal">
-  <div class="modal-box">
-    <div class="flex items-start gap-3 mb-4">
-      <div class="alert alert-error p-3">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-        </svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-bold text-lg">Confirmer la suppression</h3>
-        <p class="py-4" id="deleteModalText">Êtes-vous sûr de vouloir supprimer cet élément ?</p>
-      </div>
-    </div>
-    <div class="modal-action">
-      <button id="cancelDelete" class="btn">Annuler</button>
-      <button id="confirmDelete" class="btn btn-error">Supprimer</button>
-    </div>
-  </div>
-</div>
+{{ confirm_modal(
+  'deleteModal',
+  'Confirmer la suppression',
+  'Êtes-vous sûr de vouloir supprimer cet élément ?',
+  'Supprimer',
+  'Annuler',
+  'error',
+  'exclamation'
+) }}
 
 <script>
 // Gestion des suppressions asynchrones
 document.addEventListener('DOMContentLoaded', function() {
     let deleteForm = null;
+    const deleteModal = document.getElementById('deleteModal');
     
     // Gestionnaire pour les boutons de suppression
     document.addEventListener('click', function(e) {
@@ -375,27 +366,34 @@ document.addEventListener('DOMContentLoaded', function() {
             const form = e.target.closest('form');
             const itemName = form.dataset.itemName;
             
-            // Mettre à jour le texte du modal
-            document.getElementById('deleteModalText').textContent = 
-                `Êtes-vous sûr de vouloir supprimer "${itemName}" ?`;
+            // Mettre à jour le message du modal
+            const messageEl = deleteModal.querySelector('#deleteModal-message');
+            if (messageEl) {
+                messageEl.textContent = `Êtes-vous sûr de vouloir supprimer "${itemName}" ?`;
+            }
             
             // Afficher le modal
-            document.getElementById('deleteModal').classList.add('modal-open');
+            deleteModal.classList.add('modal-open');
             deleteForm = form;
         }
     });
     
-    // Annuler la suppression
-    document.getElementById('cancelDelete').addEventListener('click', function() {
-        document.getElementById('deleteModal').classList.remove('modal-open');
-        deleteForm = null;
+    // Gestionnaire pour les boutons du modal
+    deleteModal.addEventListener('click', function(e) {
+        // Bouton de confirmation (rouge)
+        if (e.target.matches('.btn-error')) {
+            handleDeleteConfirmation(e.target);
+        }
+        // Bouton d'annulation (ferme le modal)
+        else if (e.target.matches('.btn:not(.btn-error)')) {
+            deleteModal.classList.remove('modal-open');
+            deleteForm = null;
+        }
     });
     
-    // Confirmer la suppression
-    document.getElementById('confirmDelete').addEventListener('click', async function() {
+    async function handleDeleteConfirmation(button) {
         if (!deleteForm) return;
         
-        const button = this;
         const originalText = button.textContent;
         
         // Désactiver le bouton et changer le texte
@@ -431,9 +429,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Fermer le modal
-        document.getElementById('deleteModal').classList.remove('modal-open');
+        deleteModal.classList.remove('modal-open');
         deleteForm = null;
-    });
+    }
 });
 </script>
 {% endblock %}

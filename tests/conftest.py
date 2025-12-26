@@ -3,8 +3,7 @@ import pytest
 
 os.environ.setdefault("TESTING", "1")
 
-# Configure pytest-asyncio
-pytestmark = pytest.mark.asyncio
+# Note: pytest-asyncio is used in specific test modules; avoid marking all tests globally here.
 
 # Suppress a noisy SQLAlchemy SAWarning triggered by in-memory vocabulary mapping
 # objects that may be created detached from the session during startup/meta init.
@@ -51,6 +50,37 @@ sys.modules['app.services.cache_service'] = cache_service_mock
 
 # Delay heavy imports until needed
 from datetime import datetime
+import asyncio
+
+
+# Provide a safe wrapper for asyncio.run that can be used inside pytest
+# where an event loop may already be running (pytest-asyncio). This wrapper
+# will run the coroutine in a new thread with its own event loop when needed.
+def asyncio_run_safe(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        import concurrent.futures
+
+        def _runner():
+            return _original_asyncio_run(coro)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(_runner)
+            return fut.result()
+    else:
+        return _original_asyncio_run(coro)
+
+
+# Preserve the original asyncio.run before overriding it so the safe wrapper
+# can call the real implementation and avoid recursion.
+_original_asyncio_run = asyncio.run
+# Monkeypatch the asyncio.run name so tests/scripts that call asyncio.run
+# indirectly benefit from the safe wrapper.
+asyncio.run = asyncio_run_safe
 
 # Initialize the test db at import time for integration tests
 from app.db import init_db, session_factory
@@ -80,7 +110,7 @@ finally:
     sess.close()
 
 
-@pytest.fixture(autouse=True, scope='session')
+@pytest.fixture(autouse=True, scope='function')
 def setup_test_db():
     """Initialize the in-memory DB and create minimal records used by UI pages."""
     # Import here to avoid loading SQLAlchemy at conftest import time

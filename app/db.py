@@ -69,6 +69,38 @@ def init_db() -> None:
         import sqlite3
         conn = sqlite3.connect("medbridge.db")
         conn.execute("PRAGMA journal_mode=WAL;")
+        # Create helpful indexes for search performance if they do not exist
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_family_lower ON patient(lower(family));")
+        except Exception:
+            # Some SQLite builds don't allow function-based indexes; fallback to simple index
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_family ON patient(family);")
+            except Exception:
+                pass
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_given_lower ON patient(lower(given));")
+        except Exception:
+            try:
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_patient_given ON patient(given);")
+            except Exception:
+                pass
+
+        # Dossier.patient_id index
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_patient_id ON dossier(patient_id);")
+        except Exception:
+            pass
+
+        # Try to create an FTS5 table for patient text search (optional, best-effort)
+        try:
+            # FTS5 requires the module compiled in SQLite. This is a best-effort, no-op if unavailable.
+            conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS patient_fts USING fts5(family, given, content='');")
+            # Populate FTS table from existing patients
+            conn.execute("INSERT INTO patient_fts(rowid, family, given) SELECT id, family, given FROM patient WHERE id NOT IN (SELECT rowid FROM patient_fts);")
+        except Exception:
+            # ignore if FTS not available
+            pass
         conn.close()
     except Exception as e:
         print(f"[WARN] Impossible d'activer WAL: {e}")

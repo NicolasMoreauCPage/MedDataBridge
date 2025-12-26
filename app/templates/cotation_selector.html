@@ -8,11 +8,13 @@
     <h1 class="text-2xl font-semibold mb-4">Cotation moderne — Sélection du dossier</h1>
     <p class="text-slate-600 mb-4">Recherchez un dossier par nom de patient ou date de naissance (YYYY-MM-DD) et cliquez pour ouvrir la cotation.</p>
     <div class="flex gap-3">
-      <input id="searchInput" placeholder="Nom patient / prénom / date (ex: Martin, Alice, 1980-05-10)" class="flex-1 border border-slate-200 rounded-lg px-3 py-2" />
+      <input id="searchInput" aria-autocomplete="list" aria-controls="results" aria-expanded="false" placeholder="Nom patient / prénom / date (ex: Martin, Alice, 1980-05-10)" class="flex-1 border border-slate-200 rounded-lg px-3 py-2" />
       <button id="searchBtn" class="btn-primary">Rechercher</button>
     </div>
 
-    <div id="results" class="mt-4 space-y-3"></div>
+    <div id="results" class="mt-4 space-y-3" role="listbox" aria-label="Résultats de recherche"></div>
+
+    <div id="pagination" class="mt-4 flex items-center gap-3 text-sm text-slate-600"></div>
   </div>
 </div>
 {% endblock %}
@@ -24,30 +26,83 @@ document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('searchBtn');
   const results = document.getElementById('results');
 
-  async function doSearch(q) {
+  let currentResults = [];
+  let highlightedIndex = -1;
+  let currentPage = 1;
+  let currentQuery = '';
+
+  function highlightMatch(text, q) {
+    if (!q) return text;
+    const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig');
+    return text.replace(re, (m) => `<mark class="bg-yellow-100 text-yellow-800 rounded-sm px-0.5">${m}</mark>`);
+  }
+
+  function renderResults(data) {
+    currentResults = data.results || [];
+    const meta = data.meta || { total: 0, page: 1, per_page: 20 };
+    if (!currentResults || currentResults.length === 0) {
+      results.innerHTML = '<div class="text-slate-500">Aucun dossier trouvé.</div>';
+      document.getElementById('searchInput').setAttribute('aria-expanded', 'false');
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+    results.innerHTML = currentResults.map((d, idx) => `
+      <div role="option" data-idx="${idx}" tabindex="-1" class="result-item p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between ${idx === highlightedIndex ? 'ring-2 ring-primary/30' : ''}">
+        <div>
+          <div class="font-semibold">Dossier #${d.dossier_seq || d.dossier_id} — ${highlightMatch(d.patient_family || '', currentQuery)} ${highlightMatch(d.patient_given || '', currentQuery)}</div>
+          <div class="text-sm text-slate-500">ID: ${d.dossier_id} • Patient ID: ${d.patient_id}</div>
+        </div>
+        <div>
+          <a href="/cotation-modern/dossiers/${d.dossier_id}/cotation" class="btn-primary">Ouvrir</a>
+        </div>
+      </div>
+    `).join('');
+
+    document.getElementById('searchInput').setAttribute('aria-expanded', 'true');
+
+    // Pagination
+    const total = meta.total || 0;
+    const page = meta.page || 1;
+    const per_page = meta.per_page || currentResults.length;
+    const totalPages = Math.max(1, Math.ceil(total / per_page));
+    const pagination = [];
+    if (page > 1) pagination.push(`<button id="prevPage" class="px-3 py-1 rounded border">Précédent</button>`);
+    pagination.push(`<span>Page ${page} / ${totalPages} — ${total} résultats</span>`);
+    if (page < totalPages) pagination.push(`<button id="nextPage" class="px-3 py-1 rounded border">Suivant</button>`);
+    document.getElementById('pagination').innerHTML = pagination.join(' ');
+
+    // Attach click handlers for result items
+    Array.from(document.querySelectorAll('.result-item')).forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = Number(el.getAttribute('data-idx'));
+        const d = currentResults[idx];
+        if (d) window.location.href = `/cotation-modern/dossiers/${d.dossier_id}/cotation`;
+      });
+    });
+
+    const prev = document.getElementById('prevPage');
+    const next = document.getElementById('nextPage');
+    if (prev) prev.addEventListener('click', () => { currentPage = Math.max(1, page - 1); performSearch(currentQuery, currentPage); });
+    if (next) next.addEventListener('click', () => { currentPage = page + 1; performSearch(currentQuery, currentPage); });
+  }
+
+  async function doSearch(q, page=1) {
     results.innerHTML = '<div class="text-slate-500">Recherche en cours...</div>';
     try {
-      const resp = await fetch(`/cotation-modern/search?q=${encodeURIComponent(q)}`);
+      const resp = await fetch(`/cotation-modern/search?q=${encodeURIComponent(q)}&page=${page}`);
       if (!resp.ok) throw new Error('Erreur réseau');
       const data = await resp.json();
-      if (!data || data.length === 0) {
-        results.innerHTML = '<div class="text-slate-500">Aucun dossier trouvé.</div>';
-        return;
-      }
-      results.innerHTML = data.map(d => `
-        <div class="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between">
-          <div>
-            <div class="font-semibold">Dossier #${d.dossier_seq || d.dossier_id} — ${d.patient_family} ${d.patient_given}</div>
-            <div class="text-sm text-slate-500">ID: ${d.dossier_id} • Patient ID: ${d.patient_id}</div>
-          </div>
-          <div>
-            <a href="/cotation-modern/dossiers/${d.dossier_id}/cotation" class="btn-primary">Ouvrir</a>
-          </div>
-        </div>
-      `).join('');
+      renderResults(data);
     } catch (e) {
       results.innerHTML = `<div class="text-red-600">Erreur: ${e.message}</div>`;
     }
+  }
+
+  function performSearch(q, page=1) {
+    currentQuery = q;
+    currentPage = page;
+    highlightedIndex = -1;
+    doSearch(q, page);
   }
 
   // Debounce helper
@@ -62,9 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const debouncedSearch = debounce((val) => {
     if (!val || val.trim() === '') {
       results.innerHTML = '';
+      document.getElementById('searchInput').setAttribute('aria-expanded', 'false');
       return;
     }
-    doSearch(val);
+    performSearch(val, 1);
   }, 300);
 
   btn.addEventListener('click', (ev) => {
@@ -79,11 +135,34 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   input.addEventListener('keydown', (ev) => {
+    // Keyboard navigation for results (ArrowUp/ArrowDown/Enter)
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      if (currentResults.length === 0) return;
+      highlightedIndex = Math.min(currentResults.length - 1, highlightedIndex + 1);
+      document.querySelectorAll('.result-item')[highlightedIndex].focus();
+      return;
+    }
+    if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      if (currentResults.length === 0) return;
+      highlightedIndex = Math.max(0, highlightedIndex - 1);
+      document.querySelectorAll('.result-item')[highlightedIndex].focus();
+      return;
+    }
     if (ev.key === 'Enter') {
       ev.preventDefault();
       const q = input.value.trim();
       if (!q) return;
-      doSearch(q);
+      performSearch(q, 1);
+    }
+  });
+
+  // Handle Enter key on result items to open
+  results.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      const el = document.activeElement.closest('.result-item');
+      if (el) el.click();
     }
   });
 });

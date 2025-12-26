@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "components.html" as components %}
-{% from "macros/ui.html" import button, badge, breadcrumbs as ui_breadcrumbs, empty_state %}
+{# Remove old badge/alert macros import, keep empty_state if needed #}
 
 {% block content %}
 {# Breadcrumb #}
@@ -48,7 +48,7 @@
       {% endif %}
 
       {% if new_url %}
-        {{ button('Nouveau', href=new_url, variant='primary', size='md', icon='<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>') }}
+        {{ components.actions_menu([{'type': 'link', 'label': 'Nouveau', 'url': new_url}]) }}
       {% endif %}
 
       {% if actions %}
@@ -173,13 +173,10 @@
                     {# Indicateur visuel stylisé with tooltip #}
                     <div class="flex-shrink-0" title="{% if cell == '✅' %}Succès{% elif cell == '⚠️' %}Partiel{% elif cell == '❌' %}Erreur{% else %}Jamais exécuté{% endif %}">
                       {% if cell in ('✅', '⚠️', '❌', '⏹️') %}
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium
-                          {% if cell == '✅' %}bg-green-100 text-green-800 border border-green-200
-                          {% elif cell == '⚠️' %}bg-yellow-100 text-yellow-800 border border-yellow-200
-                          {% elif cell == '❌' %}bg-red-100 text-red-800 border border-red-200
-                          {% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
-                          <span aria-hidden="true">{{ cell }}</span>
-                        </div>
+                        {{ components.status_badge(
+                          'success' if cell == '✅' else 'warning' if cell == '⚠️' else 'error' if cell == '❌' else 'inactive',
+                          cell
+                        ) }}
                       {% else %}
                         <div class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
                           <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,13 +193,10 @@
                   </div>
                 {% elif loop.index0 == 0 and cell in ('✅', '⚠️', '❌', '⏹️') %}
                   {# Indicateur visuel stylisé for rows without detail_url #}
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium
-                    {% if cell == '✅' %}bg-green-100 text-green-800 border border-green-200
-                    {% elif cell == '⚠️' %}bg-yellow-100 text-yellow-800 border border-yellow-200
-                    {% elif cell == '❌' %}bg-red-100 text-red-800 border border-red-200
-                    {% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}" title="{% if cell == '✅' %}Succès{% elif cell == '⚠️' %}Partiel{% elif cell == '❌' %}Erreur{% else %}Jamais exécuté{% endif %}">
-                    <span aria-hidden="true">{{ cell }}</span>
-                  </div>
+                  {{ components.status_badge(
+                    'success' if cell == '✅' else 'warning' if cell == '⚠️' else 'error' if cell == '❌' else 'inactive',
+                    cell
+                  ) }}
                 {% elif loop.index == 4 or loop.index == 5 %} {# Colonne type:4, status:5 (0-based) #}
                   {{ cell|safe if cell is not none else '' }}
                 {% else %}
@@ -260,7 +254,7 @@
         {% else %}
           <tr>
             <td colspan="{{ headers|length + (1 if show_actions else 0) }}" class="px-6 py-12">
-              {{ empty_state(
+              {{ components.empty_state(
                 'Aucun élément',
                 'Aucun élément ne correspond à vos critères. Modifiez vos filtres ou créez un nouvel élément.',
                 illustration='search',

@@ -1,3 +1,45 @@
+{#
+  ===============================
+  Macros UI centralisées (usage)
+  ===============================
+
+  - {{ components.breadcrumb(items) }}
+    items = [{label, url}, ...]
+  - {{ components.actions_menu(actions) }}
+    actions = [{type: 'link'|'button', label, url}, ...]
+  - {{ components.form_field(label, name, type, value, required, help, options, rows) }}
+  - {{ components.search_filter(filters, base_url) }}
+  - {{ components.pagination(current_page, total_pages, base_url) }}
+  - {{ components.status_badge(status, label) }}
+  - {{ components.context_badge(label) }}
+  - {{ components.preview_card(title, content, footer, image_url) }}
+  - {{ components.alert(type, message) }}
+    type = info | success | warning | error
+
+  - {{ components.empty_state(title, message, illustration=None, action_label=None, action_href=None) }}
+    Affiche un état vide illustré avec message et bouton d’action optionnel.
+{# Empty state macro: illustration, message, CTA #}
+{% macro empty_state(title, message, illustration=None, action_label=None, action_href=None) %}
+<div class="flex flex-col items-center justify-center py-12">
+  {% if illustration == 'search' %}
+    <svg class="w-16 h-16 mb-4 text-blue-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+  {% elif illustration == 'box' %}
+    <svg class="w-16 h-16 mb-4 text-slate-200" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+  {% elif illustration %}
+    <img src="{{ illustration }}" alt="" class="w-16 h-16 mb-4 opacity-80">
+  {% endif %}
+  <h3 class="text-lg font-semibold text-slate-800 mb-2">{{ title }}</h3>
+  <p class="text-slate-500 mb-4 text-center max-w-md">{{ message }}</p>
+  {% if action_label and action_href %}
+    <a href="{{ action_href }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 text-white font-medium shadow hover:bg-blue-700 transition">
+      {{ action_label }}
+    </a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+  Voir chaque macro pour les détails d’arguments.
+#}
 {# Breadcrumb #}
 {% macro breadcrumb(items) %}
 <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6" aria-label="Fil d'Ariane">

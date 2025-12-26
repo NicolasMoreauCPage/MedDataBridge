@@ -16,6 +16,35 @@ Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base S
 
 Voir la documentation technique complète dans `docs/PROGRAM_DOCUMENTATION.md` et `docs/user_guide.md`.
 
+Architecture (schéma rapide)
+
+```
+  +-------------------+        +------------------+
+  |  Browser / Tests  | <----> |  FastAPI (UI/API)|
+  |  (Cypress, curl)  |        |  app/routers/*    |
+  +-------------------+        +------------------+
+                          |    ^
+              search / import   |    | DB queries / FTS
+                          v    |
+                     +------------------+
+                     |  SQLite (medbridge.db) |
+                     |  (tables: patient, dossier, ...)
+                     +------------------+
+
+ - Import endpoints: `/hprim/import`, `/api/fhir/import/bundle`
+ - Selector / search: `/cotation-modern/select` and `/cotation-modern/search`
+ - OpenAPI docs: `/docs`
+```
+
+PUBLIC_SEARCH switch
+
+Pour les environnements de qualification on expose la recherche de dossiers sans authentification. Vous pouvez contrôler ce comportement via la variable d'environnement `PUBLIC_SEARCH` :
+
+- `PUBLIC_SEARCH=true` (par défaut) : `/cotation-modern/search` est publique.
+- `PUBLIC_SEARCH=false` : l'endpoint requiert un token (si l'auth est activée).
+
+La bascule est utile si vous voulez reproduire un environnement plus strict en CI/production.
+
 ## Démarrage rapide (développement)
 1. Créez et activez un environnement virtuel Python 3.10+ :
 

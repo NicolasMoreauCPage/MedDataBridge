@@ -3,9 +3,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Optional
+import os
 from app.db import get_session
 from app.models import Dossier, Patient
 from sqlalchemy import func
+from fastapi import HTTPException, status, Request
+from app.auth import decode_token
 
 router = APIRouter(prefix="/cotation-modern", tags=["cotation_selector"])
 templates = Jinja2Templates(directory="app/templates")
@@ -25,6 +28,7 @@ def submit_dossier(id: str = Form(...)):
 
 @router.get("/search", response_class=JSONResponse)
 def search_dossiers(
+    request: Request,
     q: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -36,6 +40,22 @@ def search_dossiers(
     Supports pagination and optional `ght_id` scoping. Results are returned as:
     {"results": [...], "meta": {"total": N, "page": P, "per_page": M}}
     """
+    # If PUBLIC_SEARCH is disabled, enforce authentication
+    public_search = os.getenv("PUBLIC_SEARCH", "true").lower() in ("1", "true", "yes")
+    if not public_search:
+        # enforce auth manually: expect Authorization: Bearer <token>
+        auth = request.headers.get("authorization") or request.headers.get("Authorization")
+        if not auth or not auth.lower().startswith("bearer "):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authorization header missing")
+        token = auth.split(None, 1)[1].strip()
+        try:
+            # decode_token will raise HTTPException if invalid
+            token_data = decode_token(token)
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
     if not q or q.strip() == "":
         return JSONResponse({"results": [], "meta": {"total": 0, "page": page, "per_page": per_page}})
     q = q.strip()

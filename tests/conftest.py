@@ -908,3 +908,14 @@ def authenticated_client(client, sample_ght):
     """Client FastAPI avec contexte GHT défini"""
     # Le contexte GHT est déjà défini automatiquement dans la fixture client
     return client
+
+
+@pytest.fixture
+async def async_client():
+    """Client HTTP asynchrone pour les tests."""
+    from httpx import AsyncClient
+    from app.app import create_app
+
+    app = create_app()
+    async with AsyncClient(app=app, base_url="http://testserver") as ac:
+        yield ac

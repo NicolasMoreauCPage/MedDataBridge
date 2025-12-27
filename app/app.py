@@ -236,6 +236,8 @@ def create_app() -> FastAPI:
         """Health check endpoint for load balancers and monitoring"""
         from app.db import get_db_health
         from app.cache import cache
+        import logging
+        logger = logging.getLogger(__name__)
 
         try:
             # Test database connection
@@ -452,6 +454,11 @@ def create_app() -> FastAPI:
     from app.routers import cache
     app.include_router(cache.router, prefix="/api")
     print(" - Cache router mounted at /api/cache")
+    
+    # 7.1. Tasks API
+    from app.routers import tasks as tasks_router
+    app.include_router(tasks_router.router)
+    print(" - Tasks API router mounted at /api/tasks")
     
     # 8. Import endpoints for test Exemple
     from app.routers import import_examples

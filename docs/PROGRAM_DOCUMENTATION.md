@@ -88,9 +88,9 @@ MedData Bridge a été conçu pour servir de banc d'essai de qualification des i
 
   - `app/services/cache_service.py` : service de cache Redis (optionnel).
 
-## 8. Fluxs et contrats (par domaine)
+## 3. Fluxs et contrats (par domaine)
 
-8.1 FHIR — émission (export)
+3.1 FHIR — émission (export)
 
 - Entrée : un `Dossier` (ou Venue/Mouvement/Patient) du modèle interne.
 
@@ -108,7 +108,7 @@ MedData Bridge a été conçu pour servir de banc d'essai de qualification des i
 
   - fichiers clés : `app/services/fhir.py`, `app/services/fhir_resources.py`.
 
-8.2 FHIR — réception (import)
+3.2 FHIR — réception (import)
 
 - Endpoint principal : POST `/api/fhir/import/bundle` (voir `app/routers/fhir_import.py`). Corps JSON attendu : `{ "bundle": <Bundle>, "ej_id": <int> }`.
 
@@ -124,7 +124,7 @@ MedData Bridge a été conçu pour servir de banc d'essai de qualification des i
 
   - Erreurs collectées dans `results['errors']` et retournées au client (status `partial` si erreurs non bloquantes).
 
-8.3 IHE PAM — inbound HL7v2 (identité et mouvements)
+3.3 IHE PAM — inbound HL7v2 (identité et mouvements)
 
 - Point d'entrée : MLLP listener appelle `on_message_inbound()` / `transport_inbound` pipeline.
 
@@ -142,7 +142,7 @@ MedData Bridge a été conçu pour servir de banc d'essai de qualification des i
 
 - Persistance : via `session_factory()` / transactions ; `before_flush` normalise les dates / assigne `dossier_seq` quand absent.
 
-8.4 HL7 MFN — Structure (locations)
+3.4 HL7 MFN — Structure (locations)
 
 - Génération : `generate_mfn_message(session, eg_identifier)` produit MFN M05 snapshot ou partial pour une entité géographique.
 
@@ -312,7 +312,7 @@ MedData Bridge a été conçu pour servir de banc d'essai de qualification des i
 
   - `_extract_id_from_reference` a été renforcé pour accepter formes : `Patient/pat-1`, `pat-1`, full URL, `#pat-1`, et nombres numériques.
 
-## 10. Validation et tests
+## 8. Validation et tests
 
 - Validation FHIR (autoritaire): HAPI FHIR CLI (jar) + IG pack `hl7.fhir.fr.core-package.tgz`.
 
@@ -328,7 +328,7 @@ MedData Bridge a été conçu pour servir de banc d'essai de qualification des i
 
   - Exemples de tests ajoutés : `tests/test_fhir_import.py` (extractor + roundtrip bundle import).
 
-## 11. How to run locally (dev)
+## 9. How to run locally (dev)
 
 Prérequis
 
@@ -357,7 +357,7 @@ Running message ingestion (MLLP)
 
 - Configure `app.services.mllp_manager` via env vars (see `.env.example`) and start app; le manager démarre lors du lifespan si `TESTING` n'est pas activé.
 
-## 12. CI recommendations
+## 10. CI recommendations
 
 - Run `pytest` on every PR (already present in repo CI). Add these steps:
 
@@ -377,7 +377,7 @@ CI stub example for HAPI (GitHub Actions)
 
 2. Restore IG pack from repo .tools/igpacks or download from a secure location (note: IG packs are large — consider caching externally).
 
-## 13. Operation, logs and debugging
+## 11. Operation, logs and debugging
 
 - Logs
 
@@ -393,13 +393,13 @@ CI stub example for HAPI (GitHub Actions)
 
   - For IHE PAM: inspect `pam_archive` and `pam_archive_dst` directories sample files.
 
-## 14. Security & privacy notes
+## 12. Security & privacy notes
 
 - RGPD: les champs sensibles (race/religion) marqués comme legacy ne doivent pas être collectés.
 
 - Les identifiants nationaux (NIR) et les données personnelles doivent être traités selon la politique locale (masquage, accès restreint).
 
-## 15. Fichiers et fonctions clés (référence rapide)
+## 13. Fichiers et fonctions clés (référence rapide)
 
 - `app/app.py` : composition FastAPI, middlewares, route registration, lifespan.
 
@@ -419,7 +419,7 @@ CI stub example for HAPI (GitHub Actions)
 
 - `app/routers/fhir_import.py` : FHIR import API endpoints.
 
-## 16. Actions recommandées / next steps
+## 14. Actions recommandées / next steps
 
 1. Ajouter un job CI qui exécute HAPI validator (optionnel mais recommandé) sur bundles représentatifs. Fournir l'IG pack comme artefact ou via un URL privé.
 

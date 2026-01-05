@@ -5,9 +5,16 @@ from app.models_structure import GHTContext, EntiteJuridique
 from app.models import Patient
 from pathlib import Path
 import tempfile
-from scripts.tools.import_test_exemples import import_structure_mfn, import_pam_messages
+# from scripts.tools.import_test_exemples import import_structure_mfn, import_pam_messages
 
 router = APIRouter(prefix="/import", tags=["import"])
+
+# TODO: Réimplémenter les fonctions d'import
+def import_structure_mfn(*args, **kwargs):
+    raise NotImplementedError("Import structure MFN non implémenté")
+
+def import_pam_messages(*args, **kwargs):
+    raise NotImplementedError("Import PAM messages non implémenté")
 
 @router.post("/structure_mfn/")
 def import_structure_mfn_endpoint(

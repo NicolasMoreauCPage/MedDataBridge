@@ -29,4 +29,5 @@ from app.routers.scenario_templates import router as scenario_templates_router
 from app.routers.ihe import router as ihe_router
 from app.routers.docs import router as docs_router
 from app.routers.dossier_type import router as dossier_type_router
-from app.routers.contracts import router as contracts_router
+# from app.routers.contracts import router as contracts_router  # Module does not exist
+

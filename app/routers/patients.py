@@ -8,7 +8,6 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 from app.db import get_session
-from app.schemas.patient import PatientFormData
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema, PatientUpdateSchema
 from app.services.scenario_identity_generator import (

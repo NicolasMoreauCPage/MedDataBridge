@@ -1975,15 +1975,25 @@ async def redirect_service_singular_post(rest: str):
     """Redirection POST de /service/* vers /services/*"""
     return RedirectResponse(url=f"/structure/services/{rest}", status_code=308)
 
-@redirect_router.get("/uf/{rest:path}")
-async def redirect_uf_singular_get(rest: str):
-    """Redirection GET de /uf/* vers /ufs/*"""
-    return RedirectResponse(url=f"/structure/ufs/{rest}", status_code=301)
+@redirect_router.get("/uf/{id:int}")
+async def redirect_uf_singular_get_detail(id: int):
+    """Redirection GET de /uf/{id} vers /ufs/{id}"""
+    return RedirectResponse(url=f"/structure/ufs/{id}", status_code=301)
 
-@redirect_router.post("/uf/{rest:path}")
-async def redirect_uf_singular_post(rest: str):
-    """Redirection POST de /uf/* vers /ufs/*"""
-    return RedirectResponse(url=f"/structure/ufs/{rest}", status_code=308)
+@redirect_router.get("/uf/{id:int}/edit")
+async def redirect_uf_singular_get_edit(id: int):
+    """Redirection GET de /uf/{id}/edit vers /ufs/{id}/edit"""
+    return RedirectResponse(url=f"/structure/ufs/{id}/edit", status_code=301)
+
+@redirect_router.post("/uf/{id:int}")
+async def redirect_uf_singular_post_update(id: int):
+    """Redirection POST de /uf/{id} vers /ufs/{id}"""
+    return RedirectResponse(url=f"/structure/ufs/{id}", status_code=308)
+
+@redirect_router.post("/uf/{id:int}/delete")
+async def redirect_uf_singular_post_delete(id: int):
+    """Redirection POST de /uf/{id}/delete vers /ufs/{id}/delete"""
+    return RedirectResponse(url=f"/structure/ufs/{id}/delete", status_code=308)
 
 @redirect_router.get("/chambre/{rest:path}")
 async def redirect_chambre_singular_get(rest: str):

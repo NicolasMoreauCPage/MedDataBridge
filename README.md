@@ -13,8 +13,9 @@ Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base S
 - `app/` : code de l'application (routers, templates, modèles SQLModel, services).
 - `docs/` : documentation détaillée (IHE PAM, HPRIM, API, guides d'intégration).
 - `medbridge.db` : base SQLite utilisée localement (fichier généré après `init_db`).
+- `tests/` : suite complète de tests (575+ tests : API, intégration, UI, sécurité, performance).
 
-Voir la documentation technique complète dans `docs/PROGRAM_DOCUMENTATION.md` et `docs/user_guide.md`.
+Voir la documentation technique complète dans `docs/PROGRAM_DOCUMENTATION.md`.
 
 Architecture (schéma rapide)
 
@@ -84,6 +85,9 @@ PY
 
 - Cotation pour un dossier :
   - UI : `GET /cotation-modern/dossiers/{dossier_id}/cotation`
+
+- Interface d'administration SQL :
+  - SQLAdmin : `GET /sqladmin` — interface d'administration de la base de données
 
 - API & documentation interactive : `GET /docs` (FastAPI OpenAPI) — utile pour voir les routes techniques.
 

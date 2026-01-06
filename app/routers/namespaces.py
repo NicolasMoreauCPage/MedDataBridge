@@ -6,6 +6,7 @@ from starlette.responses import RedirectResponse
 from app.db import get_session
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
 from app.models_identifiers import Identifier
+from app.utils.flash import flash
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -289,7 +290,8 @@ async def create_ej_namespace(
     
     # Validation basique
     if not form.get("name") or not form.get("system"):
-        raise HTTPException(status_code=400, detail="Name and system are required")
+        flash(request, "Le nom et le système (URI) sont requis", level="error")
+        return RedirectResponse(f"/admin/ght/{ght_id}/ej/{ej_id}/namespaces/new", status_code=303)
     
     # Check system uniqueness dans le contexte GHT
     exists = session.exec(
@@ -298,10 +300,12 @@ async def create_ej_namespace(
         .where(IdentifierNamespace.ght_context_id == context.id)
     ).first()
     if exists:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"System URI {form['system']} already exists in this GHT"
+        flash(
+            request,
+            f"L'URI système '{form['system']}' existe déjà dans ce contexte GHT",
+            level="error"
         )
+        return RedirectResponse(f"/admin/ght/{ght_id}/ej/{ej_id}/namespaces/new", status_code=303)
 
     namespace = IdentifierNamespace(
         name=form["name"],
@@ -316,9 +320,10 @@ async def create_ej_namespace(
     session.add(namespace)
     session.commit()
     
+    flash(request, f"Namespace '{namespace.name}' créé avec succès", level="success")
     return RedirectResponse(
         f"/admin/ght/{ght_id}/ej/{ej_id}",
-        status_code=302
+        status_code=303
     )
 
 

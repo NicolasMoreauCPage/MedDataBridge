@@ -22,6 +22,8 @@ def create_deployment_package():
         "alembic/**/*.py",
         "alembic/**/*.mako",
         "config/**/*.py",
+        "docs/**/*.md",
+        "docs/**/*.html",
         "alembic.ini",
         "requirements.txt",
         "requirements-production.txt",
@@ -42,7 +44,6 @@ def create_deployment_package():
         "tests",
         "temp_extract",
         "Doc",
-        "docs",
         "archives",
         "deployment",
         "Deploiement",
@@ -59,8 +60,8 @@ def create_deployment_package():
     # Collecter tous les fichiers uniques d'abord
     files_to_add = set()
     
-    # Ajouter les fichiers des dossiers app/, alembic/ et config/
-    for base_dir in ["app", "alembic", "config"]:
+    # Ajouter les fichiers des dossiers app/, alembic/, config/ et docs/
+    for base_dir in ["app", "alembic", "config", "docs"]:
         if os.path.exists(base_dir):
             for root, dirs, files in os.walk(base_dir):
                 # Exclure les dossiers indésirables

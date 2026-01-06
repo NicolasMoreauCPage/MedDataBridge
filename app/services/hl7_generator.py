@@ -124,11 +124,17 @@ def build_pid_segment(
                     select(IdentifierNamespace).where(IdentifierNamespace.system == ident.system)
                 ).first()
             
-            if namespace:
-                # Format: ID^^^AUTHORITY&OID&ISO^PI
+            if namespace and namespace.oid:
+                # Format complet: ID^^^AUTHORITY_NAME&OID&ISO^PI
+                # Utiliser namespace.name pour AUTHORITY_NAME (ex: "CHPAULON")
+                authority_name = namespace.name if namespace.name else namespace.type
                 pid_3_parts.append(
-                    f"{ident.value}^^^{namespace.name}&{namespace.system.split(':')[-1]}&ISO^PI"
+                    f"{ident.value}^^^{authority_name}&{namespace.oid}&ISO^PI"
                 )
+            elif namespace:
+                # Namespace sans OID : utiliser seulement le name
+                authority_name = namespace.name if namespace.name else namespace.type
+                pid_3_parts.append(f"{ident.value}^^^{authority_name}^PI")
             else:
                 # Solution de repli: utiliser OID directement de l'identifier
                 oid = ident.oid or ident.system.split(":")[-1] if ident.system else "UNKNOWN"
@@ -202,8 +208,15 @@ def build_pv1_segment(
                     select(IdentifierNamespace).where(IdentifierNamespace.system == ident.system)
                 ).first()
             
-            if namespace and namespace.type == "NDA":
-                visit_number = f"{ident.value}^^^{namespace.name}&{namespace.system.split(':')[-1]}&ISO^VN"
+            if namespace and namespace.type == "NDA" and namespace.oid:
+                # Format complet: ID^^^AUTHORITY_NAME&OID&ISO^VN
+                authority_name = namespace.name if namespace.name else namespace.type
+                visit_number = f"{ident.value}^^^{authority_name}&{namespace.oid}&ISO^VN"
+                break
+            elif namespace and namespace.type == "NDA":
+                # Namespace sans OID : utiliser seulement le name
+                authority_name = namespace.name if namespace.name else namespace.type
+                visit_number = f"{ident.value}^^^{authority_name}^VN"
                 break
             elif ident.type == "NDA":
                 # Solution de repli sans namespace
@@ -250,10 +263,16 @@ def build_zbe_segment(
     - ZBE-8: UF soins (XON) composant 1 label, composant 10 code
     - ZBE-9: Nature (S,H,M,L,D,SM)
     """
-    # ZBE-1
+    # ZBE-1: Identifiant mouvement avec namespace
     movement_id = getattr(movement, "mouvement_seq", None) or getattr(movement, "id", None)
-    if namespace:
-        zbe_1 = f"{movement_id}^{namespace.name}^{namespace.oid}^ISO"
+    if namespace and namespace.oid:
+        # Format: ID^AUTHORITY_NAME^OID^ISO
+        authority_name = namespace.name if namespace.name else namespace.type
+        zbe_1 = f"{movement_id}^{authority_name}^{namespace.oid}^ISO"
+    elif namespace:
+        # Namespace sans OID
+        authority_name = namespace.name if namespace.name else namespace.type
+        zbe_1 = f"{movement_id}^{authority_name}"
     else:
         zbe_1 = str(movement_id)
 

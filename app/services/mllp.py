@@ -133,9 +133,13 @@ async def start_mllp_server(
     - En cas d'erreur applicative, un ACK AE est renvoyé; en erreur
       système, un ACK AR.
     """
+    # Extraire les valeurs de l'endpoint avant le handler pour éviter DetachedInstanceError
+    endpoint_name = endpoint.name
+    endpoint_id = endpoint.id
+    
     async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         peer = writer.get_extra_info("peername")
-        logger.info(f"[MLLP] Connect {peer} -> {host}:{port} ({endpoint.name})")
+        logger.info(f"[MLLP] Connect {peer} -> {host}:{port} ({endpoint_name})")
         try:
             # Read until we have at least one complete MLLP frame (END_BLOCK + CR).
             # Using repeated small reads is robust to partial TCP segments.
@@ -171,9 +175,11 @@ async def start_mllp_server(
                     logger.info(f"[MLLP] Frame {idx}/{len(messages)} MSH-10={ctrl or '∅'} MSH-9={f.get('msg_type')}")
                     with session_factory() as s:
                         try:
+                            # Recharger l'endpoint depuis la session courante pour éviter DetachedInstanceError
+                            endpoint_fresh = s.get(SystemEndpoint, endpoint_id)
                             # Support both async callables and sync wrappers that
                             # may return a dict/str. Accept awaitable results.
-                            res = on_message(msg, s, endpoint)
+                            res = on_message(msg, s, endpoint_fresh)
                             if inspect.isawaitable(res):
                                 ack = await res
                             else:

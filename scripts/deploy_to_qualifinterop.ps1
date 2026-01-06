@@ -86,16 +86,24 @@ if ($useScp) {
 
 Write-Host "Exécution distante: unzip vers /opt/meddata-bridge et redémarrage du service (sudo)."
 
-# Remote command: unzip to /opt/meddata-bridge and restart service, then cleanup /tmp
-$remoteCmd = "sudo -S unzip -o /tmp/$zipName -d /opt/meddata-bridge/ && sudo -S systemctl restart meddata-bridge && rm -f /tmp/$zipName"
+# Remote command: unzip to /opt/meddata-bridge, restart service, then cleanup /tmp
+# Note: Using echo with password for sudo (this is for internal test env only)
+$remoteCmd = "echo '$plainPw' | sudo -S unzip -o /tmp/$zipName -d /opt/meddata-bridge/ && echo '$plainPw' | sudo -S systemctl restart meddata-bridge && rm -f /tmp/$zipName"
 
 if ($useScp) {
-    # Pipe the sudo password into ssh so remote sudo reads it from stdin
+    # Execute remote command via ssh
     Write-Host "Running remote command on ${RemoteUser}@${RemoteHost}"
-    $plainPw | ssh "${RemoteUser}@${RemoteHost}" "$remoteCmd"
+    ssh "${RemoteUser}@${RemoteHost}" "$remoteCmd"
 } else {
     # pscp/plink path: plink can accept -pw and run remote commands
-    & plink.exe -pw $plainPw "${RemoteUser}@${RemoteHost}" $remoteCmd
+    & plink.exe -pw $plainPw "${RemoteUser}@${RemoteHost}" "$remoteCmd"
+}
+
+Write-Host "Vérification du statut du service..."
+if ($useScp) {
+    ssh "${RemoteUser}@${RemoteHost}" "echo '$plainPw' | sudo -S systemctl status meddata-bridge --no-pager | head -n 5"
+} else {
+    & plink.exe -pw $plainPw "${RemoteUser}@${RemoteHost}" "echo '$plainPw' | sudo -S systemctl status meddata-bridge --no-pager | head -n 5"
 }
 
 Write-Host "Déploiement terminé." -ForegroundColor Green

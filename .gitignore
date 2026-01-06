@@ -35,3 +35,19 @@ tmp/
 tmp/generated/
 *.zip
 Doc/interfaces.integration/
+
+# Test hypothesis data
+.hypothesis/
+
+# Temporary scripts and fixes
+fix_*.py
+scripts/disable_*.py
+scripts/disable_*.sh
+scripts/disable_*.sql
+scripts/remote_*.py
+scripts/remote_*.sql
+scripts/remote_*.sh
+scripts/run_*.sh
+
+# Temporary API schemas during development
+app/api/schemas_api.py

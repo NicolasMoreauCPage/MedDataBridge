@@ -257,7 +257,6 @@ async def new_ej_namespace(
         ej = get_ej_or_404(session, context, ej_id)
     except HTTPException:
         # If EJ doesn't exist, redirect to EJ list
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(f"/admin/ght/{ght_id}", status_code=302)
 
     return get_templates_with_filters(request).TemplateResponse(
@@ -284,7 +283,6 @@ async def create_ej_namespace(
         ej = get_ej_or_404(session, context, ej_id)
     except HTTPException:
         # If EJ doesn't exist, redirect to EJ list
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(f"/admin/ght/{ght_id}", status_code=302)
     
     form = await request.form()

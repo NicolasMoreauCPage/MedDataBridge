@@ -54,7 +54,6 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
 
     # Si pas de contexte et pas en mode admin, rediriger vers la sélection GHT
     if not admin and not ght_context and not ej_context_id:
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/context/select", status_code=303)
 
     # Load endpoints with GHT context and EJ (including GHT via EJ)

@@ -1,6 +1,6 @@
 """Router pour la documentation des standards."""
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session
 
@@ -83,7 +83,6 @@ async def docs_markdown(request: Request, filename: str):
     # which caused a self-redirect loop).
     html_equiv = doc_path.with_suffix('.html')
     if filename.lower().endswith('.md') and html_equiv.exists():
-        from fastapi.responses import RedirectResponse
         static_url = f"/docs/{html_equiv.name}"
         return RedirectResponse(url=static_url)
 

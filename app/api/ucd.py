@@ -16,7 +16,38 @@ async def create_ucd_act(
     act: UCDActCreate,
     session: Session = Depends(get_session)
 ):
-    """Crée un nouvel acte UCD."""
+    """
+    Crée un nouvel acte UCD (Unité Commune de Dispensation).
+    
+    Les UCD représentent des médicaments ou dispositifs médicaux dispensés,
+    identifiés par leur code CIP-13. La validation automatique vérifie:
+    - Format CIP-13 (13 chiffres)
+    - Quantité > 0
+    - Prix unitaire > 0
+    - Cohérence prix total = prix unitaire * quantité
+    
+    Args:
+        act: Données de l'acte (dossier_id, code_cip, quantité, prix)
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        UCDActResponse: L'acte créé avec son ID
+        
+    Raises:
+        HTTPException 400: Validation échouée (code CIP invalide, prix négatif, etc.)
+        
+    Example:
+        ```json
+        POST /ucd/
+        {
+            "dossier_id": 123,
+            "code_cip": "3400936396258",
+            "quantity": 2,
+            "unit_price": 15.50,
+            "total_price": 31.00
+        }
+        ```
+    """
     service = UCDService(session)
     return await service.create_act(act)
 
@@ -26,7 +57,19 @@ async def get_ucd_act(
     act_id: int,
     session: Session = Depends(get_session)
 ):
-    """Récupère un acte UCD par son ID."""
+    """
+    Récupère un acte UCD par son ID.
+    
+    Args:
+        act_id: Identifiant unique de l'acte UCD
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        UCDActResponse: Détails complets de l'acte
+        
+    Raises:
+        HTTPException 404: Acte non trouvé
+    """
     service = UCDService(session)
     return await service.get_act_by_id(act_id)
 
@@ -36,7 +79,19 @@ async def list_ucd_acts_by_dossier(
     dossier_id: int,
     session: Session = Depends(get_session)
 ):
-    """Liste les actes UCD d'un dossier."""
+    """
+    Liste tous les actes UCD d'un dossier patient.
+    
+    Utile pour obtenir l'historique des médicaments/dispositifs dispensés
+    durant un séjour.
+    
+    Args:
+        dossier_id: ID du dossier patient
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        List[UCDActResponse]: Liste de tous les actes UCD du dossier
+    """
     service = UCDService(session)
     return await service.get_acts_by_dossier(dossier_id)
 
@@ -68,6 +123,25 @@ async def validate_ucd_act(
     act_id: int,
     session: Session = Depends(get_session)
 ):
-    """Valide un acte UCD."""
+    """
+    Valide un acte UCD selon les règles métier.
+    
+    Vérifie:
+    - Format code CIP-13 (13 chiffres)
+    - Quantité > 0
+    - Prix unitaire > 0  
+    - Cohérence total = unitaire * quantité (±0.01€ tolérance)
+    
+    Args:
+        act_id: ID de l'acte à valider
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        UCDActResponse: L'acte validé
+        
+    Raises:
+        HTTPException 404: Acte non trouvé
+        HTTPException 400: Validation échouée
+    """
     service = UCDService(session)
     return await service.validate_act(act_id)

@@ -17,7 +17,27 @@ async def create_patient(
     patient: Patient,
     session: Session = Depends(get_session)
 ):
-    """Crée un nouveau patient."""
+    """
+    Crée un nouveau patient dans la base de données.
+    
+    Args:
+        patient: Données du patient (family, given, birth_date, gender, etc.)
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        Patient: Le patient créé avec son ID généré
+        
+    Example:
+        ```json
+        POST /api/patients
+        {
+            "family": "DUPONT",
+            "given": "Jean",
+            "birth_date": "1980-05-15",
+            "gender": "M"
+        }
+        ```
+    """
     session.add(patient)
     session.commit()
     session.refresh(patient)
@@ -29,7 +49,24 @@ async def get_patient(
     patient_id: int,
     session: Session = Depends(get_session)
 ):
-    """Récupère un patient par son ID."""
+    """
+    Récupère les détails complets d'un patient par son ID.
+    
+    Args:
+        patient_id: Identifiant unique du patient
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        Patient: Données complètes du patient
+        
+    Raises:
+        HTTPException 404: Patient non trouvé
+        
+    Example:
+        ```
+        GET /api/patients/123
+        ```
+    """
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient non trouvé")
@@ -46,7 +83,27 @@ async def list_patients(
     gender: Optional[str] = None,
     session: Session = Depends(get_session)
 ):
-    """Liste les patients avec pagination et filtres."""
+    """
+    Liste les patients avec pagination et filtres optionnels.
+    
+    Args:
+        skip: Nombre d'éléments à sauter (pagination)
+        limit: Nombre maximum de résultats (1-1000)
+        family: Filtre sur nom de famille (recherche partielle insensible à la casse)
+        given: Filtre sur prénom (recherche partielle insensible à la casse)
+        birth_date: Filtre sur date de naissance exacte
+        gender: Filtre sur sexe (M/F/U)
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        List[Patient]: Liste des patients correspondant aux critères
+        
+    Example:
+        ```
+        GET /api/patients?family=DUPONT&limit=10
+        GET /api/patients?birth_date=1980-05-15&gender=M
+        ```
+    """
     query = select(Patient)
     
     if family:
@@ -68,7 +125,32 @@ async def update_patient(
     patient_update: Patient,
     session: Session = Depends(get_session)
 ):
-    """Met à jour un patient existant."""
+    """
+    Met à jour les données d'un patient existant.
+    
+    Seuls les champs fournis dans le corps de la requête seront mis à jour.
+    L'ID du patient ne peut pas être modifié.
+    
+    Args:
+        patient_id: ID du patient à mettre à jour
+        patient_update: Nouvelles données (champs optionnels)
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        Patient: Le patient mis à jour
+        
+    Raises:
+        HTTPException 404: Patient non trouvé
+        
+    Example:
+        ```json
+        PUT /api/patients/123
+        {
+            "family": "MARTIN",
+            "phone": "+33612345678"
+        }
+        ```
+    """
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient non trouvé")
@@ -88,7 +170,27 @@ async def delete_patient(
     patient_id: int,
     session: Session = Depends(get_session)
 ):
-    """Supprime un patient."""
+    """
+    Supprime un patient de la base de données.
+    
+    ⚠️ Attention: Cette opération est irréversible.
+    Tous les dossiers associés seront potentiellement orphelins.
+    
+    Args:
+        patient_id: ID du patient à supprimer
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        Status 204 No Content si succès
+        
+    Raises:
+        HTTPException 404: Patient non trouvé
+        
+    Example:
+        ```
+        DELETE /api/patients/123
+        ```
+    """
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient non trouvé")
@@ -102,7 +204,27 @@ async def get_patient_dossiers(
     patient_id: int,
     session: Session = Depends(get_session)
 ):
-    """Récupère les dossiers d'un patient."""
+    """
+    Récupère tous les dossiers associés à un patient.
+    
+    Retourne l'historique complet des hospitalisations, consultations et urgences
+    du patient identifié.
+    
+    Args:
+        patient_id: ID du patient
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        List[Dossier]: Liste de tous les dossiers du patient
+        
+    Raises:
+        HTTPException 404: Patient non trouvé
+        
+    Example:
+        ```
+        GET /api/patients/123/dossiers
+        ```
+    """
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient non trouvé")
@@ -117,7 +239,34 @@ async def merge_patients(
     other_id: int,
     session: Session = Depends(get_session)
 ):
-    """Fusionne deux patients (other_id -> patient_id)."""
+    """
+    Fusionne deux fiches patient (dédoublonnage).
+    
+    Transfère tous les dossiers du patient source (other_id) vers le patient cible
+    (patient_id), puis supprime le patient source. Utile pour corriger les doublons.
+    
+    Args:
+        patient_id: ID du patient cible (celui qui sera conservé)
+        other_id: ID du patient source (à fusionner et supprimer)
+        session: Session DB injectée automatiquement
+        
+    Returns:
+        dict: Message de confirmation et nombre de dossiers déplacés
+            - message: Description de l'opération
+            - moved_dossiers: Nombre de dossiers transférés
+        
+    Raises:
+        HTTPException 404: Un des deux patients n'existe pas
+        
+    Example:
+        ```
+        POST /api/patients/123/merge/456
+        Response: {
+            "message": "Patient 456 fusionné dans 123",
+            "moved_dossiers": 3
+        }
+        ```
+    """
     patient = session.get(Patient, patient_id)
     other = session.get(Patient, other_id)
     

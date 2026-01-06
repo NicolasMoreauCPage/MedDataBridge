@@ -7,8 +7,12 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main, develop ]
+    branches-ignore:
+      - 'docs/**'
   pull_request:
     branches: [ main, develop ]
+    branches-ignore:
+      - 'docs/**'
   schedule:
     # Tests quotidiens à 2h du matin
     - cron: '0 2 * * *'

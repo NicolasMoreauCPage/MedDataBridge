@@ -4,8 +4,12 @@ name: Tests
 on:
   push:
     branches: [ main ]
+    branches-ignore:
+      - 'docs/**'
   pull_request:
     branches: [ main ]
+    branches-ignore:
+      - 'docs/**'
 
 jobs:
   test:

@@ -3,6 +3,8 @@ name: CI - full
 on:
   pull_request:
     branches: [ main ]
+    branches-ignore:
+      - 'docs/**'
 
 jobs:
   full-tests:

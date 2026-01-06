@@ -3,8 +3,12 @@ name: CI - unit tests & lint
 on:
   push:
     branches: [ improvements/autopilot ]
+    branches-ignore:
+      - 'docs/**'
   pull_request:
     branches: [ main ]
+    branches-ignore:
+      - 'docs/**'
 
 jobs:
   unit-and-lint:

@@ -3,6 +3,8 @@ name: Regenerate PAM summary
 on:
   push:
     branches: [ main ]
+    branches-ignore:
+      - 'docs/**'
   workflow_dispatch: {}
 
 jobs:

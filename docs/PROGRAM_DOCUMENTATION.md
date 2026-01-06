@@ -34,7 +34,12 @@ Structure principale du repo
 
 - `tests/` : tests unitaires et artefacts de test.
 
-- `Doc/` : documentations générées et manuelles (ici nous ajoutons `PROGRAM_DOCUMENTATION.md`).
+- `docs/` : documentations générées et manuelles :
+  - `PROGRAM_DOCUMENTATION.md` (ce document) : documentation complète du programme
+  - `NAMESPACES_CLARIFICATION.md` : clarification des concepts de namespaces (OID, URI, nom) pour HL7v2 vs FHIR
+  - `API_REST_DOCUMENTATION.md` : documentation de l'API REST
+  - `MENU_MAP.md` : cartographie des routes et menus de l'application
+  - `PROJECT_ORGANIZATION.md` : organisation du projet et structure des fichiers
 
 - `scripts/` et `tools/` : utilitaires et scripts de validation/maintenance (peuvent être archivés en /tmp pour sécurité).
 
@@ -82,7 +87,7 @@ MedData Bridge a été conçu pour servir de banc d'essai de qualification des i
 
   - `app/validators/*` : validators contextuels (PAMValidator, MFNValidator) pour aider en CLI et tests.
 
-  - `app/services/identifier_manager.py` : gestion des identifiants et namespaces.
+  - `app/services/identifier_manager.py` : gestion des identifiants et namespaces. **Voir [NAMESPACES_CLARIFICATION.md](NAMESPACES_CLARIFICATION.md) pour comprendre les concepts de namespace (OID, URI, nom) en HL7v2 vs FHIR.**
 
   - `app/services/scheduler.py` : scheduler pour polling des endpoints FILE.
 

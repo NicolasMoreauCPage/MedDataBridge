@@ -196,7 +196,7 @@ def register_structure_entity_events() -> None:
         event.listen(model, "after_insert", _after_insert)
         event.listen(model, "after_update", _after_update)
         event.listen(model, "after_delete", _after_delete)
-    logger.info("[structure_events] ✓ Listeners registered for structure models (including EntiteJuridique)")
+    logger.info("[structure_events] [OK] Listeners registered for structure models (including EntiteJuridique)")
 
 
 def register_structure_events() -> None:

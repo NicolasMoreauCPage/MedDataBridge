@@ -274,4 +274,4 @@ def register_entity_events():
     for model, event_name, func in listeners:
         event.listen(model, event_name, func)
     
-    logger.info("[entity_events] ✓ Entity event listeners registered for Patient, Dossier, Venue, Mouvement")
+    logger.info("[entity_events] [OK] Entity event listeners registered for Patient, Dossier, Venue, Mouvement")

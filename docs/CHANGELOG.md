@@ -5,6 +5,35 @@ Toutes les modifications notables apportées à MedData Bridge seront documenté
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 📝 Documentation
+- **Clarification des namespaces** (2026-01-06)
+  - Nouveau guide `NAMESPACES_CLARIFICATION.md` expliquant OID/URI/nom
+  - Distinction claire : HL7v2 (NOM+OID) vs FHIR (URI uniquement)
+  - Exemples d'import/export pour chaque standard
+  - Documentation indexée dans `docs/README.md`
+
+- **Refonte de la documentation** (2026-01-06)
+  - Création de `docs/README.md` comme index central
+  - Archivage des documents obsolètes (`TODO_UI_UX.md`, `VERSIONING_PROPOSAL.md`)
+  - Liens croisés entre documents améliorés
+  - Structure docs/ clarifiée et maintenue
+
+### ✨ Fonctionnalités
+- **Gestion des namespaces améliorée** (2026-01-06)
+  - Auto-extraction OID depuis URI FHIR
+  - Auto-génération du nom HL7v2 si non fourni
+  - Validation avec regex et cohérence URI/OID
+  - UI redesignée avec badges FHIR (vert) et HL7v2 (bleu)
+  - Aide contextuelle avec exemples concrets
+
+### 🐛 Correctifs
+- **Validation des namespaces** (2026-01-06)
+  - Permet maintenant même URI pour types différents (IPP/NDA/MVT)
+  - Messages d'erreur plus clairs lors de la création
+  - Gestion des erreurs avec rollback et flash messages
+
 ## [1.0.0] - 2025-12-26
 
 ### 🎉 Release Notes

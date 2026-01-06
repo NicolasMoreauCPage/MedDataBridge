@@ -9,13 +9,19 @@ L'objectif principal est de fournir un environnement reproductible pour :
 
 Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base SQLite d'exemples.
 
+## 📚 Documentation
+
+**Documentation complète disponible dans [`docs/`](docs/)** :
+- [PROGRAM_DOCUMENTATION.md](docs/PROGRAM_DOCUMENTATION.md) - Architecture et composants techniques
+- [NAMESPACES_CLARIFICATION.md](docs/NAMESPACES_CLARIFICATION.md) - Guide HL7v2/FHIR sur les namespaces (OID, URI, nom)
+- [API_REST_DOCUMENTATION.md](docs/API_REST_DOCUMENTATION.md) - Documentation des endpoints API
+- [docs/README.md](docs/README.md) - Index complet de la documentation
+
 ## Contenu clé
 - `app/` : code de l'application (routers, templates, modèles SQLModel, services).
 - `docs/` : documentation détaillée (IHE PAM, HPRIM, API, guides d'intégration).
 - `medbridge.db` : base SQLite utilisée localement (fichier généré après `init_db`).
 - `tests/` : suite complète de tests (575+ tests : API, intégration, UI, sécurité, performance).
-
-Voir la documentation technique complète dans `docs/PROGRAM_DOCUMENTATION.md`.
 
 Architecture (schéma rapide)
 

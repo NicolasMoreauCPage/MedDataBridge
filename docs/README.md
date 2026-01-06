@@ -48,8 +48,14 @@ Ce dossier contient la documentation technique et fonctionnelle de MedData Bridg
 ### Autres
 
 - **[CHANGELOG.md](CHANGELOG.md)** - Historique des modifications
-- **[TODO_UI_UX.md](TODO_UI_UX.md)** - Améliorations UI/UX à venir
-- **[VERSIONING_PROPOSAL.md](VERSIONING_PROPOSAL.md)** - Proposition de versioning
+  - ⚠️ **À maintenir** : Mettre à jour régulièrement avec les nouvelles fonctionnalités
+
+### 📦 Archive
+
+Documents historiques conservés pour référence (non maintenus) :
+- **[archive/](archive/)** - Documentation obsolète ou complétée
+  - `TODO_UI_UX.md` - Refonte UI/UX (✅ terminée décembre 2025)
+  - `VERSIONING_PROPOSAL.md` - Stratégie versioning (✅ appliquée)
 
 ## 🔍 Par où commencer ?
 

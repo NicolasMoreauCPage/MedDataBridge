@@ -355,6 +355,13 @@ def create_endpoint(
         emit_hprim_lpp=bool(emit_hprim_lpp)
     )
     session.add(e); session.commit()
+    session.refresh(e)  # Get the assigned ID
+    
+    # Démarrer automatiquement l'endpoint s'il est activé
+    if e.is_enabled and e.kind == "MLLP" and e.role in ("receiver", "both"):
+        registry.start(e, session)
+        session.commit()
+    
     return RedirectResponse(url="/endpoints", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.get("/{endpoint_id}", response_class=HTMLResponse)
@@ -510,6 +517,17 @@ def update_endpoint(
     e.updated_at = datetime.now(timezone.utc)
 
     session.add(e); session.commit()
+    
+    # Démarrer automatiquement l'endpoint s'il est maintenant activé et pas déjà en cours
+    if e.is_enabled and e.kind == "MLLP" and e.role in ("receiver", "both"):
+        if endpoint_id not in set(registry.running_ids()):
+            registry.start(e, session)
+            session.commit()
+    # Arrêter l'endpoint s'il est désactivé mais en cours d'exécution
+    elif endpoint_id in set(registry.running_ids()):
+        registry.stop(e, session)
+        session.commit()
+    
     return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/{endpoint_id}/delete")

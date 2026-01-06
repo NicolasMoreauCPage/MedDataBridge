@@ -12,52 +12,62 @@ router = APIRouter(prefix="/ucd", tags=["UCD API"])
 
 
 @router.post("/", response_model=UCDActResponse)
-def create_ucd_act(
+async def create_ucd_act(
     act: UCDActCreate,
     session: Session = Depends(get_session)
 ):
     """Crée un nouvel acte UCD."""
-    # TODO: Implémenter avec le service UCD
-    raise HTTPException(status_code=501, detail="Not implemented")
+    service = UCDService(session)
+    return await service.create_act(act)
 
 
 @router.get("/{act_id}", response_model=UCDActResponse)
-def get_ucd_act(
+async def get_ucd_act(
     act_id: int,
     session: Session = Depends(get_session)
 ):
     """Récupère un acte UCD par son ID."""
-    # TODO: Implémenter avec le service UCD
-    raise HTTPException(status_code=501, detail="Not implemented")
+    service = UCDService(session)
+    return await service.get_act_by_id(act_id)
 
 
-@router.get("/", response_model=List[UCDActResponse])
-def list_ucd_acts(
-    skip: int = 0,
-    limit: int = 100,
+@router.get("/dossier/{dossier_id}", response_model=List[UCDActResponse])
+async def list_ucd_acts_by_dossier(
+    dossier_id: int,
     session: Session = Depends(get_session)
 ):
-    """Liste les actes UCD."""
-    # TODO: Implémenter avec le service UCD
-    return []
+    """Liste les actes UCD d'un dossier."""
+    service = UCDService(session)
+    return await service.get_acts_by_dossier(dossier_id)
 
 
 @router.put("/{act_id}", response_model=UCDActResponse)
-def update_ucd_act(
+async def update_ucd_act(
     act_id: int,
     act: UCDActUpdate,
     session: Session = Depends(get_session)
 ):
     """Met à jour un acte UCD."""
-    # TODO: Implémenter avec le service UCD
-    raise HTTPException(status_code=501, detail="Not implemented")
+    service = UCDService(session)
+    return await service.update_act(act_id, act)
 
 
 @router.delete("/{act_id}")
-def delete_ucd_act(
+async def delete_ucd_act(
     act_id: int,
     session: Session = Depends(get_session)
 ):
     """Supprime un acte UCD."""
-    # TODO: Implémenter avec le service UCD
-    raise HTTPException(status_code=501, detail="Not implemented")
+    service = UCDService(session)
+    await service.delete_act(act_id)
+    return {"message": "Acte UCD supprimé avec succès"}
+
+
+@router.post("/{act_id}/validate", response_model=UCDActResponse)
+async def validate_ucd_act(
+    act_id: int,
+    session: Session = Depends(get_session)
+):
+    """Valide un acte UCD."""
+    service = UCDService(session)
+    return await service.validate_act(act_id)

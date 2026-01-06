@@ -382,6 +382,16 @@ def create_app() -> FastAPI:
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM LPP routers not available: {e}")
     
+    # REST APIs pour gestion patients et dossiers
+    try:
+        from app.api import patients as patients_api
+        from app.api import dossiers as dossiers_api
+        app.include_router(patients_api.router)
+        app.include_router(dossiers_api.router)
+        print(" - REST APIs Patients & Dossiers mounted at /api/patients and /api/dossiers")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"REST APIs Patients/Dossiers not available: {e}")
+    
     # HPRIM Management interfaces
     try:
         from app.routers import hprim_management

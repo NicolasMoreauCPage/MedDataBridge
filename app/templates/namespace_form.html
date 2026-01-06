@@ -37,15 +37,18 @@
         <!-- Aide contextuelle -->
         <div class="bg-blue-50 border-l-4 border-blue-400 px-8 py-6 border-b-2 border-slate-200">
             <h3 class="text-lg font-bold text-blue-900 mb-3">📘 Comprendre les namespaces</h3>
-            <div class="text-sm text-blue-800 space-y-2">
-                <p><strong>URI FHIR (system)</strong> : Identifiant complet utilisé dans les ressources FHIR.</p>
-                <p class="ml-4 text-blue-700">→ Exemple : <code class="bg-blue-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
+            <div class="text-sm text-blue-800 space-y-3">
+                <div class="border-l-4 border-blue-400 pl-3">
+                    <p><strong>En HL7v2 (messages reçus/envoyés)</strong> : Le namespace est composé de <strong>NOM + OID</strong></p>
+                    <p class="ml-4 text-blue-700">→ Format reçu : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON&1.2.250.1.71.1.2.2&ISO</code></p>
+                    <p class="ml-4 text-blue-700">⚠️ <strong>On ne reçoit jamais d'URI en HL7v2</strong></p>
+                </div>
                 
-                <p><strong>OID HL7v2</strong> : Identifiant court utilisé dans les messages HL7v2 (extrait automatiquement de l'URI).</p>
-                <p class="ml-4 text-blue-700">→ Exemple : <code class="bg-blue-100 px-2 py-1 rounded">1.2.250.1.71.1.2.2</code></p>
-                
-                <p><strong>Nom HL7v2/IHE PAM</strong> : Nom court utilisé dans les messages HL7v2 (généré automatiquement si non fourni).</p>
-                <p class="ml-4 text-blue-700">→ Exemple : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON</code></p>
+                <div class="border-l-4 border-green-400 pl-3">
+                    <p><strong>En FHIR (ressources reçues/envoyées)</strong> : Le namespace est une <strong>URI uniquement</strong></p>
+                    <p class="ml-4 text-green-700">→ Format envoyé : <code class="bg-green-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
+                    <p class="ml-4 text-green-700">⚠️ <strong>On n'envoie pas le nom ni l'OID séparément en FHIR</strong></p>
+                </div>
             </div>
         </div>
 
@@ -80,40 +83,40 @@
                 Identifiants système
             </h3>
             <div class="space-y-4">
-                <!-- URI FHIR -->
+                <!-- URI FHIR (pour export FHIR) -->
                 <div>
                     <label class="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">FHIR</span>
+                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Pour export FHIR</span>
                         URI FHIR (system) <span class="text-red-600">*</span>
                     </label>
-                    <input type="text" name="system" id="systemInput" value="{{ namespace.system if namespace else '' }}" required
+                    <input type="text" name="system" id="system" value="{{ namespace.system if namespace else '' }}" required
                            placeholder="urn:oid:1.2.250.1.71.1.2.2"
                            class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-2 text-sm text-slate-500">Identifiant complet utilisé dans les ressources FHIR (format: <code>urn:oid:X.Y.Z</code>)</p>
+                    <p class="mt-2 text-sm text-slate-500">📤 Identifiant envoyé dans les ressources FHIR (Identifier.system). Format: <code>urn:oid:X.Y.Z</code></p>
                 </div>
-                <!-- OID HL7v2 -->
+                <!-- OID HL7v2 (de/vers HL7v2) -->
                 <div>
                     <label class="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">HL7v2</span>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Reçu/Envoyé en HL7v2</span>
                         OID HL7v2 (optionnel)
                     </label>
-                    <input type="text" name="oid" id="oidInput" value="{{ namespace.oid if namespace else '' }}"
+                    <input type="text" name="oid" id="oid" value="{{ namespace.oid if namespace else '' }}"
                            placeholder="1.2.250.1.71.1.2.2 (extrait automatiquement)"
                            class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                            readonly>
-                    <p class="mt-2 text-sm text-slate-500">Identifiant utilisé dans les messages HL7v2 (CX-4 Assigning Authority OID) - <strong>extrait automatiquement</strong></p>
+                    <p class="mt-2 text-sm text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie OID) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>) - <strong>extrait automatiquement</strong> de l'URI FHIR</p>
                 </div>
-                <!-- Nom HL7v2 -->
+                <!-- Nom HL7v2 (de/vers HL7v2) -->
                 <div>
                     <label class="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">HL7v2</span>
-                        Nom HL7v2/IHE PAM (optionnel)
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Reçu/Envoyé en HL7v2</span>
+                        Nom HL7v2 (optionnel)
                     </label>
                     <input type="text" name="name" value="{{ namespace.name if namespace else '' }}"
                            placeholder="Ex: CHPAULON (généré automatiquement si vide)"
                            maxlength="20"
                            class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-2 text-sm text-slate-500">Nom court utilisé dans les messages HL7v2 (CX-4 Assigning Authority Name). Généré automatiquement si non fourni.</p>
+                    <p class="mt-2 text-sm text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie NOM) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>). Généré automatiquement si non fourni.</p>
                 </div>
             </div>
         </div>

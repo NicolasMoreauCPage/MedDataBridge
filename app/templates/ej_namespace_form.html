@@ -32,15 +32,19 @@
         </div>
         <div class="ml-4">
           <h3 class="text-lg font-semibold text-blue-900 mb-3">📘 Comprendre les namespaces d'identifiants</h3>
-          <div class="text-sm text-blue-800 space-y-2">
-            <p><strong>URI FHIR (system)</strong> : Identifiant complet utilisé dans les ressources FHIR.</p>
-            <p class="ml-4 text-blue-700">→ Exemple : <code class="bg-blue-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
+          <div class="text-sm text-blue-800 space-y-3">
+            <div class="border-l-4 border-blue-400 pl-3">
+              <p><strong>En HL7v2 (messages reçus/envoyés)</strong> : Le namespace est composé de <strong>NOM + OID</strong></p>
+              <p class="ml-4 text-blue-700">→ Format reçu : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON&1.2.250.1.71.1.2.2&ISO</code></p>
+              <p class="ml-4 text-blue-700">→ Peut être aussi : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON</code> (nom seul) ou <code class="bg-blue-100 px-2 py-1 rounded">1.2.250.1.71.1.2.2</code> (OID seul)</p>
+              <p class="ml-4 text-blue-700">⚠️ <strong>On ne reçoit jamais d'URI en HL7v2</strong></p>
+            </div>
             
-            <p><strong>OID HL7v2</strong> : Identifiant court utilisé dans les messages HL7v2 (CX-4 Assigning Authority).</p>
-            <p class="ml-4 text-blue-700">→ Exemple : <code class="bg-blue-100 px-2 py-1 rounded">1.2.250.1.71.1.2.2</code> (extrait automatiquement de l'URI)</p>
-            
-            <p><strong>Nom HL7v2/IHE PAM</strong> : Nom court utilisé dans les messages HL7v2 (optionnel).</p>
-            <p class="ml-4 text-blue-700">→ Exemple : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON</code> (généré automatiquement si non fourni)</p>
+            <div class="border-l-4 border-green-400 pl-3">
+              <p><strong>En FHIR (ressources reçues/envoyées)</strong> : Le namespace est une <strong>URI uniquement</strong></p>
+              <p class="ml-4 text-green-700">→ Format envoyé : <code class="bg-green-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
+              <p class="ml-4 text-green-700">⚠️ <strong>On n'envoie pas le nom ni l'OID séparément en FHIR</strong></p>
+            </div>
             
             <p class="mt-3 font-medium text-blue-900">💡 Astuce : Vous pouvez réutiliser la même URI pour plusieurs types d'identifiants (ex: IPP, NDA, MVT avec <code class="bg-blue-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code>)</p>
           </div>
@@ -75,10 +79,13 @@
                     <p class="mt-1 text-xs text-slate-500">Type d'identifiant selon la norme IHE PAM</p>
                 </div>
 
-                <!-- URI FHIR -->
+                <!-- URI FHIR (pour export FHIR) -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">
-                        URI FHIR (system) <span class="text-red-500">*</span>
+                        <span class="inline-flex items-center gap-2">
+                            URI FHIR (system) <span class="text-red-500">*</span>
+                            <span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Pour export FHIR</span>
+                        </span>
                     </label>
                     <input 
                         type="text" 
@@ -89,13 +96,16 @@
                         placeholder="urn:oid:1.2.250.1.71.1.2.2"
                         class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"
                     >
-                    <p class="mt-1 text-xs text-slate-500">Identifiant complet utilisé dans les ressources FHIR (format: <code>urn:oid:X.Y.Z</code>)</p>
+                    <p class="mt-1 text-xs text-slate-500">📤 Identifiant envoyé dans les ressources FHIR (Identifier.system). Format: <code>urn:oid:X.Y.Z</code></p>
                 </div>
 
-                <!-- OID HL7v2 -->
+                <!-- OID HL7v2 (de/vers HL7v2) -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">
-                        OID HL7v2 (optionnel)
+                        <span class="inline-flex items-center gap-2">
+                            OID HL7v2 (optionnel)
+                            <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Reçu/Envoyé en HL7v2</span>
+                        </span>
                     </label>
                     <input 
                         type="text" 
@@ -106,13 +116,16 @@
                         class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm bg-slate-50"
                         readonly
                     >
-                    <p class="mt-1 text-xs text-slate-500">Identifiant utilisé dans les messages HL7v2 (CX-4 Assigning Authority OID) - <strong>extrait automatiquement</strong> de l'URI FHIR</p>
+                    <p class="mt-1 text-xs text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie OID) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>) - <strong>extrait automatiquement</strong> de l'URI FHIR</p>
                 </div>
 
-                <!-- Nom HL7v2 -->
+                <!-- Nom HL7v2 (de/vers HL7v2) -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">
-                        Nom HL7v2/IHE PAM (optionnel)
+                        <span class="inline-flex items-center gap-2">
+                            Nom HL7v2 (optionnel)
+                            <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Reçu/Envoyé en HL7v2</span>
+                        </span>
                     </label>
                     <input 
                         type="text" 
@@ -122,7 +135,7 @@
                         maxlength="20"
                         class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
-                    <p class="mt-1 text-xs text-slate-500">Nom court utilisé dans les messages HL7v2 (CX-4 Assigning Authority Name). Généré automatiquement à partir du type et de l'OID si non fourni.</p>
+                    <p class="mt-1 text-xs text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie NOM) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>). Généré automatiquement à partir du type et de l'OID si non fourni.</p>
                 </div>
 
                 <!-- Description -->

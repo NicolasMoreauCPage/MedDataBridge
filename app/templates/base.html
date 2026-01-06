@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title|default('MedData Bridge') }}</title>
-  <!-- <link rel="stylesheet" href="{{ url_for('static', path='css/output.css') }}"> -->
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='css/forms.css') }}">
   <!-- <link rel="stylesheet" href="{{ url_for('static', path='css/animations.css') }}"> -->
   <meta name="description" content="Interface de gestion des données médicales et interopérabilité FHIR/HL7">
@@ -915,8 +916,8 @@
     window.loadingSystem = loadingSystem;
   </script>
 
-  <!-- Alpine.js pour interactivité -->
-  <!-- <script defer src="{{ url_for('static', path='js/alpine.min.js') }}"></script> -->
+  <!-- Alpine.js pour interactivité via CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
   <!-- Conteneur de toasts pour les notifications -->
   {{ toast_container() }}

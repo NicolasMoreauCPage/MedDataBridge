@@ -46,17 +46,18 @@ async def create_namespace(
     
     logger.info(f"Tentative de création namespace: name={name}, type={type}, system={system}, ght_context_id={context.id}")
     
-    # Vérifier si un namespace avec ce system existe déjà pour ce GHT
+    # Vérifier si un namespace avec ce system ET ce type existe déjà pour ce GHT
     from sqlmodel import select
     existing = session.exec(
         select(IdentifierNamespace)
         .where(IdentifierNamespace.system == system)
+        .where(IdentifierNamespace.type == type)
         .where(IdentifierNamespace.ght_context_id == context.id)
     ).first()
     
     if existing:
-        logger.warning(f"Namespace déjà existant avec system={system} pour GHT {context.id}: ID={existing.id}, type={existing.type}")
-        flash(request, f"Un namespace avec l'URI '{system}' existe déjà (ID: {existing.id}, Type: {existing.type}). Vous pouvez avoir plusieurs types de namespaces avec des URIs différents.", "warning")
+        logger.warning(f"Namespace déjà existant avec system={system} et type={type} pour GHT {context.id}: ID={existing.id}")
+        flash(request, f"Un namespace de type '{type}' avec l'URI '{system}' existe déjà (ID: {existing.id}). Plusieurs types peuvent partager le même URI, mais pas le même type+URI.", "warning")
         return RedirectResponse(url=f"/admin/ght/{context_id}/namespaces/new", status_code=303)
     
     try:

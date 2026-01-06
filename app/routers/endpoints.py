@@ -528,7 +528,7 @@ def update_endpoint(
         registry.stop(e, session)
         session.commit()
     
-    return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/endpoints", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/{endpoint_id}/delete")
 def delete_endpoint(endpoint_id: int, session=Depends(get_session)):

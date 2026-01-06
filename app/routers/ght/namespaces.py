@@ -46,6 +46,19 @@ async def create_namespace(
     
     logger.info(f"Tentative de création namespace: name={name}, type={type}, system={system}, ght_context_id={context.id}")
     
+    # Vérifier si un namespace avec ce system existe déjà pour ce GHT
+    from sqlmodel import select
+    existing = session.exec(
+        select(IdentifierNamespace)
+        .where(IdentifierNamespace.system == system)
+        .where(IdentifierNamespace.ght_context_id == context.id)
+    ).first()
+    
+    if existing:
+        logger.warning(f"Namespace déjà existant avec system={system} pour GHT {context.id}: ID={existing.id}, type={existing.type}")
+        flash(request, f"Un namespace avec l'URI '{system}' existe déjà (ID: {existing.id}, Type: {existing.type}). Vous pouvez avoir plusieurs types de namespaces avec des URIs différents.", "warning")
+        return RedirectResponse(url=f"/admin/ght/{context_id}/namespaces/new", status_code=303)
+    
     try:
         namespace = IdentifierNamespace(
             name=name,
@@ -59,8 +72,8 @@ async def create_namespace(
         session.add(namespace)
         session.commit()
         session.refresh(namespace)
-        logger.info(f"Namespace créé avec succès: ID={namespace.id}, name={name}")
-        flash(request, f"Namespace '{name}' créé avec succès (ID: {namespace.id})", "success")
+        logger.info(f"Namespace créé avec succès: ID={namespace.id}, name={name}, type={type}")
+        flash(request, f"Namespace '{name}' créé avec succès (ID: {namespace.id}, Type: {type})", "success")
         return RedirectResponse(url=f"/admin/ght/{context_id}", status_code=303)
     except Exception as e:
         logger.error(f"Erreur création namespace: {type(e).__name__}: {str(e)}", exc_info=True)

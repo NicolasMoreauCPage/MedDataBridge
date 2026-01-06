@@ -161,31 +161,74 @@
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nom</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">System</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">OID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                <span class="flex items-center gap-1">
+                                    <span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold">HL7v2</span>
+                                    Nom
+                                </span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                <span class="flex items-center gap-1">
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-bold">FHIR</span>
+                                    URI System
+                                </span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                <span class="flex items-center gap-1">
+                                    <span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold">HL7v2</span>
+                                    OID
+                                </span>
+                            </th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Statut</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-200">
                         {% for ns in namespaces %}
-                        <tr>
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xl">
+                                        {% if ns.type == 'IPP' %}🆔
+                                        {% elif ns.type == 'NDA' %}📂
+                                        {% elif ns.type == 'VN' %}🏥
+                                        {% elif ns.type == 'MVT' %}🔄
+                                        {% elif ns.type == 'PC' %}👤
+                                        {% else %}📋{% endif %}
+                                    </span>
+                                    <div>
+                                        <div class="text-sm font-semibold text-slate-900">{{ ns.type }}</div>
+                                        <div class="text-xs text-slate-500">
+                                            {% if ns.type == 'IPP' %}Patient
+                                            {% elif ns.type == 'NDA' %}Dossier
+                                            {% elif ns.type == 'VN' %}Venue
+                                            {% elif ns.type == 'MVT' %}Mouvement
+                                            {% elif ns.type == 'PC' %}Contact{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                                 {{ ns.name }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                {{ ns.type }}
+                            <td class="px-6 py-4 text-sm text-slate-500 font-mono text-xs">
+                                <div class="max-w-xs truncate" title="{{ ns.system }}">
+                                    {{ ns.system }}
+                                </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono text-xs">
-                                {{ ns.system }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">
                                 {{ ns.oid if ns.oid else "—" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                           {% if ns.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ 'Actif' if ns.is_active else 'Inactif' }}
+                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
                                 <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/namespaces/{{ ns.id }}/edit"
-                                   class="text-blue-600 hover:text-blue-800">Modifier</a>
+                                   class="text-blue-600 hover:text-blue-800 font-medium">✏️ Modifier</a>
                             </td>
                         </tr>
                         {% endfor %}

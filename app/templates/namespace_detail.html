@@ -26,54 +26,133 @@
 
     <div class="my-8">
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-3xl font-bold">{{ namespace.name|default('', true) }}</h1>
+            <div class="flex items-center gap-3">
+                <h1 class="text-3xl font-bold">{{ namespace.name|default('', true) }}</h1>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                           {% if namespace.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ 'Actif' if namespace.is_active else 'Inactif' }}
+                </span>
+            </div>
             <div class="flex gap-4">
                 <a href="/admin/ght/{{ context.id }}/namespaces/{{ namespace.id }}/edit" 
-                   class="px-4 py-2 text-blue-600 hover:text-blue-800">
-                    Modifier
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    ✏️ Modifier
                 </a>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">URI du système</dt>
-                    <dd class="mt-1 text-lg text-slate-900">{{ namespace.system|default('-', true) }}</dd>
+        <!-- Section d'information principale -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <!-- Header avec type -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-200 px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <div class="text-2xl">
+                        {% if namespace.type == 'IPP' %}🆔
+                        {% elif namespace.type == 'NDA' %}📂
+                        {% elif namespace.type == 'VN' %}🏥
+                        {% elif namespace.type == 'MVT' %}🔄
+                        {% elif namespace.type == 'PC' %}👤
+                        {% else %}📋{% endif %}
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900">
+                            {% if namespace.type == 'IPP' %}Identifiant Patient Permanent (IPP)
+                            {% elif namespace.type == 'NDA' %}Numéro de Dossier Administratif (NDA)
+                            {% elif namespace.type == 'VN' %}Numéro de Venue (VN)
+                            {% elif namespace.type == 'MVT' %}Identifiant de Mouvement (MVT)
+                            {% elif namespace.type == 'PC' %}Personne à Contacter (PC)
+                            {% else %}{{ namespace.type }}{% endif %}
+                        </h3>
+                        <p class="text-sm text-slate-600">
+                            {% if namespace.type == 'IPP' %}Identité du patient
+                            {% elif namespace.type == 'NDA' %}Dossier médical
+                            {% elif namespace.type == 'VN' %}Séjour/Visite
+                            {% elif namespace.type == 'MVT' %}Déplacement
+                            {% elif namespace.type == 'PC' %}Contact{% endif %}
+                        </p>
+                    </div>
                 </div>
+            </div>
 
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">OID</dt>
-                    <dd class="mt-1 text-lg text-slate-900">{{ namespace.oid or '-' }}</dd>
-                </div>
+            <!-- Contenu -->
+            <div class="p-6">
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- URI FHIR -->
+                    <div class="md:col-span-2">
+                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">FHIR</span>
+                            URI FHIR (system)
+                        </dt>
+                        <dd class="mt-1">
+                            <code class="block bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-mono text-slate-900 break-all">
+                                {{ namespace.system|default('-', true) }}
+                            </code>
+                            <p class="mt-2 text-xs text-slate-500">📘 Utilisé dans les ressources FHIR (Patient.identifier.system, Encounter.identifier.system, etc.)</p>
+                        </dd>
+                    </div>
 
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">Type</dt>
-                    <dd class="mt-1 text-lg text-slate-900">
-                        {% if namespace.type == 'IPP' %}Identifiant Patient Permanent (IPP)
-                        {% elif namespace.type == 'NDA' %}Numéro de Dossier Administratif (NDA)
-                        {% elif namespace.type == 'VN' %}Numéro de Venue (VN)
-                        {% elif namespace.type == 'MVT' %}Identifiant de Mouvement (MVT)
-                        {% elif namespace.type == 'PC' %}Personne à Contacter (PC)
-                        {% else %}{{ namespace.type }}{% endif %}
-                    </dd>
-                </div>
+                    <!-- OID HL7v2 -->
+                    <div>
+                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">HL7v2</span>
+                            OID HL7v2
+                        </dt>
+                        <dd class="mt-1">
+                            <code class="block bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-mono text-slate-900">
+                                {{ namespace.oid or '—' }}
+                            </code>
+                            <p class="mt-2 text-xs text-slate-500">📘 Utilisé dans les messages HL7v2 (PID-3, PV1-19, ZBE-1 - CX-4 Assigning Authority OID)</p>
+                        </dd>
+                    </div>
 
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">État</dt>
-                    <dd class="mt-1">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                   {% if namespace.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                            {{ 'Actif' if namespace.is_active else 'Inactif' }}
-                        </span>
-                    </dd>
-                </div>
+                    <!-- Nom HL7v2 -->
+                    <div>
+                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">HL7v2</span>
+                            Nom HL7v2/IHE PAM
+                        </dt>
+                        <dd class="mt-1">
+                            <code class="block bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-mono text-slate-900">
+                                {{ namespace.name|default('—', true) }}
+                            </code>
+                            <p class="mt-2 text-xs text-slate-500">📘 Utilisé dans les messages HL7v2 (CX-4 Assigning Authority Name)</p>
+                        </dd>
+                    </div>
 
-                <div class="sm:col-span-2">
-                    <dt class="text-sm font-medium text-slate-500">Description</dt>
-                    <dd class="mt-1 text-slate-900">{{ namespace.description or '-' }}</dd>
+                    <!-- Description -->
+                    {% if namespace.description %}
+                    <div class="md:col-span-2 pt-4 border-t border-slate-200">
+                        <dt class="text-sm font-semibold text-slate-700 mb-2">Description</dt>
+                        <dd class="text-slate-900">{{ namespace.description }}</dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- Exemples d'usage -->
+        <div class="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-3">📝 Exemples d'utilisation</h3>
+            <div class="space-y-4">
+                <!-- Exemple FHIR -->
+                <div>
+                    <p class="text-sm font-medium text-blue-900 mb-2">Dans une ressource FHIR :</p>
+                    <pre class="bg-white border border-blue-200 rounded-lg p-3 text-xs overflow-x-auto"><code>{
+  "resourceType": "Patient",
+  "identifier": [{
+    "system": "{{ namespace.system }}",
+    "value": "123456"
+  }]
+}</code></pre>
                 </div>
-            </dl>
+                <!-- Exemple HL7v2 -->
+                {% if namespace.oid %}
+                <div>
+                    <p class="text-sm font-medium text-blue-900 mb-2">Dans un message HL7v2 :</p>
+                    <pre class="bg-white border border-blue-200 rounded-lg p-3 text-xs overflow-x-auto"><code>{% if namespace.type == 'IPP' %}PID|1||123456^^^{{ namespace.name }}&{{ namespace.oid }}&ISO^PI{% elif namespace.type == 'NDA' %}PV1|1|...|...||||||||||||||123456^^^{{ namespace.name }}&{{ namespace.oid }}&ISO^VN{% elif namespace.type == 'MVT' %}ZBE|123456^{{ namespace.name }}^{{ namespace.oid }}^ISO{% endif %}</code></pre>
+                </div>
+                {% endif %}
+            </div>
         </div>
 
         {% if identifiers %}

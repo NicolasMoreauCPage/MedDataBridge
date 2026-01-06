@@ -1,4 +1,5 @@
 """GHT Namespaces CRUD routes"""
+import logging
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -9,6 +10,7 @@ from app.models_structure import GHTContext, IdentifierNamespace
 from app.utils.flash import flash
 from .helpers import get_context_or_404
 
+logger = logging.getLogger(__name__)
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/{context_id}/namespaces", tags=["ght_namespaces"])
 
@@ -42,19 +44,29 @@ async def create_namespace(
     """Crée un nouveau namespace."""
     context = get_context_or_404(session, context_id)
     
-    namespace = IdentifierNamespace(
-        name=name,
-        description=description,
-        oid=oid,
-        system=system,
-        type=type,
-        ght_context_id=context.id,
-        is_active=True
-    )
-    session.add(namespace)
-    session.commit()
-    flash(request, f"Namespace {name} créé avec succès", "success")
-    return RedirectResponse(url=f"/admin/ght/{context_id}", status_code=303)
+    logger.info(f"Tentative de création namespace: name={name}, type={type}, system={system}, ght_context_id={context.id}")
+    
+    try:
+        namespace = IdentifierNamespace(
+            name=name,
+            description=description,
+            oid=oid,
+            system=system,
+            type=type,
+            ght_context_id=context.id,
+            is_active=True
+        )
+        session.add(namespace)
+        session.commit()
+        session.refresh(namespace)
+        logger.info(f"Namespace créé avec succès: ID={namespace.id}, name={name}")
+        flash(request, f"Namespace '{name}' créé avec succès (ID: {namespace.id})", "success")
+        return RedirectResponse(url=f"/admin/ght/{context_id}", status_code=303)
+    except Exception as e:
+        logger.error(f"Erreur création namespace: {type(e).__name__}: {str(e)}", exc_info=True)
+        session.rollback()
+        flash(request, f"Erreur lors de la création du namespace: {str(e)}", "error")
+        return RedirectResponse(url=f"/admin/ght/{context_id}/namespaces/new", status_code=303)
 
 @router.get("/{namespace_id}")
 async def namespace_detail(

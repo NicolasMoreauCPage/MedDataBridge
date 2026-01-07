@@ -116,7 +116,7 @@ class FilePollerService:
             except Exception as e:
                 error_msg = f"Error processing {file_path.name}: {str(e)}"
                 self.stats['errors'].append(error_msg)
-                print(error_msg)
+                logger.error(f"[CALLBACK] {error_msg}", exc_info=True)
                 return False
         
         # Process files synchronously but handle async message processing
@@ -166,7 +166,7 @@ class FilePollerService:
                         processing_path.rename(error_path)
                     stats['failed'] += 1
             except Exception as e:
-                print(f"Error processing {file_path}: {e}")
+                logger.error(f"[FILE_ERROR] Error processing {file_path}: {e}", exc_info=True)
                 # If we have a .processing file, move it to error
                 current_file = processing_path if processing_path and processing_path.exists() else file_path
                 if current_file.exists():

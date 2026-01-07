@@ -13,7 +13,7 @@ Notes
     pour éviter des commits imbriqués.
 """
 
-from sqlmodel import SQLModel, create_engine, Session, select
+from sqlmodel import SQLModel, create_engine, Session, select, text
 from typing import Optional
 
 # Import ALL models to ensure tables are registered

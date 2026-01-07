@@ -87,7 +87,7 @@ def create_deployment_package():
             print(f"  Ajouté: {file_path}")
     
     file_size = os.path.getsize(zip_name) / (1024 * 1024)
-    print(f"\n✓ Package créé: {zip_name} ({file_size:.2f} MB)")
+    print(f"\n[OK] Package cree: {zip_name} ({file_size:.2f} MB)")
     return zip_name
 
 if __name__ == "__main__":

@@ -513,6 +513,7 @@
           </p>
           <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Patients</a>
           <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50 font-semibold text-green-700">📋 Dossiers & Cotation</a>
+          <a href="/hprim-cotation/" class="block rounded-xl px-3 py-2 hover:bg-emerald-50 text-emerald-700">💊 Messages HPRIM</a>
           <a href="/venues{% if request.state and request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Venues</a>
           <a href="/mouvements{% if request.state.venue_context %}?venue_id={{ request.state.venue_context.id }}{% elif request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Mouvements</a>
           <a href="/forms" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Formulaires</a>

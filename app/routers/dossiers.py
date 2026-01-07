@@ -12,7 +12,7 @@ from sqlalchemy import String
 from datetime import datetime
 from typing import List, Optional
 from app.db import get_session
-from app.models import Dossier, Patient, DossierType, Venue
+from app.models import Dossier, Patient, DossierType, Venue, CCAMAct, NGAPAct, UCDAct, LPPAct
 from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import ScenarioBinding, InteropScenario
 from app.services import dossiers_service
@@ -78,13 +78,24 @@ def list_dossiers(
         dossier_seq=dossier_seq,
     )
     
+    # Compter les actes pour chaque dossier
+    from sqlalchemy import func
+    dossier_acts_count = {}
+    for d in dossiers:
+        ccam_count = session.exec(select(func.count(CCAMAct.id)).where(CCAMAct.dossier_id == d.id)).one()
+        ngap_count = session.exec(select(func.count(NGAPAct.id)).where(NGAPAct.dossier_id == d.id)).one()
+        ucd_count = session.exec(select(func.count(UCDAct.id)).where(UCDAct.dossier_id == d.id)).one()
+        lpp_count = session.exec(select(func.count(LPPAct.id)).where(LPPAct.dossier_id == d.id)).one()
+        dossier_acts_count[d.id] = ccam_count + ngap_count + ucd_count + lpp_count
+    
     rows = [
         {
             "cells": [d.dossier_seq, d.id, d.patient_id, 
                       (d.venues[0].uf_responsabilite if d.venues and d.venues[0].uf_responsabilite else "N/A"),
                       getattr(d, 'dossier_type', DossierType.HOSPITALISE).value.capitalize(),
                       d.admit_time.strftime("%d/%m/%Y %H:%M") if d.admit_time else None,
-                      d.discharge_time.strftime("%d/%m/%Y %H:%M") if d.discharge_time else None],
+                      d.discharge_time.strftime("%d/%m/%Y %H:%M") if d.discharge_time else None,
+                      dossier_acts_count.get(d.id, 0)],
             "detail_url": f"/dossiers/{d.id}", "edit_url": f"/dossiers/{d.id}/edit", "cotation_url": f"/dossiers/{d.id}/cotation",
         } for d in dossiers
     ]
@@ -93,7 +104,7 @@ def list_dossiers(
         {"type": "link", "label": "Import FHIR", "url": "/dossiers/import/fhir"}
     ]
 
-    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie"], "rows": rows, "new_url": "/dossiers/new", "actions": actions, "show_actions": True}
+    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie", "Actes"], "rows": rows, "new_url": "/dossiers/new", "actions": actions, "show_actions": True}
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 @public_router.get("/{dossier_id}", response_class=HTMLResponse)

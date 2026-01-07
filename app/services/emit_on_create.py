@@ -1853,10 +1853,12 @@ def emit_to_senders_async(
                 os.replace(tmp_path, filepath)
 
                 # Record MessageLog (truncate payload to reasonable size)
+                # Capture endpoint.id AVANT commit pour éviter accès après détachement
+                endpoint_id = endpoint.id
                 log = MessageLog(
                     direction="out",
                     kind="FILE",
-                    endpoint_id=endpoint.id,
+                    endpoint_id=endpoint_id,
                     payload=(payload_str[:100000] if payload_str else ""),
                     ack_payload=f"WROTE:{filepath}",
                     status="sent",
@@ -1865,12 +1867,15 @@ def emit_to_senders_async(
                 session.add(log)
                 session.commit()
             except Exception as exc:
-                logger.error(f"[emit_on_create] Failed to write FILE outbox for endpoint={endpoint.id}: {exc}")
+                # Utiliser endpoint_id capturé au lieu de endpoint.id (objet peut être détaché)
+                endpoint_id_safe = locals().get('endpoint_id', getattr(endpoint, 'id', 'unknown'))
+                logger.error(f"[emit_on_create] Failed to write FILE outbox for endpoint={endpoint_id_safe}: {exc}")
+                session.rollback()  # Rollback explicite pour réinitialiser la session
                 try:
                     log = MessageLog(
                         direction="out",
                         kind="FILE",
-                        endpoint_id=endpoint.id,
+                        endpoint_id=endpoint_id_safe if isinstance(endpoint_id_safe, int) else None,
                         payload=(payload_str[:100000] if 'payload_str' in locals() and payload_str else ""),
                         ack_payload=str(exc),
                         status="error",

@@ -196,7 +196,10 @@ class FilePollerService:
                 
                 is_hprim = is_xml and has_hprim
                 
-                logger.warning(f"File {file_path.name}: is_xml={is_xml}, has_hprim={has_hprim}, is_hprim={is_hprim}, first_200_chars='{content_stripped[:200]}'")
+                # Log détaillé pour diagnostic (forcé en ERROR pour visibilité)
+                logger.error(f"[DETECTION] File={file_path.name} is_xml={is_xml} has_hprim={has_hprim} is_hprim={is_hprim}")
+                if is_xml:
+                    logger.error(f"[DETECTION] {file_path.name} XML content check: lower_has_hprimxml={'hprimxml' in content_lower}, has_hprim_org={'hprim.org' in content_lower}, has_evenements={'evenements' in content_lower[:500]}")
                 
                 if is_hprim:
                     # Handle HPRIM XML message

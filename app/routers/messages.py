@@ -781,3 +781,66 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
         {"request": request, "m": m, "endpoint": ep, "validation_issues": validation_issues},
     )
 
+
+@router.post("/{message_id}/replay")
+async def replay_message(
+    message_id: int,
+    session: Session = Depends(get_session)
+):
+    """
+    Rejoue un message en erreur.
+    
+    Prend un message avec status='error' et le retraite en appelant le handler approprié.
+    Le status est réinitialisé à 'received' pour une nouvelle tentative.
+    """
+    try:
+        msg_log = session.get(MessageLog, message_id)
+        if not msg_log:
+            return {"status": "error", "message": "Message not found"}
+        
+        if msg_log.status not in ("error", "ack_error"):
+            return {"status": "error", "message": f"Cannot replay message with status '{msg_log.status}' - only 'error' or 'ack_error' can be replayed"}
+        
+        if msg_log.direction != "in":
+            return {"status": "error", "message": "Can only replay inbound messages"}
+        
+        # Récupérer l'endpoint
+        endpoint = session.get(SystemEndpoint, msg_log.endpoint_id)
+        if not endpoint:
+            return {"status": "error", "message": "Associated endpoint not found"}
+        
+        # Réinitialiser le message
+        msg_log.status = "received"
+        msg_log.ack_payload = None
+        msg_log.created_at = datetime.utcnow()
+        session.add(msg_log)
+        session.commit()
+        
+        # Rejouer le message en passant par le handler de transport inbound
+        try:
+            ack = await on_message_inbound_async(
+                msg_log.payload,
+                session,
+                endpoint,
+                existing_log=msg_log
+            )
+            return {
+                "status": "success",
+                "message": f"Message replayed successfully",
+                "ack": ack,
+                "new_status": msg_log.status
+            }
+        except Exception as e:
+            logger.error(f"Error replaying message {message_id}: {e}", exc_info=True)
+            msg_log.status = "error"
+            msg_log.ack_payload = f"Replay error: {str(e)}"
+            session.add(msg_log)
+            session.commit()
+            return {
+                "status": "error",
+                "message": f"Replay failed: {str(e)}"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error in replay_message: {e}", exc_info=True)
+        return {"status": "error", "message": str(e)}

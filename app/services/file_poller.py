@@ -437,6 +437,35 @@ class FilePollerService:
                 session.rollback()
             return False
 
+def _write_ack_to_file(self, endpoint: SystemEndpoint, correlation_id: str, ack_content: str) -> bool:
+        """
+        Write an acknowledgment (HL7 ACK, HPRIM ACK) to the ack_path directory.
+        
+        Creates a file named: {correlation_id}_ACK.txt or .hl7 depending on endpoint config
+        
+        Returns True if successful, False otherwise
+        """
+        try:
+            if not endpoint.ack_path:
+                logger.debug(f"No ack_path configured for endpoint {endpoint.id}, skipping ACK write")
+                return True  # Not an error, just not configured
+            
+            ack_path = Path(endpoint.ack_path)
+            ack_path.mkdir(parents=True, exist_ok=True)
+            
+            # Determine file extension
+            ext = ".hl7" if ack_content.startswith("MSH") else ".txt"
+            ack_filename = f"{correlation_id}_ACK{ext}"
+            ack_file = ack_path / ack_filename
+            
+            # Write ACK content
+            ack_file.write_text(ack_content, encoding='utf-8')
+            logger.info(f"ACK written to {ack_file}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error writing ACK for endpoint {endpoint.id}: {e}")
+            return False
 
 def scan_file_endpoints(session: Session) -> Dict[str, Any]:
     """

@@ -208,10 +208,21 @@
             </span>
           </td>
           <td class="px-4 py-3.5 text-right">
-            <a href="/messages/{{ m.id }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors">
-              Détails
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-            </a>
+            <div class="flex items-center justify-end gap-2">
+              {% if m.status in ['ack_error','error'] %}
+              <button 
+                onclick="replayMessage({{ m.id }})"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+                title="Rejouer ce message en erreur">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Rejouer
+              </button>
+              {% endif %}
+              <a href="/messages/{{ m.id }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-primary hover:bg-primary/10 transition-colors">
+                Détails
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              </a>
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -220,4 +231,35 @@
   </div>
   {% endif %}
 </div>
-{% endblock %}
+
+<script>
+async function replayMessage(messageId) {
+  if (!confirm(`Êtes-vous sûr de vouloir rejouer le message #${messageId}?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/messages/${messageId}/replay`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      alert(`✓ Message rejouéavec succès!\nNouvel état: ${data.new_status}`);
+      window.location.reload();
+    } else {
+      alert(`✗ Erreur lors du replay:\n${data.message}`);
+    }
+  } catch (error) {
+    alert(`✗ Erreur lors du replay:\n${error.message}`);
+  }
+}
+</script>

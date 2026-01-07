@@ -180,8 +180,23 @@ class FilePollerService:
         # Create a fresh session for this message processing
         with SQLModelSession(engine) as msg_session:
             try:
-                # Detect if it's HPRIM XML (starts with <?xml and contains hprimXML namespace)
-                is_hprim = content.strip().startswith('<?xml') and 'hprimXML' in content
+                # Detect if it's HPRIM XML (insensitive à la casse, plusieurs variantes possibles)
+                content_stripped = content.strip()
+                content_lower = content_stripped.lower()
+                is_xml = content_stripped.startswith('<?xml')
+                
+                # Rechercher hprim dans namespace xmlns ou dans balise racine
+                has_hprim = (
+                    'hprimxml' in content_lower or 
+                    'hprim.org' in content_lower or
+                    '<evenementsserveuractes' in content_lower or
+                    '<evenementspms' in content_lower or
+                    '<evenementsserveurétatspatient' in content_lower
+                )
+                
+                is_hprim = is_xml and has_hprim
+                
+                logger.info(f"File {file_path.name}: is_xml={is_xml}, has_hprim={has_hprim}, is_hprim={is_hprim}")
                 
                 if is_hprim:
                     # Handle HPRIM XML message

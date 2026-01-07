@@ -1292,18 +1292,24 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
         error_text = f"System error: {str(e)[:100]}"
         ack = build_ack(msg, ack_code="AR", text=error_text)
         try:
-            error_log = MessageLog(
-                direction="in",
-                kind="MLLP",
-                endpoint_id=endpoint.id if endpoint else None,
-                correlation_id=msh.get("control_id", ""),
-                message_type=f"{msg_family}^{trigger}",
-                status="error",
-                payload=msg,
-                ack_payload=ack,
-                created_at=datetime.utcnow(),
-            )
-            session.add(error_log)
+            # Reuse existing log if available, otherwise create new error log
+            if log:
+                log.status = "error"
+                log.ack_payload = ack
+                session.add(log)
+            else:
+                error_log = MessageLog(
+                    direction="in",
+                    kind="MLLP",
+                    endpoint_id=endpoint.id if endpoint else None,
+                    correlation_id=msh.get("control_id", ""),
+                    message_type=f"{msg_family}^{trigger}",
+                    status="error",
+                    payload=msg,
+                    ack_payload=ack,
+                    created_at=datetime.utcnow(),
+                )
+                session.add(error_log)
             session.commit()
         except Exception:
             logger.exception("Failed to write error MessageLog")

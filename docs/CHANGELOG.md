@@ -7,6 +7,37 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### ✨ Fonctionnalités
+- **Interface visualisation et import actes HPRIM** (2026-01-07)
+  - Nouveau router `/hprim-cotation` pour visualiser les messages HPRIM de cotation reçus
+  - Dashboard avec filtres par statut et recherche par NDA/IPP
+  - Vue détaillée des messages avec parsing XML et affichage des actes (CCAM, NGAP, UCD, LPP)
+  - Routes d'import pour intégrer les actes dans les tables CCAMAct, NGAPAct, UCDAct, LPPAct
+  - Détection automatique des doublons lors de l'import
+  - Association automatique des actes aux dossiers via le NDA
+  - Templates responsive avec statistiques et boutons d'import par type d'acte
+
+- **Gestion des namespaces améliorée** (2026-01-06)
+  - Auto-extraction OID depuis URI FHIR
+  - Auto-génération du nom HL7v2 si non fourni
+  - Validation avec regex et cohérence URI/OID
+  - UI redesignée avec badges FHIR (vert) et HL7v2 (bleu)
+  - Aide contextuelle avec exemples concrets
+
+### 🐛 Correctifs
+- **Correction StaleDataError dans file_poller.py** (2026-01-07)
+  - Utilisation de `session.merge()` au lieu de `session.add()` après `rollback()`
+  - Évite les erreurs de concurrence lors de la mise à jour du statut MessageLog
+  - Meilleure gestion des objets détachés de la session SQLAlchemy
+  - Correction appliquée aux handlers d'exception ADT et MFN
+
+- **Validation des namespaces** (2026-01-07)
+  - Permet maintenant même URI pour types différents (IPP/NDA/MVT)
+  - Vérification combinée `system + type` au lieu de `system` seul
+  - Messages d'erreur plus clairs lors de la création
+  - Gestion des erreurs avec rollback et flash messages
+  - Logs détaillés pour le débogage
+
 ### 📝 Documentation
 - **Clarification des namespaces** (2026-01-06)
   - Nouveau guide `NAMESPACES_CLARIFICATION.md` expliquant OID/URI/nom
@@ -19,20 +50,6 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   - Archivage des documents obsolètes (`TODO_UI_UX.md`, `VERSIONING_PROPOSAL.md`)
   - Liens croisés entre documents améliorés
   - Structure docs/ clarifiée et maintenue
-
-### ✨ Fonctionnalités
-- **Gestion des namespaces améliorée** (2026-01-06)
-  - Auto-extraction OID depuis URI FHIR
-  - Auto-génération du nom HL7v2 si non fourni
-  - Validation avec regex et cohérence URI/OID
-  - UI redesignée avec badges FHIR (vert) et HL7v2 (bleu)
-  - Aide contextuelle avec exemples concrets
-
-### 🐛 Correctifs
-- **Validation des namespaces** (2026-01-06)
-  - Permet maintenant même URI pour types différents (IPP/NDA/MVT)
-  - Messages d'erreur plus clairs lors de la création
-  - Gestion des erreurs avec rollback et flash messages
 
 ## [1.0.0] - 2025-12-26
 

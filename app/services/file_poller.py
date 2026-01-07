@@ -8,6 +8,7 @@ to the appropriate handler.
 
 import json
 import logging
+import re
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
@@ -45,6 +46,24 @@ class FilePollerService:
             'unknown_messages': 0,
             'errors': []
         }
+    
+    @staticmethod
+    def _detect_encoding(file_path: Path) -> str:
+        """Détecte l'encodage d'un fichier XML en lisant la déclaration XML."""
+        try:
+            # Lire les premiers 200 bytes en latin-1 (compatible avec tous les encodages)
+            raw = file_path.read_bytes()[:200]
+            # Chercher la déclaration XML
+            match = re.search(br'encoding=["\']([^"\']+)["\']', raw)
+            if match:
+                encoding = match.group(1).decode('ascii')
+                logger.error(f"[ENCODING] {file_path.name}: detected encoding={encoding}")
+                return encoding
+        except Exception as e:
+            logger.error(f"[ENCODING] Error detecting encoding for {file_path.name}: {e}")
+        # Encodage par défaut
+        logger.error(f"[ENCODING] {file_path.name}: using default UTF-8")
+        return 'utf-8'
     
     async def scan_all_file_endpoints(self) -> Dict[str, Any]:
         """
@@ -121,8 +140,9 @@ class FilePollerService:
                 processing_path = file_path.with_suffix(file_path.suffix + '.processing')
                 file_path.rename(processing_path)
                 
-                # Read and process
-                content = processing_path.read_text(encoding='utf-8')
+                # Détecter l'encodage et lire le fichier
+                encoding = self._detect_encoding(processing_path)
+                content = processing_path.read_text(encoding=encoding)
                 success = await callback(content, processing_path)
                 
                 if success:

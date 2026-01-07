@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<evenementsServeurActes acquittementAttendu="non"
+  identifiantAttendu="non" version="1.04"
+  xmlns="http://www.hprim.org/hprimXML" xmlns:insee="http://www.hprim.org/inseeXML">
+  <enteteMessage modeTraitement="réel">
+    <identifiantMessage>TEST001</identifiantMessage>
+  </enteteMessage>
+</evenementsServeurActes>

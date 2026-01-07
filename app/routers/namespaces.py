@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
@@ -7,6 +8,8 @@ from app.db import get_session
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
 from app.models_identifiers import Identifier
 from app.utils.flash import flash
+
+logger = logging.getLogger(__name__)
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -291,22 +294,28 @@ async def create_ej_namespace(
     # Validation basique
     if not form.get("name") or not form.get("system"):
         flash(request, "Le nom et le système (URI) sont requis", level="error")
+        logger.warning(f"Validation échouée pour EJ namespace: name ou system manquant")
         return RedirectResponse(f"/admin/ght/{ght_id}/ej/{ej_id}/namespaces/new", status_code=303)
     
-    # Check system uniqueness dans le contexte GHT
+    # Check system+type uniqueness dans le contexte GHT (plusieurs types peuvent partager le même URI)
+    type_val = form.get("type", "PI")
     exists = session.exec(
         select(IdentifierNamespace)
         .where(IdentifierNamespace.system == form["system"])
+        .where(IdentifierNamespace.type == type_val)
         .where(IdentifierNamespace.ght_context_id == context.id)
     ).first()
     if exists:
         flash(
             request,
-            f"L'URI système '{form['system']}' existe déjà dans ce contexte GHT",
+            f"Un namespace de type '{type_val}' avec l'URI '{form['system']}' existe déjà dans ce contexte GHT",
             level="error"
         )
+        logger.warning(f"Namespace déjà existant: system={form['system']}, type={type_val}, GHT={context.id}")
         return RedirectResponse(f"/admin/ght/{ght_id}/ej/{ej_id}/namespaces/new", status_code=303)
 
+    logger.info(f"Création namespace EJ: name={form['name']}, system={form['system']}, type={type_val}, EJ={ej.id}")
+    
     namespace = IdentifierNamespace(
         name=form["name"],
         system=form["system"],
@@ -319,7 +328,9 @@ async def create_ej_namespace(
     )
     session.add(namespace)
     session.commit()
+    session.refresh(namespace)
     
+    logger.info(f"Namespace EJ créé avec succès: ID={namespace.id}, name={namespace.name}, type={namespace.type}")
     flash(request, f"Namespace '{namespace.name}' créé avec succès", level="success")
     return RedirectResponse(
         f"/admin/ght/{ght_id}/ej/{ej_id}",

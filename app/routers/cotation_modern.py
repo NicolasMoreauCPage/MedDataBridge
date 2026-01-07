@@ -1,29 +1,50 @@
 """
-Module moderne de cotation (stub).
+Module moderne de cotation - Interface de saisie des prestations médicales.
+Intégration HPRIM XML pour codage CCAM, NGAP, UCD, LPP.
 """
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from sqlmodel import Session, select
+from app.db import get_session
+from app.models import Dossier, Patient
+import os
 
 router = APIRouter(tags=["Cotation Modern"])
+templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/", response_class=HTMLResponse)
-async def cotation_modern_dashboard(request: Request):
-    """Page d'accueil du module de cotation moderne (stub)."""
-    return """
-    <html>
-    <head>
-        <title>Cotation Moderne - Placeholder</title>
-        <style>
-            body { font-family: sans-serif; padding: 20px; }
-            .placeholder { background: #f0f0f0; padding: 20px; border-radius: 5px; }
-        </style>
-    </head>
-    <body>
-        <h1>Module de Cotation Moderne</h1>
-        <div class="placeholder">
-            <p>Ce module est en cours de développement.</p>
-            <p><a href="/">Retour à l'accueil</a></p>
-        </div>
-    </body>
-    </html>
+async def cotation_modern_home(request: Request):
+    """Page d'accueil du module de cotation moderne - redirige vers la sélection."""
+    return templates.TemplateResponse("cotation_selector.html", {"request": request})
+
+@router.get("/dossiers/{dossier_id}/cotation", response_class=HTMLResponse)
+async def cotation_modern_interface(
+    dossier_id: int,
+    request: Request,
+    session: Session = Depends(get_session)
+):
+    """Interface principale de cotation HPRIM (CCAM, NGAP, UCD, LPP).
+    
+    Affiche le formulaire de saisie des prestations médicales pour le séjour.
     """
+    # Charger le dossier et le patient
+    dossier = session.get(Dossier, dossier_id)
+    if not dossier:
+        return templates.TemplateResponse(
+            "error.html",
+            {"request": request, "message": f"Séjour {dossier_id} non trouvé"},
+            status_code=404
+        )
+    
+    # Charger le patient associé
+    patient = session.get(Patient, dossier.patient_id) if dossier.patient_id else None
+    
+    return templates.TemplateResponse(
+        "hprim_cotation_modern.html",
+        {
+            "request": request,
+            "dossier": dossier,
+            "patient": patient
+        }
+    )

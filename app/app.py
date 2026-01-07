@@ -342,25 +342,14 @@ def create_app() -> FastAPI:
     app.include_router(endpoints.router)  # Has own prefix
     app.include_router(ihe.router)  # Has own prefix /ihe
     
-    # HPRIM CCAM integration
+    # HPRIM CCAM integration (stub router)
     try:
-        from app.api import hprim_ccam
-        app.include_router(hprim_ccam.router)
-        print(" - HPRIM CCAM router mounted")
+        from app.routers import ccam
+        app.include_router(ccam.router)
+        print(" - HPRIM CCAM router mounted at /ccam")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM CCAM router not available: {e}")
     
-    # HPRIM NGAP, UCD, LPP integration
-    try:
-        from app.api import ngap, contracts, ccam
-        from app.routers import ngap as ngap_router
-        app.include_router(ngap.router)
-        app.include_router(contracts.router)
-        app.include_router(ccam.router)
-        app.include_router(ngap_router.router)
-        print(" - HPRIM NGAP/Contracts/CCAM routers mounted")
-    except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM NGAP/Contracts/CCAM routers not available: {e}")
     
     # HPRIM UCD router
     try:
@@ -391,14 +380,6 @@ def create_app() -> FastAPI:
         print(" - REST APIs Patients & Dossiers mounted at /api/patients and /api/dossiers")
     except Exception as e:
         logging.getLogger(__name__).warning(f"REST APIs Patients/Dossiers not available: {e}")
-    
-    # HPRIM Management interfaces
-    try:
-        from app.routers import hprim_management
-        app.include_router(hprim_management.router)
-        print(" - HPRIM Management router mounted at /hprim")
-    except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM Management router not available: {e}")
     
     # Roundtrip HPRIM router
     app.include_router(roundtrip_hprim.router)

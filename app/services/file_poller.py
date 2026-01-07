@@ -350,19 +350,16 @@ class FilePollerService:
             # Rollback any pending transaction first
             session.rollback()
             
-            # Refresh msg_log to get clean state
+            # After rollback, the msg_log object is detached from the session.
+            # We need to merge it back to update its status.
             try:
-                session.refresh(msg_log)
-            except:
-                pass  # Object may not be in session anymore
-            
-            msg_log.status = "error"
-            msg_log.ack_payload = f"MFN import failed: {str(e)}"
-            try:
-                session.add(msg_log)
+                # Use merge to reattach the object to the session
+                msg_log = session.merge(msg_log)
+                msg_log.status = "error"
+                msg_log.ack_payload = f"MFN import failed: {str(e)}"
                 session.commit()
             except Exception as e2:
-                logger.error(f"Failed to save error MessageLog: {e2}")
+                logger.error(f"Failed to save error MessageLog: {e2}", exc_info=True)
                 session.rollback()
             return False
     
@@ -506,19 +503,16 @@ class FilePollerService:
             # Rollback any pending transaction first
             session.rollback()
             
-            # Refresh msg_log to get clean state
+            # After rollback, the msg_log object is detached from the session.
+            # We need to merge it back to update its status.
             try:
-                session.refresh(msg_log)
-            except:
-                pass  # Object may not be in session anymore
-            
-            msg_log.status = "error"
-            msg_log.ack_payload = f"ADT processing failed: {str(e)}"
-            try:
-                session.add(msg_log)
+                # Use merge to reattach the object to the session
+                msg_log = session.merge(msg_log)
+                msg_log.status = "error"
+                msg_log.ack_payload = f"ADT processing failed: {str(e)}"
                 session.commit()
             except Exception as e2:
-                logger.error(f"Failed to save error MessageLog: {e2}")
+                logger.error(f"Failed to save error MessageLog: {e2}", exc_info=True)
                 session.rollback()
             return False
 

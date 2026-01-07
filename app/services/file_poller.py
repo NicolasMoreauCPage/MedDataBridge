@@ -196,7 +196,7 @@ class FilePollerService:
                 
                 is_hprim = is_xml and has_hprim
                 
-                logger.info(f"File {file_path.name}: is_xml={is_xml}, has_hprim={has_hprim}, is_hprim={is_hprim}")
+                logger.warning(f"File {file_path.name}: is_xml={is_xml}, has_hprim={has_hprim}, is_hprim={is_hprim}, first_200_chars='{content_stripped[:200]}'")
                 
                 if is_hprim:
                     # Handle HPRIM XML message
@@ -240,6 +240,7 @@ class FilePollerService:
                     return await self._handle_adt(content, msg_log, msg_session, endpoint)
                 else:
                     self.stats['unknown_messages'] += 1
+                    logger.warning(f"Unknown message category '{category}' for file {file_path.name}. Message type: {details.get('message_code')}, trigger: {details.get('trigger_event')}")
                     msg_log.status = "error"
                     msg_log.ack_payload = f"Unknown message category: {category}"
                     msg_session.add(msg_log)

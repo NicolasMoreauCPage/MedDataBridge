@@ -51,3 +51,6 @@ scripts/run_*.sh
 
 # Temporary API schemas during development
 app/api/schemas_api.py
+
+# Data directory (databases and user data)
+data/

@@ -15,7 +15,7 @@ class Settings:
     testing: bool = os.getenv("TESTING", "false").lower() == "true"
     
     # Database
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./medbridge.db")
+    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./data/medbridge.db")
     db_echo: bool = os.getenv("DB_ECHO", "false").lower() == "true"
     db_pool_size: int = int(os.getenv("DB_POOL_SIZE", "5"))
     db_max_overflow: int = int(os.getenv("DB_MAX_OVERFLOW", "10"))

@@ -93,7 +93,9 @@ def init_db() -> None:
     # Optimisations SQLite avancées pour la performance et la robustesse
     try:
         import sqlite3
-        conn = sqlite3.connect("medbridge.db")
+        # Créer le répertoire data s'il n'existe pas
+        os.makedirs("data", exist_ok=True)
+        conn = sqlite3.connect("data/medbridge.db")
 
         # Optimisations de performance
         conn.execute("PRAGMA journal_mode=WAL;")  # Mode WAL pour accès concurrents

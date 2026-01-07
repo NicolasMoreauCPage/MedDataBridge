@@ -2,10 +2,12 @@ import logging
 logger = logging.getLogger(__name__)
 import asyncio
 import json
+import time
 from pathlib import Path
 from typing import Literal, Sequence, Tuple
 
 from sqlmodel import Session, select
+from sqlalchemy.exc import InterfaceError, OperationalError
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_endpoints import SystemEndpoint, MessageLog, FHIRConfig
@@ -18,6 +20,24 @@ from app.services.fhir_resources import generate_fhir_bundle_for_entity
 # Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_validation import validate_pam
 import json
+
+
+# Helper pour retry des requêtes SQLite en cas d'erreur de concurrence
+def _safe_query(session: Session, statement, max_retries=3):
+    """Execute query with retry logic for SQLite concurrency errors."""
+    for attempt in range(max_retries):
+        try:
+            return session.exec(statement).first()
+        except (InterfaceError, OperationalError) as e:
+            if "out of sequence" in str(e) or "database is locked" in str(e):
+                if attempt < max_retries - 1:
+                    time.sleep(0.05 * (attempt + 1))  # Backoff exponentiel
+                    session.rollback()  # Réinitialiser la session
+                    continue
+            logger.warning(f"SQLite concurrency error (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt == max_retries - 1:
+                return None
+    return None
 
 
 # Helper function to run async functions synchronously in a thread context
@@ -100,12 +120,13 @@ def build_pid3_identifiers(
             ipp_ns = None
             ej_id = _get('entite_juridique_id')
             if ej_id:
-                ipp_ns = session.exec(
+                ipp_ns = _safe_query(
+                    session,
                     select(IdentifierNamespace)
                     .where(IdentifierNamespace.entite_juridique_id == ej_id)
                     .where(IdentifierNamespace.type == "IPP")
                     .where(IdentifierNamespace.is_active == True)
-                ).first()
+                )
             auth = None
             if ipp_ns:
                 auth = _auth(ipp_ns.system, ipp_ns.oid)
@@ -122,12 +143,13 @@ def build_pid3_identifiers(
     if external_id_clean:  # Only add if not empty after sanitization
         # Chercher si cet external_id est dans la table Identifier
         pid = _get('id')
-        ext_ident = session.exec(
+        ext_ident = _safe_query(
+            session,
             select(Identifier)
             .where(Identifier.patient_id == pid)
             .where(Identifier.value == external_id_clean)
             .where(Identifier.status == "active")
-        ).first()
+        )
         if ext_ident:
             ident_type = getattr(ext_ident.type, 'value', ext_ident.type)
             identifiers.append(

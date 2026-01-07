@@ -1395,11 +1395,25 @@ def emit_to_senders_async(
 ) -> None:
     """Emit HL7/FHIR notifications for newly created or updated entities."""
 
-    endpoints = session.exec(
-        select(SystemEndpoint)
-        .where(SystemEndpoint.role.in_(["sender", "both"]))
-        .where(SystemEndpoint.is_enabled == True)
-    ).all()
+    # Retry logic for SQLite concurrency errors
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            endpoints = session.exec(
+                select(SystemEndpoint)
+                .where(SystemEndpoint.role.in_(["sender", "both"]))
+                .where(SystemEndpoint.is_enabled == True)
+            ).all()
+            break  # Success, exit retry loop
+        except Exception as e:
+            error_msg = str(e).lower()
+            if attempt < max_retries - 1 and ("locked" in error_msg or "out of sequence" in error_msg):
+                session.rollback()
+                time.sleep(0.1 * (2 ** attempt))  # Exponential backoff
+                continue
+            else:
+                # Not a retriable error or max retries reached
+                raise
     # Filter endpoints: include endpoints that are global (no EJ/GHT set),
     # or those explicitly tied to the entity's EJ or GHT context.
     # This lets tests (and simple setups) create endpoints without EJ/GHT

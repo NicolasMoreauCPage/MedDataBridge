@@ -335,12 +335,27 @@ class FilePollerService:
                 msg_log.status = "ack_ok"
                 msg_log.ack_payload = f"MFN import completed: {ack}"
             session.add(msg_log)
-            session.commit()
+            try:
+                session.commit()
+            except Exception as commit_error:
+                logger.error(f"MFN commit failed: {commit_error}", exc_info=True)
+                session.rollback()
+                raise
             self.stats['mfn_messages'] += 1
             return ack_code not in ("AE", "AR")
         except Exception as e:
             self.stats['errors'].append(f"MFN import error: {str(e)}")
             logger.error(f"MFN import error: {e}", exc_info=True)
+            
+            # Rollback any pending transaction first
+            session.rollback()
+            
+            # Refresh msg_log to get clean state
+            try:
+                session.refresh(msg_log)
+            except:
+                pass  # Object may not be in session anymore
+            
             msg_log.status = "error"
             msg_log.ack_payload = f"MFN import failed: {str(e)}"
             try:
@@ -406,14 +421,24 @@ class FilePollerService:
                 )
                 session.add(msg_log)
             
-            session.commit()
+            try:
+                session.commit()
+            except Exception as commit_error:
+                logger.error(f"HPRIM msg_log commit failed: {commit_error}", exc_info=True)
+                session.rollback()
+                raise
             
             # HPRIM messages received via FILE are logged but not processed/transformed
             # (they are for archival/audit purposes)
             msg_log.status = "received"
             msg_log.ack_payload = "HPRIM message received and archived"
             session.add(msg_log)
-            session.commit()
+            try:
+                session.commit()
+            except Exception as commit_error:
+                logger.error(f"HPRIM final commit failed: {commit_error}", exc_info=True)
+                session.rollback()
+                raise
             
             self.stats['hprim_messages'] = self.stats.get('hprim_messages', 0) + 1
             logger.info(f"HPRIM message processed: {correlation_id}")
@@ -422,6 +447,10 @@ class FilePollerService:
         except Exception as e:
             self.stats['errors'].append(f"HPRIM processing error: {str(e)}")
             logger.error(f"HPRIM processing error: {e}", exc_info=True)
+            
+            # Rollback any pending transaction first
+            session.rollback()
+            
             try:
                 msg_log = MessageLog(
                     direction="in",
@@ -460,12 +489,29 @@ class FilePollerService:
                 msg_log.status = "ack_ok"
                 msg_log.ack_payload = ack or "ADT processed successfully"
             session.add(msg_log)
-            session.commit()
+            try:
+                session.commit()
+            except Exception as commit_error:
+                # Handle IntegrityError or PendingRollbackError during commit
+                logger.error(f"ADT commit failed: {commit_error}", exc_info=True)
+                session.rollback()
+                # Re-raise to be caught by outer exception handler
+                raise
             self.stats['adt_messages'] += 1
             return ack_code not in ("AE", "AR")
         except Exception as e:
             self.stats['errors'].append(f"ADT processing error: {str(e)}")
             logger.error(f"ADT processing error: {e}", exc_info=True)
+            
+            # Rollback any pending transaction first
+            session.rollback()
+            
+            # Refresh msg_log to get clean state
+            try:
+                session.refresh(msg_log)
+            except:
+                pass  # Object may not be in session anymore
+            
             msg_log.status = "error"
             msg_log.ack_payload = f"ADT processing failed: {str(e)}"
             try:

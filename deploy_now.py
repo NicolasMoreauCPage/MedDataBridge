@@ -118,7 +118,7 @@ def deploy_to_server(package_name):
     
     # 3. Synchronisation et redémarrage
     print(f"[DEPLOIEMENT] Synchronisation et redemarrage du service...")
-    cmd_sync = f'plink -i "{ssh_key}" -batch {server} "sudo rsync -a --delete /tmp/meddatabridge-deployment/ /opt/meddata-bridge/ && sudo systemctl restart meddata-bridge && echo OK"'
+    cmd_sync = f'plink -i "{ssh_key}" -batch {server} "sudo rsync -a --exclude=\'venv\' --exclude=\'data\' --exclude=\'*.db\' --exclude=\'*.db-shm\' --exclude=\'*.db-wal\' /tmp/meddatabridge-deployment/ /opt/meddata-bridge/ && sudo systemctl restart meddata-bridge && echo OK"'
     result = subprocess.run(cmd_sync, shell=True, capture_output=True, text=True)
     if result.returncode != 0 or "OK" not in result.stdout:
         print(f"[ERREUR] Synchronisation echouee: {result.stderr}")

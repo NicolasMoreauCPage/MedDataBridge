@@ -56,6 +56,12 @@ async def endpoints_test_page(request: Request):
     )
 
 
+@router.get("/docs/changelog", response_class=HTMLResponse)
+async def changelog(request: Request):
+    """Affiche le changelog de l'application (redirige vers /docs/CHANGELOG.md)."""
+    return RedirectResponse(url="/docs/CHANGELOG.md")
+
+
 @router.get("/docs/{filename}", response_class=HTMLResponse)
 async def docs_markdown(request: Request, filename: str):
     """Serve simple markdown files from the docs/ folder.
@@ -131,9 +137,3 @@ async def standards_docs_legacy(
 ):
     """Alias conservé pour compatibilité avec l'ancien chemin."""
     return await standards_docs(request, session)
-
-
-@router.get("/changelog", response_class=HTMLResponse)
-async def changelog(request: Request):
-    """Affiche le changelog de l'application (redirige vers /docs/CHANGELOG.md)."""
-    return RedirectResponse(url="/docs/CHANGELOG.md")

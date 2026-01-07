@@ -230,7 +230,7 @@ def new_endpoint(request: Request, session=Depends(get_session)):
         {"type": "section", "label": "Configuration du Endpoint", "icon": "server", "help": "Paramétrez le système d'intégration à créer."},
         {"label": "Nom du système", "name": "name", "type": "text", "required": True, "help": "Nom lisible du serveur ou du système cible."},
         {"label": "Type de connexion", "name": "kind", "type": "select", "options": EndpointKind.choices(), "value": kind_value, "required": True, "help": "Protocole utilisé (MLLP, FHIR, FILE, etc.)."},
-        {"label": "Rôle du système", "name": "role", "type": "select", "options": EndpointRole.choices(), "value": "both", "required": True, "help": "Définissez le rôle (émission, réception, ou les deux)."},
+        {"label": "Rôle du système", "name": "role", "type": "select", "options": EndpointRole.choices(), "value": "receiver", "required": True, "help": "Définissez le rôle: réception (receiver) ou émission (sender)."},
         {"label": "Actif", "name": "is_enabled", "type": "select", "options": [{"value": "true", "label": "Oui"}, {"value": "false", "label": "Non"}], "value": "true", "required": True, "help": "Le endpoint sera-t-il actif dès la création ?"},
         {"type": "divider"},
         {"type": "section", "label": "Type d'émission", "icon": "share", "help": "Sélectionnez les types de messages à émettre."},
@@ -273,7 +273,7 @@ def create_endpoint(
     request: Request,
     name: str = Form(...),
     kind: str = Form(...),
-    role: str = Form("both"),
+    role: str = Form("receiver"),
     is_enabled: str = Form("true"),
     ght_context_id: str = Form(None),
     entite_juridique_id: str = Form(None),
@@ -358,7 +358,7 @@ def create_endpoint(
     session.refresh(e)  # Get the assigned ID
     
     # Démarrer automatiquement l'endpoint s'il est activé
-    if e.is_enabled and e.kind == "MLLP" and e.role in ("receiver", "both"):
+    if e.is_enabled and e.kind == "MLLP" and e.role == "receiver":
         registry.start(e, session)
         session.commit()
     
@@ -402,7 +402,7 @@ def update_endpoint(
     request: Request,
     name: str = Form(...),
     kind: str = Form(...),
-    role: str = Form("both"),
+    role: str = Form("receiver"),
     is_enabled: str = Form("true"),
     ght_context_id: str = Form(None),
     entite_juridique_id: str = Form(None),
@@ -519,7 +519,7 @@ def update_endpoint(
     session.add(e); session.commit()
     
     # Démarrer automatiquement l'endpoint s'il est maintenant activé et pas déjà en cours
-    if e.is_enabled and e.kind == "MLLP" and e.role in ("receiver", "both"):
+    if e.is_enabled and e.kind == "MLLP" and e.role == "receiver":
         if endpoint_id not in set(registry.running_ids()):
             registry.start(e, session)
             session.commit()
@@ -580,7 +580,7 @@ def show_clone_structure_form(endpoint_id: int, request: Request, session: Sessi
     targets = session.exec(
         select(SystemEndpoint)
         .where(SystemEndpoint.id != endpoint_id)
-        .where(SystemEndpoint.role.in_(["receiver", "both"]))
+        .where(SystemEndpoint.role == "receiver")
     ).all()
     
     return get_templates_with_filters(request).TemplateResponse(
@@ -605,7 +605,7 @@ async def clone_structure(
     if not source or not target:
         raise HTTPException(404, "Endpoint not found")
     
-    if target.role not in ["receiver", "both"]:
+    if target.role != "receiver":
         raise HTTPException(400, "Target endpoint must be a receiver")
         
     try:

@@ -95,7 +95,7 @@ def template_detail(template_key: str, request: Request, session: Session = Depe
     endpoints = session.exec(
         select(SystemEndpoint)
         .where(SystemEndpoint.is_enabled == True)
-        .where(SystemEndpoint.role.in_(["sender", "both"]))
+        .where(SystemEndpoint.role == "sender")
     ).all()
     ctx = {
         "request": request,

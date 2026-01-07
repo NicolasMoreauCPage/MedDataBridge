@@ -19,6 +19,46 @@ from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.pam_validation import validate_pam
 import json
 
+
+# Helper function to run async functions synchronously in a thread context
+def _run_async(coro):
+    """Run an async coroutine synchronously, handling existing event loops."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # We're already in an async context, create a new loop in a thread
+            import concurrent.futures
+            import threading
+            result = [None]
+            exception = [None]
+            
+            def run_in_new_loop():
+                try:
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    result[0] = new_loop.run_until_complete(coro)
+                    new_loop.close()
+                except Exception as e:
+                    exception[0] = e
+            
+            thread = threading.Thread(target=run_in_new_loop)
+            thread.start()
+            thread.join()
+            if exception[0]:
+                raise exception[0]
+            return result[0]
+        else:
+            return loop.run_until_complete(coro)
+    except RuntimeError:
+        # No event loop exists, create one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+
 # Global sanitization helper: coerce None / 'None' / whitespace-only to ''
 def _c(val):
     logger.debug(f"_c called with val={val}")
@@ -1325,7 +1365,7 @@ def _build_fhir_targets(endpoint: SystemEndpoint) -> Sequence[Tuple[str, str, st
     return targets
 
 
-async def emit_to_senders_async(
+def emit_to_senders_async(
     entity,
     entity_type: Literal["patient", "dossier", "venue", "mouvement"],
     session: Session,
@@ -1419,7 +1459,7 @@ async def emit_to_senders_async(
                     try:
                         if endpoint.host and endpoint.port:
                             # call the dynamically imported sender (may be monkeypatched)
-                            ack_payload = await _send_mllp(endpoint.host, endpoint.port, hl7_message)
+                            ack_payload = _send_mllp(endpoint.host, endpoint.port, hl7_message)
                             from app.services.mllp import parse_msh_fields
                             ack_lines = ack_payload.split("\r") if ack_payload else []
                             msa_line = next((l for l in ack_lines if l.startswith("MSA|")), None)
@@ -1583,9 +1623,9 @@ async def emit_to_senders_async(
                         ack_payload = ""
                         payload_str = json.dumps(fhir_payload, default=str)
                         try:
-                            status_code, response_body = await _send_fhir(
+                            status_code, response_body = _run_async(_send_fhir(
                                 base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
-                            )
+                            ))
                             status = "sent" if 200 <= status_code < 300 else "error"
                             ack_payload = json.dumps(response_body or {}, default=str)
                         except Exception as exc:
@@ -1695,9 +1735,9 @@ async def emit_to_senders_async(
                         ack_payload = ""
                         payload_str = json.dumps(fhir_payload, default=str)
                         try:
-                            status_code, response_body = await _send_fhir(
+                            status_code, response_body = _run_async(_send_fhir(
                                 base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
-                            )
+                            ))
                             status = "sent" if 200 <= status_code < 300 else "error"
                             ack_payload = json.dumps(response_body or {}, default=str)
                         except Exception as exc:
@@ -1745,6 +1785,17 @@ async def emit_to_senders_async(
                         if retry < max_retry:
                             time.sleep(60)
 
+        # HPRIM endpoints: emit HPRIM XML messages for cotation
+        # HPRIM is used specifically for medical billing/cotation (CCAM, NGAP, etc.)
+        # It should NOT receive general mouvement events, only specific cotation events
+        if endpoint.kind == "HPRIM":
+            # Skip general entity emissions to HPRIM endpoints
+            # HPRIM messages are generated only for specific cotation events, not from general entity creation/modification
+            if entity_type in ["patient", "dossier", "venue", "mouvement"]:
+                logger.debug(f"[HPRIM] Skipping {entity_type} emission to HPRIM endpoint {endpoint.id} - "
+                           f"HPRIM is reserved for cotation events only")
+                continue  # Skip to next endpoint
+        
         # FILE outbox: write HL7/FHIR payloads to a filesystem outbox if configured
         if endpoint.kind == "FILE":
             # Write HL7 / FHIR payloads to filesystem outbox. If the endpoint has an

@@ -482,7 +482,7 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
     endpoints = session.exec(
         select(SystemEndpoint)
         .where(SystemEndpoint.is_enabled == True)
-        .where(SystemEndpoint.role.in_(["sender", "both"]))
+        .where(SystemEndpoint.role == "sender")
         .order_by(SystemEndpoint.name)
     ).all()
 

@@ -30,7 +30,6 @@ class MessageLog(SQLModel, table=True):
 class EndpointRole(str):
     SENDER = "sender"
     RECEIVER = "receiver"
-    BOTH = "both"
 
 class EndpointKind(str):
     MLLP = "MLLP"
@@ -44,7 +43,7 @@ class SystemEndpoint(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     kind: str
-    role: str = Field(default=EndpointRole.BOTH)
+    role: str = Field(default=EndpointRole.RECEIVER)  # "sender" or "receiver"
     is_enabled: bool = Field(default=True)
 
     # Configuration commune
@@ -93,11 +92,12 @@ class SystemEndpoint(SQLModel, table=True):
     auth_kind: Optional[str] = None  # none, basic, bearer
     auth_token: Optional[str] = None
 
-    # Pour FILE
-    inbox_path: Optional[str] = None  # Directory to scan for incoming messages
-    outbox_path: Optional[str] = None  # Directory to write outgoing messages
-    archive_path: Optional[str] = None  # Directory for processed messages
-    error_path: Optional[str] = None  # Directory for failed messages
+    # Pour FILE/FTP/SFTP
+    inbox_path: Optional[str] = None  # Directory to scan for incoming messages (role=receiver)
+    outbox_path: Optional[str] = None  # Directory to write outgoing messages (role=sender)
+    archive_path: Optional[str] = None  # Directory for processed messages (success)
+    error_path: Optional[str] = None  # Directory for failed/rejected messages (can be replayed)
+    ack_path: Optional[str] = None  # Directory for acknowledgments (HL7 ACK, HPRIM ACK)
     file_extensions: Optional[str] = None  # Comma-separated list (e.g., ".hl7,.txt")
 
     # Pour FTP/SFTP
@@ -106,10 +106,11 @@ class SystemEndpoint(SQLModel, table=True):
     ftp_username: Optional[str] = None  # Username for authentication
     ftp_password: Optional[str] = None  # Password for authentication
     ftp_use_sftp: bool = Field(default=False)  # True for SFTP, False for FTP
-    ftp_remote_inbox_path: Optional[str] = None  # Remote directory to read from
-    ftp_remote_outbox_path: Optional[str] = None  # Remote directory to write to
-    ftp_remote_archive_path: Optional[str] = None  # Remote archive directory
-    ftp_remote_error_path: Optional[str] = None  # Remote error directory
+    ftp_remote_inbox_path: Optional[str] = None  # Remote directory to read from (role=receiver)
+    ftp_remote_outbox_path: Optional[str] = None  # Remote directory to write to (role=sender)
+    ftp_remote_archive_path: Optional[str] = None  # Remote archive directory (success)
+    ftp_remote_error_path: Optional[str] = None  # Remote error directory (can be replayed)
+    ftp_remote_ack_path: Optional[str] = None  # Remote ACK directory (acknowledgments)
 
     # Emission type configuration
     emit_hl7_pam: bool = Field(default=True, description="Émet HL7 IHE PAM (identité/mouvements)")

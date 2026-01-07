@@ -209,7 +209,7 @@ async def _emit_in_new_session(entity_class: type, entity_id: int, entity_type: 
                     logger.warning(f"[entity_events] Entity not found in new session: {entity_type} id={entity_id}")
                     return
                 
-                await emit_to_senders_async(entity, entity_type, emit_session, operation)
+                emit_to_senders_async(entity, entity_type, emit_session, operation)
             
             logger.info(f"[entity_events] ✓ Emitted {entity_type} id={entity_id} op={operation}")
         except Exception as exc:

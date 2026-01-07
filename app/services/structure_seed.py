@@ -1307,7 +1307,7 @@ def ensure_endpoints_for_context(
             ep = SystemEndpoint(
                 name=fhir_name,
                 kind=EndpointKind.FHIR,
-                role=EndpointRole.BOTH,
+                role=EndpointRole.RECEIVER,  # FHIR receiver for FHIR structure/identity
                 ght_context_id=context.id,
                 base_url=f"https://fhir.demo/{finess_ej}",
                 auth_kind="none",

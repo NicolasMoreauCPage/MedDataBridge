@@ -223,7 +223,7 @@ def setup_test_db(clean_db_tables):
 
             # Create one SystemEndpoint with MLLP and FHIR configs if none exist
             if not sess.exec(select(SEP)).first():
-                sep = SEP(name="Test Endpoint", kind="FILE", role="both", is_enabled=True)
+                sep = SEP(name="Test Endpoint", kind="FILE", role="receiver", is_enabled=True)
                 sess.add(sep)
                 sess.commit()
             else:

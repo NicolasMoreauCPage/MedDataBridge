@@ -7,6 +7,7 @@ to the appropriate handler.
 
 
 import json
+import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
@@ -19,6 +20,8 @@ from app.adapters.filesystem_transport import FileSystemReader
 from app.utils.hl7_detector import HL7Detector
 from app.services.mfn_importer import import_mfn
 from app.services.transport_inbound import on_message_inbound_async
+
+logger = logging.getLogger(__name__)
 
 
 class FilePollerService:
@@ -158,69 +161,112 @@ class FilePollerService:
     
     async def _process_message(self, content: str, file_path: Path, endpoint: SystemEndpoint) -> bool:
         """
-        Process a single message file.
+        Process a single message file using a fresh session.
+        
+        Creates a new session for each message to avoid session state corruption
+        when processing multiple files concurrently. Each message operation is
+        isolated to prevent one failure from affecting others.
         
         Returns:
             True if successful, False otherwise
         """
-        # Detect message type
-        details = HL7Detector.get_message_type_details(content)
-        category = details['category']
+        from app.db import engine
+        from sqlmodel import Session as SQLModelSession
         
-        # Deduplicate MessageLog by correlation_id, direction, endpoint_id
-        msg_log = self.session.exec(
-            select(MessageLog)
-            .where(MessageLog.correlation_id == details['control_id'])
-            .where(MessageLog.direction == "in")
-            .where(MessageLog.endpoint_id == endpoint.id)
-        ).first()
-        if msg_log:
-            # Update existing log
-            msg_log.kind = "HL7"
-            msg_log.message_type = f"{details['message_code']}^{details['trigger_event']}" if details['trigger_event'] else details['message_code']
-            msg_log.status = "received"
-            msg_log.payload = content
-            msg_log.created_at = datetime.utcnow()
-        else:
-            msg_log = MessageLog(
-                direction="in",
-                kind="HL7",
-                message_type=f"{details['message_code']}^{details['trigger_event']}" if details['trigger_event'] else details['message_code'],
-                endpoint_id=endpoint.id,
-                correlation_id=details['control_id'],
-                status="received",
-                payload=content
-            )
-            self.session.add(msg_log)
-        self.session.commit()
-        
-        # Route based on category
-        if category == "MFN":
-            return self._handle_mfn(content, msg_log, endpoint)
-        elif category == "ADT":
-            return await self._handle_adt(content, msg_log, endpoint)
-        else:
-            self.stats['unknown_messages'] += 1
-            msg_log.status = "error"
-            msg_log.ack_payload = f"Unknown message category: {category}"
-            self.session.add(msg_log)
-            self.session.commit()
+        # Create a fresh session for this message processing
+        with SQLModelSession(engine) as msg_session:
+            try:
+                # Detect message type
+                details = HL7Detector.get_message_type_details(content)
+                category = details['category']
+                
+                # Deduplicate MessageLog by correlation_id, direction, endpoint_id
+                msg_log = msg_session.exec(
+                    select(MessageLog)
+                    .where(MessageLog.correlation_id == details['control_id'])
+                    .where(MessageLog.direction == "in")
+                    .where(MessageLog.endpoint_id == endpoint.id)
+                ).first()
+                if msg_log:
+                    # Update existing log
+                    msg_log.kind = "HL7"
+                    msg_log.message_type = f"{details['message_code']}^{details['trigger_event']}" if details['trigger_event'] else details['message_code']
+                    msg_log.status = "received"
+                    msg_log.payload = content
+                    msg_log.created_at = datetime.utcnow()
+                else:
+                    msg_log = MessageLog(
+                        direction="in",
+                        kind="HL7",
+                        message_type=f"{details['message_code']}^{details['trigger_event']}" if details['trigger_event'] else details['message_code'],
+                        endpoint_id=endpoint.id,
+                        correlation_id=details['control_id'],
+                        status="received",
+                        payload=content
+                    )
+                    msg_session.add(msg_log)
+                msg_session.commit()
+                
+                # Route based on category
+                if category == "MFN":
+                    return self._handle_mfn(content, msg_log, msg_session, endpoint)
+                elif category == "ADT":
+                    return await self._handle_adt(content, msg_log, msg_session, endpoint)
+                else:
+                    self.stats['unknown_messages'] += 1
+                    msg_log.status = "error"
+                    msg_log.ack_payload = f"Unknown message category: {category}"
+                    msg_session.add(msg_log)
+                    msg_session.commit()
+                    return False
+            except Exception as e:
+                # Log the error and mark as failed
+                logger.error(f"Error processing message {file_path.name}: {e}", exc_info=True)
+                try:
+                    # Try to create a MessageLog entry for this error
+                    details = HL7Detector.get_message_type_details(content)
+                    msg_log = msg_session.exec(
+                        select(MessageLog)
+                        .where(MessageLog.correlation_id == details['control_id'])
+                        .where(MessageLog.direction == "in")
+                        .where(MessageLog.endpoint_id == endpoint.id)
+                    ).first()
+                    if msg_log:
+                        msg_log.status = "error"
+                        msg_log.ack_payload = f"Processing error: {str(e)}"
+                    else:
+                        msg_log = MessageLog(
+                            direction="in",
+                            kind="HL7",
+                            endpoint_id=endpoint.id,
+                            correlation_id=details.get('control_id'),
+                            status="error",
+                            payload=content,
+                            ack_payload=f"Processing error: {str(e)}"
+                        )
+                        msg_session.add(msg_log)
+                    msg_session.commit()
+                except Exception as e2:
+                    # If we can't even log the error, rollback and move on
+                    logger.error(f"Failed to log error for {file_path.name}: {e2}")
+                    msg_session.rollback()
+                return False
             return False
     
-    def _handle_mfn(self, content: str, msg_log: MessageLog, endpoint: SystemEndpoint) -> bool:
+    def _handle_mfn(self, content: str, msg_log: MessageLog, session: Session, endpoint: SystemEndpoint) -> bool:
         """Handle MFN structure message, robust ACK/error handling"""
         try:
             # Get GHT context for this endpoint
             ght_context = None
             if endpoint.ght_context_id:
-                ght_context = self.session.get(GHTContext, endpoint.ght_context_id)
+                ght_context = session.get(GHTContext, endpoint.ght_context_id)
             if not ght_context:
                 stmt = select(GHTContext).where(GHTContext.is_active == True).limit(1)
-                ght_context = self.session.exec(stmt).first()
+                ght_context = session.exec(stmt).first()
             if not ght_context:
                 raise ValueError("No GHT context available for import")
             # Import MFN structure
-            result = import_mfn(content, self.session, ght_context)
+            result = import_mfn(content, session, ght_context)
             # Parse HL7 ACK for AE/AR codes (negative ACK)
             ack = str(result) if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
             msa = None
@@ -238,23 +284,28 @@ class FilePollerService:
             else:
                 msg_log.status = "ack_ok"
                 msg_log.ack_payload = f"MFN import completed: {ack}"
-            self.session.add(msg_log)
-            self.session.commit()
+            session.add(msg_log)
+            session.commit()
             self.stats['mfn_messages'] += 1
             return ack_code not in ("AE", "AR")
         except Exception as e:
             self.stats['errors'].append(f"MFN import error: {str(e)}")
+            logger.error(f"MFN import error: {e}", exc_info=True)
             msg_log.status = "error"
             msg_log.ack_payload = f"MFN import failed: {str(e)}"
-            self.session.add(msg_log)
-            self.session.commit()
+            try:
+                session.add(msg_log)
+                session.commit()
+            except Exception as e2:
+                logger.error(f"Failed to save error MessageLog: {e2}")
+                session.rollback()
             return False
     
-    async def _handle_adt(self, content: str, msg_log: MessageLog, endpoint: SystemEndpoint) -> bool:
+    async def _handle_adt(self, content: str, msg_log: MessageLog, session: Session, endpoint: SystemEndpoint) -> bool:
         """Handle ADT PAM message, robust ACK/error handling"""
         try:
-            # Use existing PAM handler (async)
-            ack = await on_message_inbound_async(content, self.session, endpoint)
+            # Use existing PAM handler (async) and pass existing log to avoid duplicates
+            ack = await on_message_inbound_async(content, session, endpoint, existing_log=msg_log)
             # Parse HL7 ACK for AE/AR codes (negative ACK)
             msa = None
             ack_code = "AA"
@@ -269,16 +320,21 @@ class FilePollerService:
             else:
                 msg_log.status = "ack_ok"
                 msg_log.ack_payload = ack or "ADT processed successfully"
-            self.session.add(msg_log)
-            self.session.commit()
+            session.add(msg_log)
+            session.commit()
             self.stats['adt_messages'] += 1
             return ack_code not in ("AE", "AR")
         except Exception as e:
             self.stats['errors'].append(f"ADT processing error: {str(e)}")
+            logger.error(f"ADT processing error: {e}", exc_info=True)
             msg_log.status = "error"
             msg_log.ack_payload = f"ADT processing failed: {str(e)}"
-            self.session.add(msg_log)
-            self.session.commit()
+            try:
+                session.add(msg_log)
+                session.commit()
+            except Exception as e2:
+                logger.error(f"Failed to save error MessageLog: {e2}")
+                session.rollback()
             return False
 
 

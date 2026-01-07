@@ -792,7 +792,7 @@ def _validate_message_structure(msg: str) -> Tuple[bool, Optional[str], Optional
     except Exception as e:
         return False, f"Message validation error: {str(e)}", None
 
-async def on_message_inbound_async(msg: str, session, endpoint) -> str:
+async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Optional[MessageLog] = None) -> str:
     """
     Point d'entrée principal pour les messages HL7v2 IHE PAM entrants.
     Implémente le profil IHE PAM (ITI-30/31) avec support des annulations.
@@ -954,17 +954,24 @@ async def on_message_inbound_async(msg: str, session, endpoint) -> str:
         ctx = session.begin() if not session.in_transaction() else nullcontext()
 
         with ctx:
-            log = MessageLog(
-                direction="in",
-                kind="MLLP",
-                endpoint_id=endpoint.id if endpoint else None,
-                correlation_id=ctrl_id,
-                payload=msg,
-                status="processing",
-                message_type=f"{msg_family}^{trigger}",
-                created_at=datetime.now(timezone.utc),
-            )
-            session.add(log)
+            # Reuse existing log if provided (from file_poller), else create new
+            if existing_log:
+                log = existing_log
+                log.status = "processing"
+                log.payload = msg
+                log.message_type = f"{msg_family}^{trigger}"
+            else:
+                log = MessageLog(
+                    direction="in",
+                    kind="MLLP",
+                    endpoint_id=endpoint.id if endpoint else None,
+                    correlation_id=ctrl_id,
+                    payload=msg,
+                    status="processing",
+                    message_type=f"{msg_family}^{trigger}",
+                    created_at=datetime.now(timezone.utc),
+                )
+                session.add(log)
             session.flush()  # Persist immediately to get ID and avoid duplicates
 
             # PAM validation (configurable per endpoint)

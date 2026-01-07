@@ -1,7 +1,7 @@
 """
 File polling service - scans file-based endpoints and processes messages.
 
-Automatically detects message type (MFN structure vs ADT PAM) and routes
+Automatically detects message type (HL7 MFN/ADT or HPRIM XML) and routes
 to the appropriate handler.
 """
 
@@ -29,8 +29,9 @@ class FilePollerService:
     Service to poll file-based endpoints and process messages.
     
     Scans inbox directories, detects message type, and routes to:
-    - MFN importer for structure messages
-    - PAM handler for ADT messages
+    - MFN importer for structure messages (HL7)
+    - PAM handler for ADT messages (HL7)
+    - HPRIM handler for HPRIM XML cotation messages
     """
     
     def __init__(self, session: Session):
@@ -40,6 +41,7 @@ class FilePollerService:
             'files_processed': 0,
             'mfn_messages': 0,
             'adt_messages': 0,
+            'hprim_messages': 0,
             'unknown_messages': 0,
             'errors': []
         }
@@ -167,6 +169,8 @@ class FilePollerService:
         when processing multiple files concurrently. Each message operation is
         isolated to prevent one failure from affecting others.
         
+        Supports: HL7 (MFN, ADT) and HPRIM XML messages.
+        
         Returns:
             True if successful, False otherwise
         """
@@ -176,7 +180,14 @@ class FilePollerService:
         # Create a fresh session for this message processing
         with SQLModelSession(engine) as msg_session:
             try:
-                # Detect message type
+                # Detect if it's HPRIM XML (starts with <?xml and contains hprimXML namespace)
+                is_hprim = content.strip().startswith('<?xml') and 'hprimXML' in content
+                
+                if is_hprim:
+                    # Handle HPRIM XML message
+                    return await self._handle_hprim(content, file_path, msg_session, endpoint)
+                
+                # Otherwise, detect HL7 message type
                 details = HL7Detector.get_message_type_details(content)
                 category = details['category']
                 
@@ -298,6 +309,95 @@ class FilePollerService:
                 session.commit()
             except Exception as e2:
                 logger.error(f"Failed to save error MessageLog: {e2}")
+                session.rollback()
+            return False
+    
+    async def _handle_hprim(self, content: str, file_path: Path, session: Session, endpoint: SystemEndpoint) -> bool:
+        """
+        Handle HPRIM XML message (cotation data like CCAM, NGAP, UCD, LPP).
+        
+        HPRIM messages are received for validation and logging but not processed
+        for transformation (unlike HL7 which is converted to FHIR/HL7v2).
+        They are stored as received and archived.
+        """
+        correlation_id = None
+        try:
+            import xml.etree.ElementTree as ET
+            
+            # Generate a unique correlation ID from the XML (if available)
+            try:
+                root = ET.fromstring(content)
+                # Try to extract message ID from entete namespace element
+                ns = {'h': 'http://www.hprim.org/hprimXML'}
+                entete = root.find('.//h:enteteMessage', ns)
+                if entete is not None:
+                    id_elem = entete.find('h:identifiantMessge', ns)
+                    if id_elem is not None and id_elem.text:
+                        correlation_id = id_elem.text
+            except Exception as e:
+                logger.debug(f"Could not extract HPRIM message ID: {e}")
+            
+            # Generate fallback ID if not found
+            if not correlation_id:
+                correlation_id = f"HPRIM_{datetime.utcnow().isoformat()}"
+            
+            # Create or update MessageLog
+            msg_log = session.exec(
+                select(MessageLog)
+                .where(MessageLog.correlation_id == correlation_id)
+                .where(MessageLog.direction == "in")
+                .where(MessageLog.endpoint_id == endpoint.id)
+            ).first()
+            
+            if msg_log:
+                msg_log.kind = "HPRIM"
+                msg_log.message_type = "HPRIM-XML"
+                msg_log.status = "received"
+                msg_log.payload = content
+                msg_log.created_at = datetime.utcnow()
+            else:
+                msg_log = MessageLog(
+                    direction="in",
+                    kind="HPRIM",
+                    message_type="HPRIM-XML",
+                    endpoint_id=endpoint.id,
+                    correlation_id=correlation_id,
+                    status="received",
+                    payload=content
+                )
+                session.add(msg_log)
+            
+            session.commit()
+            
+            # HPRIM messages received via FILE are logged but not processed/transformed
+            # (they are for archival/audit purposes)
+            msg_log.status = "received"
+            msg_log.ack_payload = "HPRIM message received and archived"
+            session.add(msg_log)
+            session.commit()
+            
+            self.stats['hprim_messages'] = self.stats.get('hprim_messages', 0) + 1
+            logger.info(f"HPRIM message processed: {correlation_id}")
+            return True
+            
+        except Exception as e:
+            self.stats['errors'].append(f"HPRIM processing error: {str(e)}")
+            logger.error(f"HPRIM processing error: {e}", exc_info=True)
+            try:
+                msg_log = MessageLog(
+                    direction="in",
+                    kind="HPRIM",
+                    message_type="HPRIM-XML",
+                    endpoint_id=endpoint.id,
+                    correlation_id=correlation_id or f"HPRIM_ERROR_{datetime.utcnow().isoformat()}",
+                    status="error",
+                    payload=content,
+                    ack_payload=f"HPRIM processing failed: {str(e)}"
+                )
+                session.add(msg_log)
+                session.commit()
+            except Exception as e2:
+                logger.error(f"Failed to save error MessageLog for HPRIM: {e2}")
                 session.rollback()
             return False
     

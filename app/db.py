@@ -339,7 +339,7 @@ def get_db_health() -> dict:
             if "sqlite" in str(engine.url):
                 try:
                     import sqlite3
-                    conn = sqlite3.connect("medbridge.db")
+                    conn = sqlite3.connect("data/medbridge.db")
                     cursor = conn.cursor()
 
                     # Métriques SQLite

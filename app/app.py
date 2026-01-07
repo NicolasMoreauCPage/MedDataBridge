@@ -385,6 +385,15 @@ def create_app() -> FastAPI:
     # Roundtrip HPRIM router
     app.include_router(roundtrip_hprim.router)
     print(" - Roundtrip HPRIM router mounted at /roundtrip-hprim")
+    
+    # HPRIM messages cotation router (visualisation et import des actes)
+    try:
+        from app.routers import hprim_messages
+        app.include_router(hprim_messages.router)
+        print(" - HPRIM messages cotation router mounted at /hprim-cotation")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM messages cotation router not available: {e}")
+    
     # Nouvelle IHM Cotation moderne (UX/UI pro)
     app.include_router(cotation_modern.router, prefix="/cotation-modern")
     try:

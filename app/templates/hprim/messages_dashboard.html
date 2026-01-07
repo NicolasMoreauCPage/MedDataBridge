@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Messages HPRIM Cotation</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+            <div class="text-3xl">💊</div>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold">Messages HPRIM Cotation</h1>
+            <p class="text-white/90 mt-1">Visualisation des actes CCAM, NGAP, UCD, LPP reçus</p>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <a href="/hprim-cotation/dossiers-avec-cotations" 
+             class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+            📁 Dossiers avec cotations
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-slate-600">Total messages</p>
+          <p class="text-3xl font-bold text-slate-900">{{ stats.total }}</p>
+        </div>
+        <div class="text-4xl">📨</div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-slate-600">Reçus</p>
+          <p class="text-3xl font-bold text-green-600">{{ stats.received }}</p>
+        </div>
+        <div class="text-4xl">✅</div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm text-slate-600">Erreurs</p>
+          <p class="text-3xl font-bold text-red-600">{{ stats.error }}</p>
+        </div>
+        <div class="text-4xl">❌</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200 mb-6">
+    <form method="get" class="flex gap-4 items-end">
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-slate-700 mb-2">Rechercher</label>
+        <input type="text" name="search" value="{{ search_term or '' }}"
+               placeholder="NDA, IPP, ou contenu du message..."
+               class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+      </div>
+      
+      <div class="w-48">
+        <label class="block text-sm font-medium text-slate-700 mb-2">Statut</label>
+        <select name="status" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          <option value="">Tous</option>
+          <option value="received" {% if current_status == 'received' %}selected{% endif %}>Reçu</option>
+          <option value="processed" {% if current_status == 'processed' %}selected{% endif %}>Traité</option>
+          <option value="error" {% if current_status == 'error' %}selected{% endif %}>Erreur</option>
+        </select>
+      </div>
+      
+      <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        🔍 Filtrer
+      </button>
+      
+      {% if search_term or current_status %}
+      <a href="/hprim-cotation/" class="px-6 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors">
+        ✖️ Réinitialiser
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Liste des messages -->
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Correlation ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Statut</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Endpoint</th>
+            <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-slate-200">
+          {% if messages %}
+            {% for msg in messages %}
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
+                #{{ msg.id }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                {{ msg.created_at.strftime("%d/%m/%Y %H:%M") if msg.created_at else "N/A" }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
+                {{ msg.correlation_id[:30] if msg.correlation_id else "N/A" }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                  {% if msg.status == 'received' %}bg-green-100 text-green-800
+                  {% elif msg.status == 'error' %}bg-red-100 text-red-800
+                  {% else %}bg-slate-100 text-slate-800{% endif %}">
+                  {{ msg.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                {{ msg.endpoint_id or "N/A" }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                <a href="/hprim-cotation/message/{{ msg.id }}" 
+                   class="text-blue-600 hover:text-blue-800 font-medium">
+                  👁️ Voir détails
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                <div class="text-4xl mb-2">📭</div>
+                <p>Aucun message HPRIM trouvé</p>
+                <p class="text-sm mt-2">Les messages de cotation apparaîtront ici une fois reçus</p>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if messages and messages|length == 100 %}
+  <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+    ℹ️ Seuls les 100 derniers messages sont affichés. Utilisez les filtres pour affiner votre recherche.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

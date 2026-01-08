@@ -161,30 +161,35 @@ class AlertRule(SQLModel, table=True):
 
 ## 📝 Plan de Développement
 
-### Sprint 3.1.1 : KPIs & Backend _(1-2 jours)_
+### Sprint 3.1.1 : KPIs & Backend _(1-2 jours)_ ✅ TERMINÉ
 - [x] Création document de sprint
-- [ ] Créer modèles `OccupationSnapshot` et `AlertRule`
-- [ ] Migration Alembic pour nouvelles tables
-- [ ] Endpoint `GET /api/analytics/kpis` avec calculs
-- [ ] Endpoint `GET /api/analytics/capacity-by-service`
-- [ ] Endpoint `GET /api/analytics/capacity-by-um`
-- [ ] Tests unitaires des endpoints analytics
+- [x] Créer modèles `OccupationSnapshot` et `AlertRule`
+- [x] Migration Alembic pour nouvelles tables
+- [x] Endpoint `GET /api/analytics/kpis` avec calculs
+- [x] Endpoint `GET /api/analytics/capacity-by-service`
+- [x] Endpoint `GET /api/analytics/capacity-by-um`
+- [x] Endpoint `GET /api/analytics/alerts` avec génération alertes
+- [x] Fix foreign keys et tables analytics
 
-### Sprint 3.1.2 : Interface Dashboard _(2-3 jours)_
-- [ ] Template `analytics_dashboard.html` avec structure HTML
-- [ ] 5 cartes KPIs avec styles et icônes
-- [ ] Intégration Chart.js
-- [ ] Graphique capacité par service (horizontal bar)
-- [ ] Graphique répartition UM (pie chart)
-- [ ] Sélecteur de période avec rafraîchissement
-- [ ] Responsive design
+### Sprint 3.1.2 : Interface Dashboard _(2-3 jours)_ ✅ TERMINÉ
+- [x] Template `analytics_dashboard.html` avec structure HTML
+- [x] 5 cartes KPIs avec styles et icônes
+- [x] Intégration Chart.js 4.4.1
+- [x] Graphique capacité par service (horizontal bar avec couleurs)
+- [x] Graphique répartition UM (pie chart MCO/SSR/PSY/HAD)
+- [x] Sélecteur de période avec rafraîchissement
+- [x] Responsive design avec Tailwind CSS
+- [x] Section alertes actives avec filtrage sévérité
 
-### Sprint 3.1.3 : Alertes & Seuils _(1-2 jours)_
-- [ ] Endpoint `GET /api/analytics/alerts` avec logique calcul
-- [ ] Section alertes dans le dashboard
-- [ ] Code couleur par sévérité (rouge/jaune/bleu)
-- [ ] Configuration seuils via interface admin (simple)
-- [ ] Badge compteur d'alertes dans navigation principale
+### Sprint 3.1.3 : Alertes & Seuils _(1-2 jours)_ ✅ TERMINÉ
+- [x] Endpoint `GET /api/analytics/alerts` avec logique calcul
+- [x] Section alertes dans le dashboard
+- [x] Code couleur par sévérité (rouge/jaune/bleu)
+- [x] Router `/api/alert-config` avec CRUD complet des règles
+- [x] Interface admin `alert_config.html` pour gestion seuils
+- [x] Initialisation règles par défaut (suroccupation, tension, sous-utilisation)
+- [x] Badge compteur d'alertes dans navigation principale (temps réel)
+- [x] Formulaire création/édition règles avec validation
 
 ### Sprint 3.1.4 : Export Rapports _(2-3 jours)_
 - [ ] Endpoint `POST /api/analytics/export` avec génération fichiers

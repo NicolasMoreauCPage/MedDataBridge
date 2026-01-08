@@ -287,6 +287,11 @@
               <div>
                 <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Vue d'ensemble</p>
                 <a href="/structure" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau structurel</a>
+                <a href="/structure/analytics" class="block rounded-xl px-3 py-2 hover:bg-blue-50 flex items-center justify-between">
+                  <span>📊 Analytics & KPIs</span>
+                  <span id="alert-badge" class="hidden px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full"></span>
+                </a>
+                <a href="/structure/alert-config" class="block rounded-xl px-3 py-2 hover:bg-blue-50">⚙️ Config alertes</a>
                 <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
                 <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche avancée</a>
                 {% if request.state and request.state.ej_context %}
@@ -956,5 +961,35 @@
     </div>
   </footer>
 
+  <!-- Script global pour charger le compteur d'alertes -->
+  <script>
+    // Charger le compteur d'alertes au chargement de la page
+    async function loadAlertCount() {
+      try {
+        const response = await fetch('/api/analytics/alerts?eg_id=1&severity=high');
+        if (!response.ok) return;
+        
+        const alerts = await response.json();
+        const highAlerts = alerts.filter(a => a.severity === 'high').length;
+        
+        const badge = document.getElementById('alert-badge');
+        if (highAlerts > 0 && badge) {
+          badge.textContent = highAlerts;
+          badge.classList.remove('hidden');
+        }
+      } catch (error) {
+        // Silent fail - le badge n'apparaîtra simplement pas
+        console.debug('Alert count not loaded:', error);
+      }
+    }
+    
+    // Charger au chargement de la page
+    document.addEventListener('DOMContentLoaded', loadAlertCount);
+    
+    // Recharger toutes les 2 minutes
+    setInterval(loadAlertCount, 120000);
+  </script>
+
 </body>
 </html>
+

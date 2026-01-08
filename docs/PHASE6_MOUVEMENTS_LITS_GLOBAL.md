@@ -42,6 +42,7 @@
 - Actions rapides :
   - Affecter un patient (modal).
   - Muter un patient (lien vers workflow pré-rempli).
+  - **Drag & drop** d'un patient d'un lit occupé vers un lit libre pour créer une mutation immédiate.
   - Voir la venue.
 
 ---
@@ -101,6 +102,19 @@ Côté backend (`mouvements.py` et `workflow.py`) :
     - Bouton "🔍 Résoudre conflit" redirige vers `/mouvements?lit_id={id}` (vue à enrichir ultérieurement).
 - **Lits inactifs** :
   - Lits dont `operational_status != 'active'` exclus du plan standard.
+
+### 4.3 Drag & drop de mutation
+
+- **Glisser-déposer** :
+  - Depuis le plan de lits, il est possible de **saisir la carte patient** dans un lit occupé et de la **déposer sur un lit libre**.
+  - Le système appelle le même endpoint que le workflow (`POST /workflow/{venue_id}/mouvement`) avec un événement **A02 (transfert)**.
+- **Validations serveur** :
+  - Vérification que le lit cible existe (`lit_id` valide).
+  - Vérification qu'aucune autre venue active n'occupe déjà ce lit (conflits bloquants).
+  - Synchronisation de la structure : mise à jour de `venue.lit_id`, `venue.chambre_id` et `venue.assigned_location`.
+- **Historisation claire** :
+  - Un mouvement de type transfert est créé avec un motif explicite : "Mutation via plan de lits (drag&drop)".
+  - Dans la timeline du workflow mouvements, une **pastille dédiée** indique que le mouvement vient du plan de lits.
 
 ---
 

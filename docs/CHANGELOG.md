@@ -8,6 +8,13 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### ✨ Fonctionnalités
+- **Phase 6: Dossiers, Venues & Mouvements** (2026-01-08)
+  - Refonte complète des IHMs Dossiers & Venues (headers contextuels, listes modernisées, wizard d'admission en 3 étapes)
+  - Filtres avancés unifiés sur les listes (dossiers, venues, mouvements) avec raccourcis clavier globaux (Ctrl+N, Ctrl+S, /, Esc)
+  - Workflow mouvements moderne par venue (cartes d'événements, timeline chronologique, sélecteur hiérarchique de lits avec recherche)
+  - Plan de lits interactif par service/UF/UH/chambre avec KPIs d'occupation, statuts couleur, actions rapides (affecter, muter, voir venue)
+  - Détection des conflits de lits (plusieurs venues actives sur un même lit) avec mise en évidence visuelle et point d'entrée dédié pour résolution
+
 - **Phase 4.1: Import/Export Excel Structure** (2026-01-08)
   - Import/Export complet de la structure hospitalière via Excel (8 feuilles)
   - POST `/api/structure/import/excel` : Preview avec validation Pydantic
@@ -71,6 +78,11 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   - Logs détaillés pour le débogage
 
 ### 📝 Documentation
+- **Phase 6 – Dossiers, Venues & Mouvements** (2026-01-08)
+  - Guide utilisateur Phase 6 : [PHASE6_GUIDE_UTILISATEUR.md](PHASE6_GUIDE_UTILISATEUR.md)
+  - Notes techniques Phase 6 (filtres, raccourcis, architecture) : [PHASE6_NOTES_TECHNIQUES.md](PHASE6_NOTES_TECHNIQUES.md)
+  - Synthèse mouvements & plan de lits : [PHASE6_MOUVEMENTS_LITS_GLOBAL.md](PHASE6_MOUVEMENTS_LITS_GLOBAL.md)
+
 - **Clarification des namespaces** (2026-01-06)
   - Nouveau guide `NAMESPACES_CLARIFICATION.md` expliquant OID/URI/nom
   - Distinction claire : HL7v2 (NOM+OID) vs FHIR (URI uniquement)

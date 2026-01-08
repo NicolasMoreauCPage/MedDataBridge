@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Plan de lits{% endblock %}
+
+{% block content %}
+<div class="max-w-[1600px] mx-auto space-y-6">
+  
+  <!-- En-tête avec gradient et statistiques -->
+  <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-xl">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl font-black tracking-tight mb-2">Plan de lits</h1>
+        <p class="text-blue-100 text-lg">Vue temps réel de la disponibilité des lits par service</p>
+      </div>
+      <div class="flex gap-6">
+        <div class="text-center">
+          <div class="text-5xl font-black">{{ stats.total }}</div>
+          <div class="text-sm uppercase tracking-wide text-blue-200 mt-1">Lits totaux</div>
+        </div>
+        <div class="h-16 w-px bg-white/20"></div>
+        <div class="text-center">
+          <div class="text-5xl font-black text-emerald-300">{{ stats.libres }}</div>
+          <div class="text-sm uppercase tracking-wide text-blue-200 mt-1">Libres</div>
+        </div>
+        <div class="h-16 w-px bg-white/20"></div>
+        <div class="text-center">
+          <div class="text-5xl font-black">{{ stats.occupes }}</div>
+          <div class="text-sm uppercase tracking-wide text-blue-200 mt-1">Occupés</div>
+        </div>
+        <div class="h-16 w-px bg-white/20"></div>
+        <div class="text-center">
+          <div class="text-5xl font-black {% if stats.taux_occupation >= 95 %}text-red-300{% elif stats.taux_occupation >= 85 %}text-amber-300{% else %}text-emerald-300{% endif %}">
+            {{ stats.taux_occupation }}%
+          </div>
+          <div class="text-sm uppercase tracking-wide text-blue-200 mt-1">Taux occupation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+    <form method="GET" action="/mouvements/plan-lits" class="grid gap-4 md:grid-cols-4">
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Unité Fonctionnelle</label>
+        <select name="uf_filter" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+          <option value="">Toutes les UF</option>
+          {% for uf in uf_options %}
+          <option value="{{ uf.value }}" {% if filters.uf == uf.value %}selected{% endif %}>{{ uf.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Service</label>
+        <select name="service_filter" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+          <option value="">Tous les services</option>
+          {% for service in service_options %}
+          <option value="{{ service.value }}" {% if filters.service == service.value %}selected{% endif %}>{{ service.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Statut</label>
+        <select name="status_filter" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+          <option value="">Tous les statuts</option>
+          <option value="free" {% if filters.status == 'free' %}selected{% endif %}>✓ Libres</option>
+          <option value="occupied" {% if filters.status == 'occupied' %}selected{% endif %}>● Occupés</option>
+          <option value="closed" {% if filters.status == 'closed' %}selected{% endif %}>⊗ Fermés</option>
+        </select>
+      </div>
+      
+      <div class="flex items-end gap-2">
+        <button type="submit" class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm">
+          🔍 Filtrer
+        </button>
+        <a href="/mouvements/plan-lits" class="rounded-lg border-2 border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+          ✕
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Plan de lits par service -->
+  {% for service_id, service in structure.items() %}
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <!-- En-tête service -->
+    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-slate-200 px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+            <span class="text-xl">🏥</span>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">{{ service.name }}</h2>
+            <p class="text-sm text-slate-600">{{ service.service_type or 'Service' }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          {% set service_total = namespace(value=0) %}
+          {% set service_libres = namespace(value=0) %}
+          {% for uf in service.ufs.values() %}
+            {% for uh in uf.uhs.values() %}
+              {% for chambre in uh.chambres.values() %}
+                {% set service_total.value = service_total.value + chambre.lits|length %}
+                {% for lit in chambre.lits %}
+                  {% if lit.status == 'free' %}{% set service_libres.value = service_libres.value + 1 %}{% endif %}
+                {% endfor %}
+              {% endfor %}
+            {% endfor %}
+          {% endfor %}
+          <div class="text-right">
+            <div class="text-2xl font-bold text-slate-900">{{ service_libres.value }} / {{ service_total.value }}</div>
+            <div class="text-xs uppercase tracking-wide text-slate-500">Lits libres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenu : UFs et lits -->
+    <div class="p-6 space-y-6">
+      {% for uf_id, uf in service.ufs.items() %}
+      <div class="space-y-3">
+        <div class="flex items-center gap-2">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+            <span class="text-xs font-bold text-emerald-700">UF</span>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900">{{ uf.name }}</h3>
+          <span class="text-sm text-slate-500">({{ uf.identifier }})</span>
+        </div>
+
+        {% for uh_id, uh in uf.uhs.items() %}
+        <div class="ml-10 space-y-2">
+          <div class="text-sm font-semibold text-slate-600">📍 {{ uh.name }}</div>
+          
+          {% for chambre_id, chambre in uh.chambres.items() %}
+          <div class="rounded-xl border-2 border-slate-200 bg-slate-50/50 p-4">
+            <div class="mb-3 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-base font-semibold text-slate-900">🚪 {{ chambre.name }}</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                  {{ chambre.lits|length }} lit{% if chambre.lits|length > 1 %}s{% endif %}
+                </span>
+              </div>
+            </div>
+
+            <!-- Grille de lits -->
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {% for lit in chambre.lits %}
+              <div class="group relative rounded-xl border-2 p-4 transition-all
+                          {% if lit.status == 'free' %}border-emerald-300 bg-emerald-50 hover:border-emerald-500 hover:shadow-md{% elif lit.status == 'occupied' %}border-slate-300 bg-white hover:border-slate-400{% else %}border-amber-300 bg-amber-50{% endif %}">
+                
+                <!-- Statut badge -->
+                <div class="absolute top-2 right-2">
+                  <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide
+                              {% if lit.status == 'free' %}bg-emerald-200 text-emerald-900{% elif lit.status == 'occupied' %}bg-slate-200 text-slate-700{% else %}bg-amber-200 text-amber-900{% endif %}">
+                    {% if lit.status == 'free' %}✓ Libre{% elif lit.status == 'occupied' %}● Occupé{% elif lit.status == 'closed' %}⊗ Fermé{% else %}{{ lit.status }}{% endif %}
+                  </span>
+                </div>
+
+                <!-- Nom du lit -->
+                <div class="mb-2">
+                  <div class="text-lg font-bold {% if lit.status == 'free' %}text-emerald-900{% elif lit.status == 'occupied' %}text-slate-900{% else %}text-amber-900{% endif %}">
+                    🛏️ {{ lit.name }}
+                  </div>
+                  <div class="text-xs text-slate-500">{{ lit.identifier }}</div>
+                </div>
+
+                <!-- Occupant si présent -->
+                {% if lit.occupant %}
+                <div class="mb-3 rounded-lg border border-slate-200 bg-white p-2">
+                  <div class="text-xs font-semibold text-slate-700 truncate">{{ lit.occupant.patient_name }}</div>
+                  <div class="text-[10px] text-slate-500">
+                    Venue #{{ lit.occupant.venue_seq }} • Dossier #{{ lit.occupant.dossier_seq }}
+                  </div>
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="flex gap-2">
+                  {% if lit.status == 'free' %}
+                  <button type="button" 
+                          onclick="assignBed('{{ lit.id }}', '{{ lit.name }}')"
+                          class="flex-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                    ➕ Affecter
+                  </button>
+                  {% elif lit.occupant %}
+                  <a href="/venues/{{ lit.occupant.venue_id }}" 
+                     class="flex-1 rounded-lg border-2 border-blue-300 px-3 py-1.5 text-center text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors">
+                    👁️ Voir venue
+                  </a>
+                  <button type="button"
+                          onclick="transferPatient('{{ lit.occupant.venue_id }}', '{{ lit.id }}')"
+                          class="flex-1 rounded-lg border-2 border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 transition-colors">
+                    🔄 Muter
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if not structure %}
+  <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+    <svg class="mx-auto h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 12h.01M12 12h.01M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="mt-4 text-xl font-semibold text-slate-600">Aucun lit trouvé</p>
+    <p class="mt-2 text-sm text-slate-500">Essayez de modifier les filtres ou vérifiez la configuration de la structure.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal d'affectation rapide -->
+<div id="assign-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+    <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4">
+      <h3 class="text-2xl font-bold text-white">Affecter un patient à ce lit</h3>
+    </div>
+    <div class="p-6">
+      <form id="assign-form" method="POST" action="/mouvements/plan-lits/assign" class="space-y-4">
+        <input type="hidden" name="lit_id" id="modal-lit-id">
+        
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Lit sélectionné</label>
+          <div class="rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-3">
+            <div class="text-lg font-bold text-emerald-900" id="modal-lit-name"></div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Rechercher un patient / dossier / venue</label>
+          <input type="text" id="patient-search" placeholder="Nom, prénom, numéro de dossier..."
+                 class="block w-full rounded-lg border-2 border-slate-300 px-4 py-2 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+        </div>
+
+        <div id="search-results" class="hidden space-y-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200 p-2">
+          <!-- Résultats de recherche dynamiques -->
+        </div>
+
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="closeAssignModal()"
+                  class="flex-1 rounded-lg border-2 border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+            Annuler
+          </button>
+          <button type="submit" id="confirm-assign" disabled
+                  class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors shadow-sm">
+            ✓ Confirmer l'affectation
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Modal d'affectation
+function assignBed(litId, litName) {
+  document.getElementById('modal-lit-id').value = litId;
+  document.getElementById('modal-lit-name').textContent = litName;
+  document.getElementById('assign-modal').classList.remove('hidden');
+  document.getElementById('patient-search').focus();
+}
+
+function closeAssignModal() {
+  document.getElementById('assign-modal').classList.add('hidden');
+  document.getElementById('patient-search').value = '';
+  document.getElementById('search-results').classList.add('hidden');
+  document.getElementById('search-results').innerHTML = '';
+}
+
+// Recherche patient (à implémenter avec endpoint API)
+let searchTimeout;
+document.getElementById('patient-search').addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  const query = e.target.value.trim();
+  
+  if (query.length < 2) {
+    document.getElementById('search-results').classList.add('hidden');
+    return;
+  }
+  
+  searchTimeout = setTimeout(() => {
+    // TODO: appeler endpoint de recherche
+    console.log('Recherche:', query);
+    // Pour l'instant, afficher un message
+    document.getElementById('search-results').innerHTML = `
+      <div class="text-sm text-slate-500 p-3">
+        🔍 Recherche en cours... (endpoint à implémenter)
+      </div>
+    `;
+    document.getElementById('search-results').classList.remove('hidden');
+  }, 300);
+});
+
+// Mutation rapide (transfert)
+function transferPatient(venueId, newLitId) {
+  if (confirm('Créer un mouvement de transfert vers ce lit ?')) {
+    window.location.href = `/workflow/${venueId}/view?prefill_lit=${newLitId}`;
+  }
+}
+
+// Fermer modal avec Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeAssignModal();
+  }
+});
+</script>
+
+{% endblock %}

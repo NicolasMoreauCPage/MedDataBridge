@@ -145,7 +145,7 @@
             </label>
             
             <!-- Hidden input to store selected location -->
-            <input type="hidden" name="location" id="location-select">
+            <input type="hidden" name="location" id="location-select" value="{% if prefilled_location %}{{ prefilled_location }}{% endif %}">
             
             <!-- Visual bed selector -->
             <div class="rounded-xl border-2 border-slate-300 bg-white overflow-hidden">
@@ -238,14 +238,14 @@
               </div>
               
               <!-- Selected location display -->
-              <div id="location-display" class="hidden border-t border-slate-200 bg-blue-50 px-3 py-2">
+              <div id="location-display" class="{% if not prefilled_location %}hidden{% endif %} border-t border-slate-200 bg-blue-50 px-3 py-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2 text-xs">
                     <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                     </svg>
                     <span class="font-semibold text-blue-900">Sélection :</span>
-                    <span id="location-path" class="text-blue-700"></span>
+                    <span id="location-path" class="text-blue-700">{% if prefilled_location %}{{ prefilled_location }}{% endif %}</span>
                   </div>
                   <button type="button" id="clear-location" class="text-xs font-medium text-blue-600 hover:text-blue-800">
                     ✕ Effacer

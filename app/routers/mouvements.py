@@ -24,6 +24,177 @@ router = APIRouter(
     dependencies=[Depends(require_ght_context)]
 )
 
+
+@router.get("/plan-lits", response_class=HTMLResponse)
+def plan_lits(
+    request: Request,
+    session = Depends(get_session),
+    uf_filter: Optional[str] = Query(None, description="Filtrer par UF"),
+    service_filter: Optional[str] = Query(None, description="Filtrer par Service"),
+    status_filter: Optional[str] = Query(None, description="Filtrer par statut: free, occupied, closed"),
+):
+    """
+    Vue plan de lits : affiche tous les lits organisés par service/UF/UH/chambre
+    avec statut en temps réel et actions rapides pour affecter des patients.
+    """
+    from app.models_structure import Service, Pole
+    
+    # Récupérer le contexte EJ
+    ej_context = getattr(request.state, "ej_context", None)
+    ej_id = getattr(ej_context, "id", None) if ej_context else None
+    
+    # Base query pour les lits avec toute la hiérarchie
+    query = (
+        select(Lit, Chambre, UniteHebergement, UniteFonctionnelle, Service)
+        .select_from(Lit)
+        .join(Lit.chambre)
+        .join(Chambre.unite_hebergement)
+        .join(UniteHebergement.unite_fonctionnelle)
+        .join(UniteFonctionnelle.service)
+        .where(Lit.operational_status == "active")
+    )
+    
+    # Filtres
+    if uf_filter:
+        query = query.where(UniteFonctionnelle.identifier == uf_filter)
+    if service_filter:
+        query = query.where(Service.name.ilike(f"%{service_filter}%"))
+    if status_filter:
+        query = query.where(Lit.status == status_filter)
+    
+    locations = session.exec(query).all()
+    
+    # Organiser par service > UF > UH > Chambre > Lits
+    structure = {}
+    for lit, chambre, uh, uf, service in locations:
+        if service.id not in structure:
+            structure[service.id] = {
+                "id": service.id,
+                "name": service.name,
+                "service_type": service.service_type,
+                "ufs": {}
+            }
+        
+        if uf.id not in structure[service.id]["ufs"]:
+            structure[service.id]["ufs"][uf.id] = {
+                "id": uf.id,
+                "name": uf.name,
+                "identifier": uf.identifier,
+                "uhs": {}
+            }
+        
+        if uh.id not in structure[service.id]["ufs"][uf.id]["uhs"]:
+            structure[service.id]["ufs"][uf.id]["uhs"][uh.id] = {
+                "id": uh.id,
+                "name": uh.name,
+                "identifier": uh.identifier,
+                "chambres": {}
+            }
+        
+        if chambre.id not in structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"]:
+            structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id] = {
+                "id": chambre.id,
+                "name": chambre.name,
+                "identifier": chambre.identifier,
+                "lits": []
+            }
+        
+        # Récupérer venue/patient occupant le lit
+        occupant = None
+        venue_actuelle = session.exec(
+            select(Venue, Dossier)
+            .join(Dossier)
+            .where(Venue.lit_id == lit.id)
+            .where(Venue.end_time.is_(None))
+        ).first()
+        
+        if venue_actuelle:
+            venue, dossier = venue_actuelle
+            session.refresh(dossier, ['patient'])
+            if dossier.patient:
+                occupant = {
+                    "venue_id": venue.id,
+                    "dossier_id": dossier.id,
+                    "patient_name": f"{dossier.patient.family} {dossier.patient.given}",
+                    "patient_id": dossier.patient.id,
+                    "venue_seq": venue.venue_seq,
+                    "dossier_seq": dossier.dossier_seq
+                }
+        
+        structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id]["lits"].append({
+            "id": lit.id,
+            "name": lit.name,
+            "identifier": lit.identifier,
+            "status": lit.status or "unknown",
+            "operational_status": lit.operational_status,
+            "occupant": occupant
+        })
+    
+    # Calculer statistiques globales
+    total_lits = sum(
+        len(chambre["lits"])
+        for service in structure.values()
+        for uf in service["ufs"].values()
+        for uh in uf["uhs"].values()
+        for chambre in uh["chambres"].values()
+    )
+    
+    lits_libres = sum(
+        1
+        for service in structure.values()
+        for uf in service["ufs"].values()
+        for uh in uf["uhs"].values()
+        for chambre in uh["chambres"].values()
+        for lit in chambre["lits"]
+        if lit["status"] == "free"
+    )
+    
+    lits_occupes = sum(
+        1
+        for service in structure.values()
+        for uf in service["ufs"].values()
+        for uh in uf["uhs"].values()
+        for chambre in uh["chambres"].values()
+        for lit in chambre["lits"]
+        if lit["status"] == "occupied"
+    )
+    
+    taux_occupation = round((lits_occupes / total_lits * 100) if total_lits > 0 else 0, 1)
+    
+    # Récupérer liste des UFs pour filtres
+    all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
+    uf_options = [{"value": uf.identifier, "label": uf.name} for uf in all_ufs]
+    
+    # Récupérer liste des services pour filtres
+    all_services = session.exec(select(Service).order_by(Service.name)).all()
+    service_options = [{"value": service.name, "label": service.name} for service in all_services]
+    
+    ctx = {
+        "request": request,
+        "structure": structure,
+        "stats": {
+            "total": total_lits,
+            "libres": lits_libres,
+            "occupes": lits_occupes,
+            "taux_occupation": taux_occupation
+        },
+        "filters": {
+            "uf": uf_filter,
+            "service": service_filter,
+            "status": status_filter
+        },
+        "uf_options": uf_options,
+        "service_options": service_options,
+        "breadcrumbs": [
+            {"label": "Accueil", "url": "/"},
+            {"label": "Mouvements", "url": "/mouvements"},
+            {"label": "Plan de lits", "url": "/mouvements/plan-lits"}
+        ]
+    }
+    
+    return get_templates_with_filters(request).TemplateResponse(request, "plan_lits.html", ctx)
+
+
 def get_status_badge(status):
     colors = {
         'active': 'bg-green-100 text-green-800',

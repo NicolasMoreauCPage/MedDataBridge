@@ -112,6 +112,7 @@ async def workflow_view(
     venue_id: int,
     request: Request,
     session: Session = Depends(get_session),
+    prefill_lit: Optional[int] = None,  # Préselection lit depuis plan de lits
 ):
     from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
     from datetime import timedelta
@@ -139,6 +140,13 @@ async def workflow_view(
         if code in allowed_events
     }
     
+    # Si lit préselectionné depuis plan de lits, récupérer son nom
+    prefilled_location = None
+    if prefill_lit:
+        lit = session.get(Lit, prefill_lit)
+        if lit:
+            prefilled_location = lit.name
+    
     from app.services.vocabulary_lookup import get_vocabulary_options
     reason_options = get_vocabulary_options("movement-reason") or []
     return get_templates_with_filters(request).TemplateResponse(
@@ -150,6 +158,7 @@ async def workflow_view(
             "event_catalog": filtered_catalog,
             "all_events": SUPPORTED_WORKFLOW_EVENTS,
             "default_datetime": default_datetime,
+            "prefilled_location": prefilled_location,
             "reason_options": reason_options
         },
     )

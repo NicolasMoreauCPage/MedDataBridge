@@ -359,6 +359,12 @@ def create_app() -> FastAPI:
     app.include_router(export_analytics.router)
     print(" - Export analytics router mounted at /api/analytics/export")
     
+    # 3e. Import/Export Structure Excel
+    from app.routers import structure_import_export
+    app.include_router(structure_import_export.router)
+    app.include_router(structure_import_export.ui_router)
+    print(" - Structure import/export routers mounted at /api/structure/export and /structure/import")
+    
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)
     from app.routers import admin_gateway

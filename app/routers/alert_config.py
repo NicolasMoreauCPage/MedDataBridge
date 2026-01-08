@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from typing import List, Optional
 from datetime import datetime
 
-from app.dependencies.db_deps import get_session
+from app.db import get_session
 from app.models_analytics import AlertRule, AlertType, AlertSeverity
 
 # Router API

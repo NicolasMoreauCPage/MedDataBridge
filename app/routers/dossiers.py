@@ -155,6 +155,8 @@ def redirect_dossier_cotation(dossier_id: int):
     return RedirectResponse(url=f"/cotation-modern?dossier_id={dossier_id}", status_code=302)
 
 from typing import Optional
+
+
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(
     request: Request,
@@ -218,6 +220,59 @@ def new_dossier(
         ]
         fields.append({"name": "event_code", "label": "Code événement", "type": "select", "options": event_options})
     return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Nouveau dossier", "fields": fields})
+
+
+@router.get("/new-wizard", response_class=HTMLResponse)
+def new_dossier_wizard(
+    request: Request,
+    patient_id: Optional[str] = Query(None),
+    session: Session = Depends(get_session),
+):
+    """Wizard d'admission guidée (Patient déjà sélectionné).
+
+    Cette vue propose une expérience en 3 étapes côté UI mais s'appuie
+    sur le POST existant `/dossiers/new` pour créer le dossier et la
+    pré-admission en base. Aucune logique métier n'est dupliquée ici.
+    """
+    print(f"[DEBUG] [/dossiers/new-wizard] query_params={request.query_params}, patient_id={patient_id}")
+    try:
+        patient_context = getattr(request.state, "patient_context", None)
+        print(f"[DEBUG] [/dossiers/new-wizard] patient_context initial={patient_context}")
+
+        if not patient_context and patient_id is not None:
+            from app.models import Patient
+            try:
+                pid_int = int(patient_id)
+                patient_context = session.get(Patient, pid_int)
+                if patient_context:
+                    request.state.patient_context = patient_context
+            except Exception as e:
+                print(f"[DEBUG] Exception conversion patient_id ou fetch patient dans /dossiers/new-wizard: {e}")
+                patient_context = None
+
+        if not patient_context:
+            print("[DEBUG] [/dossiers/new-wizard] aucun patient_context, redirection vers /patients")
+            return RedirectResponse("/patients", status_code=303)
+    except Exception as e:
+        print(f"[EXCEPTION in /dossiers/new-wizard]: {e}")
+        raise
+
+    now_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
+    ej_id = getattr(request.state, "ej_context.id", None)
+    uf_options = dossiers_service.get_uf_options(session, ej_id) if ej_id else []
+    dossier_type_opts = [
+        {"value": dt.value, "label": dt.name.replace("_", " ").capitalize()} for dt in DossierType
+    ]
+
+    ctx = {
+        "request": request,
+        "title": "Admission guidée",
+        "patient": patient_context,
+        "uf_options": uf_options,
+        "dossier_type_opts": dossier_type_opts,
+        "default_admit_time": now_str,
+    }
+    return get_templates_with_filters(request).TemplateResponse(request, "admission_wizard.html", ctx)
 
 @router.post("/new")
 def create_dossier(

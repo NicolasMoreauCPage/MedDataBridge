@@ -26,6 +26,13 @@ Ce dossier contient la documentation technique et fonctionnelle de MedData Bridg
   - Schémas de requêtes/réponses
   - Exemples d'utilisation
 
+- **[API_FHIR_STRUCTURE.md](API_FHIR_STRUCTURE.md)** - ⭐ API FHIR Structure (Location)
+  - CRUD complet : GET/POST/PUT/DELETE `/fhir/Location`
+  - Paramètres recherche FHIR (identifier, partof, status, name, type)
+  - Conversion bidirectionnelle : DB ↔ FHIR R4
+  - Cas d'usage : synchronisation SIH, navigation hiérarchique, export BI
+  - Intégration avec Phases 4.1 (Import/Export) et 5.1 (UX Interactive)
+
 ### Organisation et cartographie
 
 - **[PROJECT_ORGANIZATION.md](PROJECT_ORGANIZATION.md)** - Organisation du projet

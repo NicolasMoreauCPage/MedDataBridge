@@ -214,15 +214,28 @@
 ---
 
 ### ⚡ Phase 4.3 : Intégration Temps Réel
-**Priorité**: BASSE - Enhancement, pas critique
+**Priorité**: BASSE - Enhancement, pas critique  
+**Status**: API FHIR déjà existante ✅
 
-**Fonctionnalités**:
-- SSE ou WebSocket pour mises à jour live
-- Synchronisation SIH (HL7 ADT, HPRIM)
-- Notifications changements structure en temps réel
-- Broadcast modifications à tous les utilisateurs connectés
+**Fonctionnalités existantes**:
+- ✅ **API REST FHIR complète** : `/fhir/Location` (CRUD)
+  - GET `/fhir/Location` : recherche avec paramètres FHIR (identifier, partof, status, name, type)
+  - GET `/fhir/Location/{id}` : lecture ressource par ID
+  - POST `/fhir/Location` : création/upsert avec validation
+  - PUT `/fhir/Location/{id}` : mise à jour complète
+  - DELETE `/fhir/Location/{id}` : suppression
+  - Support navigation hiérarchique via `partof` parameter
+  - Conversion bidirectionnelle : modèles DB ↔ FHIR R4 Location
+  - Service : `app.services.fhir_structure` (process_fhir_location, entity_to_fhir_location)
+  - Router : `app.routers.fhir_structure` (~620 lignes, documenté)
 
-**Estimation**: 1.5 jour
+**Fonctionnalités à ajouter** (Enhancement):
+- [ ] Webhooks/SSE pour notifications changements (CREATE/UPDATE/DELETE events)
+- [ ] Synchronisation automatique SIH via polling ou push
+- [ ] Cache Redis pour performance hiérarchie
+- [ ] Rate limiting pour API externe
+
+**Estimation restante**: 1 jour (vs 1.5j initialement - API déjà faite)
 
 ---
 

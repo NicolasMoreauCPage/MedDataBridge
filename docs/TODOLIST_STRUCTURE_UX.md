@@ -134,10 +134,27 @@
   - 📋 Spécifications disponibles : `PHASE4_GESTION_DROITS.md`
 
 - [ ] **Intégration Temps Réel** _(Sprint 4.3 - À planifier)_
-  - [ ] Synchronisation avec SIH
-  - [ ] Mise à jour statuts lits automatique
-  - [ ] Notifications changements structure
-  - [ ] API REST pour intégrations tierces
+  - ✅ **API REST FHIR déjà existante** : `/fhir/Location` (CRUD complet)
+    - GET `/fhir/Location` : recherche avec paramètres FHIR (identifier, partof, status, etc.)
+    - GET `/fhir/Location/{id}` : lecture d'une ressource par ID
+    - POST `/fhir/Location` : création/upsert de Location
+    - PUT `/fhir/Location/{id}` : mise à jour complète
+    - DELETE `/fhir/Location/{id}` : suppression
+    - Support hiérarchie via `partof` parameter
+    - Conversion bidirectionnelle : modèles SQLModel ↔ FHIR Location
+    - Service : `app.services.fhir_structure` (process_fhir_location, entity_to_fhir_location)
+  - [ ] **Webhooks/Notifications** pour changements structure
+    - [ ] Système d'événements pour CREATE/UPDATE/DELETE
+    - [ ] Endpoints webhooks pour systèmes tiers (SIH, BI)
+    - [ ] Notifications SSE (Server-Sent Events) pour UI temps réel
+  - [ ] **Synchronisation SIH**
+    - [ ] Import automatique via API FHIR (polling ou push)
+    - [ ] Réconciliation codes FINESS/identifiants
+    - [ ] Gestion conflits et logs d'intégration
+  - [ ] **Cache et Performance**
+    - [ ] Cache Redis pour hiérarchie structure (invalidation intelligente)
+    - [ ] Optimisation requêtes avec indexes
+    - [ ] Rate limiting pour API externe
 
 ### Phase 5 : UX/UI Moderne ✅ _(Sprint 5.1 - 8 janvier 2026)_
 - [x] **Édition Interactive**

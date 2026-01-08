@@ -23,6 +23,7 @@ Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base S
 - [SPRINT3_MODE_GESTIONNAIRE.md](docs/SPRINT3_MODE_GESTIONNAIRE.md) - Mode Gestionnaire avec analytics
 - [PHASE4_IMPORT_EXPORT.md](docs/PHASE4_IMPORT_EXPORT.md) - Spécifications Import/Export Excel
 - [PHASE4.1_IMPORT_EXPORT_COMPLETE.md](docs/PHASE4.1_IMPORT_EXPORT_COMPLETE.md) - Documentation technique complète
+- [API_FHIR_STRUCTURE.md](docs/API_FHIR_STRUCTURE.md) - API FHIR Structure (CRUD complet)
 - [PHASE5_UX_MODERNE.md](docs/PHASE5_UX_MODERNE.md) - UX interactive (inline editing, drag & drop)
 - [RECAPITULATIF_COMPLET.md](docs/RECAPITULATIF_COMPLET.md) - Vue d'ensemble de toutes les phases
 

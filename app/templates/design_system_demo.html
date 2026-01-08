@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+
+{% block title %}Phase 5.2 - Design System Démo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/design-system.css') }}">
+<style>
+  .demo-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .demo-section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .demo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .demo-color-swatch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--color-gray-50);
+  }
+
+  .demo-color-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .demo-color-info {
+    flex: 1;
+  }
+
+  .demo-color-name {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .demo-color-code {
+    font-size: 12px;
+    color: #6b7280;
+    font-family: monospace;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1400px; margin: 0 auto; padding: 24px;">
+  
+  <!-- Header -->
+  <div style="margin-bottom: 32px;">
+    <h1 style="font-size: 32px; font-weight: 700; color: #111827; margin-bottom: 8px;">
+      🎨 Phase 5.2 - Design System Hospitalier
+    </h1>
+    <p style="font-size: 16px; color: #6b7280;">
+      Démonstration des composants, couleurs et interactions du système de design
+    </p>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="flex gap-2" style="margin-bottom: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
+    <button class="btn btn-sm btn-primary tab-btn" data-tab="colors">🎨 Couleurs</button>
+    <button class="btn btn-sm btn-secondary tab-btn" data-tab="cards">🃏 Cartes</button>
+    <button class="btn btn-sm btn-secondary tab-btn" data-tab="occupation">📊 Occupation</button>
+    <button class="btn btn-sm btn-secondary tab-btn" data-tab="buttons">🔘 Boutons</button>
+    <button class="btn btn-sm btn-secondary tab-btn" data-tab="forms">📋 Formulaires</button>
+    <button class="btn btn-sm btn-secondary tab-btn" data-tab="notifications">🔔 Notifications</button>
+  </div>
+
+  <!-- Tab: Couleurs -->
+  <div class="tab-content" id="tab-colors">
+    <div class="demo-section">
+      <div class="demo-section-title">🎨 Palette par Type d'Unité Médicale</div>
+      <div class="demo-grid">
+        <div class="demo-color-swatch">
+          <div class="demo-color-box" style="background: var(--color-mco-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">MCO</div>
+            <div class="demo-color-code">Médecine, Chirurgie, Obstétrique</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch">
+          <div class="demo-color-box" style="background: var(--color-psy-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">PSY</div>
+            <div class="demo-color-code">Psychiatrie</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch">
+          <div class="demo-color-box" style="background: var(--color-ssr-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">SSR</div>
+            <div class="demo-color-code">Soins de Suite et Réadaptation</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch">
+          <div class="demo-color-box" style="background: var(--color-had-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">HAD</div>
+            <div class="demo-color-code">Hospitalisation à Domicile</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <div class="demo-section-title">🏥 Couleurs par Niveau Hiérarchique</div>
+      <div class="demo-grid">
+        <div class="demo-color-swatch level-ej">
+          <div class="demo-color-box" style="background: var(--color-ej-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">🏥 EG/EJ</div>
+            <div class="demo-color-code">Entité Géographique / Juridique</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch level-pole">
+          <div class="demo-color-box" style="background: var(--color-pole-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">🏢 Pôle</div>
+            <div class="demo-color-code">Regroupement de services</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch level-service">
+          <div class="demo-color-box" style="background: var(--color-service-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">🏛️ Service</div>
+            <div class="demo-color-code">Service médical</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch level-uf">
+          <div class="demo-color-box" style="background: var(--color-uf-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">🔹 UF</div>
+            <div class="demo-color-code">Unité Fonctionnelle</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch level-uh">
+          <div class="demo-color-box" style="background: var(--color-uh-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">🏠 UH</div>
+            <div class="demo-color-code">Unité d'Hébergement</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch level-chambre">
+          <div class="demo-color-box" style="background: var(--color-chambre-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">🛏️ Chambre</div>
+            <div class="demo-color-code">Chambre physique</div>
+          </div>
+        </div>
+        <div class="demo-color-swatch level-lit">
+          <div class="demo-color-box" style="background: var(--color-lit-primary);"></div>
+          <div class="demo-color-info">
+            <div class="demo-color-name">💺 Lit</div>
+            <div class="demo-color-code">Lit physique</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Cartes -->
+  <div class="tab-content" id="tab-cards" style="display: none;">
+    <div class="demo-section">
+      <div class="demo-section-title">🃏 Cartes de Structure</div>
+      <div id="cards-demo"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Occupation -->
+  <div class="tab-content" id="tab-occupation" style="display: none;">
+    <div class="demo-section">
+      <div class="demo-section-title">📊 Indicateurs d'Occupation</div>
+      
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Badges</h3>
+      <div class="flex flex-wrap gap-2" style="margin-bottom: 32px;">
+        <span class="badge-occupation low">35% Disponible</span>
+        <span class="badge-occupation normal">65% Normal</span>
+        <span class="badge-occupation warning">87% Tendu</span>
+        <span class="badge-occupation critical">97% Critique</span>
+        <span class="badge-occupation overcapacity">105% Suroccupation</span>
+      </div>
+
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Barres de progression</h3>
+      <div id="occupation-bars-demo"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Boutons -->
+  <div class="tab-content" id="tab-buttons" style="display: none;">
+    <div class="demo-section">
+      <div class="demo-section-title">🔘 Boutons</div>
+      
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Tailles</h3>
+      <div class="flex flex-wrap gap-2" style="margin-bottom: 32px;">
+        <button class="btn btn-primary btn-sm">Petit</button>
+        <button class="btn btn-primary">Normal</button>
+        <button class="btn btn-primary btn-lg">Large</button>
+      </div>
+
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Couleurs</h3>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-primary">Primaire</button>
+        <button class="btn btn-success">Succès</button>
+        <button class="btn btn-warning">Attention</button>
+        <button class="btn btn-danger">Danger</button>
+        <button class="btn btn-secondary">Secondaire</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Formulaires -->
+  <div class="tab-content" id="tab-forms" style="display: none;">
+    <div class="demo-section">
+      <div class="demo-section-title">📋 Formulaires</div>
+      
+      <div style="max-width: 600px;">
+        <div class="form-group">
+          <label class="form-label">Nom du service</label>
+          <input type="text" class="form-control" placeholder="Ex: Cardiologie">
+          <div class="form-help">Le nom complet du service médical</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Code</label>
+          <input type="text" class="form-control error" placeholder="Ex: CARDIO">
+          <div class="form-error">Ce code est déjà utilisé</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type d'unité</label>
+          <select class="form-control">
+            <option>-- Sélectionner --</option>
+            <option>MCO</option>
+            <option>PSY</option>
+            <option>SSR</option>
+            <option>HAD</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Capacité (lits)</label>
+          <input type="number" class="form-control" value="32">
+        </div>
+
+        <div class="flex gap-2">
+          <button class="btn btn-primary">Enregistrer</button>
+          <button class="btn btn-secondary">Annuler</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <div class="demo-section-title">🔍 Composants de Recherche et Filtres</div>
+      
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Recherche</h3>
+      <div id="search-demo" style="max-width: 600px; margin-bottom: 32px;"></div>
+
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Filtres</h3>
+      <div id="filters-demo"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Notifications -->
+  <div class="tab-content" id="tab-notifications" style="display: none;">
+    <div class="demo-section">
+      <div class="demo-section-title">🔔 Notifications</div>
+      
+      <p style="margin-bottom: 16px; color: #6b7280;">
+        Cliquez sur les boutons pour tester les différents types de notifications :
+      </p>
+
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-success" onclick="NotificationSystem.success('Opération réussie !')">
+          Succès
+        </button>
+        <button class="btn btn-danger" onclick="NotificationSystem.error('Une erreur est survenue')">
+          Erreur
+        </button>
+        <button class="btn btn-warning" onclick="NotificationSystem.warning('Attention aux seuils')">
+          Attention
+        </button>
+        <button class="btn btn-primary" onclick="NotificationSystem.info('Information utile')">
+          Info
+        </button>
+        <button class="btn btn-secondary" onclick="NotificationSystem.show('Message personnalisé', 'success', 0)">
+          Permanent
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="{{ url_for('static', path='/js/components.js') }}"></script>
+<script>
+// Gestion des onglets
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    
+    // Update button states
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.className = b === btn ? 'btn btn-sm btn-primary tab-btn' : 'btn btn-sm btn-secondary tab-btn';
+    });
+    
+    // Show/hide content
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.style.display = content.id === `tab-${tab}` ? 'block' : 'none';
+    });
+  });
+});
+
+// Demo: Cartes de structure
+function initCardsDemo() {
+  const container = document.getElementById('cards-demo');
+  
+  const entities = [
+    {
+      id: 1,
+      type: 'EG',
+      nom: 'CHU Démo',
+      code: 'CHU001',
+      stats: {
+        'Pôles': '4',
+        'Services': '15',
+        'Lits': '287'
+      },
+      occupation: 82
+    },
+    {
+      id: 2,
+      type: 'Pole',
+      nom: 'Pôle Médecine',
+      code: 'MED',
+      stats: {
+        'Services': '6',
+        'Lits': '156'
+      },
+      occupation: 89
+    },
+    {
+      id: 3,
+      type: 'Service',
+      nom: 'Cardiologie',
+      code: 'CARDIO',
+      stats: {
+        'UF': '2',
+        'Lits': '32'
+      },
+      occupation: 95
+    },
+    {
+      id: 4,
+      type: 'UF',
+      nom: 'UF Cardiologie A',
+      code: 'CARDIO-A',
+      stats: {
+        'Lits': '16'
+      },
+      occupation: 100
+    }
+  ];
+
+  entities.forEach(entity => {
+    const card = StructureCard.create(entity, {
+      showStats: true,
+      showOccupation: true,
+      showActions: true,
+      onClick: (e) => {
+        NotificationSystem.info(`Clic sur: ${e.nom}`);
+      }
+    });
+    container.appendChild(card);
+  });
+}
+
+// Demo: Barres d'occupation
+function initOccupationBarsDemo() {
+  const container = document.getElementById('occupation-bars-demo');
+  const levels = [
+    { label: 'Service A', value: 35 },
+    { label: 'Service B', value: 65 },
+    { label: 'Service C', value: 87 },
+    { label: 'Service D', value: 97 },
+    { label: 'Service E', value: 105 }
+  ];
+
+  levels.forEach(({ label, value }) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '16px';
+
+    const labelEl = document.createElement('div');
+    labelEl.style.cssText = 'font-weight: 600; margin-bottom: 8px; color: #374151;';
+    labelEl.textContent = `${label} - ${value}% (${OccupationColors.getLabel(value)})`;
+
+    const bar = StructureCard.createOccupationBar(value);
+
+    wrapper.appendChild(labelEl);
+    wrapper.appendChild(bar);
+    container.appendChild(wrapper);
+  });
+}
+
+// Demo: Recherche
+function initSearchDemo() {
+  const container = document.getElementById('search-demo');
+  new SearchComponent(container, {
+    placeholder: 'Rechercher une structure...',
+    onSearch: (query) => {
+      NotificationSystem.info(`Recherche: "${query}"`);
+    },
+    onClear: () => {
+      NotificationSystem.info('Recherche effacée');
+    }
+  });
+}
+
+// Demo: Filtres
+function initFiltersDemo() {
+  const container = document.getElementById('filters-demo');
+  new FilterComponent(container, [
+    {
+      name: 'type',
+      label: 'Type',
+      type: 'select',
+      options: [
+        { value: 'eg', label: 'EG' },
+        { value: 'pole', label: 'Pôle' },
+        { value: 'service', label: 'Service' },
+        { value: 'uf', label: 'UF' }
+      ],
+      onChange: (value) => {
+        NotificationSystem.info(`Filtre Type: ${value}`);
+      }
+    },
+    {
+      name: 'um',
+      label: 'Unité Médicale',
+      type: 'select',
+      options: [
+        { value: 'mco', label: 'MCO' },
+        { value: 'psy', label: 'PSY' },
+        { value: 'ssr', label: 'SSR' },
+        { value: 'had', label: 'HAD' }
+      ],
+      onChange: (value) => {
+        NotificationSystem.info(`Filtre UM: ${value}`);
+      }
+    },
+    {
+      name: 'occupation',
+      label: 'Occupation min (%)',
+      type: 'number',
+      onChange: (value) => {
+        NotificationSystem.info(`Occupation min: ${value}%`);
+      }
+    }
+  ]);
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => {
+  initCardsDemo();
+  initOccupationBarsDemo();
+  initSearchDemo();
+  initFiltersDemo();
+  
+  // Notification de bienvenue
+  NotificationSystem.success('Bienvenue dans le Design System !', 5000);
+});
+</script>
+{% endblock %}

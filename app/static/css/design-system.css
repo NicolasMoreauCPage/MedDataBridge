@@ -1,0 +1,610 @@
+/**
+ * 🏥 Design System Hospitalier - Phase 5.2
+ * Système de couleurs, typographies et composants réutilisables
+ */
+
+/* ========================================
+   🎨 Palette de Couleurs par Type Structure
+   ======================================== */
+
+:root {
+  /* Couleurs principales par unité médicale */
+  --color-mco-primary: #3b82f6;      /* MCO = Bleu (Médecine/Chirurgie/Obstétrique) */
+  --color-mco-light: #dbeafe;
+  --color-mco-dark: #1e40af;
+  
+  --color-psy-primary: #a855f7;      /* PSY = Violet (Psychiatrie) */
+  --color-psy-light: #f3e8ff;
+  --color-psy-dark: #7e22ce;
+  
+  --color-ssr-primary: #10b981;      /* SSR = Vert (Soins de Suite et Réadaptation) */
+  --color-ssr-light: #d1fae5;
+  --color-ssr-dark: #047857;
+  
+  --color-had-primary: #f59e0b;      /* HAD = Orange (Hospitalisation à Domicile) */
+  --color-had-light: #fef3c7;
+  --color-had-dark: #d97706;
+  
+  --color-urgence-primary: #ef4444;  /* Urgences = Rouge */
+  --color-urgence-light: #fee2e2;
+  --color-urgence-dark: #b91c1c;
+  
+  --color-rea-primary: #8b5cf6;      /* Réanimation = Indigo */
+  --color-rea-light: #ede9fe;
+  --color-rea-dark: #6d28d9;
+
+  /* Couleurs par niveau hiérarchique */
+  --color-ej-primary: #1e40af;       /* EJ/EG = Bleu foncé */
+  --color-ej-bg: #dbeafe;
+  --color-ej-border: #93c5fd;
+  
+  --color-pole-primary: #7c3aed;     /* Pôle = Violet */
+  --color-pole-bg: #ede9fe;
+  --color-pole-border: #c4b5fd;
+  
+  --color-service-primary: #059669;  /* Service = Vert */
+  --color-service-bg: #d1fae5;
+  --color-service-border: #6ee7b7;
+  
+  --color-uf-primary: #ea580c;       /* UF = Orange */
+  --color-uf-bg: #fed7aa;
+  --color-uf-border: #fdba74;
+  
+  --color-uh-primary: #0891b2;       /* UH = Cyan */
+  --color-uh-bg: #cffafe;
+  --color-uh-border: #67e8f9;
+  
+  --color-chambre-primary: #8b5cf6;  /* Chambre = Indigo */
+  --color-chambre-bg: #e0e7ff;
+  --color-chambre-border: #a5b4fc;
+  
+  --color-lit-primary: #4f46e5;      /* Lit = Bleu électrique */
+  --color-lit-bg: #e0e7ff;
+  --color-lit-border: #818cf8;
+
+  /* États d'occupation */
+  --color-occ-low: #10b981;          /* < 50% = Vert */
+  --color-occ-normal: #3b82f6;       /* 50-80% = Bleu */
+  --color-occ-warning: #f59e0b;      /* 80-95% = Jaune/Orange */
+  --color-occ-critical: #ef4444;     /* > 95% = Rouge */
+  --color-occ-overcapacity: #991b1b; /* > 100% = Rouge foncé */
+
+  /* Neutres */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Sémantiques */
+  --color-success: #10b981;
+  --color-success-bg: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fef3c7;
+  --color-error: #ef4444;
+  --color-error-bg: #fee2e2;
+  --color-info: #3b82f6;
+  --color-info-bg: #dbeafe;
+}
+
+/* ========================================
+   🏷️ Classes de couleurs par type
+   ======================================== */
+
+/* Types d'unités médicales */
+.type-mco {
+  --primary-color: var(--color-mco-primary);
+  --bg-color: var(--color-mco-light);
+  --border-color: var(--color-mco-primary);
+}
+
+.type-psy {
+  --primary-color: var(--color-psy-primary);
+  --bg-color: var(--color-psy-light);
+  --border-color: var(--color-psy-primary);
+}
+
+.type-ssr {
+  --primary-color: var(--color-ssr-primary);
+  --bg-color: var(--color-ssr-light);
+  --border-color: var(--color-ssr-primary);
+}
+
+.type-had {
+  --primary-color: var(--color-had-primary);
+  --bg-color: var(--color-had-light);
+  --border-color: var(--color-had-primary);
+}
+
+/* Niveaux hiérarchiques */
+.level-ej, .level-eg {
+  --primary-color: var(--color-ej-primary);
+  --bg-color: var(--color-ej-bg);
+  --border-color: var(--color-ej-border);
+}
+
+.level-pole {
+  --primary-color: var(--color-pole-primary);
+  --bg-color: var(--color-pole-bg);
+  --border-color: var(--color-pole-border);
+}
+
+.level-service {
+  --primary-color: var(--color-service-primary);
+  --bg-color: var(--color-service-bg);
+  --border-color: var(--color-service-border);
+}
+
+.level-uf {
+  --primary-color: var(--color-uf-primary);
+  --bg-color: var(--color-uf-bg);
+  --border-color: var(--color-uf-border);
+}
+
+.level-uh {
+  --primary-color: var(--color-uh-primary);
+  --bg-color: var(--color-uh-bg);
+  --border-color: var(--color-uh-border);
+}
+
+.level-chambre {
+  --primary-color: var(--color-chambre-primary);
+  --bg-color: var(--color-chambre-bg);
+  --border-color: var(--color-chambre-border);
+}
+
+.level-lit {
+  --primary-color: var(--color-lit-primary);
+  --bg-color: var(--color-lit-bg);
+  --border-color: var(--color-lit-border);
+}
+
+/* ========================================
+   🎯 Composants de cartes
+   ======================================== */
+
+.card-structure {
+  background: white;
+  border-left: 4px solid var(--border-color, var(--color-gray-300));
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.card-structure:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-structure-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card-structure-icon {
+  font-size: 24px;
+  min-width: 32px;
+  text-align: center;
+}
+
+.card-structure-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  flex: 1;
+}
+
+.card-structure-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-color, var(--color-gray-100));
+  color: var(--primary-color, var(--color-gray-700));
+}
+
+.card-structure-body {
+  padding-left: 44px;
+  color: var(--color-gray-600);
+  font-size: 14px;
+}
+
+.card-structure-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.card-structure-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-structure-stat-label {
+  font-size: 12px;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.card-structure-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-color, var(--color-gray-900));
+}
+
+/* ========================================
+   🎨 Badges d'occupation
+   ======================================== */
+
+.badge-occupation {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.badge-occupation.low {
+  background: var(--color-occ-low);
+  color: white;
+}
+
+.badge-occupation.normal {
+  background: var(--color-occ-normal);
+  color: white;
+}
+
+.badge-occupation.warning {
+  background: var(--color-occ-warning);
+  color: white;
+}
+
+.badge-occupation.critical {
+  background: var(--color-occ-critical);
+  color: white;
+}
+
+.badge-occupation.overcapacity {
+  background: var(--color-occ-overcapacity);
+  color: white;
+  animation: pulse-alert 2s ease-in-out infinite;
+}
+
+@keyframes pulse-alert {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ========================================
+   📊 Barres de progression d'occupation
+   ======================================== */
+
+.occupation-bar-container {
+  width: 100%;
+  height: 24px;
+  background: var(--color-gray-100);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.occupation-bar {
+  height: 100%;
+  transition: width 0.4s ease, background 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.occupation-bar.low {
+  background: linear-gradient(90deg, var(--color-occ-low), #34d399);
+}
+
+.occupation-bar.normal {
+  background: linear-gradient(90deg, var(--color-occ-normal), #60a5fa);
+}
+
+.occupation-bar.warning {
+  background: linear-gradient(90deg, var(--color-occ-warning), #fbbf24);
+}
+
+.occupation-bar.critical {
+  background: linear-gradient(90deg, var(--color-occ-critical), #f87171);
+}
+
+.occupation-bar.overcapacity {
+  background: linear-gradient(90deg, var(--color-occ-overcapacity), #dc2626);
+  animation: bar-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes bar-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+/* ========================================
+   🏷️ Icônes par type de structure
+   ======================================== */
+
+.icon-structure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg-color, var(--color-gray-100));
+  font-size: 18px;
+}
+
+/* Classes pour chaque icône */
+.icon-ej::before { content: '🏥'; }
+.icon-eg::before { content: '🏥'; }
+.icon-pole::before { content: '🏢'; }
+.icon-service::before { content: '🏛️'; }
+.icon-uf::before { content: '🔹'; }
+.icon-uh::before { content: '🏠'; }
+.icon-chambre::before { content: '🛏️'; }
+.icon-lit::before { content: '💺'; }
+
+/* ========================================
+   🎨 Boutons
+   ======================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: var(--color-info);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-success {
+  background: var(--color-success);
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
+.btn-warning {
+  background: var(--color-warning);
+  color: white;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+}
+
+.btn-danger {
+  background: var(--color-error);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-secondary {
+  background: var(--color-gray-200);
+  color: var(--color-gray-700);
+}
+
+.btn-secondary:hover {
+  background: var(--color-gray-300);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+}
+
+/* ========================================
+   📋 Formulaires
+   ======================================== */
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--color-gray-300);
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 3px var(--color-info-bg);
+}
+
+.form-control.error {
+  border-color: var(--color-error);
+}
+
+.form-control.error:focus {
+  box-shadow: 0 0 0 3px var(--color-error-bg);
+}
+
+.form-error {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+.form-help {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-gray-500);
+}
+
+/* ========================================
+   📊 Responsive Design
+   ======================================== */
+
+/* Tablette */
+@media (max-width: 1024px) {
+  .card-structure {
+    padding: 12px;
+  }
+
+  .card-structure-header {
+    flex-wrap: wrap;
+  }
+
+  .card-structure-stats {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .card-structure {
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+
+  .card-structure-icon {
+    font-size: 20px;
+    min-width: 28px;
+  }
+
+  .card-structure-title {
+    font-size: 14px;
+  }
+
+  .card-structure-body {
+    padding-left: 0;
+    margin-top: 12px;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-sm {
+    padding: 8px 16px;
+  }
+}
+
+/* ========================================
+   ✨ Utilitaires
+   ======================================== */
+
+.text-center {
+  text-align: center;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-4 {
+  gap: 16px;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}

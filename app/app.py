@@ -359,6 +359,11 @@ def create_app() -> FastAPI:
     app.include_router(export_analytics.router)
     print(" - Export analytics router mounted at /api/analytics/export")
     
+    # 3e. Design System Demo (Phase 5.2)
+    from app.routers import design_system
+    app.include_router(design_system.router)
+    print(" - Design System demo mounted at /design-system")
+    
     # 3e. Import/Export Structure Excel
     from app.routers import structure_import_export
     app.include_router(structure_import_export.router)

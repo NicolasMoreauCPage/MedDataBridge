@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/contracts" class="hover:text-blue-600 transition-colors">Contrats</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/contracts/dossier/{{ dossier.id }}" class="hover:text-blue-600 transition-colors">Dossier #{{ dossier.dossier_seq }}</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Nouveau contrat</span>
+  </nav>
+
+  <div class="btn">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Nouveau contrat médical</h1>
+    <p class="text-gray-600 mb-6">Dossier #{{ dossier.dossier_seq }} - {{ dossier.patient.family }}, {{ dossier.patient.given }}</p>
+
+    <form method="post" class="space-y-6" id="contractForm">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Type de contrat (HPRIM: obligatoire) -->
+        <div>
+          <label for="contract_type" class="block text-sm font-medium text-gray-700">
+            Type de contrat <span class="text-red-500">*</span>
+          </label>
+          <select name="contract_type" id="contract_type" required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">Sélectionner un type</option>
+            <option value="NGAP">NGAP - Actes infirmiers</option>
+            <option value="UCD">UCD - Dispositifs médicaux</option>
+            <option value="LPP">LPP - Prestations sociales</option>
+          </select>
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Type de contrat obligatoire</p>
+        </div>
+
+        <!-- Statut du contrat (HPRIM: obligatoire) -->
+        <div>
+          <label for="status" class="block text-sm font-medium text-gray-700">
+            Statut <span class="text-red-500">*</span>
+          </label>
+          <select name="status" id="status" required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">Sélectionner un statut</option>
+            <option value="actif">Actif</option>
+            <option value="suspendu">Suspendu</option>
+            <option value="termine">Terminé</option>
+          </select>
+          <p class="mt-1 text-xs text-gray-500">Statut actuel du contrat</p>
+        </div>
+
+        <!-- Date de début (HPRIM: obligatoire) -->
+        <div>
+          <label for="date_debut" class="block text-sm font-medium text-gray-700">
+            Date de début <span class="text-red-500">*</span>
+          </label>
+          <input type="date" name="date_debut" id="date_debut" required
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Date de début obligatoire</p>
+        </div>
+
+        <!-- Date de fin (HPRIM: optionnel) -->
+        <div>
+          <label for="date_fin" class="block text-sm font-medium text-gray-700">
+            Date de fin
+          </label>
+          <input type="date" name="date_fin" id="date_fin"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Date de fin du contrat (optionnel)</p>
+        </div>
+
+        <!-- Organisme payeur (HPRIM: optionnel) -->
+        <div>
+          <label for="organisme_payeur" class="block text-sm font-medium text-gray-700">
+            Organisme payeur
+          </label>
+          <select name="organisme_payeur" id="organisme_payeur"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">Sélectionner un organisme</option>
+            <option value="CPAM">CPAM - Caisse Primaire</option>
+            <option value="MSA">MSA - Mutualité Sociale Agricole</option>
+            <option value="RSI">RSI - Régime Social des Indépendants</option>
+            <option value="CNAM">CNAM - Caisse Nationale</option>
+            <option value="MGEN">MGEN - Mutuelle Générale</option>
+            <option value="OTHER">Autre</option>
+          </select>
+          <p class="mt-1 text-xs text-gray-500">Organisme responsable du paiement</p>
+        </div>
+
+        <!-- Numéro de contrat (HPRIM: optionnel) -->
+        <div>
+          <label for="numero_contrat" class="block text-sm font-medium text-gray-700">
+            Numéro de contrat
+          </label>
+          <input type="text" name="numero_contrat" id="numero_contrat" maxlength="50"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Numéro de référence du contrat</p>
+        </div>
+
+        <!-- Taux de prise en charge (HPRIM: optionnel, 0-100%) -->
+        <div>
+          <label for="taux_prise_en_charge" class="block text-sm font-medium text-gray-700">
+            Taux de prise en charge (%)
+          </label>
+          <input type="number" min="0" max="100" step="0.01" name="taux_prise_en_charge" id="taux_prise_en_charge"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Pourcentage de prise en charge (0-100%)</p>
+        </div>
+
+        <!-- Plafond annuel (HPRIM: optionnel) -->
+        <div>
+          <label for="plafond_annuel" class="block text-sm font-medium text-gray-700">
+            Plafond annuel (€)
+          </label>
+          <input type="number" min="0" step="0.01" name="plafond_annuel" id="plafond_annuel"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Montant maximum annuel (€)</p>
+        </div>
+      </div>
+
+      <!-- Conditions particulières -->
+      <div>
+        <label for="conditions_particulieres" class="block text-sm font-medium text-gray-700">
+          Conditions particulières
+        </label>
+        <textarea name="conditions_particulieres" id="conditions_particulieres" rows="4" maxlength="1000"
+                  placeholder="Conditions spécifiques du contrat, exclusions, etc."
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+        <p class="mt-1 text-xs text-gray-500">Conditions spécifiques du contrat (max 1000 caractères)</p>
+      </div>
+
+      <!-- Médecin responsable -->
+      <div>
+        <label for="medecin_responsable_id" class="block text-sm font-medium text-gray-700">
+          Médecin responsable
+        </label>
+        <select name="medecin_responsable_id" id="medecin_responsable_id"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <option value="">Sélectionner un médecin</option>
+          {% for medecin in medecins %}
+          <option value="{{ medecin.id }}">{{ medecin.family_name }} {{ medecin.given_name }} ({{ medecin.rpps }})</option>
+          {% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Médecin responsable du contrat (optionnel)</p>
+      </div>
+
+      <!-- Boutons -->
+      <div class="flex justify-end gap-4 pt-6 border-t">
+        {{ button("Annuler", href="/contracts/dossier/{{ dossier.id }}") }}
+        {{ button("Cr\u00e9er le contrat", type='submit') }}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- JavaScript pour validations -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('contractForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const dateDebutInput = document.getElementById('date_debut');
+    const dateFinInput = document.getElementById('date_fin');
+
+    // Validation des dates
+    function validateDates() {
+        const dateDebut = new Date(dateDebutInput.value);
+        const dateFin = dateFinInput.value ? new Date(dateFinInput.value) : null;
+
+        if (dateFin && dateDebut > dateFin) {
+            dateFinInput.setCustomValidity('La date de fin doit être postérieure à la date de début');
+        } else {
+            dateFinInput.setCustomValidity('');
+        }
+        updateSubmitButton();
+    }
+
+    dateDebutInput.addEventListener('change', validateDates);
+    dateFinInput.addEventListener('change', validateDates);
+
+    // Validation du taux de prise en charge
+    document.getElementById('taux_prise_en_charge').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        if (value < 0 || value > 100) {
+            e.target.setCustomValidity('Le taux doit être entre 0 et 100');
+        } else {
+            e.target.setCustomValidity('');
+        }
+        updateSubmitButton();
+    });
+
+    // Validation du numéro de contrat
+    document.getElementById('numero_contrat').addEventListener('input', function(e) {
+        const value = e.target.value.trim();
+        if (value && value.length > 50) {
+            e.target.setCustomValidity('Le numéro de contrat ne peut pas dépasser 50 caractères');
+        } else {
+            e.target.setCustomValidity('');
+        }
+        updateSubmitButton();
+    });
+
+    // Validation complète du formulaire
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            showValidationErrors();
+            return false;
+        }
+
+        // Validation métier finale
+        if (!validateBusinessRules()) {
+            e.preventDefault();
+            return false;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Création en cours...';
+    });
+
+    function updateSubmitButton() {
+        const isValid = form.checkValidity();
+        submitBtn.disabled = !isValid;
+    }
+
+    function showValidationErrors() {
+        const invalidFields = form.querySelectorAll(':invalid');
+        if (invalidFields.length > 0) {
+            invalidFields[0].focus();
+            alert('Veuillez corriger les erreurs de saisie avant de continuer.');
+        }
+    }
+
+    function validateBusinessRules() {
+        const contractType = document.getElementById('contract_type').value;
+        const status = document.getElementById('status').value;
+        const dateDebut = document.getElementById('date_debut').value;
+
+        // Type de contrat obligatoire
+        if (!contractType) {
+            alert('Le type de contrat est obligatoire');
+            return false;
+        }
+
+        // Statut obligatoire
+        if (!status) {
+            alert('Le statut du contrat est obligatoire');
+            return false;
+        }
+
+        // Date de début obligatoire
+        if (!dateDebut) {
+            alert('La date de début est obligatoire');
+            return false;
+        }
+
+        // Vérifier qu'il n'y a pas déjà un contrat actif du même type pour ce dossier
+        // Cette vérification serait faite côté serveur, mais on peut donner un avertissement
+        const tauxPriseEnCharge = parseFloat(document.getElementById('taux_prise_en_charge').value);
+        if (tauxPriseEnCharge < 0 || tauxPriseEnCharge > 100) {
+            alert('Le taux de prise en charge doit être entre 0 et 100%');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Mise à jour initiale du bouton
+    updateSubmitButton();
+});
+</script>
+{% endblock %}

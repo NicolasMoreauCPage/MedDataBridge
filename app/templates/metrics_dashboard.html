@@ -56,6 +56,99 @@
         </div>
     </div>
 
+    <!-- Protocol-Specific Metrics -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">📊 Métriques par Protocole</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- HPRIM Card -->
+            <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-sm border border-orange-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-orange-900">HPRIM</h3>
+                        <p class="text-xs text-orange-700">Validation XSD</p>
+                    </div>
+                    <span class="text-3xl">📋</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-orange-800">Inbound</span>
+                        <span id="hprim-inbound-count" class="font-semibold text-orange-900">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-orange-800">Outbound</span>
+                        <span id="hprim-outbound-count" class="font-semibold text-orange-900">0</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t border-orange-200">
+                        <span class="text-sm text-orange-800">Durée Moy.</span>
+                        <span id="hprim-avg-duration" class="font-semibold text-orange-900">0ms</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-orange-800">Erreurs XSD</span>
+                        <span id="hprim-xsd-errors" class="font-semibold text-red-600">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAM Card -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm border border-blue-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-blue-900">IHE PAM</h3>
+                        <p class="text-xs text-blue-700">HL7 ADT</p>
+                    </div>
+                    <span class="text-3xl">📤</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-blue-800">Inbound (ADT)</span>
+                        <span id="pam-inbound-count" class="font-semibold text-blue-900">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-blue-800">Outbound (ACK)</span>
+                        <span id="pam-outbound-count" class="font-semibold text-blue-900">0</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t border-blue-200">
+                        <span class="text-sm text-blue-800">Durée Moy.</span>
+                        <span id="pam-avg-duration" class="font-semibold text-blue-900">0ms</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-blue-800">Succès (AA/CA)</span>
+                        <span id="pam-success-rate" class="font-semibold text-green-600">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FHIR Card -->
+            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-sm border border-green-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-green-900">FHIR</h3>
+                        <p class="text-xs text-green-700">Import/Export</p>
+                    </div>
+                    <span class="text-3xl">🔄</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-green-800">Import</span>
+                        <span id="fhir-import-count" class="font-semibold text-green-900">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-green-800">Export</span>
+                        <span id="fhir-export-count" class="font-semibold text-green-900">0</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t border-green-200">
+                        <span class="text-sm text-green-800">Durée Moy.</span>
+                        <span id="fhir-avg-duration" class="font-semibold text-green-900">0ms</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-green-800">Taux Succès</span>
+                        <span id="fhir-success-rate" class="font-semibold text-green-600">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Operations Table -->
     <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
         <div class="flex items-center justify-between mb-6">
@@ -122,6 +215,52 @@ function updateUI(data) {
     document.getElementById('total-ops').textContent = summary.total_operations.toLocaleString();
     document.getElementById('success-rate').textContent = summary.success_rate.toFixed(1) + '%';
     document.getElementById('error-rate').textContent = summary.error_rate.toFixed(1) + '%';
+    
+    // Protocol-Specific Metrics
+    const ops = data.operations || {};
+    
+    // HPRIM metrics
+    const hprimInbound = ops['hprim_validation_inbound'] || {};
+    const hprimOutbound = ops['hprim_validation_outbound'] || {};
+    const hprimInboundCount = hprimInbound.count || 0;
+    const hprimOutboundCount = hprimOutbound.count || 0;
+    const hprimAvgDuration = ((hprimInbound.avg_duration || 0) + (hprimOutbound.avg_duration || 0)) / 2;
+    
+    document.getElementById('hprim-inbound-count').textContent = hprimInboundCount;
+    document.getElementById('hprim-outbound-count').textContent = hprimOutboundCount;
+    document.getElementById('hprim-avg-duration').textContent = (hprimAvgDuration * 1000).toFixed(0) + 'ms';
+    document.getElementById('hprim-xsd-errors').textContent = 
+        ((hprimInbound.error_count || 0) + (hprimOutbound.error_count || 0)).toString();
+    
+    // PAM metrics
+    const pamInbound = ops['pam_message_inbound'] || {};
+    const pamOutbound = ops['pam_message_outbound'] || {};
+    const pamInboundCount = pamInbound.count || 0;
+    const pamOutboundCount = pamOutbound.count || 0;
+    const pamAvgDuration = ((pamInbound.avg_duration || 0) + (pamOutbound.avg_duration || 0)) / 2;
+    const pamSuccessCount = (pamInbound.success_count || 0) + (pamOutbound.success_count || 0);
+    const pamTotalCount = pamInboundCount + pamOutboundCount;
+    const pamSuccessRate = pamTotalCount > 0 ? ((pamSuccessCount / pamTotalCount) * 100) : 0;
+    
+    document.getElementById('pam-inbound-count').textContent = pamInboundCount;
+    document.getElementById('pam-outbound-count').textContent = pamOutboundCount;
+    document.getElementById('pam-avg-duration').textContent = (pamAvgDuration * 1000).toFixed(0) + 'ms';
+    document.getElementById('pam-success-rate').textContent = pamSuccessRate.toFixed(1) + '%';
+    
+    // FHIR metrics
+    const fhirImport = ops['fhir_import'] || {};
+    const fhirExport = ops['fhir_export'] || {};
+    const fhirImportCount = fhirImport.count || 0;
+    const fhirExportCount = fhirExport.count || 0;
+    const fhirAvgDuration = ((fhirImport.avg_duration || 0) + (fhirExport.avg_duration || 0)) / 2;
+    const fhirSuccessCount = (fhirImport.success_count || 0) + (fhirExport.success_count || 0);
+    const fhirTotalCount = fhirImportCount + fhirExportCount;
+    const fhirSuccessRate = fhirTotalCount > 0 ? ((fhirSuccessCount / fhirTotalCount) * 100) : 0;
+    
+    document.getElementById('fhir-import-count').textContent = fhirImportCount;
+    document.getElementById('fhir-export-count').textContent = fhirExportCount;
+    document.getElementById('fhir-avg-duration').textContent = (fhirAvgDuration * 1000).toFixed(0) + 'ms';
+    document.getElementById('fhir-success-rate').textContent = fhirSuccessRate.toFixed(1) + '%';
     
     // Operations Table
     const operations = data.operations;

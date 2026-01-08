@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_PMSI.html' target='_top'>Sommaire </A></DIV><DIV class='chapitre'>acteCCAM [typeActeCcam]</DIV>
+<DIV class='definition'>Acte CCAM réalisé.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='dateAction_xsd_dateTime.html' target='frameCorps'>dateAction</A> </TD><TD class='cell'>Date de réalisation de cet événement. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='acteur_typeProfessionnelSante.html' target='frameCorps'>acteur</A> </TD><TD class='cell'>Acteur déclencheur de cet action dans l'application créatrice des actes CCAM. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiant_typeIdentifiant.html' target='frameCorps'>identifiant</A> </TD><TD class='cell'> </TD></TR>
+<TR> <TD class='cell'><A HREF='codeActe_ccam.html' target='frameCorps'>codeActe</A> </TD><TD class='cell'>Code officiel de l'acte.</TD></TR>
+<TR> <TD class='cell'><A HREF='codeActeExtensionPMSI_ccamPmsi.html' target='frameCorps'>codeActeExtensionPMSI</A> </TD><TD class='cell'>Extension ATIH pour la CCAM descriptive à usage PMSI. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='codeActivite_nombre2.html' target='frameCorps'>codeActivite</A> </TD><TD class='cell'>Code activité.</TD></TR>
+<TR> <TD class='cell'><A HREF='codePhase_nombre2.html' target='frameCorps'>codePhase</A> </TD><TD class='cell'>Code phase.</TD></TR>
+<TR> <TD class='cell'><A HREF='execute_typeDateHeureOptionnelle.html' target='frameCorps'>execute</A> </TD><TD class='cell'>Date d'execution.</TD></TR>
+<TR> <TD class='cell'><A HREF='executant_typeExecutant.html' target='frameCorps'>executant</A> </TD><TD class='cell'>Liste des executants.</TD></TR>
+<TR> <TD class='cell'><A HREF='modificateurs_typeModificateurs.html' target='frameCorps'>modificateurs</A> </TD><TD class='cell'>Valeurs des modificateurs. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='codeAssociationNonPrevue_nom1.html' target='frameCorps'>codeAssociationNonPrevue</A> </TD><TD class='cell'>Code association non prévue. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='codeExtensionDocumentaire_nom1.html' target='frameCorps'>codeExtensionDocumentaire</A> </TD><TD class='cell'>Code extension documentaire. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='positionsDentaires_typePositionsDentaires.html' target='frameCorps'>positionsDentaires</A> </TD><TD class='cell'>Positions dentaires. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='quantite_nombre5.html' target='frameCorps'>quantite</A> </TD><TD class='cell'>Quantité d'actes. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='priseCharge_typePriseCharge.html' target='frameCorps'>priseCharge</A> </TD><TD class='cell'>Prise en charge. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='montant_typeMontant.html' target='frameCorps'>montant</A> </TD><TD class='cell'>Montant de l'acte. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiantActePrincipal_typeIdActePrincipal.html' target='frameCorps'>identifiantActePrincipal</A> </TD><TD class='cell'>Identifiant de l'acte principal. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='commentaire_commentaire.html' target='frameCorps'>commentaire</A> </TD><TD class='cell'>Commentaire générique. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='factureRealisateur_typeFactureExecutant.html' target='frameCorps'>factureRealisateur</A> </TD><TD class='cell'>Numéro de facture émis par le réalisateur de l'acte. 
+         Cette balise permet aux cabinets de radiologie / laboratoire de transmettre leur numérotation et ainsi permettre aux cliniques  de retourner les règlements avec cette valeur, dans le cadre d'un flux Hprim xml réglement par exemple. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='radiotherapie_typeRadiotherapie.html' target='frameCorps'>radiotherapie</A> </TD><TD class='cell'>Informations nécessaires lors de radiothérapie (utile pour le RUM version 014). [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='extensionTemporaires_typeExtensionTemporaires.html' target='frameCorps'>extensionTemporaires</A> </TD><TD class='cell'>Ajout temporairement des données nécessaires localement avant intégration dans la nouvelle version du schéma. Ces extensions sont à utiliser avec parcimonie dans des contextes locaux pour une démarche de gré à gré et lorsque l'éditeur emploie ces extensions au delà d'un contexte local, il est demandé aux auteurs de remonter cette demande  au groupe Hprim XML pour qu'elle fasse potentiellement parti de la norme. [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>action</TD><TD class='cell'>Action réalisée. </TD><TD class='cell'>creation</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>création</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>information</TD><TD class='cell'>Renseignement à titre informatif.</TD></TR><TR><TD/><TD/><TD class='cell'>modification</TD><TD class='cell'>Les nouvelles valeurs doivent être mémorisées. Les valeurs précédentes devraient être historisées, si le systéme récepteur en a la capacité.</TD></TR><TR><TD/><TD/><TD class='cell'>remplacement</TD><TD class='cell'>Les valeurs transmises dans cette entité  annulent et remplacent les valeurs précédentes</TD></TR><TR><TD/><TD/><TD class='cell'>suppression</TD><TD class='cell'>Suppression de l'événement notifié</TD></TR>
+<TR><TD class='cell'>rapportExoneration</TD><TD class='cell'>Rapport d'exonération. </TD><TD class='cell'>4</TD><TD class='cell'>Soins conformes au protocole ALD</TD></TR><TR><TD/><TD/><TD class='cell'>7</TD><TD class='cell'>Acte exonéré par nature dans le cadre d'un dispositif de prevention</TD></TR><TR><TD/><TD/><TD class='cell'>C</TD><TD class='cell'>Soin en  rapport avec un acte exonérant</TD></TR><TR><TD/><TD/><TD class='cell'>R</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>facturable</TD><TD class='cell'>Acte facturable. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>remboursementExceptionnel</TD><TD class='cell'>Remboursement exceptionnel. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>supplementCharges</TD><TD class='cell'>Supplément de charges. </TD><TD class='cell'>c</TD><TD class='cell'>Activité en cabinet</TD></TR>
+<TR><TD class='cell'>valide</TD><TD class='cell'>Acte valide. </TD><TD class='cell'>att</TD><TD class='cell'>En attente</TD></TR><TR><TD/><TD/><TD class='cell'>non</TD><TD class='cell'>Non</TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'>Oui</TD></TR>
+<TR><TD class='cell'>facture</TD><TD class='cell'>Acte facturé. </TD><TD class='cell'>ec</TD><TD class='cell'>En cours</TD></TR><TR><TD/><TD/><TD class='cell'>non</TD><TD class='cell'>Non</TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'>Oui</TD></TR><TR><TD/><TD/><TD class='cell'>trd</TD><TD class='cell'>Transmis débiteur</TD></TR>
+<TR><TD class='cell'>PMSI</TD><TD class='cell'>Acte pris en compte dans le PMSI. </TD><TD class='cell'>g</TD><TD class='cell'>Groupé</TD></TR><TR><TD/><TD/><TD class='cell'>ng</TD><TD class='cell'>Non groupé</TD></TR><TR><TD/><TD/><TD class='cell'>tr</TD><TD class='cell'>Transmis ARH</TD></TR>
+<TR><TD class='cell'>documentaire</TD><TD class='cell'>Acte de type documentaire. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>gratuit</TD><TD class='cell'>Acte gratuit. Cet attribut est ind?pendant de l'attribut facture. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>optionCoordination</TD><TD class='cell'>Lié à l'executant (type 4S du B2). </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>topPreventionActionAmoAmc</TD><TD class='cell'>(type 4S du B2). </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>forfaitSecuriteEnvironnementHospitalier</TD><TD class='cell'>Prestation de "sécurité et environnement hospitalier". </TD><TD class='cell'>fsd</TD><TD class='cell'>Forfait sécurité dermatologie</TD></TR><TR><TD/><TD/><TD class='cell'>se1</TD><TD class='cell'>Prestation de "sécurité et environnement hospitalier"
+facturable pour les actes d'endoscopie sans anesthésie générale ou
+loco-régionale: Forfait environnement endoscopie générale sans anesthésie ou
+loco-régionale et nécessitant le recours à un secteur opératoire.</TD></TR><TR><TD/><TD/><TD class='cell'>se2</TD><TD class='cell'>Prestation de "sécurité et environnement hospitalier"
+facturable pour les actes de "petite chirurgie" sans anesthésie autre que
+locale : Forfait environnement, petite chirurgie sans anesthésie autre que
+locale nécessitant le recours à un secteur opératoire.</TD></TR><TR><TD/><TD/><TD class='cell'>se3</TD><TD class='cell'>Prestation de "sécurité et environnement hospitalier"
+facturable pour les actes nécessitant la mise en observation du patient dans
+un environnement hospitalier : Forfait environnement, actes nécessitant la
+mise en observation.</TD></TR><TR><TD/><TD/><TD class='cell'>se4</TD><TD class='cell'>Prestation de "sécurité et environnement hospitalier"
+facturable pour les actes de la liste 4 nécessitant une mise en observation du patient dans un environnement hospitalier (Saignée thérapeutique).</TD></TR><TR><TD/><TD/><TD class='cell'>se5</TD><TD class='cell'>Forfait couvrant les frais d’administration, de surveillance et le coût moyen du médicament</TD></TR><TR><TD/><TD/><TD class='cell'>se6</TD><TD class='cell'>Acte d'administration de toxine botulique au niveau des muscles striés</TD></TR><TR><TD/><TD/><TD class='cell'>vde</TD><TD class='cell'>Forfait vidéocapsule</TD></TR>
+<TR><TD class='cell'>signe</TD><TD class='cell'>Acte signé par le médecin. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>exonerationCCAM</TD><TD class='cell'>Exonération spécial CCAM (Type 053 du référentiel CCAM) </TD><TD class='cell'>1</TD><TD class='cell'>Acte pouvant être exonéré par la régle du seuil et exonérant alors la facture.</TD></TR><TR><TD/><TD/><TD class='cell'>2</TD><TD class='cell'>Acte pouvant être exonéré par la règle du seuil mais n'exonérant pas la facture.</TD></TR><TR><TD/><TD/><TD class='cell'>3</TD><TD class='cell'>Acte exonéré par nature et non exonérant pour la facture.</TD></TR><TR><TD/><TD/><TD class='cell'>4</TD><TD class='cell'>Acte exonéré par nature et exonérant toute la facture.</TD></TR><TR><TD/><TD/><TD class='cell'>5</TD><TD class='cell'>Acte ne pouvant pas être exonéré par la règle du seuil.</TD></TR><TR><TD/><TD/><TD class='cell'>7</TD><TD class='cell'>Acte pouvant être exonéré par nature dans le cadre d'un dispositif de prévention.</TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsServeurActes/evenementServeurActe/actesCCAM</TD></TR></TABLE>
+</BODY></HTML>

@@ -1,0 +1,24 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_acquittementFraisDivers.html' target='_top'>Sommaire </A><SPAN class='precLinkOf' onClick='history.back()' onMouseOver =this.className='precLinkOn' onMouseOut =this.className='precLinkOf'>Elément précédent</SPAN></DIV><DIV class='chapitre'>enteteMessage [typeEnteteMessageAcquittement]</DIV>
+<DIV class='definition'>Elément obligatoire et unique apparaissant en tête de tous les messages d'acquittement de traitement. Cet élément identifie et caractérise le message d'acquittement,  précise son émetteur et son destinataire, et référence le message de notifications d'événements objet de l'acquittement.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiantMessage_nom12.html' target='frameCorps'>identifiantMessage</A> </TD><TD class='cell'>Identifiant unique du message émis.</TD></TR>
+<TR> <TD class='cell'><A HREF='dateHeureProduction_xsd_dateTime.html' target='frameCorps'>dateHeureProduction</A> </TD><TD class='cell'>Date heure de production de ce message à la source.</TD></TR>
+<TR> <TD class='cell'><A HREF='emetteur_typeEmetteurRecepteur.html' target='frameCorps'>emetteur</A> </TD><TD class='cell'>Définition de l'émetteur du message.</TD></TR>
+<TR> <TD class='cell'><A HREF='destinataire_typeEmetteurRecepteur.html' target='frameCorps'>destinataire</A> </TD><TD class='cell'>Définition du destinataire du message.</TD></TR>
+<TR> <TD class='cell'><A HREF='commentaireMessage_commentaire.html' target='frameCorps'>commentaireMessage</A> </TD><TD class='cell'>Commentaire sur en-tête. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiantMessageAcquitte_nom12.html' target='frameCorps'>identifiantMessageAcquitte</A> </TD><TD class='cell'>Identifiant unique du message d'acquittement.</TD></TR>
+<TR> <TD class='cell'><A HREF='nomFichierMessageAcquitte_texte35.html' target='frameCorps'>nomFichierMessageAcquitte</A> </TD><TD class='cell'>Nom du fichier à l'origine de cet acquittement. [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>statut</TD><TD class='cell'>Statut de l'acquittement. </TD><TD class='cell'>avt</TD><TD class='cell'>Avertissement</TD></TR><TR><TD/><TD/><TD class='cell'>err</TD><TD class='cell'>Erreur</TD></TR><TR><TD/><TD/><TD class='cell'>ncs</TD><TD class='cell'>Non conforme au schéma</TD></TR><TR><TD/><TD/><TD class='cell'>ok</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>rj</TD><TD class='cell'>Rejet</TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/acquittementsFraisDivers</TD></TR></TABLE>
+</BODY></HTML>

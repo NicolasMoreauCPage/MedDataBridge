@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-8 px-4 space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-slate-500">
+        <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <a href="/context/ght/{{ context.id }}" class="hover:text-blue-600 transition-colors">GHT</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span class="text-slate-700 font-medium">{% if namespace %}Modifier{% else %}Nouvel{% endif %} espace de noms</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 rounded-2xl p-8 text-white relative overflow-hidden shadow-xl">
+        <div class="absolute inset-0 bg-black/10"></div>
+        <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+        
+        <div class="relative z-10">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold">{% if namespace %}Modifier{% else %}Nouvel{% endif %} espace de noms</h1>
+                    <p class="text-white/80 text-sm mt-1">Configuration des identifiants systèmes (IPP, NDA, OID)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire -->
+    <form method="POST" action="{% if namespace %}/admin/ght/{{ context.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/namespaces/new{% endif %}" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
+        <!-- Identité -->
+        <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-8 py-6 border-b-2 border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                Identité
+            </h3>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">Nom <span class="text-red-600">*</span></label>
+                <input type="text" name="name" value="{{ namespace.name if namespace else '' }}" required
+                       placeholder="IPP EJ Principal"
+                       class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                <p class="mt-2 text-sm text-slate-500">Nom descriptif de l'espace de noms</p>
+            </div>
+        </div>
+
+        <!-- URIs et OID -->
+        <div class="px-8 py-6 border-b-2 border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+                URIs et identifiant OID
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">URI du système <span class="text-red-600">*</span></label>
+                    <input type="text" name="system" value="{{ namespace.system if namespace else '' }}" required
+                           pattern="[a-zA-Z][a-zA-Z0-9\-\._:]+[a-zA-Z0-9]+"
+                           placeholder="urn:oid:1.2.250.1.71.1.2.2"
+                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-2 text-sm text-slate-500">URI unique identifiant le système d'identifiants</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">OID</label>
+                    <input type="text" name="oid" value="{{ namespace.oid if namespace else '' }}"
+                           pattern="[0-9]+(\.[0-9]+)*"
+                           placeholder="1.2.250.1.71.1.2.2"
+                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-2 text-sm text-slate-500">OID si différent de l'URI (optionnel)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Type et Description -->
+        <div class="px-8 py-6 border-b-2 border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                Type et description
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Type <span class="text-red-600">*</span></label>
+                    <select name="type" required
+                            class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="IPP" {% if not namespace or namespace.type == 'IPP' %}selected{% endif %}>🆔 Identifiant Patient Permanent (IPP)</option>
+                        <option value="NDA" {% if namespace and namespace.type == 'NDA' %}selected{% endif %}>📂 Numéro de Dossier Administratif (NDA)</option>
+                        <option value="VN" {% if namespace and namespace.type == 'VN' %}selected{% endif %}>🏥 Numéro de Venue (VN)</option>
+                        <option value="MVT" {% if namespace and namespace.type == 'MVT' %}selected{% endif %}>🔄 Identifiant de Mouvement (MVT)</option>
+                        <option value="PC" {% if namespace and namespace.type == 'PC' %}selected{% endif %}>👤 Personne à Contacter (PC)</option>
+                    </select>
+                    <p class="mt-2 text-sm text-slate-500">Type d'identifiant selon le système standardisé</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Description</label>
+                    <textarea name="description" rows="3" placeholder="Décrivez l'usage de cet espace de noms..."
+                              class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">{{ namespace.description if namespace else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- État -->
+        <div class="px-8 py-6 border-b-2 border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Statut
+            </h3>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">État du namespace</label>
+                <select name="is_active"
+                        class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="true" {% if not namespace or namespace.is_active %}selected{% endif %}>✅ Actif</option>
+                    <option value="false" {% if namespace and not namespace.is_active %}selected{% endif %}>❌ Inactif</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Configuration préfixes tests -->
+        <div class="px-8 py-6 border-b-2 border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Configuration des préfixes (scénarios de test)
+            </h3>
+            <p class="text-sm text-slate-600 mb-4">
+                Configurez des préfixes pour éviter les collisions avec les données du système récepteur lors des tests.
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Mode de génération</label>
+                    <select name="prefix_mode" id="prefix_mode"
+                            onchange="togglePrefixMode()"
+                            class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                        <option value="fixed" {% if not namespace or namespace.prefix_mode == 'fixed' %}selected{% endif %}>🔢 Préfixe fixe + séquence</option>
+                        <option value="range" {% if namespace and namespace.prefix_mode == 'range' %}selected{% endif %}>📊 Plage numérique (min-max)</option>
+                    </select>
+                </div>
+
+                <div id="pattern_field">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Pattern de préfixe</label>
+                    <input type="text" name="prefix_pattern" id="prefix_pattern"
+                           value="{{ namespace.prefix_pattern if namespace else '' }}"
+                           placeholder="ex: 9..., 91...., 501..."
+                           pattern="[0-9]*\.+"
+                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                    <p class="mt-2 text-sm text-slate-500">
+                        Les '.' représentent des chiffres générés aléatoirement.<br>
+                        <strong>Exemples:</strong> "9..." → 9001-9999 | "91...." → 91000-91999 | "501..." → 501000-501999
+                    </p>
+                </div>
+
+                <div id="range_fields" style="display: none;">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Valeur minimale</label>
+                            <input type="number" name="prefix_min" id="prefix_min"
+                                   value="{{ namespace.prefix_min if namespace else '' }}"
+                                   placeholder="ex: 9000000"
+                                   class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Valeur maximale</label>
+                            <input type="number" name="prefix_max" id="prefix_max"
+                                   value="{{ namespace.prefix_max if namespace else '' }}"
+                                   placeholder="ex: 9999999"
+                                   class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                        </div>
+                    </div>
+                    <p class="mt-2 text-sm text-slate-500">
+                        Plage numérique complète (ex: 9000000 - 9999999)
+                    </p>
+                </div>
+
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
+                    <h4 class="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Conseils
+                    </h4>
+                    <ul class="text-sm text-blue-900 space-y-2">
+                        <li class="flex items-start gap-2">
+                            <span>✓</span>
+                            <span>Utilisez des préfixes réservés pour tests (ex: plage 9xxxxx)</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span>✓</span>
+                            <span>Coordonnez avec l'équipe du système récepteur</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span>✓</span>
+                            <span>Un préfixe court (9...) génère plus de collisions qu'un long (91....)</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="bg-slate-50 px-8 py-6 flex items-center justify-between">
+            <a href="/context/ght/{{ context.id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Annuler
+            </a>
+            <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                {% if namespace %}Mettre à jour{% else %}Créer{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+</div>
+
+<script>
+function togglePrefixMode() {
+    const mode = document.getElementById('prefix_mode').value;
+    const patternField = document.getElementById('pattern_field');
+    const rangeFields = document.getElementById('range_fields');
+    
+    if (mode === 'range') {
+        patternField.style.display = 'none';
+        rangeFields.style.display = 'block';
+        document.getElementById('prefix_pattern').required = false;
+    } else {
+        patternField.style.display = 'block';
+        rangeFields.style.display = 'none';
+        document.getElementById('prefix_pattern').required = false;
+    }
+}
+
+// Initialiser l'affichage au chargement
+document.addEventListener('DOMContentLoaded', togglePrefixMode);
+</script>
+{% endblock %}

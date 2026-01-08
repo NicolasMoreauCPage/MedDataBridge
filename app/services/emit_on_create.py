@@ -1495,6 +1495,8 @@ def emit_to_senders_async(
                     try:
                         if endpoint.host and endpoint.port:
                             # call the dynamically imported sender (may be monkeypatched)
+                            import time as _time
+                            _start = _time.time()
                             ack_payload = _send_mllp(endpoint.host, endpoint.port, hl7_message)
                             from app.services.mllp import parse_msh_fields
                             ack_lines = ack_payload.split("\r") if ack_payload else []
@@ -1511,6 +1513,18 @@ def emit_to_senders_async(
                             else:
                                 ack_payload = "[No host/port configured]"
                                 status = "error"
+                            # Metrics for PAM outbound
+                            try:
+                                from app.metrics import record_pam_ack
+                                msg_type = hl7_fields.get("msg_type") or "ADT^unknown"
+                                record_pam_ack(
+                                    direction="outbound",
+                                    ack_code=ack_code or "",
+                                    message_type=msg_type,
+                                    duration_seconds=_time.time() - _start,
+                                )
+                            except Exception:
+                                pass
                     except Exception as exc:
                         status = "error"
                         ack_payload = str(exc)

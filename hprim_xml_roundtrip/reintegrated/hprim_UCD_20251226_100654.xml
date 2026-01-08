@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ns0:evenementsServeurActes xmlns:ns0="http://www.hprim.org/hprimXML" version="2.4" acquittementAttendu="non" identifiantAttendu="non" realise="oui" interrogation="non">
+  <ns0:enteteMessage>
+    <ns0:identifiantMessage>HUCD100654</ns0:identifiantMessage>
+    <ns0:dateHeureProduction>2025-12-26T10:06:54.985152</ns0:dateHeureProduction>
+    <ns0:emetteur>
+      <ns0:agents>
+        <ns0:agent categorie="acteur">
+          <ns0:code>EMET</ns0:code>
+          <ns0:libelle>Émetteur Test</ns0:libelle>
+        </ns0:agent>
+      </ns0:agents>
+    </ns0:emetteur>
+    <ns0:destinataire>
+      <ns0:agents>
+        <ns0:agent categorie="acteur">
+          <ns0:code>DEST</ns0:code>
+          <ns0:libelle>Destinataire Test</ns0:libelle>
+        </ns0:agent>
+      </ns0:agents>
+    </ns0:destinataire>
+  </ns0:enteteMessage>
+</ns0:evenementsServeurActes>

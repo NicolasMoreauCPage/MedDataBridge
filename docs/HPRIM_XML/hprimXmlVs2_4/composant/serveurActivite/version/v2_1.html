@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 2.1</DIV>
+
+
+
+   <P class='sChapitre'>Pour &lt;evenementServeurActe&gt; </P>
+
+
+   <UL>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout des valeurs (0, 7, 750) dans attrDisciplineTraitement (attribut de &lt;acteCCAM&gt;&lt;montant> et &lt;acteNGAP&gt;&lt;montant&gt;).</SPAN></FONT></P>
+      </LI>
+      
+       
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+         <FONT SIZE=3><SPAN STYLE="background: transparent">La cardinalité de &lt;positionDentaire&gt; passe à 32.</SPAN></FONT></P></LI>
+        
+    <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+         <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de 2 valeurs (se5 et se6) pour l'attribut forfaitSecuriteEnvironnementHospitalier sur un acte CCAM.</SPAN></FONT></P></LI>
+   </UL>
+
+   <P class='sChapitre'>Pour &lt;patient&gt; </P>
+   
+   <UL>
+        <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Possibilité de véhiculer des identifiants de deux structures différentes avec la nouvelle balise &lt;numeroIdentifiantPatients&gt;.</SPAN></FONT></P></LI>
+   </UL>
+   
+     <P class='sChapitre'>Pour &lt;venue&gt; </P>
+   
+   <UL>
+        <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Possibilité de véhiculer des identifiants de deux structures différentes avec la nouvelle balise &lt;numeroIdentifiantVenue&gt;.</SPAN></FONT></P></LI>
+   </UL>
+
+        <P class='sChapitre'>Pour &lt;intervention&gt; </P>
+   
+   <UL>
+        <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Gestion des temps significatifs au bloc avec la nouvelle balise &lt;blocOperatoire&gt;.</SPAN></FONT></P></LI>
+   </UL>
+   
+   <P class='sChapitre'>Pour &lt;LPP&gt; </P>
+
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent"> Ajout de la balise &lt;naturePrestation&gt; (facultatif) avec un attribut typeNaturePrestationLPP.</SPAN></FONT></P></LI>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Agrandissement de la longueur (120 caractères) du contenu de &lt;codeCommercialLPP&gt;.</SPAN></FONT></P></LI>
+    </UL>    
+
+   <P class='sChapitre'>Pour &lt;UCD&gt; </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de la balise &lt;prestataire&gt;, indicateur du réalisateur de la dispensation (médecin ou UF).</SPAN></FONT></P></LI>
+       <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de la balise &lt;codeIndicationLES&gt;, code indication LES.</SPAN></FONT></P></LI>
+       <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Agrandissement de la longueur (120 caractères) du contenu de &lt;codeCommercial&gt;.</SPAN></FONT></P></LI>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de la gestion de montant hors taxe par les balises  &lt;montantUnitaireAchatHT&gt; et &lt;montantUnitaireFactureHT&gt; en alternances des montants TTC.</SPAN></FONT></P></LI>
+   </UL>
+   </UL>
+
+   
+
+ <P class='sChapitre'>Divers </P>
+
+   <UL>
+    <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Possibilité de transmettre le bon de commande à l'origine de la demande des actes avec la nouvelle balise &lt;bonCommande&gt;.</SPAN></FONT></P></LI>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Agrandissement de la longueur (120 caractères) du contenu de &lt;dictionnaire&gt; pour &lt;extensionTemporaire&gt;.</SPAN></FONT></P></LI>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de la balise &lt;valeur&gt; pour &lt;extensionTemporaire&gt;.</SPAN></FONT></P></LI>
+   </UL>   
+</BODY>
+</HTML>

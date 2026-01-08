@@ -1,0 +1,26 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_PMSI.html' target='_top'>Sommaire </A><A HREF='./moisLunaire_nombre2.html' target='frameCorps'>Elément précédent</A></DIV><DIV class='chapitre'>montant [typeMontant]</DIV>
+<DIV class='definition'>Montant à facturer.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='montantTotal_decimalPositif.html' target='frameCorps'>montantTotal</A> </TD><TD class='cell'>Montant hors dépassement, exprimé en TTC. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='quantite_nombre5.html' target='frameCorps'>quantite</A> </TD><TD class='cell'>Multiplicateur du montantTotal. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='numeroForfaitTechnique_nombre5.html' target='frameCorps'>numeroForfaitTechnique</A> </TD><TD class='cell'>Numéro de forfait technique. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='numeroAgrementAppareil_nombre14.html' target='frameCorps'>numeroAgrementAppareil</A> </TD><TD class='cell'>Numéro d'agrément de l'appareil utilisé. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='numeroFacture_nombre9.html' target='frameCorps'>numeroFacture</A> </TD><TD class='cell'>Numéro de facture technique. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='montantDepassement_typeDepassement.html' target='frameCorps'>montantDepassement</A> </TD><TD class='cell'>Montant de dépassement. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='pourcentageDepassement_typeDepassement.html' target='frameCorps'>pourcentageDepassement</A> </TD><TD class='cell'>Dépassement  exprimé en %. [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>modeTraitement</TD><TD class='cell'>Mode de traitement. </TD><TD class='cell'>19</TD><TD class='cell'>Scanner et irm</TD></TR>
+<TR><TD class='cell'>disciplineTraitement</TD><TD class='cell'>Discipline de traitement. </TD><TD class='cell'>0</TD><TD class='cell'>Valeur utile pour les non assurés sociaux</TD></TR><TR><TD/><TD/><TD class='cell'>35</TD><TD class='cell'>Scanner</TD></TR><TR><TD/><TD/><TD class='cell'>7</TD><TD class='cell'>Valeur utile pour les non assurés sociaux</TD></TR><TR><TD/><TD/><TD class='cell'>750</TD><TD class='cell'>Tomographie</TD></TR><TR><TD/><TD/><TD class='cell'>753</TD><TD class='cell'>Irm</TD></TR>
+<TR><TD class='cell'>liberal</TD><TD class='cell'>Acte réalisé sous couvert libéral. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsServeurActes/evenementServeurActe/actesCCAM/acteCCAM</TD></TR><TR><TD class='cell'>/evenementsServeurActes/evenementServeurActe/actesNGAP/acteNGAP</TD></TR></TABLE>
+</BODY></HTML>

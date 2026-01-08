@@ -1,0 +1,22 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_SA.html' target='_top'>Sommaire </A><A HREF='./minorMajor_typeMinorMajor.html' target='frameCorps'>Elément précédent</A></DIV><DIV class='chapitre'>modeEntree [typeModeEntreeEtablissementHprim]</DIV>
+<DIV class='definition'>Mode d'entrée du patient dans l'établissement.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='code_nom12.html' target='frameCorps'>code</A> </TD><TD class='cell'>Code facultatif sur au plus 12 caractères. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='libelle_texte80.html' target='frameCorps'>libelle</A> </TD><TD class='cell'>Libellé facultatif sur au plus 80 caractères. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='dictionnaire_nom120.html' target='frameCorps'>dictionnaire</A> </TD><TD class='cell'>Référence facultative de la nomenclature utilisée (nom sur au plus 120  caractères). [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='provenance_typeLieuProvenanceOuDestinationHprim.html' target='frameCorps'>provenance</A> </TD><TD class='cell'>Provenance du patient [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='complementProvenance_typeProvenanceAutreEtablissement.html' target='frameCorps'>complementProvenance</A> </TD><TD class='cell'>Complément [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>valeur</TD><TD class='cell'>Valeur du mode d'entrée à partir d'une liste finie </TD><TD class='cell'>00</TD><TD class='cell'>Transfert d'établissement géographique à l'intérieur d'une même entité juridique</TD></TR><TR><TD/><TD/><TD class='cell'>01</TD><TD class='cell'>Admission après consultation d'un médecin de l'établissement</TD></TR><TR><TD/><TD/><TD class='cell'>02</TD><TD class='cell'>Malade envoyé par un médecin extérieur</TD></TR><TR><TD/><TD/><TD class='cell'>03</TD><TD class='cell'>Transfert autre établissement juridique</TD></TR><TR><TD/><TD/><TD class='cell'>04</TD><TD class='cell'>Admission urgence accident  voie publique</TD></TR><TR><TD/><TD/><TD class='cell'>05</TD><TD class='cell'>Admission suite à accident du travail</TD></TR><TR><TD/><TD/><TD class='cell'>06</TD><TD class='cell'>Admission urgence depuis domicile du malade</TD></TR><TR><TD/><TD/><TD class='cell'>07</TD><TD class='cell'>Autres admissions en urgence</TD></TR><TR><TD/><TD/><TD class='cell'>08</TD><TD class='cell'>Autres modes d'entrée</TD></TR><TR><TD/><TD/><TD class='cell'>09</TD><TD class='cell'>Mode d'entrée inconnu</TD></TR><TR><TD/><TD/><TD class='cell'>0A</TD><TD class='cell'>Transfert pour réalisation d'acte    (CRIH de Grenoble)</TD></TR><TR><TD/><TD/><TD class='cell'>0B</TD><TD class='cell'>Mutation interne    (CRIH de Grenoble)</TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsServeurActes/evenementServeurIntervention/venue/entree</TD></TR><TR><TD class='cell'>/evenementsServeurActes/evenementServeurActe/venue/entree</TD></TR><TR><TD class='cell'>/evenementsServeurActes/evenementServeurLPP/venue/entree</TD></TR><TR><TD class='cell'>/evenementsServeurActes/evenementServeurUCD/venue/entree</TD></TR><TR><TD class='cell'>/evenementsServeurActes/evenementFusionIntervention/venue/entree</TD></TR></TABLE>
+</BODY></HTML>

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/scenarios" class="hover:text-blue-600 transition-colors">Scénarios</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{{ scenario.name|default('', true) }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="flex items-center space-x-4">
+        <div class="btn">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">{{ scenario.name|default('', true) }}</h1>
+          <p class="text-violet-100 mt-1">
+            Protocole: {{ scenario.protocol|default('', true) }} — {{ steps|length }} étapes{% if scenario.category %} — {{ scenario.category|default('', true) }}{% endif %}
+          </p>
+          {% if scenario.description %}
+          <p class="text-violet-200 text-sm mt-2">{{ scenario.description|default('', true) }}</p>
+          {% endif %}
+          {% if scenario.source_path %}
+          <p class="text-violet-300 text-xs mt-1 font-mono">Source: {{ scenario.source_path|default('', true) }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="btn">
+  {% if endpoints %}
+  <form id="send-scenario-form" method="post" action="/scenarios/{{ scenario.id }}/send" class="flex flex-wrap items-end gap-4">
+    <div>
+      <label for="endpoint_id" class="block text-sm font-medium text-slate-700">Endpoint cible</label>
+      <select id="endpoint_id" name="endpoint_id" class="mt-1 block w-64 rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        {% for ep in endpoints %}
+          <option value="{{ ep.id }}">{{ ep.name }} ({{ ep.kind }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="step_id" class="block text-sm font-medium text-slate-700">Étape (optionnel)</label>
+      <select id="step_id" name="step_id" class="mt-1 block w-48 rounded-xl border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <option value="">Scénario complet</option>
+        {% for step in steps %}
+          <option value="{{ step.id }}">#{{ step.order_index|default('', true) }} — {{ step.name|default(step.message_type|default('Message', true), true) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" id="send-scenario-btn" class="send-btn inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700">
+        Envoyer
+      </button>
+      <a href="/scenarios/{{ scenario.id }}/export" target="_blank" class="btn">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Exporter JSON
+      </a>
+      <button type="button" onclick="configureRealisticTiming()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Timing réaliste
+      </button>
+      <a href="/scenarios" class="btn">
+        Retour
+      </a>
+    </div>
+  </form>
+  {% else %}
+    <p class="text-sm text-red-600">Aucun endpoint expéditeur n'est configuré. Configurez un système (MLLP/FHIR) en mode &laquo;&nbsp;sender&nbsp;&raquo; pour rejouer le scénario.</p>
+  {% endif %}
+</div>
+
+<div class="btn">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead>
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">#</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Message</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for step in steps %}
+          {% set trigger = (step.message_type.split('^')[1] if step.message_type and '^' in step.message_type else step.message_type) %}
+          {% set deprecated = trigger and trigger.startswith('Z') and trigger != 'Z99' %}
+          <tr class="align-top {% if deprecated %}bg-amber-50{% endif %}">
+            <td class="px-4 py-3 text-sm font-mono text-slate-600">#{{ step.order_index if step.order_index is not none else '' }}</td>
+            <td class="px-4 py-3 text-sm text-slate-600">
+              {{ step.message_type if step.message_type is not none else (step.name if step.name is not none else step.message_format|upper) }}
+              {% if step.delay_seconds %}
+                <div class="text-xs text-slate-400">Delay {{ step.delay_seconds }}s</div>
+              {% endif %}
+              {% if deprecated %}
+                <div class="text-xs font-semibold text-amber-700">Message Z** non émis (profil IHE&nbsp;PAM ≥ 2.8)</div>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-xs font-mono text-slate-700">
+              <pre class="btn">{{ step.payload if step.payload is not none else '' }}</pre>
+            </td>
+            <td class="px-4 py-3 text-sm">
+              {% if deprecated %}
+                <span class="text-amber-700">Non émis</span>
+              {% elif endpoints %}
+                <form method="post" action="/scenarios/{{ scenario.id }}/send">
+                  <input type="hidden" name="endpoint_id" value="{{ endpoints[0].id }}">
+                  <input type="hidden" name="step_id" value="{{ step.id }}">
+                  <button type="submit" class="text-blue-600 hover:text-blue-700">Envoyer seul</button>
+                </form>
+              {% else %}
+                <span class="text-slate-400">Configurer un endpoint expéditeur</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="4" class="px-4 py-3 text-center text-sm text-slate-500">Aucune étape dans ce scénario.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+<script>
+async function configureRealisticTiming() {
+  const scenarioId = {{ scenario.id }};
+  
+  try {
+    // D'abord, récupérer la suggestion
+    const suggestionResponse = await fetch(`/scenarios/${scenarioId}/suggest-realistic-timing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!suggestionResponse.ok) {
+      throw new Error(`Erreur ${suggestionResponse.status}: ${await suggestionResponse.text()}`);
+    }
+    
+    const suggestion = await suggestionResponse.json();
+    
+    // Demander confirmation avec les détails
+    const confirmMessage = `Configurer le timing réaliste pour ce scénario ?
+
+Workflow détecté: ${suggestion.analysis.detected_workflow}
+Description: ${suggestion.analysis.workflow_description}
+Séquence d'événements: ${suggestion.analysis.event_sequence.join(' → ')}
+
+Configuration suggérée:
+• Ancrage: ${suggestion.suggested_config.time_anchor_mode}
+${suggestion.suggested_config.time_anchor_days_offset ? `• Décalage: ${suggestion.suggested_config.time_anchor_days_offset} jours` : ''}
+• Jitter: ${suggestion.suggested_config.jitter_min_minutes}-${suggestion.suggested_config.jitter_max_minutes} minutes
+• Événements avec jitter: ${suggestion.suggested_config.apply_jitter_on_events}
+
+Cette action remplacera la configuration temporelle actuelle.`;
+    
+    if (confirm(confirmMessage)) {
+      // Appliquer la configuration
+      const applyResponse = await fetch(`/scenarios/${scenarioId}/apply-realistic-timing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!applyResponse.ok) {
+        throw new Error(`Erreur ${applyResponse.status}: ${await applyResponse.text()}`);
+      }
+      
+      const result = await applyResponse.json();
+      
+      alert(`Succès : ${result.message}
+
+Workflow: ${result.analysis.detected_workflow}
+Configuration appliquée avec succès !
+
+La page va se recharger pour afficher les nouvelles options de timing.`);
+      
+      // Recharger la page pour voir les changements
+      window.location.reload();
+    }
+    
+  } catch (error) {
+    console.error('Erreur lors de la configuration du timing réaliste:', error);
+    alert(`Erreur lors de la configuration du timing réaliste:\n${error.message}`);
+  }
+}
+
+// Gestion de l'envoi asynchrone du scénario
+document.addEventListener('DOMContentLoaded', function() {
+    const sendForm = document.getElementById('send-scenario-form');
+    const sendBtn = document.getElementById('send-scenario-btn');
+    
+    if (sendForm && sendBtn) {
+        sendForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const originalText = sendBtn.innerHTML;
+            const originalDisabled = sendBtn.disabled;
+            
+            // Désactiver le bouton et changer le texte
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = `
+                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Envoi en cours...
+            `;
+            
+            try {
+                const response = await fetch(sendForm.action, {
+                    method: 'POST',
+                    body: new FormData(sendForm),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.redirected) {
+                    // Succès - rediriger vers la page de résultats
+                    window.location.href = response.url;
+                } else if (response.ok) {
+                    const data = await response.json();
+                    // Afficher un message de succès et rediriger
+                    alert('Scénario envoyé avec succès !');
+                    window.location.reload();
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `Erreur HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'envoi:', error);
+                alert(`Erreur lors de l'envoi du scénario:\n${error.message}`);
+                
+                // Restaurer le bouton
+                sendBtn.disabled = originalDisabled;
+                sendBtn.innerHTML = originalText;
+            }
+        });
+    }
+});
+</script>

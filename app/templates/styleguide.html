@@ -1,0 +1,524 @@
+{% extends "base.html" %}
+{% block title %}Styleguide - MedData Bridge{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="mb-12">
+    <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white shadow-xl">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Styleguide</h1>
+          <p class="text-white/80 text-sm mt-1">Guide des composants UI de MedData Bridge</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Palette de couleurs -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Palette de couleurs</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Primary -->
+      <div class="bg-white rounded-xl border border-slate-200 p-6">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Primary (Bleu)</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-blue-600 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-blue-600</code>
+              <span class="text-xs text-slate-500 ml-2">#2563eb</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-blue-500 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-blue-500</code>
+              <span class="text-xs text-slate-500 ml-2">#3b82f6</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-blue-700 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-blue-700</code>
+              <span class="text-xs text-slate-500 ml-2">#1d4ed8</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary -->
+      <div class="bg-white rounded-xl border border-slate-200 p-6">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Secondary (Gris)</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-slate-50 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-slate-50</code>
+              <span class="text-xs text-slate-500 ml-2">#f8fafc</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-slate-100 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-slate-100</code>
+              <span class="text-xs text-slate-500 ml-2">#f1f5f9</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-slate-600 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-slate-600</code>
+              <span class="text-xs text-slate-500 ml-2">#475569</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- États -->
+      <div class="bg-white rounded-xl border border-slate-200 p-6">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">États</h3>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-green-500 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-green-500</code>
+              <span class="text-xs text-slate-500 ml-2">Succès</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-red-500 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-red-500</code>
+              <span class="text-xs text-slate-500 ml-2">Erreur</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-8 bg-amber-500 rounded"></div>
+            <div>
+              <code class="text-sm text-slate-600">bg-amber-500</code>
+              <span class="text-xs text-slate-500 ml-2">Avertissement</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Typographie -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Typographie</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="space-y-8">
+        <div>
+          <h1 class="text-5xl font-bold text-slate-900 mb-2">Heading 1 (5xl)</h1>
+          <code class="text-sm text-slate-600">text-5xl font-bold</code>
+        </div>
+        <div>
+          <h2 class="text-4xl font-bold text-slate-900 mb-2">Heading 2 (4xl)</h2>
+          <code class="text-sm text-slate-600">text-4xl font-bold</code>
+        </div>
+        <div>
+          <h3 class="text-3xl font-bold text-slate-900 mb-2">Heading 3 (3xl)</h3>
+          <code class="text-sm text-slate-600">text-3xl font-bold</code>
+        </div>
+        <div>
+          <h4 class="text-2xl font-semibold text-slate-900 mb-2">Heading 4 (2xl)</h4>
+          <code class="text-sm text-slate-600">text-2xl font-semibold</code>
+        </div>
+        <div>
+          <p class="text-lg text-slate-700 mb-2">Body Large (lg) - Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+          <code class="text-sm text-slate-600">text-lg text-slate-700</code>
+        </div>
+        <div>
+          <p class="text-base text-slate-700 mb-2">Body Base - Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+          <code class="text-sm text-slate-600">text-base text-slate-700</code>
+        </div>
+        <div>
+          <p class="text-sm text-slate-600 mb-2">Body Small (sm) - Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+          <code class="text-sm text-slate-600">text-sm text-slate-600</code>
+        </div>
+        <div>
+          <code class="bg-slate-100 px-2 py-1 rounded text-sm">Code inline</code>
+          <span class="text-sm text-slate-600 ml-4">bg-slate-100 px-2 py-1 rounded</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Boutons -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Boutons</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="space-y-6">
+        <!-- Variants -->
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Variants</h3>
+          <div class="flex flex-wrap gap-4">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn btn-accent">Accent</button>
+            <button class="btn btn-ghost">Ghost</button>
+            <button class="btn btn-outline">Outline</button>
+          </div>
+        </div>
+
+        <!-- Tailles -->
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Tailles</h3>
+          <div class="flex flex-wrap items-center gap-4">
+            <button class="btn btn-primary btn-xs">Extra Small</button>
+            <button class="btn btn-primary btn-sm">Small</button>
+            <button class="btn btn-primary btn-md">Medium</button>
+            <button class="btn btn-primary btn-lg">Large</button>
+          </div>
+        </div>
+
+        <!-- États -->
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">États</h3>
+          <div class="flex flex-wrap gap-4">
+            <button class="btn btn-primary">Normal</button>
+            <button class="btn btn-primary" disabled>Désactivé</button>
+            <button class="btn btn-primary loading">Chargement</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cartes -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Cartes</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Carte basique -->
+      <div class="bg-white rounded-xl border border-slate-200 p-6">
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">Carte basique</h3>
+        <p class="text-slate-600 text-sm mb-4">Carte simple avec contenu standard.</p>
+        <code class="text-xs text-slate-500">bg-white rounded-xl border border-slate-200 p-6</code>
+      </div>
+
+      <!-- Carte avec ombre -->
+      <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-lg">
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">Carte avec ombre</h3>
+        <p class="text-slate-600 text-sm mb-4">Carte avec ombre portée pour plus de profondeur.</p>
+        <code class="text-xs text-slate-500">shadow-lg</code>
+      </div>
+
+      <!-- Carte hover -->
+      <div class="bg-white rounded-xl border border-slate-200 p-6 card-hover">
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">Carte interactive</h3>
+        <p class="text-slate-600 text-sm mb-4">Carte avec effet hover (translation + ombre).</p>
+        <code class="text-xs text-slate-500">card-hover</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- Formulaires -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Formulaires</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Input basique -->
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Input basique</h3>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Label</span>
+            </label>
+            <input type="text" placeholder="Placeholder" class="input input-bordered">
+          </div>
+          <code class="text-xs text-slate-500 mt-2 block">input input-bordered</code>
+        </div>
+
+        <!-- Select -->
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Select</h3>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Choix</span>
+            </label>
+            <select class="select select-bordered">
+              <option>Option 1</option>
+              <option>Option 2</option>
+              <option>Option 3</option>
+            </select>
+          </div>
+          <code class="text-xs text-slate-500 mt-2 block">select select-bordered</code>
+        </div>
+
+        <!-- Checkbox -->
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Checkbox</h3>
+          <div class="form-control">
+            <label class="checkbox">
+              <input type="checkbox" class="checkbox checkbox-primary">
+              <span class="label-text ml-2">Option à cocher</span>
+            </label>
+          </div>
+          <code class="text-xs text-slate-500 mt-2 block">checkbox checkbox-primary</code>
+        </div>
+
+        <!-- Radio -->
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Radio</h3>
+          <div class="form-control">
+            <label class="radio">
+              <input type="radio" name="radio" class="radio radio-primary" checked>
+              <span class="label-text ml-2">Option 1</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="radio" class="radio radio-primary">
+              <span class="label-text ml-2">Option 2</span>
+            </label>
+          </div>
+          <code class="text-xs text-slate-500 mt-2 block">radio radio-primary</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modals -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Modals</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="space-y-4">
+        <p class="text-slate-600">Les modals utilisent DaisyUI avec des animations fluides et sont accessibles (ARIA).</p>
+        <div class="flex flex-wrap gap-4">
+          <button class="btn btn-primary" onclick="document.getElementById('styleguide-modal').classList.add('modal-open')">
+            Ouvrir modal simple
+          </button>
+          <button class="btn btn-warning" onclick="document.getElementById('styleguide-confirm-modal').classList.add('modal-open')">
+            Ouvrir modal de confirmation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal d'exemple -->
+    {{ modal(
+      'styleguide-modal',
+      'Modal d\'exemple',
+      'Ceci est un exemple de modal utilisant DaisyUI avec des animations.',
+      '<button class="btn" onclick="document.getElementById(\'styleguide-modal\').classList.remove(\'modal-open\')">Fermer</button><button class="btn btn-primary" onclick="document.getElementById(\'styleguide-modal\').classList.remove(\'modal-open\')">Confirmer</button>'
+    ) }}
+
+    <!-- Modal de confirmation -->
+    {{ confirm_modal(
+      'styleguide-confirm-modal',
+      'Confirmer l\'action',
+      'Êtes-vous sûr de vouloir effectuer cette action ? Cette action est irréversible.',
+      'Oui, confirmer',
+      'Annuler',
+      'error'
+    ) }}
+  </section>
+
+  <!-- Toasts -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Toasts (Notifications)</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="space-y-6">
+        <p class="text-slate-600">Système de notifications non-bloquantes avec auto-dismiss et accessibilité.</p>
+        
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Types de toasts</h3>
+          <div class="flex flex-wrap gap-4">
+            <button class="btn btn-success btn-sm" onclick="toastSystem.show('Opération réussie !', 'success')">
+              Toast succès
+            </button>
+            <button class="btn btn-error btn-sm" onclick="toastSystem.show('Une erreur est survenue.', 'error')">
+              Toast erreur
+            </button>
+            <button class="btn btn-warning btn-sm" onclick="toastSystem.show('Attention : vérifiez vos données.', 'warning')">
+              Toast avertissement
+            </button>
+            <button class="btn btn-info btn-sm" onclick="toastSystem.show('Information importante.', 'info')">
+              Toast info
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Durée personnalisée</h3>
+          <div class="flex flex-wrap gap-4">
+            <button class="btn btn-outline btn-sm" onclick="toastSystem.show('Toast permanent (clic pour fermer)', 'info', 0)">
+              Toast permanent
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="toastSystem.show('Toast 10 secondes', 'success', 10000)">
+              Toast 10s
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loaders -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Loaders (Indicateurs de chargement)</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="space-y-6">
+        <p class="text-slate-600">Indicateurs de chargement pour les états asynchrones et formulaires.</p>
+        
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Tailles de loaders</h3>
+          <div class="flex items-center gap-6">
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">xs</span>
+              {{ loader('xs') }}
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">sm</span>
+              {{ loader('sm') }}
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">md</span>
+              {{ loader('md') }}
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">lg</span>
+              {{ loader('lg') }}
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">xl</span>
+              {{ loader('xl') }}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Couleurs de loaders</h3>
+          <div class="flex items-center gap-6">
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">primary</span>
+              {{ loader('md', 'primary') }}
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">success</span>
+              {{ loader('md', 'success') }}
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">warning</span>
+              {{ loader('md', 'warning') }}
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <span class="text-sm text-slate-600">error</span>
+              {{ loader('md', 'error') }}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Boutons avec loading</h3>
+          <div class="flex flex-wrap gap-4">
+            {{ loading_button('Bouton normal', 'Chargement...', 'md', 'primary') }}
+            {{ loading_button('Bouton secondaire', 'Traitement...', 'md', 'secondary') }}
+            <button class="btn btn-success btn-md" onclick="loadingSystem.showOverlay('Sauvegarde en cours...'); setTimeout(() => loadingSystem.hideOverlay(), 3000)">
+              Overlay de chargement
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Formulaire avec auto-loading</h3>
+          <form data-auto-loading data-loading-text="Envoi en cours..." class="max-w-md">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Email</span>
+              </label>
+              <input type="email" class="input input-bordered" required>
+            </div>
+            <div class="form-control mt-4">
+              <label class="label">
+                <span class="label-text">Message</span>
+              </label>
+              <textarea class="textarea textarea-bordered" rows="3"></textarea>
+            </div>
+            <div class="form-control mt-6">
+              {{ loading_button('Envoyer', 'Envoi en cours...', 'md', 'primary') }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Animations -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Animations</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Animations d'entrée</h3>
+          <div class="flex flex-wrap gap-4">
+            <div class="bg-blue-100 p-4 rounded-lg animate-fade-in">Fade In</div>
+            <div class="bg-blue-100 p-4 rounded-lg animate-slide-up">Slide Up</div>
+            <div class="bg-blue-100 p-4 rounded-lg animate-scale-in">Scale In</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Animations stagger (liste)</h3>
+          <div class="space-y-2">
+            <div class="bg-slate-100 p-3 rounded animate-stagger-1">Élément 1</div>
+            <div class="bg-slate-100 p-3 rounded animate-stagger-2">Élément 2</div>
+            <div class="bg-slate-100 p-3 rounded animate-stagger-3">Élément 3</div>
+            <div class="bg-slate-100 p-3 rounded animate-stagger-4">Élément 4</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Micro-interactions</h3>
+          <div class="flex flex-wrap gap-4">
+            <button class="btn btn-primary btn-hover-lift">Bouton avec lift</button>
+            <div class="bg-slate-100 p-4 rounded card-hover cursor-pointer">Carte hover</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Utilitaires -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-slate-900 mb-6">Utilitaires</h2>
+    <div class="bg-white rounded-xl border border-slate-200 p-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Espacement</h3>
+          <div class="space-y-2">
+            <code class="block text-sm text-slate-600">p-4 → padding: 1rem</code>
+            <code class="block text-sm text-slate-600">m-2 → margin: -0.5rem</code>
+            <code class="block text-sm text-slate-600">px-6 → padding-left/right: 1.5rem</code>
+            <code class="block text-sm text-slate-600">py-3 → padding-top/bottom: 0.75rem</code>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Flexbox</h3>
+          <div class="space-y-2">
+            <code class="block text-sm text-slate-600">flex → display: flex</code>
+            <code class="block text-sm text-slate-600">items-center → align-items: center</code>
+            <code class="block text-sm text-slate-600">justify-between → justify-content: space-between</code>
+            <code class="block text-sm text-slate-600">gap-4 → gap: 1rem</code>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">Grille</h3>
+          <div class="space-y-2">
+            <code class="block text-sm text-slate-600">grid → display: grid</code>
+            <code class="block text-sm text-slate-600">grid-cols-3 → grid-template-columns: repeat(3, 1fr)</code>
+            <code class="block text-sm text-slate-600">gap-6 → gap: 1.5rem</code>
+            <code class="block text-sm text-slate-600">col-span-2 → grid-column: span 2</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

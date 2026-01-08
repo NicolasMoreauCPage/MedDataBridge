@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ucd" class="hover:text-blue-600 transition-colors">UCD</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Dossier #{{ dossier.dossier_seq }}</span>
+  </nav>
+
+  <div class="btn">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Actes UCD</h1>
+        <p class="text-gray-600 mt-2">Dossier #{{ dossier.dossier_seq }} - {{ dossier.patient.family }}, {{ dossier.patient.given }}</p>
+      </div>
+      <a href="/ucd/create/{{ dossier.id }}"
+         class="btn btn-primary">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Nouveau acte UCD
+      </a>
+    </div>
+
+    <!-- Liste des actes -->
+    <div class="space-y-4">
+      {% if acts %}
+        {% for act in acts %}
+        <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="flex items-center gap-4 mb-2">
+                <h3 class="text-lg font-semibold text-gray-900">{{ act.designation }}</h3>
+                <span class="px-3 py-1 rounded-full text-sm font-medium
+                  {% if act.valide %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                  {% if act.valide %}Validé{% else %}En attente{% endif %}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                <div>
+                  <span class="font-medium">Code CIP:</span>
+                  <span class="ml-2">{{ act.code_cip }}</span>
+                </div>
+                <div>
+                  <span class="font-medium">Quantité:</span>
+                  <span class="ml-2">{{ act.quantite }}</span>
+                </div>
+                <div>
+                  <span class="font-medium">Prix unitaire:</span>
+                  <span class="ml-2">{{ "%.2f"|format(act.prix_unitaire) }} €</span>
+                </div>
+                <div>
+                  <span class="font-medium">Montant total:</span>
+                  <span class="ml-2 font-semibold">{{ "%.2f"|format(act.montant_total) }} €</span>
+                </div>
+              </div>
+
+              <div class="mt-2 text-sm text-gray-500">
+                <span class="font-medium">Date:</span>
+                <span class="ml-2">{{ act.execute_date.strftime('%d/%m/%Y') }}</span>
+                {% if act.commentaire %}
+                <span class="ml-4 font-medium">Commentaire:</span>
+                <span class="ml-2">{{ act.commentaire }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="flex gap-2 ml-4">
+              <a href="/ucd/act/{{ act.id }}"
+                 class="btn">
+                Détails
+              </a>
+              <form method="post" action="/ucd/act/{{ act.id }}/validate" class="inline">
+                <input type="hidden" name="valide" value="{{ 'false' if act.valide else 'true' }}">
+                <button type="submit"
+                        class="px-4 py-2 rounded transition-colors
+                        {% if act.valide %}bg-yellow-100 text-yellow-700 hover:bg-yellow-200{% else %}bg-green-100 text-green-700 hover:bg-green-200{% endif %}">
+                  {% if act.valide %}Invalider{% else %}Valider{% endif %}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun acte UCD</h3>
+          <p class="text-gray-500 mb-6">Ce dossier ne contient encore aucun acte UCD.</p>
+          <a href="/ucd/create/{{ dossier.id }}"
+             class="btn btn-primary">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Créer le premier acte UCD
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Boutons de navigation -->
+    <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+      <a href="/dossiers/{{ dossier.id }}"
+         class="btn">
+        ← Retour au dossier
+      </a>
+      <a href="/ucd"
+         class="btn btn-primary">
+        Voir tous les actes UCD
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

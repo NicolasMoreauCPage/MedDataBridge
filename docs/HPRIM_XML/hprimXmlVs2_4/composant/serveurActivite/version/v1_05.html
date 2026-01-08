@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 1.05</DIV>
+
+
+
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour &lt;UCD&gt; </FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de la balise &lt;montantReconstitution&gt; qui définit le coût TTC lié à la reconstitution du médicament.</FONT></P>
+      </UL>
+
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour l'attribut « nature » de la balise &lt;naturePrestation&gt;</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>réaffectation des valeurs   phu, phm, php, phi.</FONT></P>
+      </UL>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de la valeur phd (pharmacie hospitalière dérogatoire).</FONT></P>
+      </UL>
+
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3> Pour &lt;acteNGAP&gt; </FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de l'attribut  « activiteRecherche » prenant comme valeur « oui » ou « non ».</FONT></P>
+      </UL>
+
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de l'attribut « codePrestation » utilisable pour spécialiser la lettre clé (exemple pour les forfaits techniques : permet de distinguer l'acte d'irm du scanner).</FONT></P>
+      </UL>
+
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour &lt;acteCCAM&gt;</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de la valeur se4 pour attribut «forfaitSecuriteEnvironnementHospitalier».</FONT></P>
+      </UL>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de l'attribut « signe » signifiant que l'acte a été signé par le médecin.</FONT></P>
+      </UL>
+
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3> Pour &lt;LPP&gt; </FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de la balise &lt;codeCommercialLPP&gt;.</FONT></P>
+      </UL>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de l'attribut « signe » signifiant que l'attribution de ce produit a été signée par le médecin.</FONT></P>
+      </UL>
+
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3> Pour &lt;montant&gt;, balise fille de &lt;acteCCAM&gt; et &lt;NGAP&gt; </FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de la balise &lt;pourcentageDepassement&gt;, permettant de gérer des dépassement autorisés en % pour le milieu hospitalier. Cette balise est une alternative à &lt;montantDepassement&gt;.</FONT></P>
+      </UL>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de la valeur « da » pour l'attribut « motif », indiquant la nature du dépassement comme « dépassement autorisé ». Cet attribut est présent pour les éléments &lt;pourcentageDepassement&gt; et  &lt;montantDepassement&gt;.</FONT></P>
+      </UL>
+
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3> Pour &lt;intervention&gt;</FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout de la la balise &lt;uniteFonctionnelleHebergement&gt;</FONT></P>
+      </UL>
+
+   </UL>
+
+
+
+</BODY>
+</HTML>

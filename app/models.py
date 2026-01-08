@@ -201,7 +201,6 @@ class Dossier(SQLModel, table=True):
     
     # Médecin responsable du dossier (PV1-7 Attending Doctor)
     medecin_responsable_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
-    medecin_responsable: Optional["MedecinResponsable"] = Relationship(back_populates="dossiers")
 
     # Extensions / IHE PAM additions (optional)
     admission_type: Optional[str] = None
@@ -210,6 +209,14 @@ class Dossier(SQLModel, table=True):
     # Champs métier
     reason: Optional[str] = None  # Motif d'admission (utiliser vocabulaire FR)
     current_state: Optional[str] = None  # État actuel du dossier (utiliser vocabulaire FR)
+    
+    # Cotations HPRIM
+    has_cotations: bool = Field(default=False, description="Indique si le dossier a des cotations")
+    cotations_count: int = Field(default=0, description="Nombre de cotations liées au dossier")
+    
+    # Relationships
+    medecin_responsable: Optional["MedecinResponsable"] = Relationship(back_populates="dossiers")
+    
     patient: Patient = Relationship(back_populates="dossiers")
     venues: List["Venue"] = Relationship(back_populates="dossier")
     identifiers: List["Identifier"] = Relationship(back_populates="dossier")
@@ -323,102 +330,322 @@ class Mouvement(SQLModel, table=True):
 # --- Actes Médicaux (NGAP, UCD, LPP) ---
 
 class NGAPAct(SQLModel, table=True):
-    """Acte NGAP - Nomenclature Générale des Actes Professionnels"""
+    """
+    Acte NGAP - Nomenclature Générale des Actes Professionnels
+    Conforme à HPRIM XML v2.4 msgEvenementsServeurActes typeActeNgap
+    """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
-    lettre_cle: str = Field(description="Lettre-clé NGAP (A-Z)")
-    coefficient: float = Field(description="Coefficient NGAP")
-    execute_date: datetime = Field(description="Date d'exécution")
-    prestataire_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
-    denombrement: Optional[int] = Field(default=None, description="Dénombrement")
-    position_dentaire: Optional[str] = Field(default=None, description="Position dentaire")
-    execute_heure: Optional[str] = Field(default=None, description="Heure d'exécution")
-    numero_seance: Optional[int] = Field(default=None, description="Numéro de séance")
-    montant: Optional[float] = Field(default=None, description="Montant en euros")
-    commentaire: Optional[str] = Field(default=None, description="Commentaire")
-    facturable: bool = Field(default=True, description="Acte facturable")
-    valide: bool = Field(default=False, description="Acte validé")
-    facture: bool = Field(default=False, description="Acte facturé")
 
+    # Identifiant unique de l'acte
+    identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
+
+    # Codes NGAP (obligatoires)
+    lettre_cle: str = Field(description="Lettre-clé NGAP (ex: A, AMI, APC, C, V, K)")
+    coefficient: float = Field(description="Coefficient multiplicateur NGAP")
+    denombrement: Optional[int] = Field(default=1, description="Dénombrement (nombre d'actes, défaut: 1)")
+
+    # Quantité ou position dentaire (choix exclusif)
+    quantite: Optional[int] = Field(default=None, description="Quantité")
+    position_dentaire: Optional[str] = Field(default=None, description="Position dentaire")
+
+    # Date/heure d'exécution (obligatoire)
+    execute_date: datetime = Field(description="Date et heure d'exécution de l'acte")
+
+    # Numéro de séance (pour actes en série)
+    numero_seance: Optional[int] = Field(default=None, description="Numéro de séance")
+
+    # Codes NABM (Nomenclature des Actes de Biologie Médicale)
+    nabm_codes: Optional[str] = Field(default=None, description="Codes NABM séparés par des virgules")
+
+    # Minoration/Majoration
+    majoration_pourcentage: Optional[int] = Field(default=None, description="Pourcentage de majoration")
+    majoration_coefficient: Optional[float] = Field(default=None, description="Coefficient de majoration")
+    minoration_pourcentage: Optional[int] = Field(default=None, description="Pourcentage de minoration")
+    minoration_coefficient: Optional[float] = Field(default=None, description="Coefficient de minoration")
+
+    # Prise en charge
+    risque: Optional[str] = Field(default=None, description="Code risque (2 chiffres)")
+    entente_prealable: Optional[str] = Field(default=None, description="Entente préalable (d/da/na)")
+    indicateur_parcours_soins: Optional[str] = Field(default=None, description="Indicateur parcours de soins (h/m)")
+    date_demande_accord: Optional[date] = Field(default=None, description="Date demande d'accord préalable")
+
+    # Montant et facturation
+    montant_total: Optional[float] = Field(default=None, description="Montant total en euros")
+    montant_depassement: Optional[float] = Field(default=None, description="Montant de dépassement")
+    motif_depassement: Optional[str] = Field(default=None, description="Motif dépassement (d/e/f/n/da)")
+    numero_facture: Optional[str] = Field(default=None, description="Numéro de facture")
+
+    # BHN/PHN (Base/Plafond Honoraires Nocturnes)
+    bhn_phn_montant: Optional[float] = Field(default=None, description="Montant BHN/PHN")
+
+    # Commentaire libre
+    commentaire: Optional[str] = Field(default=None, description="Commentaire libre")
+
+    # Attributs HPRIM
+    action: str = Field(default="creation", description="Action (creation/modification/suppression)")
+    facturable: bool = Field(default=True, description="Acte facturable")
+    execution_nuit: bool = Field(default=False, description="Exécution de nuit")
+    execution_dimanche_ferie: bool = Field(default=False, description="Exécution dimanche ou jour férié")
+    acte_hors_nomenclature: bool = Field(default=False, description="Acte hors nomenclature")
+    rapport_exoneration: Optional[str] = Field(default=None, description="Rapport exonération (C/7/R/4)")
+    gratuit: bool = Field(default=False, description="Acte gratuit")
+    valide: bool = Field(default=False, description="Acte validé")
+    facture: str = Field(default="non", description="Acte facturé (oui/non/trd/ec)")
+    portee_cle: str = Field(default="n", description="Portée de la clé (n/r/d)")
+    activite_recherche: bool = Field(default=False, description="Activité de recherche")
+    code_prestation: Optional[str] = Field(default=None, description="Code prestation")
+
+    # Relations avec professionnels de santé
     dossier: Dossier = Relationship(back_populates="ngap_acts")
+    prestataire_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
     prestataire: Optional["MedecinResponsable"] = Relationship(back_populates="ngap_acts")
+
+    # Métadonnées de traçabilité
+    date_action: Optional[datetime] = Field(default=None, description="Date de l'action (création/modification)")
+    acteur_id: Optional[int] = Field(default=None, description="ID du professionnel ayant effectué l'action")
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
 
 class UCDAct(SQLModel, table=True):
-    """Acte UCD - Unité Commune de Dispensation"""
+    """
+    Acte UCD - Unité Commune de Dispensation (Médicaments)
+    Conforme à HPRIM XML v2.4 msgEvenementsServeurActes typeUCD
+    """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
-    code_cip: str = Field(description="Code CIP-13 (13 chiffres)")
-    designation: str = Field(description="Désignation du médicament")
-    quantite: int = Field(description="Quantité dispensée")
-    prix_unitaire: float = Field(description="Prix unitaire en euros")
-    montant_total: float = Field(description="Montant total en euros")
-    execute_date: datetime = Field(description="Date de dispensation")
-    prestataire_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
-    commentaire: Optional[str] = Field(default=None, description="Commentaire")
-    facturable: bool = Field(default=True, description="Acte facturable")
-    valide: bool = Field(default=False, description="Acte validé")
-    facture: bool = Field(default=False, description="Acte facturé")
 
+    # Identifiant unique de l'acte
+    identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
+
+    # Codes UCD (Code CIP-13 obligatoire)
+    code_interne_ucd: Optional[str] = Field(default=None, description="Code interne UCD (35 car)")
+    code_ucd: str = Field(description="Code UCD / Code CIP-13 (13 chiffres)")
+    code_commercial: Optional[str] = Field(default=None, description="Code commercial (120 car)")
+
+    # Dénomination du médicament
+    denomination_libelle: str = Field(description="Libellé/dénomination du médicament")
+    denomination_dosage: Optional[str] = Field(default=None, description="Dosage (ex: 1000mg)")
+    denomination_forme: Optional[str] = Field(default=None, description="Forme galénique (ex: comprimé)")
+
+    # Date (obligatoire) avec nature optionnelle
+    execute_date: datetime = Field(description="Date de dispensation/administration")
+    nature_date: Optional[str] = Field(default=None, description="Nature de la date (prescription/dispensation/administration)")
+
+    # Quantité fractionnée (obligatoire)
+    quantite: float = Field(description="Quantité fractionnée (décimal positif)")
+
+    # Montants et tarification
+    taux_tva: Optional[float] = Field(default=None, description="Taux de TVA en pourcentage")
+    montant_unitaire_achat_ttc: Optional[float] = Field(default=None, description="Montant unitaire achat TTC")
+    montant_unitaire_achat_ht: Optional[float] = Field(default=None, description="Montant unitaire achat HT")
+    montant_ecart_indemnisable: Optional[float] = Field(default=None, description="Montant écart indemnisable")
+    montant_unitaire_facture_ttc: Optional[float] = Field(default=None, description="Montant unitaire facturé TTC")
+    montant_unitaire_facture_ht: Optional[float] = Field(default=None, description="Montant unitaire facturé HT")
+    montant_marge_retrocession: Optional[float] = Field(default=None, description="Montant marge rétrocession")
+    montant_reconstitution: Optional[float] = Field(default=None, description="Montant reconstitution")
+
+    # Prise en charge
+    risque: Optional[str] = Field(default=None, description="Code risque (2 chiffres)")
+    entente_prealable: Optional[str] = Field(default=None, description="Entente préalable (d/da/na)")
+    indicateur_parcours_soins: Optional[str] = Field(default=None, description="Indicateur parcours de soins (h/m)")
+    date_demande_accord: Optional[date] = Field(default=None, description="Date demande d'accord préalable")
+
+    # Nature de prestation UCD
+    nature_prestation: Optional[str] = Field(default=None, description="Nature prestation UCD")
+
+    # Fournisseur
+    siret_fournisseur: Optional[str] = Field(default=None, description="SIRET fournisseur (14 chiffres)")
+    numero_lot: Optional[str] = Field(default=None, description="Numéro de lot (15 car)")
+
+    # Code indication Liste En Sus
+    code_indication_les: Optional[str] = Field(default=None, description="Code indication LES (format I999999 ou 7-8 car)")
+
+    # Commentaire libre
+    commentaire: Optional[str] = Field(default=None, description="Commentaire libre")
+
+    # Attributs HPRIM
+    action: str = Field(default="creation", description="Action (creation/modification/suppression)")
+    facturable: bool = Field(default=True, description="Acte facturable")
+    gratuit: bool = Field(default=False, description="Acte gratuit")
+    valide: bool = Field(default=False, description="Acte validé")
+    facture: str = Field(default="non", description="Acte facturé (oui/non/trd/ec)")
+    liberal: bool = Field(default=False, description="En exercice libéral")
+    retrocession: bool = Field(default=False, description="Rétrocession")
+    essai_therapeutique: bool = Field(default=False, description="Essai thérapeutique")
+
+    # Relations avec professionnels de santé
     dossier: Dossier = Relationship(back_populates="ucd_acts")
-    prestataire: Optional["MedecinResponsable"] = Relationship(back_populates="ucd_acts")
+    prescripteur_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
+    prescripteur: Optional["MedecinResponsable"] = Relationship(
+        back_populates="ucd_acts_prescripteur",
+        sa_relationship_kwargs={"foreign_keys": "UCDAct.prescripteur_id"}
+    )
+    prestataire_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
+    prestataire: Optional["MedecinResponsable"] = Relationship(
+        back_populates="ucd_acts_prestataire",
+        sa_relationship_kwargs={"foreign_keys": "UCDAct.prestataire_id"}
+    )
+
+    # Métadonnées de traçabilité
+    date_action: Optional[datetime] = Field(default=None, description="Date de l'action (création/modification)")
+    acteur_id: Optional[int] = Field(default=None, description="ID du professionnel ayant effectué l'action")
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
 
 class LPPAct(SQLModel, table=True):
-    """Acte LPP - Liste des Produits et Prestations"""
+    """
+    Acte LPP - Liste des Produits et Prestations (Dispositifs Médicaux)
+    Conforme à HPRIM XML v2.4 msgEvenementsServeurActes typeLPP
+    """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
-    code_lpp: str = Field(description="Code LPP (13 chiffres)")
-    libelle: str = Field(description="Libellé de la prothèse")
-    quantite: int = Field(default=1, description="Quantité")
-    prix_unitaire: float = Field(description="Prix unitaire en euros")
-    montant_total: float = Field(description="Montant total en euros")
-    execute_date: datetime = Field(description="Date d'implantation")
-    prestataire_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
-    commentaire: Optional[str] = Field(default=None, description="Commentaire")
-    facturable: bool = Field(default=True, description="Acte facturable")
-    valide: bool = Field(default=False, description="Acte validé")
-    facture: bool = Field(default=False, description="Acte facturé")
 
+    # Identifiant unique de l'acte
+    identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
+
+    # Date de pose/utilisation (obligatoire)
+    execute_date: datetime = Field(description="Date et heure de pose/utilisation du dispositif")
+
+    # Codes LPP
+    code_interne_lpp: Optional[str] = Field(default=None, description="Code interne LPP (35 car)")
+    code_lpp: Optional[str] = Field(default=None, description="Code LPP (13 chiffres)")
+    code_commercial_lpp: Optional[str] = Field(default=None, description="Code commercial LPP (120 car)")
+
+    # Dénomination
+    denomination_libelle: str = Field(description="Libellé du dispositif médical")
+
+    # Fournisseur (obligatoire, choix entre SIRET ou identifiant)
+    siret_fournisseur: Optional[str] = Field(default=None, description="SIRET fournisseur (14 chiffres)")
+    identifiant_fournisseur_code: Optional[str] = Field(default=None, description="Code identifiant fournisseur (17 car)")
+    identifiant_fournisseur_libelle: Optional[str] = Field(default=None, description="Libellé identifiant fournisseur (120 car)")
+
+    # Montants et tarification (obligatoire: montant unitaire facturé TTC)
+    taux_tva: Optional[float] = Field(default=None, description="Taux de TVA en pourcentage")
+    montant_unitaire_achat_ttc: Optional[float] = Field(default=None, description="Montant unitaire achat TTC")
+    montant_ecart_indemnisable: Optional[float] = Field(default=None, description="Montant écart indemnisable")
+    montant_unitaire_facture_ttc: float = Field(description="Montant unitaire facturé TTC (obligatoire)")
+
+    # Quantité (obligatoire)
+    quantite: int = Field(description="Quantité (nombre entier positif)")
+
+    # Prise en charge
+    risque: Optional[str] = Field(default=None, description="Code risque (2 chiffres)")
+    entente_prealable: Optional[str] = Field(default=None, description="Entente préalable (d/da/na)")
+    indicateur_parcours_soins: Optional[str] = Field(default=None, description="Indicateur parcours de soins (h/m)")
+    date_demande_accord: Optional[date] = Field(default=None, description="Date demande d'accord préalable")
+
+    # Traçabilité produit
+    date_peremption: Optional[date] = Field(default=None, description="Date de péremption")
+    numero_serie: Optional[str] = Field(default=None, description="Numéro de série")
+    numero_lot: Optional[str] = Field(default=None, description="Numéro de lot (15 car)")
+    iud_id: Optional[str] = Field(default=None, description="IUD/UDI (Identifiant Unique du Dispositif, 14-24 car)")
+
+    # Nature de prestation LPP
+    nature_prestation: Optional[str] = Field(default=None, description="Nature prestation LPP")
+
+    # Commentaire libre
+    commentaire: Optional[str] = Field(default=None, description="Commentaire libre")
+
+    # Attributs HPRIM
+    action: str = Field(default="creation", description="Action (creation/modification/suppression)")
+    facturable: bool = Field(default=True, description="Acte facturable")
+    gratuit: bool = Field(default=False, description="Acte gratuit")
+    valide: bool = Field(default=False, description="Acte validé")
+    facture: str = Field(default="non", description="Acte facturé (oui/non/trd/ec)")
+    liberal: bool = Field(default=False, description="En exercice libéral")
+    signe: bool = Field(default=False, description="Acte signé électroniquement")
+
+    # Relations avec professionnels de santé
     dossier: Dossier = Relationship(back_populates="lpp_acts")
+    prestataire_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
     prestataire: Optional["MedecinResponsable"] = Relationship(back_populates="lpp_acts")
+
+    # Métadonnées de traçabilité
+    date_action: Optional[datetime] = Field(default=None, description="Date de l'action (création/modification)")
+    acteur_id: Optional[int] = Field(default=None, description="ID du professionnel ayant effectué l'action")
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
 
 class CCAMAct(SQLModel, table=True):
-    """Acte CCAM - Classification Commune des Actes Médicaux"""
+    """
+    Acte CCAM - Classification Commune des Actes Médicaux
+    Conforme à HPRIM XML v2.4 msgEvenementsServeurActes typeActeCcam
+    """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
 
-    # Code CCAM (obligatoire, format AAAA999)
-    code_acte: str = Field(description="Code acte CCAM (4 lettres + 3 chiffres)")
+    # Identifiant unique de l'acte (typeIdentifiant HPRIM)
+    identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
 
-    # Code activité (obligatoire, 2 chiffres)
-    code_activite: str = Field(description="Code activité (2 chiffres)")
+    # Codes CCAM (obligatoires)
+    code_acte: str = Field(description="Code acte CCAM (format: 4 lettres + 3 chiffres, ex: HBMD001)")
+    code_acte_extension_pmsi: Optional[str] = Field(default=None, description="Code extension PMSI CCAM")
+    code_activite: str = Field(description="Code activité CCAM (2 chiffres: 01-08)")
+    code_phase: str = Field(default="0", description="Code phase CCAM (2 chiffres: 0, 1, 2)")
 
-    # Code phase (optionnel, 2 chiffres)
-    code_phase: Optional[str] = Field(default=None, description="Code phase (2 chiffres)")
+    # Date/heure d'exécution (obligatoire)
+    execute_date: datetime = Field(description="Date et heure d'exécution de l'acte")
 
-    # Modificateurs (liste de codes A-Z, 0-9)
-    modificateurs: str = Field(default="", description="Modificateurs séparés par des virgules")
+    # Modificateurs CCAM (ex: Z1, K50, etc.)
+    modificateurs: Optional[str] = Field(default=None, description="Modificateurs CCAM séparés par des virgules")
+    code_association_non_prevue: Optional[str] = Field(default=None, description="Code association non prévue (1 car)")
+    code_extension_documentaire: Optional[str] = Field(default=None, description="Code extension documentaire (1 car)")
 
-    # Informations de réalisation
-    execute_date: datetime = Field(description="Date d'exécution")
-    execute_heure: Optional[str] = Field(default=None, description="Heure d'exécution (HH:MM)")
+    # Quantité / Positions dentaires (choix exclusif)
+    quantite: Optional[int] = Field(default=1, description="Quantité (défaut: 1)")
+    positions_dentaires: Optional[str] = Field(default=None, description="Positions dentaires (max 32, séparées par des virgules)")
 
-    # Quantité et tarification
-    quantite: int = Field(default=1, description="Quantité")
-    montant: Optional[float] = Field(default=None, description="Montant en euros")
+    # Montant et prise en charge
+    montant_total: Optional[float] = Field(default=None, description="Montant total en euros")
+    montant_depassement: Optional[float] = Field(default=None, description="Montant de dépassement")
+    motif_depassement: Optional[str] = Field(default=None, description="Motif dépassement (d/e/f/n/da)")
+    numero_forfait_technique: Optional[str] = Field(default=None, description="Numéro forfait technique (5 chiffres)")
+    numero_facture: Optional[str] = Field(default=None, description="Numéro de facture (9 chiffres)")
 
-    # Extension (optionnel, pour actes complexes)
-    extension: Optional[str] = Field(default=None, description="Code extension")
+    # Prise en charge
+    risque: Optional[str] = Field(default=None, description="Code risque (2 chiffres)")
+    entente_prealable: Optional[str] = Field(default=None, description="Entente préalable (d/da/na)")
+    indicateur_parcours_soins: Optional[str] = Field(default=None, description="Indicateur parcours de soins (h/m)")
+    date_demande_accord: Optional[date] = Field(default=None, description="Date demande d'accord préalable")
 
-    # Informations complémentaires
-    commentaire: Optional[str] = Field(default=None, description="Commentaire")
-    facturable: bool = Field(default=True, description="Acte facturable")
-    valide: bool = Field(default=False, description="Acte validé")
-    facture: bool = Field(default=False, description="Acte facturé")
+    # Acte principal (pour actes associés)
+    identifiant_acte_principal: Optional[str] = Field(default=None, description="Identifiant de l'acte principal")
+    code_acte_principal: Optional[str] = Field(default=None, description="Code CCAM de l'acte principal")
 
-    # Relations
+    # Radiothérapie (champs spécifiques si applicable)
+    radiotherapie_seances: Optional[int] = Field(default=None, description="Nombre de séances de radiothérapie")
+    radiotherapie_modalite: Optional[str] = Field(default=None, description="Modalité de radiothérapie")
+
+    # Commentaire libre
+    commentaire: Optional[str] = Field(default=None, description="Commentaire libre")
+
+    # Attributs HPRIM
+    action: str = Field(default="creation", description="Action (creation/modification/suppression)")
+    rapport_exoneration: Optional[str] = Field(default=None, description="Rapport exonération (C/7/R/4)")
+    facturable: bool = Field(default=True, description="Acte facturable (oui/non)")
+    remboursement_exceptionnel: bool = Field(default=False, description="Remboursement exceptionnel")
+    supplement_charges: Optional[str] = Field(default=None, description="Supplément charges (c)")
+    valide: bool = Field(default=False, description="Acte validé (oui/non/validé)")
+    facture: str = Field(default="non", description="Acte facturé (oui/non/trd/ec)")
+    pmsi: Optional[str] = Field(default=None, description="Indicateur PMSI (g/ng/tr)")
+    documentaire: bool = Field(default=False, description="Acte documentaire")
+    gratuit: bool = Field(default=False, description="Acte gratuit")
+    option_coordination: bool = Field(default=False, description="Option de coordination")
+    prevention_amo_amc: bool = Field(default=False, description="TOP prévention action AMO/AMC")
+    forfait_securite_environnement: Optional[str] = Field(default=None, description="Forfait sécurité environnement hospitalier")
+    signe: bool = Field(default=False, description="Acte signé électroniquement")
+    exoneration_ccam: Optional[str] = Field(default=None, description="Exonération CCAM (1-5, 7)")
+
+    # Mode et discipline de traitement
+    mode_traitement: Optional[str] = Field(default=None, description="Mode de traitement (19)")
+    discipline_traitement: Optional[str] = Field(default=None, description="Discipline de traitement (0/7/35/750/753)")
+    liberal: bool = Field(default=False, description="Acte en exercice libéral")
+
+    # Relations avec professionnels de santé
     dossier: Dossier = Relationship(back_populates="ccam_acts")
     executant_id: Optional[int] = Field(default=None, foreign_key="medecinresponsable.id")
     executant: Optional["MedecinResponsable"] = Relationship(
@@ -431,7 +658,9 @@ class CCAMAct(SQLModel, table=True):
         sa_relationship_kwargs={"foreign_keys": "CCAMAct.prescripteur_id"}
     )
 
-    # Métadonnées
+    # Métadonnées de traçabilité
+    date_action: Optional[datetime] = Field(default=None, description="Date de l'action (création/modification)")
+    acteur_id: Optional[int] = Field(default=None, description="ID du professionnel ayant effectué l'action")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

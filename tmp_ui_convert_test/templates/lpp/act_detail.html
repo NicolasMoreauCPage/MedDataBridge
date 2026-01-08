@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/lpp" class="hover:text-blue-600 transition-colors">LPP</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/lpp/dossier/{{ act.dossier_id }}" class="hover:text-blue-600 transition-colors">Dossier #{{ act.dossier.dossier_seq }}</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Acte #{{ act.id }}</span>
+  </nav>
+
+  <div class="btn">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Détails de l'acte LPP</h1>
+        <p class="text-gray-600 mt-2">Acte #{{ act.id }} - {{ act.libelle }}</p>
+      </div>
+      <span class="px-4 py-2 rounded-full text-sm font-medium
+        {% if act.valide %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+        {% if act.valide %}Validé{% else %}En attente de validation{% endif %}
+      </span>
+    </div>
+
+    <!-- Informations principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="btn">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Informations générales</h2>
+        <dl class="space-y-3">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Code LPP</dt>
+            <dd class="text-lg font-mono text-gray-900">{{ act.code_lpp }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Libellé</dt>
+            <dd class="text-gray-900">{{ act.libelle }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Date d'exécution</dt>
+            <dd class="text-gray-900">{{ act.execute_date.strftime('%d/%m/%Y') }}</dd>
+          </div>
+          {% if act.commentaire %}
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Commentaire</dt>
+            <dd class="text-gray-900">{{ act.commentaire }}</dd>
+          </div>
+          {% endif %}
+        </dl>
+      </div>
+
+      <div class="alert alert-info">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Informations financières</h2>
+        <dl class="space-y-3">
+          <div>
+            <dt class="text-sm font-medium text-blue-600">Quantité</dt>
+            <dd class="text-2xl font-bold text-blue-900">{{ act.quantite }}</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-blue-600">Prix unitaire</dt>
+            <dd class="text-xl font-semibold text-blue-900">{{ "%.2f"|format(act.prix_unitaire) }} €</dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-blue-600">Montant total</dt>
+            <dd class="text-3xl font-bold text-blue-900">{{ "%.2f"|format(act.montant_total) }} €</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Informations du dossier -->
+    <div class="btn">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Contexte du dossier</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Patient</h3>
+          <p class="text-gray-700">{{ act.dossier.patient.family }}, {{ act.dossier.patient.given }}</p>
+          <p class="text-sm text-gray-500">Dossier #{{ act.dossier.dossier_seq }}</p>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Statut</h3>
+          <div class="space-y-1">
+            <p class="text-sm">
+              <span class="font-medium">Facturable:</span>
+              <span class="{% if act.facturable %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ "Oui" if act.facturable else "Non" }}
+              </span>
+            </p>
+            <p class="text-sm">
+              <span class="font-medium">Facturé:</span>
+              <span class="{% if act.facture %}text-green-600{% else %}text-yellow-600{% endif %}">
+                {{ "Oui" if act.facture else "Non" }}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+      <a href="/lpp/dossier/{{ act.dossier_id }}"
+         class="btn">
+        ← Retour à la liste
+      </a>
+
+      <div class="flex gap-4">
+        <form id="validate-act-form" method="post" action="/lpp/act/{{ act.id }}/validate" class="inline">
+          <input type="hidden" name="valide" value="{{ 'false' if act.valide else 'true' }}">
+          <button type="submit" id="validate-act-btn" class="validate-btn px-6 py-3 rounded-lg transition-colors font-medium
+                  {% if act.valide %}bg-yellow-100 text-yellow-700 hover:bg-yellow-200{% else %}bg-green-100 text-green-700 hover:bg-green-200{% endif %}">
+            {% if act.valide %}Invalider l'acte{% else %}Valider l'acte{% endif %}
+          </button>
+        </form>
+
+        <a href="/roundtrip-hprim/generate?dossier_id={{ act.dossier_id }}&acte_type=LPP&acte_id={{ act.id }}"
+           class="btn btn-primary">
+          Générer XML HPRIM
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Gestion de la validation asynchrone de l'acte LPP
+document.addEventListener('DOMContentLoaded', function() {
+    const validateForm = document.getElementById('validate-act-form');
+    const validateBtn = document.getElementById('validate-act-btn');
+    
+    if (validateForm && validateBtn) {
+        validateForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const originalText = validateBtn.textContent;
+            const originalClass = validateBtn.className;
+            
+            // Désactiver le bouton et changer le texte
+            validateBtn.disabled = true;
+            validateBtn.innerHTML = `
+                <svg class="w-4 h-4 animate-spin mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Traitement...
+            `;
+            validateBtn.className = validateBtn.className.replace('hover:bg-yellow-200', '').replace('hover:bg-green-200', '');
+            
+            try {
+                const response = await fetch(validateForm.action, {
+                    method: 'POST',
+                    body: new FormData(validateForm),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.redirected) {
+                    // Succès - recharger la page pour voir les changements
+                    window.location.reload();
+                } else if (response.ok) {
+                    // Succès - recharger la page
+                    window.location.reload();
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `Erreur HTTP ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Erreur lors de la validation:', error);
+                alert(`❌ Erreur lors de la validation:\n${error.message}`);
+                
+                // Restaurer le bouton
+                validateBtn.disabled = false;
+                validateBtn.textContent = originalText;
+                validateBtn.className = originalClass;
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

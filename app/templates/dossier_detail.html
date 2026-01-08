@@ -32,6 +32,11 @@
     <a href="/dossiers/{{ dossier.id }}/cotation" class="inline-flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2 border border-green-200 text-green-700 hover:bg-green-100 transition-all text-sm">
       💰 Codage prestations
     </a>
+    <!-- Bouton Voir les cotations - affiché dynamiquement si cotations existent -->
+    <a id="view-cotations-btn" href="/dossiers/{{ dossier.id }}/cotations" class="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-all text-sm hidden">
+      📋 <span id="cotations-label">Voir les cotations</span>
+      <span id="cotations-badge" class="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-amber-500 text-white"></span>
+    </a>
   </div>
   {% endif %}
 
@@ -368,4 +373,44 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+  // Charger le nombre de cotations du dossier
+  async function loadCotationsCount() {
+    try {
+      const dossier_id = {{ dossier.id }};
+      const response = await fetch(`/api/hprim/interventions/${dossier_id}/cotations-count`);
+      const data = await response.json();
+      
+      if (data.has_cotations && data.cotations_count > 0) {
+        const btn = document.getElementById('view-cotations-btn');
+        const badge = document.getElementById('cotations-badge');
+        const label = document.getElementById('cotations-label');
+        
+        // Afficher le bouton
+        btn.classList.remove('hidden');
+        
+        // Mettre à jour le badge avec le nombre
+        badge.textContent = data.cotations_count;
+        
+        // Optionnel: mettre à jour le label
+        if (data.cotations_count === 1) {
+          label.textContent = 'Voir la cotation';
+        } else {
+          label.textContent = `Voir les ${data.cotations_count} cotations`;
+        }
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement du nombre de cotations:', error);
+      // Ne pas afficher le bouton en cas d'erreur
+    }
+  }
+  
+  // Charger les cotations au chargement de la page
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadCotationsCount);
+  } else {
+    loadCotationsCount();
+  }
+</script>
 {% endblock %}

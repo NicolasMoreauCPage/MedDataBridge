@@ -1,0 +1,27 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_ETAT.html' target='_top'>Sommaire </A><A HREF='./personnePhysique_typePersonnePhysiquePatient.html' target='frameCorps'>Elément précédent</A></DIV><DIV class='chapitre'>pieceJointe [typePieceJointe]</DIV>
+<DIV class='definition'>Résultat sous la forme d'une image , illustration d'une pathologie, d'un antécédent, lettre d'accompagnement, ....
+      soit dans un fichier joint, soit en donnant l'adresse de cette piéce.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='nomPiece_texte80.html' target='frameCorps'>nomPiece</A> </TD><TD class='cell'>Nom du fichier associé. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='professionnelOriginePiece_typeProfessionnelSante.html' target='frameCorps'>professionnelOriginePiece</A> </TD><TD class='cell'>Professionnel de santé à l'origine de la fabrication de la piéce. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='appareilOriginePiece_typeCode17Libelle120Commentaire.html' target='frameCorps'>appareilOriginePiece</A> </TD><TD class='cell'>Indication du type d'appareil utilisé pour obtention du résultat, utile notamment dans le monde de la radiographie. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='logicielOrigine_texte80.html' target='frameCorps'>logicielOrigine</A> </TD><TD class='cell'>Logiciel utilisé pour la fabrication du fichier. Exemples : Word97, Flash5. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='dateProductionPiece_typeDateRecueillie.html' target='frameCorps'>dateProductionPiece</A> </TD><TD class='cell'>Date de production de la piéce. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='formatPiece_texte35.html' target='frameCorps'>formatPiece</A> </TD><TD class='cell'>Exemples : "doc", "rtf", jpg". Ce format peut différer du suffixe du nom du fichier. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='commentairePiece_commentaire.html' target='frameCorps'>commentairePiece</A> </TD><TD class='cell'>Commentaire associée à la piéce jointe. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='adresseURI_xsd_anyURI.html' target='frameCorps'>adresseURI</A> </TD><TD class='cell'>Adresse absolue du lieu de consultation de la piéce. Le suffixe du nom du fichier  pointé est obligatoire.</TD></TR>
+<TR> <TD class='cell'><A HREF='nomFichierJoint_texte35.html' target='frameCorps'>nomFichierJoint</A> </TD><TD class='cell'>Nom complet du fichier (y compris le suffixe).</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>naturePiece</TD><TD class='cell'>Cet attribut précise  s'il s'agit d'image, son, vidéo, .... </TD><TD class='cell'>doc</TD><TD class='cell'>document</TD></TR><TR><TD/><TD/><TD class='cell'>grp</TD><TD class='cell'>graphique</TD></TR><TR><TD/><TD/><TD class='cell'>img</TD><TD class='cell'>image</TD></TR><TR><TD/><TD/><TD class='cell'>ltt</TD><TD class='cell'>lettre</TD></TR><TR><TD/><TD/><TD class='cell'>m</TD><TD class='cell'>mémo</TD></TR><TR><TD/><TD/><TD class='cell'>son</TD><TD class='cell'>son</TD></TR><TR><TD/><TD/><TD class='cell'>tab</TD><TD class='cell'>tableau</TD></TR><TR><TD/><TD/><TD class='cell'>vd</TD><TD class='cell'>vidéo</TD></TR><TR><TD/><TD/><TD class='cell'>vds</TD><TD class='cell'>vidéo sonorisée</TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsServeurEtatsPatient/intervention/piecesJointes</TD></TR></TABLE>
+</BODY></HTML>

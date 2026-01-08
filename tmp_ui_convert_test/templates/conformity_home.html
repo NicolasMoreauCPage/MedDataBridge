@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- En-tête -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900">Conformité par Entité Juridique</h1>
+    <p class="mt-2 text-slate-600">
+      Tableau de bord de validation des messages HL7 v2.5 / IHE PAM par établissement
+    </p>
+  </div>
+
+  <!-- Liste des EJ avec métriques -->
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {% for stat in ej_stats %}
+    <a href="/conformity/ej/{{ stat.ej.id }}" 
+       class="btn">
+      
+      <!-- En-tête EJ -->
+      <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+        <h3 class="text-lg font-semibold text-white">
+          {{ stat.ej.name }}
+        </h3>
+        <p class="text-sm text-blue-100">
+          FINESS: {{ stat.ej.finess_ej or 'N/A' }}
+        </p>
+      </div>
+
+      <!-- Métriques 7 jours -->
+      <div class="px-6 py-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-slate-600">Messages (7j)</span>
+          <span class="text-lg font-semibold text-slate-900">{{ stat.total_7d }}</span>
+        </div>
+
+        {% if stat.total_7d > 0 %}
+        <!-- Barre de progression -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm text-slate-600">Conformité</span>
+            <span class="text-lg font-semibold {% if stat.rate_7d >= 95 %}text-green-600{% elif stat.rate_7d >= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
+              {{ stat.rate_7d }}%
+            </span>
+          </div>
+          <div class="btn">
+            <div class="alert alert-error"></div>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-500 pt-2 border-t border-slate-100">
+          ✓ {{ stat.valid_7d }} valides / {{ stat.total_7d }} total
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-slate-400 text-sm">
+          Aucun message récent
+        </div>
+        {% endif %}
+
+        <!-- Badge mode strict -->
+        <div class="pt-2 flex items-center justify-between">
+          <span class="btn">
+            {% if stat.ej.strict_pam_fr %}🔒{% else %}🔓{% endif %} Mode strict PAM FR
+          </span>
+          
+          <!-- Switch pour activer/désactiver -->
+          <form id="strict-form-{{ stat.ej.id }}" method="post" action="/conformity/ej/{{ stat.ej.id }}/strict-pam-fr" class="inline">
+            <input type="hidden" name="strict_pam_fr" value="{{ 'false' if stat.ej.strict_pam_fr else 'true' }}">
+            <button type="submit" 
+                    class="btn">
+              <span class="btn"></span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="btn">
+        <span class="text-sm text-blue-600 font-medium">
+          Voir le détail →
+        </span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if not ej_stats %}
+  <div class="btn">
+    <p class="text-slate-600">Aucune Entité Juridique configurée</p>
+    <a href="/ght" class="mt-4 inline-block text-blue-600 hover:text-blue-700">
+      Créer une EJ
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+<script>
+// Gestion asynchrone du toggle mode strict
+document.addEventListener('DOMContentLoaded', function() {
+    // Pour chaque formulaire de mode strict
+    document.querySelectorAll('form[id^="strict-form-"]').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Empêcher la soumission normale
+            
+            const formData = new FormData(this);
+            const ejId = this.id.replace('strict-form-', '');
+            const button = this.querySelector('button');
+            const badge = this.parentElement.querySelector('span');
+            
+            // Désactiver le bouton pendant le traitement
+            button.disabled = true;
+            button.style.opacity = '0.6';
+            
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Mettre à jour l'interface localement
+                    updateStrictModeUI(ejId, data.strict_pam_fr);
+                    
+                    // Mettre à jour le formulaire pour le prochain toggle
+                    const hiddenInput = this.querySelector('input[name="strict_pam_fr"]');
+                    hiddenInput.value = data.strict_pam_fr ? 'false' : 'true';
+                    
+                } else {
+                    console.error('Erreur lors du toggle:', response.status);
+                    // En cas d'erreur, recharger la page
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Erreur réseau:', error);
+                // En cas d'erreur, recharger la page
+                window.location.reload();
+            } finally {
+                // Réactiver le bouton
+                button.disabled = false;
+                button.style.opacity = '1';
+            }
+        });
+    });
+});
+
+// Fonction pour mettre à jour l'interface du mode strict
+function updateStrictModeUI(ejId, isStrict) {
+    const form = document.getElementById(`strict-form-${ejId}`);
+    const badge = form.parentElement.querySelector('span');
+    const button = form.querySelector('button');
+    const toggle = button.querySelector('span');
+    
+    // Mettre à jour le badge
+    if (isStrict) {
+        badge.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800';
+        badge.innerHTML = '🔒 Mode strict PAM FR';
+    } else {
+        badge.className = 'inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-600';
+        badge.innerHTML = '🔓 Mode strict PAM FR';
+    }
+    
+    // Mettre à jour le switch
+    if (isStrict) {
+        button.className = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-purple-600';
+        toggle.className = 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6';
+    } else {
+        button.className = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-slate-200';
+        toggle.className = 'inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1';
+    }
+}
+</script>

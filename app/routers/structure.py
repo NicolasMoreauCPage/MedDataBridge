@@ -278,6 +278,151 @@ async def get_structure_template(template_id: int, session: Session = Depends(ge
         "payload": template.payload,
     }
 
+
+# ============ APPLY TEMPLATE ============
+
+class UfPayload(BaseModel):
+    """Unité Fonctionnelle dans le payload du wizard."""
+    name: str
+    code_um: Optional[str] = None
+    type: Optional[str] = "mco"  # mco, ssr, psy, had
+
+
+class ServicePayload(BaseModel):
+    """Service dans le payload du wizard."""
+    name: str
+    short_name: Optional[str] = None
+    type: Optional[str] = "service"
+    ufs: List[UfPayload] = []
+
+
+class PolePayload(BaseModel):
+    """Pôle dans le payload du wizard."""
+    name: str
+    short_name: Optional[str] = None
+    type: Optional[str] = "pole"
+    services: List[ServicePayload] = []
+
+
+class UhPayload(BaseModel):
+    """Unité d'Hébergement dans le payload du wizard."""
+    name: str
+    chambres: int = 0
+    lits: int = 0
+
+
+class ApplyTemplateRequest(BaseModel):
+    """Requête pour appliquer un template modifié et créer la structure."""
+    eg_id: int  # Entité Géographique cible
+    payload: dict  # Contient {poles: [...]}
+    uhs: List[UhPayload] = []
+
+
+class ApplyTemplateResponse(BaseModel):
+    """Réponse après application du template."""
+    success: bool
+    message: str
+    created_entities: dict
+
+
+@api_router.post("/apply-template", response_model=ApplyTemplateResponse)
+async def apply_structure_template(
+    request: ApplyTemplateRequest,
+    session: Session = Depends(get_session)
+):
+    """Applique un template modifié et crée les entités de structure en base.
+
+    Crée les Poles, Services, UniteFonctionnelles à partir du payload JSON
+    modifié par l'utilisateur dans le wizard. Associe le tout à l'EG ciblée.
+    """
+    try:
+        # Vérifier que l'EG existe
+        eg = session.get(EntiteGeographique, request.eg_id)
+        if not eg:
+            raise HTTPException(status_code=404, detail=f"EntiteGeographique {request.eg_id} introuvable")
+
+        created = {
+            "poles": 0,
+            "services": 0,
+            "ufs": 0,
+            "uhs": 0,
+            "chambres": 0,
+            "lits": 0
+        }
+
+        # Extraire les pôles du payload
+        poles_data = request.payload.get("poles", [])
+
+        for pole_data in poles_data:
+            # Créer le pôle
+            pole = Pole(
+                name=pole_data.get("name"),
+                short_name=pole_data.get("short_name"),
+                entite_geographique_id=eg.id,
+                status=LocationStatus.ACTIVE
+            )
+            session.add(pole)
+            session.flush()  # Pour obtenir l'ID
+            created["poles"] += 1
+
+            # Créer les services du pôle
+            services_data = pole_data.get("services", [])
+            for service_data in services_data:
+                service = Service(
+                    name=service_data.get("name"),
+                    short_name=service_data.get("short_name"),
+                    pole_id=pole.id,
+                    entite_geographique_id=eg.id,
+                    status=LocationStatus.ACTIVE
+                )
+                session.add(service)
+                session.flush()
+                created["services"] += 1
+
+                # Créer les UF du service
+                ufs_data = service_data.get("ufs", [])
+                for uf_data in ufs_data:
+                    uf = UniteFonctionnelle(
+                        name=uf_data.get("name"),
+                        code_um=uf_data.get("code_um"),
+                        service_id=service.id,
+                        entite_geographique_id=eg.id,
+                        status=LocationStatus.ACTIVE
+                    )
+                    session.add(uf)
+                    created["ufs"] += 1
+
+        # Créer les UH si définies (optionnel)
+        for uh_data in request.uhs:
+            uh = UniteHebergement(
+                name=uh_data.name,
+                entite_geographique_id=eg.id,
+                status=LocationStatus.ACTIVE
+            )
+            session.add(uh)
+            session.flush()
+            created["uhs"] += 1
+
+            # Note: La création détaillée des chambres et lits nécessite plus d'inputs
+            # Pour l'instant on comptabilise juste les nombres fournis
+            created["chambres"] += uh_data.chambres
+            created["lits"] += uh_data.lits
+
+        session.commit()
+
+        return ApplyTemplateResponse(
+            success=True,
+            message=f"Structure créée avec succès pour {eg.name}",
+            created_entities=created
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Erreur lors de l'application du template: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création de la structure: {str(e)}")
+
 @api_router.get("/details/{type}/{id}")
 async def get_structure_details(
     type: str,

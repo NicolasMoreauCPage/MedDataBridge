@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Référence des modèles — MedData Bridge</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            line-height: 1.6; 
+            max-width: 1200px; 
+            margin: 2rem auto; 
+            padding: 0 2rem; 
+            color: #333; 
+        }
+        h1, h2, h3, h4 { color: #2c3e50; margin-top: 1.5rem; }
+        h1 { border-bottom: 3px solid #3498db; padding-bottom: 0.5rem; }
+        h2 { border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3rem; }
+        code { 
+            background: #f4f4f4; 
+            padding: 0.2rem 0.4rem; 
+            border-radius: 3px; 
+            font-size: 0.9em; 
+            font-family: 'Courier New', monospace;
+        }
+        pre { 
+            background: #f8f8f8; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            padding: 1rem; 
+            overflow-x: auto; 
+        }
+        pre code { background: none; padding: 0; }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin: 1rem 0; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 0.75rem; 
+            text-align: left; 
+        }
+        th { 
+            background: #3498db; 
+            color: white; 
+            font-weight: 600; 
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .codehilite { background: #f8f8f8; }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 1rem;
+            margin-left: 0;
+            color: #555;
+            background: #f9f9f9;
+            padding: 0.5rem 1rem;
+        }
+        ul, ol { padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+<h1 id="reference-modeles-de-donnees">Référence Modèles de Données</h1>
+<h2 id="vue-densemble">Vue d'Ensemble</h2>
+<p>L'architecture repose sur des modèles SQLModel (ORM SQLAlchemy + validation Pydantic). Organisation en 9 modules:</p>
+<ul>
+<li>
+<p><code>models.py</code>: Entités métier principales</p>
+</li>
+<li>
+<p><code>models_structure.py</code>: Hiérarchie organisationnelle</p>
+</li>
+<li>
+<p><code>models_vocabulary.py</code>: Vocabulaires contrôlés</p>
+</li>
+<li>
+<p><code>models_identifiers.py</code>: Gestion identifiants</p>
+</li>
+<li>
+<p><code>models_endpoints.py</code>: Configuration endpoints</p>
+</li>
+<li>
+<p><code>models_transport.py</code>: Logs messages</p>
+</li>
+<li>
+<p><code>models_context.py</code>: Contextes GHT/EJ</p>
+</li>
+<li>
+<p><code>models_scenarios.py</code>: Scénarios tests</p>
+</li>
+<li>
+<p><code>models_workflows.py</code>: Workflows métier</p>
+</li>
+</ul>
+<h2 id="patient">Patient</h2>
+<h3 id="definition">Définition</h3>
+<pre class="codehilite"><code class="language-python">class Patient(SQLModel, table=True):
+    __tablename__ = &quot;patient&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=100, index=True)
+    prenom: str = Field(max_length=100, index=True)
+    nom_usage: str | None = Field(default=None, max_length=100)
+    sexe: Sexe
+    date_naissance: datetime.date
+    lieu_naissance: str | None = Field(default=None, max_length=100)
+    code_insee_naissance: str | None = Field(default=None, max_length=10)
+    pays_naissance: str | None = Field(default=None, max_length=3)
+    adresse: str | None = None
+    adresse_naissance: str | None = None
+    ville: str | None = Field(default=None, max_length=100)
+    code_postal: str | None = Field(default=None, max_length=10)
+    pays: str | None = Field(default=None, max_length=3)
+    telephone_fixe: str | None = Field(default=None, max_length=20)
+    telephone_mobile: str | None = Field(default=None, max_length=20)
+    nom_jeune_fille: str | None = Field(default=None, max_length=100)
+</code></pre>
+
+<h3 id="relations">Relations</h3>
+<ul>
+<li>
+<p><code>identifiants</code>: List[PatientIdentifier] (one-to-many)</p>
+</li>
+<li>
+<p><code>dossiers</code>: List[Dossier] (one-to-many)</p>
+</li>
+</ul>
+<h3 id="indices">Indices</h3>
+<ul>
+<li>
+<p>nom (recherche rapide)</p>
+</li>
+<li>
+<p>prenom (recherche rapide)</p>
+</li>
+<li>
+<p>(nom, prenom, date_naissance) composite (unicité fonctionnelle)</p>
+</li>
+</ul>
+<h3 id="enumeration-sexe">Énumération Sexe</h3>
+<pre class="codehilite"><code class="language-python">class Sexe(str, Enum):
+    male = &quot;male&quot;
+    female = &quot;female&quot;
+    other = &quot;other&quot;
+    unknown = &quot;unknown&quot;
+</code></pre>
+
+<h2 id="dossier">Dossier</h2>
+<h3 id="definition_1">Définition</h3>
+<pre class="codehilite"><code class="language-python">class Dossier(SQLModel, table=True):
+    __tablename__ = &quot;dossier&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    numero_dossier: str = Field(max_length=50, unique=True, index=True)
+    patient_id: int = Field(foreign_key=&quot;patient.id&quot;, index=True)
+    ej_id: int = Field(foreign_key=&quot;entite_juridique.id&quot;, index=True)
+    type_dossier: TypeDossier
+    date_heure_admission: datetime.datetime
+    uf_responsabilite: str | None = Field(default=None, max_length=20)
+    uf_medicale_code: str | None = Field(default=None, max_length=20)
+    uf_medicale_label: str | None = Field(default=None, max_length=100)
+</code></pre>
+
+<h3 id="relations_1">Relations</h3>
+<ul>
+<li>
+<p><code>patient</code>: Patient (many-to-one)</p>
+</li>
+<li>
+<p><code>ej</code>: EntiteJuridique (many-to-one)</p>
+</li>
+<li>
+<p><code>venues</code>: List[Venue] (one-to-many)</p>
+</li>
+<li>
+<p><code>identifiants</code>: List[DossierIdentifier] (one-to-many)</p>
+</li>
+</ul>
+<h3 id="typedossier">TypeDossier</h3>
+<pre class="codehilite"><code class="language-python">class TypeDossier(str, Enum):
+    HOSPITALISE = &quot;HOSPITALISE&quot;
+    URGENCES = &quot;URGENCES&quot;
+    EXTERNE = &quot;EXTERNE&quot;
+    AMBULATOIRE = &quot;AMBULATOIRE&quot;
+</code></pre>
+
+<h2 id="venue-sejour">Venue (Séjour)</h2>
+<h3 id="definition_2">Définition</h3>
+<pre class="codehilite"><code class="language-python">class Venue(SQLModel, table=True):
+    __tablename__ = &quot;venue&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    code_venue: str = Field(max_length=50, unique=True, index=True)
+    dossier_id: int = Field(foreign_key=&quot;dossier.id&quot;, index=True)
+    date_heure_debut: datetime.datetime
+    date_heure_fin: datetime.datetime | None = None
+    uf_responsabilite: str | None = Field(default=None, max_length=20)
+</code></pre>
+
+<h3 id="relations_2">Relations</h3>
+<ul>
+<li>
+<p><code>dossier</code>: Dossier (many-to-one)</p>
+</li>
+<li>
+<p><code>mouvements</code>: List[Mouvement] (one-to-many)</p>
+</li>
+</ul>
+<h3 id="indices_1">Indices</h3>
+<ul>
+<li>
+<p>code_venue (unicité)</p>
+</li>
+<li>
+<p>dossier_id (requêtes filtrées)</p>
+</li>
+</ul>
+<h2 id="mouvement-mouvement">Mouvement (Mouvement)</h2>
+<h3 id="definition-complet-avec-zbe-compliance">Définition (Complet avec ZBE Compliance)</h3>
+<pre class="codehilite"><code class="language-python">class Mouvement(SQLModel, table=True):
+    __tablename__ = &quot;mouvement&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    numero_sequence: str = Field(max_length=50, index=True)
+    venue_id: int = Field(foreign_key=&quot;venue.id&quot;, index=True)
+    dossier_id: int = Field(foreign_key=&quot;dossier.id&quot;, index=True)
+    date_heure_mouvement: datetime.datetime = Field(index=True)
+    location: str | None = Field(default=None, max_length=200)
+    trigger_event: str = Field(max_length=3)
+    action: ActionZBE = Field(default=ActionZBE.INSERT)
+    is_historic: bool = Field(default=False)
+    original_trigger: str | None = Field(default=None, max_length=3)
+    nature: str | None = Field(default=None, max_length=2)
+    uf_medicale_code: str | None = Field(default=None, max_length=20, index=True)
+    uf_medicale_label: str | None = Field(default=None, max_length=100)
+    uf_soins_code: str | None = Field(default=None, max_length=20, index=True)
+    uf_soins_label: str | None = Field(default=None, max_length=100)
+    movement_ids: str | None = Field(default=None, sa_type=JSON)
+    cancelled_movement_seq: str | None = Field(default=None, max_length=50)
+    type_mouvement: str | None = Field(default=None, max_length=10)
+</code></pre>
+
+<h3 id="relations_3">Relations</h3>
+<ul>
+<li>
+<p><code>venue</code>: Venue (many-to-one)</p>
+</li>
+<li>
+<p><code>dossier</code>: Dossier (many-to-one)</p>
+</li>
+</ul>
+<h3 id="actionzbe">ActionZBE</h3>
+<pre class="codehilite"><code class="language-python">class ActionZBE(str, Enum):
+    INSERT = &quot;INSERT&quot;
+    UPDATE = &quot;UPDATE&quot;
+    CANCEL = &quot;CANCEL&quot;
+</code></pre>
+
+<h3 id="indices_2">Indices</h3>
+<ul>
+<li>
+<p>numero_sequence + venue_id (unicité composite)</p>
+</li>
+<li>
+<p>date_heure_mouvement (tri chronologique)</p>
+</li>
+<li>
+<p>uf_medicale_code, uf_soins_code (filtrage UF)</p>
+</li>
+<li>
+<p>(dossier_id, date_heure_mouvement) composite (requêtes dossier)</p>
+</li>
+</ul>
+<h3 id="champs-zbe-migration-014">Champs ZBE (Migration 014)</h3>
+<ul>
+<li>
+<p><code>action</code>: INSERT | UPDATE | CANCEL (ZBE-4)</p>
+</li>
+<li>
+<p><code>is_historic</code>: Mouvement historique Y/N (ZBE-5)</p>
+</li>
+<li>
+<p><code>original_trigger</code>: Trigger initial pour UPDATE/CANCEL (ZBE-6)</p>
+</li>
+<li>
+<p><code>nature</code>: S,H,M,L,D,SM (ZBE-9)</p>
+</li>
+<li>
+<p><code>uf_medicale_code/label</code>: UF médicale (ZBE-7)</p>
+</li>
+<li>
+<p><code>uf_soins_code/label</code>: UF soins optionnelle (ZBE-8)</p>
+</li>
+<li>
+<p><code>movement_ids</code>: JSON array identifiants mouvement (ZBE-1 répétitions)</p>
+</li>
+</ul>
+<h2 id="structure-hierarchique">Structure Hiérarchique</h2>
+<h3 id="entitejuridique-ej">EntiteJuridique (EJ)</h3>
+<pre class="codehilite"><code class="language-python">class EntiteJuridique(SQLModel, table=True):
+    __tablename__ = &quot;entite_juridique&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=200, index=True)
+    finess: str = Field(max_length=9, unique=True, index=True)
+    ght_id: int | None = Field(default=None, foreign_key=&quot;ght.id&quot;)
+</code></pre>
+
+<h3 id="ght-groupement-hospitalier-de-territoire">GHT (Groupement Hospitalier de Territoire)</h3>
+<pre class="codehilite"><code class="language-python">class GHT(SQLModel, table=True):
+    __tablename__ = &quot;ght&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=200, unique=True, index=True)
+    code: str = Field(max_length=20, unique=True, index=True)
+</code></pre>
+
+<h3 id="pole">Pole</h3>
+<pre class="codehilite"><code class="language-python">class Pole(SQLModel, table=True):
+    __tablename__ = &quot;pole&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=200)
+    identifiant: str = Field(max_length=20, unique=True, index=True)
+    ej_id: int = Field(foreign_key=&quot;entite_juridique.id&quot;)
+</code></pre>
+
+<h3 id="service">Service</h3>
+<pre class="codehilite"><code class="language-python">class Service(SQLModel, table=True):
+    __tablename__ = &quot;service&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=200)
+    identifiant: str = Field(max_length=20, unique=True, index=True)
+    pole_id: int = Field(foreign_key=&quot;pole.id&quot;)
+</code></pre>
+
+<h3 id="unitefonctionnelle-uf">UniteFonctionnelle (UF)</h3>
+<pre class="codehilite"><code class="language-python">class UniteFonctionnelle(SQLModel, table=True):
+    __tablename__ = &quot;unite_fonctionnelle&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=200)
+    code: str = Field(max_length=20, unique=True, index=True)
+    service_id: int = Field(foreign_key=&quot;service.id&quot;)
+    is_virtual: bool = Field(default=False)
+</code></pre>
+
+<h3 id="unitehebergement-uh">UniteHebergement (UH)</h3>
+<p>```python class UniteHebergement(SQLModel, table=True):</p>
+<pre class="codehilite"><code>__tablename__ = &quot;unite_hebergement&quot;
+id: int | None = Field(default=None, primary_key=True)
+nom: str = Field(max_length=200)
+identifiant: str = Field(max_length=20, unique=True, index=True)
+uf_id: int = Field(foreign_key=&quot;unite_fonctionnelle.id&quot;)
+is_virtual: bool = Field(default=False)
+</code></pre>
+
+<pre class="codehilite"><code>### Chambre
+
+```python
+
+class Chambre(SQLModel, table=True):
+    __tablename__ = &quot;chambre&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=100)
+    identifiant: str = Field(max_length=20, unique=True, index=True)
+    uh_id: int = Field(foreign_key=&quot;unite_hebergement.id&quot;)
+</code></pre>
+
+<h3 id="lit">Lit</h3>
+<pre class="codehilite"><code class="language-python">class Lit(SQLModel, table=True):
+    __tablename__ = &quot;lit&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=100)
+    identifiant: str = Field(max_length=20, unique=True, index=True)
+    chambre_id: int = Field(foreign_key=&quot;chambre.id&quot;)
+    statut: StatutLit = Field(default=StatutLit.disponible)
+
+    model_config = {&quot;use_enum_values&quot;: True}
+
+class StatutLit(str, Enum):
+    disponible = &quot;disponible&quot;
+    occupe = &quot;occupe&quot;
+    hors_service = &quot;hors_service&quot;
+</code></pre>
+
+<h2 id="identifiants">Identifiants</h2>
+<h3 id="patientidentifier">PatientIdentifier</h3>
+<pre class="codehilite"><code class="language-python">class PatientIdentifier(SQLModel, table=True):
+    __tablename__ = &quot;patient_identifier&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    patient_id: int = Field(foreign_key=&quot;patient.id&quot;, index=True)
+    namespace_id: str = Field(max_length=20, index=True)
+    value: str = Field(max_length=100, index=True)
+    is_primary: bool = Field(default=False)
+</code></pre>
+
+<h3 id="dossieridentifier">DossierIdentifier</h3>
+<pre class="codehilite"><code class="language-python">class DossierIdentifier(SQLModel, table=True):
+    __tablename__ = &quot;dossier_identifier&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    dossier_id: int = Field(foreign_key=&quot;dossier.id&quot;, index=True)
+    namespace_id: str = Field(max_length=20, index=True)
+    value: str = Field(max_length=100, index=True)
+    is_primary: bool = Field(default=False)
+</code></pre>
+
+<h3 id="namespace">Namespace</h3>
+<pre class="codehilite"><code class="language-python">class Namespace(SQLModel, table=True):
+    __tablename__ = &quot;namespace&quot;
+    id: str = Field(max_length=20, primary_key=True)
+    nom: str = Field(max_length=100)
+    description: str | None = None
+    ej_id: int | None = Field(default=None, foreign_key=&quot;entite_juridique.id&quot;)
+</code></pre>
+
+<p>Namespaces standards:</p>
+<ul>
+<li>
+<p><strong>IPP</strong>: Identifiant Permanent Patient</p>
+</li>
+<li>
+<p><strong>NDA</strong>: Numéro de Dossier Administratif</p>
+</li>
+<li>
+<p><strong>NIP</strong>: Numéro Inscription Patient</p>
+</li>
+</ul>
+<h2 id="endpoints-transport">Endpoints &amp; Transport</h2>
+<h3 id="endpoint">Endpoint</h3>
+<pre class="codehilite"><code class="language-python">class Endpoint(SQLModel, table=True):
+    __tablename__ = &quot;endpoint&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    nom: str = Field(max_length=200)
+    type: EndpointType
+    direction: Direction
+    host: str | None = Field(default=None, max_length=200)
+    port: int | None = None
+    path_inbox: str | None = None
+    path_outbox: str | None = None
+    file_pattern: str | None = Field(default=None, max_length=50)
+    ej_emetteur_id: int | None = Field(default=None, foreign_key=&quot;entite_juridique.id&quot;)
+    is_active: bool = Field(default=True)
+
+class EndpointType(str, Enum):
+    MLLP = &quot;MLLP&quot;
+    FILE = &quot;FILE&quot;
+
+class Direction(str, Enum):
+    inbound = &quot;inbound&quot;
+    outbound = &quot;outbound&quot;
+</code></pre>
+
+<h3 id="messagelog">MessageLog</h3>
+<pre class="codehilite"><code class="language-python">class MessageLog(SQLModel, table=True):
+    __tablename__ = &quot;message_log&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    message_control_id: str = Field(max_length=100, unique=True, index=True)
+    trigger_event: str = Field(max_length=3, index=True)
+    direction: Direction = Field(index=True)
+    contenu: str
+    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.now, index=True)
+    statut: StatutMessage = Field(default=StatutMessage.en_cours, index=True)
+    erreur: str | None = None
+    endpoint_id: int | None = Field(default=None, foreign_key=&quot;endpoint.id&quot;)
+
+class StatutMessage(str, Enum):
+    en_cours = &quot;en_cours&quot;
+    succes = &quot;succes&quot;
+    erreur = &quot;erreur&quot;
+</code></pre>
+
+<h3 id="indices-messagelog">Indices MessageLog</h3>
+<ul>
+<li>
+<p>message_control_id (unicité)</p>
+</li>
+<li>
+<p>trigger_event + direction + statut (requêtes filtrées)</p>
+</li>
+<li>
+<p>timestamp (tri chronologique)</p>
+</li>
+</ul>
+<h2 id="vocabulaires">Vocabulaires</h2>
+<h3 id="vocabulary">Vocabulary</h3>
+<pre class="codehilite"><code class="language-python">class Vocabulary(SQLModel, table=True):
+    __tablename__ = &quot;vocabulary&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    code: str = Field(max_length=20, unique=True, index=True)
+    libelle: str = Field(max_length=200)
+    type: VocabularyType = Field(index=True)
+
+class VocabularyType(str, Enum):
+    nature_venue = &quot;nature_venue&quot;
+    type_mouvement = &quot;type_mouvement&quot;
+    mode_sortie = &quot;mode_sortie&quot;
+    provenance = &quot;provenance&quot;
+    destination = &quot;destination&quot;
+</code></pre>
+
+<p>Vocabulaires standards (chargés par <code>vocabulary_init.py</code>):</p>
+<ul>
+<li>
+<p><strong>nature_venue</strong>: S (Somatique), H (Hospitalisation complète), M (Maternité), etc.</p>
+</li>
+<li>
+<p><strong>type_mouvement</strong>: ENTREE, TRANSFERT, SORTIE</p>
+</li>
+<li>
+<p><strong>mode_sortie</strong>: NORMAL, DECES, MUTATION, FUITE, TRANSFERT_AUTRE_EJ</p>
+</li>
+<li>
+<p><strong>provenance</strong>: DOMICILE, AUTRE_EJ, URGENCES, AUTRE_SERVICE</p>
+</li>
+<li>
+<p><strong>destination</strong>: DOMICILE, AUTRE_EJ, DECES, AUTRE_SERVICE</p>
+</li>
+</ul>
+<h2 id="contextes-ght-ej">Contextes GHT &amp; EJ</h2>
+<h3 id="ghtcontext">GHTContext</h3>
+<pre class="codehilite"><code class="language-python">class GHTContext(SQLModel, table=True):
+    __tablename__ = &quot;ght_context&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    session_id: str = Field(max_length=100, index=True)
+    ght_id: int = Field(foreign_key=&quot;ght.id&quot;)
+    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.now)
+</code></pre>
+
+<h3 id="ejcontext">EJContext</h3>
+<pre class="codehilite"><code class="language-python">class EJContext(SQLModel, table=True):
+    __tablename__ = &quot;ej_context&quot;
+    id: int | None = Field(default=None, primary_key=True)
+    session_id: str = Field(max_length=100, index=True)
+    ej_id: int = Field(foreign_key=&quot;entite_juridique.id&quot;)
+    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.now)
+</code></pre>
+
+<p>Sessions web associent GHT/EJ via <code>session_id</code>, permettant filtrage contextuel.</p>
+<h2 id="conventions">Conventions</h2>
+<h3 id="naming">Naming</h3>
+<ul>
+<li>
+<p>Tables: snake_case (patient, mouvement, entite_juridique)</p>
+</li>
+<li>
+<p>Champs: snake_case (nom, date_heure_mouvement, uf_medicale_code)</p>
+</li>
+<li>
+<p>Enums: PascalCase avec valeurs SCREAMING_SNAKE_CASE ou lowercase selon usage</p>
+</li>
+</ul>
+<h3 id="contraintes">Contraintes</h3>
+<ul>
+<li>
+<p>Clés étrangères toujours indexées (_id suffix)</p>
+</li>
+<li>
+<p>Champs de recherche indexés (nom, prenom, finess, codes)</p>
+</li>
+<li>
+<p>Unicité composite où nécessaire (numero_sequence + venue_id)</p>
+</li>
+</ul>
+<h3 id="validation-pydantic">Validation Pydantic</h3>
+<ul>
+<li>
+<p>max_length spécifié pour tous les str</p>
+</li>
+<li>
+<p>Field(default=None) pour optionnels</p>
+</li>
+<li>
+<p>Énumérations strictes (pas de valeurs libres)</p>
+</li>
+</ul>
+<h1 id="_1"></h1>
+<p>Référence modèles v0.2.0</p>
+</body>
+</html>

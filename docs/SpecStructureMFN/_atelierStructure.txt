@@ -1,0 +1,3312 @@
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Trial Implementation
+
+Pg 1
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Table des matières
+1) Objectifs de l’étude ............................................................................................................................................. 3
+2) Périmètre de l’étude ............................................................................................................................................ 4
+3) Cas d’usage ......................................................................................................................................................... 6
+3.1)
+
+Gestion prévisionnelle de lits dans le cadre de MCO ..................................................................................... 6
+
+3.2)
+
+Besoins spécifiques pour la Psychiatrie .......................................................................................................... 6
+
+3.3)
+
+Gestion des Résumés d’Unités Médicales....................................................................................................... 7
+
+3.4)
+
+Délivrance de médicament .............................................................................................................................. 7
+
+4) Modèles de classes .............................................................................................................................................. 8
+5) Attributs ............................................................................................................................................................ 12
+6) Acteurs .............................................................................................................................................................. 15
+6.1)
+
+Producteur ..................................................................................................................................................... 15
+
+6.2)
+
+Consommateur............................................................................................................................................... 15
+
+7) Orientation technique ....................................................................................................................................... 16
+8) Solutions de distribution existantes................................................................................................................... 17
+8.1)
+
+Message HL7 ................................................................................................................................................. 17
+
+8.2)
+
+Web Service REST ........................................................................................................................................ 17
+
+8.3)
+
+HL7 FHIR...................................................................................................................................................... 17
+
+9) Description du message HL7 MFN_M05 ......................................................................................................... 18
+9.1)
+
+Structure Générale du message ..................................................................................................................... 18
+
+9.2)
+
+Description des segments .............................................................................................................................. 19
+
+10)
+
+Jeux de valeurs .............................................................................................................................................. 33
+
+10.1)
+
+Codification des attributs ........................................................................................................................... 33
+
+10.2)
+
+Nomenclature des valeurs des attributs codés ........................................................................................... 37
+
+10.3)
+
+Exemple de message .................................................................................................................................. 40
+
+10.4)
+
+Compléments à l’usage du message .......................................................................................................... 40
+
+11)
+
+Glossaire ........................................................................................................................................................ 41
+
+12)
+
+Bibliographie ................................................................................................................................................. 45
+
+Pg 2
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+1)
+
+Objectifs de l’étude
+
+Actuellement, les éléments constituant les structures hospitalières dans un système d’information opérationnel
+sont mal distribués et constituent un grain de sable quotidien dans les interfaces de communication entre
+applications. Lorsque les centres hospitaliers gèrent plusieurs entités géographiques, la propagation de ces
+informations devient stratégique et comme il n’existe pas en France de consensus sur un standard de distribution,
+nous trouvons sur le terrain, toute forme de propagation, comme des fichiers ayant un format propriétaire, textuel
+ou dépendant de tableur du marché. Notre objectif principal est donc d’harmoniser les échanges d’informations
+entre acteurs du système d’information hospitalier et clinique.
+En raison de la diversité des illustrations des éléments constituant les structures d’établissement, nous allons
+définir de façon précise et consensuelle les informations constitutives que sont l’unité fonctionnelle, l’unité
+médicale, le pôle, la section d’analyse, …
+Le descriptif d’établissement s’appuie sur plusieurs axes de base. Pour exemple, le document
+« guide_cah_BOS_2011-3 » définit 4 axes :
+Découpage juridique
+Découpage médical
+Découpage géographique
+Découpage analytique
+Nous avons comme volonté d’élaborer les relations entre éléments, partagés et non discutables, ventilées dans ces
+4 axes.
+L’objectif étant d’apporter une réponse pragmatique aux besoins des acteurs de soin du patient, les cas d’usage les
+plus prioritaires sont présentés.
+Enfin, notre mission se conclura par l’étude et la localisation des standards susceptibles de répondre aux cas
+d’usages identifiés.
+
+Pg 3
+
+ref:
+atelierStructureV1_03.docx
+
+Distribution de définition de
+structure d'établissement
+
+Version 1.03
+
+2)
+
+Périmètre de l’étude
+
+Nous avons ciblé nos besoins sur les éléments utiles pour la bonne gestion du parcours du patient dans
+l’établissement de santé, ainsi que les données nécessaires pour les applications consommatrices que sont la
+gestion administrative du patient, la gestion des soins, la facturation et le PMSI. En première intention, le lot 1
+de nos travaux consiste à gérer correctement les éléments nécessaires pour la bonne gestion de la
+localisation du patient, à savoir toutes les informations utiles pour le profil IHE PAM et d’avoir l’ensemble
+des éléments nécessaires pour la facturation et le PMSI. La gestion des hospitalisations à domicile et la
+gestion des lits (réservation, …) au quotidien ne font pas partie des objectifs du lot 1.
+
+Matériel
+dédié
+Plateau
+technique
+
+Chambre /
+lit
+
+Armoire
+pharmacie
+
+Emplacement
+
+...
+
+Patient
+Unité de
+soin
+PMSI
+
+Valorisation
+
+Facturation
+
+Médical
+
+...
+
+Distribution
+médicament
+
+Acte médical
+en plateau
+technique
+
+Schéma 1- Périmètres de l’étude
+
+Pg 4
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+La complexité de l’axe analytique nous incite à suspendre la réflexion sur le sujet. De plus, il ne constitue pas
+vraiment un axe mais plutôt une somme de propriétés des unités fonctionnelles qui se déduisent des données déjà
+présentes dans les systèmes d’information. Pour exemple, la section d’analyse est une propriété de l’UF.
+Pour les 3 autres axes, en raison des différentes visions dans la hiérarchisation des éléments que nous recensons
+sur le terrain, la réflexion s’articule autour de l’association des typologies des éléments par paire au travers
+de notion d’entité et de relation entre elles, proposition issue des orientations de modélisation d’HL7 V3 (entité
+/ rôle). Pour exemple : l’entité UF peut prendre comme rôle hébergement, médico technique.
+
+Pg 5
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+3)
+
+Cas d’usage
+
+3.1) Gestion prévisionnelle de lits dans le cadre de MCO
+3.1.1)
+MCO
+
+Patient programmé pour une hospitalisation dans le cadre
+
+Un patient vient en consultation externe. Le médecin prévoit une hospitalisation en fonction d'un plan de charge à
+une date précise, dans une UF médicale, une UF d'hébergement, avec un motif d'hospitalisation et un médecin
+responsable. L'application de réservation contrôle le taux d'occupation des lits de l'UF d'hébergement avant
+autorisation définitive et vérifie les dates d’ouverture et fermeture des emplacements de lit. Une venue en
+préadmission est créée avec un numéro définitif, associée à cette hospitalisation. Dans l'UF d'hébergement, une
+chambre/ lit virtuel lui est affectée pour la période donnée calculée. La période d'hospitalisation nommée Durée
+Prévisionnelle de Séjour, est déterminée à partir de la durée moyenne de séjour associée à l'UF et de l'état du
+patient (âge, urgence, etc.). Si le patient demande une chambre particulière, le système tente de lui trouver celle-ci
+si possible, à défaut, le met sur liste d’attente.
+Les programmations peuvent être modifiées, reportées ou annulées.
+La cellule centralisée de gestion des structures se réunit de façon régulière pour la gestion de l'organisation de
+l'axe géographique en concertation avec les différents investigateurs avant publication vers les multiples
+consommateurs. Les modifications sont lourdes de conséquence notamment dans la gestion des lits et doivent être
+consolidées avant publication.
+Lors de son admission réelle en hospitalisation, le bureau des entrées confirme la venue. Le patient se dirige vers
+l'UF de soin qui a été précisée lors de la consultation externe initiale. L'UF de soin le place dans la chambre/ lit
+qui a été préparée et qui lui est affectée, le lit virtuel devient un lit réel.
+Ambulatoire programmé:
+On raisonne en nombre de places, on calcule la Durée Prévisionnelle de Séjour en heures.
+
+3.1.2)
+
+Gestion des mouvements patients
+
+Le patient est admis dans une entité juridique et lors de son admission réelle en hospitalisation, le bureau des
+entrées confirme la venue. Lors de son passage au bureau des admissions, une chambre lui est affectée
+appartenant à une unité fonctionnelle d’hébergement. L’unité de soin étant informée de la venue du patient, lui
+prépare le lit en fonction des besoins médicaux et affecte le bon emplacement de lit au patient.
+Ce patient est pris en charge par un médecin appartenant à une responsabilité médicale. Afin de suivre le parcours
+de soin du patient, il est opportun d’être à jour des positions des chambres dans le bâtiment hospitalier.
+Son passage au bloc opératoire est prévu à une heure précise avec la présence de matériel adapté au type
+d’opération et présent dans le bon plateau technique. Le brancardier va chercher le patient directement dans sa
+chambre. A la sortie du bloc, le patient passe en salle de réanimation et une fois réveillé, est transporté vers sa
+chambre. Dans le cas où certaines complications apparaissent, le patient peut changer d’UF d’hébergement, voire
+d’UF médicale. Le patient obtient la sortie définitive par le responsable médical clôturant le séjour.
+
+3.2) Besoins spécifiques pour la Psychiatrie
+3.2.1)
+
+Notion de secteur
+
+Un « secteur » est essentiellement une zone géographique. En fonction du secteur d’où il vient, un patient est
+Pg 6
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+généralement hospitalisé dans une unité de soins différente. La plupart des applications déployées en psychiatrie
+ont besoin de la liste des secteurs, et/ou des liens UF <-> secteurs.
+
+3.2.2)
+
+Hospitalisation de jour et/ou de nuit
+
+En hospitalisation de jour, il n’y a (généralement) pas de lit. Il y a quand même un hébergement (repas, etc.) et la
+localisation du patient peut être très précise (ex : à l’atelier d’ergothérapie).
+En hospitalisation de jour ou de nuit, la localisation du patient dépend évidemment de l’heure. Certains logiciels
+ont besoin de l’information que tel code UF correspond à une unité d’hospitalisation de jour (ou de nuit).
+Certains patients peuvent faire l’objet à la fois d’une hospitalisation de jour et d’une hospitalisation de nuit. Il y a
+alors deux UF d’hébergement « simultanées ». Du fait des limitations fonctionnelles des logiciels de gestion
+administrative, et pour éviter d’enregistrer deux mouvements patient par jour, les secrétaires de secteur peuvent
+être amenées à créer une UF d’hébergement fictive, qui regroupe les deux UF.
+
+3.3) Gestion des Résumés d’Unités Médicales
+Les diagnostics et actes réalisés au cours de l’hospitalisation du patient sont ventilés dans les unités
+fonctionnelles où le patient passe. A chaque changement d’unité fonctionnelle hébergement ou médical (selon le
+paramétrage PMSI de l’établissement), l’application PMSI doit vérifier si cette unité est attachée à une unité
+médicale identique à la précédente et dans le cas contraire, constitue une nouvelle enveloppe de Résumé d’Unité
+Médicale. Afin de mettre ces éléments dans les bonnes unités médicales (pour une structure MCO), l’application
+PMSI doit disposer des unités médicales et des unités fonctionnelles à jour.
+
+3.4) Délivrance de médicament
+La pharmacie doit avoir une vue à jour des structures d’hébergement afin de délivrer les stocks locaux les plus
+proches des chambres de patient. Lors de la distribution des médicaments au patient, l’infirmière doit connaitre
+exactement l’emplacement de sa chambre.
+
+Pg 7
+
+ref:
+atelierStructureV1_03.docx
+
+Distribution de définition de
+structure d'établissement
+
+Version 1.03
+
+4)
+
+Modèles de classes
+
+La figure ci-dessous représente le modèle minimal de classe d’objets pour la gestion de structure d’établissement.
+
+Schéma 2 - Modèle minimal des classes objets
+Tous les éléments constitutifs d’un axe structurel héritent de la classe abstraite Entité.
+Note (1) : l’attribut typeLieu (objet Lieu) stocke un élément parmi la liste suivante :
+Bâtiment
+
+Etage
+
+Aile
+
+Couloir
+
+Chambre
+
+Box
+
+Plateau technique
+
+Point de collecte
+
+Point de livraison
+
+Salle d’attente
+
+Accueil
+
+Bureau des entrées
+
+Salle réveil
+
+…
+
+Note (2) : la chambre est une spécialisation du lieu.
+Note (3) : la structure interne représente un ensemble d’UF (service par exemple) et peut constituer un sous
+ensemble du pôle.
+
+Pg 8
+
+ref:
+atelierStructureV1_03.docx
+
+Distribution de définition de
+structure d'établissement
+
+Version 1.03
+
+Note (4) : l’attribut typeUF (objet UF) stocke un élément parmi la liste suivante :
+Hébergement
+
+Médical
+
+Afin de répondre à l’ensemble des typologies de structure présentes dans les établissements de santé, nous avons
+privilégié les relations entre classes 2 à 2. De plus, nous avons regroupé les couples par branche hiérarchique.
+Chaque branche illustre un objectif précis dans la définition de la structure, du fait de l’impossibilité de définir
+une hiérarchie complète et unique au sein du groupe de travail. Nous avons essayé d’être complet dans la liste des
+couples d’objet, pour autant, certaines structures hospitalières n’auront pas besoin d’utiliser tous ces couples par
+branche pour définir ces besoins.
+Liste des branches utiles :
+Etablissement
+
+Etablissement géographique
+
+Entité juridique
+
+1..n
+
+1..1
+
+Afin de bien comprendre la cardinalité des liens entre entités, le schéma ci-dessus se lit comme suit :
+-
+
+Un établissement géographique appartient à une seule entité juridique (sens de la flèche + cardinalité 1..1) ,
+une entité juridique est composé d’au moins un établissement géographique et peut avoir jusqu’à n
+établissements géographiques (1..n).
+
+Localisation (architecture)
+
+Lieu
+
+Lieu
+
+0..n
+
+0..1
+
+(Définition de la hiérarchie bâtiment, étage, … )
+
+Lieu
+
+Etablissement géographique
+
+0..n
+
+1..1
+
+0..n
+
+1..1
+
+Emplacement lit
+
+Lieu
+
+(Attachement de l’emplacement à la chambre)
+
+Pg 9
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Lieu
+
+Structure interne
+
+UF
+
+UF
+
+0..n
+
+0..n
+
+0..n
+
+0..n
+
+1..n
+
+0..1
+
+Lieu
+
+Etablissement géographique
+
+PMSI
+
+UM
+
+UF
+
+1..n
+
+0..1
+
+Responsabilité
+
+Entité juridique
+
+Pôle
+
+0..n
+
+1..1
+
+Etablissement géographique
+
+Pôle
+
+0..n
+
+0..n
+
+Entité juridique
+
+UF
+
+1..n
+
+1..1
+
+0..n
+
+1..1
+
+Entité juridique
+
+Structure interne
+
+Etablissement géographique
+
+Structure interne
+
+0..n
+
+0..n
+
+Pôle
+
+UF
+
+1..n
+
+0..1
+
+Pg 10
+
+ref:
+atelierStructureV1_03.docx
+
+Distribution de définition de
+structure d'établissement
+
+Version 1.03
+
+Structure interne
+
+UF
+
+Structure interne
+
+1..n
+
+0..n
+
+0..n
+
+0..n
+
+Pôle
+
+Structure interne
+
+Structure interne
+
+0..n
+
+0..n
+
+0..n
+
+0..n
+
+Mutualisation d’hébergement
+
+UF
+
+UF
+
+(Lien entre responsabilité médicale et hébergement)
+
+Spécificité de facturation
+
+UF
+
+UAC
+
+0..n
+
+0..n
+
+Pg 11
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+5)
+
+Attributs
+
+Ce chapitre décrit tous les attributs par classe d’objet.
+Annotations :
+[O] = attribut obligatoire
+[F] = attribut facultatif
+extends = hérite
+Entité (classe abstraite) :
+Identifiant unique global [O]
+Libellé du motif de l’ouverture [F]
+Libellé du motif de la fermeture [F]
+Libellé [O]
+Libellé court [F]
+Code [O]
+Description [F]
+Responsable [F]
+Identifiant unique [F]
+Nom usuel [O]
+Nom de naissance, famille [O]
+Prénoms [O]
+Code RPPS [F]
+Code ADELI [F]
+Code(s) spécialité(s) B2 [F]
+Téléphone [F]
+Date d’ouverture de la période opérationnelle (date à partir de laquelle l'activité réalisée (mouvements, actes...)
+peut être produite sur l'entité) [O]
+Date de fermeture (éventuellement provisoire, date au-delà de laquelle aucune activité ne peut être produite sur
+l'entité. Une entité peut être fermée puis réouverte ultérieurement) [F]
+Date d’activation (date à partir de laquelle une entité est disponible pour les applications du Système
+d’Information Hospitalier) [F]
+Date de fin d’activation (date au-delà de laquelle une entité n'est plus disponible pour les applications du
+Système d’Information Hospitalier) [F]
+Exemple :
+Pré-admission sur une UF créée le 01/09/2013 avec une date d'activation au 01/11/2013 et une date d'ouverture au
+02/01/2014
+=> Entre le 01/09/2013 et le 31/10/2013 : l'UF n'est visible que par le serveur de structure
+A partir du 01/11/2013, l'UF est disponible pour les applications : le service peut programmer des venues (préadmissions) sur cette UF à une date ultérieure au 02/01/2014. Par contre, l'UF ne pourra pas faire d'admission, ni
+saisir des actes avant le 02/01/2014.
+
+Pg 12
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Date d'activation
+
+Date fermeture
+
+Date d'ouverture
+
+Date fin activation
+
+Entité juridique extends Entité :
+Code FINESS [F]
+Code RMESS [F]
+Le code FINESS ou RMESS est obligatoire
+Adresse
+Adresse 1 [F]
+Adresse 2 [F]
+Adresse 3 [F]
+Code postal [O]
+Ville [O]
+Pays [F]
+Code INSEE commune [F]
+Code SIREN [F]
+Code NIC [F]
+Statut juridique (table SAE) [F]
+Autorisations (Nomenclature activité de soins, chirurgie, cardiologie,…) [0-N]
+
+Etablissement géographique extends Entité:
+Code FINESS [O]
+Code SIREN [F]
+Code NIC [F]
+Raison sociale [F]
+Adresse 1 [F]
+Adresse 2 [F]
+Adresse 3 [F]
+Code postal [O]
+Ville [O]
+Pays [F]
+Catégorie SAE [F]
+Code APE [F]
+Pôle extends Entité :
+Lettres budgétaires (Plan comptable M21)
+Liste de secteurs psy [F]
+
+Pg 13
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Structure interne extends Entité :
+Typologie [F] (service, centre responsabilité, département, fédération, unité mutualisée …)
+UM extends Entité :
+Date d’autorisation (réa par exemple) [O]
+Date de fin d’autorisation [F]
+Numéro d’autorisation [F]
+Type d’autorisation [O] = nomenclature (Source SAE)
+Nombre de lits dédiés [F]
+Type de lit dédié [F] (obligatoire si nb de lit >0) soin palliatif
+Mode d’hospitalisation [O] (mixte, complète, partiel)
+
+UF extends Entité :
+Lettre budgétaire [O]
+Discipline d’équipement [F]
+Type d’activité [F]
+Champ d’activité [O] (MCO, SSR, HAD, PSY, EHPAD, long séjour, maison de retraite, autre, …)
+UF extérieure à l’établissement (oui / non) [F]
+Nombre total de places d’hébergement théoriques [F]
+Indicateur(s) (hébergement, médicale, …) [F] [0-N]
+Demandeuse actes (oui/non) [F]
+Exécutante actes (oui/non) [F]
+Section d’analyse [F]
+Les UF de consultations externes ou Hospitalisation ou… peuvent être retrouvées suivant le couple (discipline
+d’équipement / type d’activité).
+UAC extends Entité
+Discipline de prestation [O] (nomenclature SAE)
+Tarif [O] (nomenclature SAE)
+Lieu extends Entité :
+Type de lieu (bâtiment, étage, aile, couloir, chambre, box, point de collecte, point de livraison, salle d’attente,
+salle réveil, …) [O]
+Code plan de masse (architecture) [F]
+Chambre extends Lieu :
+Type de chambre (pression négative, pression positive, carcéral, capitonné, …) [F]
+Emplacement lit extends Entité :
+Position dans la chambre (fenêtre, couloir, milieu) [O]
+Rq : la liste des emplacements doit être exhaustive, elle doit refléter le potentiel total d’hébergement de la
+structure.
+
+Pg 14
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+6)
+
+Acteurs
+
+6.1) Producteur
+6.1.1)
+
+Serveur de structure
+
+Afin de rendre homogène le recueil des axes de structure, il est nécessaire d’avoir un module central dédié ayant
+pour mission de :
+Gérer les axes structurels et la hiérarchie des éléments par branche et ceci en prenant en compte l’historisation
+des évolutions.
+Créer une version des éléments à chaque nouvelle ouverture et fermeture d’items.
+Distribuer vers les applications consommatrices toutes les modifications constatées.
+D’être à l’écoute permanente des requêtes au fil de l’eau des applications consommatrices.
+
+6.2) Consommateur
+6.2.1)
+
+Facturation
+
+La facturation a besoin de recenser toutes les données tarifantes au cours du séjour du patient en plus des actes
+comme des données d’hébergement, …
+
+6.2.2)
+
+PMSI
+
+Le PMSI a besoin d’avoir l’exhaustivité des UF et des UM (et leurs relations) de l’établissement accueillant le
+patient dans l’objectif de constituer en flux continu les RUMs.
+
+6.2.3)
+
+Unité de soin
+
+L’unité de soin doit avoir la visibilité (par UF, par service, par établissement) de l’occupation de ses lits (patients
+présents ou attendus) et gérer les indisponibilités provisoires des lits (fermetures hebdomadaires, fermetures pour
+travaux, lits bloqués…).
+Les UF d’hébergement et de responsabilité médicale doivent être mises à disposition des unités de soin pour la
+gestion des mouvements (admission, mutation, transfert, sortie).
+
+Pg 15
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+7)
+
+Orientation technique
+
+Afin de répondre aux besoins des applications présentes sur le marché, deux orientations sont à prendre en compte
+dans nos travaux :
+le mode message
+ce mode de distribution permet de transmettre l’information au fur et à mesure de l’évolution des axes de
+structure et ceci vers l’ensemble des acteurs référencés consommateurs d’une façon indifférenciée et
+uniforme.
+le mode interrogation
+Ceci permet à une application consommatrice de demander des informations à l’acteur garant des définitions
+des axes structurels au moment où elle le souhaite et dans un spectre très ciblé (pour exemple, liste des
+UF pour une unité médicale) ou très large comme la restitution à jour de l’axe géographique de
+l’établissement géographique x.
+
+Pg 16
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+8)
+
+Solutions de distribution existantes
+
+Certains éditeurs et utilisateurs proposent des solutions techniques sur le terrain que nous décrivons dans ce
+chapitre.
+
+8.1) Message HL7
+Le Master Files Notification for Location HL7 version 2.5 est utilisé par certains éditeurs pour transmettre
+actuellement la localisation des chambres + lits aux applications tierces présentes dans les hôpitaux. Le type de
+propagation de ce message est en mode push.
+Ci-joint le contenu du message M05 :
+
+Ce message emploie notamment le segment LCH qui a la capacité de transmettre des couples code – valeur,
+permettant de répondre génériquement et s’adapte à des besoins très spécifiques de définitions de structure
+hospitalière.
+De plus, le segment LRL permet d’associer 2 à 2 les éléments préalablement définis dans les segments LCH,
+comme par exemple, l’association chambre – lit.
+
+8.2) Web Service REST
+Certains utilisateurs comme par exemple l’APHM proposent un référentiel de structure consultable par web
+service. La consultation de ces informations par cet utilisateur est réalisée au travers de la technologie webService
+REST qui s’appuie sur le protocole HTTP. Cette technologie se déploie facilement à partir de serveur web comme
+Apache et est très simple à manipuler par tous les langages. Les données transportées peuvent être sous deux
+formes, xml et json. Ce type de déploiement a montré son efficacité et sa simplicité de mise en œuvre mais est
+trop propriétaire pour être propagé à la communauté hospitalière pour le moment.
+
+8.3) HL7 FHIR
+Actuellement, HL7 travaille sur la mise en œuvre de la technologie REST à l’échelle internationale sur le socle
+HL7 V3. Ce travail est connu sous le nom FHIR (Fast Healthcare Interoperability Resource). Le principe est de
+résoudre 80% des demandes terrain et en l’état actuel, FHIR ne recense pas totalement les besoins des hôpitaux
+français.
+
+Pg 17
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+9)
+
+Description du message HL7 MFN_M05
+
+Le standard FHIR est en cours d’élaboration par HL7 International. Il est encore trop tôt pour pouvoir l’utiliser.
+Le message HL7 MFN_M05 (Master File Notification for Location) a donc été retenu car il est déjà mis en place
+par plusieurs éditeurs. Il est à noter qu’HL7 a conçu à l’origine ce message pour transporter des éléments de
+structure spécifiques à la localisation du Patient mais il offre suffisamment de flexibilité pour transporter une
+structure hospitalière entière. Les paragraphes suivants détaillent cette extension.
+
+9.1) Structure Générale du message
+L’interface Structure s’appuie sur le chapitre 8 du standard HL7 v2.5. Ce chapitre définit la notion de « Master
+Files » pour gérer entre autres la structure hospitalière. La synchronisation des « Master Files » est assurée par le
+message « Master Files Notification ».
+
+MFN_M05
+La structure générale du message est définie dans le paragraphe 8.9 (Location Master Files) du chapitre 8 du
+standard HL7 v2.5. Le tableau ci-dessous décrit la structure du message MFN_M05 utilisé par l’évènement
+MFN^M05.
+MFN^M05^MFN_M05
+
+Master File Notification for Location
+
+Cardinalité
+
+Chapitre
+
+MSH
+MFI
+{
+MFE
+LOC
+[{LCH}]
+[{LRL}]
+}
+
+Message Header
+Master File Identification
+--- MASTER FILE ENTRY begin
+Master File Entry
+Patient Location Master
+Location Characteristics
+Location Relationship
+--- MASTER FILE ENTRY end
+
+[1..1]
+[1..1]
+[1..*]
+[1..1]
+[1..1]
+[1..n]
+[0..n]
+
+2
+8
+8
+8
+8
+8
+
+Pg 18
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+9.2) Description des segments
+Les paragraphes ci-dessous décrivent les champs des segments du message MFN_M05. Certains champs sont
+fortement typés et ont été précisément décrits dans le document « Contraintes sur les types de données HL7 v2.5
+applicables aux profils d’intégration du cadre technique IT Infrastructure dans le périmètre d’IHE France » publié
+par Interop’Santé.
+
+9.2.1)
+
+Segment MSH
+
+Le segment MSH (Message Header Segment) est l'en-tête du message HL7. La présente spécification est décrite
+dans le standard HL7 V2.5 (paragraphe 2.16.9 (MSH – Message Control Header) du chapitre 2).
+SEQ
+
+LEN
+
+DT
+
+Usage
+
+Card.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+
+1
+4
+227
+227
+227
+227
+26
+40
+15
+20
+3
+60
+15
+180
+2
+
+SI
+ST
+HD
+HD
+HD
+HD
+TS
+ST
+MSG
+ST
+PT
+VID
+NM
+ST
+ID
+
+R
+R
+R
+R
+R
+R
+R
+X
+R
+R
+R
+R
+X
+X
+X
+
+16
+
+2
+
+ID
+
+17
+18
+19
+
+3
+16
+250
+
+20
+21
+
+TBL
+#
+
+ITEM#
+
+Element name
+
+[1..1]
+[1..1]
+[1..1]
+[1..1]
+[1..1]
+[1..1]
+[1..1]
+[0..0]
+[1..1]
+[1..1]
+[1..1]
+[1..1]
+[0..0]
+[0..0]
+[0..0]
+
+00001
+00002
+00003
+00004
+00005
+00006
+00007
+00008
+00009
+00010
+00011
+00012
+00013
+00014
+00015
+
+X
+
+[0..0]
+
+00016
+
+ID
+ID
+CE
+
+R
+R
+RE
+
+[1..1]
+[1..1]
+[1..1]
+
+20
+
+ID
+
+X
+
+[0..0]
+
+01317
+
+427
+
+EI
+
+RE
+
+[0..*]
+
+01598
+
+Field Separator
+Encoding Characters
+Sending Application
+Sending Facility
+Receiving Application
+Receiving Facility
+Date/Time of Message
+Security
+Message Type
+Message Control Id
+Processing Id
+Version ID
+Sequence Number
+Continuation Pointer
+Accept Acknowledgement
+Type
+Application Acknowledgement
+Type
+Country Code
+Character Set
+Principal Language of
+Message
+Alternate Character Set
+Handling Scheme
+Message Profile Identifier
+
+0399
+0211
+
+00017
+00692
+00693
+
+Fr
+
+*
+
+*
+
+MSH-1 : Séparateur de champ (ST)
+MSH-1: Field Separator
+Ce champ sert à définir le séparateur de champ. Il faut faire attention à bien traiter ce champ car une application
+peut décider d'utiliser un caractère de séparation autre que | (ASCII 124).
+
+MSH-2 : Caractères d'encodage du message (ST)
+MSH-2: Field Separator
+Ce champ sert à définir les autres caractères utilisés pour l'encodage du message HL7. Interop santé recommande
+les caractères suivants : ^~\& (ASCII 94, 126, 92 et 38).
+Le 1er caractère est le séparateur de sous-champ.
+
+Pg 19
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Le 2eme est le répétiteur.
+Le 3eme est le caractère d'échappement.
+Le 4eme est le séparateur de sous-sous-champ
+
+MSH-3 : Identifiant de l'application émettrice de la structure (HD)
+MSH-3: Sending Application
+Voir la description du type de donnée HD (Hierarchic Designator) dans le document « IHE France Constraints on
+common HL7 data types for ITI Profiles » [4] disponible sur le site internet d'Interop'Santé.
+Ce champ contient un identifiant de l’application émettrice, c'est-à-dire le système diffuseur de la structure. Dans
+la mesure du possible, il est souhaitable d'utiliser un OID. Par exemple :
+APP_EMETTEUR^1.2.250.1.38.3.1.104^ISO si l'OID est connu
+
+ou
+APP_EMETTEUR
+
+si l'OID n'est pas connu
+
+MSH-4 : Identifiant de l'organisation émettrice de la structure (HD)
+MSH-4: Sending Facility
+Ce champ contient l'identifiant de l’organisation qui envoie le message structure. Dans la mesure du possible, il
+est souhaitable d'utiliser le numéro FINESS (3eme sous champ = FINEJ).
+Par exemple :
+APP_EMETTEUR^950003806^FINEJ si le numéro FINESS est connu
+
+Ou
+APP_EMETTEUR si le numéro FINESS n'est pas connu
+
+MSH-5 : Identifiant de l'application réceptrice de la structure (HD)
+MSH-5: Receiving Application
+Ce champ contient l'identifiant de l’application qui reçoit la structure. Si cet identifiant n'est pas connu (comme
+par exemple dans le cas d'un échange en masse), le champ contiendra la valeur par défaut : UNKNOWN.
+
+MSH-6 : Identifiant de l'organisation réceptrice de la structure (HD)
+MSH-6: Receiving Facility
+Ce champ contient l'identifiant de l’organisation qui reçoit la structure. Si cet identifiant n'est pas connu (comme
+par exemple dans le cas d'un échange en masse), le champ contiendra la valeur par défaut : UNKNOWN.
+
+MSH-9 : Type du message (MSG)
+MSH-9: Message Type
+Ce champ contient le type de message HL7 : MFN^M05^MFM_M05
+
+Pg 20
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+MSH-10 : Identifiant unique du message (ST)
+MSH-10: Message Control Id
+Ce champ contient un identifiant unique de l'instance du message structure. Cet identifiant doit changer à chaque
+envoi ou chaque dépôt, sauf dans le cas d'une réémission. Il ne faut pas confondre l'identifiant du message avec la
+version de la structure. Cet identifiant est surtout utilisé lorsqu'un accusé de réception est géré.
+
+MSH-11 : Identifiant du traitement (PT)
+MSH-11: Processing Id
+Ce champ contient le mode de traitement du message : P (Production). D'autres valeurs peuvent être utilisées :
+Value
+
+Meaning
+
+D
+
+Debugging
+
+P
+
+Production
+
+T
+
+Training
+
+Comment
+
+MSH-12 : Version du standard HL7 (VID)
+MSH-12: Version Id
+Ce champ contient la version du standard HL7 utilisé pour encoder le message : 2.5.
+
+MSH-17 : Code du pays (ID)
+MSH-17: Country Code
+Ce champ contient le code du pays d'origine du message : FRA pour la France.
+
+MSH-18 : Jeu de caractères (ID)
+MSH-18: Character Set
+Ce champ contient le code du pays d'origine du message : 8859/15 pour la France (alphabet latin).
+
+Pg 21
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+9.2.2)
+
+Segment MFI
+
+Le segment MFI (Master File Identification Segment) identifie l'ensemble de la structure, décrite au paragraphe
+8.5.1 (MFI – master file identification segment) du chapitre 8 du standard HL7 V2.5.
+SEQ
+
+LEN
+
+DT
+
+Usage
+
+Card.
+
+TBL#
+
+ITEM#
+
+1
+2
+
+250
+180
+
+CE
+HD
+
+R
+R
+
+[1..1]
+[1..1]
+
+0175
+
+00658
+00659
+
+3
+4
+5
+6
+
+3
+26
+26
+2
+
+ID
+TS
+TS
+ID
+
+R
+O
+R
+R
+
+[1..1]
+[0..1]
+[1..1]
+[1..1]
+
+0178
+
+00660
+00661
+00662
+00663
+
+0179
+
+Element name
+Master File Identifier
+Master File Application
+Identifier
+File-Level Event Code
+Entered Date/Time
+Effective Date/Time
+Response Level Code
+
+MFI-1 : Identifiant de la nature de la structure (CE)
+MF1-1: Master File Identifier
+Ce champ sert à définir la nature de la structure. Cet identifiant est égal à : LOC (Location master file).
+
+MFI-2 : Numéro de version de la structure (HD)
+MF1-2: Master File Application Identifier
+Ce champ sert à transmettre le numéro de version de la structure donné par l'application qui en est responsable.
+Les règles suivantes doivent être appliquées, de façon à assurer l'unicité du numéro de version, quelques soient les
+applications et les pays :
+la valeur de ce champ doit être formatée en concaténant les 4 valeurs ci-dessous en utilisant le caractère "_"
+(ASCII 95) comme séparateur.
+1ère valeur : nom de l'application qui gère la structure. Cette valeur devra être égale au champ MSH-4-1 Sending
+Facility.
+2ème valeur : nature du catalogue = LOC
+3ème valeur : langue du catalogue. Cette valeur devra être égale au champ MSH-17 Principal Language of the
+Message = FRA
+4ème valeur (optionnelle): version/révision de la structure.
+Le numéro de version final aura la forme “APP_EMETTEUR _LOC_FRA” ou “APP_EMETTEUR
+_LOC_FRA_1.00”. Le receveur de la structure ne devrait pas tenter de parcourir la chaîne pour retrouver les
+valeurs individuelles.
+Cette valeur composite doit être mise dans le 1er sous champ.
+
+MFI-3 : Code traitement (ID)
+MF1-3: File-Level Code
+Ce champ contient le code REP qui indique le remplacement complet de la structure. Une nouvelle entrée ne
+doit pas utiliser une clé correspondant à une entrée retirée.
+
+Pg 22
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+MFI-5 : Date d'effet de la structure (TS)
+MF1-5: Effective Date/Time
+Ce champ contient la date d'effet du dictionnaire.
+
+MFI-6 : Niveau de réponse (ID)
+MF1-6: Response Level Code
+Ce champ contient le code AL (Always) si l’émetteur qui distribue le dictionnaire désire un accusé de réception
+de l'application consommatrice. Sinon, le code NE (Never. No application-level response needed) doit être utilisé.
+
+Pg 23
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+9.2.3)
+
+Segment MFE
+
+Le segment MFE (Master File Entry Segment) identifie chaque entité de la structure, c'est-à-dire sa clé unique. En
+raison de son unicité, celle-ci ne doit pas changer au cours de temps et ne doit pas porter un sens lié aux données,
+ou en tout cas ne doit pas être utilisée par l'application réceptrice pour en déduire des informations.
+Le message contient autant de segments MFE que d’entités que le système émetteur souhaite transmettre.
+La présente spécification contraint la spécification du standard HL7 V2.5 (paragraphe 8.5.2 (MFE – Master File
+Entry Segment) du chapitre 8.
+SEQ
+
+LEN
+
+DT
+
+Usage
+
+Card.
+
+TBL#
+
+ITEM#
+
+1
+2
+3
+4
+5
+
+3
+20
+26
+200
+3
+
+ID
+ST
+TS
+PL
+ID
+
+R
+C
+O
+R
+R
+
+[1..1]
+[0..1]
+[0..0]
+[1..1]
+[1..1]
+
+0180
+
+00664
+00665
+00662
+00667
+01319
+
+355
+
+Element name
+Record-Level Event Code
+MFN Control ID
+Effective Date/Time
+Primary Key Value – MFE
+Primary Key Value Type
+
+MFE-1 : Code traitement de l'entité (ID)
+MFE-1: Record-Level Event Code
+Ce champ contient la valeur : MAD (Add record to master file).
+
+MFE-2 : Identifiant de contrôle de l'entité (ST)
+MFE-2: MFN Control ID
+Ce champ contient un identifiant de la mise à jour de l'item. C'est en quelque sorte un identifiant de la transaction
+concernant cette entrée. Il est obligatoire si le niveau de réponse (MFI-6) est différent de NE (Never).
+
+Pg 24
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+MFE-4 : Clé primaire de l'entité (PL)
+MFE-4: Primary Key Value - MFE
+Ce champ est de type PL (Person Location) et identifie de façon unique l’entrée. Ce champ est typé PL car à
+l’origine le message MFN_M05 est dédié au transport des éléments de structure liés à la localisation du Patient.
+Le type est conservé pour rester compatible avec la standard HL7. Nous utiliserons uniquement les champs PL-6
+et PL-10 pour décrire la clé primaire de l’entité. En effet, nous avons constaté que les systèmes d’information ne
+gèrent pas un identifiant unique tout type d’entité confondu. Par exemple, nous pouvons avoir une clé primaire de
+valeur 1 pour une UF mais aussi pour un établissement géographique de la même structure, il faut donc travailler
+par couple de valeur (clé de l’entité, type d’entité). L’important est que le couple (PL-6, PL-10) soit unique sur
+l’ensemble du catalogue de la structure.
+Nous utilisons le champ PL-6 pour identifier le type d’entité décrit en prenant comme constante possible les
+valeurs suivantes :
+Valeur
+
+M
+ETBL_GRPQ
+
+Description
+
+Entité juridique
+
+Description (EN)
+
+Legal Entity
+
+Etablissement géographique
+
+D
+
+Service
+
+Department
+
+H
+
+Unité fonctionnelle responsabilité
+médicale
+
+Medical Care Unit (CU)
+
+N
+
+Unité fonctionnelle hébergement
+
+Nursing Unit/Housing Unit (HU)
+
+B
+
+Emplacement lit
+
+Bed
+
+PL
+
+Pôle
+
+STRCTR_INTR
+N
+
+Structure interne
+
+UNT_MDCL
+
+Unité médicale
+
+UAC
+
+UAC
+
+BTMNT
+
+Bâtiment
+
+L
+
+Lieu
+
+ETG
+
+Etage
+
+AL
+
+Aile
+
+CLR
+
+Couloir
+
+R
+
+Chambre
+
+BX
+
+Box
+
+PNT_CLCT
+
+Point de collecte
+
+PNT_LVRSN
+
+Point de livraison
+
+SL_ATNT
+
+Salle d’attente
+
+SL_RVL
+
+Salle réveil
+
+Other location
+
+Room
+
+Pg 25
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Le champ PL-10 a comme type de donnée EI (Entity Identifier). Le premier sous-champ doit contenir un
+identifiant unique de l’entrée. Ce champ contient la clé primaire de l'entité dans la base de données du système
+responsable de la structure. La clé primaire est définie dans un domaine de valeur identifié par les 2ème, 3ème et
+4ème sous champs. Le domaine de valeur étant généralement l’hôpital qui détient et gère la structure, ils seront
+égaux aux 3 sous-champs du champ MSH-4. Exemple :
+123456^APP_EMETTEUR^950003806^FINEJ
+
+Le système récepteur doit donc utiliser ce champ pour rechercher l'entité plutôt que le code ou le libellé de l'entité
+qui peut changer entre 2 mises à jour.
+L'Annexe N du cadre technique ITI rédigé par IHE France ("Contraintes sur les types de données HL7 v2.5
+applicables aux profils d’intégration du cadre technique IT Infrastructure dans le périmètre d’IHE France") [4]
+impose une longueur maximum de 16 caractères pour EI-1.
+
+MFE-5 : Type de la clé primaire de l'entité (ID)
+MFE-5: Primary Key Value Type
+Ce champ contient le type de la clé primaire, c'est-à-dire la valeur : PL.
+
+Pg 26
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+9.2.4)
+
+Segment LOC
+
+Le segment LOC (Location Identification Segment) est décrit au paragraphe 8.9.2.
+SEQ
+
+LEN
+
+DT
+
+OPT
+
+CARD
+
+ITEM #
+
+ELEMENT NAME
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+
+200
+48
+2
+250
+250
+250
+250
+3
+1
+
+PL
+ST
+IS
+XON
+XAD
+XTN
+CE
+IS
+IS
+
+R
+O
+R
+O
+O
+O
+O
+O
+O
+
+[1..1]
+[0..1]
+[1..1]
+[0..1]
+[0..1]
+[0..2]
+
+01307
+00944
+00945
+00947
+00948
+00949
+00951
+00953
+01583
+
+Primary Key Value - LOC
+Location Description
+Location Type - LOC
+Organization Name - LOC
+Location Address
+Location Phone
+License Number
+Location Equipment
+Location Service Code
+
+Ce segment est utilisé pour transporter les différentes entités de la structure. Il est associé aux segments LCH et
+LRL.
+Quelques exemples d’entités :
+Entité juridique
+Etablissements géographiques
+Services
+Structure interne
+Unités fonctionnelles de responsabilité médicale
+Unités fonctionnelles de responsabilité d’hébergement
+Lieu
+Emplacement lit
+…
+Le message contient autant de segments LOC qu’il existe de segments MFE.
+
+LOC-1 : Clé primaire (PL)
+LOC-1: Primary Key Value
+Ce champ contient la clé primaire de l’entité que l’on souhaite décrire. Le contenu de ce champ est égal au champ
+MFE-4.
+
+Pg 27
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+LOC-3 : Type de localisation (IS)
+LOC-3: Location Type
+Il contient le type d’entité transporté. Sa valeur est identique au sous-champ PL-6 (Person Location Type) du
+champ LOC-1.
+
+LOC-4 : Nom de l’entité (XON)
+LOC-4: Organization Name
+Il contient le nom de l’entité.
+
+LOC-5 : Adresse (XAD)
+LOC-5: Location Address
+Il contient l’adresse postale de l’entité.
+
+LOC-6 : Téléphones (XTN)
+LOC-6: Location phone
+Il contient le numéro de téléphone et éventuellement du fax de l’entité.
+
+Pg 28
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+9.2.5)
+
+Segment LCH
+
+Le segment LCH est construit suivant les spécifications décrites au paragraphe 8.9.3 (LCH – Location
+Characteristic Segment) du chapitre 8 du standard HL7 V2.5. Il sert à transporter des attributs supplémentaires
+non définis dans le segment LOC.
+SEQ
+
+LEN
+
+1
+2
+3
+4
+5
+
+DT
+
+OPT
+
+CARD
+
+ITEM #
+
+ELEMENT NAME
+
+PL
+ID
+EI
+CWE
+CWE
+
+R
+O
+O
+R
+R
+
+[1..1]
+
+01305
+00763
+00764
+01295
+01294
+
+Primary Key Value – LCH
+Segment Action Code
+Segment Unique Key
+Location Characteristic ID
+Location Characteristic Value – LCH
+
+[1..1]
+[1..1]
+
+LCH-1 : Clé primaire (PL)
+LCH-1: Primary Key Value
+Ce champ est égal au champ MFE-4. La liaison entre l’attribut et son entité de rattachement est réalisée via ce
+champ.
+
+LCH-2 : Code action (ID)
+LCH-2: Segment Action Code
+Le champ est vide car le traitement du catalogue est en mode annule et remplace.
+
+LCH-3 : Clé unique (EI)
+LCH-3: Segment Unique Key
+Le champ est vide car le traitement du catalogue est en mode annule et remplace.
+
+LCH-4 : Constante de l’attribut (CWE)
+LCH-4: Location Characteristic ID
+Il contient un identifiant unique du type d’attribut (CODE, LABEL …). Le code est à positionner dans le premier
+sous champ (identifier) de CWE.
+La nomenclature des attributs référencés par Interop’Santé est décrite dans le chapitre 10.1.
+
+Pg 29
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+LCH-5 : Valeur de l’attribut (CWE)
+LCH-5: Location Characteristic Value
+Il contient la donnée de l’attribut. Dans le cas d’une donnée de type date, le format est yyyyMMddHHmmss.
+Pour une valeur décimale, le point et la virgule sont acceptés. Pour les valeurs numériques, les zéros non
+significatifs ne sont pas écrits.
+La donnée est cadrée à gauche quel que soit son type (date, numérique, alphanumérique, …) et est toujours
+transmise dans le deuxième sous champ (text) de CWE.
+
+Pg 30
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+9.2.6)
+
+Segment LRL
+
+Le segment LRL est construit suivant les spécifications décrites au paragraphe 8.9.3 (LRL – Location
+Relationship Segment) du chapitre 8 du standard HL7 V2.5. Il sert à transporter les liens entre entités. Il contient
+la clé primaire source à lier, la clé primaire de l’entité associée et le type de relation entre les deux entités. Par
+exemple, nous sommes sur la définition d’un établissement géographique et nous souhaitons le lier à une entité
+juridique.
+SEQ
+
+LEN
+
+1
+2
+3
+4
+5
+6
+
+DT
+
+OPT
+
+CARD
+
+ITEM #
+
+ELEMENT NAME
+
+PL
+ID
+EI
+CWE
+XON
+PL
+
+R
+O
+O
+R
+C
+C
+
+[1..1]
+
+00943
+00763
+00764
+01277
+01301
+01292
+
+Primary Key Value - LRL
+Segment Action Code
+Segment Unique Key
+Location Relationship ID
+Organizational Location Relationship Value
+Patient Location Relationship Value
+
+[1..1]
+[1..1]
+
+LRL-1 : Clé primaire (PL)
+LRL-1: Primary Key Value
+Ce champ est égal au champ MFE-4. Il contient l’identifiant de l’entité source.
+
+LRL-2 : Code action (ID)
+LRL-2: Segment Action Code
+Le champ est vide car le traitement du catalogue est en mode annule et remplace.
+
+LRL-3 : Clé unique (EI)
+LRL-3: Segment Unique Key
+Le champ est vide.
+
+Pg 31
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+LRL-4 : Définition de la relation entre les deux entités (CWE)
+LRL-4: Location Relationship ID
+Il définit la typologie de la relation transmise.
+Valeur
+
+Description
+
+LCLSTN
+
+Relation de localisation
+
+RSPNSBLT
+
+Relation de responsabilité
+
+ETBLSMNT
+
+Relation établissement
+
+PMS
+MTLSTN_HBRG
+MNT
+FCTRTN
+
+Description (EN)
+
+Relation PMSI
+Relation de mutualisation d’hébergement
+Relation de spécificité de facturation
+
+LRL-5 : Définition de la relation (XON)
+LRL-5: Organizational Location Relationship Value
+Ce champ est vide.
+
+LRL-6 : Clé primaire de l’entité associée (PL)
+LRL-6: Patient Location Relationship Value
+Il contient la clé primaire de l’entité associée et le type d’entité décrite. Le mode d’utilisation du type de donnée
+PL est le même que celui décrit pour le champ MFE-4.
+
+Pg 32
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+10) Jeux de valeurs
+10.1)
+
+Codification des attributs
+
+Les constantes définissant les codes attribut sont écrites en majuscule, en ne prenant en compte que les consonnes
+sauf la 1ere voyelle de chaque mot, chaque mot est séparé par le caractère _. Toute lettre contiguë identique est
+éliminée. Exemple : libellé a comme constante LBL.
+
+10.1.1)
+
+Entité (classe abstraite) :
+Libellé
+
+Code
+
+Type de donnée
+
+Identifiant unique global [O]
+
+ID_GLBL
+
+Alphanumérique
+
+Libellé du motif de l’ouverture [F]
+
+LBL_MTF_OVRTR
+
+Alphanumérique
+
+Libellé du motif de la fermeture [F]
+
+LBL_MTF_FRMTR
+
+Alphanumérique
+
+Libellé [O]
+
+LBL
+
+Alphanumérique
+
+Libellé court [F]
+
+LBL_CRT
+
+Alphanumérique
+
+Code [O]
+
+CD
+
+Alphanumérique
+
+Description [F]
+
+DSCRPTN
+
+Alphanumérique
+
+Identifiant unique global du responsable [F]
+
+ID_GLBL_RSPNSBL
+
+Alphanumérique
+
+Nom usuel du responsable [F]
+
+NM_USL_ RSPNSBL
+
+Alphanumérique
+
+Nom de naissance du responsable [F]
+
+NM_NSNC_RSPNSBL
+
+Alphanumérique
+
+Prénom du responsable [F]
+
+PRNM_ RSPNSBL
+
+Alphanumérique
+
+Code RPPS du responsable [F]
+
+RPPS_ RSPNSBL
+
+Numérique
+
+Code ADELI du responsable [F]
+
+ADL_ RSPNSBL
+
+Numérique
+
+Code spécialité B2 du responsable [F]
+
+CD_SPCLT_ RSPNSBL
+
+Numérique
+
+Téléphone du responsable [F]
+
+TLPHN_ RSPNSBL
+
+Téléphone
+
+Date d’ouverture [O]
+
+DT_OVRTR
+
+Date
+
+Date de fermeture [F]
+
+DT_FRMTR
+
+Date
+
+Date d’activation [F]
+
+DT_ACTVTN
+
+Date
+
+Date de fin d’activation [F]
+
+DT_FN_ ACTVTN
+
+Date
+
+Pg 33
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+10.1.2)
+
+Entité juridique extends Entité :
+Libellé
+
+Code
+
+Type de donnée
+
+Code FINESS [F]
+
+FNS
+
+Numérique
+
+Code RMESS [F]
+
+RMS
+
+Alphanumérique
+
+Adresse 1 [F]
+
+ADRS_1
+
+Alphanumérique
+
+Adresse 2 [F]
+
+ADRS_2
+
+Alphanumérique
+
+Adresse 3 [F]
+
+ADRS_3
+
+Alphanumérique
+
+Code postal [O]
+
+CD_PSTL
+
+Numérique
+
+Ville [O]
+
+VL
+
+Alphanumérique
+
+Pays [F]
+
+PS
+
+Alphanumérique
+
+Code INSEE commune [F]
+
+INS
+
+Numérique
+
+Code SIREN [F]
+
+SRN
+
+Numérique
+
+Code NIC [F]
+
+NC
+
+Numérique
+
+Statut juridique (table SAE) [F]
+
+ST_JRDQ
+
+Code
+
+Autorisations (Nomenclature activité de soins, chirurgie,
+cardiologie,… ) Constante en annexe table 1 [0-N]
+
+ATRSTN
+
+Code
+
+10.1.3)
+
+Etablissement géographique extends Entité:
+Libellé
+
+Code
+
+Type de donnée
+
+Code FINESS [F]
+
+FNS
+
+Numérique
+
+Code SIREN [F]
+
+SRN
+
+Numérique
+
+Code NIC [F]
+
+NC
+
+Numérique
+
+Raison sociale [F]
+
+RSN_SCL
+
+Alphanumérique
+
+Adresse 1 [F]
+
+ADRS_1
+
+Alphanumérique
+
+Adresse 2 [F]
+
+ADRS_2
+
+Alphanumérique
+
+Adresse 3 [F]
+
+ADRS_3
+
+Alphanumérique
+
+Code postal [O]
+
+CD_PSTL
+
+Numérique
+
+Ville [O]
+
+VL
+
+Alphanumérique
+
+Pays [F]
+
+PS
+
+Alphanumérique
+
+Catégorie SAE [F]
+
+CTGR_S
+
+Code
+
+Code APE [F]
+
+CD_AP
+
+Numérique
+
+Pg 34
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+10.1.4)
+
+Pôle extends Entité :
+Libellé
+
+Code
+
+Type de donnée
+
+Lettres budgétaires (Nomenclature SAE)
+
+LTR_BDGTR
+
+Code
+
+Liste de secteurs psy [F]
+
+SCTR_PS
+
+Code
+
+10.1.5)
+
+Structure interne extends Entité :
+Libellé
+
+Typologie [F] (service, centre responsabilité, département,
+fédération, unité mutualisée …) Constante en annexe table 2
+
+10.1.6)
+
+Code
+
+TPLG
+
+Type de donnée
+
+Code
+
+UM extends Entité :
+Libellé
+
+Code
+
+Type de donnée
+
+Date d’autorisation (réa par exemple) [F]
+
+DT_ATRSTN
+
+Date
+
+Date de fin d’autorisation [F]
+
+DT_ATRSTN_FN
+
+Date
+
+Numéro d’autorisation [F]
+
+NMR_ATRSTN
+
+Numérique
+
+Type d’autorisation [F] = nomenclature, constante en annexe
+table 1
+Nombre de lits dédiés [F]
+
+TP_ATRSTN
+
+Code
+
+NB_LT
+
+Numérique
+
+Mode d’hospitalisation [F] (mixte, complète, partiel) Constante
+en annexe table 3
+
+MD_HSPTLSTN
+
+Code
+
+10.1.7)
+
+UF extends Entité :
+Libellé
+
+Code
+
+Type de donnée
+
+Lettre budgétaire [O]
+
+LTR_BDGTR
+
+Code
+
+Discipline d’équipement [F]
+
+DSCPLN_EQPMNT
+
+Numérique
+
+Type d’activité [F]
+
+TP_ACTVT
+
+Code
+
+Champ d’activité [O] (MCO, SSR,HAD, PSY, EHPAD, long
+séjour, maison de retraite, autre, …) Constante en annexe table
+4
+UF extérieure à l’établissement (oui / non) [F] Constante en
+annexe table 5
+Nombre total de places d’hébergement théoriques [F]
+
+CHMP_ACTVT
+
+Code
+
+UF_EXTR
+
+Code
+
+NBR_PLC
+
+Numérique
+
+Indicateur(s) (hébergement, médicale, …) [F] [0-N] Constante
+en annexe table 6
+
+INDCTR
+
+Code
+
+Pg 35
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Demandeuse actes (oui/non) [F] Constante en annexe table 5
+
+DMD_ACT
+
+Code
+
+Exécutante actes (oui/non) [F] Constante en annexe table 5
+
+EXCTNT_ACT
+
+Code
+
+Section d’analyse [F]
+
+SA
+
+Code
+
+10.1.8)
+
+UAC extends Entité :
+Libellé
+
+Code
+
+Type de donnée
+
+Discipline de prestation [O] (nomenclature SAE)
+
+DSCPLN_PRSTN
+
+Code
+
+Tarif [O] (nomenclature SAE)
+
+TRF
+
+Code
+
+10.1.9)
+
+Lieu extends Entité :
+Libellé
+
+Code plan de masse (architecture) [F]
+
+Code
+
+CD_PLN_MS
+
+Type de donnée
+
+Alphanumérique
+
+10.1.10) Chambre extends Lieu :
+Libellé
+
+Type de chambre (pression négative, pression positive, carcéral,
+capitonné, …) [F] Constante en annexe table 7
+
+Code
+
+TP_CHMBR
+
+Type de donnée
+
+Code
+
+10.1.11) Emplacement lit extends Entité :
+Libellé
+
+Position dans la chambre (fenêtre, couloir, milieu) [O] Constante
+en annexe table 8
+
+Code
+
+PSTN
+
+Type de donnée
+
+Code
+
+Pg 36
+
+ref:
+atelierStructureV1_03.docx
+
+Distribution de définition de
+structure d'établissement
+
+Version 1.03
+
+10.2)
+
+Nomenclature des valeurs des attributs codés
+
+10.2.1)
+
+Annexe table 1 = Autorisations :
+
+Ces éléments sont issus de la nomenclature SAE.
+Libellé
+
+Code
+
+Médecine
+
+MDCN
+
+Chirurgie
+
+CHRG
+
+Gynécologie
+
+GNCLG
+
+Psychiatrie
+
+PSCHTR
+
+Soins de longue durée
+
+SN_LNG_DR
+
+Traitement des grands brûlés
+
+TRT_BRL
+
+Chirurgie cardiaque
+
+CHRG_CRDQ
+
+Activités interventionnelles sous imagerie médicale en
+cardiologie
+
+ACTVT_IMG_CRDLG
+
+Neurochirurgie
+
+NR_CHRG
+
+Activités interventionnelles sous imagerie médicale en
+neuroradiologie
+
+ACTVT_IMG_NR
+
+Médecine d’urgence
+
+MDCN_URGNC
+
+Réanimation
+
+RNMTN
+
+Traitement de l’insuffisance rénale chronique par épuration
+extrarénale
+
+TRT_INSFSNC_RNL_CHRNQ
+
+AMP DPN
+
+AMP_DPN
+
+Traitement du cancer
+
+TRT_CNCR
+
+Examen des caractéristiques génétiques d’une personne
+
+EXMN_GNTQ
+
+Soins de suite et de réadaptation non spécialisés
+
+SSR_N_SPCLS
+
+Soins de suite et de réadaptation spécialisés – Affections de
+l’appareil locomoteur
+
+SSR_LCMTR
+
+Soins de suite et de réadaptation spécialisés – Affections du
+système nerveux
+
+SSR_NRV
+
+Soins de suite et de réadaptation spécialisés – Affections
+cardio-vasculaires
+
+SSR_CRD
+
+Soins de suite et de réadaptation spécialisés – Affections
+respiratoires
+
+SSR_RSPRTR
+
+Soins de suite et de réadaptation spécialisés – Affections des
+systèmes digestifs
+
+SSR_DGSTF
+
+Soins de suite et de réadaptation spécialisés – Affections
+onco-hématologiques
+
+SSR_HMTLGQ
+
+Pg 37
+
+ref:
+atelierStructureV1_03.docx
+
+Distribution de définition de
+structure d'établissement
+
+Version 1.03
+
+10.2.2)
+
+Soins de suite et de réadaptation spécialisés – Affections des
+brûlés
+
+SSR_BRL
+
+Soins de suite et de réadaptation spécialisés – Affections
+liées aux conduites addictives
+
+SSR_ADCTV
+
+Soins de suite et de réadaptation spécialisés – Affections de
+la personne âgée polypathologique
+
+SSR_PLPTHLGQ
+
+Greffe de rein
+
+GRF_RN
+
+Greffe de pancréas
+
+GRF_PNCRS
+
+Greffe rein-pancréas
+
+GRF_RN_PNCRS
+
+Greffe de foie
+
+GRF_F
+
+Greffe intestin
+
+GRF_INTSTN
+
+Greffe cœur
+
+GRF_CR
+
+Greffe poumon
+
+GRF_PMN
+
+Greffe cœur poumon
+
+GRF_CR_PMN
+
+Greffe de cellule hématopoïétique allogreffe
+
+GRF_HMTPTQ_ALGRF
+
+Annexe table 2 = Typologie :
+Libellé
+
+Service
+
+SRVC
+RSPNSBLT
+FDRTN
+UNT_MTL
+
+Centre de responsabilité
+Fédération
+Unité mutualisée
+
+10.2.3)
+
+Code
+
+Annexe table 3 = Mode d’hospitalisation :
+Libellé
+
+Mixte
+Complète
+Partiel
+
+Code
+
+MXT
+CMPLT
+PRTL
+
+Pg 38
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+10.2.4)
+
+Annexe table 4 = Champ d’activité :
+Libellé
+
+MCO
+SSR
+HAD
+EHPAD
+Long séjour
+Maison de retraite
+Autre
+
+10.2.5)
+
+Code
+
+MC
+SSR
+HD
+EHPD
+LG_SJR
+MSN_RTRT
+ATR
+
+Annexe table 5 = booléen :
+Libellé
+
+10.2.6)
+
+Code
+
+Oui
+
+O
+
+Non
+
+N
+
+Annexe table 6 = Indicateur :
+Libellé
+
+Hébergement
+Médical
+
+10.2.7)
+
+Code
+
+HBRGMNT
+MDCL
+
+Annexe table 7 = Type de chambre :
+Libellé
+
+Pression négative
+Pression positive
+Carcéral
+Capitonné
+
+10.2.8)
+
+Code
+
+PRSN_NGTV
+PRSN_PSTV
+CRCRL
+CPTN
+
+Annexe table 8 = Position dans la chambre :
+Libellé
+
+Fenêtre
+Couloir
+Milieu
+
+Code
+
+FNTR
+CLR
+ML
+
+Pg 39
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+10.3)
+
+Exemple de message
+
+10.3.1)
+eux
+
+Emission d’une chambre, d’un emplacement lit et lien entre
+
+MSH|^~\&|APPLI_EMETTEUR|APP_EMETTEUR^950003806^FINEJ|UNKNOWN|UNKNOWN|||MFN^M05^MFM_M05|1|P|2.5|||||FRA|8859/15
+MFI|LOC|APP_EMETTEUR_LOC_FRA_1.00|REP||20140821142100|AL
+MFE|MAD|||^^^^^R^^^^1&APP_EMETTEUR&950003806&FINEJ|PL
+LOC|^^^^^R^^^^1&APP_EMETTEUR&950003806&FINEJ||R|Chambre
+LCH|^^^^^R^^^^1&APP_EMETTEUR&950003806&FINEJ|||ID_GLBL^Identifiant unique global^L|CH1
+LCH|^^^^^R^^^^1&APP_EMETTEUR&950003806&FINEJ|||CD^Code^L|CHBR1
+LCH|^^^^^R^^^^1&APP_EMETTEUR&950003806&FINEJ|||LBL^Libelle^L|Chambre 1
+LCH|^^^^^R^^^^1&APP_EMETTEUR&950003806&FINEJ|||DT_OVRTR^Date d'ouverture^L|20140101070000
+MFE|MAD|||^^^^^B^^^^1&APP_EMETTEUR&950003806&FINEJ|PL
+LOC|^^^^^B^^^^1&APP_EMETTEUR&950003806&FINEJ||B|Emplacement lit
+LCH|^^^^^B^^^^1&APP_EMETTEUR&950003806&FINEJ|||ID_GLBL^Identifiant unique global^L|L1
+LCH|^^^^^B^^^^1&APP_EMETTEUR&950003806&FINEJ|||CD^Code^L|LIT1
+LCH|^^^^^B^^^^1&APP_EMETTEUR&950003806&FINEJ|||LBL^Libelle^L|Emplacement lit 1
+LCH|^^^^^B^^^^1&APP_EMETTEUR&950003806&FINEJ|||DT_OVRTR^Date d'ouverture^L|20140101140000
+LRL|^^^^^B^^^^1&APP_EMETTEUR&950003806&FINEJ|||LCLSTN^Relation de localisation^L||^^^^^R^^^^1&APP_EMETTEUR&950003806&FINEJ
+
+10.4)
+
+Compléments à l’usage du message
+
+10.4.1) Emission d’une UF ayant la responsabilité médicale et
+hébergement
+Ce cas oblige à transmettre deux segments MFE (+ LOC + LCH + LRL), un pour chaque responsabilité.
+
+Pg 40
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+11) Glossaire
+
+A
+Axe :
+Un axe décrit une organisation interne du centre hospitalier qui répond à des contraintes règlementaires,
+d’organisation, métiers…
+Les axes sont des arborescences (entités liées entre elles par des relations hiérarchiques) ayant toutes pour racine
+l’entité juridique.
+Des relations transversales peuvent exister entre les entités des différents axes.
+Axe de responsabilité :
+Description de l’organisation interne de l’entité juridique en pôles d’activité.
+Axe de localisation :
+Description de l’entité juridique en lieux géographiques, chaque niveau correspondant à un type de lieu
+spécifique.
+Axe PMSI :
+Description de l’organisation interne de l’entité juridique en unités médicales.
+
+C
+Centre de responsabilité (CR) : (source: guide méthodologique de comptabilité analytique)
+Découpage budgétaire de l’établissement correspondant à un niveau où les objectifs d’activité et de moyens sont
+négociés entre le responsable et la direction de l’établissement.
+Regroupement de structures internes permettant d’effectuer le suivi budgétaire du Centre hospitalier. Ce
+découpage est libre. Avec la Nouvelle Gouvernance et la mise en place des pôles, cette entité est amenée à
+disparaître. Toutefois, beaucoup de sites conservent cette notion qui peut parfois être équivalente à la notion de
+service, de département ou de secteur.
+
+D
+Département : (source article L6146-1 en vigueur du 22/06/2000 au 03/05/2005)
+Les départements sont constitués d'au moins trois unités fonctionnelles.
+
+E
+Entité juridique (EJ) : (source FINESS):
+Une entité juridique correspond à la notion de personne morale. Une entité juridique détient des droits
+(autorisations, agréments, conventions,...) lui permettant d'exercer ses activités dans des établissements. La
+personne morale représente juridiquement l’ensemble des établissements qui lui sont rattachés.
+A chaque entité juridique est associé un statut juridique.
+
+Pg 41
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+A chaque entité juridique est associé un n° FINESS attribué par FINESS (qui sera remplacé dans l’avenir par le
+code RMESS) et un n° SIREN attribué par l’INSEE.
+Les n° FINESS des établissements français sont disponibles sur le site finess.sante.gouv.fr.
+Entité géographique ou établissement (EG) : (source FINESS)
+Une entité géographique correspond à une implémentation géographique. Elle est obligatoirement liée à une
+entité juridique et est caractérisée par une catégorie d’établissement. Un établissement possède un n° FINESS qui
+lui est propre (qui sera remplacé dans l’avenir par le code RMESS).
+
+F
+Fichier commun de structures (FICOM) : (source guides méthodologiques MCO et SSR 2013)
+Le fichier commun de structure (FICOM) est une description unique, commune et actualisée du découpage
+analytique de l’établissement de santé (entité juridique). Tous les secteurs doivent être inclus dans ce découpage
+qui couvre toutes les activités de l’établissement (médicales, soignantes, médico-techniques, administratives et
+logistiques)
+Ce découpage doit permettre de répondre aux contraintes de la règlementation concernant les remontées de
+données aux tutelles (Retraitement Comptable (RTC), Statistique Annuelle des Etablissements de santé (SAE),
+etc.) et aux besoins de production de l’établissement (prise en charge des patients, production du PMSI,
+facturation, etc…).
+
+L
+Lieu : (source HL7)
+A bounded physical place or site, including any contained structures.
+C’est une entité qui représente un espace délimité, identifiable par une adresse ou une localisation et caractérisé
+par un type de lieu. Un lieu appartient à l’axe de localisation. Un niveau dans l’axe correspond à un type de lieu.
+Lit : Les lits sont exclus de la notion de structure, contrairement à l’emplacement de lit.
+
+P
+PAC ou UAC (Unité d’activité) :
+Le PAC ou l’UAC est le niveau élémentaire de recueil des activités en vue de la facturation. Il est lié à une
+discipline de prestation et à un tarif (lié à la discipline de prestation). Le PAC ne sert qu’à la facturation du séjour.
+Il permet d’associer des tarifs de soins différents pour la prise en charge d’un patient.
+Pôle (source article L6146-1 en vigueur depuis le 19/05/2011)
+Pour l’accomplissement de leurs missions et conformément au principe de liberté d’organisation, les
+établissements publics de santé définissent librement leur organisation interne médicale, médico-technique,
+administrative et logistique. Ce principe est adossé aux pôles d’activité qui ont été créés par l’ordonnance de
+2005. Pour les établissements publics, les pôles sont désormais le seul mode d’organisation prévue par la loi.
+Pg 42
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Cette organisation doit être conforme au projet médical de l’établissement. Les pôles sont sous la responsabilité
+d’un chef de pôle. Les pôles peuvent comporter des structures internes.
+
+R
+Référentiel structures : (GMSIH : Bien gérer ses référentiels de données: un enjeu pour mieux piloter son
+établissement)
+On désignera sous ce terme à la fois le contenant (modèle) et le contenu (données) des structures défini par le site.
+Il décrit le découpage organisationnel de l’entité juridique sur le plan structurel (axes et entités) et sur le plan
+fonctionnel (équipes médicales).
+Le référentiel structures est aussi appelé le Fichier COMmun de structures (FICOM).
+
+S
+Section d’analyse (SA) : (guides méthodologiques MCO et SSR 2013)
+La section d’analyse correspond à un compartiment d’affectation de charges analytiques qui suppose une
+homogénéité de l’activité. Elle permet le rapprochement entre des ressources clairement identifiées et une activité
+précisément mesurée par une unité physique, nommée unité d’oeuvre (UO).
+Les SA sont regroupées selon 7 fonctions qui structurent l’arbre analytique.
+De toute évidence, pour répondre au premier principe d’unicité du FICOM dans un établissement, le découpage
+en SA doit être cohérent avec le découpage en UM et en UF pour rapprocher sans ambiguïtés activités, moyens et
+recettes. Cela signifie qu’il faut être capable de superposer une SA avec une UM/UF ou un regroupement
+d’UM/UF du même champ.
+Secteur psychiatrique : (source psyCom)
+Tous les départements français sont divisés en zones géographiques appelées « secteurs ». Pour chaque secteur
+(ici « secteur » = service public de psychiatrie.), une même équipe assure tous les soins psychiatriques, la
+prévention et la réinsertion sociale, pour la population habitant dans cette zone.
+Service ou secteur :
+Le service ou secteur est un regroupement d’UF décidée en CME et sous la responsabilité d’un chef de service.
+Les services sont constitués d'unités fonctionnelles de même discipline.
+Avec la loi HPST, la notion de service disparaît au profit de la notion de structure interne. Toutefois, la notion de
+service reste un élément essentiel de l’organisation.
+Structure interne : (source « les clés de la loi HPST »)
+Les structures internes, si elles existent, sont définies dans le projet de pôle, sur la base du contrat de pôle. Les
+pôles d'activité peuvent comprendre des structures internes de prise en charge du malade par les équipes
+médicales, soignantes ou médico-techniques, ainsi que les structures médico-techniques qui leur sont associées.
+L'appellation des structures internes des pôles est laissée à la libre appréciation des établissements : il peut s'agir
+Pg 43
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+de services, d'unités, de centres, d'instituts, de départements ou de toute autre appellation.
+Ces structures sont fédérées par le chef de pôle ainsi que par le projet de pôle qui définit les missions et
+responsabilités confiées aux structures internes.
+A noter que les notions d’UF, de service et de département disparaissent, dans la loi HPST, au profit de la structure interne.
+
+U
+UAC (Unité d’activité) :
+Identique au PAC
+Unité médicale (UM) : (guides méthodologiques MCO et SSR 2013)
+On désigne par unité médicale un ensemble individualisé de moyens matériels et humains assurant des soins à des
+patients, repéré par un code spécifique dans une nomenclature déterminée par l'établissement de santé.
+Le découpage en UM est en effet pour l’essentiel du ressort de l’établissement de santé. Toutefois, pour des
+raisons de cohérence entre les modalités médicales et comptables de découpage, une UM ne peut appartenir qu’à
+une section d’analyse comptable (SA), elle ne peut pas être partagée entre deux SA.
+Le recueil de l’information médicale est réalisé au niveau des UM, dans le cadre du PMSI.
+Unité fonctionnelle (UF) :
+Structure élémentaire de prise en charge des malades par une équipe soignante ou médico-technique, identifiées
+par leur fonction et leur organisation (Art. L6146-1) ainsi que les structures médico-techniques qui leur sont
+associées. C’est la plus petite entité de l’hôpital à partir de laquelle la collecte d’informations peut être réalisée
+(guide méthodologique de comptabilité analytique).
+
+Pg 44
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+12) Bibliographie
+http://finess.sante.gouv.fr/
+Guide méthodologique MCO 2013 :
+http://www.fhpmco.fr/2013/04/26/guide-methodologique-pmsi-mco-2013-2/
+La loi HPST à l’hôpital, les clés pour comprendre :
+http://www.sante.gouv.fr/IMG/pdf/vademecum_loi_HPST.pdf
+article L6146 -1 :
+http://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006072665&idArticle=LEGIARTI0
+00024042712&dateTexte=20130704
+Services publics de psychiatrie et sectorisation :
+http://www.psycom.org/Soins-et-accompagnement/Organisation-des-soins-psychiatriques/Services-publics-depsychiatrie-et-sectorisation
+GMSIH : Bien gérer ses référentiels de données: un enjeu pour mieux piloter son établissement
+http://www.anap.fr/uploads/tx_sabasedocu/ReferentielSID_Synthese_globale_V1.0.pdf
+
+Pg 45
+
+Distribution de définition de
+structure d'établissement
+
+ref:
+atelierStructureV1_03.docx
+
+Version 1.03
+
+Contributeurs
+Brigitte COHARD
+
+bcohard@chu-grenoble.fr
+
+CHUG
+
+Jean Christophe CAUVIN
+
+jean-christophe.cauvin@medasys.com
+
+MEDASYS
+
+Nicolas CANU
+
+nicolas.canu@phast.fr
+
+PHAST
+
+Eric MARCHAND
+
+eric.marchand@mckesson.fr
+
+McKesson
+
+Yohann POIRON
+
+poiron@openxtrem.com
+
+OpenXtrem
+
+Laurent DUBOR
+
+dubor.l@mipih.fr
+
+MIPIH
+
+Frédéric LAURENT
+
+frederic.laurent@ap-hm.fr
+
+APHM
+
+Isabelle GIBAUD
+
+isabelle.gibaud@sib.fr
+
+SIB
+
+Sylvie CORREGE
+
+correge.s@mipih.fr
+
+MIPIH
+
+Claude CHAUDRON
+
+claude.chaudron@cpage.fr
+
+CPAGE
+
+Peggy RECOURA
+
+recoura.p@mipih.fr
+
+MIPIH
+
+Eric DUFOUR
+
+eric.dufour@selic.fr
+
+SELIC
+
+Version
+V0.01
+V0.02
+
+Modifications
+Version initiale
+Version modifiée
+
+Date
+16/05/2013
+26/06/2013
+
+V0.03
+V0.04
+
+28/06/2013
+11/09/2013
+
+V0.07
+
+Version modifiée suite à réunion téléphonique
+Ajout du glossaire + attributs. Modification du document suite à
+réunion du 11/09
+Consolidation des attributs. Ajout de la description détaillée du
+message MD5
+Consolidation des attributs. Ajout de la codification des
+attributs
+Consolidation des attributs. Révision du schéma conceptuel.
+
+V0.08
+
+Consolidation final du document
+
+22/05/2014
+
+V1.00
+V1.01
+
+Document publié en trial implementation
+Document publié en trial implementation, consolidation
+
+21/08/2014
+06/10/2014
+
+V1.02
+
+Document publié en trial implementation, consolidation
+
+30/10/2014
+
+V1.03
+
+Document publié en trial implementation, consolidation
+
+20/11/2014
+
+V0.05
+V0.06
+
+14/01/2014
+22/02/2014
+27/03/2014
+
+Rédacteur
+Eric DUFOUR
+Eric DUFOUR, Fréderic
+LAURENT, Brigitte COHARD
+Eric DUFOUR
+Eric DUFOUR
+Brigitte COHARD, Sylvie
+CORREGE, Eric DUFOUR
+Brigitte COHARD, Sylvie
+CORREGE, Eric DUFOUR
+Brigitte COHARD, Sylvie
+CORREGE, Eric DUFOUR
+Brigitte COHARD, Sylvie
+CORREGE, Isabelle GIBAUD,
+Jean Christophe CAUVIN,
+Lahouari FARSI, Eric
+DUFOUR
+Eric DUFOUR
+Sylvie CORREGE, Isabelle
+GIBAUD, Jean Christophe
+CAUVIN, Eric DUFOUR
+Jean Christophe CAUVIN,
+Eric DUFOUR
+Jean Christophe CAUVIN,
+Eric DUFOUR
+
+Pg 46
+
+

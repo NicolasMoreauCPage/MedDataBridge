@@ -1,0 +1,75 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 2.00</DIV>
+
+   <P class='sChapitre'>Pour &lt;rhss&gt; </P>
+
+   <UL>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de l'attribut poursuiteTherapeutique nécessaire pour indiquer la poursuite du même projet thérapeutique.</SPAN></FONT></P></LI>
+   </UL>
+
+
+   <P class='sChapitre'>Pour &lt;rhs&gt; </P>
+
+   <UL>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de l'acte CSARR (Catalogue spécifique des actes de rééducation et réadaptation) pour &lt;acteReeducation&gt; et ajout d'une balise &lt;CDARR&gt; afin de gérer correctement l'alternative Catalogue des activités de rééducation-réadaptation.</SPAN></FONT></P></LI>
+   </UL>
+
+   <P class='sChapitre'>Pour &lt;codeCim10&gt; </P>
+   <UL>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Révision du pattern afin de pouvoir avoir 2 chiffres après le +.</SPAN></FONT></P></LI>
+   </UL>
+
+   <P class='sChapitre'>Pour &lt;acteCCAM&gt; </P>
+   <UL>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de la balise &lt;codeActeExtensionPMSI&gt;,  extension ATIH pour la CCAM descriptive à usage PMSI (2 chiffres).</SPAN></FONT></P></LI>
+   </UL>
+   <P class='sChapitre'>Pour &lt;rum&gt; </P>
+
+   <UL>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Augmentation du nombre de diagnostics significatifs possible (jusqu'à 99).</SPAN></FONT></P></LI>
+ 
+    <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">L'attribut typeDosimetrie de la balise &lt;radiotherapie&gt; a deux valeurs supplémentaires :</SPAN></FONT></P>
+        <UL>
+             <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+             <FONT SIZE=3><SPAN STYLE="background: transparent">2 = dosimétrie tridimensionnelle avec histogramme dose-volume [HDV] sur les volumes cibles et les organes à risque,</SPAN></FONT></P></LI>
+         
+            <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+             <FONT SIZE=3><SPAN STYLE="background: transparent">3 = dosimétrie tridimensionnelle sans HDV sur les volumes cibles et les organes à risque.</SPAN></FONT></P></LI>
+        </UL>
+     </LI>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout des commentaires pour les valeurs de l'attribut typeMachine de la balise &lt;radiotherapie&gt;.</SPAN></FONT></P></LI>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Pour l'attribut complementMode de la balise &lt;entree&gt;, ajout de la valeur  R (en provenance d’une unité de réanimation) et suppression des valeurs 0 et 8.</SPAN></FONT></P></LI>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">ajout de la balise &lt;ivg&gt; et des éléments fils (Année de la dernière interruption, Nombre d'interruption, Nombre de naissance vivantes).</SPAN></FONT></P></LI>
+ 
+  </UL>
+
+   <P class='sChapitre'>Pour &lt;evenementPMSI&gt; </P>
+
+   <UL>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de la balise &lt;numeroFiness&gt;  pour stockage du numéro FINESS juridique pour les établissements publics et le numéro FINESS géographique pour les établissements privés.</SPAN></FONT></P></LI>
+   </UL>
+   
+  
+</BODY>
+</HTML>

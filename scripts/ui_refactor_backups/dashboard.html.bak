@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">LPP - Liste des Produits et Prestations</span>
+  </nav>
+
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Gestion des actes LPP</h1>
+    <p class="text-gray-600 mb-8">Interface de gestion des dispositifs médicaux et prestations remboursables.</p>
+
+    <!-- Statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-blue-50 rounded-lg p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-blue-600">Total actes</p>
+            <p class="text-2xl font-bold text-blue-900" id="total-acts">-</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-green-50 rounded-lg p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-green-600">Validés</p>
+            <p class="text-2xl font-bold text-green-900" id="validated-acts">-</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-yellow-50 rounded-lg p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-yellow-100 rounded-lg">
+            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-yellow-600">En attente</p>
+            <p class="text-2xl font-bold text-yellow-900" id="pending-acts">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions principales -->
+    <div class="bg-gray-50 rounded-lg p-6 mb-8">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Actions</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="/dossiers" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          Créer un acte LPP
+        </a>
+        <a href="/hprim" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Gestion HPRIM
+        </a>
+      </div>
+    </div>
+
+    <!-- Liste récente des actes -->
+    <div class="bg-white border border-gray-200 rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Actes récents</h2>
+      </div>
+      <div class="p-6">
+        <div id="recent-acts" class="space-y-4">
+          <div class="text-center text-gray-500 py-8">
+            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p>Chargement des actes LPP...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Chargement des statistiques (simulation pour l'instant)
+document.addEventListener('DOMContentLoaded', function() {
+    // Simulation des données - à remplacer par des appels API réels
+    document.getElementById('total-acts').textContent = '0';
+    document.getElementById('validated-acts').textContent = '0';
+    document.getElementById('pending-acts').textContent = '0';
+
+    document.getElementById('recent-acts').innerHTML = `
+        <div class="text-center text-gray-500 py-8">
+            <p>Aucun acte LPP trouvé.</p>
+            <p class="text-sm mt-2">Commencez par créer votre premier acte LPP.</p>
+        </div>
+    `;
+});
+</script>
+{% endblock %}

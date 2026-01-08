@@ -41,3 +41,7 @@ alembic==1.13.2
 
 # Security
 passlib>=1.7.4
+
+# XML validation
+xmlschema>=2.5.0
+lxml>=5.2.0

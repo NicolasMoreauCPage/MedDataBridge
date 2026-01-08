@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-alt text-white shadow-md">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-3xl font-bold text-heading">Changelog</h1>
+        <p class="text-muted mt-1">Historique des versions et évolutions de MedData Bridge</p>
+      </div>
+    </div>
+
+    <!-- Version actuelle -->
+    <div class="bg-gradient-to-r from-accent/5 to-accent-alt/5 border border-accent/20 rounded-lg p-4">
+      <div class="flex items-center gap-3">
+        <div class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white text-sm font-bold">
+          v{{ request.state.version|default('1.0.0-alpha.1') }}
+        </div>
+        <div>
+          <p class="font-medium text-heading">Version actuelle</p>
+          <p class="text-sm text-muted">Dernière version déployée</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu du changelog -->
+  <div class="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+    <div class="p-6">
+      <div class="markdown-content prose prose-slate max-w-none">
+        {{ changelog_html|safe }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer info -->
+  <div class="mt-8 text-center text-sm text-muted">
+    <p>Ce changelog suit le format <a href="https://keepachangelog.com/en/1.0.0/" class="text-accent hover:underline" target="_blank" rel="noopener">Keep a Changelog</a>
+    et respecte le <a href="https://semver.org/spec/v2.0.0.html" class="text-accent hover:underline" target="_blank" rel="noopener">Semantic Versioning</a>.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 2.4</DIV>
+
+
+   
+  
+<P class='sChapitre'>Pour &lt;divers&gt; </P>
+  <UL class='puce'>
+       <LI>Ajout du contenu vide (litDedie="")  pour l’attribut litDedie afin de pouvoir supprimer le contenu du champ.</LI>
+       <LI>Ajout du contenu vide pour l’attribut priseEnChargeRAAC afin de pouvoir supprimer le contenu du champ.</LI>
+       <LI>Ajout de l’attribut AdmissionDirecteNonProgrammee permettant de transmettre l’information concernant l’admission directe non programmée à partir du domicile du patient agé de plus de 75 ans, par la mise en place de parcours coordonnés entre la médecine de ville, les ESMS, les établissements de santé et le SAMU.</LI>
+       <LI>Ajout de l’attribut passageStructureUrgence acceptant les valeurs 5, U, V et contenu vide.</LI>
+       <LI>Pour l’accompagnement thérapeutique en milieu scolaire, ajout de l’attribut accompagnementMilieuScolaire acceptant les valeurs O, N et contenu vide.</LI>
+       <LI>Ajout du contenu vide pour l’attribut conversionHospitalisationComplete afin de pouvoir supprimer le contenu du champ.</LI>
+   </UL>
+
+
+<P class='sChapitre'>Pour &lt;gradationAmbulatoire&gt;  </P>
+<UL class='puce'>
+      
+       <LI>Ajout du contenu vide pour l’attribut surveillanceParticuliere afin de pouvoir supprimer le contenu du champ.</LI>
+       <LI>Ajout du contenu vide pour l’attribut rescritTarifaire afin de pouvoir supprimer le contenu du champ.</LI>
+       <LI>Ajout du contenu ‘vide’ pour l’attribut categorieNombreIntervention  afin de pouvoir supprimer le contenu du champ.</LI>
+       
+       
+   </UL>
+ 
+<P class='sChapitre'>Pour &lt;venue&gt;  </P> 
+   <UL class='puce'>
+      <LI>Ajout du contenu vide pour l’attribut projetTherapeutique afin de pouvoir supprimer le contenu du champ et le rendre facultatif.</LI>      
+   </UL>
+
+<P class='sChapitre'>Pour &lt;actePsy&gt;  </P>    
+   <UL class='puce'>
+       <LI>Ajout de l’attribut modaliteActePsy acceptant les valeurs A, V, P, M, C et contenu vide.</LI>
+       <LI>Ajout de l’attribut activiteExpertise  acceptant les valeurs O, N et contenu vide.</LI>
+       <LI>Ajout de l’attribut activiteLiberale  acceptant les valeurs O, N et contenu vide.</LI>
+       <LI>Pour le lieu de réalisation de l’acte psy, typage de la balise  &lt;lieu&gt; en Code12Libelle80.</LI>
+       <LI>Pour le type de lieu sur un acte psy, ajout de LNA, L12,L13, L14 pour l’attribut lieu de la balise &lt;lieu>.</LI>
+       <LI>Ajout de l’attribut codeModalite à la nouvelle balise &lt;tempsPartielPsy&gt; acceptant les valeurs 1,2,3,4,5 et contenu vide.</LI>
+       <LI>Ajout de l’attribut codePrestation à la nouvelle balise &lt;tempsPartielPsy&gt; acceptant les valeurs 0,3,4,5,6,7,8,9 et contenu vide.</LI>
+        <LI>Pour la gestion de la catégorie professionnelle d'un intervenant en psychiatrie selon la nomenclature de l'ATIH, ajout de l’attribut categorieProfessionnellePsyAtih à la balise &lt;intervenant&gt; acceptant les valeurs M, I, V,  P, A, R, E, S, X, Y et contenu vide.</LI>
+      
+   </UL>
+   
+   
+   
+
+   
+   
+</BODY>
+</HTML>

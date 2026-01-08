@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 1.04</DIV>
+
+
+<P class='sChapitre'>   Pour
+&lt;acteCCAM&gt; </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      balise &lt;factureRealisateur&gt; </SPAN></FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Cette
+         balise permet aux cabinets de radiologie (et autre) de transmettre
+         leur num&eacute;rotation et ainsi permettre aux cliniques  de
+         retourner les r&egrave;glements avec cette valeur, dans le cadre
+         d'un flux Hprim sant&eacute; par exemple.</SPAN></FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">&eacute;l&eacute;ments
+         associ&eacute;s : &lt;numero&gt; et &lt;date&gt;</SPAN></FONT></P>
+      </UL>
+
+
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      attribut forfaitSecuriteEnvironnementHospitalier</SPAN></FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Prestation
+         de &quot;s&eacute;curit&eacute; et environnement hospitalier&quot;.</SPAN></FONT></P>
+      </UL>
+
+   </UL>
+
+<P STYLE="margin-left: 1.27cm; margin-bottom: 0cm"><BR>
+</P>
+<P class='sChapitre'>   pour
+&lt;UCD&gt;</P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      balise &lt;naturePrestation&gt;  </SPAN></FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">balise
+         vide avec un attribut nomm&eacute; nature prenant les valeurs ph1,
+         ph4, ph7, ph8, phh, phs, phq, phu, phm, php, phi.</SPAN></FONT></P>
+         <P STYLE="margin-bottom: 0cm"></P>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      balise &lt;denomination&gt; </SPAN></FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Information
+         compl&eacute;mentaire &agrave; la codification.</SPAN></FONT></P>
+         <P STYLE="margin-bottom: 0cm"></P>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      balise &lt;codeCommercial&gt; </SPAN></FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">alternative
+         au code UCD pour notamment les m&eacute;dicaments &agrave;
+         autorisation temporaire d’utilisation.</SPAN></FONT></P>
+         <P STYLE="margin-bottom: 0cm"></P>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      balise &lt;siretFournisseur&gt;</SPAN></FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      &lt;noLot&gt;</SPAN></FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Num&eacute;ro
+         de lot du m&eacute;dicament.</SPAN></FONT></P>
+         <P STYLE="margin-bottom: 0cm"></P>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      attribut essaiTherapeutique</SPAN></FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">valeur
+         oui / non.</SPAN></FONT></P>
+      </UL>
+   </UL>
+
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P class='sChapitre'>   Pour
+&lt;LPP&gt;</P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">ajout
+      balise &lt;denomination&gt; </SPAN></FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Information
+         compl&eacute;mentaire &agrave; la codification.</SPAN></FONT></P>
+      </UL>
+   </UL>
+
+<BR/>
+<P class='sChapitre'>   Pour la définition de professionnel de santé</P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour le type
+      complexe typeProfessionnelSante, ajout balise &lt;noRPPS&gt;
+      alternative de &lt;numeroAdeli&gt;</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Num&eacute;ro au
+         R&eacute;pertoire Professionnelle des Praticiens de la Sant&eacute;.</FONT></P>
+      </UL>
+   </UL>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P class='sChapitre'>   Pour la nomenclature Hprim</SPAN></FONT></P>
+
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>lienParenteHprim:
+      renommage de mr (mari) en mri, afin d'&eacute;viter le doublon avec
+      m&egrave;re.</FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <BR/>
+<P class='sChapitre'>   Pour la TAA</SPAN></FONT></P>
+
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout valeurs pour
+      attribut attrIndicateurParcoursSoins</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>pourAvis</B>
+             1&egrave;re consultation du m&eacute;decin traitant pour avis
+         (B2 = T)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>soinsIteratifs</B>
+           soins it&eacute;ratifs en accord avec le m&eacute;decin traitant
+         (B2 = A)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>moins16ans</B>
+             le patient a moins de 16 ans au moment de la consultation </FONT>
+         </P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>medecinTravail</B>
+           le patient est envoy&eacute; par le m&eacute;decin du travail de
+         l'h&ocirc;pital</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>sansTraitant</B>
+             le patient n'a pas de m&eacute;decin traitant (B2 = S)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>aideMedicEtat</B>
+            aide m&eacute;dicale de l'&eacute;tat </FONT>
+         </P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>conventInternat</B>
+          Etranger pris en charge dans le cadre des conventions
+         internationales</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>etranger</B>
+             Etranger pris en charge </FONT>
+         </P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>migrant</B>
+             migrant de passage (cf L254-1)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>parcoursNonActif</B>
+         parcours de soin non actif (parcours avant la date de
+         d'application de la r&eacute;glementation)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>acteConsultALD</B>
+           acte et consultation pr&eacute;vue dans le cadre du protocole de
+         soins (ALD) (B2=A)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>permanenceSoins</B>
+          acte et consultation intervenant dans le cadre de la permanence
+         de soins (B2=A)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><B>medTraitRemplace</B>
+         le m&eacute;decin consulte le rempla&ccedil;ant du m&eacute;decin
+         traitant (B2=R)</FONT></P>
+      </UL>
+   </UL>
+
+
+
+</BODY>
+</HTML>

@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% set title = "Endpoints - MedData Bridge" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Endpoints</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="flex items-center space-x-4">
+        <div class="btn">
+          <div class="text-3xl">🔹</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Gestion des Endpoints</h1>
+          <p class="text-blue-100 mt-2">Configuration et surveillance des systèmes d'intégration</p>
+        </div>
+      </div>
+    </div>
+  </div>
+<style>
+        /* Hierarchical structure */
+        .ght-group {
+            margin-bottom: 30px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .ght-header {
+            background: #007bff;
+            color: white;
+            padding: 12px 20px;
+            font-weight: bold;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ght-code {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .ght-body {
+            padding: 15px;
+        }
+        
+        .ej-group {
+            margin-bottom: 20px;
+            border: 1px solid #28a745;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .ej-header {
+            background: #28a745;
+            color: white;
+            padding: 10px 15px;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ej-finess {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+        .ej-body {
+            padding: 10px;
+        }
+        
+        .no-ght-group {
+            margin-bottom: 30px;
+            border: 2px solid #6c757d;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .no-ght-header {
+            background: #6c757d;
+            color: white;
+            padding: 12px 20px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .no-ght-body {
+            padding: 15px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        tr.clickable {
+            cursor: pointer;
+        }
+        tr.clickable:hover {
+            background: #e9ecef;
+        }
+        
+        .status-on {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-off {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .runtime-running {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .runtime-stopped {
+            color: #6c757d;
+        }
+        
+        .empty-message {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+
+<div class="container mx-auto px-4 py-8">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold text-slate-800">{{ title }}</h1>
+            <div class="flex gap-3">
+                <a href="{{ new_url }}" class="btn btn-primary">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Nouveau système
+                </a>
+                <a href="/" class="btn btn-primary">Retour</a>
+            </div>
+        </div>
+        
+        {% if is_filtered %}
+        <div class="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6">
+            <strong>ℹ️ Mode filtré</strong> : Vous ne voyez que les endpoints du contexte actif.
+            <a href="/endpoints/admin" class="text-blue-600 hover:text-blue-800 underline ml-3">Voir tous les endpoints (mode administration)</a>
+        </div>
+        {% elif is_admin %}
+        <div class="bg-cyan-50 border border-cyan-300 rounded-lg p-4 mb-6">
+            <strong>🔧 Mode administration</strong> : Vous voyez tous les endpoints du système, sans filtrage.
+        </div>
+        {% endif %}
+        
+        {% if not hierarchy %}
+        <div class="btn">
+            <p class="text-slate-600 text-lg">Aucun système configuré. Créez votre premier système ci-dessus.</p>
+        </div>
+        {% endif %}
+        
+        {% for item in hierarchy %}
+            {% if item.type == "ght" %}
+            <div class="ght-group">
+                <div class="ght-header">
+                    <div>
+                        <strong>GHT:</strong> {{ item.ght.name }}
+                        {% if item.ght.code %}
+                        <span class="ght-code">{{ item.ght.code }}</span>
+                        {% endif %}
+                    </div>
+                    {% if item.ght.fhir_server_url %}
+                    <div style="font-size: 12px; font-weight: normal;">{{ item.ght.fhir_server_url }}</div>
+                    {% endif %}
+                </div>
+                <div class="ght-body">
+                    {% if not item.children %}
+                    <div class="empty-message">Aucun système dans ce GHT</div>
+                    {% else %}
+                        {% for child in item.children %}
+                            {% if child.type == "ej" %}
+                            <div class="ej-group">
+                                <div class="ej-header">
+                                    <div>
+                                        <strong>Établissement Juridique:</strong> {{ child.ej.name }}
+                                        {% if child.ej.short_name %}
+                                        ({{ child.ej.short_name }})
+                                        {% endif %}
+                                    </div>
+                                    <span class="ej-finess">FINESS: {{ child.ej.finess_ej }}</span>
+                                </div>
+                                <div class="ej-body">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Nom</th>
+                                                <th>Type</th>
+                                                <th>Rôle</th>
+                                                <th>Host</th>
+                                                <th>Port</th>
+                                                <th>FHIR URL</th>
+                                                <th>Actif</th>
+                                                <th>Runtime</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for endpoint in child.endpoints %}
+                                            <tr class="clickable" onclick="window.location.href='{{ endpoint.detail_url }}'">
+                                                {% for cell in endpoint.cells %}
+                                                    {% if loop.index == 8 %}
+                                                    <td class="{% if cell == 'ON' %}status-on{% else %}status-off{% endif %}">{{ cell }}</td>
+                                                    {% elif loop.index == 9 %}
+                                                    <td class="{% if cell == 'RUNNING' %}runtime-running{% else %}runtime-stopped{% endif %}">{{ cell }}</td>
+                                                    {% else %}
+                                                    <td>{{ cell }}</td>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% elif child.type == "endpoint" %}
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Rôle</th>
+                                        <th>Host</th>
+                                        <th>Port</th>
+                                        <th>FHIR URL</th>
+                                        <th>Actif</th>
+                                        <th>Runtime</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="clickable" onclick="window.location.href='{{ child.endpoint.detail_url }}'">
+                                        {% for cell in child.endpoint.cells %}
+                                            {% if loop.index == 8 %}
+                                            <td class="{% if cell == 'ON' %}status-on{% else %}status-off{% endif %}">{{ cell }}</td>
+                                            {% elif loop.index == 9 %}
+                                            <td class="{% if cell == 'RUNNING' %}runtime-running{% else %}runtime-stopped{% endif %}">{{ cell }}</td>
+                                            {% else %}
+                                            <td>{{ cell }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                </tbody>
+                            </table>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% elif item.type == "no_ght" %}
+            <div class="no-ght-group">
+                <div class="no-ght-header">
+                    Systèmes sans GHT
+                </div>
+                <div class="no-ght-body">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Rôle</th>
+                                <th>Host</th>
+                                <th>Port</th>
+                                <th>FHIR URL</th>
+                                <th>Actif</th>
+                                <th>Runtime</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for endpoint in item.endpoints %}
+                            <tr class="clickable" onclick="window.location.href='{{ endpoint.detail_url }}'">
+                                {% for cell in endpoint.cells %}
+                                    {% if loop.index == 8 %}
+                                    <td class="{% if cell == 'ON' %}status-on{% else %}status-off{% endif %}">{{ cell }}</td>
+                                    {% elif loop.index == 9 %}
+                                    <td class="{% if cell == 'RUNNING' %}runtime-running{% else %}runtime-stopped{% endif %}">{{ cell }}</td>
+                                    {% else %}
+                                    <td>{{ cell }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

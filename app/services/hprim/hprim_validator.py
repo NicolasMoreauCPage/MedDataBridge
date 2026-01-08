@@ -43,6 +43,18 @@ class HprimValidator:
         'acquittements_serveur_etats_patient': 'msgAcquittementsServeurEtatsPatient2_4.xsd',
     }
 
+    # Mapping des éléments racine vers les noms de schémas internes
+    ROOT_TO_SCHEMA = {
+        'evenementsServeurActes': 'evenements_serveur_actes',
+        'acquittementsServeurActes': 'acquittements_serveur_actes',
+        'evenementsFraisDivers': 'evenements_frais_divers',
+        'acquittementsFraisDivers': 'acquittements_frais_divers',
+        'evenementsPmsi': 'evenements_pmsi',
+        'acquittementsPmsi': 'acquittements_pmsi',
+        'evenementsServeurEtatsPatient': 'evenements_serveur_etats_patient',
+        'acquittementsServeurEtatsPatient': 'acquittements_serveur_etats_patient',
+    }
+
     # Patterns de validation
     PATTERNS = {
         'ccam': re.compile(r'^[A-Z]{4}\d{3}$'),
@@ -64,7 +76,13 @@ class HprimValidator:
     }
 
     def __init__(self, schemas_path: Optional[Path] = None):
-        self.schemas_path = schemas_path or Path(__file__).parent.parent.parent / 'static' / 'schemas' / 'hprim'
+        # Préférence: dossiers officiels HPRIM dans docs/HPRIM_XML
+        default_docs_path = Path(__file__).resolve().parents[3] / 'docs' / 'HPRIM_XML' / 'hprimXmlVs2_4' / 'schema'
+        default_static_path = Path(__file__).parent.parent.parent / 'static' / 'schemas' / 'hprim'
+        if schemas_path is not None:
+            self.schemas_path = schemas_path
+        else:
+            self.schemas_path = default_docs_path if default_docs_path.exists() else default_static_path
         self._schemas: Dict[str, XMLSchema] = {}
         # Ne pas charger les schémas au démarrage pour accélérer l'initialisation
         # self._load_schemas()
@@ -102,6 +120,25 @@ class HprimValidator:
             else:
                 logger.warning(f"Schéma non trouvé: {schema_path}")
 
+    def guess_schema_name(self, xml_string: str) -> Optional[str]:
+        """Détermine le schéma à utiliser selon l'élément racine XML.
+
+        Retourne le nom de schéma (clé de SCHEMAS) ou None si indéterminé.
+        """
+        try:
+            # Parser sans valider, récupérer le nom local (sans namespace)
+            root = etree.fromstring(xml_string.encode('iso-8859-1'))
+            # localname: séparer namespace si présent
+            tag = root.tag
+            if '}' in tag:
+                local = tag.split('}', 1)[1]
+            else:
+                local = tag
+            return self.ROOT_TO_SCHEMA.get(local)
+        except Exception as e:
+            logger.warning(f"Impossible de déterminer le schéma depuis le root: {e}")
+            return None
+
     def validate_xml_string(self, xml_string: str, schema_name: str) -> Tuple[bool, List[str]]:
         """
         Valide une chaîne XML contre un schéma
@@ -113,8 +150,11 @@ class HprimValidator:
         Returns:
             (is_valid, errors_list)
         """
+        # Charger le schéma à la volée si nécessaire
         if schema_name not in self._schemas:
-            return False, [f"Schéma {schema_name} non disponible"]
+            loaded = self._load_schema(schema_name)
+            if not loaded:
+                return False, [f"Schéma {schema_name} non disponible ({self.schemas_path})"]
 
         try:
             # Parse XML

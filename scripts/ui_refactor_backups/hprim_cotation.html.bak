@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotation Actes Médicaux - HPRIM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <header class="bg-gradient-to-r from-indigo-600 to-blue-500 py-6 px-4 shadow">
+        <div class="max-w-4xl mx-auto flex items-center gap-4">
+            <i class="fas fa-stethoscope text-3xl text-white"></i>
+            <h1 class="text-2xl font-bold text-white">MedData Bridge – Cotation HPRIM</h1>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto mt-8 px-4">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <div class="flex-1">
+                <section class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-plus-circle text-indigo-600 text-xl"></i>
+                        <h2 class="text-xl font-bold text-slate-800">Nouveau Message HPRIM – Actes CCAM</h2>
+                    </div>
+                    <!-- ...existing code... -->
+                        <!-- Informations Émetteur -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-slate-700 mb-2 flex items-center gap-2"><i class="fas fa-building text-indigo-500"></i> Informations Émetteur</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">FINESS Émetteur</label>
+                                    <input type="text" id="emetteurId" value="123456789" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">Nom Émetteur</label>
+                                    <input type="text" id="emetteurNom" value="EHPAD LES ROSIERS" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations Destinataire -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-slate-700 mb-2 flex items-center gap-2"><i class="fas fa-building text-indigo-500"></i> Informations Destinataire</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">FINESS Destinataire</label>
+                                    <input type="text" id="destinataireId" value="987654321" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">Nom Destinataire</label>
+                                    <input type="text" id="destinataireNom" value="CENTRE HOSPITALIER" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations Patient -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-slate-700 mb-2 flex items-center gap-2"><i class="fas fa-user text-indigo-500"></i> Informations Patient</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">ID Patient</label>
+                                    <input type="text" id="patientId" value="123456789" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">Clé Patient</label>
+                                    <input type="text" id="patientClef" value="123456789" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">Date Naissance</label>
+                                    <input type="date" id="patientNaissance" value="1980-01-01" class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">Nom</label>
+                                    <input type="text" id="patientNom" value="DUPONT" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">Prénom</label>
+                                    <input type="text" id="patientPrenom" value="JEAN" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700">Sexe</label>
+                                    <select id="patientSexe" class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="">Non spécifié</option>
+                                        <option value="M">Masculin</option>
+                                        <option value="F">Féminin</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Identifiants Patient HPRIM -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-id-card"></i> Identifiants Patient HPRIM</h6>
+                            <div class="flex flex-wrap">
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Numéro INS</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="patientIns" placeholder="Numéro d'identification santé">
+                                    <small class="text-xs text-gray-500">INS-C ou INS-A</small>
+                                </div>
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Numéro IPP/NDA</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="patientIpp" placeholder="Identifiant patient">
+                                    <small class="text-xs text-gray-500">IPP (interne) ou NDA (administratif)</small>
+                                </div>
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Autorité d'affectation</label>
+                                    <select class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="patientAutorite">
+                                        <option value="">Non spécifié</option>
+                                        <option value="L">Local (L)</option>
+                                        <option value="M">Master (M)</option>
+                                        <option value="N">National (N)</option>
+                                        <option value="ISO">ISO</option>
+                                        <option value="DNS">DNS</option>
+                                        <option value="UUID">UUID</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations Médecin -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-user-md"></i> Médecin Acteur</h6>
+                            <div class="flex flex-wrap">
+                                <div class="w-full md:w-1/4 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Nom</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="medecinNom" value="MARTIN" required>
+                                </div>
+                                <div class="w-full md:w-1/4 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Prénom</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="medecinPrenom" value="PIERRE" required>
+                                </div>
+                                <div class="w-full md:w-1/4 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">RPPS</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="medecinRpps" value="12345678901" placeholder="11 chiffres">
+                                    <small class="text-xs text-gray-500">Optionnel si ADELI fourni</small>
+                                </div>
+                                <div class="w-full md:w-1/4 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">ADELI</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="medecinAdeli" placeholder="Numéro ADELI">
+                                    <small class="text-xs text-gray-500">Optionnel si RPPS fourni</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informations Venue/Structure -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-hospital"></i> Informations Venue/Structure (Optionnel)</h6>
+                            <div class="flex flex-wrap">
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Identifiant Venue</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="venueId" placeholder="Identifiant de la venue">
+                                </div>
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Libellé Venue</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="venueLibelle" placeholder="Nom de la structure">
+                                </div>
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">FINESS</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="venueFiness" placeholder="9 chiffres">
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap mt-2">
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">ADELI Établissement</label>
+                                    <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="venueAdeli" placeholder="ADELI de l'établissement">
+                                </div>
+                                <div class="w-full md:w-1/3 mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Autorité d'affectation</label>
+                                    <select class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="venueAutorite">
+                                        <option value="">Non spécifié</option>
+                                        <option value="L">Local (L)</option>
+                                        <option value="M">Master (M)</option>
+                                        <option value="N">National (N)</option>
+                                        <option value="ISO">ISO</option>
+                                        <option value="DNS">DNS</option>
+                                        <option value="UUID">UUID</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actes CCAM -->
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h6 class="mb-0 flex items-center gap-2"><i class="fas fa-list"></i> Actes CCAM</h6>
+                                <button type="button" class="btn btn-primary" onclick="ajouterActe()">
+                                        <i class="fas fa-plus"></i> Ajouter Acte
+                                    </button>
+                            </div>
+                            <div id="actesContainer">
+                                <!-- Les actes seront ajoutés ici dynamiquement -->
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="flex gap-4 mt-8">
+                            <button type="button" onclick="validerMessage()" class="btn btn-primary" style="flex:1"><i class="fas fa-check"></i> Valider Message</button>
+                            <button type="button" onclick="emettreMessage()" class="btn btn-primary" style="flex:1"><i class="fas fa-paper-plane"></i> Émettre Message</button>
+                            <button type="button" onclick="reinitialiserFormulaire()" class="btn" style="flex:1"><i class="fas fa-undo"></i> Réinitialiser</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full lg:w-96">
+                <!-- Résultats et XML -->
+                <section class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-code text-indigo-500"></i>
+                        <h3 class="text-lg font-bold text-slate-800">Résultats</h3>
+                    </div>
+                    <div id="resultatsContainer">
+                        <div class="bg-blue-50 text-blue-800 rounded-xl px-4 py-3 flex items-center gap-2">
+                            <i class="fas fa-info-circle"></i> Préparez votre message HPRIM
+                        </div>
+                    </div>
+                </section>
+                <!-- Aperçu XML -->
+                <section class="bg-white rounded-2xl shadow-lg p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-file-code text-indigo-500"></i>
+                        <h3 class="text-lg font-bold text-slate-800">Aperçu XML</h3>
+                    </div>
+                    <div id="xmlPreview" class="bg-slate-50 rounded-xl p-4 text-xs text-slate-700 overflow-x-auto" style="display: none;">
+                        <!-- L'XML sera affiché ici -->
+                    </div>
+                    <div id="xmlPlaceholder" class="text-center text-slate-400">
+                        <i class="fas fa-file-code fa-2x mb-2"></i>
+                        <p>XML généré apparaîtra ici</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour ajouter/modifier un acte -->
+    <div class="modal fade" id="acteModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header flex justify-between items-center p-4 border-b">
+                    <h5 class="modal-title text-lg font-semibold" id="acteModalTitle">Ajouter un Acte CCAM</h5>
+                    <button type="button" class="text-gray-400 hover:text-gray-600 text-xl" data-bs-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="acteForm">
+                        <div class="flex flex-wrap">
+                            <div class="w-full md:w-1/3 mb-4">
+                                <label class="block text-sm font-medium text-gray-700">Code CCAM *</label>
+                                <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="acteCode" placeholder="AAAA999" required>
+                            </div>
+                            <div class="w-full md:w-1/3 mb-4">
+                                <label class="block text-sm font-medium text-gray-700">Activité *</label>
+                                <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="acteActivite" placeholder="01" value="01" required>
+                            </div>
+                            <div class="w-full md:w-1/3 mb-4">
+                                <label class="block text-sm font-medium text-gray-700">Phase *</label>
+                                <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="actePhase" placeholder="00" value="00" required>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap mt-3">
+                            <div class="w-full md:w-1/2 mb-4">
+                                <label class="block text-sm font-medium text-gray-700">Date d'exécution *</label>
+                                <input type="datetime-local" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="acteDate" required>
+                            </div>
+                            <div class="w-full md:w-1/2 mb-4">
+                                <label class="block text-sm font-medium text-gray-700">Quantité</label>
+                                <input type="number" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="acteQuantite" value="1" min="1">
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap mt-3">
+                            <div class="w-full md:w-1/2 mb-4">
+                                <label class="block text-sm font-medium text-gray-700">RPPS Exécutant *</label>
+                                <input type="text" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="acteRpps" placeholder="12345678901" required>
+                            </div>
+                            <div class="w-full md:w-1/2 mb-4">
+                                <label class="block text-sm font-medium text-gray-700">Montant (€)</label>
+                                <input type="number" class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="acteMontant" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="block text-sm font-medium text-gray-700">Modificateurs</label>
+                            <div class="flex flex-wrap gap-1" id="modificateursContainer">
+                                <!-- Les modificateurs seront ajoutés ici -->
+                            </div>
+                            <div class="mt-2">
+                                <input type="text" class="border border-gray-300 rounded px-2 py-1 text-sm d-inline-block" id="nouveauModificateur" placeholder="A-Z, 0-9" maxlength="1" style="width: 80px;">
+                                <button type="button" class="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white px-2 py-1 rounded text-sm ml-2 flex items-center gap-1" onclick="ajouterModificateur()">
+                                    <i class="fas fa-plus"></i> Ajouter
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="block text-sm font-medium text-gray-700">Commentaire</label>
+                            <textarea class="border border-gray-300 rounded px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" id="acteCommentaire" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="flex justify-end gap-2 p-4 border-t">
+                    <button type="button" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded" onclick="sauvegarderActe()">Sauvegarder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+
+    <script>
+        let actes = [];
+        let acteEnEdition = null;
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Définir la date par défaut
+            const maintenant = new Date();
+            document.getElementById('acteDate').value = maintenant.toISOString().slice(0, 16);
+
+            // Ajouter un acte par défaut
+            ajouterActe();
+        });
+
+        function ajouterActe() {
+            const acte = {
+                id: Date.now(),
+                code_acte: 'AAFA001',
+                code_activite: '01',
+                code_phase: '00',
+                date_execution: new Date().toISOString(),
+                quantite: 1,
+                modificateurs: ['K'],
+                montant: 25.50,
+                commentaire: 'Consultation cardiologique',
+                executant_rpps: '12345678901'
+            };
+
+            actes.push(acte);
+            afficherActes();
+        }
+
+        function afficherActes() {
+            const container = document.getElementById('actesContainer');
+            container.innerHTML = '';
+
+            actes.forEach((acte, index) => {
+                const acteCard = document.createElement('div');
+                acteCard.className = 'acte-card';
+                acteCard.innerHTML = `
+                    <div class="acte-header d-flex justify-content-between align-items-center">
+                        <strong>Acte ${index + 1}: ${acte.code_acte}</strong>
+                        <div>
+                            <button class="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white px-2 py-1 rounded text-sm mr-1" onclick="editerActe(${index})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded text-sm" onclick="supprimerActe(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                        <div>
+                            <small class="text-gray-500">Activité/Phase</small><br>
+                            <strong>${acte.code_activite}/${acte.code_phase}</strong>
+                        </div>
+                        <div>
+                            <small class="text-gray-500">Quantité</small><br>
+                            <strong>${acte.quantite}</strong>
+                        </div>
+                        <div>
+                            <small class="text-gray-500">Montant</small><br>
+                            <strong>${acte.montant ? acte.montant + ' €' : 'N/A'}</strong>
+                        </div>
+                        <div>
+                            <small class="text-gray-500">Modificateurs</small><br>
+                            ${acte.modificateurs.map(m => `<span class="modificateur-badge">${m}</span>`).join('')}
+                        </div>
+                    </div>
+                    ${acte.commentaire ? `<div class="mt-2"><small class="text-muted">Commentaire:</small> ${acte.commentaire}</div>` : ''}
+                `;
+                container.appendChild(acteCard);
+            });
+        }
+
+        function editerActe(index) {
+            acteEnEdition = index;
+            const acte = actes[index];
+
+            document.getElementById('acteCode').value = acte.code_acte;
+            document.getElementById('acteActivite').value = acte.code_activite;
+            document.getElementById('actePhase').value = acte.code_phase;
+            document.getElementById('acteDate').value = new Date(acte.date_execution).toISOString().slice(0, 16);
+            document.getElementById('acteQuantite').value = acte.quantite;
+            document.getElementById('acteRpps').value = acte.executant_rpps;
+            document.getElementById('acteMontant').value = acte.montant || '';
+            document.getElementById('acteCommentaire').value = acte.commentaire || '';
+
+            // Afficher les modificateurs
+            afficherModificateurs(acte.modificateurs);
+
+            document.getElementById('acteModalTitle').textContent = 'Modifier un Acte CCAM';
+            new bootstrap.Modal(document.getElementById('acteModal')).show();
+        }
+
+        function supprimerActe(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet acte ?')) {
+                actes.splice(index, 1);
+                afficherActes();
+            }
+        }
+
+        function afficherModificateurs(modificateurs) {
+            const container = document.getElementById('modificateursContainer');
+            container.innerHTML = '';
+            modificateurs.forEach(mod => {
+                const badge = document.createElement('span');
+                badge.className = 'modificateur-badge';
+                badge.innerHTML = `${mod} <i class="fas fa-times ms-1" onclick="supprimerModificateur('${mod}')"></i>`;
+                container.appendChild(badge);
+            });
+        }
+
+        function ajouterModificateur() {
+            const input = document.getElementById('nouveauModificateur');
+            const mod = input.value.toUpperCase().trim();
+
+            if (mod && /^[A-Z0-9]$/.test(mod)) {
+                const currentMods = acteEnEdition !== null ?
+                    actes[acteEnEdition].modificateurs : [];
+
+                if (!currentMods.includes(mod)) {
+                    currentMods.push(mod);
+                    if (acteEnEdition !== null) {
+                        afficherModificateurs(currentMods);
+                    }
+                }
+                input.value = '';
+            }
+        }
+
+        function supprimerModificateur(mod) {
+            if (acteEnEdition !== null) {
+                const index = actes[acteEnEdition].modificateurs.indexOf(mod);
+                if (index > -1) {
+                    actes[acteEnEdition].modificateurs.splice(index, 1);
+                    afficherModificateurs(actes[acteEnEdition].modificateurs);
+                }
+            }
+        }
+
+        function sauvegarderActe() {
+            const acte = {
+                id: acteEnEdition !== null ? actes[acteEnEdition].id : Date.now(),
+                code_acte: document.getElementById('acteCode').value,
+                code_activite: document.getElementById('acteActivite').value,
+                code_phase: document.getElementById('actePhase').value,
+                date_execution: new Date(document.getElementById('acteDate').value).toISOString(),
+                quantite: parseInt(document.getElementById('acteQuantite').value) || 1,
+                modificateurs: acteEnEdition !== null ? actes[acteEnEdition].modificateurs : [],
+                montant: parseFloat(document.getElementById('acteMontant').value) || null,
+                commentaire: document.getElementById('acteCommentaire').value,
+                executant_rpps: document.getElementById('acteRpps').value
+            };
+
+            if (acteEnEdition !== null) {
+                actes[acteEnEdition] = acte;
+            } else {
+                actes.push(acte);
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('acteModal')).hide();
+            afficherActes();
+            acteEnEdition = null;
+        }
+
+        async function validerMessage() {
+            const message = construireMessage();
+
+            try {
+                const response = await fetch('/api/hprim/actes/ccam/emission', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(message)
+                });
+
+                const result = await response.json();
+
+                afficherResultats(result, response.ok);
+
+            } catch (error) {
+                afficherErreur('Erreur de validation: ' + error.message);
+            }
+        }
+
+        async function emettreMessage() {
+            const message = construireMessage();
+
+            try {
+                const response = await fetch('/api/hprim/actes/ccam/emission', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(message)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    afficherResultats(result, true);
+                    afficherXML(result.xml_content);
+                } else {
+                    afficherResultats(result, false);
+                }
+
+            } catch (error) {
+                afficherErreur('Erreur d\'émission: ' + error.message);
+            }
+        }
+
+        function construireMessage() {
+            return {
+                emetteur_id: document.getElementById('emetteurId').value,
+                emetteur_nom: document.getElementById('emetteurNom').value,
+                destinataire_id: document.getElementById('destinataireId').value,
+                destinataire_nom: document.getElementById('destinataireNom').value,
+                patient: {
+                    identifiant_id: document.getElementById('patientId').value,
+                    identifiant_clef: document.getElementById('patientClef').value,
+                    nom: document.getElementById('patientNom').value,
+                    prenom: document.getElementById('patientPrenom').value,
+                    date_naissance: document.getElementById('patientNaissance').value || null,
+                    sexe: document.getElementById('patientSexe').value || null,
+                    numero_identifiant_sante: document.getElementById('patientIns').value || null,
+                    numero_identifiant_patient: document.getElementById('patientIpp').value || null,
+                    autorite_affectation: document.getElementById('patientAutorite').value || null
+                },
+                acteur: {
+                    nom: document.getElementById('medecinNom').value,
+                    prenom: document.getElementById('medecinPrenom').value,
+                    numero_rpps: document.getElementById('medecinRpps').value || null,
+                    numero_adeli: document.getElementById('medecinAdeli').value || null
+                },
+                venue: document.getElementById('venueId').value ? {
+                    identifiant: document.getElementById('venueId').value,
+                    libelle: document.getElementById('venueLibelle').value,
+                    numero_finess: document.getElementById('venueFiness').value || null,
+                    numero_adeli: document.getElementById('venueAdeli').value || null,
+                    autorite_affectation: document.getElementById('venueAutorite').value || null
+                } : null,
+                actes: actes
+            };
+        }
+
+        function afficherResultats(result, success) {
+            const container = document.getElementById('resultatsContainer');
+
+            if (success) {
+                container.innerHTML = `
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-check-circle"></i> Message validé avec succès</h6>
+                        <p><strong>ID:</strong> ${result.message_id}</p>
+                        <p><strong>Type:</strong> ${result.type_message}</p>
+                        <p><strong>Taille XML:</strong> ${result.xml_size} caractères</p>
+                        ${result.validation_errors.length > 0 ?
+                            `<div class="mt-2">
+                                <strong>Erreurs de validation (${result.validation_errors.length}):</strong>
+                                <ul class="mb-0 mt-1">
+                                    ${result.validation_errors.map(err =>
+                                        `<li>${err.code}: ${err.message}</li>`
+                                    ).join('')}
+                                </ul>
+                            </div>` : ''
+                        }
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Erreur de validation</h6>
+                        <p>${result.detail || 'Erreur inconnue'}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function afficherErreur(message) {
+            const container = document.getElementById('resultatsContainer');
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Erreur</h6>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function afficherXML(xmlContent) {
+            const preview = document.getElementById('xmlPreview');
+            const placeholder = document.getElementById('xmlPlaceholder');
+
+            preview.textContent = xmlContent;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+
+        function reinitialiserFormulaire() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ? Toutes les données seront perdues.')) {
+                actes = [];
+                afficherActes();
+
+                document.getElementById('resultatsContainer').innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Formulaire réinitialisé
+                    </div>
+                `;
+
+                document.getElementById('xmlPreview').style.display = 'none';
+                document.getElementById('xmlPlaceholder').style.display = 'block';
+            }
+        }
+
+        // Gestionnaire pour la touche Entrée dans le champ modificateur
+        document.getElementById('nouveauModificateur').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                ajouterModificateur();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ns0:evenementsServeurActes xmlns:ns0="http://www.hprim.org/hprimXML" version="2.4" acquittementAttendu="non" identifiantAttendu="non" realise="oui" interrogation="non">
+  <ns0:enteteMessage>
+    <ns0:identifiantMessage>HNGA090708</ns0:identifiantMessage>
+    <ns0:dateHeureProduction>2025-12-26T09:07:08.520433</ns0:dateHeureProduction>
+    <ns0:emetteur>
+      <ns0:agents>
+        <ns0:agent categorie="acteur">
+          <ns0:code>EMET</ns0:code>
+          <ns0:libelle>Émetteur Test</ns0:libelle>
+        </ns0:agent>
+      </ns0:agents>
+    </ns0:emetteur>
+    <ns0:destinataire>
+      <ns0:agents>
+        <ns0:agent categorie="acteur">
+          <ns0:code>DEST</ns0:code>
+          <ns0:libelle>Destinataire Test</ns0:libelle>
+        </ns0:agent>
+      </ns0:agents>
+    </ns0:destinataire>
+  </ns0:enteteMessage>
+  <ns0:evenementServeurActe>
+    <ns0:dateAction>2025-12-26T09:07:08.520552</ns0:dateAction>
+    <ns0:acteur>
+      <ns0:medecin>
+        <ns0:nom>TEST</ns0:nom>
+        <ns0:prenom>Medecin</ns0:prenom>
+        <ns0:numeroRPPS>12345678901</ns0:numeroRPPS>
+        <ns0:specialite>Médecine générale</ns0:specialite>
+      </ns0:medecin>
+    </ns0:acteur>
+    <ns0:patient>
+      <ns0:identifiant>
+        <ns0:id>1234567890123</ns0:id>
+        <ns0:clef>NIR</ns0:clef>
+      </ns0:identifiant>
+      <ns0:nom>TEST</ns0:nom>
+      <ns0:prenom>Patient</ns0:prenom>
+      <ns0:dateNaissance>1980-01-01</ns0:dateNaissance>
+      <ns0:sexe>M</ns0:sexe>
+    </ns0:patient>
+    <ns0:actesNGAP>
+      <ns0:acteNGAP action="creation" facturable="oui" valide="non" facture="non" porteeCle="n">
+        <identifiant>7a3c3753-d1f3-4cfd-83f8-1a6fadf08cdd</identifiant>
+        <lettreCle>A</lettreCle>
+        <coefficient>2</coefficient>
+        <dateExecution>2025-12-26T09:07:08.520498</dateExecution>
+        <prestataire>
+          <ns0:medecin>
+            <ns0:nom>TEST</ns0:nom>
+            <ns0:prenom>Medecin</ns0:prenom>
+            <ns0:numeroRPPS>12345678901</ns0:numeroRPPS>
+            <ns0:specialite>Médecine générale</ns0:specialite>
+          </ns0:medecin>
+        </prestataire>
+        <denombrement>1</denombrement>
+        <montant>
+          <valeur>50.0</valeur>
+          <devise>EUR</devise>
+        </montant>
+      </ns0:acteNGAP>
+    </ns0:actesNGAP>
+  </ns0:evenementServeurActe>
+</ns0:evenementsServeurActes>

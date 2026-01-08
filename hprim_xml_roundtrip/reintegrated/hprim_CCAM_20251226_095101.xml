@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ns0:evenementsServeurActes xmlns:ns0="http://www.hprim.org/hprimXML" version="2.4" acquittementAttendu="non" identifiantAttendu="non" realise="oui" interrogation="non">
+  <ns0:enteteMessage>
+    <ns0:identifiantMessage>HCCA095101</ns0:identifiantMessage>
+    <ns0:dateHeureProduction>2025-12-26T09:51:01.408821</ns0:dateHeureProduction>
+    <ns0:emetteur>
+      <ns0:agents>
+        <ns0:agent categorie="acteur">
+          <ns0:code>EMET</ns0:code>
+          <ns0:libelle>Émetteur Test</ns0:libelle>
+        </ns0:agent>
+      </ns0:agents>
+    </ns0:emetteur>
+    <ns0:destinataire>
+      <ns0:agents>
+        <ns0:agent categorie="acteur">
+          <ns0:code>DEST</ns0:code>
+          <ns0:libelle>Destinataire Test</ns0:libelle>
+        </ns0:agent>
+      </ns0:agents>
+    </ns0:destinataire>
+  </ns0:enteteMessage>
+  <ns0:evenementServeurActe>
+    <ns0:dateAction>2025-12-26T09:51:01.408889</ns0:dateAction>
+    <ns0:acteur>
+      <ns0:medecin>
+        <ns0:nom>TEST</ns0:nom>
+        <ns0:prenom>Medecin</ns0:prenom>
+        <ns0:numeroRPPS>12345678901</ns0:numeroRPPS>
+        <ns0:specialite>Médecine générale</ns0:specialite>
+      </ns0:medecin>
+    </ns0:acteur>
+    <ns0:patient>
+      <ns0:identifiant>
+        <ns0:id>1234567890123</ns0:id>
+        <ns0:clef>NIR</ns0:clef>
+      </ns0:identifiant>
+      <ns0:nom>TEST</ns0:nom>
+      <ns0:prenom>Patient</ns0:prenom>
+      <ns0:dateNaissance>1980-01-01</ns0:dateNaissance>
+      <ns0:sexe>M</ns0:sexe>
+    </ns0:patient>
+    <ns0:actesCCAM>
+      <acteCCAM action="creation" facturable="oui" valide="non" facture="non">
+        <dateAction>2025-12-26T09:51:01.408904</dateAction>
+        <acteur>
+          <ns0:medecin>
+            <ns0:nom>TEST</ns0:nom>
+            <ns0:prenom>Medecin</ns0:prenom>
+            <ns0:numeroRPPS>12345678901</ns0:numeroRPPS>
+            <ns0:specialite>Médecine générale</ns0:specialite>
+          </ns0:medecin>
+        </acteur>
+        <identifiant>
+          <emetteur portee="local">28a0591b-b467-494f-b336-671c8356c8ca</emetteur>
+        </identifiant>
+        <codeActe>ZZQK900</codeActe>
+        <codeActivite>01</codeActivite>
+        <codePhase>00</codePhase>
+        <execute>
+          <date>2025-12-26</date>
+        </execute>
+        <executant>
+          <medecins>
+            <ns0:medecin>
+              <ns0:nom>TEST</ns0:nom>
+              <ns0:prenom>Medecin</ns0:prenom>
+              <ns0:numeroRPPS>12345678901</ns0:numeroRPPS>
+              <ns0:specialite>Médecine générale</ns0:specialite>
+            </ns0:medecin>
+          </medecins>
+        </executant>
+        <quantite>1</quantite>
+        <priseCharge>
+          <risque>CPAM</risque>
+        </priseCharge>
+        <montant>
+          <valeur>10.0</valeur>
+          <devise>EUR</devise>
+        </montant>
+      </acteCCAM>
+    </ns0:actesCCAM>
+  </ns0:evenementServeurActe>
+</ns0:evenementsServeurActes>

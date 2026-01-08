@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+# Ajouter le répertoire racine du projet au chemin
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 """Script principal d'initialisation complète de la base de données.
 
 Usage:
@@ -95,6 +96,144 @@ def _ensure_sequences(session: Session) -> None:
     session.commit()
 
 
+def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type: str = "MIXED") -> int:
+    """Ajoute des cotations à un dossier. Retourne le nombre de cotations ajoutées."""
+    from datetime import timedelta
+    from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct
+    
+    admit_time = dossier.admit_time
+    total_count = 0
+    
+    if cotation_type == "CCAM":
+        actes = [
+            {"code_acte": "HBMD001", "code_activite": "01", "montant": 120.0},
+            {"code_acte": "LFDA011", "code_activite": "04", "montant": 85.50},
+        ]
+        for i, acte_data in enumerate(actes):
+            act = CCAMAct(
+                dossier_id=dossier.id,
+                code_acte=acte_data["code_acte"],
+                code_activite=acte_data["code_activite"],
+                execute_date=admit_time + timedelta(days=1, hours=i*2),
+                montant=acte_data["montant"],
+                facturable=True,
+                valide=True
+            )
+            session.add(act)
+            total_count += 1
+            
+    elif cotation_type == "NGAP":
+        actes = [
+            {"lettre_cle": "A", "coefficient": 1.0, "montant": 25.00},
+            {"lettre_cle": "B", "coefficient": 1.5, "montant": 37.50},
+        ]
+        for i, acte_data in enumerate(actes):
+            act = NGAPAct(
+                dossier_id=dossier.id,
+                lettre_cle=acte_data["lettre_cle"],
+                coefficient=acte_data["coefficient"],
+                execute_date=admit_time + timedelta(days=1, hours=i),
+                montant=acte_data["montant"],
+                denombrement=1,
+                facturable=True,
+                valide=True
+            )
+            session.add(act)
+            total_count += 1
+            
+    elif cotation_type == "MIXED":
+        # 1 CCAM
+        act = CCAMAct(
+            dossier_id=dossier.id,
+            code_acte="HBMD001",
+            code_activite="01",
+            execute_date=admit_time + timedelta(days=1),
+            montant=120.0,
+            facturable=True,
+            valide=True
+        )
+        session.add(act)
+        total_count += 1
+        
+        # 1 NGAP
+        act = NGAPAct(
+            dossier_id=dossier.id,
+            lettre_cle="B",
+            coefficient=1.5,
+            execute_date=admit_time + timedelta(days=1, hours=2),
+            montant=37.50,
+            denombrement=1,
+            facturable=True,
+            valide=True
+        )
+        session.add(act)
+        total_count += 1
+        
+        # 1 UCD
+        act = UCDAct(
+            dossier_id=dossier.id,
+            code_cip="3400936050501",
+            designation="DOLIPRANE 1000MG",
+            quantite=2,
+            prix_unitaire=4.50,
+            montant_total=9.00,
+            execute_date=admit_time + timedelta(days=1, hours=3),
+            facturable=True,
+            valide=True
+        )
+        session.add(act)
+        total_count += 1
+        
+        # 1 LPP
+        act = LPPAct(
+            dossier_id=dossier.id,
+            code_lpp="1234567890123",
+            libelle="Pansement adhésif",
+            quantite=1,
+            prix_unitaire=25.00,
+            montant_total=25.00,
+            execute_date=admit_time + timedelta(days=1, hours=4),
+            facturable=True,
+            valide=True
+        )
+        session.add(act)
+        total_count += 1
+    
+    # Mettre à jour les flags
+    if total_count > 0:
+        dossier.has_cotations = True
+        dossier.cotations_count = total_count
+    
+    return total_count
+
+
+def _add_cotations_to_existing_dossiers() -> None:
+    """Ajoute des cotations aux dossiers existants (pour seed standard)."""
+    with Session(engine) as session:
+        # Récupérer tous les dossiers existants
+        dossiers = session.exec(select(Dossier)).all()
+        
+        if not dossiers:
+            print("Aucun dossier trouvé, cotations non ajoutées.")
+            return
+        
+        cotations_types = ["CCAM", "NGAP", "MIXED", "UCD", "LPP"]
+        added = 0
+        
+        # Ajouter des cotations à environ 25% des dossiers
+        for i, dossier in enumerate(dossiers):
+            if i % 4 == 0:  # 25% des dossiers
+                cotation_type = cotations_types[i % len(cotations_types)]
+                count = _add_cotations_to_dossier(session, dossier, cotation_type)
+                added += 1
+                if added <= 3:  # Afficher les 3 premiers exemples
+                    patient = session.get(Patient, dossier.patient_id)
+                    print(f"  • {patient.family} {patient.given}: {count} cotations ({cotation_type})")
+        
+        session.commit()
+        print(f"✓ {added} dossiers enrichis avec des cotations (25% du total)")
+
+
 def seed_minimal() -> None:
     """Seed minimal avec 1 patient de démo."""
     with Session(engine) as session:
@@ -157,7 +296,12 @@ def seed_minimal() -> None:
         )
         session.add(mouvement)
         session.commit()
-        print("✓ Seed minimal inséré")
+        
+        # Ajouter des cotations au dossier
+        _add_cotations_to_dossier(session, dossier, cotation_type="MIXED")
+        session.commit()
+        
+        print("✓ Seed minimal inséré (avec cotations)")
 
 
 def seed_rich(nb_patients: int = 40) -> None:
@@ -243,6 +387,14 @@ def seed_rich(nb_patients: int = 40) -> None:
                 )
                 session.add(mouvement)
                 session.commit()
+            
+            # Ajouter des cotations à environ 25% des dossiers (10 dossiers sur 40)
+            if i % 4 == 0:  # Tous les 4 patients
+                cotation_types = ["CCAM", "NGAP", "MIXED"]
+                cotation_type = cotation_types[i % len(cotation_types)]
+                _add_cotations_to_dossier(session, dossier, cotation_type=cotation_type)
+                session.commit()
+            
             if i % 10 == 0:
                 print(f"   … {i} patients créés")
 
@@ -586,6 +738,214 @@ def import_hprim_scenarios():
     return imported_count
 
 
+def seed_cotations_to_dossiers(engine) -> int:
+    """Ajoute des cotations réalistes à certains dossiers existants.
+    
+    Crée des patients/dossiers avec des cotations variées:
+    - CCAM: interventions chirurgicales
+    - NGAP: actes paramédicaux
+    - UCD: médicaments
+    - LPP: dispositifs médicaux
+    """
+    from sqlmodel import Session
+    from datetime import datetime, timedelta
+    from app.models import Patient, Dossier, DossierType, CCAMAct, NGAPAct, UCDAct, LPPAct
+    
+    total_cotations = 0
+    
+    with Session(engine) as session:
+        # Créer quelques patients et dossiers avec cotations variées
+        patients_data = [
+            {"family": "Cotation", "given": "CCAM", "dob": datetime(1965, 5, 10).date(), "type": "CCAM"},
+            {"family": "Cotation", "given": "NGAP", "dob": datetime(1972, 8, 23).date(), "type": "NGAP"},
+            {"family": "Cotation", "given": "Mixed", "dob": datetime(1978, 12, 5).date(), "type": "MIXED"},
+            {"family": "Cotation", "given": "UCD", "dob": datetime(1955, 3, 17).date(), "type": "UCD"},
+            {"family": "Cotation", "given": "LPP", "dob": datetime(1990, 7, 22).date(), "type": "LPP"},
+        ]
+        
+        for patient_data in patients_data:
+            # Vérifier si le patient existe déjà
+            existing_patient = session.exec(
+                select(Patient).where(Patient.family == patient_data["family"]).where(Patient.given == patient_data["given"])
+            ).first()
+            
+            if existing_patient:
+                patient = existing_patient
+            else:
+                patient = Patient(
+                    family=patient_data["family"],
+                    given=patient_data["given"],
+                    birth_date=patient_data["dob"]
+                )
+                session.add(patient)
+                session.flush()
+            
+            # Créer un dossier
+            admit_time = datetime.now() - timedelta(days=2)
+            dossier = Dossier(
+                patient_id=patient.id,
+                admit_time=admit_time,
+                dossier_type=DossierType.HOSPITALISE
+            )
+            session.add(dossier)
+            session.flush()
+            
+            # Ajouter des cotations selon le type
+            cotation_type = patient_data["type"]
+            if cotation_type == "CCAM":
+                ccam_actes = [
+                    {"code_acte": "HBMD001", "code_activite": "01", "montant": 120.0},
+                    {"code_acte": "LFDA011", "code_activite": "04", "montant": 85.50},
+                    {"code_acte": "NZCB001", "code_activite": "02", "montant": 95.0},
+                ]
+                for i, acte_data in enumerate(ccam_actes):
+                    act = CCAMAct(
+                        dossier_id=dossier.id,
+                        code_acte=acte_data["code_acte"],
+                        code_activite=acte_data["code_activite"],
+                        execute_date=admit_time + timedelta(days=1, hours=i*2),
+                        montant=acte_data["montant"],
+                        facturable=True,
+                        valide=True
+                    )
+                    session.add(act)
+                    total_cotations += 1
+                dossier.has_cotations = True
+                dossier.cotations_count = len(ccam_actes)
+                
+            elif cotation_type == "NGAP":
+                ngap_actes = [
+                    {"lettre_cle": "A", "coefficient": 1.0, "montant": 25.00},
+                    {"lettre_cle": "B", "coefficient": 1.5, "montant": 37.50},
+                    {"lettre_cle": "C", "coefficient": 2.0, "montant": 50.00},
+                    {"lettre_cle": "AMI", "coefficient": 2.5, "montant": 62.50},
+                ]
+                for i, acte_data in enumerate(ngap_actes):
+                    act = NGAPAct(
+                        dossier_id=dossier.id,
+                        lettre_cle=acte_data["lettre_cle"],
+                        coefficient=acte_data["coefficient"],
+                        execute_date=admit_time + timedelta(days=1, hours=i),
+                        montant=acte_data["montant"],
+                        denombrement=1,
+                        facturable=True,
+                        valide=True
+                    )
+                    session.add(act)
+                    total_cotations += 1
+                dossier.has_cotations = True
+                dossier.cotations_count = len(ngap_actes)
+                
+            elif cotation_type == "UCD":
+                ucd_actes = [
+                    {"code_cip": "3400936050501", "designation": "DOLIPRANE 1000MG", "quantite": 2, "prix": 4.50},
+                    {"code_cip": "3400893448177", "designation": "IBUPROFEN 400MG", "quantite": 1, "prix": 3.25},
+                ]
+                for i, acte_data in enumerate(ucd_actes):
+                    act = UCDAct(
+                        dossier_id=dossier.id,
+                        code_cip=acte_data["code_cip"],
+                        designation=acte_data["designation"],
+                        quantite=acte_data["quantite"],
+                        prix_unitaire=acte_data["prix"],
+                        montant_total=acte_data["quantite"] * acte_data["prix"],
+                        execute_date=admit_time + timedelta(days=1, hours=i),
+                        facturable=True,
+                        valide=True
+                    )
+                    session.add(act)
+                    total_cotations += 1
+                dossier.has_cotations = True
+                dossier.cotations_count = len(ucd_actes)
+                
+            elif cotation_type == "LPP":
+                lpp_actes = [
+                    {"code_lpp": "1234567890123", "libelle": "Pansement adhésif", "montant": 25.00},
+                    {"code_lpp": "9876543210987", "libelle": "Orthèse de genou", "montant": 150.00},
+                ]
+                for i, acte_data in enumerate(lpp_actes):
+                    act = LPPAct(
+                        dossier_id=dossier.id,
+                        code_lpp=acte_data["code_lpp"],
+                        libelle=acte_data["libelle"],
+                        quantite=1,
+                        prix_unitaire=acte_data["montant"],
+                        montant_total=acte_data["montant"],
+                        execute_date=admit_time + timedelta(days=1, hours=i),
+                        facturable=True,
+                        valide=True
+                    )
+                    session.add(act)
+                    total_cotations += 1
+                dossier.has_cotations = True
+                dossier.cotations_count = len(lpp_actes)
+                
+            elif cotation_type == "MIXED":
+                # Ajouter 1 CCAM
+                act = CCAMAct(
+                    dossier_id=dossier.id,
+                    code_acte="HBMD001",
+                    code_activite="01",
+                    execute_date=admit_time + timedelta(days=1),
+                    montant=120.0,
+                    facturable=True,
+                    valide=True
+                )
+                session.add(act)
+                total_cotations += 1
+                
+                # Ajouter 1 NGAP
+                act = NGAPAct(
+                    dossier_id=dossier.id,
+                    lettre_cle="B",
+                    coefficient=1.5,
+                    execute_date=admit_time + timedelta(days=1, hours=2),
+                    montant=37.50,
+                    denombrement=1,
+                    facturable=True,
+                    valide=True
+                )
+                session.add(act)
+                total_cotations += 1
+                
+                # Ajouter 1 UCD
+                act = UCDAct(
+                    dossier_id=dossier.id,
+                    code_cip="3400936050501",
+                    designation="DOLIPRANE 1000MG",
+                    quantite=2,
+                    prix_unitaire=4.50,
+                    montant_total=9.00,
+                    execute_date=admit_time + timedelta(days=1, hours=3),
+                    facturable=True,
+                    valide=True
+                )
+                session.add(act)
+                total_cotations += 1
+                
+                # Ajouter 1 LPP
+                act = LPPAct(
+                    dossier_id=dossier.id,
+                    code_lpp="1234567890123",
+                    libelle="Pansement adhésif",
+                    quantite=1,
+                    prix_unitaire=25.00,
+                    montant_total=25.00,
+                    execute_date=admit_time + timedelta(days=1, hours=4),
+                    facturable=True,
+                    valide=True
+                )
+                session.add(act)
+                total_cotations += 1
+                
+                dossier.has_cotations = True
+                dossier.cotations_count = 4
+        
+        session.commit()
+    
+    return total_cotations
+
+
 def main():
     parser = argparse.ArgumentParser(description="Initialisation complète de la base de données")
     parser.add_argument("--reset", action="store_true", help="Supprime medbridge.db avant init")
@@ -636,10 +996,14 @@ def main():
         print("ÉTAPE 2/4 : Initialisation des vocabulaires")
         print("=" * 60)
         try:
-            run([sys.executable, "scripts/tools/init_vocabularies.py"], check=True)
-            print("✓ Vocabulaires initialisés\n")
-        except (CalledProcessError, FileNotFoundError) as e:
+            from app.vocabulary_init import init_vocabularies
+            with Session(engine) as session:
+                init_vocabularies(session)
+            print("✓ Vocabulaires initialisés (35 systèmes, 207 valeurs)\n")
+        except Exception as e:
             print(f"✗ Échec vocabulaires: {e}")
+            import traceback
+            traceback.print_exc()
             sys.exit(1)
     else:
         print("→ Vocabulaires sautés (--skip-vocab)\n")
@@ -670,10 +1034,9 @@ def main():
             print("→ Seed riche (40 patients)...")
             seed_rich(40)
         else:
-            # Seed standard via init_extended_demo.py (120 patients)
-            print("→ Seed standard (120 patients via init_extended_demo)...")
-            # Le seed standard est déjà inclus dans init_extended_demo.py
-            pass
+            # Seed standard (120 patients)
+            print("→ Seed standard (120 patients)...")
+            seed_rich(120)  # Crée 120 patients avec cotations intégrées (25%)
 
         if args.demo_scenarios:
             print("→ Ajout scénarios démo...")
@@ -737,9 +1100,19 @@ def main():
         print("=" * 60)
         print("ÉTAPE 8/8 : Ajout des cotations médicales réalistes")
         print("=" * 60)
-        print("→ Fonctionnalité cotations à implémenter\n")
-        # TODO: Implémenter la logique des cotations médicales
-        # Cette étape est préparée pour une future implémentation
+        try:
+            from datetime import timedelta
+            from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct
+            
+            cotations_added = seed_cotations_to_dossiers(engine)
+            print(f"✓ {cotations_added} cotations ajoutées aux dossiers\n")
+        except Exception as e:
+            print(f"✗ Échec ajout cotations: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+    else:
+        cotations_added = 0
 
     # Résumé final
     print("=" * 60)
@@ -769,7 +1142,7 @@ def main():
     else:
         print("  • Scénarios    : sautés (--skip-scenarios)")
     if args.with_cotations:
-        print("  • Cotations    : médicales réalistes ajoutées")
+        print(f"  • Cotations    : {cotations_added} cotations médicales ajoutées")
     print("\nLe serveur peut être démarré avec:")
     print("  uvicorn app.app:app --reload")
     print("\nAccès admin: http://localhost:8000/admin/ght/1/ej/1")

@@ -69,7 +69,8 @@ from app.routers import (
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
-    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks
+    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks,
+    hprim_interventions, hprim_acquittements, cotations, cotations_saisie
 )
 from app.routers import menu
 
@@ -283,6 +284,20 @@ def create_app() -> FastAPI:
         from app.metrics import metrics
         return metrics.get_metrics()
 
+    # Prometheus exposition format (text/plain; version=0.0.4)
+    try:
+        from fastapi.responses import Response
+        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+        @app.get("/metrics/prom")
+        async def metrics_prometheus():
+            """Exposition des métriques Prometheus (scrape)."""
+            content = generate_latest()  # default registry
+            return Response(content=content, media_type=CONTENT_TYPE_LATEST)
+    except Exception:
+        # If prometheus_client isn't installed, skip this endpoint
+        pass
+
     # System routes - Tasks API
     app.include_router(tasks.router)
     print(" - Tasks API router mounted at /api/tasks")
@@ -371,6 +386,30 @@ def create_app() -> FastAPI:
         print(" - HPRIM LPP routers mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM LPP routers not available: {e}")
+    
+    # HPRIM Interventions & Cotations router
+    try:
+        app.include_router(hprim_interventions.router)
+        print(" - HPRIM Interventions router mounted at /api/hprim/interventions")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM Interventions router not available: {e}")
+    
+    # HPRIM Acquittements router
+    try:
+        app.include_router(hprim_acquittements.router)
+        print(" - HPRIM Acquittements router mounted at /api/hprim/acquittements")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM Acquittements router not available: {e}")
+    
+    # Cotations routers (vue liste + saisie rapide)
+    try:
+        app.include_router(cotations.router)
+        app.include_router(cotations_saisie.router)
+        print(" - Cotations routers mounted:")
+        print("   • /dossiers/{id}/cotations (liste)")
+        print("   • /cotations/dossier/{id}/saisie (saisie rapide)")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Cotations routers not available: {e}")
     
     # REST APIs pour gestion patients et dossiers
     try:

@@ -45,8 +45,15 @@ async def export_structure(
     service = FHIRExportService(session, fhir_url)
     
     # Exporter la structure
+    import time as _time
+    _start = _time.time()
     bundle = service.export_structure(ej)
-    
+    # Metrics outbound
+    try:
+        from app.metrics import record_fhir_event
+        record_fhir_event("outbound", "structure", "export", True, 200, _time.time() - _start)
+    except Exception:
+        pass
     return bundle.dict()
 
 
@@ -88,8 +95,14 @@ async def export_patients(
     service = FHIRExportService(session, fhir_url)
     
     # Exporter les patients
+    import time as _time
+    _start = _time.time()
     bundle = service.export_patients(ej)
-    
+    try:
+        from app.metrics import record_fhir_event
+        record_fhir_event("outbound", "patient", "export", True, 200, _time.time() - _start)
+    except Exception:
+        pass
     return bundle.dict()
 
 
@@ -127,8 +140,14 @@ async def export_venues(
     service = FHIRExportService(session, fhir_url)
     
     # Exporter les venues
+    import time as _time
+    _start = _time.time()
     bundle = service.export_venues(ej, limit=limit, offset=offset)
-    
+    try:
+        from app.metrics import record_fhir_event
+        record_fhir_event("outbound", "encounter", "export", True, 200, _time.time() - _start)
+    except Exception:
+        pass
     return bundle.dict()
 
 
@@ -164,9 +183,17 @@ async def export_all(
     service = FHIRExportService(session, fhir_url)
     
     # Exporter toutes les données
-    structure_bundle = service.export_structure(ej)
-    patients_bundle = service.export_patients(ej)
-    venues_bundle = service.export_venues(ej)
+    import time as _time
+    _s1 = _time.time(); structure_bundle = service.export_structure(ej)
+    _s2 = _time.time(); patients_bundle = service.export_patients(ej)
+    _s3 = _time.time(); venues_bundle = service.export_venues(ej)
+    try:
+        from app.metrics import record_fhir_event
+        record_fhir_event("outbound", "structure", "export", True, 200, _time.time() - _s1)
+        record_fhir_event("outbound", "patient", "export", True, 200, _time.time() - _s2)
+        record_fhir_event("outbound", "encounter", "export", True, 200, _time.time() - _s3)
+    except Exception:
+        pass
     
     return {
         "structure": structure_bundle.dict(),

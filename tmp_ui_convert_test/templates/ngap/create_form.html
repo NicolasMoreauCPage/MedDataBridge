@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ngap" class="hover:text-blue-600 transition-colors">NGAP</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ngap/dossier/{{ dossier.id }}" class="hover:text-blue-600 transition-colors">Dossier #{{ dossier.dossier_seq }}</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Nouveau acte</span>
+  </nav>
+
+  <div class="btn">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Nouveau acte NGAP</h1>
+    <p class="text-gray-600 mb-6">Dossier #{{ dossier.dossier_seq }} - {{ dossier.patient.family }}, {{ dossier.patient.given }}</p>
+
+    <form method="post" class="space-y-6" id="ngapForm">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Lettre-clé NGAP (HPRIM: obligatoire, A-Z) -->
+        <div>
+          <label for="lettre_cle" class="block text-sm font-medium text-gray-700">
+            Lettre-clé NGAP <span class="text-red-500">*</span>
+          </label>
+          <select name="lettre_cle" id="lettre_cle" required
+                  pattern="[A-Z]" title="Une lettre majuscule A-Z"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">Sélectionner une lettre-clé</option>
+            {% for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+            <option value="{{ letter }}">{{ letter }}</option>
+            {% endfor %}
+          </select>
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM XML 2.4 - Lettre-clé obligatoire</p>
+        </div>
+
+        <!-- Coefficient (HPRIM: obligatoire, > 0) -->
+        <div>
+          <label for="coefficient" class="block text-sm font-medium text-gray-700">
+            Coefficient <span class="text-red-500">*</span>
+          </label>
+          <input type="number" step="0.01" min="0.01" name="coefficient" id="coefficient" required
+                 pattern="^\d+(\.\d{1,2})?$" title="Nombre décimal positif (ex: 1.5)"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Valeur positive obligatoire</p>
+        </div>
+
+        <!-- Date d'exécution (HPRIM: obligatoire, format ISO) -->
+        <div>
+          <label for="execute_date" class="block text-sm font-medium text-gray-700">
+            Date d'exécution <span class="text-red-500">*</span>
+          </label>
+          <input type="date" name="execute_date" id="execute_date" required
+                 max="{{ today|date:'Y-m-d' }}" title="Date au format ISO (YYYY-MM-DD)"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Format ISO 8601 requis</p>
+        </div>
+
+        <!-- Heure d'exécution (HPRIM: optionnel, format HH:MM:SS) -->
+        <div>
+          <label for="execute_heure" class="block text-sm font-medium text-gray-700">Heure d'exécution</label>
+          <input type="time" name="execute_heure" id="execute_heure" step="1"
+                 pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$"
+                 title="Format HH:MM ou HH:MM:SS"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Format HH:MM:SS optionnel</p>
+        </div>
+
+        <!-- Dénombrement (HPRIM: optionnel, entier positif) -->
+        <div>
+          <label for="denombrement" class="block text-sm font-medium text-gray-700">Dénombrement</label>
+          <input type="number" min="1" name="denombrement" id="denombrement"
+                 pattern="^\d+$" title="Nombre entier positif"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Quantité entière positive</p>
+        </div>
+
+        <!-- Numéro de séance (HPRIM: optionnel, 1-99) -->
+        <div>
+          <label for="numero_seance" class="block text-sm font-medium text-gray-700">Numéro de séance</label>
+          <input type="number" min="1" max="99" name="numero_seance" id="numero_seance"
+                 pattern="^[1-9][0-9]?$" title="Nombre entre 1 et 99"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - 1 à 99 séances maximum</p>
+        </div>
+
+        <!-- Position dentaire (HPRIM: optionnel, format spécifique) -->
+        <div>
+          <label for="position_dentaire" class="block text-sm font-medium text-gray-700">Position dentaire</label>
+          <input type="text" name="position_dentaire" id="position_dentaire"
+                 pattern="^\d{1,2}(-\d{1,2})*(,\d{1,2}(-\d{1,2})*)*$"
+                 placeholder="ex: 11-18,21-28" maxlength="50"
+                 title="Format: chiffres séparés par tirets ou virgules (ex: 11-18)"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Positions séparées par - ou ,</p>
+        </div>
+
+        <!-- Montant (HPRIM: optionnel, format décimal) -->
+        <div>
+          <label for="montant" class="block text-sm font-medium text-gray-700">Montant (€)</label>
+          <input type="number" step="0.01" min="0" name="montant" id="montant"
+                 pattern="^\d+(\.\d{1,2})?$" title="Montant en euros (ex: 25.50)"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Devise EUR, 2 décimales max</p>
+        </div>
+      </div>
+
+      <!-- Commentaire (HPRIM: optionnel, longueur limitée) -->
+      <div>
+        <label for="commentaire" class="block text-sm font-medium text-gray-700">Commentaire</label>
+        <textarea name="commentaire" id="commentaire" rows="3" maxlength="500"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Commentaire optionnel sur l'acte..."></textarea>
+        <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Maximum 500 caractères</p>
+      </div>
+
+      <!-- Validation côté client -->
+      <div class="alert alert-warning">
+        <h4 class="text-yellow-800 font-medium">Vérifications HPRIM:</h4>
+        <ul id="validationList" class="text-yellow-700 text-sm mt-2 list-disc list-inside"></ul>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        {{ button("Annuler", href="/ngap/dossier/{{ dossier.id }}") }}
+        {{ button("Cr\u00e9er l'acte", type='submit') }}
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Validation HPRIM côté client
+document.getElementById('ngapForm').addEventListener('submit', function(e) {
+    const lettreCle = document.getElementById('lettre_cle').value;
+    const coefficient = parseFloat(document.getElementById('coefficient').value);
+    const executeDate = document.getElementById('execute_date').value;
+    const positionDentaire = document.getElementById('position_dentaire').value;
+
+    let isValid = true;
+    const messages = [];
+
+    // Validation lettre-clé
+    if (!lettreCle || !/^[A-Z]$/.test(lettreCle)) {
+        messages.push('Lettre-clé NGAP invalide (A-Z requis)');
+        isValid = false;
+    }
+
+    // Validation coefficient
+    if (!coefficient || coefficient <= 0) {
+        messages.push('Coefficient doit être positif');
+        isValid = false;
+    }
+
+    // Validation date
+    if (!executeDate) {
+        messages.push('Date d\'exécution obligatoire');
+        isValid = false;
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        if (executeDate > today) {
+            messages.push('Date d\'exécution ne peut pas être dans le futur');
+            isValid = false;
+        }
+    }
+
+    // Validation position dentaire
+    if (positionDentaire && !/^(\d{1,2}(-\d{1,2})*(,\d{1,2}(-\d{1,2})*)*)?$/.test(positionDentaire)) {
+        messages.push('Format position dentaire invalide (ex: 11-18,21-28)');
+        isValid = false;
+    }
+
+    if (!isValid) {
+        e.preventDefault();
+        showValidationMessages(messages);
+        return false;
+    }
+
+    return true;
+});
+
+function showValidationMessages(messages) {
+    const container = document.getElementById('validationMessages');
+    const list = document.getElementById('validationList');
+
+    list.innerHTML = '';
+    messages.forEach(msg => {
+        const li = document.createElement('li');
+        li.textContent = msg;
+        list.appendChild(li);
+    });
+
+    container.classList.remove('hidden');
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Masquer les messages de validation quand on commence à saisir
+document.querySelectorAll('input, select, textarea').forEach(field => {
+    field.addEventListener('input', function() {
+        document.getElementById('validationMessages').classList.add('hidden');
+    });
+});
+</script>
+
+{% endblock %}

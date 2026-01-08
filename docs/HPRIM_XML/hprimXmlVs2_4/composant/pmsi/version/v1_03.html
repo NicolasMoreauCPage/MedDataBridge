@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 1.03</DIV>
+
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification du type
+   &lt;typeDiagnosticSimple&gt; , pattern auparavant faux </FONT>
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>nouveau pattern =
+      [A-Z][0-9]{2}(([0-9]{0,3})|([+][0-9])|([0-9][+][0-9]))</FONT></P>
+      <P STYLE="margin-left: 1.91cm; margin-bottom: 0cm; line-height: 0.42cm">
+      <FONT SIZE=3>exemples accept&eacute;s  = </FONT>
+      </P>
+      <P STYLE="margin-left: 1.91cm; text-indent: 0.6cm; margin-bottom: 0cm; line-height: 0.42cm">
+      <FONT COLOR="#000000"><FONT SIZE=3>- B99+0</FONT></FONT></P>
+      <P STYLE="margin-left: 1.91cm; text-indent: 0.6cm; margin-bottom: 0cm; line-height: 0.42cm">
+      <FONT COLOR="#000000"><FONT SIZE=3>- B838+8</FONT></FONT></P>
+      <P STYLE="margin-left: 1.91cm; text-indent: 0.6cm; margin-bottom: 0cm; line-height: 0.42cm">
+      <FONT COLOR="#000000"><FONT SIZE=3>- K650</FONT></FONT></P>
+      <P STYLE="margin-left: 1.91cm; text-indent: 0.6cm; margin-bottom: 0cm; line-height: 0.42cm">
+      <FONT COLOR="#000000"><FONT SIZE=3>- K65</FONT></FONT></P>
+      <P STYLE="margin-left: 1.91cm; text-indent: 0.6cm; margin-bottom: 0cm; line-height: 0.42cm">
+      <FONT COLOR="#000000"><FONT SIZE=3>- Z94801</FONT></FONT></P>
+      <P STYLE="margin-left: 1.91cm; text-indent: 0.6cm; margin-bottom: 0cm; line-height: 0.42cm">
+      <FONT SIZE=3><FONT COLOR="#000000">- <SPAN STYLE="background: #ffffff">M8005</SPAN></FONT></FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout valeurs pour
+   version rum (type attrVersionRum)</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">011,
+      012</SPAN></FONT></FONT></P>
+      <P STYLE="margin-bottom: 0cm; line-height: 0.42cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout valeurs pour
+   version groupage (type attrVersionGroupeur)</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">89,
+      99</SPAN></FONT></FONT></P>
+      <P STYLE="margin-bottom: 0cm; line-height: 0.42cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout dans le rum :</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>des types
+      d'autorisation unit&eacute; m&eacute;dicale et lit </FONT>
+      </P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>des informations
+      compl&eacute;mentaires pour l'acte CCAM</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>date de r&eacute;alisation</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>activit&eacute;</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>extension
+         documentaire</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>modificateurs</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>remboursement
+         exceptionnel (attribut)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>association non
+         pr&eacute;vue</FONT></P>
+      </UL>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout d'&eacute;lements
+   pour typeGroupageRss </FONT>
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>balise complement
+      (typeComplementGroupageRss)</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>nombreJoursExtremeHaut</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>radio</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>neonat</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>nombreSeancesDialyse</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>nombreJoursReanimation</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>nombreJoursSoinsIntensifs</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>nombreJoursSurveillanceContinue</FONT></P>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout d'attributs
+      pour typeComplementGroupageRss </FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">inferieurExtremeBas</SPAN></FONT></FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">categoriePrelevementOrgane</SPAN></FONT></FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">prestationInterEtablissementA</SPAN></FONT></FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">prestationInterEtablissementB</SPAN></FONT></FONT></P>
+      </UL>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout pmsi HAD</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">rpss</SPAN></FONT></FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification de la
+   gestion des d&eacute;pendances pour le rhs</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; line-height: 0.42cm"><FONT COLOR="#000000"><FONT SIZE=3><SPAN STYLE="background: #ffffff">Elimination
+      de l'attribut nature et sp&eacute;cialisation des balises</SPAN></FONT></FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Balise
+   &lt;typeDiagnosticsRum&gt;&lt;diagnosticPrincipal&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; text-decoration: none"><FONT COLOR="#000000"><SPAN STYLE="background: #ffffff">
+      <FONT SIZE=3>&lt;diagnosticPrincipal&gt; est devenu facultative</SPAN></FONT></FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>sur
+   typeEvenementPMSI</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>&eacute;limination
+      de balise : </FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>&lt;voletMedical&gt;</FONT></P>
+         <P STYLE="margin-bottom: 0cm; font-weight: medium"></P>
+      </UL>
+   </UL>
+   <P STYLE="margin-bottom: 0cm; font-weight: medium"></P>
+</UL>
+
+
+
+</BODY>
+</HTML>

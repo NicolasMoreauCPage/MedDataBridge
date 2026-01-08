@@ -1,0 +1,56 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 1.03a</DIV>
+
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Elimination des multi
+   choix sur groupage et rum</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>G&eacute;n&eacute;rait
+      des erreurs de validation avec XMLSPY 2005 et outils annexes</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification du
+   complementModePMSI</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>D&eacute;finition
+      redonnante dans  sa_modeEntreeSortiePatient.xsd et sa_pmsi.xsd.
+      Elimination du simpleType dans sa_pmsi.xsd et renommage en
+      attrComplementModePMSI dans sa_modesEntreeSortiePatient.xsd.</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Homog&eacute;n&eacute;isation
+      des &eacute;num&eacute;rations (manquait le type 8) avec les
+      commentaires.</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Renommage des
+   typePatient, typeVenue en typePatientLight, typeVenueLight.</FONT></P>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification de
+   &lt;evenementsPMSI&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout attribut
+      realise (Les &eacute;v&eacute;nements port&eacute;s par le message
+      ont &eacute;t&eacute; effectivement produits, la valeur 'non'
+      induit un effet pr&eacute;visionnel)</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Dans le fichier
+   sa_rpss.xsd, pr&eacute;cision apport&eacute;e pour les balises
+   &lt;numero&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>pour typeSequence,
+      renommage  en &lt;numeroSequence&gt;</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>pour
+      typeSousSequence,  renommage en &lt;numeroSousSequence&gt;</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>pour
+      typeGroupeHomogeneTarif, renommage en &lt;numeroGHT&gt;</FONT></P>
+   </UL>
+</UL>
+</BODY>
+</HTML>

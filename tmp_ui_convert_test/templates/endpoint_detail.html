@@ -1,0 +1,494 @@
+﻿{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block content %}
+<div class="max-w-5xl mx-auto py-8 px-4 space-y-8">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/endpoints" class="hover:text-blue-600 transition-colors">Endpoints</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">{{ e.name }}</span>
+  </nav>
+
+  <!-- Header avec gradient -->
+  <div class="btn btn-primary">
+    <div class="absolute inset-0 bg-black/10"></div>
+    <div class="relative z-10 flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <div class="btn">
+            {% if e.kind == 'MLLP' %}
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            {% elif e.kind == 'FHIR' %}
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+            </svg>
+            {% elif e.kind == 'FTP' %}
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+            </svg>
+            {% elif e.kind == 'SFTP' %}
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            {% else %}
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
+            </svg>
+            {% endif %}
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold">{{ e.name }}</h1>
+            <p class="text-white/80 text-sm">Endpoint #{{ e.id }} • {{ e.kind }}</p>
+          </div>
+        </div>
+        <p class="text-white/70 text-sm mt-2">Gérez la configuration et le rattachement de ce système.</p>
+      </div>
+      <div class="flex flex-col items-end gap-2">
+        <!-- Statut -->
+        <div class="btn">
+          <span class="relative flex h-3 w-3">
+            {% if is_running %}
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            {% endif %}
+            <span class="btn"></span>
+          </span>
+          <span class="font-semibold text-sm">{{ 'RUNNING' if is_running else 'STOPPED' }}</span>
+        </div>
+        {% if e.kind == 'FILE' %}
+        <span class="text-xs text-white/60 italic">(Polling automatique)</span>
+        {% else %}
+        <form method="post" action="/endpoints/{{ e.id }}/restart">
+          <button type="submit" class="btn">
+            🔄 Redémarrer
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <!-- Lien vers les scénarios -->
+  <div class="flex items-center gap-4">
+    <a href="/endpoints/{{ e.id }}/scenarios" class="btn btn-primary">
+      <div class="flex items-center gap-3">
+        <div class="btn">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-semibold">Scénarios de test</div>
+          <div class="text-sm text-white/80">Exécuter des séquences multi-messages</div>
+        </div>
+      </div>
+      <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- Formulaire de configuration -->
+  <form method="post" action="/endpoints/{{ e.id }}/update" class="space-y-6">
+    
+    <!-- Section: Configuration générale -->
+    <details class="btn" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 font-semibold text-slate-800 hover:from-slate-100 hover:to-slate-200 transition-colors flex items-center gap-3">
+        <div class="alert alert-info">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <span class="text-lg">Configuration générale</span>
+      </summary>
+      <div class="p-6">
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Nom</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="name" value="{{ e.name }}" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Actif</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="is_enabled">
+              <option value="true" {% if e.is_enabled %}selected{% endif %}>✅ Oui</option>
+              <option value="false" {% if not e.is_enabled %}selected{% endif %}>❌ Non</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Type</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="kind" required>
+              {% set kinds = ['MLLP','FHIR','FILE','FTP','SFTP'] %}
+              {% for k in kinds %}
+              <option value="{{ k }}" {% if e.kind==k %}selected{% endif %}>
+                {{ '🔌' if k == 'MLLP' else ('🔥' if k == 'FHIR' else ('📁' if k == 'FILE' else ('📤' if k == 'FTP' else '🔐'))) }} {{ k }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Rôle</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="role" required>
+              {% set roles = ['sender','receiver','both'] %}
+              {% for r in roles %}
+              <option value="{{ r }}" {% if e.role==r %}selected{% endif %}>
+                {{ '📤' if r == 'sender' else ('📥' if r == 'receiver' else '🔄') }} {{ r|capitalize }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">GHT Context</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="ght_context_id" id="ght_select">
+              <option value="">🏥 (Aucun)</option>
+              {% for ght in ghts %}
+              <option value="{{ ght.id }}" {% if e.ght_context_id == ght.id %}selected{% endif %}>{{ ght.name }}</option>
+              {% endfor %}
+            </select>
+            <p class="text-xs text-slate-500 mt-1.5">Obligatoire pour endpoints structure (MFN)</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Établissement Juridique</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="entite_juridique_id" id="ej_select">
+              <option value="">🏢 (Aucun)</option>
+              {% for ej in ejs %}
+              <option value="{{ ej.id }}" data-ght="{{ ej.ght_context_id }}" {% if e.entite_juridique_id == ej.id %}selected{% endif %}>{{ ej.name }} ({{ ej.finess_ej }})</option>
+              {% endfor %}
+            </select>
+            <p class="text-xs text-slate-500 mt-1.5">Obligatoire pour endpoints identité/mouvements (ADT)</p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section: Association d'endpoints (anti-rebond) -->
+    <details class="btn" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-amber-50 to-amber-100 px-6 py-4 font-semibold text-slate-800 hover:from-amber-100 hover:to-amber-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"/>
+          </svg>
+        </div>
+        <span class="text-lg">Association d'endpoints (Anti-rebond)</span>
+      </summary>
+      <div class="p-6">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <h4 class="font-semibold text-amber-800 mb-1">Prévention des rebonds</h4>
+              <p class="text-sm text-amber-700">Associez cet endpoint à un autre pour éviter l'envoi de messages en boucle. Par exemple, si cet endpoint reçoit une création d'identité, il n'enverra pas de message de création sur l'endpoint associé.</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">Endpoint lié (anti-rebond)</label>
+          <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all" name="linked_endpoint_id">
+            <option value="">🔄 Aucun (pas de protection anti-rebond)</option>
+            {% for other_e in all_endpoints %}
+            {% if other_e.id != e.id %}
+            <option value="{{ other_e.id }}" {% if e.linked_endpoint_id == other_e.id %}selected{% endif %}>
+              {{ '🔌' if other_e.kind == 'MLLP' else ('🔥' if other_e.kind == 'FHIR' else ('📁' if other_e.kind == 'FILE' else ('📤' if other_e.kind == 'FTP' else '🔐'))) }}
+              {{ other_e.name }} ({{ other_e.kind }})
+            </option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          <p class="text-xs text-slate-500 mt-1.5">Les messages reçus sur cet endpoint ne seront pas retransmis vers l'endpoint lié</p>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section: Configuration MLLP -->
+    <details class="btn">
+      <summary class="cursor-pointer bg-gradient-to-r from-purple-50 to-purple-100 px-6 py-4 font-semibold text-slate-800 hover:from-purple-100 hover:to-purple-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <span class="text-lg">Configuration MLLP (HL7v2)</span>
+      </summary>
+      <div class="p-6">
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Host</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all" name="host" value="{{ e.host or '' }}" placeholder="192.168.1.100">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Port</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all" type="number" name="port" value="{{ e.port or '' }}" placeholder="2575">
+          </div>
+        </div>
+        <div class="mt-6 pt-6 border-t border-slate-200">
+          <h4 class="text-sm font-semibold text-slate-700 mb-4">📨 Configuration MSH (Message Header)</h4>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">Sending App (MSH-3)</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all" name="sending_app" value="{{ e.sending_app or '' }}" placeholder="MEDBRIDGE">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">Sending Facility (MSH-4)</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all" name="sending_facility" value="{{ e.sending_facility or '' }}" placeholder="HOPITAL">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">Receiving App (MSH-5)</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all" name="receiving_app" value="{{ e.receiving_app or '' }}" placeholder="TARGET_APP">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">Receiving Facility (MSH-6)</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all" name="receiving_facility" value="{{ e.receiving_facility or '' }}" placeholder="TARGET_FAC">
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section: Configuration FHIR -->
+    <details class="btn">
+      <summary class="cursor-pointer bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 font-semibold text-slate-800 hover:from-orange-100 hover:to-orange-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+          </svg>
+        </div>
+        <span class="text-lg">Configuration FHIR (REST API)</span>
+      </summary>
+      <div class="p-6">
+        <div class="grid gap-6 md:grid-cols-2">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-2">FHIR base URL</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all" name="base_url" value="{{ e.base_url or '' }}" placeholder="https://fhir.example.com/r4">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Auth kind</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all" name="auth_kind">
+              {% set auths = ['none','bearer'] %}
+              {% for a in auths %}
+              <option value="{{ a }}" {% if e.auth_kind==a %}selected{% endif %}>{{ '🔓' if a == 'none' else '🔐' }} {{ a|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Auth token</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-mono text-sm" name="auth_token" value="{{ e.auth_token or '' }}" placeholder="Bearer ey...">
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section: Configuration FILE -->
+    <details class="btn">
+      <summary class="cursor-pointer bg-gradient-to-r from-emerald-50 to-emerald-100 px-6 py-4 font-semibold text-slate-800 hover:from-emerald-100 hover:to-emerald-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <span class="text-lg">Configuration FILE (Filesystem)</span>
+      </summary>
+      <div class="p-6">
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">📥 Inbox Path</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono text-sm" name="inbox_path" value="{{ e.inbox_path or '' }}" placeholder="/data/inbox">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">📤 Outbox Path</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono text-sm" name="outbox_path" value="{{ e.outbox_path or '' }}" placeholder="/data/outbox">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">📦 Archive Path</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono text-sm" name="archive_path" value="{{ e.archive_path or '' }}" placeholder="/data/archive">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">⚠️ Error Path</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono text-sm" name="error_path" value="{{ e.error_path or '' }}" placeholder="/data/error">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Extensions fichier</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all font-mono text-sm" name="file_extensions" value="{{ e.file_extensions or '' }}" placeholder=".hl7,.txt,.xml">
+            <p class="text-xs text-slate-500 mt-1.5">Extensions surveillées, séparées par des virgules</p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Section: Configuration FTP/SFTP -->
+    <details class="btn">
+      <summary class="cursor-pointer bg-gradient-to-r from-cyan-50 to-cyan-100 px-6 py-4 font-semibold text-slate-800 hover:from-cyan-100 hover:to-cyan-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+          </svg>
+        </div>
+        <span class="text-lg">Configuration FTP/SFTP</span>
+      </summary>
+      <div class="p-6">
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Host</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" name="ftp_host" value="{{ e.ftp_host or '' }}" placeholder="ftp.example.com">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Port</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" type="number" name="ftp_port" value="{{ e.ftp_port or '' }}" placeholder="21">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Username</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" name="ftp_username" value="{{ e.ftp_username or '' }}" placeholder="user">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Password</label>
+            <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" type="password" name="ftp_password" value="{{ e.ftp_password or '' }}" placeholder="password">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Protocole</label>
+            <select class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all" name="ftp_use_sftp">
+              <option value="false" {% if not e.ftp_use_sftp %}selected{% endif %}>📤 FTP</option>
+              <option value="true" {% if e.ftp_use_sftp %}selected{% endif %}>🔐 SFTP</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-6 pt-6 border-t border-slate-200">
+          <h4 class="text-sm font-semibold text-slate-700 mb-4">📁 Chemins distants</h4>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">📥 Inbox distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_inbox_path" value="{{ e.ftp_remote_inbox_path or '' }}" placeholder="/remote/inbox">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">📤 Outbox distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_outbox_path" value="{{ e.ftp_remote_outbox_path or '' }}" placeholder="/remote/outbox">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">📦 Archive distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_archive_path" value="{{ e.ftp_remote_archive_path or '' }}" placeholder="/remote/archive">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-600 mb-1.5">⚠️ Error distant</label>
+              <input class="w-full rounded-xl border-2 border-slate-200 px-4 py-2.5 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono text-sm" name="ftp_remote_error_path" value="{{ e.ftp_remote_error_path or '' }}" placeholder="/remote/error">
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Boutons d'action -->
+    <div class="flex flex-wrap items-center justify-between gap-4 pt-4">
+      <div class="flex gap-3">
+        <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Enregistrer
+        </button>
+        <a href="/endpoints" class="btn">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Retour
+        </a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Actions supplémentaires -->
+  <div class="btn">
+    {% if e.kind != 'FILE' %}
+    <form method="post" action="/endpoints/{{ e.id }}/start">
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" {% if is_running %}disabled{% endif %}>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Démarrer
+      </button>
+    </form>
+    <form method="post" action="/endpoints/{{ e.id }}/stop">
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 border border-amber-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" {% if not is_running %}disabled{% endif %}>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+        </svg>
+        Arrêter
+      </button>
+    </form>
+    {% endif %}
+    <form method="post" action="/endpoints/{{ e.id }}/delete" onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer cet endpoint ? Cette action est irréversible.');">
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+        Supprimer
+      </button>
+    </form>
+  </div>
+
+  <!-- Script filtrage EJ par GHT -->
+  <script>
+  (function(){
+    try {
+      const ghtSel = document.getElementById('ght_select');
+      const ejSel = document.getElementById('ej_select');
+      if (!ghtSel || !ejSel) return;
+      const filterEJ = () => {
+        const ght = ghtSel.value;
+        const opts = Array.from(ejSel.options);
+        let keep = false;
+        opts.forEach(opt => {
+          if (!opt.value) return;
+          const ok = !ght || (String(opt.dataset.ght||'') === String(ght));
+          opt.hidden = !ok;
+          if (!ok && opt.selected) opt.selected = false;
+          if (ok && opt.selected) keep = true;
+        });
+        if (!keep && ejSel.selectedIndex > 0) ejSel.value = '';
+      };
+      const syncGHTfromEJ = () => {
+        try {
+          if (ghtSel.value) return;
+          const sel = ejSel.options[ejSel.selectedIndex];
+          const g = sel ? sel.dataset.ght : '';
+          if (g) ghtSel.value = String(g);
+        } catch(_) {}
+      };
+      ghtSel.addEventListener('change', filterEJ);
+      ejSel.addEventListener('change', syncGHTfromEJ);
+      syncGHTfromEJ();
+      filterEJ();
+    } catch(e) { console && console.warn && console.warn('filterEJ init failed', e); }
+  })();
+  </script>
+
+  <!-- Styles accordéons -->
+  <style>
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before {
+      content: '▶';
+      display: inline-block;
+      margin-right: 0.5rem;
+      transition: transform 0.2s ease;
+      font-size: 0.75rem;
+    }
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+  </style>
+</div>
+{% endblock %}

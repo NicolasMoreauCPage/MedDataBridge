@@ -688,23 +688,70 @@
         return;
       }
 
-      const confirmation = confirm('Générer cette structure dans la base de données ?\n\n' +
-        `Pôles : ${templatePayload.poles?.length || 0}\n` +
-        `Services : ${templatePayload.poles?.reduce((sum, p) => sum + (p.services?.length || 0), 0) || 0}\n` +
-        `UF : ${templatePayload.poles?.reduce((sum, p) => sum + p.services?.reduce((s2, svc) => s2 + (svc.ufs?.length || 0), 0), 0) || 0}`
+      // Demander l'EG cible
+      const egIdInput = prompt('ID de l\'Entité Géographique cible (EG) :', '1');
+      if (!egIdInput) return;
+      const egId = parseInt(egIdInput);
+      if (isNaN(egId) || egId <= 0) {
+        alert('ID d\'EG invalide.');
+        return;
+      }
+
+      const totalPoles = templatePayload.poles?.length || 0;
+      const totalServices = templatePayload.poles?.reduce((sum, p) => sum + (p.services?.length || 0), 0) || 0;
+      const totalUfs = templatePayload.poles?.reduce((sum, p) => sum + p.services?.reduce((s2, svc) => s2 + (svc.ufs?.length || 0), 0), 0) || 0;
+
+      const confirmation = confirm(
+        `Générer cette structure dans la base de données ?\n\n` +
+        `EG cible : ${egId}\n` +
+        `Pôles : ${totalPoles}\n` +
+        `Services : ${totalServices}\n` +
+        `UF : ${totalUfs}\n` +
+        `UH : ${uhList.length}`
       );
 
       if (!confirmation) return;
 
-      alert('🚧 Endpoint /api/structure/apply-template à implémenter.\n\n' +
-            'Les données seront envoyées au backend pour créer les entités Pole, Service, UF en base de données.');
-      
-      // TODO: Appel API
-      // const response = await fetch('/api/structure/apply-template', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ payload: templatePayload, uhs: uhList })
-      // });
+      try {
+        generateStructureBtn.disabled = true;
+        generateStructureBtn.textContent = '⏳ Génération en cours...';
+
+        const response = await fetch('/api/structure/apply-template', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eg_id: egId,
+            payload: templatePayload,
+            uhs: uhList
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Erreur lors de la création de la structure');
+        }
+
+        const result = await response.json();
+        
+        alert(
+          `✅ ${result.message}\n\n` +
+          `Créé :\n` +
+          `• ${result.created_entities.poles} pôle(s)\n` +
+          `• ${result.created_entities.services} service(s)\n` +
+          `• ${result.created_entities.ufs} UF\n` +
+          `• ${result.created_entities.uhs} UH\n\n` +
+          `Vous pouvez maintenant consulter la structure dans le dashboard.`
+        );
+
+        // Rediriger vers le dashboard structure
+        window.location.href = '/structure';
+
+      } catch (error) {
+        console.error('Erreur:', error);
+        alert(`❌ Erreur : ${error.message}`);
+        generateStructureBtn.disabled = false;
+        generateStructureBtn.textContent = '🚀 Générer la structure';
+      }
     });
 
     updateStepDisplay();

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+        <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+        <span class="text-slate-400">/</span>
+        <span class="text-slate-800 font-medium">Métriques</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="btn btn-primary">
+            <div class="flex items-center space-x-4">
+                <div class="btn">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold">Dashboard des Métriques</h1>
+                    <p class="text-indigo-100 mt-1">Monitoring en temps réel des opérations et performances</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Status -->
+    <div class="mb-8">
+        <div id="health-card" class="btn">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold mb-2">État du Système</h2>
+                    <p id="health-status" class="text-2xl font-bold">Chargement...</p>
+                    <p id="health-message" class="text-sm text-slate-600 mt-1"></p>
+                </div>
+                <div id="health-icon" class="text-5xl">🔄</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="btn">
+            <div class="text-sm text-slate-600 mb-1">Total Opérations</div>
+            <div class="alert alert-info">0</div>
+        </div>
+        <div class="btn">
+            <div class="text-sm text-slate-600 mb-1">Taux de Succès</div>
+            <div class="alert alert-success">0%</div>
+        </div>
+        <div class="btn">
+            <div class="text-sm text-slate-600 mb-1">Taux d'Erreur</div>
+            <div class="alert alert-error">0%</div>
+        </div>
+    </div>
+
+    <!-- Operations Table -->
+    <div class="btn">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold">Métriques par Opération</h2>
+            <button onclick="refreshMetrics()" class="btn btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Actualiser
+            </button>
+        </div>
+        
+        <div id="operations-table" class="overflow-x-auto">
+            <p class="text-center text-slate-600 py-8">Chargement des métriques...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let refreshInterval;
+
+async function fetchMetrics() {
+    try {
+        const response = await fetch('/api/metrics/dashboard');
+        const data = await response.json();
+        updateUI(data);
+    } catch (error) {
+        console.error('Erreur lors du chargement des métriques:', error);
+        document.getElementById('health-status').textContent = 'Erreur';
+        document.getElementById('health-message').textContent = 'Impossible de charger les métriques';
+        document.getElementById('health-icon').textContent = '❌';
+    }
+}
+
+function updateUI(data) {
+    // Health
+    const health = data.health;
+    const healthCard = document.getElementById('health-card');
+    const healthStatus = document.getElementById('health-status');
+    const healthMessage = document.getElementById('health-message');
+    const healthIcon = document.getElementById('health-icon');
+    
+    healthStatus.textContent = health.status.charAt(0).toUpperCase() + health.status.slice(1);
+    healthMessage.textContent = health.message;
+    
+    // Update colors and icon based on health
+    healthCard.classList.remove('border-green-200', 'border-yellow-200', 'border-red-200', 'bg-green-50', 'bg-yellow-50', 'bg-red-50');
+    if (health.status === 'healthy') {
+        healthCard.classList.add('border-green-200', 'bg-green-50');
+        healthStatus.classList.add('text-green-700');
+        healthIcon.textContent = '✅';
+    } else if (health.status === 'degraded') {
+        healthCard.classList.add('border-yellow-200', 'bg-yellow-50');
+        healthStatus.classList.add('text-yellow-700');
+        healthIcon.textContent = '⚠️';
+    } else {
+        healthCard.classList.add('border-red-200', 'bg-red-50');
+        healthStatus.classList.add('text-red-700');
+        healthIcon.textContent = '❌';
+    }
+    
+    // Summary
+    const summary = data.summary;
+    document.getElementById('total-ops').textContent = summary.total_operations.toLocaleString();
+    document.getElementById('success-rate').textContent = summary.success_rate.toFixed(1) + '%';
+    document.getElementById('error-rate').textContent = summary.error_rate.toFixed(1) + '%';
+    
+    // Operations Table
+    const operations = data.operations;
+    const tableContainer = document.getElementById('operations-table');
+    
+    if (Object.keys(operations).length === 0) {
+        tableContainer.innerHTML = '<p class="text-center text-slate-600 py-8">Aucune métrique disponible</p>';
+        return;
+    }
+    
+    let tableHTML = `
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead>
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Opération</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">Total</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">Succès</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">Erreurs</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">Durée Moy.</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">Taux Succès</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    for (const [name, metrics] of Object.entries(operations)) {
+        const successRate = metrics.success_rate ? (metrics.success_rate * 100).toFixed(1) : '0.0';
+        const avgDuration = metrics.avg_duration ? (metrics.avg_duration * 1000).toFixed(0) : '0';
+        const successClass = metrics.success_rate >= 0.95 ? 'text-green-600' : metrics.success_rate >= 0.8 ? 'text-yellow-600' : 'text-red-600';
+        
+        tableHTML += `
+            <tr class="btn">
+                <td class="px-4 py-3 text-sm font-medium text-slate-900">${name}</td>
+                <td class="px-4 py-3 text-sm text-slate-600 text-right">${metrics.count}</td>
+                <td class="px-4 py-3 text-sm text-green-600 text-right">${metrics.success_count}</td>
+                <td class="px-4 py-3 text-sm text-red-600 text-right">${metrics.error_count}</td>
+                <td class="px-4 py-3 text-sm text-slate-600 text-right">${avgDuration}ms</td>
+                <td class="px-4 py-3 text-sm ${successClass} text-right font-semibold">${successRate}%</td>
+            </tr>
+        `;
+    }
+    
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+    
+    tableContainer.innerHTML = tableHTML;
+}
+
+function refreshMetrics() {
+    fetchMetrics();
+}
+
+// Initial load
+fetchMetrics();
+
+// Auto-refresh every 5 seconds
+refreshInterval = setInterval(fetchMetrics, 5000);
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
+</script>
+{% endblock %}

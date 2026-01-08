@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{{ title }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="flex items-center space-x-4">
+        <div class="btn">
+          <div class="text-3xl">🔹</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">{{ title }}</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-2xl font-bold text-primary mb-6">{{ title }}</h2>
+  {% if error %}
+    <div class="alert alert-error">
+      <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span class="text-red-700">{{ error }}</span>
+    </div>
+  {% endif %}
+
+  <form method="post" class="max-w-2xl mx-auto" {% if action_url %}action="{{ action_url }}"{% endif %} novalidate role="form">
+    <div class="grid gap-6">
+      <div class="form-section">
+      {% for field in fields %}
+        <div class="space-y-2 relative group">
+          {% set field_id = field.name + '_field' %}
+          {% set help_id = field.name + '_help' %}
+          {% set error_id = field.name + '_error' %}
+          <label for="{{ field_id }}" class="flex items-baseline gap-2">
+            <span class="text-sm font-medium text-slate-700">{{ field.label }}</span>
+            {% if field.required %}
+              <span class="text-red-500 font-medium" aria-hidden="true">*</span>
+            {% endif %}
+            {% if field.help %}
+              <div id="{{ help_id }}" class="relative inline-block">
+                <button type="button" class="text-slate-400 hover:text-primary" aria-label="Plus d'informations sur {{ field.label }}" aria-describedby="{{ help_id }}_tooltip">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <div id="{{ help_id }}_tooltip" class="btn btn-primary" role="tooltip">
+                  <span class="text-xs">{{ field.help }}</span>
+                  <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-primary"></div>
+                </div>
+              </div>
+            {% endif %}
+          </label>
+          {% if field.type == "select" %}
+            <div class="relative">
+              <select
+                id="{{ field_id }}"
+                class="btn"
+                name="{{ field.name }}"
+                {% if field.required %}required aria-required="true" data-required="true"{% endif %}
+                aria-invalid="{% if field.error %}true{% else %}false{% endif %}"
+                {% set ids = [] %}
+                {% if field.help %}{% set ids = (ids + [help_id]) %}{% endif %}
+                {% if field.error %}{% set ids = (ids + [error_id]) %}{% endif %}
+                {% if ids %}aria-describedby="{{ ids|join(' ') }}"{% endif %}
+              >
+                <option value="">Sélectionnez...</option>
+                {% for option in field.options %}
+                  <option 
+                    value="{{ option.value if option is mapping else option }}"
+                    {% if field.value == (option.value if option is mapping else option) %}selected{% endif %}
+                  >
+                    {{ option.label if option is mapping else option }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700" aria-hidden="true">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          {% else %}
+            <input
+              id="{{ field_id }}"
+              class="btn"
+              name="{{ field.name }}" {% if field.name == 'family' %}autofocus{% endif %}
+              type="{{ field.type }}"
+              value="{{ field.value or '' }}"
+              placeholder="{{ field.placeholder or '' }}"
+              {% if field.required %}required aria-required="true" data-required="true"{% endif %}
+              aria-invalid="{% if field.error %}true{% else %}false{% endif %}"
+              {% set ids = [] %}
+              {% if field.help %}{% set ids = (ids + [help_id]) %}{% endif %}
+              {% if field.error %}{% set ids = (ids + [error_id]) %}{% endif %}
+              {% if ids %}aria-describedby="{{ ids|join(' ') }}"{% endif %}
+              {% if field.pattern %}pattern="{{ field.pattern }}"{% endif %}
+              {% if field.min %}min="{{ field.min }}"{% endif %}
+              {% if field.max %}max="{{ field.max }}"{% endif %}
+              {% if field.readonly %}readonly{% endif %}
+              {% if field.disabled %}disabled{% endif %}
+            />
+          {% endif %}
+          
+          {% if field.error %}
+            <p id="{{ error_id }}" class="error-message form-error text-sm text-red-600 dark:text-red-400 flex items-center gap-1 mt-1" role="alert">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {{ field.error }}
+            </p>
+          {% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end">
+      <button type="submit" class="btn btn-primary">Valider le message</button>
+    </div>
+  </form>
+
+  {% if validation_report %}
+    <div class="btn">
+      <h3 class="text-lg font-bold text-primary mb-4">Rapport de validation</h3>
+      <!-- ...existing code for displaying validation_report... -->
+    </div>
+  {% endif %}
+</div>
+
+<!-- Inline quick-init: ensure a FormManager is attached to this form as soon as possible.
+     This acts as a small race-free fallback when the external forms.js is loaded
+     dynamically or deferred. It will try to instantiate FormManager if available,
+     otherwise poll briefly. This keeps the main logic in forms.js but avoids
+     the case where a submit happens before handlers are attached. -->
+<script>
+  (function(){
+    try {
+      const form = document.querySelector('form[role="form"]');
+      if (!form) return;
+      const tryAttach = () => {
+        if (form.manager) return true;
+        if (window.FormManager) {
+          try {
+            form.manager = new FormManager(form);
+            form.setAttribute('data-forms-manager', '1');
+            if (form.classList && form.classList.contains('has-state-transitions')) {
+              if (window.StateTransitionManager && typeof window.StateTransitionManager.setupTransitionValidation === 'function') {
+                window.StateTransitionManager.setupTransitionValidation(form);
+              }
+            }
+            return true;
+          } catch (e) {
+            console.error('Failed to attach FormManager inline fallback', e);
+            return false;
+          }
+        }
+        return false;
+      };
+
+      if (!tryAttach()) {
+        // Poll briefly for the external script to define FormManager
+        let attempts = 0;
+        const interval = setInterval(() => {
+          attempts += 1;
+          if (tryAttach() || attempts > 10) {
+            clearInterval(interval);
+          }
+        }, 50);
+      }
+    } catch (e) {
+      console.error('Inline form init error', e);
+    }
+  })();
+</script>
+
+<!-- Load state transitions manager first -->
+<script src="/static/js/state_transitions.js"></script>
+<!-- Load forms.js with cache-busting -->
+<script>
+  (function() {
+    try {
+      var scriptUrl = "/static/js/forms.js" + "?v=" + Date.now();
+      var s = document.createElement('script');
+      s.src = scriptUrl;
+      s.defer = true;
+      document.head.appendChild(s);
+      console.debug('Loaded forms.js with cache-bust:', scriptUrl);
+    } catch (e) {
+      console.error('Failed to dynamically load forms.js', e);
+    }
+  })();
+</script>
+
+{% endblock %}

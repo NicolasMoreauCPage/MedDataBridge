@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 1.01</DIV>
+<P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modifications apport&eacute;es
+suite &agrave; la r&eacute;union du 20/10/2003 sous l’&eacute;gide
+du GMSIH.</FONT></P>
+
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification no de
+   phase = 0 a 99 ( avant 1 a 99 )</FONT></P>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout attribut sur
+   &lt;acteNGAP&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>porteeCle = <B>n, l</B>
+      (lettre cl&eacute; a port&eacute;e <B>n</B>ationale ou <B>l</B>ocale)</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout attribut sur
+   &lt;evenementsServeurActes&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>identifiantAttendu =
+      oui / non</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Cet attribut permet
+         de g&eacute;rer un cas particulier, &agrave; savoir la gestion
+         d’une application &eacute;mettrice d&eacute;pendante des
+         identifiants de l’application receptrice ‘Serveur d’acte’.</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Oblige &agrave;
+         &eacute;mettre par fichier une seule intervention ou un seul acte
+         lors de la cr&eacute;ation puisque le seul r&eacute;f&eacute;rent
+         est l’identifiantMessage .</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>L’identifiant
+         intervention ou acte devra etre retourn&eacute; par un message
+         ‘retour acquittement’.</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Le contenu de la
+         balise &lt;identifiant&gt;&lt;emetteur&gt; devra &eacute;tre &eacute;gal
+         &agrave; 0 pour l’intervention ou l’acte  &eacute;mis.</FONT></P>
+      </UL>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>rendre facultatif le
+   choix sur minoration et majoration pour &lt;acteNGAP&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout balise p&eacute;re
+      &lt;minorMajor&gt;</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"> <FONT SIZE=3>transformer la
+   balise &lt;ententePrealable&gt; ( fille de &lt;priseCharge&gt; ) par
+   son &eacute;quivalent attribut sur la balise &lt;priseCharge&gt;</FONT></P>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>R&eacute;vision de la
+   balise &lt;depassement&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>objectif :
+      distinguer les montants forfait technique des montants de
+      d&eacute;passement.</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout d'une balise
+      p&eacute;re &lt;montant&gt;</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout d'une balise
+      &lt;montantTotal&gt;</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>= quantit&eacute; *
+         prix unitaire.</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>dans le cas du
+         forfait technique, correspond &agrave; la base de remboursement.</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>n'int&eacute;gre
+         pas le montant de d&eacute;passement.</FONT></P>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>r&eacute;partition
+      des attributs initiaux sur &lt;montant&gt; et &lt;montantDepassement&gt;</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Gestion de la fusion
+   d'intervention</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout balise
+      &lt;evenementFusionIntervention&gt; + balises filles + attributs</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>R&eacute;vision des
+   namespace insee</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>R&eacute;activation
+      de l’import namespace insee dans patient.xsd et
+      personnePhysique.xsd. En effet, certains parseurs ( exemple  xerces
+      ) exigent l’allocation du namespace dans tous les fichiers
+      utilisant le namespace insee</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>R&eacute;vision de
+   pattern </FONT>
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour les types
+      simples nom3, nom10, nom12, nom15, nom17, nom21, changement de [-_]
+      par [\-,_]</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Changement de la
+   valeur de l’attribut  elementFormDefault de &lt;xsd:schema&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Certains parseurs (
+      xmlspy 2004 ) detectent un probl&eacute;me dans la d&eacute;finition
+      des namespaces d&eacute;s l’instant ou cet attribut est &eacute;gal
+      &agrave; &quot;unqualified&quot;, d’ou la valeur &agrave;
+      &quot;qualified&quot;.</FONT></P>
+   </UL>
+</UL>
+<H1 CLASS="western"><FONT SIZE=4 STYLE="font-size: 16pt">Annexes </FONT>
+</H1>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Afin de r&eacute;pondre
+   aux demandes croissantes concernant  les envois des frais divers
+   vers une  chaine de facturation au format xml, nous proposons
+   d’ajouter un autre flux nomm&eacute; ‘evenementsFraisDivers’.
+   Ce flux est d&eacute;tach&eacute; de la d&eacute;marche du serveur
+   d’actes. Le sch&eacute;ma se nomme
+   msgEvenementsFraisDivers100.xsd.</FONT></P>
+</UL>
+
+</BODY>
+</HTML>

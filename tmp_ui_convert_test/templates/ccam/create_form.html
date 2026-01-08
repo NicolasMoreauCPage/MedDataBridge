@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ccam" class="hover:text-blue-600 transition-colors">CCAM</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ccam/dossier/{{ dossier.id }}" class="hover:text-blue-600 transition-colors">Dossier #{{ dossier.dossier_seq }}</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Nouveau acte</span>
+  </nav>
+
+  <div class="btn">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Nouveau acte CCAM</h1>
+    <p class="text-gray-600 mb-6">Dossier #{{ dossier.dossier_seq }} - {{ dossier.patient.family }}, {{ dossier.patient.given }}</p>
+
+    {% if error %}
+    <div class="alert alert-error">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">Erreur de validation</h3>
+          <p class="text-sm text-red-700 mt-1">{{ error }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <form method="post" class="space-y-6" id="ccamForm">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Code acte CCAM (HPRIM: obligatoire, AAAA999) -->
+        <div>
+          <label for="code_acte" class="block text-sm font-medium text-gray-700">
+            Code acte CCAM <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="code_acte" id="code_acte" required
+                 pattern="^[A-Z]{4}\d{3}$" title="Format: 4 lettres majuscules + 3 chiffres (ex: HBQK003)"
+                 maxlength="7" placeholder="HBQK003"
+                 value="{{ form_data.code_acte if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 uppercase">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM XML 2.4 - 4 lettres + 3 chiffres</p>
+        </div>
+
+        <!-- Code activité (HPRIM: obligatoire, 2 chiffres) -->
+        <div>
+          <label for="code_activite" class="block text-sm font-medium text-gray-700">
+            Code activité <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="code_activite" id="code_activite" required
+                 pattern="^\d{2}$" title="2 chiffres (ex: 00, 01, 10)"
+                 maxlength="2" placeholder="00"
+                 value="{{ form_data.code_activite if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Modalité de réalisation (2 chiffres)</p>
+        </div>
+
+        <!-- Code phase (HPRIM: optionnel, 2 chiffres) -->
+        <div>
+          <label for="code_phase" class="block text-sm font-medium text-gray-700">Code phase</label>
+          <input type="text" name="code_phase" id="code_phase"
+                 pattern="^\d{2}$" title="2 chiffres optionnels (ex: 01, 02)"
+                 maxlength="2" placeholder="01"
+                 value="{{ form_data.code_phase if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Phase de l'acte (optionnel)</p>
+        </div>
+
+        <!-- Modificateurs (HPRIM: optionnel, lettres séparées par virgules) -->
+        <div>
+          <label for="modificateurs" class="block text-sm font-medium text-gray-700">Modificateurs</label>
+          <input type="text" name="modificateurs" id="modificateurs"
+                 pattern="^[A-Z0-9]*(,[A-Z0-9]+)*$" title="Lettres/chiffres séparés par virgules (ex: A,B,C)"
+                 placeholder="A,B,C" maxlength="50"
+                 value="{{ form_data.modificateurs if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 uppercase">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Lettres/chiffres séparés par virgules</p>
+        </div>
+
+        <!-- Date d'exécution (HPRIM: obligatoire, format ISO) -->
+        <div>
+          <label for="execute_date" class="block text-sm font-medium text-gray-700">
+            Date d'exécution <span class="text-red-500">*</span>
+          </label>
+          <input type="date" name="execute_date" id="execute_date" required
+                 max="{{ today|date:'Y-m-d' }}" title="Date au format ISO (YYYY-MM-DD)"
+                 value="{{ form_data.execute_date if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Format ISO 8601 requis</p>
+        </div>
+
+        <!-- Heure d'exécution (HPRIM: optionnel, format HH:MM) -->
+        <div>
+          <label for="execute_heure" class="block text-sm font-medium text-gray-700">Heure d'exécution</label>
+          <input type="time" name="execute_heure" id="execute_heure" step="60"
+                 pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+                 title="Format HH:MM"
+                 value="{{ form_data.execute_heure if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Format HH:MM optionnel</p>
+        </div>
+
+        <!-- Quantité (HPRIM: obligatoire, entier positif) -->
+        <div>
+          <label for="quantite" class="block text-sm font-medium text-gray-700">
+            Quantité <span class="text-red-500">*</span>
+          </label>
+          <input type="number" min="1" name="quantite" id="quantite" required
+                 pattern="^\d+$" title="Nombre entier positif"
+                 value="{{ form_data.quantite if form_data else 1 }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Quantité d'actes réalisée</p>
+        </div>
+
+        <!-- Montant unitaire (HPRIM: optionnel, format décimal) -->
+        <div>
+          <label for="montant" class="block text-sm font-medium text-gray-700">Montant unitaire (€)</label>
+          <input type="number" step="0.01" min="0" name="montant" id="montant"
+                 pattern="^\d+(\.\d{1,2})?$" title="Montant en euros (ex: 25.50)"
+                 value="{{ form_data.montant if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Montant unitaire en EUR</p>
+        </div>
+
+        <!-- Extension (HPRIM: optionnel, 1-3 caractères alphanumériques) -->
+        <div>
+          <label for="extension" class="block text-sm font-medium text-gray-700">Extension</label>
+          <input type="text" name="extension" id="extension"
+                 pattern="^[A-Z0-9]{1,3}$" title="1-3 caractères alphanumériques"
+                 maxlength="3" placeholder="ABC"
+                 value="{{ form_data.extension if form_data else '' }}"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 uppercase">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Extension acte particulier</p>
+        </div>
+      </div>
+
+      <!-- Commentaire (HPRIM: optionnel, longueur limitée) -->
+      <div>
+        <label for="commentaire" class="block text-sm font-medium text-gray-700">Commentaire</label>
+        <textarea name="commentaire" id="commentaire" rows="3" maxlength="500"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Commentaire optionnel sur l'acte CCAM...">{{ form_data.commentaire if form_data else '' }}</textarea>
+        <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Maximum 500 caractères</p>
+      </div>
+
+      <!-- Validation côté client -->
+      <div class="alert alert-warning">
+        <h4 class="text-yellow-800 font-medium">Vérifications HPRIM:</h4>
+        <ul id="validationList" class="text-yellow-700 text-sm mt-2 list-disc list-inside"></ul>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        {{ button("Annuler", href="/ccam/dossier/{{ dossier.id }}") }}
+        {{ button("Cr\u00e9er l'acte CCAM", type='submit') }}
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Validation HPRIM côté client
+document.getElementById('ccamForm').addEventListener('submit', function(e) {
+    const codeActe = document.getElementById('code_acte').value.toUpperCase();
+    const codeActivite = document.getElementById('code_activite').value;
+    const codePhase = document.getElementById('code_phase').value;
+    const modificateurs = document.getElementById('modificateurs').value.toUpperCase();
+    const executeDate = document.getElementById('execute_date').value;
+    const extension = document.getElementById('extension').value.toUpperCase();
+    const quantite = parseInt(document.getElementById('quantite').value);
+
+    let isValid = true;
+    const messages = [];
+
+    // Validation code acte
+    if (!codeActe || !/^[A-Z]{4}\d{3}$/.test(codeActe)) {
+        messages.push('Code acte CCAM invalide (4 lettres + 3 chiffres requis, ex: HBQK003)');
+        isValid = false;
+    }
+
+    // Validation code activité
+    if (!codeActivite || !/^\d{2}$/.test(codeActivite)) {
+        messages.push('Code activité invalide (2 chiffres requis)');
+        isValid = false;
+    }
+
+    // Validation code phase optionnel
+    if (codePhase && !/^\d{2}$/.test(codePhase)) {
+        messages.push('Code phase invalide (2 chiffres ou vide)');
+        isValid = false;
+    }
+
+    // Validation modificateurs
+    if (modificateurs && !/^([A-Z0-9]+(,[A-Z0-9]+)*)?$/.test(modificateurs)) {
+        messages.push('Format modificateurs invalide (lettres/chiffres séparés par virgules)');
+        isValid = false;
+    }
+
+    // Validation date
+    if (!executeDate) {
+        messages.push('Date d\'exécution obligatoire');
+        isValid = false;
+    } else {
+        const today = new Date().toISOString().split('T')[0];
+        if (executeDate > today) {
+            messages.push('Date d\'exécution ne peut pas être dans le futur');
+            isValid = false;
+        }
+    }
+
+    // Validation extension
+    if (extension && !/^[A-Z0-9]{1,3}$/.test(extension)) {
+        messages.push('Extension invalide (1-3 caractères alphanumériques)');
+        isValid = false;
+    }
+
+    // Validation quantité
+    if (!quantite || quantite < 1) {
+        messages.push('Quantité doit être un entier positif');
+        isValid = false;
+    }
+
+    if (!isValid) {
+        e.preventDefault();
+        showValidationMessages(messages);
+        return false;
+    }
+
+    return true;
+});
+
+function showValidationMessages(messages) {
+    const container = document.getElementById('validationMessages');
+    const list = document.getElementById('validationList');
+
+    list.innerHTML = '';
+    messages.forEach(msg => {
+        const li = document.createElement('li');
+        li.textContent = msg;
+        list.appendChild(li);
+    });
+
+    container.classList.remove('hidden');
+    container.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Masquer les messages de validation quand on commence à saisir
+document.querySelectorAll('input, select, textarea').forEach(field => {
+    field.addEventListener('input', function() {
+        document.getElementById('validationMessages').classList.add('hidden');
+    });
+});
+
+// Conversion automatique en majuscules pour les champs appropriés
+document.getElementById('code_acte').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+
+document.getElementById('modificateurs').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+
+document.getElementById('extension').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+</script>
+
+{% endblock %}

@@ -1,7 +1,9 @@
 """
 Router pour le module Analytics (Mode Gestionnaire)
 """
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, func
 from typing import Optional
 from datetime import date, datetime, timedelta
@@ -21,6 +23,28 @@ from app.models_analytics import (
 )
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+
+# Router pour les pages HTML (sans prefix /api)
+ui_router = APIRouter(prefix="/structure", tags=["analytics-ui"])
+templates = Jinja2Templates(directory="app/templates")
+
+
+@ui_router.get("/analytics", response_class=HTMLResponse)
+async def analytics_dashboard(
+    request: Request,
+    eg_id: Optional[int] = Query(None, description="ID de l'Entité Géographique"),
+    session: Session = Depends(get_session)
+):
+    """Page du dashboard analytics (Mode Gestionnaire)"""
+    # Si pas d'EG spécifié, prendre le premier disponible
+    if not eg_id:
+        first_eg = session.exec(select(EntiteGeographique)).first()
+        eg_id = first_eg.id if first_eg else None
+    
+    return templates.TemplateResponse("analytics_dashboard.html", {
+        "request": request,
+        "eg_id": eg_id
+    })
 
 
 @router.get("/kpis", response_model=KpiResponse)

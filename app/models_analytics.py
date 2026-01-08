@@ -37,16 +37,16 @@ class OccupationSnapshot(SQLModel, table=True):
     snapshot_date: date = Field(index=True)
     
     # Référence au lit
-    lit_id: int = Field(foreign_key="lits.id", index=True)
+    lit_id: int = Field(foreign_key="lit.id", index=True)
     
     # État d'occupation au moment du snapshot
     is_occupied: bool = Field(default=False)
     
     # Informations contextuelles (dénormalisées pour performances)
-    eg_id: int = Field(foreign_key="entite_geographique.id", index=True)
-    uf_id: Optional[int] = Field(default=None, foreign_key="unite_fonctionnelle.id")
-    service_id: Optional[int] = Field(default=None, foreign_key="services.id")
-    pole_id: Optional[int] = Field(default=None, foreign_key="poles.id")
+    eg_id: int = Field(foreign_key="entitegeographique.id", index=True)
+    uf_id: Optional[int] = Field(default=None, foreign_key="unitefonctionnelle.id")
+    service_id: Optional[int] = Field(default=None, foreign_key="service.id")
+    pole_id: Optional[int] = Field(default=None, foreign_key="pole.id")
     
     # Métadonnées
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -77,7 +77,7 @@ class AlertRule(SQLModel, table=True):
     severity: AlertSeverity = Field(default=AlertSeverity.MEDIUM)
     
     # Périmètre (si null = s'applique à tous)
-    eg_id: Optional[int] = Field(default=None, foreign_key="entite_geographique.id", index=True)
+    eg_id: Optional[int] = Field(default=None, foreign_key="entitegeographique.id", index=True)
     um_code: Optional[str] = Field(default=None, max_length=10)  # MCO, SSR, PSY, HAD
     
     # Activation

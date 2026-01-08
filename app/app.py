@@ -345,7 +345,8 @@ def create_app() -> FastAPI:
     # 3b. Analytics (Mode Gestionnaire)
     from app.routers import analytics
     app.include_router(analytics.router)
-    print(" - Analytics router mounted at /api/analytics")
+    app.include_router(analytics.ui_router)
+    print(" - Analytics routers mounted at /api/analytics and /structure/analytics")
     
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)

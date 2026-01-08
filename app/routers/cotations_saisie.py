@@ -10,7 +10,8 @@ from typing import List, Optional
 import logging
 
 from app.db import get_session
-from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct, MedecinResponsable
+from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
+from app.models_practitioners import MedecinResponsable
 
 logger = logging.getLogger(__name__)
 

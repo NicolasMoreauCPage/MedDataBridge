@@ -39,16 +39,52 @@ async def get_saisie_rapide(
     dossier = session.get(Dossier, dossier_id)
     if not dossier:
         raise HTTPException(status_code=404, detail=f"Dossier {dossier_id} non trouvé")
-    
+
     patient = session.get(Patient, dossier.patient_id) if dossier.patient_id else None
-    
+
+    # Récupérer tous les actes pour alimenter le workspace unique
+    ccam_acts = session.exec(
+        select(CCAMAct)
+        .where(CCAMAct.dossier_id == dossier_id)
+        .order_by(CCAMAct.execute_date.desc())
+    ).all()
+
+    ngap_acts = session.exec(
+        select(NGAPAct)
+        .where(NGAPAct.dossier_id == dossier_id)
+        .order_by(NGAPAct.execute_date.desc())
+    ).all()
+
+    ucd_acts = session.exec(
+        select(UCDAct)
+        .where(UCDAct.dossier_id == dossier_id)
+        .order_by(UCDAct.execute_date.desc())
+    ).all()
+
+    lpp_acts = session.exec(
+        select(LPPAct)
+        .where(LPPAct.dossier_id == dossier_id)
+        .order_by(LPPAct.execute_date.desc())
+    ).all()
+
+    total_actes = len(ccam_acts) + len(ngap_acts) + len(ucd_acts) + len(lpp_acts)
+
     return templates.TemplateResponse(
         "cotations/saisie_rapide.html",
         {
             "request": request,
             "dossier": dossier,
-            "patient": patient
-        }
+            "patient": patient,
+            "ccam_acts": ccam_acts,
+            "ngap_acts": ngap_acts,
+            "ucd_acts": ucd_acts,
+            "lpp_acts": lpp_acts,
+            "total_actes": total_actes,
+            "ccam_count": len(ccam_acts),
+            "ngap_count": len(ngap_acts),
+            "ucd_count": len(ucd_acts),
+            "lpp_count": len(lpp_acts),
+        },
     )
 
 
@@ -536,6 +572,8 @@ async def api_calculate_ngap(
         "denombrement": denombrement
     })
 
+
+@router.post("/api/ngap", name="create_ngap_acte")
 async def create_ngap_acte(
     acte_data: dict,
     session: Session = Depends(get_session)
@@ -571,5 +609,104 @@ async def create_ngap_acte(
         
     except Exception as e:
         logger.error(f"Erreur création acte NGAP: {e}")
+        session.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/api/ucd", name="create_ucd_acte")
+async def create_ucd_acte(
+    acte_data: dict,
+    session: Session = Depends(get_session)
+) -> JSONResponse:
+    """Crée un nouvel acte UCD avec validation minimale orientée saisie rapide."""
+    try:
+        if not acte_data.get("code_ucd"):
+            raise ValueError("Code UCD obligatoire")
+
+        if not acte_data.get("denomination_libelle"):
+            raise ValueError("Libellé médicament obligatoire")
+
+        if not acte_data.get("execute_date"):
+            raise ValueError("Date d'exécution obligatoire")
+
+        quantite = acte_data.get("quantite", 1)
+
+        acte = UCDAct(
+            dossier_id=acte_data["dossier_id"],
+            code_ucd=acte_data["code_ucd"],
+            denomination_libelle=acte_data["denomination_libelle"],
+            denomination_dosage=acte_data.get("denomination_dosage"),
+            denomination_forme=acte_data.get("denomination_forme"),
+            execute_date=acte_data["execute_date"],
+            quantite=quantite,
+            montant_unitaire_facture_ttc=acte_data.get("montant_unitaire_facture_ttc"),
+            commentaire=acte_data.get("commentaire"),
+            valide=False,
+            facture="non",
+        )
+
+        session.add(acte)
+        session.commit()
+        session.refresh(acte)
+
+        logger.info(f"Acte UCD créé: {acte.code_ucd} (ID: {acte.id})")
+
+        return JSONResponse({
+            "success": True,
+            "acte_id": acte.id,
+            "message": f"Acte UCD {acte.code_ucd} enregistré avec succès",
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur création acte UCD: {e}")
+        session.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/api/lpp", name="create_lpp_acte")
+async def create_lpp_acte(
+    acte_data: dict,
+    session: Session = Depends(get_session)
+) -> JSONResponse:
+    """Crée un nouvel acte LPP (dispositif) avec validation minimale."""
+    try:
+        if not acte_data.get("denomination_libelle"):
+            raise ValueError("Libellé dispositif obligatoire")
+
+        if not acte_data.get("execute_date"):
+            raise ValueError("Date d'exécution obligatoire")
+
+        if acte_data.get("montant_unitaire_facture_ttc") is None:
+            raise ValueError("Montant unitaire TTC obligatoire")
+
+        if not acte_data.get("quantite"):
+            raise ValueError("Quantité obligatoire")
+
+        acte = LPPAct(
+            dossier_id=acte_data["dossier_id"],
+            execute_date=acte_data["execute_date"],
+            code_lpp=acte_data.get("code_lpp"),
+            denomination_libelle=acte_data["denomination_libelle"],
+            montant_unitaire_facture_ttc=acte_data["montant_unitaire_facture_ttc"],
+            quantite=acte_data["quantite"],
+            commentaire=acte_data.get("commentaire"),
+            valide=False,
+            facture="non",
+        )
+
+        session.add(acte)
+        session.commit()
+        session.refresh(acte)
+
+        logger.info(f"Acte LPP créé: {acte.code_lpp or acte.denomination_libelle} (ID: {acte.id})")
+
+        return JSONResponse({
+            "success": True,
+            "acte_id": acte.id,
+            "message": "Acte LPP enregistré avec succès",
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur création acte LPP: {e}")
         session.rollback()
         raise HTTPException(status_code=400, detail=str(e))

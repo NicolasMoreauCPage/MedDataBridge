@@ -201,11 +201,31 @@
   - [x] Intégration SortableJS globale
   - [x] Chargement scripts dans base.html
 
-- [ ] **Design System Hospitalier**
-  - [ ] Palette couleurs par type structure (MCO=bleu, PSY=violet, SSR=vert)
-  - [ ] Icônes métier (🏥 EJ, 🏢 Pôle, 🏛️ Service, 🔹 UF, 🏠 UH, 🛏️ Chambre, 💺 Lit)
-  - [ ] Composants réutilisables (cards, forms, tables)
-  - [ ] Responsive design (desktop/tablet/mobile)
+- [x] **Design System Hospitalier**
+  - [x] Palette couleurs par type structure (MCO=bleu, PSY=violet, SSR=vert, HAD=orange)
+  - [x] Couleurs par niveau hiérarchique (EG, Pôle, Service, UF, UH, Chambre, Lit)
+  - [x] Icônes métier (🏥 EJ, 🏢 Pôle, 🏛️ Service, 🔹 UF, 🏠 UH, 🛏️ Chambre, 💺 Lit)
+  - [x] Composants cartes réutilisables avec stats et occupation
+  - [x] États d'occupation (5 niveaux : disponible, normal, tendu, critique, suroccupation)
+  - [x] Barres de progression animées avec gradients
+  - [x] Système de notifications (4 types : success, error, warning, info)
+  - [x] Boutons multi-tailles et couleurs
+  - [x] Formulaires avec validation visuelle
+  - [x] Composants recherche et filtres
+  - [x] Responsive design (desktop/tablet/mobile)
+  - [x] Page démo interactive (/design-system)
+  - [x] Intégration globale (base.html, app.py)
+
+- [x] **Page Démo Interactive** ⭐
+  - [x] Route /design-system avec 6 onglets interactifs
+  - [x] Démo couleurs (palette UM + niveaux hiérarchiques)
+  - [x] Démo cartes structure avec actions
+  - [x] Démo indicateurs occupation (badges + barres animées)  
+  - [x] Démo boutons (tailles + couleurs)
+  - [x] Démo formulaires avec états erreur/succès
+  - [x] Démo notifications avec types et durées
+  - [x] Guide d'utilisation intégré
+  - [x] Tests fonctionnels de tous les composants
 
 - [ ] **Interactions Avancées**
   - [ ] Drag & drop pour réorganiser structure

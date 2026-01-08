@@ -148,6 +148,49 @@
 - `app/templates/structure_interactive.html`
 - `docs/PHASE5_UX_MODERNE.md`
 
+---
+
+### 🎨 Phase 5.2 : Design System Hospitalier
+**Commit**: 906314e (8 janvier 2026)
+
+#### Système de Couleurs Métier:
+- Palette par type UM (MCO=bleu, PSY=violet, SSR=vert, HAD=orange, Urgences=rouge, Réa=indigo)
+- Couleurs par niveau hiérarchique (7 niveaux : EG, Pôle, Service, UF, UH, Chambre, Lit)
+- États d'occupation (5 niveaux : disponible<50%, normal50-80%, tendu80-95%, critique95-100%, suroccupation>100%)
+
+#### Composants Réutilisables:
+- `StructureCard.create()` : cartes structure avec stats et occupation
+- `NotificationSystem` : toasts animés (4 types : success, error, warning, info)
+- `SearchComponent` : recherche avec clear button
+- `FilterComponent` : filtres multi-critères dynamiques
+- `OccupationColors` : calcul automatique couleurs/labels par seuil
+
+#### Design System:
+- Badges d'occupation avec animations (pulse pour suroccupation)
+- Barres de progression avec gradients selon niveau
+- Boutons multi-tailles (sm/normal/lg) et couleurs (primary/success/warning/danger/secondary)
+- Formulaires avec validation visuelle (normal/error + messages)
+- Icônes métier automatiques (🏥🏢🏛️🔹🏠🛏️💺)
+
+#### Page Démo Interactive:
+- Route `/design-system` avec 6 onglets
+- Démos fonctionnelles : Couleurs, Cartes, Occupation, Boutons, Formulaires, Notifications
+- Guide d'utilisation intégré
+- Tests de tous les composants
+
+#### Infrastructure:
+- CSS Variables pour personnalisation facile
+- Responsive design (3 breakpoints : desktop/tablet/mobile)
+- Intégration globale dans `base.html`
+- Compatible avec phases précédentes
+
+**Fichiers créés**:
+- `app/static/css/design-system.css` (600+ lignes)
+- `app/static/js/components.js` (400+ lignes, 6 classes)
+- `app/templates/design_system_demo.html` (300+ lignes)
+- `app/routers/design_system.py`
+- `docs/PHASE5.2_DESIGN_SYSTEM.md`
+
 **Modifications**:
 - `app/templates/base.html` : Scripts SortableJS + lien menu
 - `app/app.py` : Montage routers
@@ -269,28 +312,31 @@
 
 ### Commits
 - Phase 1 : Sprint 1 (Dashboard)
-- Phase 2 : Sprint 2 (Wizard)
+- Phase 2 : Sprint 2 (Wizard)  
 - Phase 3.1 : 5 commits (Analytics complet)
 - Phase 4.1 : 1 commit (Export + Import UI)
 - Phase 5.1 : 1 commit (UX Interactive)
+- Phase 5.2 : 1 commit (Design System) - 906314e
 
-**Total**: ~8 commits majeurs
+**Total**: ~9 commits majeurs
 
 ### Fichiers créés
-- **Routers** : 5 (analytics, alert_config, export_analytics, structure_import_export, structure_interactive)
-- **Templates** : 5 (analytics_dashboard, alert_config, structure_import, structure_interactive, structure_wizard)
-- **Modèles** : 2 (StructureKPI, AlertRule)
-- **JavaScript** : 1 (structure-interactive.js - 480 lignes)
-- **Documentation** : 5 MD (SPRINT3, PHASE4_IMPORT_EXPORT, PHASE5_UX_MODERNE, PHASE4_GESTION_DROITS, TODOLIST)
+- **Routers** : 6 (analytics, alert_config, export_analytics, structure_import_export, structure_interactive, design_system)
+- **Templates** : 6 (analytics_dashboard, alert_config, structure_import, structure_interactive, structure_wizard, design_system_demo)
+- **CSS** : 2 (forms.css, design-system.css - 600+ lignes)
+- **Modèles** : 2 (StructureKPI, AlertRule)  
+- **JavaScript** : 2 (structure-interactive.js - 480 lignes, components.js - 400+ lignes)
+- **Documentation** : 6 MD (SPRINT3, PHASE4_IMPORT_EXPORT, PHASE5_UX_MODERNE, PHASE4_GESTION_DROITS, PHASE5.2_DESIGN_SYSTEM, TODOLIST)
 
-**Total**: ~20 fichiers majeurs
+**Total**: ~25 fichiers majeurs
 
 ### Lignes de code ajoutées
 - Phase 3.1 : ~2500 lignes
 - Phase 4.1 : ~940 lignes
 - Phase 5.1 : ~1590 lignes
+- Phase 5.2 : ~1300+ lignes (design-system.css 600+ + components.js 400+ + demo 300+)
 
-**Total**: ~5000+ lignes de code productif
+**Total**: ~6300+ lignes de code productif
 
 ---
 

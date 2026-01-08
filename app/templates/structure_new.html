@@ -23,8 +23,40 @@
     </div>
   </div>
 
-    <!-- En-tête avec filtres -->
-    <div class="mb-8 space-y-4">
+        <!-- KPIs principaux -->
+        <div class="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-slate-600">Pôles</span>
+                                <span class="text-slate-400 text-lg">🏢</span>
+                        </div>
+                        <div class="text-2xl font-semibold text-slate-900" id="kpi-poles">—</div>
+                </div>
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-slate-600">Services</span>
+                                <span class="text-slate-400 text-lg">🏛️</span>
+                        </div>
+                        <div class="text-2xl font-semibold text-slate-900" id="kpi-services">—</div>
+                </div>
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-slate-600">Unités Fonctionnelles</span>
+                                <span class="text-slate-400 text-lg">🔹</span>
+                        </div>
+                        <div class="text-2xl font-semibold text-slate-900" id="kpi-ufs">—</div>
+                </div>
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-slate-600">Lits</span>
+                                <span class="text-slate-400 text-lg">🛏️</span>
+                        </div>
+                        <div class="text-2xl font-semibold text-slate-900" id="kpi-lits">—</div>
+                </div>
+        </div>
+
+        <!-- En-tête avec filtres -->
+        <div class="mb-8 space-y-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <h1 class="text-3xl font-bold">Vue structurelle</h1>
@@ -90,15 +122,52 @@
 
     <!-- Structure principale -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Navigation arborescente -->
+        <!-- Navigation arborescente / vues -->
         <div class="lg:col-span-1">
             <div class="sticky top-4">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 bg-slate-50 border-b border-slate-200">
+                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
                         <h2 class="font-semibold text-slate-900">Navigation</h2>
+                        <div class="inline-flex rounded-lg border border-slate-200 bg-white overflow-hidden text-xs">
+                            <button id="modeTreeBtn" type="button" class="px-2.5 py-1 bg-slate-900 text-white">Arbre</button>
+                            <button id="modeListBtn" type="button" class="px-2.5 py-1 text-slate-600 hover:bg-slate-50">Liste</button>
+                            <button id="modeCardsBtn" type="button" class="px-2.5 py-1 text-slate-600 hover:bg-slate-50">Cards</button>
+                        </div>
                     </div>
+                    <!-- Vue arbre -->
                     <div id="treeView" class="p-4 text-sm">
                         <!-- Chargé dynamiquement -->
+                    </div>
+                    <!-- Vue liste -->
+                    <div id="listView" class="hidden p-4 text-xs border-t border-slate-100">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-2 py-1 w-6">
+                                        <input type="checkbox" id="listSelectAll" class="rounded border-slate-300">
+                                    </th>
+                                    <th class="px-2 py-1 text-left font-medium text-slate-500">Type</th>
+                                    <th class="px-2 py-1 text-left font-medium text-slate-500">Nom</th>
+                                    <th class="px-2 py-1 text-left font-medium text-slate-500">Chemin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listViewBody" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                        <div id="bulkActionsBar" class="hidden mt-3 p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+                            <div>
+                                <span id="bulkSelectionCount" class="font-medium text-slate-900">0</span>
+                                <span class="text-slate-600 ml-1">élément(s) sélectionné(s)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" class="px-2 py-1 rounded border border-slate-300 text-slate-600 hover:bg-white" onclick="clearBulkSelection()">Annuler</button>
+                                <button type="button" class="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700" onclick="applyBulkAction('activate')">Activer</button>
+                                <button type="button" class="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800" onclick="applyBulkAction('deactivate')">Désactiver</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Vue cards -->
+                    <div id="cardsView" class="hidden p-4 text-xs border-t border-slate-100">
+                        <div id="cardsViewBody" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     </div>
                 </div>
             </div>
@@ -115,6 +184,7 @@
                                     Sélectionnez un élément
                                 </h3>
                                 <p class="text-sm text-slate-500" id="detailType"></p>
+                                <p class="mt-1 text-xs text-slate-400 hidden" id="detailPath"></p>
                             </div>
                             <div class="flex items-center gap-3" id="detailActions"></div>
                         </div>
@@ -158,6 +228,18 @@ const FILTERED_EGS = JSON.parse(document.getElementById('backend-config').textCo
 let currentStructure = null;
 let selectedNode = null;
 let expandedNodes = new Set();
+let viewMode = 'tree'; // 'tree' | 'list' | 'cards'
+
+// Sélection bulk (mode liste)
+const bulkSelection = new Set();
+
+// Statistiques globales structurelles
+const structureStats = {
+    poles: 0,
+    services: 0,
+    ufs: 0,
+    lits: 0,
+};
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -175,6 +257,21 @@ function setupEventListeners() {
     // Boutons d'expansion
     document.getElementById('expandAllBtn').addEventListener('click', expandAll);
     document.getElementById('collapseAllBtn').addEventListener('click', collapseAll);
+
+    // Modes d'affichage
+    const treeBtn = document.getElementById('modeTreeBtn');
+    const listBtn = document.getElementById('modeListBtn');
+    const cardsBtn = document.getElementById('modeCardsBtn');
+    if (treeBtn && listBtn && cardsBtn) {
+        treeBtn.addEventListener('click', () => setViewMode('tree'));
+        listBtn.addEventListener('click', () => setViewMode('list'));
+        cardsBtn.addEventListener('click', () => setViewMode('cards'));
+    }
+
+    const listSelectAll = document.getElementById('listSelectAll');
+    if (listSelectAll) {
+        listSelectAll.addEventListener('change', (e) => toggleSelectAll(e.target.checked));
+    }
 }
 
 // Initialisation de la structure
@@ -191,7 +288,37 @@ async function initializeStructure() {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('Erreur lors du chargement de la structure');
         currentStructure = await response.json();
+
+        // Calculer les statistiques globales
+        computeStructureStats();
+        renderKpiCards();
+
+        // Pré-sélection éventuelle depuis l'URL (#node-type-id)
+        let preselect = null;
+        if (window.location.hash && window.location.hash.startsWith('#node-')) {
+            const parts = window.location.hash.substring(1).split('-');
+            if (parts.length === 3 && parts[0] === 'node') {
+                const type = parts[1];
+                const id = parseInt(parts[2], 10);
+                if (!Number.isNaN(id)) {
+                    preselect = { type, id };
+                    const path = findPathInTree(type, id);
+                    if (path) {
+                        path.forEach(node => {
+                            expandedNodes.add(`node-${node.type}-${node.id}`);
+                        });
+                    }
+                }
+            }
+        }
+
+        // Rendu initial en mode arbre
         renderStructure();
+
+        // Si une structure est indiquée dans l'URL, la sélectionner
+        if (preselect) {
+            selectNode(preselect.type, preselect.id);
+        }
     } catch (error) {
         console.error('Erreur:', error);
         showError('Impossible de charger la structure');
@@ -201,7 +328,13 @@ async function initializeStructure() {
 // Rendu de la structure
 function renderStructure() {
     const treeView = document.getElementById('treeView');
+    if (!treeView || !Array.isArray(currentStructure)) return;
     treeView.innerHTML = currentStructure.map(eg => renderNode(eg)).join('');
+
+    // Si on est en mode liste, régénérer aussi la vue liste
+    if (viewMode === 'list') {
+        renderListView();
+    }
 }
 
 function renderNode(node, level = 0, parentId = null) {
@@ -211,8 +344,10 @@ function renderNode(node, level = 0, parentId = null) {
                        node.ufs?.length > 0 || node.unites_hebergement?.length > 0 ||
                        node.chambres?.length > 0 || node.lits?.length > 0;
     
+    const icon = getTypeIcon(node.type);
+
     let html = `
-        <div class="structure-node" data-node-id="${nodeId}" data-type="${node.type}" data-parent="${parentId || ''}">
+        <div class="structure-node" data-node-id="${nodeId}" data-type="${node.type}" data-status="${node.status || ''}" data-parent="${parentId || ''}">
             <div class="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-50 cursor-pointer" 
                  style="padding-left: ${padding + 8}px"
                  onclick="selectNode('${node.type}', ${node.id})">
@@ -225,7 +360,8 @@ function renderNode(node, level = 0, parentId = null) {
                         </svg>
                     </button>
                 ` : '<div class="w-4"></div>'}
-                <span class="flex-1">${node.name}</span>
+                <span class="w-5 text-xs">${icon}</span>
+                <span class="flex-1 truncate">${node.name}</span>
             </div>
     `;
 
@@ -255,16 +391,244 @@ function renderNode(node, level = 0, parentId = null) {
     return html;
 }
 
+// Icônes par type de structure
+function getTypeIcon(type) {
+    switch (type) {
+        case 'eg':
+            return '🏥';
+        case 'pole':
+            return '🏢';
+        case 'service':
+            return '🏛️';
+        case 'uf':
+            return '🔹';
+        case 'uh':
+            return '🏠';
+        case 'chambre':
+            return '🚪';
+        case 'lit':
+            return '🛏️';
+        default:
+            return '•';
+    }
+}
+
+// Rendu de la vue liste à plat
+function renderListView() {
+    const tbody = document.getElementById('listViewBody');
+    if (!tbody) return;
+
+    const rows = [];
+
+    function walk(node, pathLabels) {
+        const label = node.name || '';
+        const newPath = [...pathLabels, label];
+        rows.push({
+            id: node.id,
+            name: label,
+            type: node.type,
+            path: newPath.join(' / '),
+            status: node.status || null,
+        });
+
+        if (node.poles?.length) node.poles.forEach(p => walk(p, newPath));
+        if (node.services?.length) node.services.forEach(s => walk(s, newPath));
+        if (node.ufs?.length) node.ufs.forEach(u => walk(u, newPath));
+        if (node.unites_hebergement?.length) node.unites_hebergement.forEach(uh => walk(uh, newPath));
+        if (node.chambres?.length) node.chambres.forEach(c => walk(c, newPath));
+        if (node.lits?.length) node.lits.forEach(l => walk(l, newPath));
+    }
+
+    currentStructure.forEach(eg => walk(eg, []));
+
+    // Appliquer les filtres de type et de recherche sur la liste
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('structureTypeFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+
+    const filteredRows = rows.filter(row => {
+        const matchesSearch = !searchTerm || row.name.toLowerCase().includes(searchTerm) || row.path.toLowerCase().includes(searchTerm);
+        const matchesType = !typeFilter || row.type === typeFilter;
+        const matchesStatus = !statusFilter || row.status === statusFilter;
+        return matchesSearch && matchesType && matchesStatus;
+    });
+
+    tbody.innerHTML = filteredRows.map(row => {
+        const key = `${row.type}:${row.id}`;
+        const checked = bulkSelection.has(key) ? 'checked' : '';
+        return `
+        <tr class="hover:bg-slate-50">
+            <td class="px-2 py-1 w-6">
+                <input type="checkbox" class="rounded border-slate-300 list-row-select" ${checked}
+                       onclick="toggleBulkSelection(event, '${row.type}', ${row.id})">
+            </td>
+            <td class="px-2 py-1 text-slate-600 cursor-pointer" onclick="selectNode('${row.type}', ${row.id})">${getTypeLabel(row.type)}</td>
+            <td class="px-2 py-1 text-slate-900 cursor-pointer" onclick="selectNode('${row.type}', ${row.id})">${row.name}</td>
+            <td class="px-2 py-1 text-slate-500 cursor-pointer" onclick="selectNode('${row.type}', ${row.id})">${row.path}</td>
+        </tr>`;
+    }).join('');
+
+    updateBulkBar();
+}
+
+// Changement de mode d'affichage
+function setViewMode(mode) {
+    if (!['tree', 'list', 'cards'].includes(mode)) return;
+    viewMode = mode;
+
+    const treeView = document.getElementById('treeView');
+    const listView = document.getElementById('listView');
+    const cardsView = document.getElementById('cardsView');
+    const treeBtn = document.getElementById('modeTreeBtn');
+    const listBtn = document.getElementById('modeListBtn');
+    const cardsBtn = document.getElementById('modeCardsBtn');
+    if (!treeView || !listView || !cardsView || !treeBtn || !listBtn || !cardsBtn) return;
+
+    // Masquer toutes les vues
+    treeView.classList.add('hidden');
+    listView.classList.add('hidden');
+    cardsView.classList.add('hidden');
+    treeBtn.classList.remove('bg-slate-900', 'text-white');
+    listBtn.classList.remove('bg-slate-900', 'text-white');
+    cardsBtn.classList.remove('bg-slate-900', 'text-white');
+
+    if (mode === 'tree') {
+        treeView.classList.remove('hidden');
+        treeBtn.classList.add('bg-slate-900', 'text-white');
+    } else if (mode === 'list') {
+        listView.classList.remove('hidden');
+        listBtn.classList.add('bg-slate-900', 'text-white');
+        renderListView();
+    } else if (mode === 'cards') {
+        cardsView.classList.remove('hidden');
+        cardsBtn.classList.add('bg-slate-900', 'text-white');
+        renderCardsView();
+    }
+}
+
+// Vue cards : mosaïque d'éléments filtrés
+function renderCardsView() {
+    const container = document.getElementById('cardsViewBody');
+    if (!container || !Array.isArray(currentStructure)) return;
+
+    const rows = [];
+
+    function walk(node, pathLabels) {
+        const label = node.name || '';
+        const newPath = [...pathLabels, label];
+        rows.push({
+            id: node.id,
+            name: label,
+            type: node.type,
+            path: newPath.join(' / '),
+            status: node.status || null,
+        });
+
+        if (node.poles?.length) node.poles.forEach(p => walk(p, newPath));
+        if (node.services?.length) node.services.forEach(s => walk(s, newPath));
+        if (node.ufs?.length) node.ufs.forEach(u => walk(u, newPath));
+        if (node.unites_hebergement?.length) node.unites_hebergement.forEach(uh => walk(uh, newPath));
+        if (node.chambres?.length) node.chambres.forEach(c => walk(c, newPath));
+        if (node.lits?.length) node.lits.forEach(l => walk(l, newPath));
+    }
+
+    currentStructure.forEach(eg => walk(eg, []));
+
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('structureTypeFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+
+    const filtered = rows.filter(row => {
+        const matchesSearch = !searchTerm || row.name.toLowerCase().includes(searchTerm) || row.path.toLowerCase().includes(searchTerm);
+        const matchesType = !typeFilter || row.type === typeFilter;
+        const matchesStatus = !statusFilter || row.status === statusFilter;
+        return matchesSearch && matchesType && matchesStatus;
+    });
+
+    container.innerHTML = filtered.map(row => `
+        <button type="button" onclick="selectNode('${row.type}', ${row.id})"
+                class="flex flex-col items-start p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm text-left">
+            <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">${getTypeLabel(row.type)}</div>
+            <div class="font-medium text-slate-900">${row.name}</div>
+            <div class="mt-1 text-[11px] text-slate-500 truncate w-full">${row.path}</div>
+        </button>
+    `).join('');
+}
+
+// Calcul des statistiques globales à partir de l'arbre
+function computeStructureStats() {
+    structureStats.poles = 0;
+    structureStats.services = 0;
+    structureStats.ufs = 0;
+    structureStats.lits = 0;
+
+    if (!Array.isArray(currentStructure)) return;
+
+    function walk(node) {
+        switch (node.type) {
+            case 'pole':
+                structureStats.poles += 1;
+                break;
+            case 'service':
+                structureStats.services += 1;
+                break;
+            case 'uf':
+                structureStats.ufs += 1;
+                break;
+            case 'lit':
+                structureStats.lits += 1;
+                break;
+        }
+
+        if (node.poles?.length) node.poles.forEach(walk);
+        if (node.services?.length) node.services.forEach(walk);
+        if (node.ufs?.length) node.ufs.forEach(walk);
+        if (node.unites_hebergement?.length) node.unites_hebergement.forEach(walk);
+        if (node.chambres?.length) node.chambres.forEach(walk);
+        if (node.lits?.length) node.lits.forEach(walk);
+    }
+
+    currentStructure.forEach(walk);
+}
+
+// Mise à jour des cartes KPI
+function renderKpiCards() {
+    const polesEl = document.getElementById('kpi-poles');
+    const servicesEl = document.getElementById('kpi-services');
+    const ufsEl = document.getElementById('kpi-ufs');
+    const litsEl = document.getElementById('kpi-lits');
+
+    if (!polesEl || !servicesEl || !ufsEl || !litsEl) return;
+
+    polesEl.textContent = structureStats.poles.toString();
+    servicesEl.textContent = structureStats.services.toString();
+    ufsEl.textContent = structureStats.ufs.toString();
+    litsEl.textContent = structureStats.lits.toString();
+}
+
 // Sélection d'un nœud
 async function selectNode(type, id) {
     try {
         const response = await fetch(`/api/structure/details/${type}/${id}`);
         if (!response.ok) throw new Error('Erreur lors du chargement des détails');
-        
+
         const details = await response.json();
         selectedNode = { type, id };
+
+        // Afficher le panneau de détails et masquer le message initial
+        const selectMessage = document.getElementById('selectMessage');
+        const detailInfo = document.getElementById('detailInfo');
+        const detailChildren = document.getElementById('detailChildren');
+
+        if (selectMessage) selectMessage.classList.add('hidden');
+        if (detailInfo) detailInfo.classList.remove('hidden');
+        if (detailChildren) detailChildren.classList.remove('hidden');
+
         renderDetails(details);
-        
+
+        // Mettre à jour l'URL pour permettre un lien direct
+        window.location.hash = `node-${type}-${id}`;
+
         // Mettre en surbrillance le nœud sélectionné
         document.querySelectorAll('.structure-node > div').forEach(el => {
             el.classList.remove('bg-blue-50', 'text-blue-700');
@@ -282,6 +646,25 @@ function renderDetails(details) {
     // Titre et type
     document.getElementById('detailTitle').textContent = details.name;
     document.getElementById('detailType').textContent = getTypeLabel(details.type);
+
+    // Chemin hiérarchique (breadcrumb interne)
+    const pathEl = document.getElementById('detailPath');
+    if (pathEl) {
+        const path = findPathInTree(details.type, details.id);
+        if (path && path.length > 0) {
+            pathEl.innerHTML = path.map((node, index) => `
+                <button type="button"
+                        class="inline-flex items-center text-xs text-slate-500 hover:text-blue-600"
+                        onclick="event.stopPropagation(); selectNode('${node.type}', ${node.id})">
+                    ${node.name || getTypeLabel(node.type)}
+                </button>
+            `).join('<span class="mx-1 text-slate-400">/</span>');
+            pathEl.classList.remove('hidden');
+        } else {
+            pathEl.textContent = '';
+            pathEl.classList.add('hidden');
+        }
+    }
     
     // Actions
     const actionsHtml = `
@@ -313,23 +696,100 @@ function renderDetails(details) {
             </div>
     `;
     
-    // Ajouter des champs spécifiques selon le type
-    if (details.type === 'service') {
+    // Bloc localisation (adresse / étage / aile)
+    const hasAddress = details.address_line1 || details.address_city || details.address_postalcode;
+    const hasLocationInfo = hasAddress || details.etage || details.aile;
+    if (hasLocationInfo) {
+        infoHtml += `
+            <div class="md:col-span-2">
+                <dt class="text-sm font-medium text-slate-500">Localisation</dt>
+                <dd class="mt-1 text-sm text-slate-700">
+                    ${[details.address_line1, details.address_line2, details.address_line3]
+                        .filter(Boolean).join('<br>') || ''}
+                    ${details.address_postalcode || details.address_city ? '<br>' : ''}
+                    ${[details.address_postalcode, details.address_city].filter(Boolean).join(' ')}
+                    ${details.etage ? `<br>Étage : ${details.etage}` : ''}
+                    ${details.aile ? `<br>Aile : ${details.aile}` : ''}
+                </dd>
+            </div>
+        `;
+    }
+
+    // Champs spécifiques par type
+    if (details.type === 'eg') {
+        infoHtml += `
+            <div>
+                <dt class="text-sm font-medium text-slate-500">FINESS</dt>
+                <dd class="mt-1">${details.finess || '-'}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Catégorie</dt>
+                <dd class="mt-1">${details.category_name || details.category_code || '-'}</dd>
+            </div>
+        `;
+    } else if (details.type === 'service') {
         infoHtml += `
             <div>
                 <dt class="text-sm font-medium text-slate-500">Type de service</dt>
                 <dd class="mt-1">${details.service_type || '-'}</dd>
             </div>
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Typologie</dt>
+                <dd class="mt-1">${details.typology || '-'}</dd>
+            </div>
         `;
     } else if (details.type === 'uf') {
         infoHtml += `
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Code UM</dt>
+                <dd class="mt-1">${details.um_code || '-'}</dd>
+            </div>
             <div>
                 <dt class="text-sm font-medium text-slate-500">Type d'unité</dt>
                 <dd class="mt-1">${details.uf_type || '-'}</dd>
             </div>
         `;
+    } else if (details.type === 'uh') {
+        infoHtml += `
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Typologie</dt>
+                <dd class="mt-1">${details.typology || '-'}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Type d'unité</dt>
+                <dd class="mt-1">${details.uf_type || '-'}</dd>
+            </div>
+        `;
+    } else if (details.type === 'chambre' || details.type === 'lit') {
+        const isGeneric = details.is_generic ? 'Oui' : 'Non';
+        const capacity = details.max_occupancy != null ? details.max_occupancy : '-';
+        infoHtml += `
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Capacité</dt>
+                <dd class="mt-1">${capacity}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Générique</dt>
+                <dd class="mt-1">${isGeneric}</dd>
+            </div>
+        `;
     }
-    
+
+    // Informations de chambre / genre d'usage
+    if (details.type_chambre || details.gender_usage) {
+        infoHtml += `
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Type de chambre</dt>
+                <dd class="mt-1">${details.type_chambre || '-'}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-slate-500">Genre d'usage</dt>
+                <dd class="mt-1">${details.gender_usage || '-'}</dd>
+            </div>
+        `;
+    }
+
+    // Description
     infoHtml += `
             <div class="md:col-span-2">
                 <dt class="text-sm font-medium text-slate-500">Description</dt>
@@ -343,38 +803,114 @@ function renderDetails(details) {
     renderChildren(details);
 }
 
+// Recherche du chemin d'un noeud dans l'arbre courant
+function findPathInTree(type, id) {
+    if (!Array.isArray(currentStructure)) return null;
+
+    const search = (nodes, currentPath) => {
+        for (const node of nodes) {
+            const newPath = [...currentPath, node];
+            if (node.type === type && node.id === id) {
+                return newPath;
+            }
+
+            const childGroups = [
+                node.poles,
+                node.services,
+                node.ufs,
+                node.unites_hebergement,
+                node.chambres,
+                node.lits
+            ].filter(Array.isArray);
+
+            for (const group of childGroups) {
+                const found = search(group, newPath);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    return search(currentStructure, []);
+}
+
+// Recherche d'un noeud dans l'arbre courant
+function findNodeInTree(type, id) {
+    if (!Array.isArray(currentStructure)) return null;
+
+    const search = (nodes) => {
+        for (const node of nodes) {
+            if (node.type === type && node.id === id) {
+                return node;
+            }
+
+            const childGroups = [
+                node.poles,
+                node.services,
+                node.ufs,
+                node.unites_hebergement,
+                node.chambres,
+                node.lits
+            ].filter(Array.isArray);
+
+            for (const group of childGroups) {
+                const found = search(group);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    return search(currentStructure);
+}
+
 // Rendu des sous-éléments
 function renderChildren(details) {
     const childrenContainer = document.getElementById('detailChildren');
+    if (!childrenContainer || !selectedNode) {
+        if (childrenContainer) {
+            childrenContainer.innerHTML = '';
+            childrenContainer.classList.add('hidden');
+        }
+        return;
+    }
+
+    const node = findNodeInTree(selectedNode.type, selectedNode.id);
+
+    if (!node) {
+        childrenContainer.innerHTML = '';
+        childrenContainer.classList.add('hidden');
+        return;
+    }
+
     let hasChildren = false;
     let childrenHtml = '';
-    
-    // En-tête de section selon le type
-    if (details.poles?.length > 0) {
+
+    if (node.poles?.length) {
         hasChildren = true;
-        childrenHtml += renderChildrenSection('Pôles', details.poles);
+        childrenHtml += renderChildrenSection('Pôles', node.poles);
     }
-    if (details.services?.length > 0) {
+    if (node.services?.length) {
         hasChildren = true;
-        childrenHtml += renderChildrenSection('Services', details.services);
+        childrenHtml += renderChildrenSection('Services', node.services);
     }
-    if (details.ufs?.length > 0) {
+    if (node.ufs?.length) {
         hasChildren = true;
-        childrenHtml += renderChildrenSection('Unités Fonctionnelles', details.ufs);
+        childrenHtml += renderChildrenSection('Unités Fonctionnelles', node.ufs);
     }
-    if (details.unites_hebergement?.length > 0) {
+    if (node.unites_hebergement?.length) {
         hasChildren = true;
-        childrenHtml += renderChildrenSection("Unités d'Hébergement", details.unites_hebergement);
+        childrenHtml += renderChildrenSection("Unités d'Hébergement", node.unites_hebergement);
     }
-    if (details.chambres?.length > 0) {
+    if (node.chambres?.length) {
         hasChildren = true;
-        childrenHtml += renderChildrenSection('Chambres', details.chambres);
+        childrenHtml += renderChildrenSection('Chambres', node.chambres);
     }
-    if (details.lits?.length > 0) {
+    if (node.lits?.length) {
         hasChildren = true;
-        childrenHtml += renderChildrenSection('Lits', details.lits);
+        childrenHtml += renderChildrenSection('Lits', node.lits);
     }
-    
+
     childrenContainer.innerHTML = hasChildren ? childrenHtml : '';
     if (hasChildren) {
         childrenContainer.classList.remove('hidden');
@@ -403,98 +939,6 @@ function renderChildrenSection(title, items) {
             </div>
         </div>
     `;
-}
-
-// Sélection d'un nœud
-async function selectNode(type, id) {
-    try {
-        const response = await fetch(`/api/structure/details/${type}/${id}`);
-        if (!response.ok) throw new Error('Erreur lors du chargement des détails');
-        
-        const details = await response.json();
-        selectedNode = details;
-        
-        // Masquer le message initial et afficher les sections de détails
-        document.getElementById('selectMessage').classList.add('hidden');
-        document.getElementById('detailInfo').classList.remove('hidden');
-        document.getElementById('detailChildren').classList.remove('hidden');
-        
-        // Mettre à jour le titre
-        document.getElementById('detailTitle').textContent = details.name;
-        document.getElementById('detailType').textContent = getTypeLabel(details.type);
-        
-        // Mettre à jour les actions
-        const actionsHtml = `
-            <a href="/structure/${details.type}/${details.id}/edit"
-               class="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-                Modifier
-            </a>
-            <a href="/structure/${details.type}/${details.id}/map"
-               class="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800">
-                Voir sur le plan
-            </a>
-        `;
-        document.getElementById('detailActions').innerHTML = actionsHtml;
-        
-        // Informations détaillées
-        let infoHtml = `
-            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">Identifiant</dt>
-                    <dd class="mt-1">${details.identifier || '-'}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">Statut</dt>
-                    <dd class="mt-1">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                   ${details.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}">
-                            ${details.status === 'active' ? 'Actif' : 'Inactif'}
-                        </span>
-                    </dd>
-                </div>
-        `;
-        
-        // Ajouter des champs spécifiques selon le type
-        if (details.type === 'service') {
-            infoHtml += `
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">Type de service</dt>
-                    <dd class="mt-1">${details.service_type || '-'}</dd>
-                </div>
-            `;
-        } else if (details.type === 'uf') {
-            infoHtml += `
-                <div>
-                    <dt class="text-sm font-medium text-slate-500">Type d'unité</dt>
-                    <dd class="mt-1">${details.uf_type || '-'}</dd>
-                </div>
-            `;
-        }
-        
-        infoHtml += `
-                <div class="md:col-span-2">
-                    <dt class="text-sm font-medium text-slate-500">Description</dt>
-                    <dd class="mt-1">${details.description || '-'}</dd>
-                </div>
-            </dl>
-        `;
-        document.getElementById('detailInfo').innerHTML = infoHtml;
-        
-        // Afficher le panneau de détails
-        document.getElementById('detailsPanel').classList.remove('hidden');
-        
-        // Mettre en surbrillance le nœud sélectionné
-        document.querySelectorAll('.structure-node').forEach(node => {
-            if (node.dataset.nodeId === `node-${type}-${id}`) {
-                node.classList.add('bg-blue-50');
-            } else {
-                node.classList.remove('bg-blue-50');
-            }
-        });
-    } catch (error) {
-        console.error('Erreur:', error);
-        showError('Impossible de charger les détails');
-    }
 }
 
 // Utilitaires
@@ -562,8 +1006,112 @@ function filterStructure() {
             }
         }
     });
-    
-    renderStructure();
+
+    // Mettre à jour les vues tabulaires si actives
+    if (viewMode === 'list') {
+        renderListView();
+    } else if (viewMode === 'cards') {
+        renderCardsView();
+    }
+}
+
+// Gestion de la sélection bulk (mode liste)
+function toggleBulkSelection(event, type, id) {
+    event.stopPropagation();
+    const key = `${type}:${id}`;
+    if (bulkSelection.has(key)) {
+        bulkSelection.delete(key);
+    } else {
+        bulkSelection.add(key);
+    }
+    updateBulkBar();
+}
+
+function toggleSelectAll(checked) {
+    const checkboxes = document.querySelectorAll('.list-row-select');
+    bulkSelection.clear();
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+        if (checked) {
+            const type = cb.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+            const idMatch = cb.getAttribute('onclick')?.match(/,\s*(\d+)/);
+            if (type && idMatch) {
+                bulkSelection.add(`${type}:${parseInt(idMatch[1], 10)}`);
+            }
+        }
+    });
+    updateBulkBar();
+}
+
+function updateBulkBar() {
+    const bar = document.getElementById('bulkActionsBar');
+    const countEl = document.getElementById('bulkSelectionCount');
+    if (!bar || !countEl) return;
+
+    const count = bulkSelection.size;
+    countEl.textContent = count.toString();
+    if (count > 0) {
+        bar.classList.remove('hidden');
+    } else {
+        bar.classList.add('hidden');
+    }
+}
+
+function clearBulkSelection() {
+    bulkSelection.clear();
+    const listSelectAll = document.getElementById('listSelectAll');
+    if (listSelectAll) listSelectAll.checked = false;
+    document.querySelectorAll('.list-row-select').forEach(cb => {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+
+function applyBulkAction(action) {
+    if (bulkSelection.size === 0) return;
+    const readable = action === 'activate' ? 'activer' : action === 'deactivate' ? 'désactiver' : action;
+    if (!['activate', 'deactivate'].includes(action)) {
+        showError('Action en lot non supportée');
+        return;
+    }
+
+    if (!confirm(`Voulez-vous vraiment ${readable} ${bulkSelection.size} élément(s) ?`)) {
+        return;
+    }
+
+    const items = Array.from(bulkSelection).map(key => {
+        const [type, idStr] = key.split(':');
+        return { type, id: parseInt(idStr, 10) };
+    }).filter(item => !Number.isNaN(item.id));
+
+    if (items.length === 0) {
+        showError('Aucun élément valide à traiter');
+        return;
+    }
+
+    fetch('/api/structure/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, items }),
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erreur HTTP');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const msg = `${data.updated || 0} élément(s) mis à jour`;
+            console.log('Bulk action OK', data);
+            alert(msg);
+            clearBulkSelection();
+            // Recharger la structure pour refléter les nouveaux statuts
+            initializeStructure();
+        })
+        .catch(error => {
+            console.error('Bulk action error', error);
+            showError("Impossible de réaliser l'action en lot");
+        });
 }
 
 function showError(message) {

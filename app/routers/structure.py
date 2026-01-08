@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
+from pydantic import BaseModel
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 from app.services.fhir_structure import entity_to_fhir_location
@@ -114,6 +115,18 @@ async def get_structure_tree(
     # If EJ context is present and no EGs match, Renvoie []
     if (ej_context is not None or eg_id_list) and not egs:
         return []
+    # Helper pour status effectif
+    def get_effective_status_value(entity):
+        status_value = getattr(entity, "status", None)
+        if hasattr(entity, "get_effective_status"):
+            try:
+                status_value = entity.get_effective_status()
+            except Exception:
+                status_value = getattr(entity, "status", None)
+        if isinstance(status_value, LocationStatus):
+            status_value = status_value.value
+        return status_value or "active"
+
     # Build tree structure
     tree = []
     for eg in egs:
@@ -121,6 +134,7 @@ async def get_structure_tree(
             "id": eg.id,
             "name": eg.name,
             "type": "eg",
+            "status": get_effective_status_value(eg),
             "poles": [],
             "services": [],
             "ufs": [],
@@ -133,6 +147,7 @@ async def get_structure_tree(
                 "id": pole.id,
                 "name": pole.name,
                 "type": "pole",
+                "status": get_effective_status_value(pole),
                 "services": [],
                 "ufs": [],
                 "unites_hebergement": [],
@@ -144,6 +159,7 @@ async def get_structure_tree(
                     "id": service.id,
                     "name": service.name,
                     "type": "service",
+                    "status": get_effective_status_value(service),
                     "ufs": [],
                     "unites_hebergement": [],
                     "chambres": [],
@@ -154,6 +170,7 @@ async def get_structure_tree(
                         "id": uf.id,
                         "name": uf.name,
                         "type": "uf",
+                        "status": get_effective_status_value(uf),
                         "unites_hebergement": [],
                         "chambres": [],
                         "lits": []
@@ -163,6 +180,7 @@ async def get_structure_tree(
                             "id": uh.id,
                             "name": uh.name,
                             "type": "uh",
+                            "status": get_effective_status_value(uh),
                             "chambres": [],
                             "lits": []
                         }
@@ -171,13 +189,15 @@ async def get_structure_tree(
                                 "id": chambre.id,
                                 "name": chambre.name,
                                 "type": "chambre",
+                                "status": get_effective_status_value(chambre),
                                 "lits": []
                             }
                             for lit in chambre.lits:
                                 lit_node = {
                                     "id": lit.id,
                                     "name": lit.name,
-                                    "type": "lit"
+                                    "type": "lit",
+                                    "status": get_effective_status_value(lit),
                                 }
                                 chambre_node["lits"].append(lit_node)
                             uh_node["chambres"].append(chambre_node)
@@ -213,23 +233,164 @@ async def get_structure_details(
     if not entity:
         raise HTTPException(status_code=404, detail="Entité non trouvée")
         
-    # Construire un dictionnaire avec les détails
+    # Construire un dictionnaire avec les détails de base
+    status = getattr(entity, "status", None)
+    # Si une méthode get_effective_status existe, l'utiliser pour refléter l'état hérité
+    if hasattr(entity, "get_effective_status"):
+        try:
+            status = entity.get_effective_status()
+        except Exception:
+            status = getattr(entity, "status", None)
+
     details = {
         "id": entity.id,
         "name": entity.name,
         "type": type,
-        "identifier": getattr(entity, 'identifier', None),
-        "description": getattr(entity, 'description', None),
-        "status": getattr(entity, 'status', 'active')
+        "identifier": getattr(entity, "identifier", None),
+        "description": getattr(entity, "description", None),
+        "status": status or "active",
     }
-    
+
+    # Champs d'adresse communs si présents
+    for field in [
+        "address_line1",
+        "address_line2",
+        "address_line3",
+        "address_city",
+        "address_postalcode",
+        "address_country",
+    ]:
+        if hasattr(entity, field):
+            details[field] = getattr(entity, field)
+
     # Ajouter les champs spécifiques selon le type
-    if type == 'service':
-        details["service_type"] = getattr(entity, 'service_type', None)
-    elif type == 'uf':
-        details["uf_type"] = getattr(entity, 'uf_type', None)
-        
+    if type == "eg":
+        details["finess"] = getattr(entity, "finess", None)
+        details["category_code"] = getattr(entity, "category_code", None)
+        details["category_name"] = getattr(entity, "category_name", None)
+    elif type == "pole":
+        details["typology"] = getattr(entity, "typology", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+    elif type == "service":
+        details["service_type"] = getattr(entity, "service_type", None)
+        details["typology"] = getattr(entity, "typology", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "uf":
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["um_code"] = getattr(entity, "um_code", None)
+        details["typology"] = getattr(entity, "typology", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "uh":
+        details["typology"] = getattr(entity, "typology", None)
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "chambre":
+        details["typology"] = getattr(entity, "typology", None)
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["is_generic"] = getattr(entity, "is_generic", None)
+        details["max_occupancy"] = getattr(entity, "max_occupancy", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "lit":
+        details["typology"] = getattr(entity, "typology", None)
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["is_generic"] = getattr(entity, "is_generic", None)
+        details["max_occupancy"] = getattr(entity, "max_occupancy", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+
     return details
+
+
+class BulkItem(BaseModel):
+    type: str
+    id: int
+
+
+class BulkActionRequest(BaseModel):
+    action: str
+    items: List[BulkItem]
+
+
+@api_router.post("/bulk-action")
+async def bulk_action(
+    payload: BulkActionRequest,
+    session: Session = Depends(get_session),
+):
+    """Applique une action en lot (activer/désactiver) sur des structures.
+
+    Pour l'instant, seules les actions suivantes sont supportées :
+    - "activate"   → status = "active"
+    - "deactivate" → status = "inactive"
+    """
+
+    action_map = {
+        "activate": "active",
+        "deactivate": "inactive",
+    }
+
+    if payload.action not in action_map:
+        raise HTTPException(status_code=400, detail="Action invalide")
+
+    status_value = action_map[payload.action]
+
+    model_map = {
+        'eg': EntiteGeographique,
+        'pole': Pole,
+        'service': Service,
+        'uf': UniteFonctionnelle,
+        'uh': UniteHebergement,
+        'chambre': Chambre,
+        'lit': Lit,
+    }
+
+    updated = 0
+    not_found: List[dict] = []
+    invalid_types: List[str] = []
+
+    for item in payload.items:
+        model = model_map.get(item.type)
+        if not model:
+            invalid_types.append(item.type)
+            continue
+
+        entity = session.get(model, item.id)
+        if not entity:
+            not_found.append({"type": item.type, "id": item.id})
+            continue
+
+        if hasattr(entity, "status"):
+            setattr(entity, "status", status_value)
+            updated += 1
+
+    if updated:
+        session.commit()
+
+    return {
+        "action": payload.action,
+        "status": status_value,
+        "updated": updated,
+        "not_found": not_found,
+        "invalid_types": list(set(invalid_types)),
+    }
 
 
 @router.get("", response_class=HTMLResponse)

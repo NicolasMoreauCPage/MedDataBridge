@@ -55,18 +55,18 @@
 ## 📝 TODO Liste Détaillée
 
 ### Phase 1 : Interface Principale (Dashboard Structure)
-- [ ] **Dashboard Structure Unifié**
-  - [ ] Créer `structure/dashboard.html` avec vue hiérarchique
-  - [ ] Arbre interactif EJ → EG → Pôle → Service → UF → UH → Chambre → Lit
-  - [ ] Expand/collapse avec animations
-  - [ ] Compteurs temps réel (lits, chambres, capacité)
-  - [ ] Actions rapides sur chaque niveau (+ Ajouter, ✏️ Modifier, 🗑️ Supprimer)
+- [x] **Dashboard Structure Unifié** _(Sprint 1 terminé)_
+  - [x] Header moderne avec KPI (Pôles, Services, UF, Lits) dans `structure_new.html`
+  - [x] Arbre interactif EJ → EG → Pôle → Service → UF → UH → Chambre → Lit
+  - [x] Expand/collapse avec animations + icônes par type
+  - [x] Compteurs temps réel (calculés côté client à partir de `/api/structure/tree`)
+  - [x] Panneau de détails riche avec prévisualisation hiérarchique
 
-- [ ] **Navigation Optimisée**
-  - [ ] Router structure/dashboard avec state management
-  - [ ] URLs simplifiées sans hiérarchie complexe
-  - [ ] Breadcrumb intelligent avec retour rapide
-  - [ ] Cache côté client pour navigation fluide
+- [x] **Navigation Optimisée** _(Sprint 1 terminé)_
+  - [x] Route `/structure` avec nouveau dashboard et filtres EJ
+  - [x] URLs simplifiées avec deep-link `#node-{type}-{id}`
+  - [x] Breadcrumb intelligent dans le panneau de détails
+  - [x] Cache client basique via `currentStructure` (une seule requête `/tree`)
 
 ### Phase 2 : Wizard de Saisie Assistée
 - [ ] **Templates Pré-configurés**

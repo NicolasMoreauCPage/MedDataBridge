@@ -37,25 +37,25 @@ Mettre en place un wizard de saisie assistée pour créer/adapter rapidement une
   - [ ] Étape 5 : Synthèse & génération
 
 ### Étape 2.3 : Intégration données & validation
-- [ ] Implémentation Step 3 : Configuration UF + Codes UM
-  - [ ] Interface pour ajouter/éditer les UF par service
-  - [ ] Sélection et validation des codes UM (MCO, SSR, PSY, HAD)
-  - [ ] Prévisualisation de la structure UF
-- [ ] Implémentation Step 4 : Structure d'hébergement
-  - [ ] Configuration des UH (Unités d'Hébergement)
-  - [ ] Création de chambres par UH
-  - [ ] Attribution de lits par chambre
-  - [ ] Types de chambres et capacités
-- [ ] Implémentation Step 5 : Synthèse & Génération
-  - [ ] Prévisualisation complète de la structure
-  - [ ] Résumé des pôles, services, UF, UH, chambres, lits
-  - [ ] Validation finale
-  - [ ] Bouton "Générer la structure"
-- [ ] Endpoint POST `/api/structure/apply-template`
-  - [ ] Accepte payload JSON modifié + EJ/EG cible
-  - [ ] Crée les entités Pole, Service, UniteFonctionnelle en base
-  - [ ] Crée les UH, Chambre, Lit si définis
-  - [ ] Retourne un résumé de la structure créée
+- [x] Implémentation Step 3 : Configuration UF + Codes UM
+  - [x] Interface pour ajouter/éditer les UF par service
+  - [x] Sélection et validation des codes UM (MCO, SSR, PSY, HAD)
+  - [x] Prévisualisation de la structure UF
+- [x] Implémentation Step 4 : Structure d'hébergement
+  - [x] Configuration des UH (Unités d'Hébergement)
+  - [x] Création de chambres par UH
+  - [x] Attribution de lits par chambre
+  - [x] Types de chambres et capacités
+- [x] Implémentation Step 5 : Synthèse & Génération
+  - [x] Prévisualisation complète de la structure
+  - [x] Résumé des pôles, services, UF, UH, chambres, lits
+  - [x] Validation finale
+  - [x] Bouton "Générer la structure"
+- [x] Endpoint POST `/api/structure/apply-template`
+  - [x] Accepte payload JSON modifié + EJ/EG cible
+  - [x] Crée les entités Pole, Service, UniteFonctionnelle en base
+  - [x] Crée les UH, Chambre, Lit si définis
+  - [x] Retourne un résumé de la structure créée
 - [ ] Validation & Tests
   - [ ] Validation des codes UM avant création
   - [ ] Vérification unicité des codes courts

@@ -1,0 +1,660 @@
+{% extends "base.html" %}
+
+{% block title %}Saisie Rapide Cotations - {{ dossier.nda }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <!-- Header fixe -->
+    <div class="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="/dossiers/{{ dossier.id }}" class="text-slate-600 hover:text-slate-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900">Saisie Rapide</h1>
+                        <p class="text-sm text-slate-600">
+                            NDA <span class="font-mono font-semibold">{{ dossier.nda }}</span> — 
+                            {% if patient %}{{ patient.family }} {{ patient.given }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="showTemplates()" class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-medium">
+                        <span class="flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span>Templates</span>
+                        </span>
+                    </button>
+                    <button onclick="showHistory()" class="px-4 py-2 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-medium">
+                        <span class="flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Historique</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Panneau de saisie principal -->
+            <div class="lg:col-span-2">
+                <!-- Sélecteur de type d'acte -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4">Type d'acte</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button onclick="selectActeType('ccam')" id="btn-type-ccam" class="acte-type-btn p-4 border-2 border-emerald-200 bg-emerald-50 text-emerald-900 rounded-lg hover:border-emerald-500 hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">🏥</div>
+                            <div class="font-bold">CCAM</div>
+                            <div class="text-xs opacity-75">Actes techniques</div>
+                        </button>
+                        <button onclick="selectActeType('ngap')" id="btn-type-ngap" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-blue-500 rounded-lg hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">👨‍⚕️</div>
+                            <div class="font-bold">NGAP</div>
+                            <div class="text-xs opacity-75">Consultations</div>
+                        </button>
+                        <button onclick="selectActeType('ucd')" id="btn-type-ucd" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-amber-500 rounded-lg hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">💊</div>
+                            <div class="font-bold">UCD</div>
+                            <div class="text-xs opacity-75">Médicaments</div>
+                        </button>
+                        <button onclick="selectActeType('lpp')" id="btn-type-lpp" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-purple-500 rounded-lg hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">🩹</div>
+                            <div class="font-bold">LPP</div>
+                            <div class="text-xs opacity-75">Dispositifs</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulaire CCAM -->
+                <div id="form-ccam" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-emerald-900">Acte CCAM</h2>
+                        <button onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                    </div>
+                    
+                    <form id="ccam-form" class="space-y-4">
+                        <!-- Code acte avec auto-complétion -->
+                        <div class="relative">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Code acte CCAM <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="ccam-code" 
+                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all font-mono text-lg uppercase"
+                                   placeholder="Ex: HBMD001"
+                                   maxlength="7"
+                                   autocomplete="off"
+                                   required>
+                            <div id="ccam-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto">
+                                <!-- Auto-complétion dynamique -->
+                            </div>
+                            <p class="mt-1 text-xs text-slate-500">Format: 4 lettres + 3 chiffres (ex: HBMD001)</p>
+                        </div>
+
+                        <!-- Libellé auto-rempli -->
+                        <div id="ccam-libelle" class="hidden p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
+                            <p class="text-sm font-medium text-emerald-900" id="ccam-libelle-text"></p>
+                        </div>
+
+                        <!-- Codes activité et phase en ligne -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Activité <span class="text-red-500">*</span>
+                                </label>
+                                <select id="ccam-activite" class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="01">01 - Diagnostic et/ou thérapeutique</option>
+                                    <option value="04">04 - Activité de prélèvement</option>
+                                    <option value="05">05 - Activité d'accueil et de traitement des urgences</option>
+                                    <option value="07">07 - Activité de surveillance continue</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Phase <span class="text-red-500">*</span>
+                                </label>
+                                <select id="ccam-phase" class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
+                                    <option value="0">0 - Phase unique</option>
+                                    <option value="1">1 - Temps principaux</option>
+                                    <option value="2">2 - Temps complémentaires</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Date et heure -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Date <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" id="ccam-date" 
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Heure <span class="text-red-500">*</span>
+                                </label>
+                                <input type="time" id="ccam-heure" 
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Modificateurs -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Modificateurs
+                            </label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button type="button" onclick="toggleModificateur('Z1')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    Z1
+                                </button>
+                                <button type="button" onclick="toggleModificateur('K50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    K50
+                                </button>
+                                <button type="button" onclick="toggleModificateur('U50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    U50
+                                </button>
+                                <button type="button" onclick="toggleModificateur('P')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    P
+                                </button>
+                            </div>
+                            <input type="hidden" id="ccam-modificateurs" value="">
+                        </div>
+
+                        <!-- Quantité et montant -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Quantité
+                                </label>
+                                <input type="number" id="ccam-quantite" value="1" min="1"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Montant (€)
+                                </label>
+                                <input type="number" id="ccam-montant" step="0.01" 
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       placeholder="Auto-calculé">
+                            </div>
+                        </div>
+
+                        <!-- Commentaire -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Commentaire
+                            </label>
+                            <textarea id="ccam-commentaire" rows="2"
+                                      class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                      placeholder="Informations complémentaires..."></textarea>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" class="flex-1 px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-lg hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all">
+                                ✓ Enregistrer
+                            </button>
+                            <button type="button" onclick="saveContinue()" class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all">
+                                + Suivant
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Formulaire NGAP (simplifié pour l'exemple) -->
+                <div id="form-ngap" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <h2 class="text-xl font-bold text-blue-900 mb-6">Acte NGAP</h2>
+                    <p class="text-slate-600">Formulaire NGAP en cours de développement...</p>
+                </div>
+
+                <!-- Formulaire UCD -->
+                <div id="form-ucd" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <h2 class="text-xl font-bold text-amber-900 mb-6">Médicament UCD</h2>
+                    <p class="text-slate-600">Formulaire UCD en cours de développement...</p>
+                </div>
+
+                <!-- Formulaire LPP -->
+                <div id="form-lpp" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <h2 class="text-xl font-bold text-purple-900 mb-6">Dispositif LPP</h2>
+                    <p class="text-slate-600">Formulaire LPP en cours de développement...</p>
+                </div>
+            </div>
+
+            <!-- Panneau latéral -->
+            <div class="lg:col-span-1">
+                <!-- Récapitulatif de la saisie -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6 sticky top-24">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4">Session en cours</h3>
+                    <div id="session-summary" class="space-y-3">
+                        <div class="text-center py-8 text-slate-400">
+                            <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <p class="text-sm">Aucun acte saisi</p>
+                        </div>
+                    </div>
+                    <div id="session-actions" class="hidden mt-4 pt-4 border-t border-slate-200">
+                        <button onclick="validateSession()" class="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-lg hover:from-green-700 hover:to-emerald-700 shadow-lg transition-all">
+                            ✓ Valider la session
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Raccourcis clavier -->
+                <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
+                    <h4 class="text-sm font-bold text-indigo-900 mb-3">⌨️ Raccourcis clavier</h4>
+                    <div class="space-y-2 text-xs text-indigo-800">
+                        <div class="flex justify-between">
+                            <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+S</span>
+                            <span>Enregistrer</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+Enter</span>
+                            <span>Enregistrer + Suivant</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+T</span>
+                            <span>Templates</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-mono bg-white px-2 py-1 rounded">Esc</span>
+                            <span>Annuler</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Templates -->
+<div id="modal-templates" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black opacity-50" onclick="closeModal('modal-templates')"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8">
+            <button onclick="closeModal('modal-templates')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <h2 class="text-2xl font-bold text-slate-900 mb-6">Templates d'actes fréquents</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="useTemplate('consultation-generale')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Consultation générale</div>
+                    <div class="text-sm text-slate-600">NGAP: C (coef 1)</div>
+                </button>
+                <button onclick="useTemplate('ecg')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Électrocardiogramme</div>
+                    <div class="text-sm text-slate-600">CCAM: DEQP003</div>
+                </button>
+                <button onclick="useTemplate('radio-thorax')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Radio thorax</div>
+                    <div class="text-sm text-slate-600">CCAM: LBQH001</div>
+                </button>
+                <button onclick="useTemplate('pansement')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Pansement</div>
+                    <div class="text-sm text-slate-600">NGAP: AMI (coef 2)</div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedModificateurs = [];
+let sessionActes = [];
+let currentActeType = null;
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    // Définir la date/heure par défaut à maintenant
+    const now = new Date();
+    document.getElementById('ccam-date').valueAsDate = now;
+    document.getElementById('ccam-heure').value = now.toTimeString().slice(0, 5);
+
+    // Raccourcis clavier
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('ccam-form')?.dispatchEvent(new Event('submit'));
+        }
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            saveContinue();
+        }
+        if (e.ctrlKey && e.key === 't') {
+            e.preventDefault();
+            showTemplates();
+        }
+        if (e.key === 'Escape') {
+            closeAllModals();
+        }
+    });
+
+    // Auto-complétion CCAM
+    document.getElementById('ccam-code')?.addEventListener('input', function(e) {
+        const value = e.target.value.toUpperCase();
+        if (value.length >= 3) {
+            searchCCAM(value);
+        } else {
+            document.getElementById('ccam-suggestions').classList.add('hidden');
+        }
+    });
+});
+
+function selectActeType(type) {
+    currentActeType = type;
+    
+    // Reset tous les boutons
+    document.querySelectorAll('.acte-type-btn').forEach(btn => {
+        btn.className = 'acte-type-btn p-4 border-2 border-slate-200 rounded-lg hover:shadow-md transition-all';
+    });
+    
+    // Activer le bouton sélectionné
+    const colors = {
+        'ccam': 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md',
+        'ngap': 'border-blue-500 bg-blue-50 text-blue-900 shadow-md',
+        'ucd': 'border-amber-500 bg-amber-50 text-amber-900 shadow-md',
+        'lpp': 'border-purple-500 bg-purple-50 text-purple-900 shadow-md'
+    };
+    document.getElementById(`btn-type-${type}`).className += ` ${colors[type]}`;
+    
+    // Cacher tous les formulaires
+    ['ccam', 'ngap', 'ucd', 'lpp'].forEach(t => {
+        document.getElementById(`form-${t}`).classList.add('hidden');
+    });
+    
+    // Afficher le formulaire sélectionné
+    document.getElementById(`form-${type}`).classList.remove('hidden');
+    
+    // Focus sur le premier champ
+    setTimeout(() => {
+        document.querySelector(`#form-${type} input`)?.focus();
+    }, 100);
+}
+
+function toggleModificateur(mod) {
+    const index = selectedModificateurs.indexOf(mod);
+    const btn = event.target;
+    
+    if (index > -1) {
+        selectedModificateurs.splice(index, 1);
+        btn.classList.remove('border-emerald-500', 'bg-emerald-500', 'text-white');
+        btn.classList.add('border-slate-200');
+    } else {
+        selectedModificateurs.push(mod);
+        btn.classList.add('border-emerald-500', 'bg-emerald-500', 'text-white');
+        btn.classList.remove('border-slate-200');
+    }
+    
+    document.getElementById('ccam-modificateurs').value = selectedModificateurs.join(',');
+}
+
+async function searchCCAM(query) {
+    try {
+        const response = await fetch(`/cotations/api/search/ccam?query=${encodeURIComponent(query)}&limit=10`);
+        const suggestions = await response.json();
+        
+        const suggestionsDiv = document.getElementById('ccam-suggestions');
+        if (suggestions.length > 0) {
+            suggestionsDiv.innerHTML = suggestions.map(s => `
+                <button type="button" onclick="selectCCAM('${s.code}', '${s.libelle}', ${s.tarif_base})" 
+                        class="w-full px-4 py-3 text-left hover:bg-emerald-50 transition-colors border-b border-slate-100 last:border-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-mono font-bold text-emerald-700">${s.code}</div>
+                            <div class="text-sm text-slate-600">${s.libelle}</div>
+                        </div>
+                        <div class="text-right ml-4">
+                            <div class="text-sm font-bold text-emerald-900">${s.tarif_base.toFixed(2)} €</div>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+            suggestionsDiv.classList.remove('hidden');
+        } else {
+            suggestionsDiv.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">Aucun résultat</div>';
+            suggestionsDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Erreur recherche CCAM:', error);
+    }
+}
+
+function selectCCAM(code, libelle, tarif = null) {
+    document.getElementById('ccam-code').value = code;
+    document.getElementById('ccam-libelle-text').textContent = libelle;
+    document.getElementById('ccam-libelle').classList.remove('hidden');
+    document.getElementById('ccam-suggestions').classList.add('hidden');
+    
+    // Pré-remplir le montant si disponible
+    if (tarif) {
+        document.getElementById('ccam-montant').value = tarif.toFixed(2);
+    }
+    
+    // Focus sur le champ suivant
+    document.getElementById('ccam-activite').focus();
+}
+
+function resetForm() {
+    if (currentActeType) {
+        document.getElementById(`${currentActeType}-form`).reset();
+        selectedModificateurs = [];
+        document.querySelectorAll('.modificateur-btn').forEach(btn => {
+            btn.classList.remove('border-emerald-500', 'bg-emerald-500', 'text-white');
+            btn.classList.add('border-slate-200');
+        });
+        document.getElementById('ccam-libelle').classList.add('hidden');
+    }
+}
+
+function saveContinue() {
+    // Enregistrer l'acte actuel
+    // TODO: Appel API
+    
+    // Ajouter à la session
+    sessionActes.push({
+        type: currentActeType,
+        code: document.getElementById('ccam-code').value,
+        date: new Date()
+    });
+    
+    updateSessionSummary();
+    resetForm();
+    
+    // Notification
+    showNotification('Acte enregistré ! Continuez la saisie...', 'success');
+}
+
+function updateSessionSummary() {
+    const summaryDiv = document.getElementById('session-summary');
+    if (sessionActes.length === 0) {
+        summaryDiv.innerHTML = `
+            <div class="text-center py-8 text-slate-400">
+                <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-sm">Aucun acte saisi</p>
+            </div>
+        `;
+        document.getElementById('session-actions').classList.add('hidden');
+    } else {
+        const colors = {ccam: 'emerald', ngap: 'blue', ucd: 'amber', lpp: 'purple'};
+        summaryDiv.innerHTML = sessionActes.map((acte, i) => `
+            <div class="flex items-center justify-between p-3 bg-${colors[acte.type]}-50 border border-${colors[acte.type]}-200 rounded-lg">
+                <div>
+                    <div class="font-mono font-bold text-${colors[acte.type]}-900">${acte.code}</div>
+                    <div class="text-xs text-${colors[acte.type]}-700">${acte.type.toUpperCase()}</div>
+                </div>
+                <button onclick="removeActe(${i})" class="text-${colors[acte.type]}-400 hover:text-${colors[acte.type]}-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+        document.getElementById('session-actions').classList.remove('hidden');
+    }
+}
+
+function removeActe(index) {
+    sessionActes.splice(index, 1);
+    updateSessionSummary();
+}
+
+function validateSession() {
+    if (confirm(`Valider ${sessionActes.length} acte(s) ?`)) {
+        // TODO: Appel API pour valider tous les actes
+        showNotification(`${sessionActes.length} acte(s) validé(s) avec succès !`, 'success');
+        sessionActes = [];
+        updateSessionSummary();
+        
+        // Rediriger vers la vue liste
+        setTimeout(() => {
+            window.location.href = '/dossiers/{{ dossier.id }}/cotations';
+        }, 1500);
+    }
+}
+
+function showTemplates() {
+    document.getElementById('modal-templates').classList.remove('hidden');
+}
+async function useTemplate(templateId) {
+    try {
+        const response = await fetch('/cotations/api/templates');
+        const templates = await response.json();
+        
+        // Trouver le template dans tous les types
+        let template = null;
+        let templateType = null;
+        
+        for (const [type, items] of Object.entries(templates)) {
+            const found = items.find(t => t.id === templateId);
+            if (found) {
+                template = found;
+                templateType = type;
+                break;
+            }
+        }
+        
+        if (template) {
+            // Sélectionner le type d'acte
+            selectActeType(templateType);
+            
+            // Remplir le formulaire selon le type
+            if (templateType === 'ccam') {
+                document.getElementById('ccam-code').value = template.code_acte;
+                document.getElementById('ccam-activite').value = template.code_activite;
+                document.getElementById('ccam-phase').value = template.code_phase;
+                document.getElementById('ccam-quantite').value = template.quantite;
+                
+                // Déclencher la recherche pour afficher le libellé
+                await searchCCAM(template.code_acte);
+                selectCCAM(template.code_acte, template.nom);
+            }
+            // TODO: Ajouter NGAP, UCD, LPP
+            
+            closeModal('modal-templates');
+            showNotification(`Template "${template.nom}" chargé`, 'success');
+        }
+    } catch (error) {
+        console.error('Erreur chargement template:', error);
+        showNotification('Erreur lors du chargement du template', 'error');
+    }
+
+function useTemplate(templateId) {
+    // TODO: Charger le template et remplir le formulaire
+    closeModal('modal-templates');
+    showNotification(`Template "${templateId}" chargé`, 'success');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+function closeAllModals() {
+    document.querySelectorAll('[id^="modal-"]').forEach(modal => {
+        modal.classList.add('hidden');
+    });
+}
+
+function showNotification(message, type) {
+    const colors = {
+        success: 'from-green-500 to-emerald-500',
+        error: 'from-red-500 to-pink-500',
+        info: 'from-blue-500 to-indigo-500'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-4 bg-gradient-to-r ${colors[type]} text-white font-bold rounded-lg shadow-2xl z-50 animate-slide-in`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('animate-fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Soumission formulaire CCAM
+document.getElementById('ccam-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        code_acte: document.getElementById('ccam-code').value,
+        code_activite: document.getElementById('ccam-activite').value,
+        code_phase: document.getElementById('ccam-phase').value,
+        execute_date: `${document.getElementById('ccam-date').value}T${document.getElementById('ccam-heure').value}`,
+        modificateurs: document.getElementById('ccam-modificateurs').value,
+        quantite: document.getElementById('ccam-quantite').value || 1,
+        montant_total: document.getElementById('ccam-montant').value || null,
+        commentaire: document.getElementById('ccam-commentaire').value || null,
+        dossier_id: {{ dossier.id }}
+    };
+    
+    try {
+        const response = await fetch('/api/cotations/ccam', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            showNotification('Acte CCAM enregistré avec succès !', 'success');
+            resetForm();
+            window.location.href = '/dossiers/{{ dossier.id }}/cotations';
+        } else {
+            throw new Error('Erreur lors de l\'enregistrement');
+        }
+    } catch (error) {
+        showNotification('Erreur: ' + error.message, 'error');
+    }
+});
+</script>
+
+<style>
+@keyframes slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+.animate-fade-out { animation: fade-out 0.3s ease-out; }
+</style>
+{% endblock %}

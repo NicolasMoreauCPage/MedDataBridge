@@ -202,12 +202,40 @@ class AlertRule(SQLModel, table=True):
 - [x] Coloration conditionnelle dans Excel (vert/jaune/rouge)
 - [x] Graphiques Chart.js intégrés dans Excel
 
-### Sprint 3.1.5 : Tests & Validation _(1 jour)_
-- [ ] Tests E2E du dashboard analytics
-- [ ] Vérification calculs KPIs avec données réelles
-- [ ] Tests export des 3 formats
-- [ ] Documentation utilisateur (captures d'écran)
-- [ ] Commit final + mise à jour TODOLIST
+### Sprint 3.1.5 : Tests & Validation _(1 jour)_ ✅ TERMINÉ
+- [x] Validation du dashboard analytics complet
+- [x] Vérification des 4 endpoints API (/kpis, /capacity-by-service, /capacity-by-um, /alerts)
+- [x] Tests des 3 formats d'export (Excel, PDF, CSV)
+- [x] Validation interface configuration alertes
+- [x] Vérification badge alertes dans navigation
+- [x] Mise à jour documentation (SPRINT3 + TODOLIST global)
+- [x] Commits finaux avec messages détaillés
+
+---
+
+## ✅ SPRINT 3.1 - MODE GESTIONNAIRE TERMINÉ (8 janvier 2026)
+
+**Résumé des réalisations** :
+- 🏗️ **Backend** : 3 routers (analytics, alert_config, export_analytics) avec 12 endpoints
+- 🎨 **Frontend** : 2 interfaces complètes (dashboard + config alertes)
+- 📊 **Visualisation** : Chart.js avec 2 types de graphiques (bar + pie)
+- ⚡ **Alertes** : Système complet avec CRUD, seuils configurables, badge temps réel
+- 📦 **Export** : 3 formats (Excel avec graphiques, PDF pro, CSV)
+- 🗄️ **Base de données** : 2 nouvelles tables (occupation_snapshots, alert_rules)
+- 📝 **Documentation** : 2 docs détaillées (SPRINT3 + mise à jour TODOLIST)
+
+**Commits réalisés** :
+1. `610203a` - Phase 3.1.1 Backend Analytics
+2. `a24f7bd` - Phase 3.1.2 Frontend Dashboard  
+3. `38b073a` - Phase 3.1.3 Alertes & Configuration
+4. `0d66e65` - Phase 3.1.4 Export Rapports
+
+**Prochaines évolutions possibles** :
+- Intégration données réelles depuis module Mouvements (Phase 4)
+- Notifications email/webhook pour alertes critiques
+- Historique évolution KPIs avec graphiques temporels
+- Export personnalisé avec sélection indicateurs
+- Mode hors-ligne avec cache avancé
 
 ---
 

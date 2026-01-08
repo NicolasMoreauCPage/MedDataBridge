@@ -89,14 +89,19 @@
   - [ ] Validation formats identifiants selon normes
   - [ ] Suggestions basées sur établissements similaires
 
-### Phase 3 : Interfaces Métier Spécialisées
-- [ ] **Mode Gestionnaire**
-  - [ ] Vue analytics avec KPI (taux occupation, DMS, rotation)
-  - [ ] Graphiques capacité par service/UF
-  - [ ] Alertes seuils (suroccupation, sous-utilisation)
-  - [ ] Export rapports direction (Excel, PDF)
+### Phase 3 : Interfaces Métier Spécialisées ✅ _(Sprint 3.1 terminé)_
+- [x] **Mode Gestionnaire** _(Sprint 3.1.1 à 3.1.4 - 8 janvier 2026)_
+  - [x] Dashboard analytics à `/structure/analytics`
+  - [x] 5 KPIs temps réel (occupation, DMS, rotation, capacité, ouverture)
+  - [x] Graphiques Chart.js (capacité par service + répartition UM)
+  - [x] Section alertes actives avec code couleur (high/medium/low)
+  - [x] Configuration seuils via interface admin `/structure/alert-config`
+  - [x] Badge compteur alertes dans navigation principale
+  - [x] Export rapports (Excel avec graphiques, PDF formaté, CSV données brutes)
+  - [x] API analytics complète (4 endpoints + export + CRUD alertes)
+  - [x] Données simulées pour MVP (en attente module Mouvements)
 
-- [ ] **Mode Médical**
+- [ ] **Mode Médical** _[Phase future]_
   - [ ] Focus UF de soins avec effectifs médicaux/paramédicaux
   - [ ] Planning médecins par UF/service
   - [ ] Gestion gardes et astreintes

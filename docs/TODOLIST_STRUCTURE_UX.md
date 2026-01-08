@@ -233,11 +233,18 @@
   - [ ] Raccourcis clavier (Ctrl+N nouvelle UF, etc.)
   - [ ] Sauvegarde automatique (auto-save)
 
-- [ ] **Recherche & Filtres Intelligents**
-  - [ ] Recherche globale multi-critères
-  - [ ] Filtres facettes (type, statut, capacité)
-  - [ ] Recherche par géolocalisation
-  - [ ] Historique recherches utilisateur
+- [x] **Recherche & Filtres Intelligents** ⭐
+  - [x] Interface de recherche avancée utilisant API FHIR existante
+  - [x] Recherche globale multi-critères (nom, type, statut, identifiant, FINESS)
+  - [x] Filtres facettes visuels avec Design System (4 filtres + recherche principale)
+  - [x] Pagination automatique avec navigation (pages précédent/suivant)
+  - [x] Historique recherches utilisateur (localStorage, 10 dernières recherches)
+  - [x] Export résultats JSON avec métadonnées
+  - [x] Statistiques temps réel (nombre résultats + temps de recherche)
+  - [x] Résultats avec cartes Structure du Design System
+  - [x] Responsive design (mobile + desktop)
+  - [x] Route /structure/search dans menu Structure
+  - [x] Intégration complète API FHIR (/fhir/Location)
 
 ---
 

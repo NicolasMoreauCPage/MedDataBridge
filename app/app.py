@@ -364,6 +364,11 @@ def create_app() -> FastAPI:
     app.include_router(design_system.router)
     print(" - Design System demo mounted at /design-system")
     
+    # 3f. Structure Search Interface (Phase 5.3)
+    from app.routers import structure_search
+    app.include_router(structure_search.router)
+    print(" - Structure Search interface mounted at /structure/search")
+    
     # 3e. Import/Export Structure Excel
     from app.routers import structure_import_export
     app.include_router(structure_import_export.router)

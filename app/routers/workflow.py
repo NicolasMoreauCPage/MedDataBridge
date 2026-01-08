@@ -171,6 +171,7 @@ async def create_mouvement(
     location: str = Form(None),
     reason: str = Form(None),
     performer: str = Form(None),
+    lit_id: Optional[int] = Form(None),
     request: Request = None,
     session: Session = Depends(get_session)
 ):
@@ -201,6 +202,28 @@ async def create_mouvement(
         raise HTTPException(status_code=400, detail=f"Unsupported event code {event_code}")
 
     movement_type, requires_location = event_mapping[event_code]
+
+    # Si un lit précis est fourni (workflow avancé / drag&drop plan de lits), le récupérer
+    target_lit = None
+    if lit_id is not None:
+        target_lit = session.get(Lit, lit_id)
+        if not target_lit:
+            raise HTTPException(status_code=400, detail="Lit cible introuvable")
+
+        # Valider côté serveur que le lit n'est pas déjà occupé par une autre venue active
+        # (même logique que le plan de lits pour les conflits)
+        active_on_lit = session.exec(
+            select(Venue)
+            .where(Venue.lit_id == lit_id)
+            .where(Venue.id != venue_id)
+            .where(Venue.end_time.is_(None))  # type: ignore[attr-defined]
+        ).all()
+        if active_on_lit:
+            raise HTTPException(status_code=400, detail="Le lit sélectionné est déjà occupé par une autre venue active")
+
+        # Si aucune location explicite n'est fournie, utiliser le nom du lit comme localisation affichée
+        if not location:
+            location = target_lit.name
 
     if requires_location and not location:
         raise HTTPException(status_code=400, detail="Location is required for this movement")
@@ -251,7 +274,15 @@ async def create_mouvement(
     if event_code in {"A02", "A22"}:
         if previous_location:
             mouvement.from_location = previous_location
-        if location:
+        # Mutation / retour : si un lit précis est fourni, synchroniser venue.lit_id/chambre_id
+        if target_lit is not None:
+            new_loc = target_lit.name
+            mouvement.to_location = new_loc
+            mouvement.location = new_loc
+            venue.assigned_location = new_loc
+            venue.lit_id = target_lit.id
+            venue.chambre_id = target_lit.chambre_id
+        elif location:
             mouvement.to_location = location
             venue.assigned_location = location
     elif event_code == "A06":
@@ -260,8 +291,17 @@ async def create_mouvement(
         if venue.dossier.dossier_type == DossierType.URGENCE:
             if not location:
                 raise HTTPException(status_code=400, detail="Location required for emergency to inpatient transition")
-            mouvement.to_location = location
-            venue.assigned_location = location
+            # Mise à jour structurée si lit fourni
+            if target_lit is not None:
+                new_loc = target_lit.name
+                mouvement.to_location = new_loc
+                mouvement.location = new_loc
+                venue.assigned_location = new_loc
+                venue.lit_id = target_lit.id
+                venue.chambre_id = target_lit.chambre_id
+            else:
+                mouvement.to_location = location
+                venue.assigned_location = location
             venue.dossier.dossier_type = DossierType.HOSPITALISE
             sync_dossier_class(venue.dossier)
         else:
@@ -273,7 +313,14 @@ async def create_mouvement(
     elif event_code == "A07":
         if previous_location:
             mouvement.from_location = previous_location
-        if location:
+        if target_lit is not None:
+            new_loc = target_lit.name
+            mouvement.to_location = new_loc
+            mouvement.location = new_loc
+            venue.assigned_location = new_loc
+            venue.lit_id = target_lit.id
+            venue.chambre_id = target_lit.chambre_id
+        elif location:
             mouvement.to_location = location
             venue.assigned_location = location
         # Changer le type de dossier en hospitalisé
@@ -285,9 +332,18 @@ async def create_mouvement(
         # Annulation de pré-admission: on revient à l'état sans venue courante
         venue.assigned_location = None
     elif event_code in {"A01", "A05"} and location:
-        venue.assigned_location = location
+        # Admission / pré-admission avec localisation
+        if target_lit is not None:
+            new_loc = target_lit.name
+            venue.assigned_location = new_loc
+            mouvement.location = new_loc
+            venue.lit_id = target_lit.id
+            venue.chambre_id = target_lit.chambre_id
+        else:
+            venue.assigned_location = location
 
-    if location and event_code not in {"A06"}:
+    if location and event_code not in {"A06"} and target_lit is None:
+        # Conserver l'ancien comportement uniquement si aucun lit structuré n'a été fourni
         mouvement.location = location
 
     session.add(venue)

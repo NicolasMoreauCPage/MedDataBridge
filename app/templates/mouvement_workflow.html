@@ -358,6 +358,13 @@
                 {% endif %}
               </p>
             {% endif %}
+            {% if mouvement.reason and 'plan de lits' in mouvement.reason|lower %}
+              <p>
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                  🔄 Créé depuis le plan de lits (drag & drop)
+                </span>
+              </p>
+            {% endif %}
             {% if mouvement.performer %}
               <p>
                 <span class="font-semibold text-slate-700">Intervenant :</span>

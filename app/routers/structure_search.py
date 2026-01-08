@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from sqlmodel import Session
 from app.db import get_session
-from app.models import EntiteGeographique
+from app.models_structure import EntiteGeographique
 
 router = APIRouter()
 

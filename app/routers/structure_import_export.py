@@ -18,6 +18,7 @@ from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit
 )
+from app.schemas.import_schemas import ImportAction
 
 router = APIRouter(prefix="/api/structure", tags=["Structure Import/Export"])
 ui_router = APIRouter(prefix="/structure", tags=["Structure Import/Export UI"])

@@ -149,19 +149,28 @@
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {% for lit in chambre.lits %}
               <div class="group relative rounded-xl border-2 p-4 transition-all
-                          {% if lit.status == 'free' %}border-emerald-300 bg-emerald-50 hover:border-emerald-500 hover:shadow-md{% elif lit.status == 'occupied' %}border-slate-300 bg-white hover:border-slate-400{% else %}border-amber-300 bg-amber-50{% endif %}">
+                          {% if lit.has_conflict %}border-red-400 bg-red-50 hover:border-red-600 hover:shadow-lg{% elif lit.status == 'free' %}border-emerald-300 bg-emerald-50 hover:border-emerald-500 hover:shadow-md{% elif lit.status == 'occupied' %}border-slate-300 bg-white hover:border-slate-400{% else %}border-amber-300 bg-amber-50{% endif %}">
+                
+                <!-- Alerte conflit si présent -->
+                {% if lit.has_conflict %}
+                <div class="absolute -top-2 left-2 right-2 z-10">
+                  <div class="rounded-lg bg-red-600 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-white shadow-lg animate-pulse">
+                    ⚠️ Conflit : {{ lit.conflict_count }} patients
+                  </div>
+                </div>
+                {% endif %}
                 
                 <!-- Statut badge -->
                 <div class="absolute top-2 right-2">
                   <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide
-                              {% if lit.status == 'free' %}bg-emerald-200 text-emerald-900{% elif lit.status == 'occupied' %}bg-slate-200 text-slate-700{% else %}bg-amber-200 text-amber-900{% endif %}">
-                    {% if lit.status == 'free' %}✓ Libre{% elif lit.status == 'occupied' %}● Occupé{% elif lit.status == 'closed' %}⊗ Fermé{% else %}{{ lit.status }}{% endif %}
+                              {% if lit.has_conflict %}bg-red-200 text-red-900{% elif lit.status == 'free' %}bg-emerald-200 text-emerald-900{% elif lit.status == 'occupied' %}bg-slate-200 text-slate-700{% else %}bg-amber-200 text-amber-900{% endif %}">
+                    {% if lit.has_conflict %}⚠️ Conflit{% elif lit.status == 'free' %}✓ Libre{% elif lit.status == 'occupied' %}● Occupé{% elif lit.status == 'closed' %}⊗ Fermé{% else %}{{ lit.status }}{% endif %}
                   </span>
                 </div>
 
                 <!-- Nom du lit -->
-                <div class="mb-2">
-                  <div class="text-lg font-bold {% if lit.status == 'free' %}text-emerald-900{% elif lit.status == 'occupied' %}text-slate-900{% else %}text-amber-900{% endif %}">
+                <div class="mb-2 {% if lit.has_conflict %}mt-4{% endif %}">
+                  <div class="text-lg font-bold {% if lit.has_conflict %}text-red-900{% elif lit.status == 'free' %}text-emerald-900{% elif lit.status == 'occupied' %}text-slate-900{% else %}text-amber-900{% endif %}">
                     🛏️ {{ lit.name }}
                   </div>
                   <div class="text-xs text-slate-500">{{ lit.identifier }}</div>
@@ -179,7 +188,12 @@
 
                 <!-- Actions -->
                 <div class="flex gap-2">
-                  {% if lit.status == 'free' %}
+                  {% if lit.has_conflict %}
+                  <a href="/mouvements?lit_id={{ lit.id }}" 
+                     class="flex-1 rounded-lg bg-red-600 px-3 py-1.5 text-center text-xs font-semibold text-white hover:bg-red-700 transition-colors shadow-sm">
+                    🔍 Résoudre conflit
+                  </a>
+                  {% elif lit.status == 'free' %}
                   <button type="button" 
                           onclick="assignBed('{{ lit.id }}', '{{ lit.name }}')"
                           class="flex-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm">
@@ -315,6 +329,16 @@ function transferPatient(venueId, newLitId) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeAssignModal();
+  }
+  
+  // Ctrl+F pour focus barre de recherche filtres
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.target.matches('input, textarea, select')) {
+    e.preventDefault();
+    const firstFilter = document.querySelector('select[name="uf_filter"]');
+    if (firstFilter) {
+      firstFilter.focus();
+      firstFilter.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 });
 </script>

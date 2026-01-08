@@ -604,6 +604,26 @@
       return false;
     }
   });
+  
+  // Raccourcis clavier globaux
+  document.addEventListener('keydown', (e) => {
+    // Alt+1/2/3 pour sélection rapide événements
+    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      const cards = Array.from(document.querySelectorAll('.event-card'));
+      const index = parseInt(e.key) - 1;
+      if (index >= 0 && index < cards.length && !e.target.matches('input, textarea, select')) {
+        e.preventDefault();
+        cards[index].click();
+        cards[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+    
+    // Ctrl+L pour accéder au plan de lits
+    if ((e.ctrlKey || e.metaKey) && e.key === 'l' && !e.target.matches('input, textarea, select')) {
+      e.preventDefault();
+      window.location.href = '/mouvements/plan-lits';
+    }
+  });
 })();
 </script>
 {% endblock %}

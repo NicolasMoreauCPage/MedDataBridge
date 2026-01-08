@@ -121,13 +121,24 @@ def plan_lits(
                     "dossier_seq": dossier.dossier_seq
                 }
         
+        # Détection conflit : plusieurs venues actives sur le même lit
+        conflits_count = session.exec(
+            select(Venue)
+            .where(Venue.lit_id == lit.id)
+            .where(Venue.end_time.is_(None))
+        ).all()
+        
+        has_conflict = len(conflits_count) > 1
+        
         structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id]["lits"].append({
             "id": lit.id,
             "name": lit.name,
             "identifier": lit.identifier,
             "status": lit.status or "unknown",
             "operational_status": lit.operational_status,
-            "occupant": occupant
+            "occupant": occupant,
+            "has_conflict": has_conflict,
+            "conflict_count": len(conflits_count) if has_conflict else 0
         })
     
     # Calculer statistiques globales

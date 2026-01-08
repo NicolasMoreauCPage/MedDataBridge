@@ -286,34 +286,34 @@
           <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition">
             <div class="w-[520px] grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-600 p-3 shadow-xl">
               <div>
-                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Vue d'ensemble</p>
-                <a href="/structure" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau structurel</a>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Vue terrain & unités</p>
+                <a href="/structure" class="block rounded-xl px-3 py-2 hover:bg-blue-50 font-semibold text-blue-700">
+                  🗺️ Vue structure & unités
+                  <span class="ml-1 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-100">Nouvelle IHM</span>
+                </a>
+                <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">🔍 Recherche dans la structure</a>
+                <a href="/structure/interactive" class="block rounded-xl px-3 py-2 hover:bg-purple-50">✨ Carte interactive</a>
                 <a href="/structure/analytics" class="block rounded-xl px-3 py-2 hover:bg-blue-50 flex items-center justify-between">
-                  <span>📊 Analytics & KPIs</span>
+                  <span>📊 Indicateurs & KPIs</span>
                   <span id="alert-badge" class="hidden px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full"></span>
                 </a>
-                <a href="/structure/alert-config" class="block rounded-xl px-3 py-2 hover:bg-blue-50">⚙️ Config alertes</a>
-                <a href="/structure/interactive" class="block rounded-xl px-3 py-2 hover:bg-purple-50 border-l-4 border-purple-400 font-semibold">✨ Vue interactive (NEW)</a>
-                <a href="/structure/import" class="block rounded-xl px-3 py-2 hover:bg-blue-50">📥 Import Excel</a>
-                <a href="/api/structure/export/excel" class="block rounded-xl px-3 py-2 hover:bg-blue-50">📤 Export Excel</a>
-                <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
-                <a href="/structure/search" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Recherche avancée</a>
                 {% if request.state and request.state.ej_context %}
                   <div class="mt-2 mx-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                     <div class="flex items-center justify-between gap-2">
                       <span class="font-medium">🏥 {{ request.state.ej_context.name }}</span>
                       <a href="/context/clear?kind=ej" class="hover:underline" title="Changer d'EJ">×</a>
                     </div>
+                    <p class="mt-1 text-[11px] text-blue-600">Toutes les vues sont filtrées sur cet établissement.</p>
                   </div>
                 {% else %}
-                      <a href="/admin/ght" class="mx-3 mt-2 block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 hover:bg-blue-100" title="Sélectionnez un EJ pour filtrer les listes">
-                      <span class="font-medium">→ Sélectionner un établissement</span>
-                    </a>
+                  <a href="/admin/ght" class="mx-3 mt-2 block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 hover:bg-blue-100" title="Sélectionnez un EJ pour filtrer les listes">
+                    <span class="font-medium">→ Sélectionner un établissement</span>
+                  </a>
                 {% endif %}
               </div>
               <div>
                 <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400 flex items-center gap-2">
-                  Gestion par niveau
+                  Paramétrage & niveaux
                   {% if request.state and request.state.ej_context %}
                     <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">filtré par EJ</span>
                   {% else %}
@@ -321,13 +321,20 @@
                   {% endif %}
                 </p>
                 <div class="grid grid-cols-2 gap-1 text-sm">
-                  <a href="/structure/eg" class="rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
                   <a href="/structure/poles" class="rounded-xl px-3 py-2 hover:bg-blue-50">Pôles</a>
                   <a href="/structure/services" class="rounded-xl px-3 py-2 hover:bg-blue-50">Services</a>
-                  <a href="/structure/ufs" class="rounded-xl px-3 py-2 hover:bg-blue-50">UF</a>
-                  <a href="/structure/uh" class="rounded-xl px-3 py-2 hover:bg-blue-50">UH</a>
+                  <a href="/structure/ufs" class="rounded-xl px-3 py-2 hover:bg-blue-50">Unités fonctionnelles (UF)</a>
+                  <a href="/structure/uh" class="rounded-xl px-3 py-2 hover:bg-blue-50">Unités d'hébergement (UH)</a>
                   <a href="/structure/chambres" class="rounded-xl px-3 py-2 hover:bg-blue-50">Chambres</a>
                   <a href="/structure/lits" class="rounded-xl px-3 py-2 hover:bg-blue-50">Lits</a>
+                  <a href="/structure/eg" class="rounded-xl px-3 py-2 hover:bg-blue-50">Entités géographiques</a>
+                </div>
+                <p class="px-3 pt-3 pb-1 text-xs uppercase tracking-wide text-slate-400">Imports & exports</p>
+                <div class="grid grid-cols-1 gap-1 text-sm">
+                  <a href="/structure/wizard" class="rounded-xl px-3 py-2 hover:bg-blue-50">🪄 Assistant de création de structure</a>
+                  <a href="/structure/import" class="rounded-xl px-3 py-2 hover:bg-blue-50">📥 Import structure (Excel / HL7)</a>
+                  <a href="/api/structure/export/excel" class="rounded-xl px-3 py-2 hover:bg-blue-50">📤 Export de la structure</a>
+                  <a href="/structure/alert-config" class="rounded-xl px-3 py-2 hover:bg-blue-50">⚙️ Alertes & cohérence</a>
                 </div>
               </div>
             </div>
@@ -349,26 +356,41 @@
           <div class="absolute left-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition" data-test-menu="activites">
             <div class="w-[520px] grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-600 p-3 shadow-xl">
               <div>
-                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Suivi des prises en charge</p>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Parcours patient & séjours</p>
                 <div class="grid grid-cols-1 gap-1">
-                  <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="patients">👥 Patients</a>
-                  <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50 font-semibold text-green-700" data-test-link="dossiers">📋 Dossiers & Cotation</a>
-                  <a href="/venues{% if request.state and request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="venues">🏥 Venues</a>
-                  <a href="/mouvements{% if request.state.venue_context %}?venue_id={{ request.state.venue_context.id }}{% elif request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">🔄 Mouvements</a>
+                  <a href="/patients" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="patients">👥 Rechercher un patient</a>
+                  <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-blue-50 font-semibold text-green-700" data-test-link="dossiers">
+                    📋 Dossiers patients & cotation
+                    <span class="ml-1 inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700 border border-green-100">Workspace moderne</span>
+                  </a>
+                  <a href="/venues{% if request.state and request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="venues">🏥 Séjours / venues du dossier</a>
+                  <a href="/mouvements{% if request.state.venue_context %}?venue_id={{ request.state.venue_context.id }}{% elif request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50" data-test-link="mouvements">🔄 Mouvements du séjour</a>
                 </div>
               </div>
               <div>
-                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Codage Prestations</p>
+                <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Mouvements, lits & codage</p>
                 <div class="grid grid-cols-1 gap-1">
+                  <a href="/mouvements/plan-lits" class="block rounded-xl px-3 py-2 hover:bg-blue-50">🛏️ Plan de lits temps réel</a>
+                  {% if request.state and request.state.venue_context %}
+                    <a href="/workflow/venue/{{ request.state.venue_context.id }}/view" class="block rounded-xl px-3 py-2 hover:bg-blue-50">
+                      🧭 Workflow mouvements du séjour
+                      {{ components.context_badge('Séjour sélectionné') }}
+                    </a>
+                  {% else %}
+                    <div class="mx-3 mt-1 mb-1 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      🧭 Workflow mouvements
+                      <div class="mt-1">{{ components.context_badge('Sélectionner un séjour') }}</div>
+                    </div>
+                  {% endif %}
                   <a href="/cotation-modern/select" title="Sélectionnez d'abord un séjour (recherche)" class="block rounded-xl px-3 py-2 hover:bg-blue-50 text-amber-700">
-                    💰 Codage prestations
-                    {{ components.context_badge('Contexte requis') }}
+                    💰 Codage via fichiers HPRIM
+                    {{ components.context_badge('Séjour requis') }}
                     <span class="sr-only"> (nécessite un séjour)</span>
                   </a>
-                  <a href="/hprim/import?type=ccam" class="block rounded-xl px-3 py-2 hover:bg-blue-50">🏥 CCAM</a>
-                  <a href="/hprim/import?type=ngap" class="block rounded-xl px-3 py-2 hover:bg-blue-50">👨‍⚕️ NGAP</a>
-                  <a href="/hprim/import?type=ucd" class="block rounded-xl px-3 py-2 hover:bg-blue-50">💊 UCD</a>
-                  <a href="/hprim/import?type=lpp" class="block rounded-xl px-3 py-2 hover:bg-blue-50">📄 LPP</a>
+                  <a href="/hprim/import?type=ccam" class="block rounded-xl px-3 py-2 hover:bg-blue-50">🏥 Import HPRIM CCAM</a>
+                  <a href="/hprim/import?type=ngap" class="block rounded-xl px-3 py-2 hover:bg-blue-50">👨‍⚕️ Import HPRIM NGAP</a>
+                  <a href="/hprim/import?type=ucd" class="block rounded-xl px-3 py-2 hover:bg-blue-50">💊 Import HPRIM UCD</a>
+                  <a href="/hprim/import?type=lpp" class="block rounded-xl px-3 py-2 hover:bg-blue-50">📄 Import HPRIM LPP</a>
                 </div>
               </div>
             </div>

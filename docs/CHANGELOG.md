@@ -15,6 +15,14 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   - Plan de lits interactif par service/UF/UH/chambre avec KPIs d'occupation, statuts couleur, actions rapides (affecter, muter, voir venue)
   - Détection des conflits de lits (plusieurs venues actives sur un même lit) avec mise en évidence visuelle et point d'entrée dédié pour résolution
 
+- **Phase 6 (suite) : Mouvements, Lits & Cotation** (2026-01-08)
+  - Finalisation du workflow mouvements : écran dédié par séjour avec timeline, catalogue d'évènements autorisés et intégration au plan de lits (drag & drop de mutation sur lit cible)
+  - Nouveau plan de lits temps réel : vue consolidée par service/UF/UH/chambre, indicateurs d'occupation, surlignage des conflits, actions rapides (ouvrir workflow, accéder au dossier)
+  - Workspace unique de cotation par dossier : fusion des anciennes vues "Saisie rapide" et "Liste" dans un seul écran moderne avec KPI, filtres et liste intégrée
+  - Saisie unifiée des actes CCAM/NGAP/UCD/LPP : formulaires complets avec auto-complétion, calcul automatique des montants et création côté back via `/cotations/api/{ccam,ngap,ucd,lpp}`
+  - Expérience clavier pour les codeurs : focus optimisé, raccourcis (validation, réinitialisation, navigation) et rechargement du workspace sans changer de contexte
+  - Refonte des menus "Structure" et "Activités" : libellés orientés métier (parcours patient, séjours, mouvements, plan de lits, codage), badges de contexte (GHT/EJ/patient/séjour) et mise en avant des nouvelles IHMs
+
 - **Phase 4.1: Import/Export Excel Structure** (2026-01-08)
   - Import/Export complet de la structure hospitalière via Excel (8 feuilles)
   - POST `/api/structure/import/excel` : Preview avec validation Pydantic

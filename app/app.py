@@ -354,6 +354,11 @@ def create_app() -> FastAPI:
     app.include_router(alert_config.ui_router)
     print(" - Alert config routers mounted at /api/alert-config and /structure/alert-config")
     
+    # 3d. Export Analytics (Mode Gestionnaire)
+    from app.routers import export_analytics
+    app.include_router(export_analytics.router)
+    print(" - Export analytics router mounted at /api/analytics/export")
+    
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)
     from app.routers import admin_gateway

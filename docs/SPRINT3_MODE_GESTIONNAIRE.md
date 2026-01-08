@@ -191,13 +191,16 @@ class AlertRule(SQLModel, table=True):
 - [x] Badge compteur d'alertes dans navigation principale (temps réel)
 - [x] Formulaire création/édition règles avec validation
 
-### Sprint 3.1.4 : Export Rapports _(2-3 jours)_
-- [ ] Endpoint `POST /api/analytics/export` avec génération fichiers
-- [ ] Export Excel avec `openpyxl` : tableaux + graphiques
-- [ ] Export PDF avec `reportlab` : mise en page professionnelle
-- [ ] Export CSV : données brutes avec headers
-- [ ] Boutons export dans dashboard
-- [ ] Téléchargement fichier avec nom formaté (eg: rapport_occupation_2026-01-08.xlsx)
+### Sprint 3.1.4 : Export Rapports _(2-3 jours)_ ✅ TERMINÉ
+- [x] Router `/api/analytics/export` avec 3 endpoints
+- [x] Export Excel avec `openpyxl` : KPIs + tableaux + graphiques
+- [x] Export PDF avec `reportlab` : rapport formaté professionnel
+- [x] Export CSV : données brutes (KPIs ou capacité)
+- [x] Boutons export dans dashboard (Excel/PDF/CSV)
+- [x] Mise à jour dynamique liens selon période sélectionnée
+- [x] Noms de fichiers avec timestamp (rapport_analytics_20260108_143052.xlsx)
+- [x] Coloration conditionnelle dans Excel (vert/jaune/rouge)
+- [x] Graphiques Chart.js intégrés dans Excel
 
 ### Sprint 3.1.5 : Tests & Validation _(1 jour)_
 - [ ] Tests E2E du dashboard analytics

@@ -8,6 +8,38 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### ✨ Fonctionnalités
+- **Phase 4.1: Import/Export Excel Structure** (2026-01-08)
+  - Import/Export complet de la structure hospitalière via Excel (8 feuilles)
+  - POST `/api/structure/import/excel` : Preview avec validation Pydantic
+  - POST `/api/structure/import/confirm` : Import transactionnel avec rollback
+  - 3 modes d'import : create, update, replace
+  - Interface Dropzone.js avec preview détaillée et gestion erreurs
+  - Documentation technique complète : [PHASE4.1_IMPORT_EXPORT_COMPLETE.md](PHASE4.1_IMPORT_EXPORT_COMPLETE.md)
+
+- **Phase 5.1: UX Interactive Moderne** (2026-01-08)
+  - Édition inline avec double-clic (PATCH `/api/structure/interactive/{type}/{id}`)
+  - Drag & drop avec SortableJS (POST `/api/structure/interactive/move`)
+  - Raccourcis clavier (Ctrl+N/E/D/F, Del, Esc, ?)
+  - Opérations en masse (POST `/api/structure/interactive/bulk-update`)
+  - Duplication d'entités (POST `/api/structure/interactive/duplicate`)
+  - Page démo interactive : `/structure/interactive`
+  - Documentation : [PHASE5_UX_MODERNE.md](PHASE5_UX_MODERNE.md)
+
+- **Phase 3.1: Mode Gestionnaire** (2026-01-08)
+  - Dashboard analytics avec KPIs temps réel
+  - 4 endpoints analytics : kpis, capacity-by-service, capacity-by-um, alerts
+  - Configuration des alertes (seuils d'occupation)
+  - Export rapports Excel/PDF/CSV
+  - Graphiques interactifs Chart.js
+  - Documentation : [SPRINT3_MODE_GESTIONNAIRE.md](SPRINT3_MODE_GESTIONNAIRE.md)
+
+- **Phases 1-2: Dashboard et Wizard Structure** (2026-01-08)
+  - Dashboard structure avec arbre hiérarchique (EG → Pôles → Services → UF/UH → Chambres → Lits)
+  - Wizard de création en 3 étapes avec templates (Hôpital, Clinique, EHPAD)
+  - CRUD complet pour toutes les entités
+  - Validation temps réel et calculs automatiques
+  - Documentation : [SPRINT1_DASHBOARD_STRUCTURE.md](SPRINT1_DASHBOARD_STRUCTURE.md), [SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md](SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md)
+
 - **Interface visualisation et import actes HPRIM** (2026-01-07)
   - Nouveau router `/hprim-cotation` pour visualiser les messages HPRIM de cotation reçus
   - Dashboard avec filtres par statut et recherche par NDA/IPP

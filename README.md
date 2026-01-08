@@ -17,6 +17,15 @@ Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base S
 - [API_REST_DOCUMENTATION.md](docs/API_REST_DOCUMENTATION.md) - Documentation des endpoints API
 - [docs/README.md](docs/README.md) - Index complet de la documentation
 
+### 🎨 Refonte Interface Structure (Phases 1-5.1)
+- [SPRINT1_DASHBOARD_STRUCTURE.md](docs/SPRINT1_DASHBOARD_STRUCTURE.md) - Dashboard avec visualisation hiérarchique
+- [SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md](docs/SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md) - Wizard de création avec templates
+- [SPRINT3_MODE_GESTIONNAIRE.md](docs/SPRINT3_MODE_GESTIONNAIRE.md) - Mode Gestionnaire avec analytics
+- [PHASE4_IMPORT_EXPORT.md](docs/PHASE4_IMPORT_EXPORT.md) - Spécifications Import/Export Excel
+- [PHASE4.1_IMPORT_EXPORT_COMPLETE.md](docs/PHASE4.1_IMPORT_EXPORT_COMPLETE.md) - Documentation technique complète
+- [PHASE5_UX_MODERNE.md](docs/PHASE5_UX_MODERNE.md) - UX interactive (inline editing, drag & drop)
+- [RECAPITULATIF_COMPLET.md](docs/RECAPITULATIF_COMPLET.md) - Vue d'ensemble de toutes les phases
+
 ## Contenu clé
 - `app/` : code de l'application (routers, templates, modèles SQLModel, services).
 - `docs/` : documentation détaillée (IHE PAM, HPRIM, API, guides d'intégration).

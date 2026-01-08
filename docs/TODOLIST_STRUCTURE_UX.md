@@ -68,22 +68,22 @@
   - [x] Breadcrumb intelligent dans le panneau de détails
   - [x] Cache client basique via `currentStructure` (une seule requête `/tree`)
 
-### Phase 2 : Wizard de Saisie Assistée
-- [ ] **Templates Pré-configurés**
-  - [ ] Template CHU (Pôles multiples, services spécialisés)
-  - [ ] Template Centre Hospitalier (Organisation standard)
-  - [ ] Template Clinique (Plateaux techniques, ambulatoire)
-  - [ ] Template EHPAD (UF hébergement, soins)
-  - [ ] Template HAD (Équipes mobiles, secteurs)
+### Phase 2 : Wizard de Saisie Assistée ✅ _(Sprint 2 terminé)_
+- [x] **Templates Pré-configurés**
+  - [x] Template CHU (Pôles multiples, services spécialisés)
+  - [x] Template Centre Hospitalier (Organisation standard)
+  - [x] Template Clinique (Plateaux techniques, ambulatoire)
+  - [ ] Template EHPAD (UF hébergement, soins) _[Optionnel - Phase future]_
+  - [ ] Template HAD (Équipes mobiles, secteurs) _[Optionnel - Phase future]_
 
-- [ ] **Wizard Multi-étapes**
-  - [ ] Étape 1 : Choix template + infos établissement
-  - [ ] Étape 2 : Configuration pôles/services
-  - [ ] Étape 3 : Définition UF + codes UM
-  - [ ] Étape 4 : Structure hébergement (UH/chambres/lits)
-  - [ ] Étape 5 : Validation + génération automatique codes
+- [x] **Wizard Multi-étapes**
+  - [x] Étape 1 : Choix template + infos établissement
+  - [x] Étape 2 : Configuration pôles/services (édition inline complète)
+  - [x] Étape 3 : Définition UF + codes UM (MCO/SSR/PSY/HAD)
+  - [x] Étape 4 : Structure hébergement (UH/chambres/lits)
+  - [x] Étape 5 : Validation + génération automatique en base
 
-- [ ] **Auto-complétion & Validation**
+- [ ] **Auto-complétion & Validation** _[Améliorations futures]_
   - [ ] API codes FINESS (établissement + géographique)
   - [ ] Référentiel codes UM (Médecine, Chirurgie, Obstétrique...)
   - [ ] Validation formats identifiants selon normes

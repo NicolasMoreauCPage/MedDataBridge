@@ -342,6 +342,11 @@ def create_app() -> FastAPI:
     app.include_router(structure_select.router)  # Has prefix /structure
     print(" - Structure routers mounted")
     
+    # 3b. Analytics (Mode Gestionnaire)
+    from app.routers import analytics
+    app.include_router(analytics.router)
+    print(" - Analytics router mounted at /api/analytics")
+    
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)
     from app.routers import admin_gateway

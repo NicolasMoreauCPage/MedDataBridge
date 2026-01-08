@@ -32,9 +32,9 @@ Mettre en place un wizard de saisie assistée pour créer/adapter rapidement une
     - [x] Ajout de pôle avec prompt
     - [x] Ajout de service par pôle
     - [x] Suppressions avec confirmation
-  - [ ] Étape 3 : UF + codes UM
-  - [ ] Étape 4 : Hébergement (UH/chambres/lits)
-  - [ ] Étape 5 : Synthèse & génération
+  - [x] Étape 3 : UF + codes UM
+  - [x] Étape 4 : Hébergement (UH/chambres/lits)
+  - [x] Étape 5 : Synthèse & génération
 
 ### Étape 2.3 : Intégration données & validation
 - [x] Implémentation Step 3 : Configuration UF + Codes UM

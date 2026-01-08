@@ -6,6 +6,18 @@ from enum import Enum
 if TYPE_CHECKING:
     from app.models_practitioners import MedecinResponsable
 
+
+class StructureTemplateType(str, Enum):
+    """Types de templates supportés pour le wizard structure.
+
+    Ces valeurs correspondent aux grands profils d'établissement : CHU, CH, Clinique, EHPAD, HAD.
+    """
+    CHU = "chu"
+    CH = "ch"
+    CLINIQUE = "clinique"
+    EHPAD = "ehpad"
+    HAD = "had"
+
 # --- ENUMS ---
 
 class LocationStatus(str, Enum):
@@ -53,6 +65,21 @@ class LocationPhysicalType(str, Enum):
     POINT_LIVRAISON = "point_livraison"      # Point de livraison
     SALLE_EXAMEN = "salle_examen"            # Salle d'examen
     SALLE_CONSULTATION = "salle_consultation" # Salle de consultation
+
+
+class StructureTemplate(SQLModel, table=True):
+    """Template de structure hospitalière pour le wizard de saisie assistée.
+
+    Ce modèle stocke un JSON décrivant une structure "type" (pôles, services,
+    UF, etc.) qui pourra être instanciée pour un établissement donné.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key: str = Field(index=True, unique=True, description="Identifiant technique du template, ex: 'chu', 'ch', 'clinique'.")
+    name: str = Field(description="Nom lisible du template, ex: 'CHU', 'Centre Hospitalier'.")
+    template_type: Optional[StructureTemplateType] = Field(default=None, description="Type fonctionnel de template (CHU, CH, Clinique, EHPAD, HAD).")
+    description: Optional[str] = Field(default=None, description="Description courte affichée dans l'UI du wizard.")
+    is_default: bool = Field(default=False, description="Indique si ce template doit être proposé en priorité.")
+    payload: Optional[str] = Field(default=None, description="Payload JSON de la structure type (pôles, services, UF, etc.).")
 
 class Pole(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

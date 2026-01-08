@@ -20,12 +20,14 @@ from app.services.structure_schedule import (
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
+from app.models_structure import StructureTemplate
 
 logger = logging.getLogger(__name__)
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit,
-    LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType
+    LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType,
+    StructureTemplate,
 )
 
 # Route principale pour les pages web
@@ -207,6 +209,74 @@ async def get_structure_tree(
             eg_node["poles"].append(pole_node)
         tree.append(eg_node)
     return tree
+
+
+class StructureTemplateOut(BaseModel):
+    """Schéma de sortie simplifié pour les templates de structure.
+
+    On évite de renvoyer le payload JSON complet à ce stade (Phase 2.1),
+    l'objectif principal étant d'alimenter la liste de choix du wizard.
+    """
+
+    id: int
+    key: str
+    name: str
+    description: Optional[str] = None
+    is_default: bool = False
+
+
+@api_router.get("/templates", response_model=List[StructureTemplateOut])
+async def list_structure_templates(session: Session = Depends(get_session)):
+    """Retourne la liste des templates de structure disponibles pour le wizard.
+
+    Implémentation minimaliste : on lit les templates en base si présents,
+    sinon on renvoie un petit set de templates par défaut (non persistés)
+    pour garder le wizard pleinement fonctionnel même sans seed initial.
+    """
+    templates = session.exec(select(StructureTemplate)).all()
+    items: List[StructureTemplateOut] = []
+
+    if templates:
+        for tpl in templates:
+            items.append(
+                StructureTemplateOut(
+                    id=tpl.id,
+                    key=tpl.key,
+                    name=tpl.name,
+                    description=tpl.description,
+                    is_default=tpl.is_default,
+                )
+            )
+        return items
+
+    # Fallback : templates en mémoire si aucun en base (Phase 2.1)
+    defaults = [
+        StructureTemplateOut(id=1, key="chu", name="CHU", description="Centre Hospitalier Universitaire complexe", is_default=True),
+        StructureTemplateOut(id=2, key="ch", name="Centre Hospitalier", description="Établissement général polyvalent", is_default=False),
+        StructureTemplateOut(id=3, key="clinique", name="Clinique", description="Structure privée à forte composante ambulatoire", is_default=False),
+    ]
+    return defaults
+
+
+@api_router.get("/templates/{template_id}")
+async def get_structure_template(template_id: int, session: Session = Depends(get_session)):
+    """Retourne le détail complet d'un template, y compris son payload JSON.
+
+    Utilisé par le wizard à l'étape 2 pour charger la structure du template choisi.
+    """
+    template = session.get(StructureTemplate, template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template non trouvé")
+
+    return {
+        "id": template.id,
+        "key": template.key,
+        "name": template.name,
+        "description": template.description,
+        "template_type": template.template_type,
+        "is_default": template.is_default,
+        "payload": template.payload,
+    }
 
 @api_router.get("/details/{type}/{id}")
 async def get_structure_details(
@@ -434,6 +504,29 @@ async def structure_dashboard(
         context["filtered_egs"] = [eg.id for eg in egs]
         context["no_ej_context"] = True  # Flag to show message in template
     return get_templates_with_filters(request).TemplateResponse(request, "structure_new.html", context)
+
+
+@router.get("/wizard", response_class=HTMLResponse)
+async def structure_wizard_page(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    """Page de wizard de saisie assistée pour créer une structure à partir de templates."""
+    context = {"request": request}
+    # On réutilise la même logique de filtrage EJ que pour la page principale
+    ej_context = request.session.get("ej_context_id")
+    if ej_context:
+        egs = session.exec(
+            select(EntiteGeographique)
+            .where(EntiteGeographique.entite_juridique_id == ej_context)
+        ).all()
+        context["filtered_ej_id"] = ej_context
+        context["filtered_egs"] = [eg.id for eg in egs]
+    else:
+        egs = session.exec(select(EntiteGeographique)).all()
+        context["filtered_egs"] = [eg.id for eg in egs]
+        context["no_ej_context"] = True
+    return get_templates_with_filters(request).TemplateResponse(request, "structure_wizard.html", context)
 
 @router.post("/import/hl7")
 async def import_structure_hl7(

@@ -114,20 +114,24 @@
   - [ ] Historique modifications pour audit
 
 ### Phase 4 : Fonctionnalités Avancées
-- [x] **Import/Export Excel** _(Sprint 4.1 - 8 janvier 2026)_
+- [x] **Import/Export Excel** ✅ _(Sprint 4.1 - 8 janvier 2026 - TERMINÉ)_
   - [x] Export structure hiérarchique (8 feuilles : README + 7 niveaux)
   - [x] Template Excel vide avec exemples et formatage
   - [x] Interface d'import avec Dropzone.js
   - [x] Prévisualisation avant validation
   - [x] Modes : create (nouveau), update (MAJ), replace (remplacement complet)
-  - [ ] Backend import avec parsing Excel et validation _[TODO Sprint 4.1.2]_
-  - [ ] Confirmation transactionnelle avec rollback _[TODO Sprint 4.1.2]_
+  - [x] Backend import avec parsing Excel et validation Pydantic (7 schémas)
+  - [x] Confirmation transactionnelle avec rollback automatique
+  - [x] Résolution foreign keys (codes → IDs)
+  - [x] Cache performance et gestion erreurs détaillée
+  - [x] Documentation technique complète : `PHASE4.1_IMPORT_EXPORT_COMPLETE.md`
 
 - [ ] **Gestion des Droits** _(Sprint 4.2 - À planifier)_
   - [ ] Profils utilisateurs (Gestionnaire, Médical, DIM, Technique)
   - [ ] Restrictions par établissement/pôle
   - [ ] Logs d'audit des modifications
   - [ ] Workflow validation changements critiques
+  - 📋 Spécifications disponibles : `PHASE4_GESTION_DROITS.md`
 
 - [ ] **Intégration Temps Réel** _(Sprint 4.3 - À planifier)_
   - [ ] Synchronisation avec SIH

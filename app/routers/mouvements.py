@@ -81,6 +81,9 @@ def list_mouvements(
     dossier_id: Optional[int] = Query(None, description="ID du dossier dont on veut voir les mouvements"),
     include_cancelled: bool = Query(False, description="Inclure les mouvements annulés dans la liste"),
     order: str = Query("asc", pattern="^(asc|desc)$", description="Ordre de tri par date"),
+    movement_type: Optional[str] = Query(None, alias="type", description="Filtrer par type HL7 (ADT^A01, A02, ... )"),
+    status: Optional[str] = Query(None, alias="status", description="Filtrer par statut du mouvement"),
+    location_filter: Optional[str] = Query(None, alias="location", description="Filtrer par localisation (contient)"),
     session=Depends(get_session)
 ):
     venue = None
@@ -181,6 +184,14 @@ def list_mouvements(
                 },
                 status_code=400
             )
+    # Filtres avancés globaux (type, statut, localisation)
+    if movement_type:
+        stmt = stmt.where(Mouvement.type == movement_type)
+    if status:
+        stmt = stmt.where(Mouvement.status == status)
+    if location_filter:
+        stmt = stmt.where(Mouvement.location.ilike(f"%{location_filter}%"))
+
     # Exécuter la requête si pas déjà fait
     if 'mouvements' not in locals():
         mouvements = session.exec(stmt).all()
@@ -241,6 +252,7 @@ def list_mouvements(
             "name": "type",
             "type": "select",
             "placeholder": "Tous les types",
+            "value": movement_type or "",
             "options": [
                 {"value": "ADT^A01", "label": "Admission"},
                 {"value": "ADT^A02", "label": "Transfert"},
@@ -253,6 +265,7 @@ def list_mouvements(
             "name": "status",
             "type": "select",
             "placeholder": "Tous les statuts",
+            "value": status or "",
             "options": [
                 {"value": "pending", "label": "En attente"},
                 {"value": "active", "label": "En cours"},
@@ -264,7 +277,8 @@ def list_mouvements(
             "label": "Localisation",
             "name": "location",
             "type": "text",
-            "placeholder": "Filtrer par localisation"
+            "placeholder": "Filtrer par localisation",
+            "value": location_filter or "",
         }
     ]
 

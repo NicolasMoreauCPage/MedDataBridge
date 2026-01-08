@@ -72,7 +72,7 @@
   </div>
 
   <!-- Barre d'étapes -->
-  <nav class="mb-6">
+  <nav class="mb-6" aria-label="Étapes de l'admission guidée">
     <ol class="flex flex-wrap items-center text-xs sm:text-sm text-slate-100/90" id="admissionSteps">
       <li class="flex items-center mr-4 mb-2" data-step="1">
         <span class="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold mr-2 shadow-md transition-colors">1</span>
@@ -93,8 +93,8 @@
   <form id="admission-wizard-form" method="post" action="/dossiers/new" class="space-y-6">
     <div id="admissionContent" class="bg-white/80 backdrop-blur-md shadow-xl rounded-2xl border border-slate-200/60 p-5 sm:p-6 lg:p-8 transition-shadow">
       <!-- Étape 1 : Identité patient (lecture seule) -->
-      <section data-step-content="1">
-        <h2 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
+      <section id="admission-step-1" data-step-content="1" aria-labelledby="admission-step-1-title">
+        <h2 id="admission-step-1-title" class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg">
             {{ icon('user', 'w-5 h-5') }}
           </span>
@@ -146,13 +146,14 @@
       </section>
 
       <!-- Étape 2 : Dossier administratif -->
-      <section data-step-content="2" class="hidden">
-        <h2 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
+      <section id="admission-step-2" data-step-content="2" aria-labelledby="admission-step-2-title" class="hidden">
+        <h2 id="admission-step-2-title" class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg">
             {{ icon('clipboard-document-list', 'w-5 h-5') }}
           </span>
           <span>Dossier administratif</span>
         </h2>
+        <div id="admission-errors" class="hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800" role="alert" aria-live="polite"></div>
         <div class="grid gap-5 md:grid-cols-2">
           <div class="space-y-3">
             <div>
@@ -200,8 +201,8 @@
       </section>
 
       <!-- Étape 3 : Vérification & création -->
-      <section data-step-content="3" class="hidden">
-        <h2 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
+      <section id="admission-step-3" data-step-content="3" aria-labelledby="admission-step-3-title" class="hidden">
+        <h2 id="admission-step-3-title" class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-lg">
             {{ icon('check-badge', 'w-5 h-5') }}
           </span>
@@ -260,16 +261,16 @@
 
     <!-- Boutons de navigation wizard -->
     <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <button type="button" id="admissionPrev" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all">
+      <button type="button" id="admissionPrev" aria-label="Revenir à l'étape précédente" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all">
         ← Précédent
       </button>
       <div class="flex items-center gap-3">
-        <button type="button" id="admissionNext" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-700 hover:shadow-lg transition-all">
+        <button type="button" id="admissionNext" aria-label="Passer à l'étape suivante" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-700 hover:shadow-lg transition-all">
           <span>Suivant</span>
           <span>→</span>
         </button>
-        <button type="submit" id="admissionSubmit" class="hidden inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-emerald-700 hover:shadow-lg transition-all">
-          <span>Créer dossier + pré-admission</span>
+        <button type="submit" id="admissionSubmit" aria-label="Créer le dossier et la pré-admission" class="hidden inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-emerald-700 hover:shadow-lg transition-all">
+          <span class="admission-submit-label">Créer dossier + pré-admission</span>
         </button>
       </div>
     </div>
@@ -284,8 +285,10 @@
     const nextBtn = document.getElementById('admissionNext');
     const submitBtn = document.getElementById('admissionSubmit');
     const form = document.getElementById('admission-wizard-form');
+    const errorBox = document.getElementById('admission-errors');
     let currentStep = 1;
     const maxStep = 3;
+    let isSubmitting = false;
 
     function updateStepDisplay() {
       steps.forEach(stepEl => {
@@ -295,10 +298,12 @@
           stepEl.classList.remove('opacity-70');
           badge.classList.remove('bg-slate-200', 'text-slate-700');
           badge.classList.add('bg-emerald-500', 'text-white');
+          stepEl.setAttribute('aria-current', 'step');
         } else {
           stepEl.classList.add('opacity-70');
           badge.classList.remove('bg-emerald-500', 'text-white');
           badge.classList.add('bg-slate-200', 'text-slate-700');
+          stepEl.removeAttribute('aria-current');
         }
       });
       contents.forEach(section => {
@@ -328,19 +333,81 @@
         if (currentStep === 2) {
           const uf = form.querySelector('select[name="uf_responsabilite"]');
           const admitTime = form.querySelector('input[name="admit_time"]');
+
+          if (uf) {
+            uf.classList.remove('border-red-500');
+          }
+          if (admitTime) {
+            admitTime.classList.remove('border-red-500');
+          }
+          if (errorBox) {
+            errorBox.classList.add('hidden');
+            errorBox.textContent = '';
+          }
+
           if (uf && !uf.value) {
             uf.focus();
             uf.classList.add('border-red-500');
+            if (errorBox) {
+              errorBox.textContent = "Merci de sélectionner une UF de responsabilité avant de continuer.";
+              errorBox.classList.remove('hidden');
+            }
             return;
           }
           if (admitTime && !admitTime.value) {
             admitTime.focus();
             admitTime.classList.add('border-red-500');
+            if (errorBox) {
+              errorBox.textContent = "Merci de renseigner une date et heure d'admission valides avant de continuer.";
+              errorBox.classList.remove('hidden');
+            }
             return;
           }
         }
         currentStep += 1;
         updateStepDisplay();
+      }
+    });
+
+    const ufField = form.querySelector('select[name="uf_responsabilite"]');
+    if (ufField) {
+      ufField.addEventListener('change', () => {
+        ufField.classList.remove('border-red-500');
+        if (errorBox) {
+          errorBox.classList.add('hidden');
+          errorBox.textContent = '';
+        }
+      });
+    }
+
+    const admitTimeField = form.querySelector('input[name="admit_time"]');
+    if (admitTimeField) {
+      admitTimeField.addEventListener('input', () => {
+        admitTimeField.classList.remove('border-red-500');
+        if (errorBox) {
+          errorBox.classList.add('hidden');
+          errorBox.textContent = '';
+        }
+      });
+    }
+
+    form.addEventListener('submit', (event) => {
+      if (isSubmitting) {
+        return;
+      }
+      isSubmitting = true;
+      if (errorBox) {
+        errorBox.classList.add('hidden');
+        errorBox.textContent = '';
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        const submitLabel = submitBtn.querySelector('.admission-submit-label');
+        if (submitLabel) {
+          submitLabel.textContent = 'Création en cours...';
+        }
+        submitBtn.insertAdjacentHTML('beforeend', '<span class="h-4 w-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin"></span>');
       }
     });
 

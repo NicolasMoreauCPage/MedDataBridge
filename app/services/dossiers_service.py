@@ -53,8 +53,15 @@ def get_dossiers(
     patient_id: Optional[int] = None,
     dossier_type: Optional[DossierType] = None,
     dossier_seq: Optional[int] = None,
+    uf: Optional[str] = None,
+    medecin: Optional[str] = None,
+    admit_from: Optional[str] = None,
+    admit_to: Optional[str] = None,
+    current_state: Optional[str] = None,
 ) -> List[Dossier]:
     """Récupère une liste de dossiers filtrée."""
+    from datetime import datetime, timedelta
+    
     query = select(Dossier)
     if ej_id:
         query = query.where(Dossier.entite_juridique_id == ej_id)
@@ -64,6 +71,34 @@ def get_dossiers(
         query = query.where(Dossier.dossier_type == dossier_type)
     if dossier_seq:
         query = query.where(Dossier.dossier_seq == dossier_seq)
+    
+    # Filtres avancés
+    if uf:
+        query = query.where(Dossier.uf_responsabilite.ilike(f"%{uf}%"))
+    if medecin:
+        query = query.where(Dossier.attending_provider.ilike(f"%{medecin}%"))
+    if current_state:
+        query = query.where(Dossier.current_state.ilike(f"%{current_state}%"))
+    
+    # Filtres de période (admission)
+    def _parse_date(value: Optional[str]):
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%Y-%m-%d")
+        except ValueError:
+            try:
+                return datetime.fromisoformat(value)
+            except Exception:
+                return None
+    
+    admit_from_dt = _parse_date(admit_from)
+    admit_to_dt = _parse_date(admit_to)
+    if admit_from_dt:
+        query = query.where(Dossier.admit_time >= admit_from_dt)
+    if admit_to_dt:
+        query = query.where(Dossier.admit_time < admit_to_dt + timedelta(days=1))
+    
     return session.exec(query).all()
 
 def update_dossier(

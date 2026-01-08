@@ -65,6 +65,11 @@ def list_dossiers(
     patient_id: int | None = Query(None),
     dossier_type: DossierType | None = Query(None),
     dossier_seq: int | None = Query(None),
+    uf: str | None = Query(None, description="Filtrer par UF de responsabilité (contient)"),
+    medecin: str | None = Query(None, alias="attending_provider", description="Filtrer par médecin responsable (contient)"),
+    admit_from: str | None = Query(None, description="Filtrer par date d'admission à partir de (AAAA-MM-JJ)"),
+    admit_to: str | None = Query(None, description="Filtrer par date d'admission jusqu'à (AAAA-MM-JJ)"),
+    current_state: str | None = Query(None, description="Filtrer par état courant"),
     session=Depends(get_session)
 ):
     ej_context = getattr(request.state, "ej_context", None)
@@ -76,6 +81,11 @@ def list_dossiers(
         patient_id=patient_id,
         dossier_type=dossier_type,
         dossier_seq=dossier_seq,
+        uf=uf,
+        medecin=medecin,
+        admit_from=admit_from,
+        admit_to=admit_to,
+        current_state=current_state,
     )
     
     # Compter les actes pour chaque dossier
@@ -104,7 +114,56 @@ def list_dossiers(
         {"type": "link", "label": "Import FHIR", "url": "/dossiers/import/fhir"}
     ]
 
-    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie", "Actes"], "rows": rows, "new_url": "/dossiers/new", "actions": actions, "show_actions": True}
+    filters = [
+        {
+            "label": "UF responsabilité",
+            "name": "uf",
+            "type": "text",
+            "value": uf or "",
+            "placeholder": "Ex : CARDIO"
+        },
+        {
+            "label": "Médecin responsable",
+            "name": "attending_provider",
+            "type": "text",
+            "value": medecin or "",
+            "placeholder": "Nom du praticien"
+        },
+        {
+            "label": "Type de dossier",
+            "name": "dossier_type",
+            "type": "select",
+            "value": dossier_type.value if dossier_type else "",
+            "placeholder": "Tous les types",
+            "options": [
+                {"value": dt.value, "label": dt.name.replace('_', ' ').capitalize()}
+                for dt in DossierType
+            ]
+        },
+        {
+            "label": "Admission à partir du",
+            "name": "admit_from",
+            "type": "text",
+            "value": admit_from or "",
+            "placeholder": "AAAA-MM-JJ"
+        },
+        {
+            "label": "Admission jusqu'au",
+            "name": "admit_to",
+            "type": "text",
+            "value": admit_to or "",
+            "placeholder": "AAAA-MM-JJ"
+        },
+        {
+            "label": "État courant",
+            "name": "current_state",
+            "type": "text",
+            "value": current_state or "",
+            "placeholder": "Ex : Hospitalisé, EN_SALLE..."
+        },
+    ]
+
+    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie", "Actes"], "rows": rows, "new_url": "/dossiers/new", "filters": filters, "actions": actions, "show_actions": True}
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 @public_router.get("/{dossier_id}", response_class=HTMLResponse)

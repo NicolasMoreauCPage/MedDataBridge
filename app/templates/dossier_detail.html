@@ -220,9 +220,15 @@
           </svg>
           <h3 class="text-lg font-bold">Venues du dossier</h3>
         </div>
-        <a href="/venues?dossier_id={{ dossier.id }}" class="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg font-semibold transition-colors">
-          Voir toutes →
-        </a>
+        <div class="flex items-center gap-2">
+          <a href="/venues/new?dossier_id={{ dossier.id }}" class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-500 px-3 py-1.5 text-sm font-semibold text-slate-900 shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border border-emerald-300/60">
+            <span class="text-base">+</span>
+            <span>Nouvelle venue</span>
+          </a>
+          <a href="/venues?dossier_id={{ dossier.id }}" class="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg font-semibold transition-colors">
+            Voir toutes →
+          </a>
+        </div>
       </div>
       <div class="p-6 space-y-4">
         {% if dossier.venues %}

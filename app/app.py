@@ -365,6 +365,12 @@ def create_app() -> FastAPI:
     app.include_router(structure_import_export.ui_router)
     print(" - Structure import/export routers mounted at /api/structure/export and /structure/import")
     
+    # 3f. Structure Interactive (Phase 5 - Édition inline & drag-drop)
+    from app.routers import structure_interactive
+    app.include_router(structure_interactive.router)
+    app.include_router(structure_interactive.ui_router)
+    print(" - Structure interactive router mounted at /api/structure (PATCH, POST /move) and /structure/interactive")
+    
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)
     from app.routers import admin_gateway

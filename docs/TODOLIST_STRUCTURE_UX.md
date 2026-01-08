@@ -114,25 +114,72 @@
   - [ ] Historique modifications pour audit
 
 ### Phase 4 : Fonctionnalités Avancées
-- [ ] **Import/Export Excel**
-  - [ ] Template Excel pour import structure complète
-  - [ ] Validation données avant import
-  - [ ] Export structure vers Excel avec formatage
-  - [ ] Mapping automatique colonnes
+- [x] **Import/Export Excel** _(Sprint 4.1 - 8 janvier 2026)_
+  - [x] Export structure hiérarchique (8 feuilles : README + 7 niveaux)
+  - [x] Template Excel vide avec exemples et formatage
+  - [x] Interface d'import avec Dropzone.js
+  - [x] Prévisualisation avant validation
+  - [x] Modes : create (nouveau), update (MAJ), replace (remplacement complet)
+  - [ ] Backend import avec parsing Excel et validation _[TODO Sprint 4.1.2]_
+  - [ ] Confirmation transactionnelle avec rollback _[TODO Sprint 4.1.2]_
 
-- [ ] **Gestion des Droits**
+- [ ] **Gestion des Droits** _(Sprint 4.2 - À planifier)_
   - [ ] Profils utilisateurs (Gestionnaire, Médical, DIM, Technique)
   - [ ] Restrictions par établissement/pôle
   - [ ] Logs d'audit des modifications
   - [ ] Workflow validation changements critiques
 
-- [ ] **Intégration Temps Réel**
+- [ ] **Intégration Temps Réel** _(Sprint 4.3 - À planifier)_
   - [ ] Synchronisation avec SIH
   - [ ] Mise à jour statuts lits automatique
   - [ ] Notifications changements structure
   - [ ] API REST pour intégrations tierces
 
-### Phase 5 : UX/UI Moderne
+### Phase 5 : UX/UI Moderne ✅ _(Sprint 5.1 - 8 janvier 2026)_
+- [x] **Édition Interactive**
+  - [x] Double-clic pour éditer champs inline (nom, code, etc.)
+  - [x] Sauvegarde auto avec indicateurs visuels (spinner, checkmark)
+  - [x] Validation en temps réel (codes uniques, champs requis)
+  - [x] API PATCH /api/structure/{type}/{id} pour mise à jour partielle
+  - [x] Gestion erreurs avec rollback visuel
+
+- [x] **Drag & Drop Réorganisation**
+  - [x] Intégration SortableJS pour glisser-déposer
+  - [x] Déplacement entités entre parents (Service → Pôle, UF → Service, Lit → Chambre)
+  - [x] Validation règles métier (ex: Service doit avoir un Pôle)
+  - [x] API POST /api/structure/move avec validation FK
+  - [x] Animations smooth et feedback visuel
+
+- [x] **Raccourcis Clavier**
+  - [x] Ctrl+N : Nouveau (création rapide)
+  - [x] Ctrl+E : Éditer élément sélectionné
+  - [x] Ctrl+D : Dupliquer avec nouveau code (API POST /api/structure/duplicate)
+  - [x] Del : Supprimer avec confirmation
+  - [x] Ctrl+F : Focus sur recherche
+  - [x] Esc : Fermer modals/annuler édition
+  - [x] ? : Panneau aide flottant
+
+- [x] **Actions de Masse**
+  - [x] API POST /api/structure/bulk-update
+  - [x] Mise à jour simultanée de plusieurs entités
+  - [x] Gestion erreurs individuelles par entité
+  - [x] Retour détaillé (succès/échecs)
+
+- [x] **Page Démo Interactive**
+  - [x] Template structure_interactive.html avec hiérarchie complète
+  - [x] Affichage EG → Pôles → Services → UFs avec édition inline
+  - [x] Statistiques temps réel (compteurs EG, Pôles, Services, UFs)
+  - [x] Instructions utilisateur intégrées (comment utiliser)
+  - [x] Design moderne avec gradients et couleurs par niveau
+  - [x] Route /structure/interactive avec menu navigation
+
+- [x] **Infrastructure JavaScript**
+  - [x] Classe StructureEditor dans structure-interactive.js
+  - [x] Gestion événements (dblclick, keydown, drag&drop)
+  - [x] Helpers UI (notifications, spinners, save indicators)
+  - [x] Intégration SortableJS globale
+  - [x] Chargement scripts dans base.html
+
 - [ ] **Design System Hospitalier**
   - [ ] Palette couleurs par type structure (MCO=bleu, PSY=violet, SSR=vert)
   - [ ] Icônes métier (🏥 EJ, 🏢 Pôle, 🏛️ Service, 🔹 UF, 🏠 UH, 🛏️ Chambre, 💺 Lit)

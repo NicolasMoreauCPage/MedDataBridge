@@ -292,6 +292,7 @@
                   <span id="alert-badge" class="hidden px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full"></span>
                 </a>
                 <a href="/structure/alert-config" class="block rounded-xl px-3 py-2 hover:bg-blue-50">⚙️ Config alertes</a>
+                <a href="/structure/interactive" class="block rounded-xl px-3 py-2 hover:bg-purple-50 border-l-4 border-purple-400 font-semibold">✨ Vue interactive (NEW)</a>
                 <a href="/structure/import" class="block rounded-xl px-3 py-2 hover:bg-blue-50">📥 Import Excel</a>
                 <a href="/api/structure/export/excel" class="block rounded-xl px-3 py-2 hover:bg-blue-50">📤 Export Excel</a>
                 <a href="/admin/ght" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Contexts GHT</a>
@@ -991,6 +992,10 @@
     // Recharger toutes les 2 minutes
     setInterval(loadAlertCount, 120000);
   </script>
+
+  <!-- Phase 5 - UX Moderne: Drag & Drop + Édition inline -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="{{ url_for('static', path='/js/structure-interactive.js') }}"></script>
 
 </body>
 </html>

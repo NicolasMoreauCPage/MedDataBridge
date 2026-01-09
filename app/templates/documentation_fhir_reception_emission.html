@@ -6,7 +6,9 @@
   <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
     <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">API REST FHIR — Réception et Émission</span>
+    <a href="/documentation" class="hover:text-blue-600 transition-colors">Documentation</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">API REST FHIR</span>
   </nav>
 
   <!-- Header -->
@@ -14,7 +16,9 @@
     <div class="bg-gradient-to-r from-slate-600 via-gray-600 to-zinc-600 rounded-2xl p-8 text-white shadow-lg">
       <div class="flex items-center space-x-4">
         <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-          <div class="text-3xl">📚</div>
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
         </div>
         <div>
           <h1 class="text-3xl font-bold">API REST FHIR — Réception et Émission</h1>
@@ -22,42 +26,80 @@
       </div>
     </div>
   </div>
-
-    <h1 class="text-3xl font-bold mb-6">API REST FHIR — Réception et Émission</h1>
     
-    <div class="prose max-w-none">
-      <p class="text-lg mb-6">
-        MedData Bridge expose une API REST complète pour l'export et l'import de données au format FHIR R4, 
-        conforme au profil France (hl7.fhir.fr.core).
-      </p>
+  <div class="prose prose-slate max-w-none mb-8 bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+    <p class="text-lg">
+      MedData Bridge expose une API REST complète pour l'export et l'import de données au format FHIR R4, 
+      conforme au profil France (hl7.fhir.fr.core).
+    </p>
 
-      <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-        <p class="font-semibold">📖 Documentation complète</p>
-        <p>Pour la documentation technique détaillée de l'API FHIR (tous les endpoints, exemples, formats), 
-        consultez : <a href="/Doc/FHIR_API.html" class="text-blue-600 hover:underline">FHIR_API.html</a></p>
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg not-prose">
+      <p class="font-semibold text-blue-900 mb-2">📖 Documentation complète</p>
+      <p class="text-blue-800">Pour la documentation technique détaillée de l'API FHIR (tous les endpoints, exemples, formats), 
+      consultez : <a href="/Doc/FHIR_API.html" class="text-blue-600 hover:text-blue-700 underline font-medium">FHIR_API.html</a></p>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <h2 class="text-xl font-semibold mb-4 text-emerald-700 flex items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        Émission (Export)
+      </h2>
+      <ul class="space-y-2 text-slate-700">
+        <li class="flex items-start gap-2">
+          <span class="text-emerald-600 mt-0.5">✓</span>
+          <span>Export de dossiers → Bundle FHIR (Patient, Encounter, EpisodeOfCare)</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-emerald-600 mt-0.5">✓</span>
+          <span>Export de structure → Bundle FHIR (Location hiérarchique)</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-emerald-600 mt-0.5">✓</span>
+          <span>Extensions FRCore appliquées (fr-core-encounter, fr-core-patient)</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-emerald-600 mt-0.5">✓</span>
+          <span>Validation avec HAPI FHIR validator + IG France</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-emerald-600 mt-0.5">✓</span>
+          <span>fullUrl stables : <code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm">ResourceType/&lt;id&gt;</code></span>
+        </li>
+      </ul>
+      <div class="mt-4">
+        <a href="/api-docs#tag/FHIR-Export" class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium">
+          <span>Voir les endpoints d'export</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
       </div>
+    </div>
 
-      <div class="grid md:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white shadow-md rounded-lg p-6">
-          <h2 class="text-xl font-semibold mb-4 text-green-700">📤 Émission (Export)</h2>
-          <ul class="space-y-2">
-            <li>✅ Export de dossiers → Bundle FHIR (Patient, Encounter, EpisodeOfCare)</li>
-            <li>✅ Export de structure → Bundle FHIR (Location hiérarchique)</li>
-            <li>✅ Extensions FRCore appliquées (fr-core-encounter, fr-core-patient)</li>
-            <li>✅ Validation avec HAPI FHIR validator + IG France</li>
-            <li>✅ fullUrl stables : <code>ResourceType/&lt;id&gt;</code></li>
-          </ul>
-          <div class="mt-4">
-            <a href="/api-docs#tag/FHIR-Export" class="text-blue-600 hover:underline">→ Voir les endpoints d'export</a>
-          </div>
-        </div>
-
-        <div class="bg-white shadow-md rounded-lg p-6">
-          <h2 class="text-xl font-semibold mb-4 text-blue-700">📥 Réception (Import)</h2>
-          <ul class="space-y-2">
-            <li>✅ Import de Bundle FHIR → création/mise à jour entités (Patient, Encounter, Location)</li>
-            <li>✅ Résolution des références bundle-locales (resource_map partagé)</li>
-            <li>✅ Support des formats de référence : <code>Type/id</code>, <code>#id</code>, <code>urn:uuid:...</code></li>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <h2 class="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+        </svg>
+        Réception (Import)
+      </h2>
+      <ul class="space-y-2 text-slate-700">
+        <li class="flex items-start gap-2">
+          <span class="text-blue-600 mt-0.5">✓</span>
+          <span>Import de Bundle FHIR → création/mise à jour entités (Patient, Encounter, Location)</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-blue-600 mt-0.5">✓</span>
+          <span>Résolution des références bundle-locales (resource_map partagé)</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-blue-600 mt-0.5">✓</span>
+          <span>Support des formats de référence : <code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm">Type/id</code>, <code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm">#id</code>, <code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm">urn:uuid:...</code></span>
+        </li>
             <li>✅ Validation format bundle et contrôle EJ</li>
             <li>✅ Tests unitaires et roundtrip validés</li>
           </ul>

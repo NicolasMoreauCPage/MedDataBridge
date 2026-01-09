@@ -302,6 +302,11 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     print(" - Tasks API router mounted at /api/tasks")
 
+    # System Health API
+    from app.api import system_health
+    app.include_router(system_health.router)
+    print(" - System Health API router mounted at /api")
+
     print("\nRegistering routes:")
 
     # 1. Basic UI routes

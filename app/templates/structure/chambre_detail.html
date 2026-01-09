@@ -1,16 +1,13 @@
 {% extends "base.html" %}
 {% from "macros/ui.html" import inheritance_field %}
+{% from "components/structure_nav.html" import structure_breadcrumb, quick_actions_panel %}
 
 {% block title %}Chambre {{ chambre.name }}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Chambre:</span>
-  </nav>
+  {{ structure_breadcrumb(chambre, 'chambre') }}
 
   <!-- Header -->
   <div class="mb-8">

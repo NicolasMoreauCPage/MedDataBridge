@@ -7,6 +7,7 @@ accessibles (vocabulaires, métadonnées, résultats de requêtes).
 
 import json
 import logging
+import os
 from typing import Any, Optional, Union
 from config.settings import settings
 
@@ -17,8 +18,9 @@ _memory_cache = {}
 
 try:
     import redis
+    redis_url = getattr(settings, 'redis_url', None) or os.getenv('REDIS_URL', 'redis://localhost:6379/0')
     redis_client = redis.Redis.from_url(
-        settings.redis_url or "redis://localhost:6379/0",
+        redis_url,
         decode_responses=True,
         socket_timeout=5,
         socket_connect_timeout=5,
@@ -55,8 +57,10 @@ class Cache:
         return _memory_cache.get(key)
 
     @staticmethod
-    def set(key: str, value: Any, ttl: int = settings.cache_ttl) -> bool:
+    def set(key: str, value: Any, ttl: int = None) -> bool:
         """Stocke une valeur dans le cache avec TTL."""
+        if ttl is None:
+            ttl = getattr(settings, 'cache_ttl', 3600)  # Default 1 hour
         try:
             serialized = json.dumps(value)
         except (TypeError, ValueError) as e:
@@ -124,8 +128,10 @@ class Cache:
 cache = Cache()
 
 
-def cached(ttl: int = settings.cache_ttl):
+def cached(ttl: int = None):
     """Décorateur pour mettre en cache le résultat d'une fonction."""
+    if ttl is None:
+        ttl = getattr(settings, 'cache_ttl', 3600)  # Default 1 hour
     def decorator(func):
         def wrapper(*args, **kwargs):
             # Créer une clé de cache basée sur le nom de la fonction et ses arguments
@@ -162,12 +168,14 @@ def get_endpoint_cache_key(endpoint_id: int) -> str:
 
 
 # Décorateurs spécialisés pour les requêtes DB
-def cached_db_query(ttl: int = settings.cache_ttl, key_prefix: str = "db"):
+def cached_db_query(ttl: int = None, key_prefix: str = "db"):
     """
     Décorateur pour mettre en cache les résultats de requêtes DB.
 
     Utilise le temps d'exécution de la requête pour les métriques.
     """
+    if ttl is None:
+        ttl = getattr(settings, 'cache_ttl', 3600)  # Default 1 hour
     def decorator(func):
         async def wrapper(*args, **kwargs):
             import time
@@ -298,3 +306,53 @@ def invalidate_db_cache(table_name: str = None):
         invalidate_cache_pattern(f"db:*:{table_name}:*")
     else:
         invalidate_cache_pattern("db:*")
+
+
+def get_redis_stats() -> dict:
+    """
+    Retourne les statistiques détaillées du cache Redis.
+    
+    Returns:
+        dict: Dictionnaire contenant les métriques du cache:
+            - connected: bool - État de la connexion Redis
+            - hit_rate: float - Taux de cache hit (0.0 à 1.0)
+            - total_keys: int - Nombre total de clés en cache
+            - memory_used_human: str - Mémoire utilisée (format lisible)
+            - uptime_seconds: int - Temps de fonctionnement Redis
+    """
+    if not REDIS_AVAILABLE or not redis_client:
+        return {
+            "connected": False,
+            "hit_rate": 0.0,
+            "total_keys": len(_memory_cache),
+            "memory_used_human": "N/A",
+            "uptime_seconds": 0
+        }
+    
+    try:
+        info = redis_client.info()
+        stats = redis_client.info("stats")
+        
+        # Calculer le hit rate
+        hits = stats.get("keyspace_hits", 0)
+        misses = stats.get("keyspace_misses", 0)
+        total = hits + misses
+        hit_rate = hits / total if total > 0 else 0.0
+        
+        return {
+            "connected": True,
+            "hit_rate": hit_rate,
+            "total_keys": redis_client.dbsize(),
+            "memory_used_human": info.get("used_memory_human", "0B"),
+            "uptime_seconds": info.get("uptime_in_seconds", 0)
+        }
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des stats Redis: {e}")
+        return {
+            "connected": False,
+            "hit_rate": 0.0,
+            "total_keys": 0,
+            "memory_used_human": "Error",
+            "uptime_seconds": 0,
+            "error": str(e)
+        }

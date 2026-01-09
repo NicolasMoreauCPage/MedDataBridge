@@ -1,0 +1,276 @@
+{% macro structure_breadcrumb(current_entity, entity_type) %}
+{# 
+  Macro pour afficher un breadcrumb enrichi avec contexte actif de la structure
+  Arguments:
+    - current_entity: L'entité actuelle (EG, Pole, Service, UF, UH, Chambre, Lit)
+    - entity_type: Type de l'entité ('eg', 'pole', 'service', 'uf', 'uh', 'chambre', 'lit')
+#}
+<nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6 flex-wrap">
+  <a href="/" class="hover:text-blue-600 transition-colors flex items-center gap-1">
+    {{ icon('home', 'w-4 h-4') }}
+    <span>Accueil</span>
+  </a>
+  <span class="text-slate-400">/</span>
+  
+  <a href="/structure" class="hover:text-blue-600 transition-colors">Structure</a>
+  <span class="text-slate-400">/</span>
+
+  {% if entity_type in ['eg', 'pole', 'service', 'uf', 'uh', 'chambre', 'lit'] %}
+    {# Entité Géographique #}
+    {% set eg = current_entity if entity_type == 'eg' else (
+      current_entity.entite_geographique if entity_type == 'pole' else (
+        current_entity.pole.entite_geographique if entity_type == 'service' else (
+          current_entity.service.pole.entite_geographique if entity_type == 'uf' else (
+            current_entity.unite_fonctionnelle.service.pole.entite_geographique if entity_type == 'uh' else (
+              current_entity.unite_hebergement.unite_fonctionnelle.service.pole.entite_geographique if entity_type == 'chambre' else
+              current_entity.chambre.unite_hebergement.unite_fonctionnelle.service.pole.entite_geographique
+            )
+          )
+        )
+      )
+    ) %}
+    
+    {% if eg %}
+      {% if entity_type == 'eg' %}
+        <span class="text-slate-800 font-medium flex items-center gap-1">
+          {{ icon('building-office-2', 'w-4 h-4') }}
+          {{ eg.name }}
+        </span>
+      {% else %}
+        <a href="/structure/entites-geographiques/{{ eg.id }}" class="hover:text-blue-600 transition-colors flex items-center gap-1">
+          {{ icon('building-office-2', 'w-4 h-4') }}
+          {{ eg.name }}
+        </a>
+        <span class="text-slate-400">/</span>
+      {% endif %}
+    {% endif %}
+
+    {# Pôle #}
+    {% if entity_type in ['pole', 'service', 'uf', 'uh', 'chambre', 'lit'] %}
+      {% set pole = current_entity if entity_type == 'pole' else (
+        current_entity.pole if entity_type == 'service' else (
+          current_entity.service.pole if entity_type == 'uf' else (
+            current_entity.unite_fonctionnelle.service.pole if entity_type == 'uh' else (
+              current_entity.unite_hebergement.unite_fonctionnelle.service.pole if entity_type == 'chambre' else
+              current_entity.chambre.unite_hebergement.unite_fonctionnelle.service.pole
+            )
+          )
+        )
+      ) %}
+      
+      {% if pole %}
+        {% if entity_type == 'pole' %}
+          <span class="text-slate-800 font-medium flex items-center gap-1">
+            {{ icon('squares-2x2', 'w-4 h-4') }}
+            {{ pole.name }}
+          </span>
+        {% else %}
+          <a href="/structure/poles/{{ pole.id }}" class="hover:text-blue-600 transition-colors flex items-center gap-1">
+            {{ icon('squares-2x2', 'w-4 h-4') }}
+            {{ pole.name }}
+          </a>
+          <span class="text-slate-400">/</span>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {# Service #}
+    {% if entity_type in ['service', 'uf', 'uh', 'chambre', 'lit'] %}
+      {% set service = current_entity if entity_type == 'service' else (
+        current_entity.service if entity_type == 'uf' else (
+          current_entity.unite_fonctionnelle.service if entity_type == 'uh' else (
+            current_entity.unite_hebergement.unite_fonctionnelle.service if entity_type == 'chambre' else
+            current_entity.chambre.unite_hebergement.unite_fonctionnelle.service
+          )
+        )
+      ) %}
+      
+      {% if service %}
+        {% if entity_type == 'service' %}
+          <span class="text-slate-800 font-medium flex items-center gap-1">
+            {{ icon('building-office', 'w-4 h-4') }}
+            {{ service.name }}
+          </span>
+        {% else %}
+          <a href="/structure/services/{{ service.id }}" class="hover:text-blue-600 transition-colors flex items-center gap-1">
+            {{ icon('building-office', 'w-4 h-4') }}
+            {{ service.name }}
+          </a>
+          <span class="text-slate-400">/</span>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {# Unité Fonctionnelle #}
+    {% if entity_type in ['uf', 'uh', 'chambre', 'lit'] %}
+      {% set uf = current_entity if entity_type == 'uf' else (
+        current_entity.unite_fonctionnelle if entity_type == 'uh' else (
+          current_entity.unite_hebergement.unite_fonctionnelle if entity_type == 'chambre' else
+          current_entity.chambre.unite_hebergement.unite_fonctionnelle
+        )
+      ) %}
+      
+      {% if uf %}
+        {% if entity_type == 'uf' %}
+          <span class="text-slate-800 font-medium flex items-center gap-1">
+            {{ icon('rectangle-group', 'w-4 h-4') }}
+            {{ uf.name }}
+          </span>
+        {% else %}
+          <a href="/structure/unites-fonctionnelles/{{ uf.id }}" class="hover:text-blue-600 transition-colors flex items-center gap-1">
+            {{ icon('rectangle-group', 'w-4 h-4') }}
+            {{ uf.name }}
+          </a>
+          <span class="text-slate-400">/</span>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {# Unité Hébergement #}
+    {% if entity_type in ['uh', 'chambre', 'lit'] %}
+      {% set uh = current_entity if entity_type == 'uh' else (
+        current_entity.unite_hebergement if entity_type == 'chambre' else
+        current_entity.chambre.unite_hebergement
+      ) %}
+      
+      {% if uh %}
+        {% if entity_type == 'uh' %}
+          <span class="text-slate-800 font-medium flex items-center gap-1">
+            {{ icon('building-library', 'w-4 h-4') }}
+            {{ uh.name }}
+          </span>
+        {% else %}
+          <a href="/structure/unites-hebergement/{{ uh.id }}" class="hover:text-blue-600 transition-colors flex items-center gap-1">
+            {{ icon('building-library', 'w-4 h-4') }}
+            {{ uh.name }}
+          </a>
+          <span class="text-slate-400">/</span>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {# Chambre #}
+    {% if entity_type in ['chambre', 'lit'] %}
+      {% set chambre = current_entity if entity_type == 'chambre' else current_entity.chambre %}
+      
+      {% if chambre %}
+        {% if entity_type == 'chambre' %}
+          <span class="text-slate-800 font-medium flex items-center gap-1">
+            {{ icon('home-modern', 'w-4 h-4') }}
+            {{ chambre.name }}
+          </span>
+        {% else %}
+          <a href="/structure/chambres/{{ chambre.id }}" class="hover:text-blue-600 transition-colors flex items-center gap-1">
+            {{ icon('home-modern', 'w-4 h-4') }}
+            {{ chambre.name }}
+          </a>
+          <span class="text-slate-400">/</span>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    {# Lit #}
+    {% if entity_type == 'lit' %}
+      <span class="text-slate-800 font-medium flex items-center gap-1">
+        {{ icon('inbox-stack', 'w-4 h-4') }}
+        {{ current_entity.name }}
+      </span>
+    {% endif %}
+  {% endif %}
+</nav>
+{% endmacro %}
+
+{% macro quick_actions_panel(entity, entity_type) %}
+{#
+  Macro pour afficher un panneau d'actions rapides selon le contexte
+  Arguments:
+    - entity: L'entité actuelle
+    - entity_type: Type de l'entité ('eg', 'pole', 'service', 'uf', 'uh', 'chambre', 'lit')
+#}
+<div class="bg-white rounded-xl border-2 border-slate-200 p-6 shadow-sm">
+  <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+    {{ icon('bolt', 'w-5 h-5 text-blue-600') }}
+    <span>Actions rapides</span>
+  </h3>
+  
+  <div class="space-y-2">
+    {% if entity_type == 'eg' %}
+      {# Actions pour Entité Géographique #}
+      <a href="/structure/poles/new?eg_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors group">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+          {{ icon('plus', 'w-5 h-5 text-blue-600') }}
+        </div>
+        <div>
+          <div class="font-medium text-slate-900">Créer un pôle</div>
+          <div class="text-xs text-slate-500">Ajouter un nouveau pôle d'activité</div>
+        </div>
+      </a>
+      
+      <a href="/structure/entites-geographiques/{{ entity.id }}/plan-lits" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-emerald-50 transition-colors group">
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+          {{ icon('table-cells', 'w-5 h-5 text-emerald-600') }}
+        </div>
+        <div>
+          <div class="font-medium text-slate-900">Plan des lits</div>
+          <div class="text-xs text-slate-500">Vue d'ensemble des lits disponibles</div>
+        </div>
+      </a>
+      
+      <a href="/patients?eg_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-purple-50 transition-colors group">
+        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+          {{ icon('users', 'w-5 h-5 text-purple-600') }}
+        </div>
+        <div>
+          <div class="font-medium text-slate-900">Patients du site</div>
+          <div class="text-xs text-slate-500">Liste des patients hospitalisés</div>
+        </div>
+      </a>
+      
+    {% elif entity_type == 'uh' %}
+      {# Actions pour Unité Hébergement #}
+      <a href="/structure/chambres/new?uh_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors group">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+          {{ icon('plus', 'w-5 h-5 text-blue-600') }}
+        </div>
+        <div>
+          <div class="font-medium text-slate-900">Créer une chambre</div>
+          <div class="text-xs text-slate-500">Ajouter une nouvelle chambre</div>
+        </div>
+      </a>
+      
+      <a href="/structure/unites-hebergement/{{ entity.id }}/occupancy" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-amber-50 transition-colors group">
+        <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+          {{ icon('chart-bar', 'w-5 h-5 text-amber-600') }}
+        </div>
+        <div>
+          <div class="font-medium text-slate-900">Taux d'occupation</div>
+          <div class="text-xs text-slate-500">Statistiques et indicateurs</div>
+        </div>
+      </a>
+      
+    {% elif entity_type == 'chambre' %}
+      {# Actions pour Chambre #}
+      <a href="/structure/lits/new?chambre_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors group">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+          {{ icon('plus', 'w-5 h-5 text-blue-600') }}
+        </div>
+        <div>
+          <div class="font-medium text-slate-900">Ajouter un lit</div>
+          <div class="text-xs text-slate-500">Créer un nouveau lit dans cette chambre</div>
+        </div>
+      </a>
+    {% endif %}
+    
+    {# Action commune : Modifier #}
+    <a href="/structure/{{ entity_type }}s/{{ entity.id }}/edit" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-50 transition-colors group border-t pt-3 mt-3">
+      <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+        {{ icon('pencil-square', 'w-5 h-5 text-slate-600') }}
+      </div>
+      <div>
+        <div class="font-medium text-slate-900">Modifier</div>
+        <div class="text-xs text-slate-500">Éditer les informations</div>
+      </div>
+    </a>
+  </div>
+</div>
+{% endmacro %}

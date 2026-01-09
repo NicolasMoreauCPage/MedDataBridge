@@ -132,20 +132,21 @@ def set_eg_context(eg_id: int, request: Request, session: Session = Depends(get_
     eg = session.get(EntiteGeographique, eg_id)
     if not eg:
         return RedirectResponse("/admin/ght", status_code=303)
-    # Définir le contexte EG et, par cohérence d'UI, aligner l'EJ et le GHT
+    # Définir le contexte EG et, par cohérence d'UI, aligner aussi l'EJ et le GHT
     request.session["eg_context_id"] = eg_id
-    # Si on sélectionne un EG, nettoyer le contexte EJ car ils sont exclusifs
-    request.session.pop("ej_context_id", None)
     if eg.entite_juridique_id:
-        # On pourrait aussi définir l'EJ, mais pour l'instant on garde uniquement l'EG
-        # request.session["ej_context_id"] = eg.entite_juridique_id
+        # Aligner le contexte EJ sur l'EJ propriétaire de cette EG
+        request.session["ej_context_id"] = eg.entite_juridique_id
         ej = eg.entite_juridique
         if ej and ej.ght_context_id:
+            # Et, si possible, aligner le contexte GHT
             request.session["ght_context_id"] = ej.ght_context_id
     
     # Nettoyer les contextes patient/dossier (ils seront filtrés par l'EG)
     request.session.pop("dossier_id", None)
     request.session.pop("patient_id", None)
-    
-    return _redirect_back(request, fallback=f"/structure/entites-geo/{eg_id}")
-    return _redirect_back(request, fallback=f"/admin/ght/{ej.ght_context_id}/ej/{ej_id}")
+
+    # Après sélection d'une EG, rediriger vers le détail de cette EG dans la
+    # structure (route "/structure/eg/{eg_id}") plutôt que l'ancien chemin
+    # "/structure/entites-geo/{eg_id}" qui n'existe plus.
+    return _redirect_back(request, fallback=f"/structure/eg/{eg_id}")

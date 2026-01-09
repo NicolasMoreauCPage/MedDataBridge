@@ -85,6 +85,121 @@
   </div>
   {% endif %}
 
+  <!-- Widget État Système (Health Check) -->
+  <div class="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-lg">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <span class="absolute -top-1 -right-1 flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-amber-900">État du système</h3>
+          <p class="text-sm text-amber-700">Surveillance en temps réel des composants</p>
+        </div>
+      </div>
+      <a href="/metrics/dashboard" class="inline-flex items-center gap-2 rounded-lg bg-amber-600 text-white px-4 py-2 hover:bg-amber-700 transition-colors text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        Détails
+      </a>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Endpoints Status -->
+      <div class="rounded-xl bg-white border-2 border-slate-200 p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+            </svg>
+            <span class="text-sm font-semibold text-slate-700">Endpoints</span>
+          </div>
+          <a href="/endpoints/hierarchical" class="text-indigo-600 hover:text-indigo-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </a>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold text-slate-900" id="endpoints-active">--</span>
+          <span class="text-sm text-slate-500">/ <span id="endpoints-total">--</span> actifs</span>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></span>
+            <span id="endpoints-running">--</span> running
+          </span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-500 mr-1"></span>
+            <span id="endpoints-stopped">--</span> stopped
+          </span>
+        </div>
+      </div>
+
+      <!-- Messages Errors -->
+      <div class="rounded-xl bg-white border-2 border-slate-200 p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm font-semibold text-slate-700">ACK Erreurs 24h</span>
+          </div>
+          <a href="/messages?status=error" class="text-red-600 hover:text-red-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </a>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold text-red-600" id="messages-errors">--</span>
+          <span class="text-sm text-slate-500">messages</span>
+        </div>
+        <div class="mt-2">
+          <div class="text-xs text-slate-600">
+            Taux d'erreur: <span class="font-semibold text-red-600" id="error-rate">--%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cache Redis -->
+      <div class="rounded-xl bg-white border-2 border-slate-200 p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span class="text-sm font-semibold text-slate-700">Cache Redis</span>
+          </div>
+          <a href="/cache-dashboard" class="text-purple-600 hover:text-purple-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </a>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold text-purple-600" id="cache-hit-rate">--%</span>
+          <span class="text-sm text-slate-500">hit rate</span>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" id="cache-status-badge">
+            <span class="w-1.5 h-1.5 rounded-full mr-1"></span>
+            <span id="cache-status-text">Loading...</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats principales -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <div class="group rounded-2xl border-2 border-slate-200 bg-white p-6 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all duration-200">
@@ -276,4 +391,75 @@
     </div>
   </div>
 </section>
-{% endblock %}
+
+<script>
+// Charger les données de santé du système
+async function loadSystemHealth() {
+  try {
+    // Charger les endpoints
+    const endpointsResp = await fetch('/api/endpoints');
+    const endpoints = await endpointsResp.json();
+    
+    const totalEndpoints = endpoints.length;
+    const activeEndpoints = endpoints.filter(e => e.is_active).length;
+    const runningEndpoints = endpoints.filter(e => e.status === 'RUNNING').length;
+    const stoppedEndpoints = endpoints.filter(e => e.status === 'STOPPED').length;
+    
+    document.getElementById('endpoints-active').textContent = activeEndpoints;
+    document.getElementById('endpoints-total').textContent = totalEndpoints;
+    document.getElementById('endpoints-running').textContent = runningEndpoints;
+    document.getElementById('endpoints-stopped').textContent = stoppedEndpoints;
+
+    // Charger les erreurs de messages (dernières 24h)
+    const now = new Date();
+    const yesterday = new Date(now - 24 * 60 * 60 * 1000);
+    const dateFrom = yesterday.toISOString().split('T')[0];
+    
+    const messagesResp = await fetch(`/api/messages?status=error&date_from=${dateFrom}`);
+    const messagesData = await messagesResp.json();
+    const errorCount = messagesData.total || 0;
+    
+    const totalMessagesResp = await fetch(`/api/messages?date_from=${dateFrom}`);
+    const totalMessagesData = await totalMessagesResp.json();
+    const totalCount = totalMessagesData.total || 0;
+    
+    const errorRate = totalCount > 0 ? ((errorCount / totalCount) * 100).toFixed(1) : '0.0';
+    
+    document.getElementById('messages-errors').textContent = errorCount;
+    document.getElementById('error-rate').textContent = errorRate + '%';
+    
+    // Charger le statut du cache Redis
+    const cacheResp = await fetch('/api/cache/stats');
+    const cacheData = await cacheResp.json();
+    
+    const hitRate = cacheData.hit_rate ? (cacheData.hit_rate * 100).toFixed(1) : '0.0';
+    document.getElementById('cache-hit-rate').textContent = hitRate;
+    
+    const cacheBadge = document.getElementById('cache-status-badge');
+    const cacheText = document.getElementById('cache-status-text');
+    const cacheIndicator = cacheBadge.querySelector('.w-1\\.5');
+    
+    if (cacheData.connected) {
+      cacheBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700';
+      cacheIndicator.className = 'w-1.5 h-1.5 rounded-full mr-1 bg-emerald-500';
+      cacheText.textContent = 'Connecté';
+    } else {
+      cacheBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700';
+      cacheIndicator.className = 'w-1.5 h-1.5 rounded-full mr-1 bg-red-500';
+      cacheText.textContent = 'Déconnecté';
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de la santé du système:', error);
+    // Afficher des valeurs d'erreur
+    document.getElementById('endpoints-active').textContent = 'ERR';
+    document.getElementById('messages-errors').textContent = 'ERR';
+    document.getElementById('cache-hit-rate').textContent = 'ERR';
+  }
+}
+
+// Charger au démarrage
+loadSystemHealth();
+
+// Recharger toutes les 30 secondes
+setInterval(loadSystemHealth, 30000);
+</script>

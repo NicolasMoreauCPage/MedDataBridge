@@ -198,7 +198,7 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
 
 
 def _add_cotations_to_existing_dossiers() -> None:
-    """Ajoute des cotations aux dossiers existants (pour seed standard)."""
+    """Ajoute des cotations aux dossiers existants (pour seed standard) - 70% de couverture."""
     with Session(engine) as session:
         # Récupérer tous les dossiers existants
         dossiers = session.exec(select(Dossier)).all()
@@ -207,13 +207,29 @@ def _add_cotations_to_existing_dossiers() -> None:
             print("Aucun dossier trouvé, cotations non ajoutées.")
             return
         
-        cotations_types = ["CCAM", "NGAP", "MIXED", "UCD", "LPP"]
+        # Distribution réaliste des types de cotations
+        # CCAM et NGAP plus fréquents (actes médicaux courants)
+        # UCD et LPP moins fréquents (médicaments et dispositifs)
+        # MIXED : cas complexes avec plusieurs types
+        cotation_weights = {
+            "CCAM": 30,    # Actes techniques courants
+            "NGAP": 25,    # Actes médicaux et infirmiers
+            "MIXED": 20,   # Cas complexes
+            "UCD": 15,     # Médicaments onéreux
+            "LPP": 10,     # Dispositifs médicaux
+        }
+        
+        cotation_pool = []
+        for cot_type, weight in cotation_weights.items():
+            cotation_pool.extend([cot_type] * weight)
+        
         added = 0
         
-        # Ajouter des cotations à environ 25% des dossiers
+        # Ajouter des cotations à 70% des dossiers
         for i, dossier in enumerate(dossiers):
-            if i % 4 == 0:  # 25% des dossiers
-                cotation_type = cotations_types[i % len(cotations_types)]
+            # 70% des dossiers ont des cotations (0-69 sur 100)
+            if (i * 7) % 10 < 7:
+                cotation_type = choice(cotation_pool)
                 count = _add_cotations_to_dossier(session, dossier, cotation_type)
                 added += 1
                 if added <= 3:  # Afficher les 3 premiers exemples
@@ -221,16 +237,13 @@ def _add_cotations_to_existing_dossiers() -> None:
                     print(f"  • {patient.family} {patient.given}: {count} cotations ({cotation_type})")
         
         session.commit()
-        print(f"✓ {added} dossiers enrichis avec des cotations (25% du total)")
+        coverage = (added / len(dossiers) * 100) if len(dossiers) > 0 else 0
+        print(f"✓ {added} dossiers enrichis avec des cotations ({coverage:.1f}% de couverture)")
 
 
 def seed_minimal() -> None:
     """Seed minimal avec 1 patient de démo."""
     with Session(engine) as session:
-        existing = session.exec(select(Patient).limit(1)).first()
-        if existing:
-            print("Seed minimal ignoré (patients déjà présents).")
-            return
         _ensure_sequences(session)
         patient = Patient(
             family="DOE",
@@ -294,32 +307,73 @@ def seed_minimal() -> None:
         print("✓ Seed minimal inséré (avec cotations)")
 
 
-def seed_rich(nb_patients: int = 40) -> None:
-    """Seed riche avec scénarios de mouvements réalistes."""
+def seed_rich(nb_patients: int = 200) -> None:
+    """Seed riche avec scénarios de mouvements réalistes.
+    
+    Volumes générés (nb_patients=200):
+    - 200 patients avec données variées
+    - 200 dossiers (1 par patient)
+    - 400-600 venues (2-3 par dossier)
+    - 800-1200 mouvements (plusieurs par venue)
+    - 150-250 cotations (50-75% des dossiers)
+    """
     with Session(engine) as session:
-        existing = session.exec(select(Patient).limit(1)).first()
-        if existing:
-            print("Seed riche ignoré (patients déjà présents).")
-            return
         _ensure_sequences(session)
 
         # Collect UF codes si structure présente
         uf_codes = [uf.identifier for uf in session.exec(select(UniteFonctionnelle)).all()]
         if not uf_codes:
-            uf_codes = ["UF-RICH-1", "UF-RICH-2"]
-
+            uf_codes = ["UF-RICH-1", "UF-RICH-2", "UF-RICH-3", "UF-RICH-4"]
+        
+        # Données réalistes pour génération
+        prenoms_m = ["Alexandre", "Antoine", "Arthur", "Baptiste", "Benjamin", "Charles", "Clément", "David", 
+                     "Étienne", "François", "Gabriel", "Hugo", "Jean", "Julien", "Laurent", "Luc", "Lucas",
+                     "Marc", "Martin", "Mathieu", "Maxime", "Nicolas", "Olivier", "Paul", "Pierre", "Raphaël",
+                     "Simon", "Thomas", "Victor", "Vincent"]
+        prenoms_f = ["Amélie", "Anne", "Aurélie", "Camille", "Caroline", "Catherine", "Céline", "Charlotte",
+                     "Chloé", "Claire", "Émilie", "Emma", "Julie", "Juliette", "Laura", "Léa", "Louise",
+                     "Lucie", "Manon", "Marie", "Marine", "Martine", "Nathalie", "Pauline", "Sarah", "Sophie",
+                     "Stéphanie", "Valentine", "Valérie", "Zoé"]
+        noms = ["Martin", "Bernard", "Thomas", "Petit", "Robert", "Richard", "Durand", "Dubois", "Moreau",
+                "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux", "David", "Bertrand", "Morel",
+                "Fournier", "Girard", "Bonnet", "Dupont", "Lambert", "Fontaine", "Rousseau", "Vincent",
+                "Muller", "Lefèvre", "Faure", "André", "Mercier", "Blanc", "Guerin", "Boyer", "Garnier",
+                "Chevalier", "François", "Legrand", "Gauthier", "Garcia", "Perrin", "Robin", "Clément",
+                "Morin", "Nicolas", "Henry", "Roussel", "Mathieu", "Gautier", "Masson"]
+        villes = ["Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Nantes", "Strasbourg", "Montpellier",
+                  "Bordeaux", "Lille", "Rennes", "Reims", "Le Havre", "Saint-Étienne", "Toulon", "Grenoble",
+                  "Dijon", "Angers", "Nîmes", "Villeurbanne", "Le Mans", "Aix-en-Provence", "Clermont-Ferrand",
+                  "Brest", "Tours", "Amiens", "Limoges", "Annecy", "Perpignan", "Boulogne-Billancourt"]
+        
+        types_admission = ["Admission aux urgences", "Admission programmée", "Transfert autre établissement",
+                          "Admission en consultation", "Admission post-opératoire"]
+        
+        print(f"Génération de {nb_patients} patients avec parcours réalistes...")
+        
         for i in range(1, nb_patients + 1):
+            # Alternance homme/femme
+            is_male = i % 2 == 0
+            gender = "male" if is_male else "female"
+            prenom = choice(prenoms_m if is_male else prenoms_f)
+            nom = choice(noms)
+            
+            # Âge varié : 20-90 ans
+            age_years = 20 + (i % 70)
+            birth_year = 2024 - age_years
+            birth_month = (i % 12) + 1
+            birth_day = ((i * 7) % 28) + 1
+            
             patient = Patient(
-                family=f"RICH-{i:03d}",
-                given=choice(["Alice", "Bob", "Chloé", "David", "Eva"]),
-                birth_date="1970-01-01",
-                gender="other",
-                city="VilleX",
-                postal_code="00000",
+                family=nom,
+                given=prenom,
+                birth_date=f"{birth_year}-{birth_month:02d}-{birth_day:02d}",
+                gender=gender,
+                city=choice(villes),
+                postal_code=f"{13000 + (i % 87000):05d}",
                 country="FR",
-                identity_reliability_code="VALI",
+                identity_reliability_code="VALI" if i % 10 != 0 else "PROV",
                 identity_reliability_date="2024-02-01",
-                identity_reliability_source="CNI",
+                identity_reliability_source="CNI" if i % 3 == 0 else "PP",
             )
             session.add(patient)
             session.commit()
@@ -327,66 +381,97 @@ def seed_rich(nb_patients: int = 40) -> None:
 
             dossier_seq = get_next_sequence(session, "dossier")
             uf_resp = choice(uf_codes)
+            
+            # Type de dossier varié
+            if i % 5 == 0:
+                dtype = DossierType.HOSPITALISATION_PARTIELLE
+            elif i % 7 == 0:
+                dtype = DossierType.EXTERNE
+            elif i % 11 == 0:
+                dtype = DossierType.URGENCE
+            else:
+                dtype = DossierType.HOSPITALISE
+                
             dossier = Dossier(
                 dossier_seq=dossier_seq,
                 patient_id=patient.id,
                 uf_responsabilite=uf_resp,
-                admit_time=datetime.utcnow(),
-                dossier_type=DossierType.HOSPITALISE,
-                reason="Admission auto",
+                admit_time=datetime.utcnow() - timedelta(days=i % 90),
+                dossier_type=dtype,
+                reason=choice(types_admission),
             )
             session.add(dossier)
             session.commit()
             session.refresh(dossier)
 
-            # 2 venues
+            # Nombre de venues varié : 2-4 selon le parcours
+            nb_venues = 2 if dtype == DossierType.HOSPITALISATION_PARTIELLE else (3 if i % 3 == 0 else 2)
             venues = []
-            for v in range(1, 3):
+            
+            for v in range(1, nb_venues + 1):
                 venue_seq = get_next_sequence(session, "venue")
                 venue = Venue(
                     venue_seq=venue_seq,
                     dossier_id=dossier.id,
-                    uf_responsabilite=uf_resp,
-                    start_time=datetime.utcnow(),
+                    uf_responsabilite=choice(uf_codes),
+                    start_time=datetime.utcnow() - timedelta(days=i % 60, hours=v),
                     code=f"VENUE-{i}-{v}",
-                    label=f"Unité {v}",
-                    operational_status="active",
+                    label=f"Séjour {v}",
+                    operational_status="active" if v == nb_venues else "finished",
                 )
                 session.add(venue)
                 session.commit()
                 session.refresh(venue)
                 venues.append(venue)
 
-            # mouvements (admission + transfert + sortie)
-            triggers = [("Admission", "A01"), ("Transfert", "A02"), ("Sortie", "A03")]
-            current_index = 0
-            for step_idx, (m_type, trig) in enumerate(triggers, start=1):
-                if trig == "A02":
-                    current_index = 1 - current_index
-                venue = venues[current_index]
+            # Mouvements réalistes : admission + transferts + sortie
+            nb_mouvements = nb_venues + 1  # Au moins 1 mouvement par venue + sortie
+            
+            # Admission
+            mouvement_seq = get_next_sequence(session, "mouvement")
+            mouvement = Mouvement(
+                mouvement_seq=mouvement_seq,
+                venue_id=venues[0].id,
+                when=dossier.admit_time,
+                location=f"{venues[0].uf_responsabilite}^CHAMBRE-{(i % 50) + 1}^LIT-{(i % 2) + 1}",
+                trigger_event="A01",
+                movement_type="Admission",
+            )
+            session.add(mouvement)
+            
+            # Transferts entre venues
+            for v_idx in range(len(venues) - 1):
                 mouvement_seq = get_next_sequence(session, "mouvement")
                 mouvement = Mouvement(
                     mouvement_seq=mouvement_seq,
-                    venue_id=venue.id,
-                    when=datetime.utcnow(),
-                    location=f"{venue.uf_responsabilite}^BOX-{step_idx}^CH-{step_idx:02d}",
-                    trigger_event=trig,
-                    movement_type=m_type,
-                    from_location=venues[1 - current_index].uf_responsabilite if trig == "A02" else None,
-                    to_location=venue.uf_responsabilite if trig == "A02" else None,
+                    venue_id=venues[v_idx + 1].id,
+                    when=venues[v_idx + 1].start_time,
+                    location=f"{venues[v_idx + 1].uf_responsabilite}^CHAMBRE-{((i + v_idx) % 50) + 1}^LIT-{((i + v_idx) % 2) + 1}",
+                    trigger_event="A02",
+                    movement_type="Transfert",
+                    from_location=venues[v_idx].uf_responsabilite,
+                    to_location=venues[v_idx + 1].uf_responsabilite,
                 )
                 session.add(mouvement)
-                session.commit()
             
-            # Ajouter des cotations à environ 25% des dossiers (10 dossiers sur 40)
-            if i % 4 == 0:  # Tous les 4 patients
-                cotation_types = ["CCAM", "NGAP", "MIXED"]
-                cotation_type = cotation_types[i % len(cotation_types)]
-                _add_cotations_to_dossier(session, dossier, cotation_type=cotation_type)
-                session.commit()
+            # Sortie (pour les dossiers terminés)
+            if dtype != DossierType.EXTERNE and i % 3 != 0:
+                mouvement_seq = get_next_sequence(session, "mouvement")
+                mouvement = Mouvement(
+                    mouvement_seq=mouvement_seq,
+                    venue_id=venues[-1].id,
+                    when=datetime.utcnow() - timedelta(days=(i % 30)),
+                    location=f"{venues[-1].uf_responsabilite}^SORTIE",
+                    trigger_event="A03",
+                    movement_type="Sortie",
+                )
+                session.add(mouvement)
             
-            if i % 10 == 0:
-                print(f"   … {i} patients créés")
+            session.commit()
+            
+            # Affichage progrès
+            if i % 50 == 0:
+                print(f"  → {i}/{nb_patients} patients créés...")
 
         print(f"✓ Seed riche inséré ({nb_patients} patients)")
 
@@ -394,10 +479,6 @@ def seed_rich(nb_patients: int = 40) -> None:
 def seed_demo_scenarios() -> None:
     """Insère 3 patients avec scénarios de transferts / annulations."""
     with Session(engine) as session:
-        existing_demo = session.exec(select(Patient).where(Patient.family.like("SCENARIO-%")).limit(1)).first()
-        if existing_demo:
-            print("Scénarios démo déjà présents.")
-            return
         _ensure_sequences(session)
         now = datetime.utcnow()
         scenario_defs = [
@@ -1032,8 +1113,12 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
             print("→ Seed minimal (1 patient)...")
             seed_minimal()
         elif args.rich:
-            print("→ Seed riche (40 patients)...")
-            seed_rich(40)
+            print("→ Seed riche (200 patients avec cotations)...")
+            seed_rich(200)
+            
+            # Ajouter cotations à 70% des dossiers
+            print("→ Ajout cotations réalistes (70% de couverture)...")
+            _add_cotations_to_existing_dossiers()
         else:
             # Seed standard (120 patients)
             print("→ Seed standard (120 patients)...")
@@ -1096,8 +1181,8 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         print("→ Scénarios HL7 PAM sautés (--skip-scenarios)\n")
         pam_count = 0
 
-    # 8. Cotations médicales réalistes optionnelles
-    if args.with_cotations:
+    # 8. Cotations médicales (déjà ajoutées dans seed_rich si args.rich)
+    if args.with_cotations and not args.rich:
         print("=" * 60)
         print("ÉTAPE 8/8 : Ajout des cotations médicales réalistes")
         print("=" * 60)
@@ -1105,15 +1190,16 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
             from datetime import timedelta
             from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct
             
-            cotations_added = seed_cotations_to_dossiers(engine)
-            print(f"✓ {cotations_added} cotations ajoutées aux dossiers\n")
+            _add_cotations_to_existing_dossiers()
+            print("✓ Cotations ajoutées aux dossiers\n")
         except Exception as e:
             print(f"✗ Échec ajout cotations: {e}")
             import traceback
             traceback.print_exc()
             sys.exit(1)
     else:
-        cotations_added = 0
+        if args.rich:
+            print("→ Cotations déjà ajoutées dans seed_rich\n")
 
     # Résumé final
     print("=" * 60)
@@ -1130,7 +1216,8 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         if args.minimal:
             print("  • Population   : 1 patient (seed minimal)")
         elif args.rich:
-            print("  • Population   : 40 patients avec scénarios (seed riche)")
+            print("  • Population   : 200 patients avec parcours réalistes")
+            print("  • Cotations    : 70% de couverture (140+ dossiers avec cotations)")
         else:
             print("  • Population   : 120 patients, dossiers et mouvements (standard)")
         if args.demo_scenarios:
@@ -1142,8 +1229,6 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         print(f"  • Total scénarios : {hl7_count + hprim_count + pam_count} scénarios d'intégration")
     else:
         print("  • Scénarios    : sautés (--skip-scenarios)")
-    if args.with_cotations:
-        print(f"  • Cotations    : {cotations_added} cotations médicales ajoutées")
     print("\nLe serveur peut être démarré avec:")
     print("  uvicorn app.app:app --reload")
     print("\nAccès admin: http://localhost:8000/admin/ght/1/ej/1")

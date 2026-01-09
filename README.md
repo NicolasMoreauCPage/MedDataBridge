@@ -63,35 +63,50 @@ Pour les environnements de qualification on expose la recherche de dossiers sans
 La bascule est utile si vous voulez reproduire un environnement plus strict en CI/production.
 
 ## Démarrage rapide (développement)
-1. Créez et activez un environnement virtuel Python 3.10+ :
+
+### 1. Installation
+Créez et activez un environnement virtuel Python 3.10+ :
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-server.txt
+pip install -r requirements.txt
 ```
 
-2. Initialiser la base de données (tables, indexes, FTS best-effort) :
+### 2. Initialisation de la base de données (FULL)
+Un seul script pour tout créer :
 
 ```bash
-.venv/bin/python3 - <<'PY'
-from app.db import init_db
-init_db()
-print('DB initialisée')
-PY
+python init_db.py
 ```
 
-3. Lancer le serveur (uvicorn) en mode développement :
+Cela crée automatiquement :
+- ✅ Structure complète (4 EJ + hiérarchie)
+- ✅ Vocabulaires (35 systèmes, 207 valeurs)
+- ✅ 40 patients avec scénarios complexes
+- ✅ ~400 scénarios HL7/HPRIM/IHE PAM
+- ✅ Cotations médicales réalistes
+- ✅ Endpoints MLLP + FHIR configurés
 
+**Options disponibles** :
 ```bash
-.venv/bin/python3 -m uvicorn app.app:app --reload --port 8000
+python init_db.py              # FULL (recommandé)
+python init_db.py --minimal    # Rapide : 1 seul patient
+python init_db.py --reset      # Recréer la DB depuis zéro
 ```
 
-4. Ouvrir l'interface web dans un navigateur :
+### 3. Lancer le serveur
+```bash
+uvicorn app.app:app --reload --port 8000
+```
 
-- UI principale : http://127.0.0.1:8000/
-- Import HPRIM : http://127.0.0.1:8000/hprim/import
-- Sélecteur de dossier (Cotation moderne) : http://127.0.0.1:8000/cotation-modern/select
+### 4. Accès
+
+- **UI principale** : http://localhost:8000/
+- **Admin** : http://localhost:8000/admin/ght/1/ej/1
+- **Import HPRIM** : http://localhost:8000/hprim/import
+- **Cotation moderne** : http://localhost:8000/cotation-modern/select
+- **API docs** : http://localhost:8000/docs
 
 ## Endpoints utiles pour les tests d'interop
 - Recherche de dossiers (publique, conçue pour qualification) :

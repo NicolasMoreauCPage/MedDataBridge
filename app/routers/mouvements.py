@@ -39,9 +39,12 @@ def plan_lits(
     """
     from app.models_structure import Service, Pole
     
-    # Récupérer le contexte EJ
+    # Récupérer les contextes EG et EJ (EG a priorité s'il est défini)
+    eg_context = getattr(request.state, "eg_context", None)
     ej_context = getattr(request.state, "ej_context", None)
-    ej_id = getattr(ej_context, "id", None) if ej_context else None
+    eg_id = getattr(eg_context, "id", None) if eg_context else None
+    # Si contexte EJ, utiliser la première EG de cet EJ
+    ej_id = getattr(ej_context, "id", None) if ej_context and not eg_id else None
     
     # Base query pour les lits avec toute la hiérarchie
     query = (
@@ -51,10 +54,17 @@ def plan_lits(
         .join(Chambre.unite_hebergement)
         .join(UniteHebergement.unite_fonctionnelle)
         .join(UniteFonctionnelle.service)
-        .where(Lit.operational_status == "active")
+        .join(Service.pole)
     )
     
-    # Filtres
+    # Filtre par contexte EG ou EJ
+    if eg_id:
+        query = query.where(Pole.entite_geo_id == eg_id)
+    elif ej_id:
+        # Si contexte EJ sans EG spécifique, filtrer via l'EJ du pôle
+        query = query.where(Pole.entite_juridique_id == ej_id)
+    
+    # Filtres additionnels
     if uf_filter:
         query = query.where(UniteFonctionnelle.identifier == uf_filter)
     if service_filter:
@@ -101,31 +111,48 @@ def plan_lits(
         
         # Récupérer venue/patient occupant le lit
         occupant = None
+        # Une venue est active si elle a un lit assigné et que le dernier mouvement n'est pas une sortie
         venue_actuelle = session.exec(
             select(Venue, Dossier)
             .join(Dossier)
             .where(Venue.lit_id == lit.id)
-            .where(Venue.end_time.is_(None))
+            .order_by(Venue.start_time.desc())
         ).first()
         
         if venue_actuelle:
             venue, dossier = venue_actuelle
-            session.refresh(dossier, ['patient'])
-            if dossier.patient:
-                occupant = {
-                    "venue_id": venue.id,
-                    "dossier_id": dossier.id,
-                    "patient_name": f"{dossier.patient.family} {dossier.patient.given}",
-                    "patient_id": dossier.patient.id,
-                    "venue_seq": venue.venue_seq,
-                    "dossier_seq": dossier.dossier_seq
-                }
+            # Vérifier que la venue est vraiment active (pas de mouvement de sortie)
+            dernier_mouvement = session.exec(
+                select(Mouvement)
+                .where(Mouvement.venue_id == venue.id)
+                .order_by(Mouvement.when.desc())
+            ).first()
+            
+            # Si pas de mouvement de sortie (A03, A13, A16, etc.) ou pas de end_time, la venue est active
+            is_active = True
+            if dernier_mouvement:
+                # Codes de sortie : A03 (discharge), A13 (cancel discharge), A16 (pending discharge)
+                sortie_codes = ['A03', 'A13', 'A16']
+                if any(code in (dernier_mouvement.type or '') for code in sortie_codes) and dernier_mouvement.end_time:
+                    is_active = False
+            
+            if is_active:
+                session.refresh(dossier, ['patient'])
+                if dossier.patient:
+                    occupant = {
+                        "venue_id": venue.id,
+                        "dossier_id": dossier.id,
+                        "patient_name": f"{dossier.patient.family} {dossier.patient.given}",
+                        "patient_id": dossier.patient.id,
+                        "venue_seq": venue.venue_seq,
+                        "dossier_seq": dossier.dossier_seq
+                    }
         
         # Détection conflit : plusieurs venues actives sur le même lit
+        # Pour simplifier, on compte les venues avec ce lit (peut être affiné si nécessaire)
         conflits_count = session.exec(
             select(Venue)
             .where(Venue.lit_id == lit.id)
-            .where(Venue.end_time.is_(None))
         ).all()
         
         has_conflict = len(conflits_count) > 1

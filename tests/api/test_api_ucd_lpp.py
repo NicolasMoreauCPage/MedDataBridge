@@ -28,26 +28,16 @@ class TestUCDAPI:
         mock_acts = [
             UCDActResponse(
                 id=1,
-                designation="Acte UCD 1",
-                code_cip="1234567890123",
-                execute_date="2024-01-15",
-                prestataire_id=1,
-                commentaire="Test acte 1",
+                code="1234567890123",
+                libelle="Acte UCD 1",
                 quantite=1,
-                prix_unitaire=100.0,
-                montant_total=100.0,
                 dossier_id=1
             ),
             UCDActResponse(
                 id=2,
-                designation="Acte UCD 2",
-                code_cip="9876543210987",
-                execute_date="2024-01-16",
-                prestataire_id=2,
-                commentaire="Test acte 2",
+                code="9876543210987",
+                libelle="Acte UCD 2",
                 quantite=2,
-                prix_unitaire=100.0,
-                montant_total=200.0,
                 dossier_id=1
             )
         ]

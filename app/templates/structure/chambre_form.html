@@ -54,28 +54,13 @@
     </div>
 
     <div>
-      <label for="physical_type" class="block text-sm font-medium leading-6 text-gray-900">Type</label>
-      <div class="mt-2">
-        <select name="physical_type" id="physical_type" required
-          class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
-          <option value="">Sélectionnez un type</option>
-          {% for type in physical_types %}
-          <option value="{{ type }}" {% if chambre and chambre.physical_type == type %}selected{% endif %}>
-            {{ type }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-
-    <div>
       <label for="status" class="block text-sm font-medium leading-6 text-gray-900">Statut</label>
       <div class="mt-2">
         <select name="status" id="status" required
           class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
-          {% for status in statuses %}
-          <option value="{{ status }}" {% if chambre and chambre.status == status %}selected{% endif %}>
-            {{ status }}
+          {% for opt in status_options %}
+          <option value="{{ opt.value }}" {% if chambre and chambre.status == opt.value %}selected{% endif %}>
+            {{ opt.label }}
           </option>
           {% endfor %}
         </select>

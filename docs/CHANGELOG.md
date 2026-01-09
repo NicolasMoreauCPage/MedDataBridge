@@ -7,7 +7,29 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-08
+
 ### ✨ Fonctionnalités
+- **Auto-transmission HPRIM pour cotations** (2026-01-08)
+  - Les actes de cotation (CCAM, NGAP, UCD, LPP) sont maintenant transmis automatiquement aux endpoints HPRIM configurés
+  - Cohérence avec le système d'auto-émission PAM/FHIR pour les entités (patient, venue, mouvement)
+  - Génération automatique de messages HPRIM XML `evenementsServeurActes` lors de la création d'actes
+  - Suppression du bouton manuel "Transmettre (HPRIM)" - transmission automatique dès la sauvegarde
+  - **Relai des cotations entrantes** : Les actes reçus via HPRIM sont aussi retransmis vers d'autres endpoints (comme PAM/FHIR)
+  - **Filtrage granulaire par type d'acte** : Configuration sélective par endpoint (emit_hprim_ccam, emit_hprim_ngap, emit_hprim_ucd, emit_hprim_lpp)
+  - Logs détaillés dans MessageLog pour traçabilité complète des émissions
+  - Support complet pour CCAM, NGAP, UCD et LPP
+
+### 🔒 Sécurité & Validation
+- **Validation de configuration des endpoints avant émission** (2026-01-08)
+  - Les messages ne sont plus générés si l'endpoint n'est pas correctement configuré
+  - **MLLP (HL7)** : Vérification obligatoire de `host` et `port` avant génération PAM/MFN
+  - **FHIR** : Vérification obligatoire de `base_url` avant génération identity/structure
+  - **HPRIM** : Système cohérent (default=False, validation déjà en place)
+  - Résolution du problème de pollution des archives avec messages erronés "Endpoint non configuré"
+  - Messages de debug détaillés dans les logs lors de skip d'un endpoint mal configuré
+  - Amélioration de la fiabilité : seuls les endpoints fonctionnels génèrent des messages
+
 - **Phase 6: Dossiers, Venues & Mouvements** (2026-01-08)
   - Refonte complète des IHMs Dossiers & Venues (headers contextuels, listes modernisées, wizard d'admission en 3 étapes)
   - Filtres avancés unifiés sur les listes (dossiers, venues, mouvements) avec raccourcis clavier globaux (Ctrl+N, Ctrl+S, /, Esc)

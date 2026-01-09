@@ -63,10 +63,8 @@
         </div>
         <div class="p-6">
           <dl class="space-y-1">
-            {{ inheritance_field(service, 'operational_status', 'Statut opérationnel') }}
             {{ inheritance_field(service, 'status', 'Statut FHIR') }}
             {{ inheritance_field(service, 'mode', 'Mode FHIR') }}
-            {{ inheritance_field(service, 'physical_type', 'Type physique') }}
             {{ inheritance_field(service, 'etage', 'Étage') }}
             {{ inheritance_field(service, 'aile', 'Aile') }}
             {{ inheritance_field(service, 'type_chambre', 'Type de chambre') }}
@@ -87,10 +85,10 @@
         </div>
         <div class="p-6">
           <dl class="space-y-1">
-            {{ inheritance_field(service, 'opening_date', 'Date d\'ouverture', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
-            {{ inheritance_field(service, 'activation_date', 'Date d\'activation', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
-            {{ inheritance_field(service, 'closing_date', 'Date de fermeture', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
-            {{ inheritance_field(service, 'deactivation_date', 'Date de désactivation', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
+            {{ inheritance_field(service, 'opening_date', 'Date d\'ouverture') }}
+            {{ inheritance_field(service, 'activation_date', 'Date d\'activation') }}
+            {{ inheritance_field(service, 'closing_date', 'Date de fermeture') }}
+            {{ inheritance_field(service, 'deactivation_date', 'Date de désactivation') }}
           </dl>
         </div>
       </div>

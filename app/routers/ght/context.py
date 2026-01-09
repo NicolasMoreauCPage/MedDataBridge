@@ -276,13 +276,23 @@ async def view_ght_context(
     request.session["ght_context_id"] = context_id
     
     # Charger explicitement les entités juridiques pour éviter le lazy loading
-    from app.models_structure import EntiteJuridique
+    from app.models_structure import EntiteJuridique, EntiteGeographique
     entites_juridiques = session.exec(
         select(EntiteJuridique).where(EntiteJuridique.ght_context_id == context_id)
     ).all()
     
+    # Charger aussi toutes les EGs liées aux EJs de ce contexte GHT
+    entites_geographiques = []
+    for ej in entites_juridiques:
+        egs = session.exec(
+            select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej.id)
+        ).all()
+        entites_geographiques.extend(egs)
+    
     selected_ej_id = request.session.get(f"ght_{context_id}_ej_id")
     selected_ej_name = request.session.get(f"ght_{context_id}_ej_name")
+    selected_eg_id = request.session.get("eg_context_id")
+    
     return templates.TemplateResponse(
         request,
         "ght_detail.html",
@@ -290,8 +300,10 @@ async def view_ght_context(
             "context": context,
             "namespaces": context.namespaces,
             "entites_juridiques": entites_juridiques,
+            "entites_geographiques": entites_geographiques,
             "selected_ej_id": selected_ej_id,
-            "selected_ej_name": selected_ej_name}
+            "selected_ej_name": selected_ej_name,
+            "selected_eg_id": selected_eg_id}
     )
 
 

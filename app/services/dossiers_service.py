@@ -50,6 +50,7 @@ def get_dossier(session: Session, dossier_id: int) -> Optional[Dossier]:
 def get_dossiers(
     session: Session,
     ej_id: Optional[int] = None,
+    eg_id: Optional[int] = None,
     patient_id: Optional[int] = None,
     dossier_type: Optional[DossierType] = None,
     dossier_seq: Optional[int] = None,
@@ -59,12 +60,31 @@ def get_dossiers(
     admit_to: Optional[str] = None,
     current_state: Optional[str] = None,
 ) -> List[Dossier]:
-    """Récupère une liste de dossiers filtrée."""
+    """Récupère une liste de dossiers filtrée.
+    
+    Peut filtrer par EJ (entite_juridique_id directement) OU par EG (via la hiérarchie venue -> chambre -> ... -> pole -> EG).
+    Si les deux sont fournis, EG a la priorité car il est plus spécifique.
+    """
     from datetime import datetime, timedelta
+    from app.models import Venue
+    from app.models_structure import Chambre, UniteHebergement, UniteFonctionnelle, Service, Pole
     
     query = select(Dossier)
-    if ej_id:
+    
+    # Filtre par contexte : EG (prioritaire) ou EJ
+    if eg_id:
+        # Filtrer via la hiérarchie structure : Dossier -> Venue -> Chambre -> UH -> UF -> Service -> Pole -> EG
+        query = (query
+            .join(Venue, Dossier.id == Venue.dossier_id)
+            .join(Chambre, Venue.chambre_id == Chambre.id)
+            .join(UniteHebergement, Chambre.unite_hebergement_id == UniteHebergement.id)
+            .join(UniteFonctionnelle, UniteHebergement.unite_fonctionnelle_id == UniteFonctionnelle.id)
+            .join(Service, UniteFonctionnelle.service_id == Service.id)
+            .join(Pole, Service.pole_id == Pole.id)
+            .where(Pole.entite_geo_id == eg_id))
+    elif ej_id:
         query = query.where(Dossier.entite_juridique_id == ej_id)
+    
     if patient_id:
         query = query.where(Dossier.patient_id == patient_id)
     if dossier_type:

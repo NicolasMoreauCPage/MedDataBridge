@@ -668,7 +668,7 @@ function renderDetails(details) {
     
     // Actions
     const actionsHtml = `
-        <button onclick="editNode(${details.id})" 
+        <button onclick="editNode('${details.type}', ${details.id})" 
                 class="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800">
             Modifier
         </button>
@@ -1117,6 +1117,43 @@ function applyBulkAction(action) {
 function showError(message) {
     // TODO: Implémenter un système de notification d'erreur
     console.error(message);
+}
+
+// Ouvrir la page d'édition classique pour l'entité sélectionnée
+function editNode(type, id) {
+    if (!type || !id) {
+        return;
+    }
+
+    let url = null;
+    switch (type) {
+        case 'eg':
+            url = `/structure/eg/${id}/edit`;
+            break;
+        case 'pole':
+            url = `/structure/poles/${id}/edit`;
+            break;
+        case 'service':
+            url = `/structure/services/${id}/edit`;
+            break;
+        case 'uf':
+            url = `/structure/ufs/${id}/edit`;
+            break;
+        case 'uh':
+            url = `/structure/chambres/new?uh_id=${id}`;
+            break;
+        case 'chambre':
+            url = `/structure/chambres/${id}/edit`;
+            break;
+        case 'lit':
+            url = `/structure/lits/${id}/edit`;
+            break;
+        default:
+            console.warn('Type non éditable dans cette vue:', type, id);
+            return;
+    }
+
+    window.location.href = url;
 }
 </script>
 {% endblock %}

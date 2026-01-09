@@ -72,12 +72,16 @@ def list_dossiers(
     current_state: str | None = Query(None, description="Filtrer par état courant"),
     session=Depends(get_session)
 ):
+    # Récupérer les contextes EG et EJ (EG a priorité s'il est défini)
+    eg_context = getattr(request.state, "eg_context", None)
     ej_context = getattr(request.state, "ej_context", None)
-    ej_id = getattr(ej_context, "id", None)
+    eg_id = getattr(eg_context, "id", None)
+    ej_id = getattr(ej_context, "id", None) if not eg_id else None  # EJ seulement si pas d'EG
     
     dossiers = dossiers_service.get_dossiers(
         session,
         ej_id=ej_id,
+        eg_id=eg_id,
         patient_id=patient_id,
         dossier_type=dossier_type,
         dossier_seq=dossier_seq,

@@ -387,6 +387,13 @@ async def create_ccam_acte(
         session.commit()
         session.refresh(acte)
         
+        # Auto-émission HPRIM si endpoints configurés
+        try:
+            from app.services.emit_on_create import emit_to_senders_async
+            emit_to_senders_async(acte, "ccam_act", session, operation="insert")
+        except Exception as e:
+            logger.warning(f"Erreur auto-émission HPRIM pour acte CCAM {acte.id}: {e}")
+        
         logger.info(f"Acte CCAM créé: {acte.code_acte} (ID: {acte.id})")
         
         return JSONResponse({
@@ -599,6 +606,13 @@ async def create_ngap_acte(
         session.commit()
         session.refresh(acte)
         
+        # Auto-émission HPRIM si endpoints configurés
+        try:
+            from app.services.emit_on_create import emit_to_senders_async
+            emit_to_senders_async(acte, "ngap_act", session, operation="insert")
+        except Exception as e:
+            logger.warning(f"Erreur auto-émission HPRIM pour acte NGAP {acte.id}: {e}")
+        
         logger.info(f"Acte NGAP créé: {acte.lettre_cle} (ID: {acte.id})")
         
         return JSONResponse({
@@ -649,6 +663,13 @@ async def create_ucd_acte(
         session.commit()
         session.refresh(acte)
 
+        # Auto-émission HPRIM si endpoints configurés
+        try:
+            from app.services.emit_on_create import emit_to_senders_async
+            emit_to_senders_async(acte, "ucd_act", session, operation="insert")
+        except Exception as e:
+            logger.warning(f"Erreur auto-émission HPRIM pour acte UCD {acte.id}: {e}")
+
         logger.info(f"Acte UCD créé: {acte.code_ucd} (ID: {acte.id})")
 
         return JSONResponse({
@@ -697,6 +718,13 @@ async def create_lpp_acte(
         session.add(acte)
         session.commit()
         session.refresh(acte)
+
+        # Auto-émission HPRIM si endpoints configurés
+        try:
+            from app.services.emit_on_create import emit_to_senders_async
+            emit_to_senders_async(acte, "lpp_act", session, operation="insert")
+        except Exception as e:
+            logger.warning(f"Erreur auto-émission HPRIM pour acte LPP {acte.id}: {e}")
 
         logger.info(f"Acte LPP créé: {acte.code_lpp or acte.denomination_libelle} (ID: {acte.id})")
 

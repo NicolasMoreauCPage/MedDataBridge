@@ -30,6 +30,15 @@ from app.models_structure import (
     StructureTemplate,
 )
 
+# Valeurs standards pour le statut opérationnel des lits.
+# Ces valeurs sont alignées avec les jeux de données de démonstration
+# (structure_seed) et l'export FHIR (Location.operationalStatus).
+LIT_OPERATIONAL_STATUS_OPTIONS = [
+    "available",
+    "occupied",
+    "maintenance",
+]
+
 # Route principale pour les pages web
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -812,6 +821,8 @@ async def update_entite_geographique(
         eg.identifier = identifier
     if finess is not None:
         eg.finess = finess
+    # Une EG est toujours de type "si" (site)
+    eg.physical_type = LocationPhysicalType.SI
     
     session.add(eg)
     session.commit()
@@ -1012,6 +1023,8 @@ async def update_pole(
         pole.identifier = identifier
     if entite_geo_id:
         pole.entite_geo_id = int(entite_geo_id)
+    # Un pôle est toujours de type "area" (zone)
+    pole.physical_type = LocationPhysicalType.AREA
     apply_scheduled_status([pole])
     session.add(pole)
     session.commit()
@@ -1170,6 +1183,8 @@ async def create_service(
     service: Service,
     session: Session = Depends(get_session)
 ):
+    # Un service est toujours de type "wa" (ward)
+    service.physical_type = LocationPhysicalType.WA
     apply_scheduled_status([service])
     session.add(service)
     session.commit()
@@ -1203,7 +1218,12 @@ async def edit_service_form(
     poles = session.exec(select(Pole).order_by(Pole.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
         "structure/service_form.html",
-        {"request": request, "service": service, "poles": poles, "service_types": [t.value for t in LocationServiceType]},
+        {
+            "request": request,
+            "service": service,
+            "poles": poles,
+            "service_type_options": get_vocabulary_options("location-service-type"),
+        },
     )
 
 @router.post("/services/{service_id}")
@@ -1225,6 +1245,8 @@ async def update_service(
         service.pole_id = int(pole_id)
     if service_type:
         service.service_type = LocationServiceType(service_type)
+    # Un service est toujours de type "wa" (ward)
+    service.physical_type = LocationPhysicalType.WA
     apply_scheduled_status([service])
     session.add(service)
     session.commit()
@@ -1444,6 +1466,8 @@ async def update_unite_fonctionnelle(
         uf.uf_type = uf_type
     if um_code is not None:
         uf.um_code = um_code
+    # Une UF est toujours de type "wa" (ward)
+    uf.physical_type = LocationPhysicalType.WA
     apply_scheduled_status([uf])
     session.add(uf)
     session.commit()
@@ -1495,8 +1519,8 @@ async def list_unites_hebergement(
             "request": request,
             "unites_hebergement": uhs,
             "unites_fonctionnelles": ufs,
-            "modes": ["instance", "hospitalization", "ambulatory", "virtual"],
-            "statuses": ["active", "suspended", "inactive"],
+            "mode_options": get_vocabulary_options("location-mode"),
+            "status_options": get_vocabulary_options("location-status"),
             "selected_uf_id": uf_id,
             "selected_mode": mode,
             "selected_status": status
@@ -1527,8 +1551,8 @@ async def new_unite_hebergement_form(
         {
             "request": request,
             "unites_fonctionnelles": ufs,
-            "modes": ["instance", "hospitalization", "ambulatory", "virtual"],
-            "statuses": ["active", "suspended", "inactive"],
+            "mode_options": get_vocabulary_options("location-mode"),
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": None,
             "deactivation_date_value": None,
         }
@@ -1591,8 +1615,8 @@ async def edit_unite_hebergement_form(
             "request": request,
             "uh": uh,
             "unites_fonctionnelles": ufs,
-            "modes": ["instance", "hospitalization", "ambulatory", "virtual"],
-            "statuses": ["active", "suspended", "inactive"],
+            "mode_options": get_vocabulary_options("location-mode"),
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": hl7_to_form_datetime(getattr(uh, "activation_date", None)),
             "deactivation_date_value": hl7_to_form_datetime(getattr(uh, "deactivation_date", None)),
         }
@@ -1606,14 +1630,13 @@ async def create_unite_hebergement(
     form = await request.form()
     mode_value = form.get("mode") or LocationMode.INSTANCE
     status_value = form.get("status") or LocationStatus.ACTIVE
-    physical_value = form.get("physical_type") or LocationPhysicalType.RO
     uh = UniteHebergement(
         name=form["name"],
         identifier=form["identifier"],
         unite_fonctionnelle_id=int(form["unite_fonctionnelle_id"]),
         mode=LocationMode(mode_value),
         status=LocationStatus(status_value),
-        physical_type=LocationPhysicalType(physical_value),
+        physical_type=LocationPhysicalType.WA,  # Une UH est toujours de type "wa" (ward)
     )
     uh.activation_date = form_datetime_to_hl7(form.get("activation_date"))
     uh.deactivation_date = form_datetime_to_hl7(form.get("deactivation_date"))
@@ -1639,8 +1662,8 @@ async def update_unite_hebergement(
     uh.unite_fonctionnelle_id = int(form["unite_fonctionnelle_id"])
     uh.mode = LocationMode(form.get("mode", uh.mode))
     uh.status = LocationStatus(form.get("status", uh.status))
-    physical_value = form.get("physical_type") or uh.physical_type
-    uh.physical_type = LocationPhysicalType(physical_value)
+    # Une UH est toujours de type "wa" (ward)
+    uh.physical_type = LocationPhysicalType.WA
     uh.activation_date = form_datetime_to_hl7(form.get("activation_date"))
     uh.deactivation_date = form_datetime_to_hl7(form.get("deactivation_date"))
     apply_scheduled_status([uh])
@@ -1750,8 +1773,8 @@ async def new_chambre_form(
         {
             "request": request,
             "unite_hebergement": uh,
-            "physical_types": [type.value for type in LocationPhysicalType],
-            "statuses": ["active", "suspended", "inactive"],
+            # Note: physical_type n'est pas fourni car une chambre est toujours de type "ro" (room)
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": None,
             "deactivation_date_value": None,
         }
@@ -1787,8 +1810,8 @@ async def edit_chambre_form(
             "request": request,
             "chambre": chambre,
             "unite_hebergement": chambre.unite_hebergement,
-            "physical_types": [type.value for type in LocationPhysicalType],
-            "statuses": [status.value for status in LocationStatus],
+            # Note: physical_type n'est pas fourni car une chambre est toujours de type "ro" (room)
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": hl7_to_form_datetime(getattr(chambre, "activation_date", None)),
             "deactivation_date_value": hl7_to_form_datetime(getattr(chambre, "deactivation_date", None)),
         },
@@ -1806,10 +1829,8 @@ async def update_chambre(
     form = await request.form()
     chambre.name = form.get("name", chambre.name)
     chambre.identifier = form.get("identifier", chambre.identifier)
-    # physical_type may change, keep provided or current
-    pt = form.get("physical_type")
-    if pt:
-        chambre.physical_type = LocationPhysicalType(pt)
+    # Une chambre est toujours de type "ro" (room)
+    chambre.physical_type = LocationPhysicalType.RO
     st = form.get("status")
     if st:
         chambre.status = LocationStatus(st)
@@ -1959,7 +1980,7 @@ async def create_chambre(
         name=form["name"],
         identifier=form["identifier"],
         unite_hebergement_id=int(form["unite_hebergement_id"]),
-        physical_type=LocationPhysicalType(form.get("physical_type", LocationPhysicalType.RO)),
+        physical_type=LocationPhysicalType.RO,  # Une chambre est toujours de type "ro" (room)
         mode=LocationMode(form.get("mode", LocationMode.INSTANCE)),
         status=LocationStatus(status_value),
         type_chambre=form.get("type_chambre"),
@@ -2149,7 +2170,8 @@ async def edit_lit_form(
             "request": request,
             "lit": lit,
             "chambres": chambres,
-            "statuses": [s.value for s in LocationStatus],
+            "status_options": get_vocabulary_options("location-status"),
+            "operational_statuses": LIT_OPERATIONAL_STATUS_OPTIONS,
         },
     )
 
@@ -2175,6 +2197,8 @@ async def update_lit(
         lit.status = LocationStatus(status)
     if operational_status is not None:
         lit.operational_status = operational_status
+    # Un lit est toujours de type "bd" (bed)
+    lit.physical_type = LocationPhysicalType.BD
     apply_scheduled_status([lit])
     session.add(lit)
     session.commit()

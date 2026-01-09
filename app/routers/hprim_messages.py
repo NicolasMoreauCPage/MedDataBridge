@@ -10,7 +10,7 @@ from sqlmodel import Session, select, or_, and_, func
 from typing import Optional
 
 from app.db import get_session
-from app.models_transport import MessageLog
+from app.models_shared import MessageLog
 from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
 from datetime import datetime
 
@@ -303,9 +303,18 @@ async def import_ccam_acts(
                         facture=False
                     )
                     session.add(new_act)
+                    session.commit()
+                    session.refresh(new_act)
+                    
+                    # Auto-émission HPRIM vers autres endpoints (relai)
+                    try:
+                        from app.services.emit_on_create import emit_to_senders_async
+                        emit_to_senders_async(new_act, "ccam_act", session, operation="insert")
+                    except Exception as e:
+                        logger.warning(f"Erreur auto-émission HPRIM pour acte CCAM importé {new_act.id}: {e}")
+                    
                     imported_count += 1
         
-        session.commit()
         logger.info(f"Importé {imported_count} actes CCAM depuis le message HPRIM {message_id} vers le dossier {dossier.id}")
         
         return RedirectResponse(
@@ -392,9 +401,18 @@ async def import_ngap_acts(
                         facture=False
                     )
                     session.add(new_act)
+                    session.commit()
+                    session.refresh(new_act)
+                    
+                    # Auto-émission HPRIM vers autres endpoints (relai)
+                    try:
+                        from app.services.emit_on_create import emit_to_senders_async
+                        emit_to_senders_async(new_act, "ngap_act", session, operation="insert")
+                    except Exception as e:
+                        logger.warning(f"Erreur auto-émission HPRIM pour acte NGAP importé {new_act.id}: {e}")
+                    
                     imported_count += 1
         
-        session.commit()
         logger.info(f"Importé {imported_count} actes NGAP depuis le message HPRIM {message_id} vers le dossier {dossier.id}")
         
         return RedirectResponse(
@@ -480,9 +498,18 @@ async def import_ucd_acts(
                         execute_date=acte.execute_date
                     )
                     session.add(new_act)
+                    session.commit()
+                    session.refresh(new_act)
+                    
+                    # Auto-émission HPRIM vers autres endpoints (relai)
+                    try:
+                        from app.services.emit_on_create import emit_to_senders_async
+                        emit_to_senders_async(new_act, "ucd_act", session, operation="insert")
+                    except Exception as e:
+                        logger.warning(f"Erreur auto-émission HPRIM pour acte UCD importé {new_act.id}: {e}")
+                    
                     imported_count += 1
         
-        session.commit()
         logger.info(f"Importé {imported_count} actes UCD depuis le message HPRIM {message_id} vers le dossier {dossier.id}")
         
         return RedirectResponse(
@@ -568,9 +595,18 @@ async def import_lpp_acts(
                         execute_date=acte.execute_date
                     )
                     session.add(new_act)
+                    session.commit()
+                    session.refresh(new_act)
+                    
+                    # Auto-émission HPRIM vers autres endpoints (relai)
+                    try:
+                        from app.services.emit_on_create import emit_to_senders_async
+                        emit_to_senders_async(new_act, "lpp_act", session, operation="insert")
+                    except Exception as e:
+                        logger.warning(f"Erreur auto-émission HPRIM pour acte LPP importé {new_act.id}: {e}")
+                    
                     imported_count += 1
         
-        session.commit()
         logger.info(f"Importé {imported_count} actes LPP depuis le message HPRIM {message_id} vers le dossier {dossier.id}")
         
         return RedirectResponse(

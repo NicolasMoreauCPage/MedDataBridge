@@ -10,7 +10,15 @@ from datetime import date, datetime, timedelta
 import random
 
 from app.db import get_session
-from app.models_structure import Lit, UniteFonctionnelle, Service, Pole, EntiteGeographique
+from app.models_structure import (
+    Lit,
+    UniteFonctionnelle,
+    Service,
+    Pole,
+    EntiteGeographique,
+    Chambre,
+    UniteHebergement,
+)
 from app.models_analytics import (
     KpiResponse,
     CapacityByServiceResponse,
@@ -62,8 +70,18 @@ def get_kpis(
     # Récupérer tous les lits (ou par EG si spécifié)
     query = select(Lit)
     if eg_id:
-        query = query.join(UniteFonctionnelle).where(UniteFonctionnelle.entite_geographique_id == eg_id)
-    
+        # Filtrer les lits appartenant à l'entité géographique via la hiérarchie
+        # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle -> Service -> Pole -> EntiteGeographique
+        query = (
+            query
+            .join(Chambre, Chambre.id == Lit.chambre_id)
+            .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
+            .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
+            .join(Service, Service.id == UniteFonctionnelle.service_id)
+            .join(Pole, Pole.id == Service.pole_id)
+            .where(Pole.entite_geo_id == eg_id)
+        )
+
     lits = session.exec(query).all()
     total_beds = len(lits)
     
@@ -122,14 +140,23 @@ def get_capacity_by_service(
     Utilisé pour le graphique horizontal bar chart "Capacité par service".
     """
     # Récupérer tous les services de l'EG avec leurs lits
-    services_query = select(Service).join(Pole).where(Pole.entite_geographique_id == eg_id)
+    services_query = (
+        select(Service)
+        .join(Pole, Pole.id == Service.pole_id)
+        .where(Pole.entite_geo_id == eg_id)
+    )
     services = session.exec(services_query).all()
     
     results = []
     for service in services:
-        # Compter les lits du service (via UF)
-        lits_query = select(func.count(Lit.id)).join(UniteFonctionnelle).where(
-            UniteFonctionnelle.service_id == service.id
+        # Compter les lits du service via la hiérarchie
+        # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle (filtrée par service)
+        lits_query = (
+            select(func.count(Lit.id))
+            .join(Chambre, Chambre.id == Lit.chambre_id)
+            .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
+            .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
+            .where(UniteFonctionnelle.service_id == service.id)
         )
         total_beds = session.exec(lits_query).one()
         
@@ -182,16 +209,28 @@ def get_capacity_by_um(
     }
     
     # Récupérer toutes les UF de l'EG avec leurs codes UM
-    ufs_query = select(UniteFonctionnelle).where(UniteFonctionnelle.entite_geographique_id == eg_id)
+    # EntiteGeographique -> Pole -> Service -> UniteFonctionnelle
+    ufs_query = (
+        select(UniteFonctionnelle)
+        .join(Service, Service.id == UniteFonctionnelle.service_id)
+        .join(Pole, Pole.id == Service.pole_id)
+        .where(Pole.entite_geo_id == eg_id)
+    )
     ufs = session.exec(ufs_query).all()
     
     # Grouper par code_um
     um_stats = {}
     for uf in ufs:
-        code_um = uf.code_um or "MCO"  # Default MCO si non défini
-        
-        # Compter les lits de l'UF
-        lits_query = select(func.count(Lit.id)).where(Lit.unite_fonctionnelle_id == uf.id)
+        code_um = uf.um_code or "MCO"  # Default MCO si non défini
+
+        # Compter les lits de l'UF via la hiérarchie
+        # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle (filtrée par UF)
+        lits_query = (
+            select(func.count(Lit.id))
+            .join(Chambre, Chambre.id == Lit.chambre_id)
+            .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
+            .where(UniteHebergement.unite_fonctionnelle_id == uf.id)
+        )
         total_beds = session.exec(lits_query).one()
         
         if total_beds == 0:
@@ -239,12 +278,21 @@ def get_alerts(
     
     # Récupérer les services avec leur occupation
     services_data = []
-    services_query = select(Service).join(Pole).where(Pole.entite_geographique_id == eg_id)
+    services_query = (
+        select(Service)
+        .join(Pole, Pole.id == Service.pole_id)
+        .where(Pole.entite_geo_id == eg_id)
+    )
     services = session.exec(services_query).all()
     
     for service in services:
-        lits_query = select(func.count(Lit.id)).join(UniteFonctionnelle).where(
-            UniteFonctionnelle.service_id == service.id
+        # Compter les lits du service via la hiérarchie
+        lits_query = (
+            select(func.count(Lit.id))
+            .join(Chambre, Chambre.id == Lit.chambre_id)
+            .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
+            .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
+            .where(UniteFonctionnelle.service_id == service.id)
         )
         total_beds = session.exec(lits_query).one()
         

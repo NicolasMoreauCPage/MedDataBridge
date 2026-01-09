@@ -8,13 +8,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 Usage:
     python init_db.py                    # Init complète (structure + vocab + namespaces + population + scénarios)
     python init_db.py --reset            # Supprime la DB existante avant init
-    python init_db.py --skip-vocab       # Saute l'init des vocabulaires
-    python init_db.py --skip-population  # Saute le seed de patients
-    python init_db.py --skip-scenarios   # Saute l'import des scénarios HL7/HPRIM
-    python init_db.py --minimal          # Seed minimal (1 patient)
-    python init_db.py --rich             # Seed riche (40 patients)
-    python init_db.py --demo-scenarios   # Ajoute scénarios démo complexes
-    python init_db.py --with-cotations   # Ajoute cotations médicales réalistes
 
 Ce script orchestre dans l'ordre:
 1. Création du schéma (tables) via app.db.init_db()
@@ -22,12 +15,12 @@ Ce script orchestre dans l'ordre:
 3. Structure multi-EJ (4 EJ: CHU, hôpital, EHPAD, psy) + hiérarchie complète
 4. Endpoints MLLP/FHIR (12 endpoints: 3 par EJ)
 5. Namespaces d'identifiants (13: IPP/NDA/VENUE par EJ + global structure)
-6. Population de patients (minimal:1, standard:120, rich:40 avec scénarios)
+6. Population de patients standard (120 patients avec scénarios)
 7. Scénarios IHE HL7 (depuis Doc/examples - partie intégrante du programme)
 8. Scénarios d'intégration HL7/HPRIM (159 scénarios depuis interfaces.integration - partie intégrante du programme)
 9. Scénarios HL7 PAM (124 scénarios IHE PAM - partie intégrante du programme)
-10. Scénarios démo optionnels (transferts, annulations)
-11. Cotations médicales réalistes optionnelles
+10. Scénarios démo (transferts, annulations)
+11. Cotations médicales réalistes
 
 Tous les appels sont idempotents: re-exécuter ce script est safe.
 """
@@ -37,7 +30,7 @@ import re
 import json
 from pathlib import Path
 from subprocess import run, CalledProcessError
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from datetime import datetime, timedelta
 from random import choice
 
@@ -94,6 +87,53 @@ def _ensure_sequences(session: Session) -> None:
         if not session.get(Sequence, name):
             session.add(Sequence(name=name, value=0))
     session.commit()
+
+
+def _pick_lit_for_uf(session: Session, uf_identifier: str) -> Optional[Lit]:
+    """Retourne un lit réel pour une UF donnée (si disponible).
+
+    On cherche les lits rattachés à l'UF via Chambre -> UH -> UF, et on en choisit un au hasard.
+    """
+    if not uf_identifier:
+        return None
+
+    lits = session.exec(
+        select(Lit)
+        .join(Chambre)
+        .join(UniteHebergement)
+        .join(UniteFonctionnelle)
+        .where(UniteFonctionnelle.identifier == uf_identifier)
+    ).all()
+
+    if not lits:
+        return None
+
+    return choice(lits)
+
+
+def _assign_bed_to_venue(session: Session, venue: Venue, uf_identifier: str) -> None:
+    """Affecte une chambre et un lit à une venue d'hospitalisation si possible.
+
+    - Choisit un lit cohérent avec l'UF de responsabilité
+    - Renseigne venue.chambre_id, venue.lit_id et assigned_location
+    """
+    lit = _pick_lit_for_uf(session, uf_identifier)
+    if not lit:
+        return
+
+    chambre = session.get(Chambre, lit.chambre_id) if lit.chambre_id else None
+    chambre_identifier = (
+        (chambre.identifier if chambre and chambre.identifier else None)
+        or (chambre.name if chambre and chambre.name else None)
+        or "CH-UNKNOWN"
+    )
+    lit_identifier = lit.identifier or lit.name or f"LIT-{lit.id}"
+
+    venue.chambre_id = lit.chambre_id
+    venue.lit_id = lit.id
+    venue.assigned_location = f"{uf_identifier}^{chambre_identifier}^{lit_identifier}"
+
+    session.add(venue)
 
 
 def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type: str = "MIXED") -> int:
@@ -172,11 +212,10 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
         # 1 UCD
         act = UCDAct(
             dossier_id=dossier.id,
-            code_cip="3400936050501",
-            designation="DOLIPRANE 1000MG",
+            code_ucd="3400936050501",
+            denomination_libelle="DOLIPRANE 1000MG",
             quantite=2,
-            prix_unitaire=4.50,
-            montant_total=9.00,
+            montant_unitaire_facture_ttc=4.50,
             execute_date=admit_time + timedelta(days=1, hours=3),
             facturable=True,
             valide=True
@@ -188,11 +227,10 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
         act = LPPAct(
             dossier_id=dossier.id,
             code_lpp="1234567890123",
-            libelle="Pansement adhésif",
-            quantite=1,
-            prix_unitaire=25.00,
-            montant_total=25.00,
+            denomination_libelle="Pansement adhésif",
             execute_date=admit_time + timedelta(days=1, hours=4),
+            montant_unitaire_facture_ttc=25.00,
+            quantite=1,
             facturable=True,
             valide=True
         )
@@ -285,12 +323,18 @@ def seed_minimal() -> None:
         session.commit()
         session.refresh(venue)
 
+        # Affecter une chambre et un lit réels si possible
+        _assign_bed_to_venue(session, venue, dossier.uf_responsabilite)
+        session.commit()
+        session.refresh(venue)
+
         mouvement_seq = get_next_sequence(session, "mouvement")
         mouvement = Mouvement(
             mouvement_seq=mouvement_seq,
             venue_id=venue.id,
             when=datetime.utcnow(),
-            location=f"{venue.uf_responsabilite}^BOX-1^CH-01",
+            # Si une localisation assignée est connue, l'utiliser, sinon fallback simple
+            location=venue.assigned_location or f"{venue.uf_responsabilite}^BOX-1^CH-01",
             trigger_event="A01",
             movement_type="Admission",
         )
@@ -365,6 +409,13 @@ def seed_rich(nb_patients: int = 40) -> None:
                 session.add(venue)
                 session.commit()
                 session.refresh(venue)
+
+                # Affecter un lit uniquement à la première venue d'hospitalisation
+                if v == 1:
+                    _assign_bed_to_venue(session, venue, uf_resp)
+                    session.commit()
+                    session.refresh(venue)
+
                 venues.append(venue)
 
             # mouvements (admission + transfert + sortie)
@@ -460,6 +511,13 @@ def seed_demo_scenarios() -> None:
                 session.add(venue)
                 session.commit()
                 session.refresh(venue)
+
+                # Pour les scénarios démo, affecter un lit à la première venue
+                if v == 1:
+                    _assign_bed_to_venue(session, venue, uf_resp)
+                    session.commit()
+                    session.refresh(venue)
+
                 venues.append(venue)
             current_index = 0
             for step_idx, trig in enumerate(triggers, start=1):
@@ -844,11 +902,10 @@ def seed_cotations_to_dossiers(engine) -> int:
                 for i, acte_data in enumerate(ucd_actes):
                     act = UCDAct(
                         dossier_id=dossier.id,
-                        code_cip=acte_data["code_cip"],
-                        designation=acte_data["designation"],
+                        code_ucd=acte_data["code_cip"],
+                        denomination_libelle=acte_data["designation"],
                         quantite=acte_data["quantite"],
-                        prix_unitaire=acte_data["prix"],
-                        montant_total=acte_data["quantite"] * acte_data["prix"],
+                        montant_unitaire_facture_ttc=acte_data["prix"],
                         execute_date=admit_time + timedelta(days=1, hours=i),
                         facturable=True,
                         valide=True
@@ -867,11 +924,10 @@ def seed_cotations_to_dossiers(engine) -> int:
                     act = LPPAct(
                         dossier_id=dossier.id,
                         code_lpp=acte_data["code_lpp"],
-                        libelle=acte_data["libelle"],
-                        quantite=1,
-                        prix_unitaire=acte_data["montant"],
-                        montant_total=acte_data["montant"],
+                        denomination_libelle=acte_data["libelle"],
                         execute_date=admit_time + timedelta(days=1, hours=i),
+                        montant_unitaire_facture_ttc=acte_data["montant"],
+                        quantite=1,
                         facturable=True,
                         valide=True
                     )
@@ -911,11 +967,10 @@ def seed_cotations_to_dossiers(engine) -> int:
                 # Ajouter 1 UCD
                 act = UCDAct(
                     dossier_id=dossier.id,
-                    code_cip="3400936050501",
-                    designation="DOLIPRANE 1000MG",
+                    code_ucd="3400936050501",
+                    denomination_libelle="DOLIPRANE 1000MG",
                     quantite=2,
-                    prix_unitaire=4.50,
-                    montant_total=9.00,
+                    montant_unitaire_facture_ttc=4.50,
                     execute_date=admit_time + timedelta(days=1, hours=3),
                     facturable=True,
                     valide=True
@@ -927,11 +982,10 @@ def seed_cotations_to_dossiers(engine) -> int:
                 act = LPPAct(
                     dossier_id=dossier.id,
                     code_lpp="1234567890123",
-                    libelle="Pansement adhésif",
-                    quantite=1,
-                    prix_unitaire=25.00,
-                    montant_total=25.00,
+                    denomination_libelle="Pansement adhésif",
                     execute_date=admit_time + timedelta(days=1, hours=4),
+                    montant_unitaire_facture_ttc=25.00,
+                    quantite=1,
                     facturable=True,
                     valide=True
                 )
@@ -949,13 +1003,6 @@ def seed_cotations_to_dossiers(engine) -> int:
 def main():
     parser = argparse.ArgumentParser(description="Initialisation complète de la base de données")
     parser.add_argument("--reset", action="store_true", help="Supprime medbridge.db avant init")
-    parser.add_argument("--skip-vocab", action="store_true", help="Saute l'initialisation des vocabulaires")
-    parser.add_argument("--skip-population", action="store_true", help="Saute le seed de population patients")
-    parser.add_argument("--skip-scenarios", action="store_true", help="Saute l'import des scénarios HL7/HPRIM")
-    parser.add_argument("--minimal", action="store_true", help="Seed minimal (1 patient seulement)")
-    parser.add_argument("--rich", action="store_true", help="Seed riche (40 patients avec scénarios)")
-    parser.add_argument("--demo-scenarios", action="store_true", help="Ajoute scénarios démo complexes")
-    parser.add_argument("--with-cotations", action="store_true", help="Ajoute cotations médicales réalistes")
     args = parser.parse_args()
 
     if args.reset and DB_PATH.exists():
@@ -990,23 +1037,20 @@ def main():
         print(f"✗ Échec création tables: {e}")
         sys.exit(1)
 
-    # 2. Vocabulaires
-    if not args.skip_vocab:
-        print("=" * 60)
-        print("ÉTAPE 2/4 : Initialisation des vocabulaires")
-        print("=" * 60)
-        try:
-            from app.vocabulary_init import init_vocabularies
-            with Session(engine) as session:
-                init_vocabularies(session)
-            print("✓ Vocabulaires initialisés (35 systèmes, 207 valeurs)\n")
-        except Exception as e:
-            print(f"✗ Échec vocabulaires: {e}")
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-    else:
-        print("→ Vocabulaires sautés (--skip-vocab)\n")
+    # 2. Vocabulaires (toujours exécutés)
+    print("=" * 60)
+    print("ÉTAPE 2/4 : Initialisation des vocabulaires")
+    print("=" * 60)
+    try:
+        from app.vocabulary_init import init_vocabularies
+        with Session(engine) as session:
+            init_vocabularies(session)
+        print("✓ Vocabulaires initialisés (35 systèmes, 207 valeurs)\n")
+    except Exception as e:
+        print(f"✗ Échec vocabulaires: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
     # 3. Structure étendue + endpoints + namespaces
     print("=" * 60)
@@ -1019,100 +1063,69 @@ def main():
         print(f"✗ Échec structure étendue: {e}")
         sys.exit(1)
 
-    # 4. Population (options flexibles)
-    if args.skip_population:
-        print("→ Population patients sautée (--skip-population)\n")
-    else:
-        print("=" * 60)
-        print("ÉTAPE 4/7 : Population de patients")
-        print("=" * 60)
-
-        if args.minimal:
-            print("→ Seed minimal (1 patient)...")
-            seed_minimal()
-        elif args.rich:
-            print("→ Seed riche (40 patients)...")
-            seed_rich(40)
-        else:
-            # Seed standard (120 patients)
-            print("→ Seed standard (120 patients)...")
-            seed_rich(120)  # Crée 120 patients avec cotations intégrées (25%)
-
-        if args.demo_scenarios:
-            print("→ Ajout scénarios démo...")
-            seed_demo_scenarios()
-
-        print("✓ Population configurée\n")
+    # 4. Population (toujours en mode standard complet)
+    print("=" * 60)
+    print("ÉTAPE 4/7 : Population de patients")
+    print("=" * 60)
+    print("→ Seed standard (120 patients)...")
+    seed_rich(120)  # Crée 120 patients avec cotations intégrées (25%)
+    print("→ Ajout scénarios démo...")
+    seed_demo_scenarios()
+    print("✓ Population configurée\n")
 
 
-    # 5. Import scénarios IHE HL7 (partie intégrante du programme)
-    if not args.skip_scenarios:
-        print("=" * 60)
-        print("ÉTAPE 5/8 : Import des scénarios IHE HL7")
-        print("=" * 60)
-        try:
-            hl7_count = import_hl7_scenarios()
-            print(f"✓ {hl7_count} scénarios IHE HL7 importés\n")
-        except Exception as e:
-            print(f"✗ Échec import scénarios IHE HL7: {e}")
-            sys.exit(1)
-    else:
-        print("→ Scénarios IHE HL7 sautés (--skip-scenarios)\n")
-        hl7_count = 0
+    # 5. Import scénarios IHE HL7 (toujours exécutés)
+    print("=" * 60)
+    print("ÉTAPE 5/8 : Import des scénarios IHE HL7")
+    print("=" * 60)
+    try:
+        hl7_count = import_hl7_scenarios()
+        print(f"✓ {hl7_count} scénarios IHE HL7 importés\n")
+    except Exception as e:
+        print(f"✗ Échec import scénarios IHE HL7: {e}")
+        sys.exit(1)
 
-    # 6. Import scénarios d'intégration HL7/HPRIM (partie intégrante du programme)
-    if not args.skip_scenarios:
-        print("=" * 60)
-        print("ÉTAPE 6/8 : Import des scénarios d'intégration HL7/HPRIM")
-        print("=" * 60)
-        try:
-            hprim_count = import_hprim_scenarios()
-            print(f"✓ {hprim_count} scénarios HPRIM importés\n")
-        except Exception as e:
-            print(f"✗ Échec import scénarios HPRIM: {e}")
-            sys.exit(1)
-    else:
-        print("→ Scénarios HPRIM sautés (--skip-scenarios)\n")
-        hprim_count = 0
+    # 6. Import scénarios d'intégration HL7/HPRIM (toujours exécutés)
+    print("=" * 60)
+    print("ÉTAPE 6/8 : Import des scénarios d'intégration HL7/HPRIM")
+    print("=" * 60)
+    try:
+        hprim_count = import_hprim_scenarios()
+        print(f"✓ {hprim_count} scénarios HPRIM importés\n")
+    except Exception as e:
+        print(f"✗ Échec import scénarios HPRIM: {e}")
+        sys.exit(1)
 
-    # 7. Scénarios HL7 IHE PAM (partie intégrante du programme)
-    if not args.skip_scenarios:
-        print("=" * 60)
-        print("ÉTAPE 7/8 : Import des scénarios HL7 IHE PAM (124 scénarios)")
-        print("=" * 60)
-        try:
-            # Import du script seed_hl7_scenarios.py
-            sys.path.insert(0, str(Path(__file__).parent.parent / "manual"))
-            from seed_hl7_scenarios import seed_hl7_scenarios
-            seed_hl7_scenarios()
-            print("✓ 124 scénarios HL7 IHE PAM importés\n")
-            pam_count = 124
-        except Exception as e:
-            print(f"✗ Échec import scénarios HL7 PAM: {e}")
-            sys.exit(1)
-            pam_count = 0
-    else:
-        print("→ Scénarios HL7 PAM sautés (--skip-scenarios)\n")
-        pam_count = 0
+    # 7. Scénarios HL7 IHE PAM (toujours exécutés)
+    print("=" * 60)
+    print("ÉTAPE 7/8 : Import des scénarios HL7 IHE PAM (124 scénarios)")
+    print("=" * 60)
+    try:
+        # Import du script seed_hl7_scenarios.py
+        sys.path.insert(0, str(Path(__file__).parent.parent / "manual"))
+        from seed_hl7_scenarios import seed_hl7_scenarios
+        seed_hl7_scenarios()
+        print("✓ 124 scénarios HL7 IHE PAM importés\n")
+        pam_count = 124
+    except Exception as e:
+        print(f"✗ Échec import scénarios HL7 PAM: {e}")
+        sys.exit(1)
 
-    # 8. Cotations médicales réalistes optionnelles
-    if args.with_cotations:
-        print("=" * 60)
-        print("ÉTAPE 8/8 : Ajout des cotations médicales réalistes")
-        print("=" * 60)
-        try:
-            from datetime import timedelta
-            from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct
-            
-            cotations_added = seed_cotations_to_dossiers(engine)
-            print(f"✓ {cotations_added} cotations ajoutées aux dossiers\n")
-        except Exception as e:
-            print(f"✗ Échec ajout cotations: {e}")
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-    else:
-        cotations_added = 0
+    # 8. Cotations médicales réalistes (toujours exécutées)
+    print("=" * 60)
+    print("ÉTAPE 8/8 : Ajout des cotations médicales réalistes")
+    print("=" * 60)
+    try:
+        from datetime import timedelta
+        from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct
+
+        cotations_added = seed_cotations_to_dossiers(engine)
+        print(f"✓ {cotations_added} cotations ajoutées aux dossiers\n")
+    except Exception as e:
+        print(f"✗ Échec ajout cotations: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
     # Résumé final
     print("=" * 60)
@@ -1120,29 +1133,17 @@ def main():
     print("=" * 60)
     print("\nRésumé:")
     print("  • Tables       : créées")
-    if not args.skip_vocab:
-        print("  • Vocabulaires : 35 systèmes, 207 valeurs")
+    print("  • Vocabulaires : 35 systèmes, 207 valeurs")
     print("  • Structures   : 4 EJ (CHU, hôpital, EHPAD, psy) + hiérarchie")
     print("  • Endpoints    : 12 (MLLP + FHIR par EJ)")
     print("  • Namespaces   : 13 (IPP/NDA/VENUE par EJ + global)")
-    if not args.skip_population:
-        if args.minimal:
-            print("  • Population   : 1 patient (seed minimal)")
-        elif args.rich:
-            print("  • Population   : 40 patients avec scénarios (seed riche)")
-        else:
-            print("  • Population   : 120 patients, dossiers et mouvements (standard)")
-        if args.demo_scenarios:
-            print("  • Scénarios démo : 3 scénarios complexes (transferts/annulations)")
-    if not args.skip_scenarios:
-        print(f"  • Scénarios IHE HL7 : {hl7_count} scénarios importés")
-        print(f"  • Scénarios HPRIM : {hprim_count} scénarios importés")
-        print(f"  • Scénarios HL7 PAM : {pam_count} scénarios IHE PAM importés")
-        print(f"  • Total scénarios : {hl7_count + hprim_count + pam_count} scénarios d'intégration")
-    else:
-        print("  • Scénarios    : sautés (--skip-scenarios)")
-    if args.with_cotations:
-        print(f"  • Cotations    : {cotations_added} cotations médicales ajoutées")
+    print("  • Population   : 120 patients, dossiers et mouvements (standard)")
+    print("  • Scénarios démo : 3 scénarios complexes (transferts/annulations)")
+    print(f"  • Scénarios IHE HL7 : {hl7_count} scénarios importés")
+    print(f"  • Scénarios HPRIM : {hprim_count} scénarios importés")
+    print(f"  • Scénarios HL7 PAM : {pam_count} scénarios IHE PAM importés")
+    print(f"  • Total scénarios : {hl7_count + hprim_count + pam_count} scénarios d'intégration")
+    print(f"  • Cotations    : {cotations_added} cotations médicales ajoutées")
     print("\nLe serveur peut être démarré avec:")
     print("  uvicorn app.app:app --reload")
     print("\nAccès admin: http://localhost:8000/admin/ght/1/ej/1")

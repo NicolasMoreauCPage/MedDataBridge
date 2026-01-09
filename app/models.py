@@ -424,8 +424,8 @@ class UCDAct(SQLModel, table=True):
     code_ucd: str = Field(description="Code UCD / Code CIP-13 (13 chiffres)")
     code_commercial: Optional[str] = Field(default=None, description="Code commercial (120 car)")
 
-    # Dénomination du médicament
-    denomination_libelle: str = Field(description="Libellé/dénomination du médicament")
+    # Dénomination du médicament (optionnelle côté modèle, mais toujours renseignée par le seed)
+    denomination_libelle: Optional[str] = Field(default=None, description="Libellé/dénomination du médicament")
     denomination_dosage: Optional[str] = Field(default=None, description="Dosage (ex: 1000mg)")
     denomination_forme: Optional[str] = Field(default=None, description="Forme galénique (ex: comprimé)")
 
@@ -514,8 +514,8 @@ class LPPAct(SQLModel, table=True):
     code_lpp: Optional[str] = Field(default=None, description="Code LPP (13 chiffres)")
     code_commercial_lpp: Optional[str] = Field(default=None, description="Code commercial LPP (120 car)")
 
-    # Dénomination
-    denomination_libelle: str = Field(description="Libellé du dispositif médical")
+    # Dénomination (optionnelle côté modèle, mais toujours renseignée par le seed)
+    denomination_libelle: Optional[str] = Field(default=None, description="Libellé du dispositif médical")
 
     # Fournisseur (obligatoire, choix entre SIRET ou identifiant)
     siret_fournisseur: Optional[str] = Field(default=None, description="SIRET fournisseur (14 chiffres)")

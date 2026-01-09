@@ -37,42 +37,65 @@ def plan_lits(
     Vue plan de lits : affiche tous les lits organisés par service/UF/UH/chambre
     avec statut en temps réel et actions rapides pour affecter des patients.
     """
-    from app.models_structure import Service, Pole
-    
+    from app.models_structure import Service, Pole, EntiteGeographique
+
     # Récupérer les contextes EG et EJ (EG a priorité s'il est défini)
     eg_context = getattr(request.state, "eg_context", None)
     ej_context = getattr(request.state, "ej_context", None)
     eg_id = getattr(eg_context, "id", None) if eg_context else None
-    # Si contexte EJ, utiliser la première EG de cet EJ
+    # Si contexte EJ explicite, l'utiliser quand aucun EG n'est défini
     ej_id = getattr(ej_context, "id", None) if ej_context and not eg_id else None
-    
-    # Base query pour les lits avec toute la hiérarchie
-    query = (
-        select(Lit, Chambre, UniteHebergement, UniteFonctionnelle, Service)
-        .select_from(Lit)
-        .join(Lit.chambre)
-        .join(Chambre.unite_hebergement)
-        .join(UniteHebergement.unite_fonctionnelle)
-        .join(UniteFonctionnelle.service)
-        .join(Service.pole)
-    )
-    
-    # Filtre par contexte EG ou EJ
+    # Fallback potentiel : EJ rattachée à l'EG sélectionnée
+    ej_from_eg_id = getattr(eg_context, "entite_juridique_id", None) if eg_context else None
+
+    def build_query(filter_eg_ids: Optional[list[int]] = None, filter_ej_id: Optional[int] = None):
+        """Construit la requête de base pour le plan de lits, avec filtres."""
+        q = (
+            select(Lit, Chambre, UniteHebergement, UniteFonctionnelle, Service)
+            .select_from(Lit)
+            .join(Lit.chambre)
+            .join(Chambre.unite_hebergement)
+            .join(UniteHebergement.unite_fonctionnelle)
+            .join(UniteFonctionnelle.service)
+            .join(Service.pole)
+        )
+
+        # Filtre par contexte EG (un ou plusieurs sites) ou EJ
+        if filter_eg_ids:
+            q = q.where(Pole.entite_geo_id.in_(filter_eg_ids))
+        elif filter_ej_id:
+            q = q.where(Pole.entite_juridique_id == filter_ej_id)
+
+        # Filtres additionnels (hors statut, géré en mémoire plus bas)
+        if uf_filter:
+            q = q.where(UniteFonctionnelle.identifier == uf_filter)
+        if service_filter:
+            q = q.where(Service.name.ilike(f"%{service_filter}%"))
+
+        return q
+
+    # Requête principale en fonction du contexte
     if eg_id:
-        query = query.where(Pole.entite_geo_id == eg_id)
+        # EG explicite : filtrer sur ce site
+        query = build_query(filter_eg_ids=[eg_id])
     elif ej_id:
-        # Si contexte EJ sans EG spécifique, filtrer via l'EJ du pôle
-        query = query.where(Pole.entite_juridique_id == ej_id)
-    
-    # Filtres additionnels
-    if uf_filter:
-        query = query.where(UniteFonctionnelle.identifier == uf_filter)
-    if service_filter:
-        query = query.where(Service.name.ilike(f"%{service_filter}%"))
-    if status_filter:
-        query = query.where(Lit.status == status_filter)
-    
+        # EJ explicite : d'abord essayer les pôles directement rattachés à l'EJ
+        query = build_query(filter_ej_id=ej_id)
+    else:
+        # Aucun contexte EG/EJ spécifique : ne pas filtrer par établissement
+        query = build_query()
+
     locations = session.exec(query).all()
+
+    # Fallback 1 : si aucun lit pour l'EG sélectionnée, élargir au périmètre EJ associé
+    if not locations and eg_id and ej_from_eg_id:
+        locations = session.exec(build_query(filter_ej_id=ej_from_eg_id)).all()
+
+    # Fallback 2 : si aucun lit pour une EJ explicite, utiliser tous les EG rattachés à cette EJ
+    if not locations and ej_id:
+        eg_ids = [eg.id for eg in session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()]
+        if eg_ids:
+            locations = session.exec(build_query(filter_eg_ids=eg_ids, filter_ej_id=None)).all()
     
     # Organiser par service > UF > UH > Chambre > Lits
     structure = {}
@@ -156,12 +179,31 @@ def plan_lits(
         ).all()
         
         has_conflict = len(conflits_count) > 1
+
+        # Déterminer un statut "métier" pour l'UI en combinant
+        # l'occupation réelle (venue active) et l'operational_status du lit.
+        if occupant:
+            display_status = "occupied"
+        else:
+            op = (lit.operational_status or "").lower()
+            if op == "occupied":
+                display_status = "occupied"
+            elif op in ("available", "", None):
+                display_status = "free"
+            elif op in ("maintenance", "closed"):
+                display_status = "closed"
+            else:
+                display_status = "unknown"
+
+        # Appliquer le filtre de statut en mémoire
+        if status_filter and display_status != status_filter:
+            continue
         
         structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id]["lits"].append({
             "id": lit.id,
             "name": lit.name,
             "identifier": lit.identifier,
-            "status": lit.status or "unknown",
+            "status": display_status,
             "operational_status": lit.operational_status,
             "occupant": occupant,
             "has_conflict": has_conflict,

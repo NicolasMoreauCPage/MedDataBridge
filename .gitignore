@@ -26,6 +26,7 @@ venv/
 .vscode/
 .idea/
 Doc/interfaces.integration_src/interfaces.integration/
+docs/interfaces.integration_src/
 .test_diagnostics/
 medbridge.db*
 test_reports/
@@ -35,6 +36,7 @@ tmp/
 tmp/generated/
 *.zip
 Doc/interfaces.integration/
+node_modules/
 
 # Test hypothesis data
 .hypothesis/

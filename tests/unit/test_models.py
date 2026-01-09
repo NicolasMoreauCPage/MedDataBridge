@@ -502,7 +502,7 @@ class TestNGAPAct:
         assert act.execute_date == execute_date
         assert act.facturable is True
         assert act.valide is False
-        assert act.facture is False
+        assert act.facture == "non"
 
     def test_ngap_act_creation_complete(self):
         """Test création d'un acte NGAP complet."""
@@ -512,32 +512,28 @@ class TestNGAPAct:
             lettre_cle="B",
             coefficient=2.5,
             execute_date=execute_date,
-            prestataire_id=100,
             denombrement=3,
             position_dentaire="18",
-            execute_heure="10:30",
             numero_seance=1,
-            montant=150.0,
+            montant_total=150.0,
             commentaire="Acte complexe",
             facturable=True,
             valide=True,
-            facture=False
+            facture="non"
         )
 
         assert act.dossier_id == 1
         assert act.lettre_cle == "B"
         assert act.coefficient == 2.5
         assert act.execute_date == execute_date
-        assert act.prestataire_id == 100
         assert act.denombrement == 3
         assert act.position_dentaire == "18"
-        assert act.execute_heure == "10:30"
         assert act.numero_seance == 1
-        assert act.montant == 150.0
+        assert act.montant_total == 150.0
         assert act.commentaire == "Acte complexe"
         assert act.facturable is True
         assert act.valide is True
-        assert act.facture is False
+        assert act.facture == "non"
 
 
 class TestUCDAct:

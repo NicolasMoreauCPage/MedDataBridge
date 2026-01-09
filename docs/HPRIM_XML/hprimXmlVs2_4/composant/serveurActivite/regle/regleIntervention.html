@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Regle intervention</TITLE>
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+
+<BODY>
+<DIV class='chapitre'> Régles pour l'intervention</DIV>
+
+<DIV class='sChapitre'> Définition d'une intervention</DIV>
+<P>L'intervention contient les actes réalisés pour un patient, pendant un laps de temps donné. Les actes sont réalisés par un ou plusieurs prestataires de quelle que spécialité qu'ils soient et dépendent d'une ou plusieurs UF d'execution. Durant la réalisation des actes, des équipements et locaux sont utilisés dépendant d'une UF d'intervention.Des ressources types prothéses, médicaments sont consommées.<P>
+
+
+<DIV class='sChapitre'> Création d'une intervention</DIV>
+<P>Il existe 2 façons de créer une intervention dans le serveur d'activité : </P>
+<UL>
+   <LI>
+      <P>en alimentant l'élément &lt;evenementServeurIntervention&gt; et ses fils.
+         L'attribut action doit avoir comme valeur création.
+      </P>
+   <LI>
+      <P>lors de la création du 1er acte par l'élément &lt;evenementServeurActe&gt; à condition que les éléments de &lt;intervention&gt; soient correctement chargés.
+      </P>
+</UL>
+
+<DIV class='sChapitre'> Mise à jour d'une intervention</DIV>
+<P>Dans ce cadre, l'utilisation de la balise &lt;evenementServeurIntervention&gt; doit être employée. Pour exemple, si vous voulez mettre à jour la date d'une intervention, vous utilisez l' attribut action égal à "modification" de &lt;evenementServeurIntervention&gt; et vous affectez la nouvelle date.</P>
+<SPAN class='remarque'>Remarque : </SPAN>
+<P> Il n'est pas possible de transmettre cet événément par la simple réémission des actes par l'utilisation de la balise &lt;evenementServeurActe&gt; de l'intervention. En effet, dans ce contexte, l'élément &lt;intervention&gt; ne sert que d'identification de rattachement.</P>
+
+
+<P>La réémission des actes qui dépendent de l’intervention modifiée dans un second message n’est pas nécessaire si aucun des attributs de ces actes n’a
+été modifié.</p>
+<ul>
+   <li>A titre d’exemple, la correction du code médecin demandeur, information qui porte sur la mise à jour d’une
+   donnée de l’intervention doit se traduire par un seul message evenementServeurInterventionavec une action de type <b>remplacement</b>, même si
+   l’intervention regroupe plusieurs actes. (l’action
+   « modification » ne doit être utilisée que si la valeur antérieure du code médecin était
+   valide pour cette intervention dans un état historique antérieur)</P>
+   </li>
+</ul>
+
+
+<DIV class='sChapitre'> Suppression d'une intervention</DIV>
+<P>La suppression d’une intervention est effective dès la disparition du dernier acte de cette intervention. La suppression d’une intervention doit être obligatoirement précédée
+par l’envoi d’un message de suppression de TOUS les actes résiduels rattachés à l’intervention
+(evenementServeurActe avec une action suppression au niveau de chaque acteNGAP ou CCAM du message), ou par l’envoi d’un message de suppression pour chacun des actes résiduels rattachés à l’intervention. Si un évènement ServeurIntervention avec une action de suppression est émis par un logiciel producteur d’actes ou un serveur d’actes, il devra être transmis APRES l’émission du message de suppression des actes résiduels.</P>
+
+<SPAN class='remarque'>Remarque : </SPAN>
+<P>les messages de création ou de suppression d’intervention ne sont pas indispensables</P>
+
+</BODY>
+</HTML>

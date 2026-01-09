@@ -1,0 +1,301 @@
+/* ANIMATIONS ET TRANSITIONS AVANCÉES - MedData Bridge */
+/* =================================================== */
+
+/* Animations d'entrée pour les éléments de liste */
+@keyframes listItemEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.list-item-enter {
+  animation: listItemEnter 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animation de chargement pour les boutons */
+@keyframes buttonLoading {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.btn-loading {
+  animation: buttonLoading 1s ease-in-out infinite;
+}
+
+/* Animation de succès pour les actions */
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.success-animation {
+  animation: successPulse 600ms ease-out;
+}
+
+/* Animation de focus pour l'accessibilité */
+@keyframes focusRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0);
+  }
+}
+
+.focus-ring {
+  animation: focusRing 300ms ease-out;
+}
+
+/* Transitions fluides pour les modals */
+.modal-enter {
+  animation: modalEnter 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-exit {
+  animation: modalExit 200ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+@keyframes modalEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalExit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+/* === ANIMATIONS MODERNES 2024-2026 === */
+
+/* Gradient animé pour headers */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 15s ease infinite;
+}
+
+/* Pulse subtil pour alertes/notifications */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
+}
+
+/* Slide in right pour notifications */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 300ms ease-out;
+}
+
+/* Shimmer pour skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+}
+
+/* Animation de chargement des pages */
+@keyframes pageLoading {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.page-loading-bar {
+  animation: pageLoading 1.5s ease-in-out infinite;
+}
+
+/* Micro-interactions pour les boutons */
+.btn-hover-lift {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation de rotation pour les icônes de chargement */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 2s linear infinite;
+}
+
+/* Animation de pulsation douce */
+@keyframes gentlePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-gentle {
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+/* Animation de glissement pour les notifications */
+@keyframes slideInRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.toast-enter {
+  animation: slideInRight 300ms ease-out;
+}
+
+.toast-exit {
+  animation: slideOutRight 200ms ease-in;
+}
+
+/* Animation de survol pour les cartes */
+.card-hover {
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation de focus pour les inputs */
+.input-focus {
+  transition: border-color 200ms ease-in-out,
+              box-shadow 200ms ease-in-out;
+}
+
+.input-focus:focus {
+  border-color: rgb(59 130 246);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Classes utilitaires pour les animations conditionnelles */
+@media (prefers-reduced-motion: reduce) {
+  .list-item-enter,
+  .btn-loading,
+  .success-animation,
+  .focus-ring,
+  .modal-enter,
+  .modal-exit,
+  .page-loading-bar,
+  .btn-hover-lift,
+  .animate-spin-slow,
+  .animate-pulse-gentle,
+  .toast-enter,
+  .toast-exit,
+  .card-hover,
+  .input-focus {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .btn-hover-lift:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .card-hover:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}

@@ -6,7 +6,9 @@
   <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
     <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Documentation technique FHIR — Réception et Émission (complète)</span>
+    <a href="/documentation" class="hover:text-blue-600 transition-colors">Documentation</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">FHIR API Complète</span>
   </nav>
 
   <!-- Header -->
@@ -14,7 +16,9 @@
     <div class="bg-gradient-to-r from-slate-600 via-gray-600 to-zinc-600 rounded-2xl p-8 text-white shadow-lg">
       <div class="flex items-center space-x-4">
         <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-          <div class="text-3xl">📚</div>
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
         </div>
         <div>
           <h1 class="text-3xl font-bold">Documentation technique FHIR — Réception et Émission (complète)</h1>
@@ -22,32 +26,37 @@
       </div>
     </div>
   </div>
-
-    <h1 class="text-3xl font-bold mb-6">Documentation technique FHIR — Réception et Émission (complète)</h1>
     
-    <div class="bg-white shadow-lg rounded-lg p-6">
-      <p class="text-lg mb-4">
-        Cette page présente la documentation API complète au format HTML statique.
-      </p>
-      
-      <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-        <p class="font-semibold">📖 Documentation interactive</p>
-        <p>Pour une vue synthétique et interactive, consultez : 
-        <a href="/documentation/fhir-reception-emission" class="text-blue-600 hover:underline">Documentation FHIR (vue synthétique)</a></p>
-      </div>
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <p class="text-lg text-slate-700 mb-4">
+      Cette page présente la documentation API complète au format HTML statique.
+    </p>
+    
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+      <p class="font-semibold text-blue-900 mb-2">📖 Documentation interactive</p>
+      <p class="text-blue-800">Pour une vue synthétique et interactive, consultez : 
+      <a href="/documentation/fhir-reception-emission" class="text-blue-600 hover:text-blue-700 underline font-medium">Documentation FHIR (vue synthétique)</a></p>
+    </div>
+  </div>
 
-      <iframe 
-        src="/Doc/FHIR_API.html" 
-        width="100%" 
-        height="1200" 
-        style="border:1px solid #e0e0e0;background:#fff;border-radius:8px;"
-        title="Documentation API FHIR complète">
-      </iframe>
-      
-      <div class="mt-4 flex justify-between items-center">
-        <a href="/Doc/FHIR_API.html" target="_blank" class="text-blue-600 hover:underline">
-          ↗ Ouvrir dans un nouvel onglet
-        </a>
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <iframe 
+      src="/Doc/FHIR_API.html" 
+      width="100%" 
+      height="1200" 
+      style="border:none;background:#fff;"
+      title="Documentation API FHIR complète">
+    </iframe>
+    
+    <div class="p-4 bg-slate-50 border-t border-slate-200">
+      <a href="/Doc/FHIR_API.html" target="_blank" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        Ouvrir dans un nouvel onglet
+      </a>
+    </div>
+  </div>
         <a href="/api-docs" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           → Voir API OpenAPI/Swagger
         </a>

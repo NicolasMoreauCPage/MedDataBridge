@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Page</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="flex items-center space-x-4">
+        <div class="btn">
+          <div class="text-3xl">🔹</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Page</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn">
+    <!-- Illustration d'erreur animée -->
+    <div class="flex justify-center mb-6">
+      <div class="relative">
+        <svg class="w-24 h-24 text-red-400 animate-bounce-in" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+          <circle cx="50" cy="50" r="30" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+          <g transform="translate(35, 35)">
+            <circle cx="15" cy="12" r="2" fill="currentColor" opacity="0.8"/>
+            <circle cx="15" cy="18" r="1.5" fill="currentColor" opacity="0.8"/>
+            <path d="M10 25 Q15 22 20 25" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+            <path d="M8 8 Q15 5 22 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+          </g>
+          <path d="M30 30 L40 40 M40 30 L30 40" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+        </svg>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-12 h-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center animate-pulse">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Titre -->
+    <h1 class="text-3xl font-bold text-center text-slate-800 mb-4">
+      {{ title|default('Erreur') }}
+    </h1>
+
+    <!-- Message -->
+    <p class="text-center text-slate-600 mb-8">
+      {{ message|default('Une erreur est survenue. Veuillez réessayer.') }}
+    </p>
+
+    <!-- Actions -->
+    <div class="flex justify-center gap-4">
+      {% if back_url %}
+      <a href="{{ back_url }}" class="btn">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Retour
+      </a>
+      {% endif %}
+      <a href="/" class="btn btn-primary">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        Accueil
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

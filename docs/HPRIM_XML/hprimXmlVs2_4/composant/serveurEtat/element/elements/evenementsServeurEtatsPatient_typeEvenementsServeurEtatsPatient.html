@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_ETAT.html' target='_top'>Sommaire </A><A HREF='./etablissement_typeEtablissement.html' target='frameCorps'>Elément précédent</A></DIV><DIV class='chapitre'>evenementsServeurEtatsPatient [typeEvenementsServeurEtatsPatient]</DIV>
+<DIV class='definition'>Définition des événements du serveur d'états de patient.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='enteteMessage_typeEnteteMessage.html' target='frameCorps'>enteteMessage</A> </TD><TD class='cell'>Définition de l'entête de message.</TD></TR>
+<TR> <TD class='cell'><A HREF='patient_typePatientLight.html' target='frameCorps'>patient</A> </TD><TD class='cell'>Patient concerné.</TD></TR>
+<TR> <TD class='cell'><A HREF='venue_typeVenueEtatPatient.html' target='frameCorps'>venue</A> </TD><TD class='cell'>Dossier administratif du patient. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='intervention_typeIntervention.html' target='frameCorps'>intervention</A> </TD><TD class='cell'>Définition de l'intervention.</TD></TR>
+<TR> <TD class='cell'><A HREF='dateObservation_typeDateHeureOptionnelle.html' target='frameCorps'>dateObservation</A> </TD><TD class='cell'>Date d'observation des états</TD></TR>
+<TR> <TD class='cell'><A HREF='recueil_typeRecueilEtat.html' target='frameCorps'>recueil</A> </TD><TD class='cell'>Définition du recueil des états.</TD></TR>
+<TR> <TD class='cell'><A HREF='Diagnostics_typeDiagnosticsEtat.html' target='frameCorps'>Diagnostics</A> </TD><TD class='cell'>Liste des diagnostics posés.</TD></TR>
+<TR> <TD class='cell'><A HREF='dependances_typeDependancesEtat.html' target='frameCorps'>dependances</A> </TD><TD class='cell'>Liste des dépendances.</TD></TR>
+<TR> <TD class='cell'><A HREF='igs2_typeIgs2Etat.html' target='frameCorps'>igs2</A> </TD><TD class='cell'>Indice de gravité simplifié.</TD></TR>
+<TR> <TD class='cell'><A HREF='naissance_typeNaissance.html' target='frameCorps'>naissance</A> </TD><TD class='cell'>Informations nécessaires lors de la naissance d'un enfant ou pour femme enceinte.</TD></TR>
+<TR> <TD class='cell'><A HREF='actesReeducation_typeActesReeducationEtat.html' target='frameCorps'>actesReeducation</A> </TD><TD class='cell'>Actes de rééducation.</TD></TR>
+<TR> <TD class='cell'><A HREF='actesPsy_typeActesPsyEtat.html' target='frameCorps'>actesPsy</A> </TD><TD class='cell'> </TD></TR>
+<TR> <TD class='cell'><A HREF='siips_typeSiipsEtat.html' target='frameCorps'>siips</A> </TD><TD class='cell'>Elément necessaire pour les Soins Infirmiers Individualisés à la Personne Soignée.</TD></TR>
+<TR> <TD class='cell'><A HREF='prelevementOrgane_typePrelevementOrgane.html' target='frameCorps'>prelevementOrgane</A> </TD><TD class='cell'>Elément necessaire pour le prélèvement d'organe.</TD></TR>
+<TR> <TD class='cell'><A HREF='dialysePeritoneale_typeDialysePeritoneale.html' target='frameCorps'>dialysePeritoneale</A> </TD><TD class='cell'>Elément necessaire pour la dialyse péritonéale</TD></TR>
+<TR> <TD class='cell'><A HREF='gradationAmbulatoire_typeGradationAmbulatoire.html' target='frameCorps'>gradationAmbulatoire</A> </TD><TD class='cell'>Gestion des données pour l'ambulatoire</TD></TR>
+<TR> <TD class='cell'><A HREF='divers_typeDiversEtatPatient.html' target='frameCorps'>divers</A> </TD><TD class='cell'>Balise divers.</TD></TR>
+<TR> <TD class='cell'><A HREF='commentaire_commentaire.html' target='frameCorps'>commentaire</A> </TD><TD class='cell'>Commentaire. [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>version</TD><TD class='cell'>Version du schéma utilisé. </TD><TD class='cell'>2.4</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>acquittementAttendu</TD><TD class='cell'>Attribut indiquant au recepteur de retourner à reception du message un acquittement. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>identifiantAttendu</TD><TD class='cell'>Attribut stipulant la demande de recevoir les identifiants définis par le serveur. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>realise</TD><TD class='cell'>L'événement porté par le message a été effectivement produit (la valeur 'non' induit un effet prévisionnel). </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+</TABLE>
+</BODY></HTML>

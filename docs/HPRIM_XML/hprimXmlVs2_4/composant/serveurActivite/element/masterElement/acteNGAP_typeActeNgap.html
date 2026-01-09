@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_SA.html' target='_top'>Sommaire </A><SPAN class='precLinkOf' onClick='history.back()' onMouseOver =this.className='precLinkOn' onMouseOut =this.className='precLinkOf'>Elément précédent</SPAN></DIV><DIV class='chapitre'>acteNGAP [typeActeNgap]</DIV>
+<DIV class='definition'>Acte NGAP.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='dateAction_xsd_dateTime.html' target='frameCorps'>dateAction</A> </TD><TD class='cell'>date de réalisation de cet événement. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='acteur_typeProfessionnelSante.html' target='frameCorps'>acteur</A> </TD><TD class='cell'>acteur déclencheur de cet action dans l'application créatrice des actes NGAP. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiant_typeIdentifiant.html' target='frameCorps'>identifiant</A> </TD><TD class='cell'>Identifiant de la ligne.</TD></TR>
+<TR> <TD class='cell'><A HREF='lettreCle_xsd_string.html' target='frameCorps'>lettreCle</A> </TD><TD class='cell'>Lettre clé (codification sécurité sociale).</TD></TR>
+<TR> <TD class='cell'><A HREF='coefficient_decimalPositif.html' target='frameCorps'>coefficient</A> </TD><TD class='cell'>coefficient.</TD></TR>
+<TR> <TD class='cell'><A HREF='denombrement_nombre5.html' target='frameCorps'>denombrement</A> </TD><TD class='cell'>Nombre d'articles codifiés dans la ligne. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='positionDentaire_xsd_string.html' target='frameCorps'>positionDentaire</A> </TD><TD class='cell'>Position d'une dent (format selon la norme NF 991.011). [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='quantite_nombre5.html' target='frameCorps'>quantite</A> </TD><TD class='cell'>quantité pour la lettre clé. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='execute_typeDateHeureOptionnelle.html' target='frameCorps'>execute</A> </TD><TD class='cell'>Date d'execution.</TD></TR>
+<TR> <TD class='cell'><A HREF='prestataire_typePrestataire.html' target='frameCorps'>prestataire</A> </TD><TD class='cell'>Prestataire de l'acte.</TD></TR>
+<TR> <TD class='cell'><A HREF='numeroSeance_xsd_positiveInteger.html' target='frameCorps'>numeroSeance</A> </TD><TD class='cell'>Numéro de séance. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='NABMs_typeNabm.html' target='frameCorps'>NABMs</A> </TD><TD class='cell'>Liste des codes NABM. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='minorMajor_typeMinorMajor.html' target='frameCorps'>minorMajor</A> </TD><TD class='cell'>Minoration ou majoration de l'acte. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='priseCharge_typePriseCharge.html' target='frameCorps'>priseCharge</A> </TD><TD class='cell'>Définition de la prise en charge. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='montant_typeMontant.html' target='frameCorps'>montant</A> </TD><TD class='cell'>Montant complémentaire à facturer de l'acte. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='commentaire_commentaire.html' target='frameCorps'>commentaire</A> </TD><TD class='cell'>Commentaire générique. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='bhnPhns_typeBhnPhn.html' target='frameCorps'>bhnPhns</A> </TD><TD class='cell'>Actes BHN ou PHN (Actes hors nomenclature). [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='extensionTemporaires_typeExtensionTemporaires.html' target='frameCorps'>extensionTemporaires</A> </TD><TD class='cell'>Ajout temporairement des données nécessaires localement avant intégration dans la nouvelle version du schéma. Ces extensions sont à utiliser avec parcimonie dans des contextes locaux pour une démarche de gré à gré et lorsque l'éditeur emploie ces extensions au delà d'un contexte local, il est demandé aux auteurs de remonter cette demande  au groupe Hprim XML pour qu'elle fasse potentiellement parti de la norme. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='factureRealisateur_typeFactureExecutant.html' target='frameCorps'>factureRealisateur</A> </TD><TD class='cell'>Numéro de facture émis par le réalisateur de l'acte. 
+         Cette balise permet aux cabinets de radiologie / laboratoire de transmettre leur numérotation et ainsi permettre aux cliniques  de retourner les règlements avec cette valeur, dans le cadre d'un flux Hprim xml réglement par exemple. [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>action</TD><TD class='cell'>Action réalisée. </TD><TD class='cell'>creation</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>création</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>information</TD><TD class='cell'>Renseignement à titre informatif.</TD></TR><TR><TD/><TD/><TD class='cell'>modification</TD><TD class='cell'>Les nouvelles valeurs doivent être mémorisées. Les valeurs précédentes devraient être historisées, si le systéme récepteur en a la capacité.</TD></TR><TR><TD/><TD/><TD class='cell'>remplacement</TD><TD class='cell'>Les valeurs transmises dans cette entité  annulent et remplacent les valeurs précédentes</TD></TR><TR><TD/><TD/><TD class='cell'>suppression</TD><TD class='cell'>Suppression de l'événement notifié</TD></TR>
+<TR><TD class='cell'>facturable</TD><TD class='cell'>Acte facturable. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>executionNuit</TD><TD class='cell'>Acte réalisé la nuit. </TD><TD class='cell'>1t</TD><TD class='cell'>Réalisé 1re tranche de nuit</TD></TR><TR><TD/><TD/><TD class='cell'>2t</TD><TD class='cell'>2me tranche</TD></TR><TR><TD/><TD/><TD class='cell'>non</TD><TD class='cell'>Non réalisé de nuit</TD></TR>
+<TR><TD class='cell'>executionDimancheJourFerie</TD><TD class='cell'>Acte réalisé le dimanche ou un jour férié. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>acteHorsNomenclature</TD><TD class='cell'>Acte non référencé dans la liste de la sécurité sociale. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>rapportExoneration</TD><TD class='cell'>Rapport d'exonération. </TD><TD class='cell'>4</TD><TD class='cell'>Soins conformes au protocole ALD</TD></TR><TR><TD/><TD/><TD class='cell'>7</TD><TD class='cell'>Acte exonéré par nature dans le cadre d'un dispositif de prevention</TD></TR><TR><TD/><TD/><TD class='cell'>C</TD><TD class='cell'>Soin en  rapport avec un acte exonérant</TD></TR><TR><TD/><TD/><TD class='cell'>R</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>gratuit</TD><TD class='cell'>Acte gratuit. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>valide</TD><TD class='cell'>Acte valide. </TD><TD class='cell'>att</TD><TD class='cell'>En attente</TD></TR><TR><TD/><TD/><TD class='cell'>non</TD><TD class='cell'>Non</TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'>Oui</TD></TR>
+<TR><TD class='cell'>facture</TD><TD class='cell'>Acte à facturer. </TD><TD class='cell'>ec</TD><TD class='cell'>En cours</TD></TR><TR><TD/><TD/><TD class='cell'>non</TD><TD class='cell'>Non</TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'>Oui</TD></TR><TR><TD/><TD/><TD class='cell'>trd</TD><TD class='cell'>Transmis débiteur</TD></TR>
+<TR><TD class='cell'>porteeCle</TD><TD class='cell'>Portée de la lettre clé. </TD><TD class='cell'>l</TD><TD class='cell'>Local</TD></TR><TR><TD/><TD/><TD class='cell'>n</TD><TD class='cell'>National</TD></TR>
+<TR><TD class='cell'>activiteRecherche</TD><TD class='cell'>Acte de recherche. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>codePrestation</TD><TD class='cell'>Code prestation utilisée pour spécialiser la lettre clé (exemple pour les forfaits techniques : permet de distinguer l'acte d'irm du scanner). </TD><TD class='cell'>irm</TD><TD class='cell'>Irm</TD></TR><TR><TD/><TD/><TD class='cell'>scann</TD><TD class='cell'>Scanner</TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsServeurActes/evenementServeurActe/actesNGAP</TD></TR></TABLE>
+</BODY></HTML>

@@ -1,0 +1,27 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_ETAT.html' target='_top'>Sommaire </A><SPAN class='precLinkOf' onClick='history.back()' onMouseOver =this.className='precLinkOn' onMouseOut =this.className='precLinkOf'>Elément précédent</SPAN></DIV><DIV class='chapitre'>venue [typeVenueEtatPatient]</DIV>
+<DIV class='definition'>Venue pour l'état patient.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiant_typeIdentifiantVenue.html' target='frameCorps'>identifiant</A> </TD><TD class='cell'>Identifiant de la venue.</TD></TR>
+<TR> <TD class='cell'><A HREF='natureVenueHprim_typeNatureVenueHprim.html' target='frameCorps'>natureVenueHprim</A> </TD><TD class='cell'>Nature de la venue. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='entree_typeEntreeVenue.html' target='frameCorps'>entree</A> </TD><TD class='cell'>Date d'entrée + modes.</TD></TR>
+<TR> <TD class='cell'><A HREF='medecins_typeMedecins.html' target='frameCorps'>medecins</A> </TD><TD class='cell'>Médecins associés à la venue. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='sortie_typeSortieVenue.html' target='frameCorps'>sortie</A> </TD><TD class='cell'>Date de sortie + modes. [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>confidentiel</TD><TD class='cell'>Venue confidentielle dans le systéme d'information de l'établissement. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>anonyme</TD><TD class='cell'>Venue anonyme. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>etat</TD><TD class='cell'>Etat de la venue. </TD><TD class='cell'>cloturee</TD><TD class='cell'>Venue cloturée</TD></TR><TR><TD/><TD/><TD class='cell'>clôturée</TD><TD class='cell'>Venue cloturée</TD></TR><TR><TD/><TD/><TD class='cell'>encours</TD><TD class='cell'>Venue en cours</TD></TR><TR><TD/><TD/><TD class='cell'>preadmission</TD><TD class='cell'>Préadmission</TD></TR><TR><TD/><TD/><TD class='cell'>préadmission</TD><TD class='cell'>Préadmission</TD></TR>
+<TR><TD class='cell'>facturable</TD><TD class='cell'>Venue facturable. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>prive</TD><TD class='cell'>Venue de type privée. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>projetTherapeutique</TD><TD class='cell'>Attribut indiquant si l'hospitalisation actuelle est la suite de l'hospitalisation précédente (interrompue par une absence du patient de plus de 2 jours). </TD><TD class='cell'> </TD><TD class='cell'>Suppression de la donnée</TD></TR><TR><TD/><TD/><TD class='cell'>non</TD><TD class='cell'>Non</TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'>Oui</TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsServeurEtatsPatient</TD></TR></TABLE>
+</BODY></HTML>

@@ -116,6 +116,60 @@
           <span class="ml-1">Erreur</span>
         </div>
       </div>
+
+      {% if new_url %}
+      <script>
+        (function() {
+          try {
+            var newUrl = "{{ new_url }}";
+            if (!newUrl) return;
+            document.addEventListener('keydown', function (e) {
+              // Ctrl+N / Cmd+N : Nouveau
+              if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                window.location.href = newUrl;
+              }
+              // / : Focus premier champ de filtre (si panneau visible)
+              if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                var target = e.target;
+                if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+                  return;
+                }
+                e.preventDefault();
+                var filterPanel = document.querySelector('[x-show="showFilters"]');
+                if (filterPanel && filterPanel.style.display !== 'none') {
+                  var firstInput = filterPanel.querySelector('input, select');
+                  if (firstInput) {
+                    firstInput.focus();
+                  }
+                }
+              }
+              // Esc : Fermer le panneau de filtres (si ouvert)
+              if (e.key === 'Escape' || e.key === 'Esc') {
+                var showFiltersAttr = document.querySelector('[\\@click*="showFilters"]');
+                if (showFiltersAttr && typeof Alpine !== 'undefined' && Alpine.store) {
+                  // Si Alpine.js est utilisé, basculer showFilters
+                  try {
+                    var alpineData = showFiltersAttr._x_dataStack;
+                    if (alpineData && alpineData[0] && alpineData[0].showFilters) {
+                      alpineData[0].showFilters = false;
+                    }
+                  } catch (err) {
+                    // Fallback : masquer directement le panneau
+                    var filterPanel = document.querySelector('[x-show="showFilters"]');
+                    if (filterPanel) {
+                      filterPanel.style.display = 'none';
+                    }
+                  }
+                }
+              }
+            });
+          } catch (e) {
+            console.warn('Erreur init raccourcis clavier sur liste:', e);
+          }
+        })();
+        </script>
+      {% endif %}
       {% endif %}
     </div>
   </div>

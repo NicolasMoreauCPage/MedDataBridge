@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.db import get_session, peek_next_sequence
 from app.models import Venue, Dossier, Patient
 from app.dependencies.ght import require_ght_context
@@ -26,6 +26,11 @@ def list_venues(
     request: Request,
     dossier_id: int | None = Query(None, description="Filter by dossier id"),
     patient_id: int | None = Query(None, description="Filter by patient id"),
+    uf: str | None = Query(None, description="Filtrer par UF de responsabilité (contient)"),
+    service: str | None = Query(None, description="Filtrer par service hospitalier (contient)"),
+    location: str | None = Query(None, description="Filtrer par localisation assignée (contient)"),
+    start_from: str | None = Query(None, description="Filtrer par date de début à partir de (AAAA-MM-JJ)"),
+    start_to: str | None = Query(None, description="Filtrer par date de début jusqu'à (AAAA-MM-JJ)"),
     session=Depends(get_session)
 ):
     """Displays the list of venues, optional filters by dossier or patient.
@@ -51,6 +56,35 @@ def list_venues(
             # Venues may not have direct ght field; rely on EJ when possible.
             pass
 
+    # Filtres avancés
+    if uf:
+        query = query.where(Venue.uf_responsabilite.ilike(f"%{uf}%"))
+    if service:
+        query = query.where(Venue.hospital_service.ilike(f"%{service}%"))
+    if location:
+        query = query.where(Venue.assigned_location.ilike(f"%{location}%"))
+
+    # Filtres de période (début de venue)
+    def _parse_date(value: str | None):
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%Y-%m-%d")
+        except ValueError:
+            try:
+                # Autoriser un format complet ISO (datetime-local)
+                return datetime.fromisoformat(value)
+            except Exception:
+                return None
+
+    start_from_dt = _parse_date(start_from)
+    start_to_dt = _parse_date(start_to)
+    if start_from_dt:
+        query = query.where(Venue.start_time >= start_from_dt)
+    if start_to_dt:
+        # Inclure toute la journée
+        query = query.where(Venue.start_time < start_to_dt + timedelta(days=1))
+
     venues = session.exec(query).all()
 
     rows = [
@@ -64,6 +98,44 @@ def list_venues(
     ]
 
     breadcrumbs = [{"label": "Venues", "url": "/venues"}]
+
+    filters = [
+        {
+            "label": "UF responsabilité",
+            "name": "uf",
+            "type": "text",
+            "value": uf or "",
+            "placeholder": "Ex : CARDIO"
+        },
+        {
+            "label": "Service",
+            "name": "service",
+            "type": "text",
+            "value": service or "",
+            "placeholder": "Nom ou code service"
+        },
+        {
+            "label": "Localisation",
+            "name": "location",
+            "type": "text",
+            "value": location or "",
+            "placeholder": "Chambre / lit / UF..."
+        },
+        {
+            "label": "Début à partir du",
+            "name": "start_from",
+            "type": "text",
+            "value": start_from or "",
+            "placeholder": "AAAA-MM-JJ"
+        },
+        {
+            "label": "Début jusqu'au",
+            "name": "start_to",
+            "type": "text",
+            "value": start_to or "",
+            "placeholder": "AAAA-MM-JJ"
+        },
+    ]
     ctx = {
         "request": request,
         "title": "Venues",
@@ -71,7 +143,7 @@ def list_venues(
         "headers": ["ID", "Seq", "Code / Label", "Assigned", "Début"],
         "rows": rows,
         "new_url": "/venues/new",
-        "filters": [],
+        "filters": filters,
         "actions": [],
         "show_actions": True,
     }

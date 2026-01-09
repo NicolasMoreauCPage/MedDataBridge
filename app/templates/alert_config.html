@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration des Alertes - Mode Gestionnaire{% endblock %}
+
+{% block extra_head %}
+<style>
+    .alert-config-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .rule-card {
+        transition: all 0.2s;
+        border-left: 4px solid transparent;
+    }
+    
+    .rule-card.high {
+        border-left-color: #EF4444;
+    }
+    
+    .rule-card.medium {
+        border-left-color: #F59E0B;
+    }
+    
+    .rule-card.low {
+        border-left-color: #3B82F6;
+    }
+    
+    .rule-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .badge-active {
+        background-color: #10B981;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+    
+    .badge-inactive {
+        background-color: #6B7280;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="alert-config-container p-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">⚙️ Configuration des Alertes</h1>
+            <p class="text-gray-600 mt-2">Gérez les seuils et règles d'alertes du Mode Gestionnaire</p>
+        </div>
+        <div class="space-x-2">
+            <button onclick="initDefaultRules()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Initialiser règles par défaut
+            </button>
+            <button onclick="openCreateModal()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                + Nouvelle règle
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filtres -->
+    <div class="bg-white p-4 rounded-lg shadow mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Type d'alerte</label>
+                <select id="filterType" onchange="loadRules()" class="w-full border rounded px-3 py-2">
+                    <option value="">Tous les types</option>
+                    <option value="suroccupation">Suroccupation</option>
+                    <option value="tension">Tension</option>
+                    <option value="sous_utilisation">Sous-utilisation</option>
+                    <option value="dms_anormale">DMS Anormale</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sévérité</label>
+                <select id="filterSeverity" onchange="loadRules()" class="w-full border rounded px-3 py-2">
+                    <option value="">Toutes les sévérités</option>
+                    <option value="high">Haute (Rouge)</option>
+                    <option value="medium">Moyenne (Jaune)</option>
+                    <option value="low">Faible (Bleu)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                <select id="filterActive" onchange="loadRules()" class="w-full border rounded px-3 py-2">
+                    <option value="">Tous</option>
+                    <option value="true">Actives uniquement</option>
+                    <option value="false">Inactives uniquement</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Liste des règles -->
+    <div id="rulesContainer" class="space-y-4">
+        <!-- Les règles seront chargées ici dynamiquement -->
+    </div>
+</div>
+
+<!-- Modal Création/Édition -->
+<div id="ruleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+        <div class="p-6">
+            <h2 id="modalTitle" class="text-2xl font-bold mb-4">Nouvelle règle d'alerte</h2>
+            
+            <form id="ruleForm" class="space-y-4">
+                <input type="hidden" id="ruleId">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Type d'alerte *</label>
+                        <select id="alertType" required class="w-full border rounded px-3 py-2">
+                            <option value="suroccupation">Suroccupation (> 100%)</option>
+                            <option value="tension">Tension (> 95%)</option>
+                            <option value="sous_utilisation">Sous-utilisation (< 50%)</option>
+                            <option value="dms_anormale">DMS Anormale (> 150%)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Seuil (%) *</label>
+                        <input type="number" id="thresholdValue" required min="0" max="200" step="0.1" 
+                               class="w-full border rounded px-3 py-2" placeholder="Ex: 95.0">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Sévérité *</label>
+                        <select id="severity" required class="w-full border rounded px-3 py-2">
+                            <option value="high">🔴 Haute (Action immédiate)</option>
+                            <option value="medium">🟡 Moyenne (Surveillance)</option>
+                            <option value="low">🔵 Faible (Information)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">EG ID *</label>
+                        <input type="number" id="egId" required min="1" class="w-full border rounded px-3 py-2" 
+                               value="1" placeholder="ID Entité Géographique">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Code UM (optionnel)</label>
+                        <input type="text" id="umCode" class="w-full border rounded px-3 py-2" 
+                               placeholder="MCO, SSR, PSY, HAD">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Service ID (optionnel)</label>
+                        <input type="number" id="serviceId" min="1" class="w-full border rounded px-3 py-2" 
+                               placeholder="ID du service">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="description" rows="3" class="w-full border rounded px-3 py-2" 
+                              placeholder="Description de la règle..."></textarea>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="isActive" checked class="mr-2">
+                    <label for="isActive" class="text-sm font-medium text-gray-700">Règle active</label>
+                </div>
+            </form>
+            
+            <div class="flex justify-end space-x-2 mt-6">
+                <button onclick="closeModal()" class="px-4 py-2 border rounded hover:bg-gray-50">
+                    Annuler
+                </button>
+                <button onclick="saveRule()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// État global
+let currentRules = [];
+
+// Charger les règles au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+    loadRules();
+});
+
+// Charger toutes les règles avec filtres
+async function loadRules() {
+    try {
+        const params = new URLSearchParams();
+        
+        const filterType = document.getElementById('filterType').value;
+        const filterSeverity = document.getElementById('filterSeverity').value;
+        const filterActive = document.getElementById('filterActive').value;
+        
+        // Note: Le backend ne supporte pas encore tous les filtres, on filtrera côté client
+        
+        const response = await fetch('/api/alert-config/rules');
+        if (!response.ok) throw new Error('Erreur chargement règles');
+        
+        let rules = await response.json();
+        
+        // Filtrage côté client
+        if (filterType) {
+            rules = rules.filter(r => r.alert_type === filterType);
+        }
+        if (filterSeverity) {
+            rules = rules.filter(r => r.severity === filterSeverity);
+        }
+        if (filterActive === 'true') {
+            rules = rules.filter(r => r.is_active === true);
+        } else if (filterActive === 'false') {
+            rules = rules.filter(r => r.is_active === false);
+        }
+        
+        currentRules = rules;
+        renderRules(rules);
+    } catch (error) {
+        console.error('Erreur:', error);
+        document.getElementById('rulesContainer').innerHTML = 
+            '<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">Erreur de chargement</div>';
+    }
+}
+
+// Rendre les règles dans le DOM
+function renderRules(rules) {
+    const container = document.getElementById('rulesContainer');
+    
+    if (rules.length === 0) {
+        container.innerHTML = `
+            <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+                Aucune règle configurée. Cliquez sur "Initialiser règles par défaut" pour commencer.
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = rules.map(rule => `
+        <div class="rule-card ${rule.severity} bg-white p-4 rounded-lg shadow">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <h3 class="text-lg font-semibold">${formatAlertType(rule.alert_type)}</h3>
+                        <span class="${rule.is_active ? 'badge-active' : 'badge-inactive'}">
+                            ${rule.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                            ${formatSeverity(rule.severity)}
+                        </span>
+                    </div>
+                    
+                    <div class="text-gray-600 mb-2">
+                        <strong>Seuil:</strong> ${rule.threshold_value}% 
+                        ${rule.um_code ? `| <strong>UM:</strong> ${rule.um_code}` : ''}
+                        ${rule.service_id ? `| <strong>Service:</strong> #${rule.service_id}` : ''}
+                    </div>
+                    
+                    ${rule.description ? `<p class="text-sm text-gray-500">${rule.description}</p>` : ''}
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button onclick="editRule(${rule.id})" 
+                            class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                        ✏️ Modifier
+                    </button>
+                    <button onclick="toggleRuleActive(${rule.id}, ${!rule.is_active})" 
+                            class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                        ${rule.is_active ? '⏸️ Désactiver' : '▶️ Activer'}
+                    </button>
+                    <button onclick="deleteRule(${rule.id})" 
+                            class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">
+                        🗑️ Supprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Formatage des types d'alertes
+function formatAlertType(type) {
+    const types = {
+        'suroccupation': '🚨 Suroccupation',
+        'tension': '⚠️ Tension Capacitaire',
+        'sous_utilisation': '💤 Sous-utilisation',
+        'dms_anormale': '⏰ DMS Anormale'
+    };
+    return types[type] || type;
+}
+
+// Formatage des sévérités
+function formatSeverity(severity) {
+    const severities = {
+        'high': '🔴 Haute',
+        'medium': '🟡 Moyenne',
+        'low': '🔵 Faible'
+    };
+    return severities[severity] || severity;
+}
+
+// Initialiser les règles par défaut
+async function initDefaultRules() {
+    if (!confirm('Initialiser les règles par défaut pour l\'EG 1 ?')) return;
+    
+    try {
+        const response = await fetch('/api/alert-config/rules/init-defaults?eg_id=1', {
+            method: 'POST'
+        });
+        
+        if (!response.ok) throw new Error('Erreur initialisation');
+        
+        const result = await response.json();
+        alert(result.message);
+        loadRules();
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de l\'initialisation');
+    }
+}
+
+// Ouvrir modal création
+function openCreateModal() {
+    document.getElementById('modalTitle').textContent = 'Nouvelle règle d\'alerte';
+    document.getElementById('ruleForm').reset();
+    document.getElementById('ruleId').value = '';
+    document.getElementById('egId').value = '1';
+    document.getElementById('isActive').checked = true;
+    document.getElementById('ruleModal').classList.remove('hidden');
+}
+
+// Modifier une règle
+function editRule(ruleId) {
+    const rule = currentRules.find(r => r.id === ruleId);
+    if (!rule) return;
+    
+    document.getElementById('modalTitle').textContent = 'Modifier la règle';
+    document.getElementById('ruleId').value = rule.id;
+    document.getElementById('alertType').value = rule.alert_type;
+    document.getElementById('thresholdValue').value = rule.threshold_value;
+    document.getElementById('severity').value = rule.severity;
+    document.getElementById('egId').value = rule.eg_id;
+    document.getElementById('umCode').value = rule.um_code || '';
+    document.getElementById('serviceId').value = rule.service_id || '';
+    document.getElementById('description').value = rule.description || '';
+    document.getElementById('isActive').checked = rule.is_active;
+    
+    document.getElementById('ruleModal').classList.remove('hidden');
+}
+
+// Fermer modal
+function closeModal() {
+    document.getElementById('ruleModal').classList.add('hidden');
+}
+
+// Sauvegarder règle (créer ou modifier)
+async function saveRule() {
+    const ruleId = document.getElementById('ruleId').value;
+    const isEdit = !!ruleId;
+    
+    const data = {
+        alert_type: document.getElementById('alertType').value,
+        threshold_value: parseFloat(document.getElementById('thresholdValue').value),
+        severity: document.getElementById('severity').value,
+        eg_id: parseInt(document.getElementById('egId').value),
+        um_code: document.getElementById('umCode').value || null,
+        service_id: document.getElementById('serviceId').value ? parseInt(document.getElementById('serviceId').value) : null,
+        description: document.getElementById('description').value || null,
+        is_active: document.getElementById('isActive').checked
+    };
+    
+    try {
+        let response;
+        if (isEdit) {
+            // Mise à jour
+            const params = new URLSearchParams();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null) params.append(key, value);
+            });
+            response = await fetch(`/api/alert-config/rules/${ruleId}?${params}`, {
+                method: 'PUT'
+            });
+        } else {
+            // Création
+            const params = new URLSearchParams();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null) params.append(key, value);
+            });
+            response = await fetch(`/api/alert-config/rules?${params}`, {
+                method: 'POST'
+            });
+        }
+        
+        if (!response.ok) throw new Error('Erreur sauvegarde');
+        
+        closeModal();
+        loadRules();
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la sauvegarde');
+    }
+}
+
+// Activer/Désactiver règle
+async function toggleRuleActive(ruleId, newState) {
+    try {
+        const response = await fetch(`/api/alert-config/rules/${ruleId}?is_active=${newState}`, {
+            method: 'PUT'
+        });
+        
+        if (!response.ok) throw new Error('Erreur mise à jour');
+        
+        loadRules();
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la mise à jour');
+    }
+}
+
+// Supprimer règle
+async function deleteRule(ruleId) {
+    if (!confirm('Supprimer cette règle ?')) return;
+    
+    try {
+        const response = await fetch(`/api/alert-config/rules/${ruleId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Erreur suppression');
+        
+        loadRules();
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la suppression');
+    }
+}
+</script>
+{% endblock %}

@@ -1,20 +1,13 @@
 {% extends "base.html" %}
 {% from "macros/ui.html" import inheritance_field, status_badge %}
+{% from "components/structure_nav.html" import structure_breadcrumb, quick_actions_panel %}
 
 {% block title %}Service {{ service.name }}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <a href="/structure" class="hover:text-blue-600 transition-colors">Structure</a>
-    <span class="text-slate-400">/</span>
-    <a href="/structure/services" class="hover:text-blue-600 transition-colors">Services</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">{{ service.name }}</span>
-  </nav>
+  {{ structure_breadcrumb(service, 'service') }}
 
   <!-- Header -->
   <div class="mb-8">
@@ -63,10 +56,8 @@
         </div>
         <div class="p-6">
           <dl class="space-y-1">
-            {{ inheritance_field(service, 'operational_status', 'Statut opérationnel') }}
             {{ inheritance_field(service, 'status', 'Statut FHIR') }}
             {{ inheritance_field(service, 'mode', 'Mode FHIR') }}
-            {{ inheritance_field(service, 'physical_type', 'Type physique') }}
             {{ inheritance_field(service, 'etage', 'Étage') }}
             {{ inheritance_field(service, 'aile', 'Aile') }}
             {{ inheritance_field(service, 'type_chambre', 'Type de chambre') }}
@@ -87,10 +78,10 @@
         </div>
         <div class="p-6">
           <dl class="space-y-1">
-            {{ inheritance_field(service, 'opening_date', 'Date d\'ouverture', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
-            {{ inheritance_field(service, 'activation_date', 'Date d\'activation', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
-            {{ inheritance_field(service, 'closing_date', 'Date de fermeture', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
-            {{ inheritance_field(service, 'deactivation_date', 'Date de désactivation', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
+            {{ inheritance_field(service, 'opening_date', 'Date d\'ouverture') }}
+            {{ inheritance_field(service, 'activation_date', 'Date d\'activation') }}
+            {{ inheritance_field(service, 'closing_date', 'Date de fermeture') }}
+            {{ inheritance_field(service, 'deactivation_date', 'Date de désactivation') }}
           </dl>
         </div>
       </div>

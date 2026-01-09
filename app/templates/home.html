@@ -129,23 +129,68 @@
           Informations
         </h2>
         <div class="space-y-4">
-          {# GHT Context #}
+          {# Contexte GHT / EJ / EG #}
           <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div class="flex items-center gap-2 mb-3">
               <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <p class="text-sm font-semibold text-slate-900">Contexte GHT</p>
+              <p class="text-sm font-semibold text-slate-900">Contexte établissement</p>
             </div>
-            {% if request and request.state and request.state.ght_context %}
+
+            {% if request and request.state and request.state.eg_context %}
+            <div class="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-1">
+              <p class="text-xs font-semibold text-blue-800 uppercase tracking-wide">Entité géographique active</p>
+              <p class="text-sm font-medium text-blue-900">{{ request.state.eg_context.name }}</p>
+              {% if request.state.eg_context.finess %}
+                <p class="text-xs text-blue-700">FINESS EG : {{ request.state.eg_context.finess }}</p>
+              {% endif %}
+              {% if request.state.eg_context.entite_juridique %}
+                <p class="text-xs text-slate-700 mt-2">EJ : {{ request.state.eg_context.entite_juridique.name }}{% if request.state.eg_context.entite_juridique.finess_ej %} (FINESS EJ : {{ request.state.eg_context.entite_juridique.finess_ej }}){% endif %}</p>
+              {% endif %}
+              {% if request.state.ght_context %}
+                <p class="text-xs text-slate-500 mt-1">GHT : {{ request.state.ght_context.name }} ({{ request.state.ght_context.code }})</p>
+              {% endif %}
+              <div class="flex flex-wrap gap-2 mt-3">
+                <a href="/admin/ght" class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                  Changer de contexte
+                </a>
+                <a href="/context/clear?kind=eg" class="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-800">
+                  Réinitialiser EG
+                </a>
+              </div>
+            </div>
+            {% elif request and request.state and request.state.ej_context %}
+            <div class="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-1">
+              <p class="text-xs font-semibold text-blue-800 uppercase tracking-wide">Etablissement juridique actif</p>
+              <p class="text-sm font-medium text-blue-900">{{ request.state.ej_context.name }}</p>
+              {% if request.state.ej_context.finess_ej %}
+                <p class="text-xs text-blue-700">FINESS EJ : {{ request.state.ej_context.finess_ej }}</p>
+              {% endif %}
+              {% if request.state.ght_context %}
+                <p class="text-xs text-slate-500 mt-1">GHT : {{ request.state.ght_context.name }} ({{ request.state.ght_context.code }})</p>
+              {% endif %}
+              <div class="flex flex-wrap gap-2 mt-3">
+                <a href="/admin/ght" class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                  Gérer les EJ / EG
+                </a>
+                <a href="/context/clear?kind=ej" class="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-800">
+                  Réinitialiser EJ
+                </a>
+              </div>
+            </div>
+            {% elif request and request.state and request.state.ght_context %}
             <div class="rounded-lg bg-blue-50 border border-blue-200 p-3">
+              <p class="text-xs font-semibold text-blue-800 uppercase tracking-wide">GHT actif</p>
               <p class="text-sm font-medium text-blue-900">{{ request.state.ght_context.name }}</p>
-              <p class="text-xs text-blue-700 mt-1">Code: {{ request.state.ght_context.code }}</p>
+              <p class="text-xs text-blue-700 mt-1">Code : {{ request.state.ght_context.code }}</p>
               <a href="/admin/ght" class="inline-flex items-center gap-1 mt-3 text-xs font-medium text-blue-600 hover:text-blue-800">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                Changer de contexte
+                Changer de GHT
               </a>
             </div>
             {% else %}
-            {{ alert('Aucun contexte GHT sélectionné. <a href="/admin/ght" class="font-medium underline hover:no-underline">Choisissez un GHT</a> pour accéder aux fonctionnalités complètes.', 'warning') }}
+            {{ alert('Aucun contexte établissement sélectionné. <a href="/admin/ght" class="font-medium underline hover:no-underline">Choisissez un GHT / EJ / EG</a> pour accéder aux fonctionnalités complètes.', 'warning') }}
             {% endif %}
           </div>
 

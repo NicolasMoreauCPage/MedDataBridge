@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- En-tête -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900">Conformité par Entité Juridique</h1>
+    <p class="mt-2 text-slate-600">
+      Tableau de bord de validation des messages HL7 v2.5 / IHE PAM par établissement
+    </p>
+  </div>
+
+  <!-- Liste des EJ avec métriques -->
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {% for stat in ej_stats %}
+    <a href="/conformity/ej/{{ stat.ej.id }}" 
+       class="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow border border-slate-200 overflow-hidden">
+      
+      <!-- En-tête EJ -->
+      <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+        <h3 class="text-lg font-semibold text-white">
+          {{ stat.ej.name }}
+        </h3>
+        <p class="text-sm text-blue-100">
+          FINESS: {{ stat.ej.finess_ej or 'N/A' }}
+        </p>
+      </div>
+
+      <!-- Métriques 7 jours -->
+      <div class="px-6 py-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-slate-600">Messages (7j)</span>
+          <span class="text-lg font-semibold text-slate-900">{{ stat.total_7d }}</span>
+        </div>
+
+        {% if stat.total_7d > 0 %}
+        <!-- Barre de progression -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm text-slate-600">Conformité</span>
+            <span class="text-lg font-semibold {% if stat.rate_7d >= 95 %}text-green-600{% elif stat.rate_7d >= 80 %}text-yellow-600{% else %}text-red-600{% endif %}">
+              {{ stat.rate_7d }}%
+            </span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2">
+            <div class="{% if stat.rate_7d >= 95 %}bg-green-500{% elif stat.rate_7d >= 80 %}bg-yellow-500{% else %}bg-red-500{% endif %} h-2 rounded-full transition-all" 
+                 style="width: {{ stat.rate_7d }}%"></div>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-500 pt-2 border-t border-slate-100">
+          ✓ {{ stat.valid_7d }} valides / {{ stat.total_7d }} total
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-slate-400 text-sm">
+          Aucun message récent
+        </div>
+        {% endif %}
+
+        <!-- Badge mode strict -->
+        {% if stat.ej.strict_pam_fr %}
+        <div class="pt-2">
+          <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+            🔒 Mode strict PAM FR
+          </span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Footer -->
+      <div class="bg-slate-50 px-6 py-3 text-right">
+        <span class="text-sm text-blue-600 font-medium">
+          Voir le détail →
+        </span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if not ej_stats %}
+  <div class="text-center py-12 bg-white rounded-lg shadow">
+    <p class="text-slate-600">Aucune Entité Juridique configurée</p>
+    <a href="/ght" class="mt-4 inline-block text-blue-600 hover:text-blue-700">
+      Créer une EJ
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,15 +1,13 @@
 {% extends "base.html" %}
+{% from "macros/ui.html" import inheritance_field %}
+{% from "components/structure_nav.html" import structure_breadcrumb, quick_actions_panel %}
 
 {% block title %}Chambre {{ chambre.name }}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Chambre:</span>
-  </nav>
+  {{ structure_breadcrumb(chambre, 'chambre') }}
 
   <!-- Header -->
   <div class="mb-8">
@@ -63,16 +61,14 @@
         <dt class="text-sm font-medium text-gray-500">Occupation Max</dt>
         <dd class="mt-1 text-sm text-gray-900">{{ chambre.max_occupancy or '-' }}</dd>
       </div>
-      {{ inheritance_field(chambre, 'operational_status', 'Statut opérationnel') }}
       {{ inheritance_field(chambre, 'status', 'Statut') }}
       {{ inheritance_field(chambre, 'mode', 'Mode') }}
-      {{ inheritance_field(chambre, 'physical_type', 'Type physique') }}
       {{ inheritance_field(chambre, 'etage', 'Étage') }}
       {{ inheritance_field(chambre, 'aile', 'Aile') }}
-      {{ inheritance_field(chambre, 'opening_date', 'Date d\'ouverture', formatter='date') }}
-      {{ inheritance_field(chambre, 'activation_date', 'Date d\'activation', formatter='date') }}
-      {{ inheritance_field(chambre, 'closing_date', 'Date de fermeture', formatter='date') }}
-      {{ inheritance_field(chambre, 'deactivation_date', 'Date de désactivation', formatter='date') }}
+      {{ inheritance_field(chambre, 'opening_date', 'Date d\'ouverture') }}
+      {{ inheritance_field(chambre, 'activation_date', 'Date d\'activation') }}
+      {{ inheritance_field(chambre, 'closing_date', 'Date de fermeture') }}
+      {{ inheritance_field(chambre, 'deactivation_date', 'Date de désactivation') }}
     </dl>
   </div>
 

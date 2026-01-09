@@ -249,6 +249,15 @@
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
               Export
             </a>
+            <!-- Lien cotations - affiché dynamiquement via JavaScript -->
+            <a href="/dossiers/{{ d.dossier_id }}/cotations" 
+               class="cotations-link inline-flex items-center gap-1 px-2 py-1 text-xs text-amber-600 hover:bg-amber-50 rounded transition hidden"
+               title="Voir les cotations"
+               data-dossier-id="{{ d.dossier_id }}"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span class="cotations-label">Cotations</span>
+            </a>
           </div>
         </td>
       </tr>
@@ -276,5 +285,46 @@
   </div>
 </div>
 {% endif %}
+
+<script>
+  // Charger les nombres de cotations pour chaque dossier
+  async function loadCotationsForDossiers() {
+    const cotationsLinks = document.querySelectorAll('.cotations-link');
+    
+    for (const link of cotationsLinks) {
+      const dossier_id = link.getAttribute('data-dossier-id');
+      if (!dossier_id) continue;
+      
+      try {
+        const response = await fetch(`/api/hprim/interventions/${dossier_id}/cotations-count`);
+        const data = await response.json();
+        
+        if (data.has_cotations && data.cotations_count > 0) {
+          // Afficher le lien
+          link.classList.remove('hidden');
+          
+          // Mettre à jour le label avec le nombre
+          const label = link.querySelector('.cotations-label');
+          if (label) {
+            if (data.cotations_count === 1) {
+              label.textContent = '1 cotation';
+            } else {
+              label.textContent = `${data.cotations_count} cotations`;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`Erreur lors du chargement des cotations pour le dossier ${dossier_id}:`, error);
+      }
+    }
+  }
+  
+  // Charger les cotations au chargement de la page
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadCotationsForDossiers);
+  } else {
+    loadCotationsForDossiers();
+  }
+</script>
 
 {% endblock %}

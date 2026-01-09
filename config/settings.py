@@ -9,8 +9,8 @@ class Settings:
     """Application settings"""
     
     # Application info
-    app_name: str = "MedDataBridge"
-    app_version: str = "1.0.0"
+    app_name: str = "IntegraSanté by CPage"
+    app_version: str = "1.1.0"
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"
     testing: bool = os.getenv("TESTING", "false").lower() == "true"
     

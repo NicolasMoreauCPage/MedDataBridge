@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 space-y-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/contacts" class="hover:text-blue-600 transition-colors">Contacts</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">{{ title|default('Nouveau contact', true) }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="bg-gradient-to-r from-teal-600 via-emerald-600 to-green-600 rounded-2xl p-8 text-white relative overflow-hidden shadow-xl">
+    <div class="absolute inset-0 bg-black/10"></div>
+    <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+    
+    <div class="relative z-10">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">{{ title|default('Nouveau contact', true) }}</h1>
+          <p class="text-white/80 text-sm mt-1">Personne à contacter en cas d'urgence</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire -->
+  <form method="post" action="{{ action_url }}" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
+    <!-- Type et contexte -->
+    <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-8 py-6 border-b-2 border-slate-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+        </svg>
+        Type et contexte
+      </h3>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div>
+          <label for="contact_type" class="block text-sm font-bold text-slate-700 mb-2">Type de contact</label>
+          <select name="contact_type" id="contact_type" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+            <option value="patient" {% if contact and contact.patient_id %}selected{% endif %}>👤 PatientContact</option>
+            <option value="venue" {% if contact and contact.venue_id %}selected{% endif %}>🏥 VenueContact</option>
+          </select>
+        </div>
+        <div>
+          <label for="patient_id" class="block text-sm font-bold text-slate-700 mb-2">Patient ID</label>
+          <input type="number" name="patient_id" id="patient_id" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value="{{ contact.patient_id|default('', true) if contact else '' }}">
+        </div>
+        <div>
+          <label for="venue_id" class="block text-sm font-bold text-slate-700 mb-2">Venue ID</label>
+          <input type="number" name="venue_id" id="venue_id" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value="{{ contact.venue_id|default('', true) if contact else '' }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Identité -->
+    <div class="px-8 py-6 border-b-2 border-slate-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        Identité
+      </h3>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div>
+          <label for="family_name" class="block text-sm font-bold text-slate-700 mb-2">Nom <span class="text-red-600">*</span></label>
+          <input type="text" name="family_name" id="family_name" required class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value="{{ contact.family_name|default('', true) if contact else '' }}">
+        </div>
+        <div>
+          <label for="given_name" class="block text-sm font-bold text-slate-700 mb-2">Prénom</label>
+          <input type="text" name="given_name" id="given_name" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value="{{ contact.given_name|default('', true) if contact else '' }}">
+        </div>
+        <div>
+          <label for="relationship_code" class="block text-sm font-bold text-slate-700 mb-2">Relation <span class="text-red-600">*</span></label>
+          <input type="text" name="relationship_code" id="relationship_code" required placeholder="ex: SPO, CHD, PAR..." class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" value="{{ contact.relationship_code|default('', true) if contact else '' }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="px-8 py-6 border-b-2 border-slate-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        Coordonnées
+      </h3>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div>
+          <label for="phone_number" class="block text-sm font-bold text-slate-700 mb-2">📞 Téléphone</label>
+          <input type="tel" name="phone_number" id="phone_number" placeholder="+33 6 12 34 56 78" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="{{ contact.phone_number|default('', true) if contact else '' }}">
+        </div>
+        <div>
+          <label for="business_phone" class="block text-sm font-bold text-slate-700 mb-2">💼 Tél. professionnel</label>
+          <input type="tel" name="business_phone" id="business_phone" placeholder="+33 1 23 45 67 89" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="{{ contact.business_phone|default('', true) if contact else '' }}">
+        </div>
+        <div>
+          <label for="email" class="block text-sm font-bold text-slate-700 mb-2">✉️ Email</label>
+          <input type="email" name="email" id="email" placeholder="prenom.nom@exemple.fr" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="{{ contact.email|default('', true) if contact else '' }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Adresse -->
+    <div class="px-8 py-6 border-b-2 border-slate-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Adresse
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label for="inherited_address_line1" class="block text-sm font-bold text-slate-700 mb-2">Adresse ligne 1</label>
+          <input type="text" name="inherited_address_line1" id="inherited_address_line1" placeholder="15 rue Victor Hugo" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_line1|default('', true) if contact else '' }}">
+        </div>
+        <div>
+          <label for="inherited_address_line2" class="block text-sm font-bold text-slate-700 mb-2">Complément d'adresse</label>
+          <input type="text" name="inherited_address_line2" id="inherited_address_line2" placeholder="Bâtiment A, 3ème étage" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_line2|default('', true) if contact else '' }}">
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div>
+            <label for="inherited_address_postalcode" class="block text-sm font-bold text-slate-700 mb-2">Code postal</label>
+            <input type="text" name="inherited_address_postalcode" id="inherited_address_postalcode" placeholder="75001" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_postalcode|default('', true) if contact else '' }}">
+          </div>
+          <div>
+            <label for="inherited_address_city" class="block text-sm font-bold text-slate-700 mb-2">Ville</label>
+            <input type="text" name="inherited_address_city" id="inherited_address_city" placeholder="Paris" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_city|default('', true) if contact else '' }}">
+          </div>
+          <div>
+            <label for="inherited_address_country" class="block text-sm font-bold text-slate-700 mb-2">Pays</label>
+            <input type="text" name="inherited_address_country" id="inherited_address_country" placeholder="FRA" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="{{ contact.inherited_inherited_address_country|default('', true) if contact else '' }}">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rôle -->
+    <div class="px-8 py-6 border-b-2 border-slate-200">
+      <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        Rôle
+      </h3>
+      <div>
+        <label for="contact_role" class="block text-sm font-bold text-slate-700 mb-2">Rôle du contact</label>
+        <input type="text" name="contact_role" id="contact_role" placeholder="ex: Personne de confiance, Tuteur légal..." class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500" value="{{ contact.contact_role|default('', true) if contact else '' }}">
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="bg-slate-50 px-8 py-6 flex items-center justify-between">
+      <a href="/contacts" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Annuler
+      </a>
+      <button type="submit" class="inline-flex items-center gap-2 px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Enregistrer
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

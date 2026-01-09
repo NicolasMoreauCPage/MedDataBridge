@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ucd" class="hover:text-blue-600 transition-colors">UCD</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ucd/dossier/{{ dossier.id }}" class="hover:text-blue-600 transition-colors">Dossier #{{ dossier.dossier_seq }}</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Nouveau acte</span>
+  </nav>
+
+  <div class="btn">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Nouveau acte UCD</h1>
+    <p class="text-gray-600 mb-6">Dossier #{{ dossier.dossier_seq }} - {{ dossier.patient.family }}, {{ dossier.patient.given }}</p>
+
+    <form method="post" class="space-y-6" id="ucdForm">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Code UCD (HPRIM: obligatoire, format spécifique) -->
+        <div>
+          <label for="code_ucd" class="block text-sm font-medium text-gray-700">
+            Code UCD <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="code_ucd" id="code_ucd" required
+                 pattern="^[A-Z]{2}\d{3}$" title="Format UCD: 2 lettres majuscules + 3 chiffres (ex: AB123)"
+                 maxlength="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 uppercase">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM XML 2.4 - Code UCD obligatoire (XX999)</p>
+        </div>
+
+        <!-- Coefficient (HPRIM: obligatoire, > 0) -->
+        <div>
+          <label for="coefficient" class="block text-sm font-medium text-gray-700">
+            Coefficient <span class="text-red-500">*</span>
+          </label>
+          <input type="number" step="0.01" min="0.01" name="coefficient" id="coefficient" required
+                 pattern="^\d+(\.\d{1,2})?$" title="Nombre décimal positif (ex: 1.5)"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Valeur positive obligatoire</p>
+        </div>
+
+        <!-- Date d'exécution (HPRIM: obligatoire, format ISO) -->
+        <div>
+          <label for="execute_date" class="block text-sm font-medium text-gray-700">
+            Date d'exécution <span class="text-red-500">*</span>
+          </label>
+          <input type="date" name="execute_date" id="execute_date" required
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Date au format ISO (YYYY-MM-DD)</p>
+        </div>
+
+        <!-- Heure d'exécution (HPRIM: optionnel, format HH:MM:SS) -->
+        <div>
+          <label for="execute_heure" class="block text-sm font-medium text-gray-700">
+            Heure d'exécution
+          </label>
+          <input type="time" step="1" name="execute_heure" id="execute_heure"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Format HH:MM:SS (optionnel)</p>
+        </div>
+
+        <!-- Dénombrement (HPRIM: optionnel, >= 1) -->
+        <div>
+          <label for="denombrement" class="block text-sm font-medium text-gray-700">
+            Dénombrement
+          </label>
+          <input type="number" min="1" name="denombrement" id="denombrement"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Nombre entier >= 1 (optionnel)</p>
+        </div>
+
+        <!-- Numéro de séance (HPRIM: optionnel) -->
+        <div>
+          <label for="numero_seance" class="block text-sm font-medium text-gray-700">
+            Numéro de séance
+          </label>
+          <input type="number" min="1" name="numero_seance" id="numero_seance"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Numéro de séance (optionnel)</p>
+        </div>
+
+        <!-- Montant (HPRIM: optionnel, format décimal) -->
+        <div>
+          <label for="montant" class="block text-sm font-medium text-gray-700">
+            Montant (€)
+          </label>
+          <input type="number" step="0.01" min="0" name="montant" id="montant"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Montant en euros (optionnel)</p>
+        </div>
+
+        <!-- Modificateur UCD (HPRIM: optionnel) -->
+        <div>
+          <label for="modificateur" class="block text-sm font-medium text-gray-700">
+            Modificateur UCD
+          </label>
+          <input type="text" name="modificateur" id="modificateur" maxlength="3"
+                 pattern="^[A-Z0-9]{1,3}$" title="1-3 caractères alphanumériques"
+                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 uppercase">
+          <p class="mt-1 text-xs text-gray-500">Conforme HPRIM - Modificateur UCD (optionnel)</p>
+        </div>
+      </div>
+
+      <!-- Commentaire -->
+      <div>
+        <label for="commentaire" class="block text-sm font-medium text-gray-700">
+          Commentaire
+        </label>
+        <textarea name="commentaire" id="commentaire" rows="3" maxlength="500"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+        <p class="mt-1 text-xs text-gray-500">Commentaire libre (max 500 caractères)</p>
+      </div>
+
+      <!-- Boutons -->
+      <div class="flex justify-end gap-4 pt-6 border-t">
+        {{ button("Annuler", href="/ucd/dossier/{{ dossier.id }}") }}
+        {{ button("Cr\u00e9er l'acte UCD", type='submit') }}
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- JavaScript pour validations HPRIM temps réel -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('ucdForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Validation temps réel du code UCD
+    document.getElementById('code_ucd').addEventListener('input', function(e) {
+        const value = e.target.value.toUpperCase();
+        e.target.value = value;
+
+        const isValid = /^[A-Z]{2}\d{3}$/.test(value);
+        e.target.setCustomValidity(isValid ? '' : 'Format UCD invalide: 2 lettres + 3 chiffres (ex: AB123)');
+        updateSubmitButton();
+    });
+
+    // Validation temps réel du coefficient
+    document.getElementById('coefficient').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        const isValid = !isNaN(value) && value > 0;
+        e.target.setCustomValidity(isValid ? '' : 'Coefficient doit être un nombre positif');
+        updateSubmitButton();
+    });
+
+    // Validation temps réel du modificateur
+    document.getElementById('modificateur').addEventListener('input', function(e) {
+        const value = e.target.value.toUpperCase();
+        e.target.value = value;
+
+        if (value && !/^[A-Z0-9]{1,3}$/.test(value)) {
+            e.target.setCustomValidity('Modificateur: 1-3 caractères alphanumériques');
+        } else {
+            e.target.setCustomValidity('');
+        }
+        updateSubmitButton();
+    });
+
+    // Validation complète du formulaire
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            showValidationErrors();
+            return false;
+        }
+
+        // Validation HPRIM finale
+        if (!validateHprimCompliance()) {
+            e.preventDefault();
+            return false;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Création en cours...';
+    });
+
+    function updateSubmitButton() {
+        const isValid = form.checkValidity();
+        submitBtn.disabled = !isValid;
+    }
+
+    function showValidationErrors() {
+        const invalidFields = form.querySelectorAll(':invalid');
+        if (invalidFields.length > 0) {
+            invalidFields[0].focus();
+            alert('Veuillez corriger les erreurs de saisie avant de continuer.');
+        }
+    }
+
+    function validateHprimCompliance() {
+        // Validation spécifique HPRIM XML 2.4 pour UCD
+        const codeUcd = document.getElementById('code_ucd').value;
+        const coefficient = parseFloat(document.getElementById('coefficient').value);
+        const executeDate = document.getElementById('execute_date').value;
+
+        // Code UCD obligatoire et format valide
+        if (!codeUcd || !/^[A-Z]{2}\d{3}$/.test(codeUcd)) {
+            alert('Erreur HPRIM: Code UCD obligatoire au format XX999');
+            return false;
+        }
+
+        // Coefficient obligatoire et positif
+        if (!coefficient || coefficient <= 0) {
+            alert('Erreur HPRIM: Coefficient obligatoire et positif');
+            return false;
+        }
+
+        // Date d'exécution obligatoire
+        if (!executeDate) {
+            alert('Erreur HPRIM: Date d\'exécution obligatoire');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Mise à jour initiale du bouton
+    updateSubmitButton();
+});
+</script>
+{% endblock %}

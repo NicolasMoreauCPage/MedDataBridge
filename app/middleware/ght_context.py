@@ -23,7 +23,7 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.db import get_session
-from app.models_structure import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models import Patient, Dossier
 from app.models_endpoints import MessageLog
 from sqlalchemy import select, func
@@ -145,6 +145,21 @@ async def get_active_ej_context(request: Request) -> Optional[EntiteJuridique]:
     return None
 
 
+async def get_active_eg_context(request: Request) -> Optional[EntiteGeographique]:
+    """Récupère l'entité géographique courante depuis la session et la charge si possible."""
+    try:
+        eg_id = request.session.get("eg_context_id")
+        if eg_id:
+            session = next(get_session())
+            try:
+                return session.get(EntiteGeographique, eg_id)
+            finally:
+                session.close()
+    except Exception:
+        pass
+    return None
+
+
 async def get_active_dossier_context(request: Request) -> Optional[Dossier]:
     """Récupère le dossier courant depuis la session et le charge si possible."""
     try:
@@ -240,9 +255,16 @@ class GHTContextMiddleware(BaseHTTPMiddleware):
         request.state.ght_context = await get_active_ght_context(request)
         # Ajouter le contexte EJ si présent
         request.state.ej_context = await get_active_ej_context(request)
+        # Ajouter le contexte EG si présent
+        request.state.eg_context = await get_active_eg_context(request)
         # Si aucun GHT n'est défini mais qu'un EJ est sélectionné, déduire le GHT depuis l'EJ
         if not request.state.ght_context and request.state.ej_context and getattr(request.state.ej_context, "ght_context", None):
             request.state.ght_context = request.state.ej_context.ght_context
+        # Si aucun GHT n'est défini mais qu'un EG est sélectionné, déduire le GHT depuis l'EJ de l'EG
+        if not request.state.ght_context and request.state.eg_context and getattr(request.state.eg_context, "entite_juridique", None):
+            ej = request.state.eg_context.entite_juridique
+            if ej and getattr(ej, "ght_context", None):
+                request.state.ght_context = ej.ght_context
         # Ajouter les contextes Patient/Dossier si présents
         request.state.patient_context = await get_active_patient_context(request)
         request.state.dossier_context = await get_active_dossier_context(request)

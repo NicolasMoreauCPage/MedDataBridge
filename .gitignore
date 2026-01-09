@@ -56,3 +56,4 @@ app/api/schemas_api.py
 
 # Data directory (databases and user data)
 data/
+node_modules/

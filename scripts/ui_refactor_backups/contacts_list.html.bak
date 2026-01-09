@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import button, badge, breadcrumbs, empty_state %}
+
+{% block content %}
+{# Breadcrumbs #}
+<div class="mb-6">
+  {{ breadcrumbs([{'href': '/', 'label': 'Accueil'}, {'href': '/contacts', 'label': 'Contacts'}]) }}
+</div>
+
+{# Header #}
+<div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-100 p-6 mb-6 shadow-sm">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div class="flex items-start gap-4">
+      <div class="p-3 rounded-xl bg-purple-100 text-purple-600">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Gestion des contacts</h1>
+        <p class="text-slate-600 mt-1">Personnes de confiance et contacts associés aux patients et venues</p>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      {{ button('Nouveau contact', href=new_url, variant='primary', size='md', icon='<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>') }}
+    </div>
+  </div>
+</div>
+
+{# Stats rapides #}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
+    <div class="p-2.5 rounded-lg bg-blue-100 text-blue-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-slate-900">{{ patient_contacts|length }}</p>
+      <p class="text-sm text-slate-500">Contacts patient</p>
+    </div>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
+    <div class="p-2.5 rounded-lg bg-green-100 text-green-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-slate-900">{{ venue_contacts|length }}</p>
+      <p class="text-sm text-slate-500">Contacts venue</p>
+    </div>
+  </div>
+</div>
+
+{# Section Contacts Patient #}
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+  <div class="px-6 py-4 border-b border-slate-200 bg-blue-50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    <h2 class="text-lg font-semibold text-slate-900">Contacts Patient</h2>
+    {{ badge(patient_contacts|length|string, 'primary', 'sm') }}
+  </div>
+  
+  {% if patient_contacts|length == 0 %}
+  <div class="p-8">
+    {{ empty_state('Aucun contact patient', 'Ajoutez des contacts pour vos patients.', '<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>', 'Ajouter un contact', new_url) }}
+  </div>
+  {% else %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">ID</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Patient</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Nom</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Relation</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Téléphone</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Email</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Rôle</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for c in patient_contacts %}
+        <tr class="hover:bg-blue-50/50 transition-colors">
+          <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{ c.id|default('—', true) }}</td>
+          <td class="px-4 py-3">{{ badge(c.patient_id|string if c.patient_id else '—', 'default', 'sm') }}</td>
+          <td class="px-4 py-3 font-medium text-slate-900">{{ c.family_name|default('', true) }} {{ c.given_name|default('', true) }}</td>
+          <td class="px-4 py-3">{{ badge(c.relationship_code|default('—', true), 'info', 'sm') }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ c.phone_number|default('—', true) }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ c.email|default('—', true) }}</td>
+          <td class="px-4 py-3">{% if c.contact_role %}{{ badge(c.contact_role, 'success', 'sm') }}{% else %}—{% endif %}</td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <a href="/contacts/{{ c.id }}/edit" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors text-xs font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Éditer
+              </a>
+              <form id="delete-patient-contact-{{ c.id }}" method="post" action="/contacts/{{ c.id }}/delete" class="inline" data-item-name="{{ c.family_name|default('', true) }} {{ c.given_name|default('', true) }}">
+                <button type="submit" class="delete-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-xs font-medium">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  Supprimer
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{# Section Contacts Venue #}
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-200 bg-green-50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+    <h2 class="text-lg font-semibold text-slate-900">Contacts Venue</h2>
+    {{ badge(venue_contacts|length|string, 'success', 'sm') }}
+  </div>
+  
+  {% if venue_contacts|length == 0 %}
+  <div class="p-8">
+    {{ empty_state('Aucun contact venue', 'Ajoutez des contacts pour vos venues.', '<svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>', 'Ajouter un contact', new_url) }}
+  </div>
+  {% else %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">ID</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Venue</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Nom</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Relation</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Téléphone</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Email</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Rôle</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for c in venue_contacts %}
+        <tr class="hover:bg-green-50/50 transition-colors">
+          <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{ c.id|default('—', true) }}</td>
+          <td class="px-4 py-3">{{ badge(c.venue_id|string if c.venue_id else '—', 'default', 'sm') }}</td>
+          <td class="px-4 py-3 font-medium text-slate-900">{{ c.family_name|default('', true) }} {{ c.given_name|default('', true) }}</td>
+          <td class="px-4 py-3">{{ badge(c.relationship_code|default('—', true), 'info', 'sm') }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ c.phone_number|default('—', true) }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ c.email|default('—', true) }}</td>
+          <td class="px-4 py-3">{% if c.contact_role %}{{ badge(c.contact_role, 'success', 'sm') }}{% else %}—{% endif %}</td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <a href="/contacts/{{ c.id }}/edit" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors text-xs font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Éditer
+              </a>
+              <form id="delete-venue-contact-{{ c.id }}" method="post" action="/contacts/{{ c.id }}/delete" class="inline" data-item-name="{{ c.family_name|default('', true) }} {{ c.given_name|default('', true) }}">
+                <button type="submit" class="delete-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-xs font-medium">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  Supprimer
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+<!-- Modal de confirmation de suppression -->
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+      <div class="p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-slate-900">Confirmer la suppression</h3>
+            <p class="text-sm text-slate-600 mt-1" id="deleteModalText">Êtes-vous sûr de vouloir supprimer ce contact ?</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-3">
+          <button id="cancelDelete" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">
+            Annuler
+          </button>
+          <button id="confirmDelete" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Gestion des suppressions asynchrones
+document.addEventListener('DOMContentLoaded', function() {
+    let deleteForm = null;
+    
+    // Gestionnaire pour les boutons de suppression
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-btn')) {
+            e.preventDefault();
+            const form = e.target.closest('form');
+            const itemName = form.dataset.itemName.trim() || 'ce contact';
+            
+            // Mettre à jour le texte du modal
+            document.getElementById('deleteModalText').textContent = 
+                `Êtes-vous sûr de vouloir supprimer "${itemName}" ?`;
+            
+            // Afficher le modal
+            document.getElementById('deleteModal').classList.remove('hidden');
+            deleteForm = form;
+        }
+    });
+    
+    // Annuler la suppression
+    document.getElementById('cancelDelete').addEventListener('click', function() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        deleteForm = null;
+    });
+    
+    // Confirmer la suppression
+    document.getElementById('confirmDelete').addEventListener('click', async function() {
+        if (!deleteForm) return;
+        
+        const button = this;
+        const originalText = button.textContent;
+        
+        // Désactiver le bouton et changer le texte
+        button.disabled = true;
+        button.textContent = 'Suppression...';
+        
+        try {
+            const response = await fetch(deleteForm.action, {
+                method: 'POST',
+                body: new FormData(deleteForm),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (response.redirected) {
+                // Succès - rediriger
+                window.location.href = response.url;
+            } else if (response.ok) {
+                // Succès - recharger la page
+                window.location.reload();
+            } else {
+                // Erreur
+                alert('Erreur lors de la suppression. Veuillez réessayer.');
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur réseau. Veuillez réessayer.');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+        
+        // Fermer le modal
+        document.getElementById('deleteModal').classList.add('hidden');
+        deleteForm = null;
+    });
+});
+</script>

@@ -1,6 +1,6 @@
-# MedData Bridge
+# IntegraSanté by CPage
 
-MedData Bridge est une plateforme légère d'interopérabilité destinée à la qualification et au test d'interfaces HL7 / FHIR (IHE PAM, HPRIM, etc.).
+IntegraSanté est une plateforme légère d'interopérabilité destinée à la qualification et au test d'interfaces HL7 / FHIR (IHE PAM, HPRIM, etc.).
 
 L'objectif principal est de fournir un environnement reproductible pour :
 - importer et valider des messages HPRIM/HL7 ;
@@ -16,6 +16,16 @@ Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base S
 - [NAMESPACES_CLARIFICATION.md](docs/NAMESPACES_CLARIFICATION.md) - Guide HL7v2/FHIR sur les namespaces (OID, URI, nom)
 - [API_REST_DOCUMENTATION.md](docs/API_REST_DOCUMENTATION.md) - Documentation des endpoints API
 - [docs/README.md](docs/README.md) - Index complet de la documentation
+
+### 🎨 Refonte Interface Structure (Phases 1-5.1)
+- [SPRINT1_DASHBOARD_STRUCTURE.md](docs/SPRINT1_DASHBOARD_STRUCTURE.md) - Dashboard avec visualisation hiérarchique
+- [SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md](docs/SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md) - Wizard de création avec templates
+- [SPRINT3_MODE_GESTIONNAIRE.md](docs/SPRINT3_MODE_GESTIONNAIRE.md) - Mode Gestionnaire avec analytics
+- [PHASE4_IMPORT_EXPORT.md](docs/PHASE4_IMPORT_EXPORT.md) - Spécifications Import/Export Excel
+- [PHASE4.1_IMPORT_EXPORT_COMPLETE.md](docs/PHASE4.1_IMPORT_EXPORT_COMPLETE.md) - Documentation technique complète
+- [API_FHIR_STRUCTURE.md](docs/API_FHIR_STRUCTURE.md) - API FHIR Structure (CRUD complet)
+- [PHASE5_UX_MODERNE.md](docs/PHASE5_UX_MODERNE.md) - UX interactive (inline editing, drag & drop)
+- [RECAPITULATIF_COMPLET.md](docs/RECAPITULATIF_COMPLET.md) - Vue d'ensemble de toutes les phases
 
 ## Contenu clé
 - `app/` : code de l'application (routers, templates, modèles SQLModel, services).
@@ -53,35 +63,50 @@ Pour les environnements de qualification on expose la recherche de dossiers sans
 La bascule est utile si vous voulez reproduire un environnement plus strict en CI/production.
 
 ## Démarrage rapide (développement)
-1. Créez et activez un environnement virtuel Python 3.10+ :
+
+### 1. Installation
+Créez et activez un environnement virtuel Python 3.10+ :
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-server.txt
+pip install -r requirements.txt
 ```
 
-2. Initialiser la base de données (tables, indexes, FTS best-effort) :
+### 2. Initialisation de la base de données (FULL)
+Un seul script pour tout créer :
 
 ```bash
-.venv/bin/python3 - <<'PY'
-from app.db import init_db
-init_db()
-print('DB initialisée')
-PY
+python init_db.py
 ```
 
-3. Lancer le serveur (uvicorn) en mode développement :
+Cela crée automatiquement :
+- ✅ Structure complète (4 EJ + hiérarchie)
+- ✅ Vocabulaires (35 systèmes, 207 valeurs)
+- ✅ 40 patients avec scénarios complexes
+- ✅ ~400 scénarios HL7/HPRIM/IHE PAM
+- ✅ Cotations médicales réalistes
+- ✅ Endpoints MLLP + FHIR configurés
 
+**Options disponibles** :
 ```bash
-.venv/bin/python3 -m uvicorn app.app:app --reload --port 8000
+python init_db.py              # FULL (recommandé)
+python init_db.py --minimal    # Rapide : 1 seul patient
+python init_db.py --reset      # Recréer la DB depuis zéro
 ```
 
-4. Ouvrir l'interface web dans un navigateur :
+### 3. Lancer le serveur
+```bash
+uvicorn app.app:app --reload --port 8000
+```
 
-- UI principale : http://127.0.0.1:8000/
-- Import HPRIM : http://127.0.0.1:8000/hprim/import
-- Sélecteur de dossier (Cotation moderne) : http://127.0.0.1:8000/cotation-modern/select
+### 4. Accès
+
+- **UI principale** : http://localhost:8000/
+- **Admin** : http://localhost:8000/admin/ght/1/ej/1
+- **Import HPRIM** : http://localhost:8000/hprim/import
+- **Cotation moderne** : http://localhost:8000/cotation-modern/select
+- **API docs** : http://localhost:8000/docs
 
 ## Endpoints utiles pour les tests d'interop
 - Recherche de dossiers (publique, conçue pour qualification) :

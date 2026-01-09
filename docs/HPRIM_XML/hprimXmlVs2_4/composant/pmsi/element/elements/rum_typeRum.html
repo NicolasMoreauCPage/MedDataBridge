@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_PMSI.html' target='_top'>Sommaire </A><A HREF='./rssGhs_typeRssGhs.html' target='frameCorps'>Elément précédent</A></DIV><DIV class='chapitre'>rum [typeRum]</DIV>
+<DIV class='definition'>Résumé d'unité médicale.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='dateAction_xsd_dateTime.html' target='frameCorps'>dateAction</A> </TD><TD class='cell'>Date d'action</TD></TR>
+<TR> <TD class='cell'><A HREF='acteurAction_typeProfessionnelSante.html' target='frameCorps'>acteurAction</A> </TD><TD class='cell'>Acteur déclencheur de cet action dans l'application créatrice des actes [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiant_typeIdentifiantPMSI.html' target='frameCorps'>identifiant</A> </TD><TD class='cell'>Identifiant du résumé d'unité médicale.</TD></TR>
+<TR> <TD class='cell'><A HREF='medecinResponsable_typeMedecin.html' target='frameCorps'>medecinResponsable</A> </TD><TD class='cell'>Médecin responsable [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='uniteMedicale_typeUniteMedicale.html' target='frameCorps'>uniteMedicale</A> </TD><TD class='cell'>Unité médicale</TD></TR>
+<TR> <TD class='cell'><A HREF='diagnostics_typeDiagnosticsRum.html' target='frameCorps'>diagnostics</A> </TD><TD class='cell'>Ensemble des diagnostics</TD></TR>
+<TR> <TD class='cell'><A HREF='actes_typeActesRum.html' target='frameCorps'>actes</A> </TD><TD class='cell'>Ensembles des actes [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='igs2_igs2.html' target='frameCorps'>igs2</A> </TD><TD class='cell'>Indice de gravité simplifiée [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='seance_seance.html' target='frameCorps'>seance</A> </TD><TD class='cell'>Nombre de séances [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='typeAutorisation_typeAutorisation.html' target='frameCorps'>typeAutorisation</A> </TD><TD class='cell'>Type d'autorisation [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='radiotherapie_typeRadiotherapie.html' target='frameCorps'>radiotherapie</A> </TD><TD class='cell'>Informations nécessaires lors de radiothérapie (utile pour le RUM version 014). [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='naissance_typeNaissanceRum.html' target='frameCorps'>naissance</A> </TD><TD class='cell'>Informations nécessaires lors de la naissance d'un enfant ou pour femme enceinte. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='numeroInnovation_texte15.html' target='frameCorps'>numeroInnovation</A> </TD><TD class='cell'>Numéro propre à chaque produit ou acte candidat au dispositif décrit à l'article L. 165-1-1 du code de la sécurité sociale. Ce numéro permet d'identifier les prises en charge pour lesquelles un produit ou acte à caractère « innovant » a été délivré au patient. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='ivg_typeIvg.html' target='frameCorps'>ivg</A> </TD><TD class='cell'>informations nécessaires pour l'interruption volontaire de grossesse [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='gradationAmbulatoire_typeGradationAmbulatoireRum.html' target='frameCorps'>gradationAmbulatoire</A> </TD><TD class='cell'>Gestion des données pour l'ambulatoire [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>action</TD><TD class='cell'>Action réalisée </TD><TD class='cell'>creation</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>création</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>information</TD><TD class='cell'>Renseignement à titre informatif.</TD></TR><TR><TD/><TD/><TD class='cell'>modification</TD><TD class='cell'>Les nouvelles valeurs doivent être mémorisées. Les valeurs précédentes devraient être historisées, si le systéme récepteur en a la capacité.</TD></TR><TR><TD/><TD/><TD class='cell'>remplacement</TD><TD class='cell'>Les valeurs transmises dans cette entité  annulent et remplacent les valeurs précédentes</TD></TR><TR><TD/><TD/><TD class='cell'>suppression</TD><TD class='cell'>Suppression de l'événement notifié</TD></TR>
+<TR><TD class='cell'>classant</TD><TD class='cell'>Rum classant pour la fonction groupage </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>prestationInterEtablissementA</TD><TD class='cell'>Prestation inter établissement de type A. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>conversionHospitalisationComplete</TD><TD class='cell'>Conversion en hospitalisation compléte. </TD><TD class='cell'> </TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>1</TD><TD class='cell'>Conversion après prise en charge en HP</TD></TR><TR><TD/><TD/><TD class='cell'>2</TD><TD class='cell'>Pas de conversion</TD></TR>
+<TR><TD class='cell'>priseEnChargeRAAC</TD><TD class='cell'>Prise en charge RAAC </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsPMSI/evenementPMSI/rss</TD></TR></TABLE>
+</BODY></HTML>

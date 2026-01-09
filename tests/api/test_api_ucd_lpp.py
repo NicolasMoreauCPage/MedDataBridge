@@ -28,26 +28,16 @@ class TestUCDAPI:
         mock_acts = [
             UCDActResponse(
                 id=1,
-                designation="Acte UCD 1",
-                code_cip="1234567890123",
-                execute_date="2024-01-15",
-                prestataire_id=1,
-                commentaire="Test acte 1",
+                code="1234567890123",
+                libelle="Acte UCD 1",
                 quantite=1,
-                prix_unitaire=100.0,
-                montant_total=100.0,
                 dossier_id=1
             ),
             UCDActResponse(
                 id=2,
-                designation="Acte UCD 2",
-                code_cip="9876543210987",
-                execute_date="2024-01-16",
-                prestataire_id=2,
-                commentaire="Test acte 2",
+                code="9876543210987",
+                libelle="Acte UCD 2",
                 quantite=2,
-                prix_unitaire=100.0,
-                montant_total=200.0,
                 dossier_id=1
             )
         ]
@@ -59,8 +49,8 @@ class TestUCDAPI:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
-        assert data[0]["designation"] == "Acte UCD 1"
-        assert data[1]["designation"] == "Acte UCD 2"
+        assert data[0]["libelle"] == "Acte UCD 1"
+        assert data[1]["libelle"] == "Acte UCD 2"
 
     @patch('app.api.ucd.UCDService')
     def test_get_act_by_id(self, mock_service):
@@ -70,14 +60,9 @@ class TestUCDAPI:
 
         mock_act = UCDActResponse(
             id=1,
-            designation="Acte UCD Test",
-            code_cip="1234567890123",
-            execute_date="2024-01-15",
-            prestataire_id=1,
-            commentaire="Test acte",
+            code="1234567890123",
+            libelle="Acte UCD Test",
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
             dossier_id=1
         )
         mock_service_instance.get_act_by_id.return_value = mock_act
@@ -87,7 +72,7 @@ class TestUCDAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == 1
-        assert data["designation"] == "Acte UCD Test"
+        assert data["libelle"] == "Acte UCD Test"
 
     @patch('app.api.ucd.UCDService')
     def test_create_act(self, mock_service):
@@ -97,27 +82,17 @@ class TestUCDAPI:
 
         mock_created_act = UCDActResponse(
             id=1,
-            designation="Nouvel acte UCD",
-            code_cip="1234567890123",
-            execute_date="2024-01-15",
-            prestataire_id=1,
-            commentaire="Nouveau acte",
+            code="1234567890123",
+            libelle="Nouvel acte UCD",
             quantite=1,
-            prix_unitaire=150.0,
-            montant_total=150.0,
             dossier_id=1
         )
         mock_service_instance.create_act.return_value = mock_created_act
 
         act_data = {
-            "designation": "Nouvel acte UCD",
-            "code_cip": "1234567890123",
-            "execute_date": "2024-01-15",
-            "prestataire_id": 1,
+            "code": "1234567890123",
+            "libelle": "Nouvel acte UCD",
             "quantite": 1,
-            "prix_unitaire": 150.0,
-            "montant_total": 150.0,
-            "commentaire": "Nouveau acte",
             "dossier_id": 1
         }
 
@@ -125,8 +100,7 @@ class TestUCDAPI:
 
         assert response.status_code == 201
         data = response.json()
-        assert data["designation"] == "Nouvel acte UCD"
-        assert data["montant_total"] == 150.0
+        assert data["libelle"] == "Nouvel acte UCD"
 
     @patch('app.api.ucd.UCDService')
     def test_update_act(self, mock_service):
@@ -136,29 +110,22 @@ class TestUCDAPI:
 
         mock_updated_act = UCDActResponse(
             id=1,
-            designation="Acte modifié",
-            code_cip="1234567890123",
-            execute_date="2024-01-15",
-            prestataire_id=1,
-            commentaire="Acte modifié",
+            code="1234567890123",
+            libelle="Acte modifié",
             quantite=1,
-            prix_unitaire=150.0,
-            montant_total=150.0,
             dossier_id=1
         )
         mock_service_instance.update_act.return_value = mock_updated_act
 
         update_data = {
-            "designation": "Acte modifié",
-            "montant_total": 150.0
+            "libelle": "Acte modifié"
         }
 
         response = self.client.put("/api/ucd/1", json=update_data)
 
         assert response.status_code == 200
         data = response.json()
-        assert data["designation"] == "Acte modifié"
-        assert data["montant_total"] == 150.0
+        assert data["libelle"] == "Acte modifié"
 
     @patch('app.api.ucd.UCDService')
     def test_delete_act(self, mock_service):
@@ -189,26 +156,16 @@ class TestLPPAPI:
         mock_acts = [
             LPPActResponse(
                 id=1,
+                code="1234567890123",
                 libelle="Acte LPP 1",
-                code_lpp="1234567890123",
-                execute_date="2024-01-15",
-                prestataire_id=1,
-                commentaire="Test acte 1",
                 quantite=1,
-                prix_unitaire=100.0,
-                montant_total=100.0,
                 dossier_id=1
             ),
             LPPActResponse(
                 id=2,
+                code="9876543210987",
                 libelle="Acte LPP 2",
-                code_lpp="9876543210987",
-                execute_date="2024-01-16",
-                prestataire_id=2,
-                commentaire="Test acte 2",
                 quantite=2,
-                prix_unitaire=100.0,
-                montant_total=200.0,
                 dossier_id=1
             )
         ]
@@ -230,14 +187,9 @@ class TestLPPAPI:
 
         mock_act = LPPActResponse(
             id=1,
+            code="1234567890123",
             libelle="Acte LPP Test",
-            code_lpp="1234567890123",
-            execute_date="2024-01-15",
-            prestataire_id=1,
-            commentaire="Test acte",
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
             dossier_id=1
         )
         mock_service_instance.get_act_by_id.return_value = mock_act
@@ -257,27 +209,17 @@ class TestLPPAPI:
 
         mock_created_act = LPPActResponse(
             id=1,
+            code="1234567890123",
             libelle="Nouvel acte LPP",
-            code_lpp="1234567890123",
-            execute_date="2024-01-15",
-            prestataire_id=1,
-            commentaire="Nouveau acte",
             quantite=1,
-            prix_unitaire=150.0,
-            montant_total=150.0,
             dossier_id=1
         )
         mock_service_instance.create_act.return_value = mock_created_act
 
         act_data = {
+            "code": "1234567890123",
             "libelle": "Nouvel acte LPP",
-            "code_lpp": "1234567890123",
-            "execute_date": "2024-01-15",
-            "prestataire_id": 1,
             "quantite": 1,
-            "prix_unitaire": 150.0,
-            "montant_total": 150.0,
-            "commentaire": "Nouveau acte",
             "dossier_id": 1
         }
 
@@ -286,7 +228,6 @@ class TestLPPAPI:
         assert response.status_code == 201
         data = response.json()
         assert data["libelle"] == "Nouvel acte LPP"
-        assert data["montant_total"] == 150.0
 
     @patch('app.api.lpp.LPPService')
     def test_update_act(self, mock_service):
@@ -296,21 +237,15 @@ class TestLPPAPI:
 
         mock_updated_act = LPPActResponse(
             id=1,
+            code="1234567890123",
             libelle="Acte modifié",
-            code_lpp="1234567890123",
-            execute_date="2024-01-15",
-            prestataire_id=1,
-            commentaire="Acte modifié",
             quantite=1,
-            prix_unitaire=150.0,
-            montant_total=150.0,
             dossier_id=1
         )
         mock_service_instance.update_act.return_value = mock_updated_act
 
         update_data = {
-            "libelle": "Acte modifié",
-            "montant_total": 150.0
+            "libelle": "Acte modifié"
         }
 
         response = self.client.put("/api/lpp/1", json=update_data)
@@ -318,7 +253,6 @@ class TestLPPAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["libelle"] == "Acte modifié"
-        assert data["montant_total"] == 150.0
 
     @patch('app.api.lpp.LPPService')
     def test_delete_act(self, mock_service):

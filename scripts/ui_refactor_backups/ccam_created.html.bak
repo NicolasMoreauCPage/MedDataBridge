@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <div class="text-center">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h1 class="mt-4 text-2xl font-bold text-gray-900">Acte CCAM créé avec succès</h1>
+      <p class="mt-2 text-gray-600">L'acte CCAM a été ajouté au dossier avec validation HPRIM.</p>
+    </div>
+
+    <div class="mt-8 bg-gray-50 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Détails de l'acte CCAM</h2>
+      <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Code acte</dt>
+          <dd class="text-sm text-gray-900 font-mono">{{ act.code_acte }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Code activité</dt>
+          <dd class="text-sm text-gray-900">{{ act.code_activite }}</dd>
+        </div>
+        {% if act.code_phase %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Code phase</dt>
+          <dd class="text-sm text-gray-900">{{ act.code_phase }}</dd>
+        </div>
+        {% endif %}
+        {% if act.modificateurs %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Modificateurs</dt>
+          <dd class="text-sm text-gray-900">
+            {% for mod in act.modificateurs.split(',') %}
+              <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1">{{ mod.strip() }}</span>
+            {% endfor %}
+          </dd>
+        </div>
+        {% endif %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Date d'exécution</dt>
+          <dd class="text-sm text-gray-900">{{ act.execute_date.strftime('%d/%m/%Y') }}</dd>
+        </div>
+        {% if act.execute_heure %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Heure d'exécution</dt>
+          <dd class="text-sm text-gray-900">{{ act.execute_heure }}</dd>
+        </div>
+        {% endif %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Quantité</dt>
+          <dd class="text-sm text-gray-900">{{ act.quantite }}</dd>
+        </div>
+        {% if act.montant %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Montant unitaire</dt>
+          <dd class="text-sm text-gray-900">{{ "%.2f"|format(act.montant) }} €</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Montant total</dt>
+          <dd class="text-sm text-gray-900 font-semibold">{{ "%.2f"|format(act.montant * act.quantite) }} €</dd>
+        </div>
+        {% endif %}
+        {% if act.extension %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Extension</dt>
+          <dd class="text-sm text-gray-900">{{ act.extension }}</dd>
+        </div>
+        {% endif %}
+        {% if act.commentaire %}
+        <div class="md:col-span-2">
+          <dt class="text-sm font-medium text-gray-500">Commentaire</dt>
+          <dd class="text-sm text-gray-900">{{ act.commentaire }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-800">Validation HPRIM</h3>
+          <p class="text-sm text-blue-700 mt-1">
+            Cet acte CCAM respecte les normes HPRIM XML 2.4 et peut être exporté vers les systèmes de facturation.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 flex justify-center space-x-3">
+      <a href="/ccam/dossier/{{ act.dossier_id }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Voir tous les actes du dossier
+      </a>
+      <a href="/ccam/create/{{ act.dossier_id }}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+        Créer un autre acte CCAM
+      </a>
+      <a href="/dossiers/{{ act.dossier_id }}" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+        Retour au dossier
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

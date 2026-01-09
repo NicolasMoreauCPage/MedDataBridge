@@ -1,0 +1,397 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<html>
+<head>
+  <title>Element agent</title>
+  <link href="../../../css/style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+
+<DIV class='chapitre'> Régles pour les identifiants</DIV>
+
+<div class="sChapitre">Notion d'&eacute;metteur et de recepteur</div>
+<p>L'alimentation d'un identifiant
+pour intervention ou acte peut faire l&rsquo;objet d&rsquo;une
+double identification dans les messages &laquo;&nbsp;serveur
+d&rsquo;activit&eacute;&nbsp;&raquo;, &agrave;
+savoir par le biais d'un identifiant &eacute;metteur et d'un
+identifiant recepteur. La notion d'&eacute;metteur est &agrave;
+prendre au sens premier du mot, c'est &agrave; dire l'acteur
+cr&eacute;ateur (&eacute;crivain) du message. La notion de
+recepteur rel&eacute;ve de la notion de destinataire, il est
+aliment&eacute; d&eacute;s l'instant ou l'&eacute;crivain a
+connaissance de l'identifiant de son destinataire. Prenons un exemple
+d'un producteur d'acte PA et d'un serveur d'activit&eacute; SA
+&eacute;changeant une intervention, et illustrons par plusieurs cas
+de figure :</p>
+<ul>
+  <li> PA &eacute;met une
+cr&eacute;ation d'intervention &agrave; SA avec un identifiant
+local (IL) &agrave; l'application de PA
+    <p>l'identifiant
+&eacute;metteur est aliment&eacute; et l'identifiant recepteur
+(SA) n'est pas envoy&eacute; puisque inconnu.</p>
+  </li>
+  <li> SA &eacute;met un
+message concernant l'intervention provenant de PA apr&eacute;s
+int&eacute;gration et valorisation dans le serveur
+d'activit&eacute;.
+    <p>l'identifiant
+&eacute;metteur est aliment&eacute; par le num&eacute;ro
+d'intervention &eacute;labor&eacute; par SA et l'identifiant
+recepteur porte l'identifiant local d'intervention de PA (=IL) afin de
+g&eacute;rer correctement la gestion des &eacute;quivalences du
+destinataire.</p>
+  </li>
+</ul>
+<span class="remarque">Remarque
+: </span>
+<p> Les identifiants locaux des
+producteurs d'actes ne permettent pas de partager les
+actes ou les interventions entre deux logiciels producteurs
+d&rsquo;actes,
+interdisant toute mise &agrave; jour d&rsquo;un acte
+cr&eacute;&eacute; par un logiciel PA et par un logiciel PB.
+Seul
+l&rsquo;usage des identifiants du serveur d'activit&eacute;
+permet de partager
+les actes et les interventions entre les applications du SIH.</p>
+
+<div class="sChapitre">Valorisation des identifiants</div>
+<ul>
+  <li>
+    <p>Cas des messages de
+cr&eacute;ation d&rsquo;acte envoy&eacute;s par le logiciel
+producteur vers le serveur d&rsquo;actes, par gestion d'identifiant
+local au producteur d'actes (=<b>ILP</b>)
+et par l'identifiant fourni par le serveur d'activit&eacute; (=<b>ISA</b>)&nbsp;:</p>
+    <table border="1" bordercolor="#000000" cellpadding="5"
+ cellspacing="0" width="100%">
+      <tbody>
+        <tr class="ligneEnteteElement">
+          <td colspan="7" valign="top">
+          <p>Messages
+envoy&eacute;s par le producteur d&rsquo;actes vers le serveur
+d&rsquo;activit&eacute;</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement">
+          <p><b>Action&nbsp;:</b></p>
+          </td>
+          <td colspan="2" class="headerCellElement">
+          <p><b>Cr&eacute;ation</b>
+d&rsquo;un acte sur une nouvelle intervention</p>
+          </td>
+          <td colspan="4" class="headerCellElement">
+          <p>Cr&eacute;ation
+d&rsquo;un acte <b>rattach&eacute;</b>
+&agrave; une intervention existante</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Capacit&eacute;
+du producteur d&rsquo;actes &agrave; <u>exploiter</u>
+l&rsquo;identifiant intervention suivant&nbsp;:</p>
+          </td>
+          <td width="14%">
+          <p><b>Identifiant</b>
+local au logiciel producteur d&rsquo;actes <b>ILP </b></p>
+          </td>
+          <td width="14%">
+          <p><b>Pas
+d'identifiant</b> fourni par le
+producteur d&rsquo;actes</p>
+          </td>
+          <td width="14%">
+          <p><b>Identifiant</b>
+local au logiciel producteur d&rsquo;actes <b>ILP
+uniquement</b></p>
+          </td>
+          <td>
+          <p><b>Identifiant</b>
+du serveur d'activit&eacute; <b>ISA
+uniquement</b></p>
+          </td>
+          <td>
+          <p><b>Identifiant
+ILP et ISA </b>pr&eacute;sents</p>
+          </td>
+          <td width="14%">
+          <p><b>Pas
+d'identifiant</b> fourni </p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Identifiant <b>&eacute;metteur</b>
+intervention</p>
+          </td>
+          <td width="14%">
+          <p><b>ILP </b> Valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p>Vide</p>
+          </td>
+          <td width="14%">
+          <p><b>ILP </b> Valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p>Vide</p>
+          </td>
+          <td>
+          <p><b>ILP </b> Valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p>Vide</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Identifiant <b>recepteur</b>
+intervention</p>
+          </td>
+          <td width="14%">
+          <p>Vide</p>
+          </td>
+          <td width="14%">
+          <p>0</p>
+          </td>
+          <td width="14%">
+          <p>Vide</p>
+          </td>
+          <td width="14%">
+          <p><b>ISA </b> Valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td>
+          <p><b>ISA </b> Valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p>0</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <table border="1" bordercolor="#000000" cellpadding="5"
+ cellspacing="0" width="100%">
+      <tbody>
+        <tr class="ligneEnteteElement">
+          <td colspan="7" valign="top">
+          <p>Messages
+retourn&eacute;s par le serveur d&rsquo;activit&eacute;
+vers les producteurs d'actes</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement">
+          <p><b>Action&nbsp;initiale
+:</b></p>
+          </td>
+          <td colspan="2" class="headerCellElement">
+          <p><b>Cr&eacute;ation</b>
+d&rsquo;un acte sur une nouvelle intervention</p>
+          </td>
+          <td colspan="2" class="headerCellElement">
+          <p>Cr&eacute;ation
+d&rsquo;un acte <b>rattach&eacute;</b>
+&agrave; une intervention existante</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Capacit&eacute;
+du producteur d&rsquo;actes &agrave; <u>exploiter</u>
+l&rsquo;identifiant intervention suivant&nbsp;:</p>
+          </td>
+          <td width="14%">
+          <p><b>Identifiant</b>
+local au logiciel producteur d&rsquo;actes <b>ILP
+uniquement</b></p>
+          </td>
+          <td width="14%">
+          <p><b>Pas
+d'identifiant</b> fourni par le
+producteur d&rsquo;actes</p>
+          </td>
+          <td width="14%">
+          <p><b>Identifiant</b>
+local au logiciel producteur d&rsquo;actes <b>ILP</b></p>
+          </td>
+          <td width="14%">
+          <p><b>Pas
+d'identifiant</b> fourni par le
+producteur d&rsquo;actes</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Identifiant <b>&eacute;metteur</b>
+intervention</p>
+          </td>
+          <td width="14%">
+          <p><b>ISA</b>
+valoris&eacute; (&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p><b>ISA</b>
+valoris&eacute; (&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p><b>ISA</b>
+valoris&eacute; (&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p><b>ISA</b>
+valoris&eacute; (&lt;&gt;0)</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Identifiant <b>recepteur</b>
+intervention</p>
+          </td>
+          <td width="14%">
+          <p><b>ILP</b>
+valoris&eacute; (&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p>Vide</p>
+          </td>
+          <td width="14%">
+          <p><b>ILP</b>
+valoris&eacute; (&lt;&gt;0)</p>
+          </td>
+          <td width="14%">
+          <p>Vide</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </li>
+  <li>
+    <p>Cas des messages de
+modification / suppression d&rsquo;intervention envoy&eacute;s
+par le logiciel producteur vers le serveur
+d&rsquo;activit&eacute;, par gestion d'identifiant local au
+producteur d'actes (=<b>ILP</b>)
+et par l'identifiant fourni par le serveur d'activit&eacute; (=<b>ISA</b>)&nbsp;:</p>
+    <table border="1" bordercolor="#000000" cellpadding="5"
+ cellspacing="0" width="100%">
+      <tbody>
+        <tr class="ligneEnteteElement">
+          <td colspan="7" valign="top">
+          <p>Messages
+envoy&eacute;s par le producteur d&rsquo;actes vers le serveur
+d&rsquo;activit&eacute;</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement">
+          <p><b>Action&nbsp;:</b></p>
+          </td>
+          <td colspan="4" class="headerCellElement">
+          <p><b>Modification
+ou suppression</b> d&rsquo;une
+intervention</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Capacit&eacute;
+du producteur d&rsquo;actes &agrave; <u>exploiter</u>
+l&rsquo;identifiant intervention suivant&nbsp;:</p>
+          </td>
+          <td width="25%">
+          <p><b>Identifiant</b>
+du serveur d'activit&eacute; <b>ISA
+uniquement</b></p>
+          </td>
+          <td width="25%">
+          <p><b>Identifiant</b>
+local au logiciel producteur d&rsquo;actes <b>ILP
+uniquement</b></p>
+          </td>
+          <td>
+          <p><b>Identifiant
+ILP et ISA </b>pr&eacute;sents</p>
+          </td>
+          <td width="25%">
+          <p><b>Pas
+d'identifiant</b> pr&eacute;sent</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Identifiant <b>&eacute;metteur</b>
+intervention</p>
+          </td>
+          <td width="25%">
+          <p>Vide</p>
+          </td>
+          <td width="25%">
+          <p><b>ILP </b>valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td width="25%">
+          <p><b>ILP </b>valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td width="25%">
+          <p>INTERDIT</p>
+          </td>
+        </tr>
+        <tr valign="top">
+          <td class="headerCellElement" width="14%">
+          <p>Identifiant <b>recepteur</b>
+intervention</p>
+          </td>
+          <td width="25%">
+          <p><b>ISA </b>valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td width="25%">
+          <p>Vide</p>
+          </td>
+          <td width="25%">
+          <p><b>ISA </b>valoris&eacute;
+(&lt;&gt;0)</p>
+          </td>
+          <td>&nbsp;</td>
+        </tr>
+      </tbody>
+    </table>
+  </li>
+</ul>
+<span class="remarque">Remarque
+: </span>
+
+<ul>
+   <li>Il est possible d'indiquer la notion d'identifiant local ou issu du systéme d'information par le biais de l'attribut 'portee' présent sur &lt;emetteur&gt; et &lt;recepteur&gt;.
+
+   <li>Lorsque les identifiants de
+l&rsquo;acte et de l&rsquo;intervention seront
+allou&eacute;s &laquo;&nbsp;en aval&nbsp;&raquo;
+par le serveur
+d&rsquo;actes, l&rsquo;acquittement peut &ecirc;tre
+utilis&eacute; pour transmettre ces nouveaux identifiants
+cr&eacute;&eacute;s.Il faudra
+lors de la cr&eacute;ation d&rsquo;un nouvel acte ou
+intervention renseigner syst&eacute;matiquement la collection des
+r&eacute;ponses en renseignant dans la structure de
+donn&eacute;es actes et/ou
+intervention a minima l&rsquo;identifiant r&eacute;cepteur de
+l&rsquo;acte
+et/ou de l&rsquo;intervention. En cas d&rsquo;acquittement
+positif, l&rsquo;attribut obligatoire&nbsp;:
+statut sur la balise reponse devra &ecirc;tre valoris&eacute;
+par &laquo;&nbsp;ok&nbsp;&raquo;</li>
+</body>
+</html>

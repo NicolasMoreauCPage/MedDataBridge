@@ -306,6 +306,8 @@ class FilePollerService:
     def _handle_mfn(self, content: str, msg_log: MessageLog, session: Session, endpoint: SystemEndpoint) -> bool:
         """Handle MFN structure message, robust ACK/error handling"""
         try:
+            import time as _time
+            _start = _time.time()
             # Get GHT context for this endpoint
             ght_context = None
             if endpoint.ght_context_id:
@@ -322,6 +324,19 @@ class FilePollerService:
             msa = None
             ack_code = "AA"
             # Try to find MSA segment in ACK (if present)
+            # Metrics for PAM inbound
+            try:
+                from app.metrics import record_pam_ack
+                # message_type like "ADT^A01" already set earlier
+                msg_type = msg_log.message_type or "ADT^unknown"
+                record_pam_ack(
+                    direction="inbound",
+                    ack_code=ack_code,
+                    message_type=msg_type,
+                    duration_seconds=_time.time() - _start,
+                )
+            except Exception:
+                pass
             if isinstance(content, str):
                 lines = content.split('\r')
                 msa = next((seg for seg in lines if seg.startswith('MSA|')), None)
@@ -425,10 +440,42 @@ class FilePollerService:
                 session.rollback()
                 raise
             
-            # HPRIM messages received via FILE are logged but not processed/transformed
-            # (they are for archival/audit purposes)
-            msg_log.status = "received"
-            msg_log.ack_payload = "HPRIM message received and archived"
+            # Validate HPRIM message automatically (XSD + contenu)
+            from app.services.hprim.hprim_service import HprimService
+            hprim = HprimService()
+            result = hprim.traiter_message_xml(content)
+
+            if not result.get("succes"):
+                # Mark as error and retain details
+                msg_log.status = "error"
+                err_type = result.get("type_erreur")
+                first_err = None
+                try:
+                    if err_type == "XSD_VALIDATION" and result.get("erreurs"):
+                        first_err = result["erreurs"][0]
+                    elif err_type == "VALIDATION" and result.get("erreurs"):
+                        first_err = result["erreurs"][0].get("message") if isinstance(result["erreurs"][0], dict) else str(result["erreurs"][0])
+                    else:
+                        first_err = result.get("erreur")
+                except Exception:
+                    first_err = result.get("erreur")
+                schema_info = result.get("schema_utilise")
+                msg_log.ack_payload = f"HPRIM validation failed ({err_type}{' / ' + schema_info if schema_info else ''}): {first_err}"
+                session.add(msg_log)
+                try:
+                    session.commit()
+                except Exception as commit_error:
+                    logger.error(f"HPRIM error commit failed: {commit_error}", exc_info=True)
+                    session.rollback()
+                # Count and move to error path by returning False
+                self.stats['hprim_messages'] = self.stats.get('hprim_messages', 0) + 1
+                logger.info(f"HPRIM message invalid: {correlation_id}")
+                return False
+
+            # Success: mark as processed and include schema used
+            msg_log.status = "processed"
+            schema_info = result.get("schema_utilise")
+            msg_log.ack_payload = f"HPRIM validated OK{(' (' + schema_info + ')') if schema_info else ''}"
             session.add(msg_log)
             try:
                 session.commit()

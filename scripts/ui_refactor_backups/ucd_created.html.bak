@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <div class="text-center">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h1 class="mt-4 text-2xl font-bold text-gray-900">Acte UCD créé avec succès</h1>
+      <p class="mt-2 text-gray-600">L'acte UCD a été ajouté au dossier.</p>
+    </div>
+
+    <div class="mt-8 bg-gray-50 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Détails de l'acte UCD</h2>
+      <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Code UCD</dt>
+          <dd class="text-sm text-gray-900 font-mono">{{ act.code_ucd }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Coefficient</dt>
+          <dd class="text-sm text-gray-900">{{ act.coefficient }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Date d'exécution</dt>
+          <dd class="text-sm text-gray-900">{{ act.execute_date.strftime('%d/%m/%Y') }}</dd>
+        </div>
+        {% if act.montant %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Montant</dt>
+          <dd class="text-sm text-gray-900">{{ "%.2f"|format(act.montant) }} €</dd>
+        </div>
+        {% endif %}
+        {% if act.commentaire %}
+        <div class="md:col-span-2">
+          <dt class="text-sm font-medium text-gray-500">Commentaire</dt>
+          <dd class="text-sm text-gray-900">{{ act.commentaire }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

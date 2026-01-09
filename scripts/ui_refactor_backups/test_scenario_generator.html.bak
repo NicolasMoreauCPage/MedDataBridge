@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Scénarios de Test - MedData Bridge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .scenario-card {
+            transition: transform 0.2s;
+        }
+        .scenario-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .error-injection {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .execution-result {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status-success { color: #198754; }
+        .status-warning { color: #ffc107; }
+        .status-danger { color: #dc3545; }
+        .protocol-hl7 { background-color: #e3f2fd; }
+        .protocol-fhir { background-color: #f3e5f5; }
+    </style>
+</head>
+<body>
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-full px-4">
+            <div class="flex justify-between items-center py-4">
+                <a class="flex items-center text-white hover:text-blue-200 font-semibold" href="#">
+                    <i class="fas fa-flask mr-2"></i> Générateur de Scénarios de Test
+                </a>
+                <div class="flex space-x-4">
+                    <a class="text-white hover:text-blue-200" href="/interface-testing">
+                        <i class="fas fa-tachometer-alt mr-1"></i> Dashboard Interface
+                    </a>
+                    <a class="text-white hover:text-blue-200" href="/test-scenarios">
+                        <i class="fas fa-flask mr-1"></i> Scénarios de Test
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-full px-4 mt-4">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <!-- Panneau de génération -->
+            <div class="md:col-span-4">
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <h5 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-plus-circle mr-2"></i> Générer un Scénario
+                        </h5>
+                    </div>
+                    <div class="p-6">
+                        <form id="scenarioForm">
+                            <div class="mb-4">
+                                <label for="scenarioType" class="form-label">Type de Scénario</label>
+                                <select class="form-select" id="scenarioType" required>
+                                    <option value="">Choisir un type...</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="specialty" class="form-label">Spécialité</label>
+                                <select class="form-select" id="specialty">
+                                    <option value="">Toutes les spécialités</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4" id="patientCountGroup">
+                                <label for="patientCount" class="block text-sm font-medium text-gray-700 mb-2">Nombre de Patients</label>
+                                <input type="number" class="border border-gray-300 rounded px-3 py-2 w-full" id="patientCount" value="1" min="1" max="100">
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Injections d'Erreurs</label>
+                                <div id="errorInjections">
+                                    <!-- Les injections d'erreurs seront ajoutées ici -->
+                                </div>
+                                <button type="button" class="border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-1 rounded text-sm mt-2" id="addErrorInjection">
+                                    <i class="fas fa-plus"></i> Ajouter Erreur
+                                </button>
+                            </div>
+
+                            <div class="w-full">
+                                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full" id="generateBtn">
+                                    <i class="fas fa-cog"></i> Générer Scénario
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Génération en masse -->
+                <div class="bg-white rounded-lg shadow-md mt-6">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <h6 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-layer-group mr-2"></i> Génération en Masse
+                        </h6>
+                    </div>
+                    <div class="p-6">
+                        <form id="bulkForm">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Types de Scénarios</label>
+                                <div id="bulkScenarioTypes">
+                                    <!-- Cases à cocher pour les types -->
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="countPerType" class="block text-sm font-medium text-gray-700 mb-2">Scénarios par Type</label>
+                                <input type="number" class="border border-gray-300 rounded px-3 py-2 w-full" id="countPerType" value="5" min="1" max="20">
+                            </div>
+
+                            <div class="w-full">
+                                <button type="submit" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded w-full" id="generateBulkBtn">
+                                    <i class="fas fa-tasks"></i> Générer en Masse
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des scénarios -->
+            <div class="md:col-span-8">
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h5 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-list mr-2"></i> Scénarios Générés
+                        </h5>
+                        <button class="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white px-3 py-1 rounded text-sm" id="refreshScenarios">
+                            <i class="fas fa-sync"></i> Actualiser
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div id="scenariosList">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-flask fa-3x mb-3"></i>
+                                <p>Aucun scénario généré pour le moment.</p>
+                                <p>Utilisez le panneau de gauche pour créer votre premier scénario.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Résultats d'exécution -->
+                <div class="card mt-3" id="executionResults" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-bar"></i> Résultats d'Exécution
+                        </h5>
+                    </div>
+                    <div class="card-body execution-result">
+                        <div id="executionContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour les détails du scénario -->
+    <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden" id="scenarioModal">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-lg font-semibold text-gray-900" id="scenarioModalTitle">Détails du Scénario</h3>
+                    <button type="button" class="text-gray-400 hover:text-gray-600" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="mt-4" id="scenarioModalBody">
+                    <!-- Contenu chargé dynamiquement -->
+                </div>
+                <div class="flex justify-end space-x-2 mt-4 pt-3 border-t">
+                    <button type="button" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded" onclick="closeModal()">Fermer</button>
+                    <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded" id="executeScenarioBtn">
+                        <i class="fas fa-play"></i> Exécuter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        // Variables globales
+        let currentScenario = null;
+        let templates = {};
+
+        // Initialisation
+        $(document).ready(function() {
+            loadTemplates();
+            setupEventHandlers();
+        });
+
+        // Charger les templates
+        function loadTemplates() {
+            $.get('/api/test-scenarios/templates')
+                .done(function(data) {
+                    templates = data;
+                    populateFormOptions();
+                })
+                .fail(function() {
+                    showAlert('Erreur lors du chargement des templates', 'danger');
+                });
+        }
+
+        // Remplir les options des formulaires
+        function populateFormOptions() {
+            // Types de scénarios
+            const scenarioTypeSelect = $('#scenarioType');
+            templates.scenario_types.forEach(type => {
+                scenarioTypeSelect.append(`<option value="${type}">${formatScenarioType(type)}</option>`);
+            });
+
+            // Spécialités
+            const specialtySelect = $('#specialty');
+            templates.specialties.forEach(specialty => {
+                specialtySelect.append(`<option value="${specialty}">${specialty}</option>`);
+            });
+
+            // Types pour génération en masse
+            const bulkTypesContainer = $('#bulkScenarioTypes');
+            templates.scenario_types.forEach(type => {
+                bulkTypesContainer.append(`
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="${type}" id="bulk_${type}">
+                        <label class="form-check-label" for="bulk_${type}">
+                            ${formatScenarioType(type)}
+                        </label>
+                    </div>
+                `);
+            });
+        }
+
+        // Gestionnaires d'événements
+        function setupEventHandlers() {
+            // Génération de scénario
+            $('#scenarioForm').on('submit', function(e) {
+                e.preventDefault();
+                generateScenario();
+            });
+
+            // Génération en masse
+            $('#bulkForm').on('submit', function(e) {
+                e.preventDefault();
+                generateBulkScenarios();
+            });
+
+            // Actualisation des scénarios
+            $('#refreshScenarios').on('click', loadScenarios);
+
+            // Ajouter injection d'erreur
+            $('#addErrorInjection').on('click', addErrorInjection);
+
+            // Exécuter scénario depuis modal
+            $('#executeScenarioBtn').on('click', executeCurrentScenario);
+        }
+
+        // Générer un scénario
+        function generateScenario() {
+            const formData = {
+                scenario_type: $('#scenarioType').val(),
+                specialty: $('#specialty').val() || null,
+                patient_count: parseInt($('#patientCount').val()),
+                error_injections: getErrorInjections()
+            };
+
+            $('#generateBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Génération...');
+
+            $.ajax({
+                url: '/api/test-scenarios/generate',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    showAlert('Scénario généré avec succès!', 'success');
+                    loadScenarios();
+                },
+                error: function(xhr) {
+                    showAlert('Erreur lors de la génération: ' + xhr.responseJSON?.detail, 'danger');
+                },
+                complete: function() {
+                    $('#generateBtn').prop('disabled', false).html('<i class="fas fa-cog"></i> Générer Scénario');
+                }
+            });
+        }
+
+        // Générer des scénarios en masse
+        function generateBulkScenarios() {
+            const selectedTypes = [];
+            $('input[id^="bulk_"]:checked').each(function() {
+                selectedTypes.push($(this).val());
+            });
+
+            if (selectedTypes.length === 0) {
+                showAlert('Veuillez sélectionner au moins un type de scénario', 'warning');
+                return;
+            }
+
+            const formData = {
+                scenario_types: selectedTypes,
+                count_per_type: parseInt($('#countPerType').val()),
+                error_injections: getErrorInjections()
+            };
+
+            $('#generateBulkBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Génération...');
+
+            $.ajax({
+                url: '/api/test-scenarios/generate-bulk',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    showAlert(response.message, 'success');
+                    setTimeout(loadScenarios, 2000); // Actualiser après 2 secondes
+                },
+                error: function(xhr) {
+                    showAlert('Erreur lors de la génération bulk: ' + xhr.responseJSON?.detail, 'danger');
+                },
+                complete: function() {
+                    $('#generateBulkBtn').prop('disabled', false).html('<i class="fas fa-tasks"></i> Générer en Masse');
+                }
+            });
+        }
+
+        // Charger la liste des scénarios
+        function loadScenarios() {
+            $.get('/api/test-scenarios/scenarios')
+                .done(function(scenarios) {
+                    displayScenarios(scenarios);
+                })
+                .fail(function() {
+                    showAlert('Erreur lors du chargement des scénarios', 'danger');
+                });
+        }
+
+        // Afficher les scénarios
+        function displayScenarios(scenarios) {
+            const container = $('#scenariosList');
+
+            if (scenarios.length === 0) {
+                container.html(`
+                    <div class="text-center text-muted">
+                        <i class="fas fa-flask fa-3x mb-3"></i>
+                        <p>Aucun scénario généré pour le moment.</p>
+                        <p>Utilisez le panneau de gauche pour créer votre premier scénario.</p>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = '<div class="row">';
+            scenarios.forEach(scenario => {
+                const protocolClass = scenario.protocol === 'HL7' ? 'protocol-hl7' : 'protocol-fhir';
+                const errorCount = scenario.expected_errors.length;
+
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card scenario-card h-100">
+                            <div class="card-header ${protocolClass}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">${scenario.name}</h6>
+                                    <span class="badge bg-secondary">${scenario.protocol}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text small">${scenario.description}</p>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="fw-bold">${scenario.message_count}</div>
+                                        <small class="text-muted">Messages</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="fw-bold ${errorCount > 0 ? 'text-warning' : 'text-success'}">${errorCount}</div>
+                                        <small class="text-muted">Erreurs</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="fw-bold">${scenario.scenario_type}</div>
+                                        <small class="text-muted">Type</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-3 border-t">
+                                <div class="flex w-full gap-1">
+                                    <button class="flex-1 border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white px-3 py-1 rounded text-sm" onclick="viewScenario('${scenario.id}')">
+                                        <i class="fas fa-eye"></i> Voir
+                                    </button>
+                                    <button class="flex-1 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white px-3 py-1 rounded text-sm" onclick="executeScenario('${scenario.id}')">
+                                        <i class="fas fa-play"></i> Exécuter
+                                    </button>
+                                    <button class="flex-1 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1 rounded text-sm" onclick="deleteScenario('${scenario.id}')">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.html(html);
+        }
+
+        // Voir les détails d'un scénario
+        function viewScenario(scenarioId) {
+            $.get(`/api/test-scenarios/scenario/${scenarioId}`)
+                .done(function(scenario) {
+                    currentScenario = scenario;
+                    displayScenarioDetails(scenario);
+                    $('#scenarioModal').modal('show');
+                })
+                .fail(function() {
+                    showAlert('Erreur lors du chargement du scénario', 'danger');
+                });
+        }
+
+        // Afficher les détails du scénario
+        function displayScenarioDetails(scenario) {
+            $('#scenarioModalTitle').text(scenario.name);
+
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informations Générales</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Type:</strong></td><td>${scenario.scenario_type}</td></tr>
+                            <tr><td><strong>Protocole:</strong></td><td>${scenario.protocol}</td></tr>
+                            <tr><td><strong>Messages:</strong></td><td>${scenario.messages.length}</td></tr>
+                            <tr><td><strong>Spécialité:</strong></td><td>${scenario.metadata.specialty || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Critères de Succès</h6>
+                        <ul class="list-unstyled">
+            `;
+
+            Object.entries(scenario.success_criteria).forEach(([key, value]) => {
+                html += `<li><strong>${key}:</strong> ${value}</li>`;
+            });
+
+            html += `
+                        </ul>
+                    </div>
+                </div>
+
+                <h6>Erreurs Attendues</h6>
+                <div class="mb-3">
+            `;
+
+            if (scenario.expected_errors.length > 0) {
+                html += '<ul>';
+                scenario.expected_errors.forEach(error => {
+                    html += `<li class="text-warning">${error}</li>`;
+                });
+                html += '</ul>';
+            } else {
+                html += '<p class="text-success">Aucune erreur attendue (scénario nominal)</p>';
+            }
+
+            html += `
+                </div>
+
+                <h6>Messages (${scenario.messages.length})</h6>
+                <div style="max-height: 300px; overflow-y: auto;">
+            `;
+
+            scenario.messages.forEach((message, index) => {
+                html += `
+                    <div class="card mb-2">
+                        <div class="card-header py-1">
+                            <small class="fw-bold">Message ${index + 1}</small>
+                        </div>
+                        <div class="card-body py-2">
+                            <pre class="small mb-0">${JSON.stringify(message, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+
+            $('#scenarioModalBody').html(html);
+        }
+
+        // Exécuter un scénario
+        function executeScenario(scenarioId) {
+            const request = {
+                scenario_id: scenarioId,
+                async_execution: true,
+                timeout_seconds: 30
+            };
+
+            $.ajax({
+                url: '/api/test-scenarios/execute',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(request),
+                success: function(result) {
+                    showAlert('Exécution lancée! Actualisez pour voir les résultats.', 'success');
+                    setTimeout(() => checkExecutionResult(scenarioId), 1000);
+                },
+                error: function(xhr) {
+                    showAlert('Erreur lors de l\'exécution: ' + xhr.responseJSON?.detail, 'danger');
+                }
+            });
+        }
+
+        // Exécuter le scénario actuel depuis le modal
+        function executeCurrentScenario() {
+            if (currentScenario) {
+                executeScenario(currentScenario.id);
+                $('#scenarioModal').modal('hide');
+            }
+        }
+
+        // Vérifier le résultat d'exécution
+        function checkExecutionResult(scenarioId) {
+            $.get(`/api/test-scenarios/result/${scenarioId}`)
+                .done(function(result) {
+                    displayExecutionResult(result);
+                })
+                .fail(function() {
+                    // Réessayer dans 2 secondes si pas encore disponible
+                    setTimeout(() => checkExecutionResult(scenarioId), 2000);
+                });
+        }
+
+        // Afficher le résultat d'exécution
+        function displayExecutionResult(result) {
+            const container = $('#executionResults');
+            const content = $('#executionContent');
+
+            let statusClass, statusText;
+            switch(result.status) {
+                case 'success':
+                    statusClass = 'status-success';
+                    statusText = 'Succès';
+                    break;
+                case 'partial_success':
+                    statusClass = 'status-warning';
+                    statusText = 'Succès Partiel';
+                    break;
+                case 'failed':
+                    statusClass = 'status-danger';
+                    statusText = 'Échec';
+                    break;
+                default:
+                    statusClass = 'status-secondary';
+                    statusText = result.status;
+            }
+
+            let html = `
+                <div class="alert alert-${statusClass === 'status-success' ? 'success' : statusClass === 'status-warning' ? 'warning' : 'danger'}">
+                    <h6 class="alert-heading mb-2">
+                        <i class="fas fa-chart-bar"></i> Résultat d'Exécution - ${statusText}
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Temps:</strong> ${result.execution_time_ms}ms
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Erreurs:</strong> ${result.error_count}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Taux de succès:</strong> ${(result.success_rate * 100).toFixed(1)}%
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Messages:</strong> ${result.results.length}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Message</th>
+                                <th>Valide</th>
+                                <th>Erreurs</th>
+                                <th>Avertissements</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            result.results.forEach((res, index) => {
+                const validClass = res.valid ? 'text-success' : 'text-danger';
+                const validIcon = res.valid ? 'fa-check' : 'fa-times';
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td class="${validClass}">
+                            <i class="fas ${validIcon}"></i>
+                        </td>
+                        <td>
+                            ${res.errors.length > 0 ?
+                                res.errors.map(e => `<span class="badge bg-danger">${e}</span>`).join(' ') :
+                                '<span class="text-muted">Aucune</span>'}
+                        </td>
+                        <td>
+                            ${res.warnings.length > 0 ?
+                                res.warnings.map(w => `<span class="badge bg-warning">${w}</span>`).join(' ') :
+                                '<span class="text-muted">Aucun</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            content.html(html);
+            container.show();
+        }
+
+        // Supprimer un scénario
+        function deleteScenario(scenarioId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce scénario ?')) {
+                return;
+            }
+
+            $.ajax({
+                url: `/api/test-scenarios/scenario/${scenarioId}`,
+                method: 'DELETE',
+                success: function() {
+                    showAlert('Scénario supprimé avec succès', 'success');
+                    loadScenarios();
+                },
+                error: function(xhr) {
+                    showAlert('Erreur lors de la suppression: ' + xhr.responseJSON?.detail, 'danger');
+                }
+            });
+        }
+
+        // Ajouter une injection d'erreur
+        function addErrorInjection() {
+            const container = $('#errorInjections');
+            const injectionId = Date.now();
+
+            const html = `
+                <div class="error-injection p-2 mb-2 border rounded" data-id="${injectionId}">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+                        <div class="md:col-span-4">
+                            <select class="border border-gray-300 rounded px-2 py-1 text-sm w-full error-type">
+                                <option value="">Type d'erreur...</option>
+                                ${Object.entries(templates.common_error_injections || {}).map(([key, info]) =>
+                                    `<option value="${key}">${info.description}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <input type="number" class="border border-gray-300 rounded px-2 py-1 text-sm w-full probability"
+                                   placeholder="Probabilité" min="0" max="1" step="0.1" value="0.5">
+                        </div>
+                        <div class="md:col-span-4">
+                            <input type="text" class="border border-gray-300 rounded px-2 py-1 text-sm w-full target-field"
+                                   placeholder="Champ cible (optionnel)">
+                        </div>
+                        <div class="md:col-span-1">
+                            <button type="button" class="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded text-sm remove-injection">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.append(html);
+        }
+
+        // Supprimer une injection d'erreur
+        $(document).on('click', '.remove-injection', function() {
+            $(this).closest('.error-injection').remove();
+        });
+
+        // Récupérer les injections d'erreurs
+        function getErrorInjections() {
+            const injections = [];
+
+            $('.error-injection').each(function() {
+                const $this = $(this);
+                const errorType = $this.find('.error-type').val();
+                const probability = parseFloat($this.find('.probability').val());
+                const targetField = $this.find('.target-field').val();
+
+                if (errorType) {
+                    injections.push({
+                        error_type: errorType,
+                        probability: probability || 0.5,
+                        target_field: targetField || null
+                    });
+                }
+            });
+
+            return injections;
+        }
+
+        // Formatter le type de scénario
+        function formatScenarioType(type) {
+            const formats = {
+                'admission_complete': 'Admission Complète',
+                'transfer_patient': 'Transfert Patient',
+                'discharge_patient': 'Sortie Patient',
+                'update_patient': 'Mise à Jour Patient',
+                'bulk_admission': 'Admission en Masse',
+                'error_recovery': 'Récupération d\'Erreur',
+                'load_test': 'Test de Charge'
+            };
+            return formats[type] || type;
+        }
+
+        // Afficher une alerte
+        function showAlert(message, type) {
+            const alertId = 'alert-' + Date.now();
+            const alertClass = type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+                              type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+                              'bg-blue-100 border border-blue-400 text-blue-700';
+            const alertHtml = `
+                <div id="${alertId}" class="${alertClass} px-4 py-3 rounded relative" role="alert">
+                    ${message}
+                    <button type="button" class="absolute top-0 right-0 mt-2 mr-2 text-gray-400 hover:text-gray-600" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            document.querySelector('.max-w-7xl').prepend(document.createRange().createContextualFragment(alertHtml));
+
+            // Auto-disparition après 5 secondes
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) alert.remove();
+            }, 5000);
+        }
+
+        // Actualiser automatiquement les scénarios toutes les 30 secondes
+        setInterval(loadScenarios, 30000);
+    </script>
+</body>
+</html>

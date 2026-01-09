@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Import HPRIM{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900 flex items-center">
+          <i class="fas fa-upload mr-3 text-green-600"></i>
+          Import HPRIM
+        </h1>
+        <p class="mt-2 text-slate-600">
+          Importer et traiter des messages HPRIM entrants
+        </p>
+        <div class="btn">
+          <strong>Astuce:</strong> Vous pouvez préciser le type d'import via le paramètre <code>?type=</code>.
+          Exemples: <a href="/hprim/import?type=ccam" class="text-blue-600 hover:underline">ccam</a>,
+          <a href="/hprim/import?type=ngap" class="text-blue-600 hover:underline">ngap</a>,
+          <a href="/hprim/import?type=ucd" class="text-blue-600 hover:underline">ucd</a> ou
+          <a href="/hprim/import?type=lpp" class="text-blue-600 hover:underline">lpp</a>.
+          <div class="mt-2 text-sm text-slate-600">
+            Les API techniques sont disponibles sous <a href="/docs" class="text-blue-600 hover:underline">/docs</a>
+            (OpenAPI). Les routes API d'actes sont sous <code>/api/hprim/actes/</code>.
+          </div>
+          <div class="mt-2 text-sm text-slate-600">
+            Note: la page <a href="/cotation-modern" class="text-blue-600 hover:underline">Cotation moderne</a>
+            est dépendante d'un dossier — sélectionnez un dossier avant d'accéder à la cotation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zone de dépôt de fichiers -->
+  <div class="btn">
+    <div class="text-center">
+      <div class="alert alert-info">
+        <i class="fas fa-cloud-upload-alt text-slate-400 text-4xl mb-4"></i>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">
+          Déposez vos fichiers HPRIM ici
+        </h3>
+        <p class="text-slate-600 mb-4">
+          ou <button id="fileSelectBtn" class="text-blue-600 hover:text-blue-800 font-medium">parcourez vos fichiers</button>
+        </p>
+        <p class="text-sm text-slate-500">
+          Formats acceptés: .txt, .xml • Encodage: ISO-8859-1
+        </p>
+        <input type="file" id="fileInput" multiple accept=".txt,.xml" class="hidden">
+      </div>
+    </div>
+  </div>
+
+  <!-- Fichiers sélectionnés -->
+  <div id="selectedFiles" class="btn">
+    <h3 class="text-lg font-semibold text-slate-900 mb-4">Fichiers sélectionnés</h3>
+    <div id="filesList" class="space-y-3">
+      <!-- Les fichiers apparaîtront ici -->
+    </div>
+    <div class="mt-6 flex gap-3">
+      <button id="processBtn" onclick="processFiles()" class="btn-primary flex-1">
+        <i class="fas fa-cogs mr-2"></i>Traiter les fichiers
+      </button>
+      <button onclick="clearFiles()" class="btn-secondary">
+        <i class="fas fa-times mr-2"></i>Effacer
+      </button>
+    </div>
+  </div>
+
+  <!-- Résultats du traitement -->
+  <div id="results" class="btn">
+    <h3 class="text-lg font-semibold text-slate-900 mb-4">Résultats du traitement</h3>
+    <div id="resultsContent">
+      <!-- Les résultats apparaîtront ici -->
+    </div>
+  </div>
+
+  <!-- Historique des imports -->
+  <div class="btn">
+    <h3 class="text-lg font-semibold text-slate-900 mb-4">Historique des imports</h3>
+    <div id="historyContent" class="text-slate-600">
+      <p>Aucun import récent.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let selectedFiles = [];
+
+// Gestion du drag & drop
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileSelectBtn = document.getElementById('fileSelectBtn');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+  dropZone.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+  dropZone.classList.add('border-blue-500', 'bg-blue-50');
+}
+
+function unhighlight(e) {
+  dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+}
+
+dropZone.addEventListener('drop', handleDrop, false);
+fileSelectBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', handleFileSelect);
+
+function handleDrop(e) {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  handleFiles(files);
+}
+
+function handleFileSelect(e) {
+  const files = e.target.files;
+  handleFiles(files);
+}
+
+function handleFiles(files) {
+  [...files].forEach(file => {
+    if (file.name.endsWith('.txt') || file.name.endsWith('.xml')) {
+      selectedFiles.push(file);
+    }
+  });
+  updateFileList();
+}
+
+function updateFileList() {
+  const container = document.getElementById('filesList');
+  const selectedFilesDiv = document.getElementById('selectedFiles');
+
+  if (selectedFiles.length === 0) {
+    selectedFilesDiv.classList.add('hidden');
+    return;
+  }
+
+  selectedFilesDiv.classList.remove('hidden');
+
+  container.innerHTML = selectedFiles.map((file, index) => `
+    <div class="btn">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-file-code text-blue-600"></i>
+        <div>
+          <p class="font-medium text-slate-900">${file.name}</p>
+          <p class="text-sm text-slate-600">${formatFileSize(file.size)}</p>
+        </div>
+      </div>
+      <button onclick="removeFile(${index})" class="text-red-600 hover:text-red-800">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `).join('');
+}
+
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  updateFileList();
+}
+
+function clearFiles() {
+  selectedFiles = [];
+  updateFileList();
+}
+
+async function processFiles() {
+  if (selectedFiles.length === 0) return;
+
+  const resultsDiv = document.getElementById('results');
+  const resultsContent = document.getElementById('resultsContent');
+
+  resultsDiv.classList.remove('hidden');
+  resultsContent.innerHTML = '<div class="text-center py-8"><div class="alert alert-info"></div><p class="mt-4 text-slate-600">Traitement en cours...</p></div>';
+
+  const results = [];
+
+  for (const file of selectedFiles) {
+    try {
+      const content = await readFileContent(file);
+      const result = await processHprimFile(file.name, content);
+      results.push(result);
+    } catch (error) {
+      results.push({
+        filename: file.name,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  displayResults(results);
+}
+
+function readFileContent(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Erreur lecture fichier'));
+    reader.readAsText(file, 'iso-8859-1');
+  });
+}
+
+async function processHprimFile(filename, content) {
+  try {
+    // Appeler l'API d'import HPRIM
+    const response = await fetch('/roundtrip-hprim/import-test-file', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filename: filename
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    return {
+      filename: filename,
+      success: result.status === 'success',
+      parsed: true,
+      cotationsCreated: result.cotations_created || 0,
+      message: result.message,
+      details: result.cotations_details || []
+    };
+
+  } catch (error) {
+    return {
+      filename: filename,
+      success: false,
+      parsed: false,
+      cotationsCreated: 0,
+      error: error.message,
+      message: "Erreur lors du traitement du fichier"
+    };
+  }
+}
+
+function displayResults(results) {
+  const resultsContent = document.getElementById('resultsContent');
+
+  const successCount = results.filter(r => r.success).length;
+  const totalCount = results.length;
+
+  resultsContent.innerHTML = `
+    <div class="mb-6">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="alert alert-success">
+          ${successCount}/${totalCount}
+        </div>
+        <div>
+          <p class="font-medium text-slate-900">Fichiers traités avec succès</p>
+          <p class="text-sm text-slate-600">sur ${totalCount} fichier(s) au total</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      ${results.map(result => `
+        <div class="alert alert-error">
+          <div class="flex items-center gap-3 mb-2">
+            <i class="fas ${result.success ? 'fa-check-circle text-green-600' : 'fa-exclamation-circle text-red-600'}"></i>
+            <h4 class="font-medium text-slate-900">${result.filename}</h4>
+          </div>
+          ${result.success ?
+            `<p class="text-green-800 ml-7">${result.message}</p>` :
+            `<p class="text-red-800 ml-7">${result.error}</p>`
+          }
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Mettre à jour l'historique
+  updateHistory(results);
+}
+
+function updateHistory(results) {
+  const historyContent = document.getElementById('historyContent');
+  const timestamp = new Date().toLocaleString('fr-FR');
+
+  historyContent.innerHTML = `
+    <div class="space-y-3">
+      <div class="btn">
+        <div>
+          <p class="font-medium text-slate-900">Import du ${timestamp}</p>
+          <p class="text-sm text-slate-600">${results.length} fichier(s) traité(s)</p>
+        </div>
+        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+          Terminé
+        </span>
+      </div>
+    </div>
+  `;
+}
+
+// Fonctions utilitaires
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showToast(message, error = false) {
+  const toast = document.createElement('div');
+  toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${
+    error ? 'bg-red-500' : 'bg-green-500'
+  }`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => document.body.removeChild(toast), 3000);
+}
+</script>
+
+<style>
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition;
+}
+
+.btn-secondary {
+  @apply bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-6 py-3 rounded-lg transition;
+}
+</style>
+{% endblock %}

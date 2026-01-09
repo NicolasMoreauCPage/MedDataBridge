@@ -2,8 +2,8 @@
 Informations de version de l'application.
 """
 
-__version__ = "1.0.0"
-__app_name__ = "MedDataBridge"
+__version__ = "1.1.0"
+__app_name__ = "IntegraSanté by CPage"
 
 
 def get_version() -> str:

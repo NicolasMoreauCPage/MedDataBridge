@@ -1,0 +1,767 @@
+{% extends "base.html" %}
+
+{% block title %}Recherche Avancée Structure{% endblock %}
+
+{% block extra_css %}
+<style>
+  .search-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .search-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+    border-radius: 16px;
+    padding: 32px;
+    color: white;
+    margin-bottom: 32px;
+  }
+
+  .search-form {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+  }
+
+  .filter-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+  }
+
+  .results-container {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    min-height: 400px;
+  }
+
+  .search-stats {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--color-gray-50);
+    border-radius: 8px;
+  }
+
+  .search-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .search-stat-icon {
+    font-size: 20px;
+  }
+
+  .search-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-gray-900);
+  }
+
+  .search-stat-label {
+    font-size: 14px;
+    color: var(--color-gray-600);
+  }
+
+  .search-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .search-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search-history {
+    margin-top: 20px;
+  }
+
+  .search-history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--color-gray-100);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .search-history-item:hover {
+    background: var(--color-info-bg);
+    color: var(--color-info);
+  }
+
+  .search-result-card {
+    margin-bottom: 16px;
+    transition: all 0.2s ease;
+  }
+
+  .search-result-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .search-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 32px;
+  }
+
+  .pagination-info {
+    font-size: 14px;
+    color: var(--color-gray-600);
+    margin: 0 16px;
+  }
+
+  .loading-container {
+    display: none;
+    text-align: center;
+    padding: 60px;
+    color: var(--color-gray-500);
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--color-gray-300);
+    border-top: 3px solid var(--color-info);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .empty-results {
+    text-align: center;
+    padding: 60px;
+    color: var(--color-gray-500);
+  }
+
+  .empty-results-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 768px) {
+    .search-container {
+      padding: 16px;
+    }
+
+    .search-header {
+      padding: 20px;
+    }
+
+    .search-form, .filter-section, .results-container {
+      padding: 16px;
+    }
+
+    .search-filters {
+      grid-template-columns: 1fr;
+    }
+
+    .search-stats {
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .search-actions {
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-container">
+  
+  <!-- Header -->
+  <div class="search-header">
+    <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 12px;">
+      🔍 Recherche Avancée Structure
+    </h1>
+    <p style="font-size: 16px; opacity: 0.9; margin-bottom: 16px;">
+      Recherchez parmi toutes les structures hospitalières avec des critères précis
+    </p>
+    <div class="search-stats">
+      <div class="search-stat">
+        <span class="search-stat-icon">🏥</span>
+        <div>
+          <div class="search-stat-value" id="total-structures">{{ eg_count or 0 }}</div>
+          <div class="search-stat-label">Structures</div>
+        </div>
+      </div>
+      <div class="search-stat">
+        <span class="search-stat-icon">🔍</span>
+        <div>
+          <div class="search-stat-value" id="search-count">0</div>
+          <div class="search-stat-label">Résultats</div>
+        </div>
+      </div>
+      <div class="search-stat">
+        <span class="search-stat-icon">⏱️</span>
+        <div>
+          <div class="search-stat-value" id="search-time">0ms</div>
+          <div class="search-stat-label">Temps</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulaire de recherche -->
+  <div class="search-form">
+    <form id="search-form">
+      
+      <!-- Recherche principale -->
+      <div class="form-group">
+        <label class="form-label">🔍 Recherche générale</label>
+        <div id="main-search-container"></div>
+        <div class="form-help">
+          Recherchez par nom, code, identifiant FINESS... La recherche est instantanée dès 2 caractères.
+        </div>
+      </div>
+
+      <!-- Filtres avancés -->
+      <div class="search-filters" id="advanced-filters"></div>
+
+      <!-- Actions -->
+      <div class="search-actions">
+        <button type="submit" class="btn btn-primary">
+          🔍 Rechercher
+        </button>
+        <button type="button" class="btn btn-secondary" id="clear-filters">
+          🗑️ Effacer
+        </button>
+        <button type="button" class="btn btn-secondary" id="toggle-advanced">
+          ⚙️ Filtres avancés
+        </button>
+        <button type="button" class="btn btn-secondary" id="export-results">
+          📊 Exporter
+        </button>
+      </div>
+
+    </form>
+
+    <!-- Historique des recherches -->
+    <div class="search-history" id="search-history" style="display: none;">
+      <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+        📝 Recherches récentes
+      </h3>
+      <div id="search-history-list"></div>
+    </div>
+  </div>
+
+  <!-- Résultats -->
+  <div class="results-container">
+    
+    <!-- Loading -->
+    <div class="loading-container" id="loading-container">
+      <div class="loading-spinner"></div>
+      <div>Recherche en cours...</div>
+    </div>
+
+    <!-- Résultats vides -->
+    <div class="empty-results" id="empty-results">
+      <div class="empty-results-icon">🔍</div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+        Aucun résultat trouvé
+      </h3>
+      <p>Essayez de modifier vos critères de recherche ou d'utiliser des termes plus généraux.</p>
+    </div>
+
+    <!-- Résultats -->
+    <div id="search-results" style="display: none;">
+      <div id="results-header" style="margin-bottom: 24px;">
+        <h3 style="font-size: 18px; font-weight: 600; color: var(--color-gray-900);">
+          Résultats de recherche
+        </h3>
+      </div>
+      <div id="results-list"></div>
+      
+      <!-- Pagination -->
+      <div class="search-pagination" id="search-pagination"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+/**
+ * 🔍 Interface de Recherche Avancée Structure - Phase 5.3
+ * Utilise l'API FHIR Structure existante (/fhir/Location)
+ */
+
+class AdvancedStructureSearch {
+  constructor() {
+    this.searchHistory = JSON.parse(localStorage.getItem('structureSearchHistory') || '[]');
+    this.currentQuery = {};
+    this.currentResults = [];
+    this.currentPage = 0;
+    this.pageSize = 20;
+    this.totalResults = 0;
+    
+    this.init();
+  }
+
+  init() {
+    this.initSearchComponent();
+    this.initAdvancedFilters();
+    this.initEventListeners();
+    this.loadSearchHistory();
+    
+    // Recherche initiale (toutes les structures)
+    this.performSearch();
+  }
+
+  initSearchComponent() {
+    const container = document.getElementById('main-search-container');
+    this.searchComponent = new SearchComponent(container, {
+      placeholder: 'Nom, code, identifiant FINESS...',
+      minChars: 0,
+      onSearch: (query) => {
+        this.currentQuery.name = query;
+        this.performSearch();
+      },
+      onClear: () => {
+        delete this.currentQuery.name;
+        this.performSearch();
+      }
+    });
+  }
+
+  initAdvancedFilters() {
+    const container = document.getElementById('advanced-filters');
+    this.filterComponent = new FilterComponent(container, [
+      {
+        name: 'type',
+        label: 'Type de structure',
+        type: 'select',
+        options: [
+          { value: 'hospital', label: '🏥 Hôpital' },
+          { value: 'department', label: '🏢 Département' },
+          { value: 'ward', label: '🏛️ Service' },
+          { value: 'room', label: '🛏️ Chambre' },
+          { value: 'bed', label: '💺 Lit' }
+        ],
+        onChange: (value) => {
+          if (value) {
+            this.currentQuery.type = value;
+          } else {
+            delete this.currentQuery.type;
+          }
+          this.performSearch();
+        }
+      },
+      {
+        name: 'status',
+        label: 'Statut',
+        type: 'select',
+        options: [
+          { value: 'active', label: '✅ Actif' },
+          { value: 'inactive', label: '❌ Inactif' },
+          { value: 'suspended', label: '⏸️ Suspendu' }
+        ],
+        onChange: (value) => {
+          if (value) {
+            this.currentQuery.status = value;
+          } else {
+            delete this.currentQuery.status;
+          }
+          this.performSearch();
+        }
+      },
+      {
+        name: 'operational-status',
+        label: 'Statut opérationnel',
+        type: 'select',
+        options: [
+          { value: 'operational', label: '🟢 Opérationnel' },
+          { value: 'closed', label: '🔴 Fermé' },
+          { value: 'housekeeping', label: '🧹 Maintenance' }
+        ],
+        onChange: (value) => {
+          if (value) {
+            this.currentQuery['operational-status'] = value;
+          } else {
+            delete this.currentQuery['operational-status'];
+          }
+          this.performSearch();
+        }
+      },
+      {
+        name: 'identifier',
+        label: 'Identifiant/FINESS',
+        type: 'text',
+        onChange: (value) => {
+          if (value) {
+            this.currentQuery.identifier = value;
+          } else {
+            delete this.currentQuery.identifier;
+          }
+          this.performSearch();
+        }
+      }
+    ]);
+
+    // Masquer par défaut
+    container.style.display = 'none';
+  }
+
+  initEventListeners() {
+    // Formulaire
+    document.getElementById('search-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.performSearch();
+    });
+
+    // Boutons d'action
+    document.getElementById('clear-filters').addEventListener('click', () => {
+      this.clearFilters();
+    });
+
+    document.getElementById('toggle-advanced').addEventListener('click', () => {
+      this.toggleAdvancedFilters();
+    });
+
+    document.getElementById('export-results').addEventListener('click', () => {
+      this.exportResults();
+    });
+  }
+
+  async performSearch() {
+    const startTime = Date.now();
+    
+    this.showLoading();
+    
+    try {
+      // Construire les paramètres de recherche FHIR
+      const params = new URLSearchParams();
+      
+      // Ajouter les paramètres de recherche
+      Object.entries(this.currentQuery).forEach(([key, value]) => {
+        if (value && value.trim()) {
+          params.append(key, value);
+        }
+      });
+
+      // Pagination
+      params.append('_count', this.pageSize.toString());
+      if (this.currentPage > 0) {
+        params.append('_offset', (this.currentPage * this.pageSize).toString());
+      }
+
+      // Format JSON
+      params.append('_format', 'json');
+
+      console.log('FHIR search params:', params.toString());
+
+      // Appel API FHIR
+      const response = await fetch(`/fhir/Location?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+
+      const bundle = await response.json();
+      
+      // Traitement des résultats
+      this.currentResults = bundle.entry || [];
+      this.totalResults = bundle.total || 0;
+      
+      // Mise à jour de l'interface
+      const searchTime = Date.now() - startTime;
+      this.updateStats(this.totalResults, searchTime);
+      this.displayResults();
+      
+      // Sauvegarder dans l'historique
+      this.saveToHistory();
+
+    } catch (error) {
+      console.error('Erreur recherche:', error);
+      NotificationSystem.error(`Erreur de recherche: ${error.message}`);
+      this.showEmptyResults();
+    }
+  }
+
+  showLoading() {
+    document.getElementById('loading-container').style.display = 'block';
+    document.getElementById('empty-results').style.display = 'none';
+    document.getElementById('search-results').style.display = 'none';
+  }
+
+  showEmptyResults() {
+    document.getElementById('loading-container').style.display = 'none';
+    document.getElementById('empty-results').style.display = 'block';
+    document.getElementById('search-results').style.display = 'none';
+  }
+
+  displayResults() {
+    document.getElementById('loading-container').style.display = 'none';
+    document.getElementById('empty-results').style.display = 'none';
+
+    if (this.currentResults.length === 0) {
+      this.showEmptyResults();
+      return;
+    }
+
+    document.getElementById('search-results').style.display = 'block';
+    
+    const resultsList = document.getElementById('results-list');
+    resultsList.innerHTML = '';
+
+    // Convertir les résultats FHIR en format de cartes
+    this.currentResults.forEach((entry) => {
+      const location = entry.resource;
+      
+      // Mapper les données FHIR vers notre format de carte
+      const entity = this.mapFhirToEntity(location);
+      
+      // Créer la carte avec le Design System
+      const card = StructureCard.create(entity, {
+        showStats: true,
+        showOccupation: false, // Pas d'occupation dans FHIR
+        showActions: true,
+        onClick: (e) => {
+          // Navigation vers les détails
+          window.location.href = `/fhir/Location/${location.id}`;
+        }
+      });
+
+      card.classList.add('search-result-card');
+      resultsList.appendChild(card);
+    });
+
+    this.updatePagination();
+  }
+
+  mapFhirToEntity(location) {
+    // Convertir une ressource FHIR Location vers notre format de carte
+    return {
+      id: location.id,
+      type: this.mapFhirTypeToEntityType(location.type?.[0]?.coding?.[0]?.code),
+      nom: location.name || 'Sans nom',
+      code: location.identifier?.[0]?.value || location.id,
+      stats: {
+        'ID': location.id,
+        'Statut': location.status === 'active' ? '✅ Actif' : '❌ Inactif'
+      }
+    };
+  }
+
+  mapFhirTypeToEntityType(fhirType) {
+    const mapping = {
+      'hospital': 'EG',
+      'department': 'Pole', 
+      'ward': 'Service',
+      'room': 'Chambre',
+      'bed': 'Lit'
+    };
+    return mapping[fhirType] || 'Structure';
+  }
+
+  updateStats(count, time) {
+    document.getElementById('search-count').textContent = count;
+    document.getElementById('search-time').textContent = `${time}ms`;
+  }
+
+  updatePagination() {
+    const container = document.getElementById('search-pagination');
+    container.innerHTML = '';
+
+    if (this.totalResults <= this.pageSize) {
+      return; // Pas de pagination nécessaire
+    }
+
+    const totalPages = Math.ceil(this.totalResults / this.pageSize);
+    
+    // Bouton précédent
+    const prevBtn = document.createElement('button');
+    prevBtn.className = `btn btn-sm btn-secondary ${this.currentPage === 0 ? 'disabled' : ''}`;
+    prevBtn.textContent = '← Précédent';
+    prevBtn.onclick = () => this.goToPage(this.currentPage - 1);
+    container.appendChild(prevBtn);
+
+    // Info pagination
+    const info = document.createElement('span');
+    info.className = 'pagination-info';
+    info.textContent = `Page ${this.currentPage + 1} sur ${totalPages} (${this.totalResults} résultats)`;
+    container.appendChild(info);
+
+    // Bouton suivant
+    const nextBtn = document.createElement('button');
+    nextBtn.className = `btn btn-sm btn-secondary ${this.currentPage >= totalPages - 1 ? 'disabled' : ''}`;
+    nextBtn.textContent = 'Suivant →';
+    nextBtn.onclick = () => this.goToPage(this.currentPage + 1);
+    container.appendChild(nextBtn);
+  }
+
+  goToPage(page) {
+    if (page < 0 || page >= Math.ceil(this.totalResults / this.pageSize)) {
+      return;
+    }
+    
+    this.currentPage = page;
+    this.performSearch();
+  }
+
+  clearFilters() {
+    this.currentQuery = {};
+    this.currentPage = 0;
+    
+    this.searchComponent.setValue('');
+    this.filterComponent.reset();
+    
+    this.performSearch();
+    
+    NotificationSystem.info('Filtres effacés');
+  }
+
+  toggleAdvancedFilters() {
+    const container = document.getElementById('advanced-filters');
+    const isVisible = container.style.display !== 'none';
+    
+    container.style.display = isVisible ? 'none' : 'grid';
+    
+    const button = document.getElementById('toggle-advanced');
+    button.textContent = isVisible ? '⚙️ Filtres avancés' : '🔼 Masquer filtres';
+  }
+
+  saveToHistory() {
+    if (Object.keys(this.currentQuery).length === 0) {
+      return; // Ne pas sauvegarder les recherches vides
+    }
+
+    const searchItem = {
+      query: { ...this.currentQuery },
+      timestamp: Date.now(),
+      results: this.totalResults
+    };
+
+    // Éviter les doublons
+    this.searchHistory = this.searchHistory.filter(item => 
+      JSON.stringify(item.query) !== JSON.stringify(searchItem.query)
+    );
+
+    this.searchHistory.unshift(searchItem);
+    this.searchHistory = this.searchHistory.slice(0, 10); // Garder seulement les 10 dernières
+
+    localStorage.setItem('structureSearchHistory', JSON.stringify(this.searchHistory));
+    this.loadSearchHistory();
+  }
+
+  loadSearchHistory() {
+    const historyContainer = document.getElementById('search-history');
+    const historyList = document.getElementById('search-history-list');
+
+    if (this.searchHistory.length === 0) {
+      historyContainer.style.display = 'none';
+      return;
+    }
+
+    historyContainer.style.display = 'block';
+    historyList.innerHTML = '';
+
+    this.searchHistory.forEach((item, index) => {
+      const historyItem = document.createElement('div');
+      historyItem.className = 'search-history-item';
+      
+      const queryText = Object.entries(item.query)
+        .map(([key, value]) => `${key}:"${value}"`)
+        .join(', ');
+      
+      historyItem.innerHTML = `
+        <span>🔍</span>
+        <span style="flex: 1;">${queryText}</span>
+        <small>${item.results} résultats</small>
+      `;
+
+      historyItem.onclick = () => {
+        this.loadFromHistory(item);
+      };
+
+      historyList.appendChild(historyItem);
+    });
+  }
+
+  loadFromHistory(historyItem) {
+    this.currentQuery = { ...historyItem.query };
+    this.currentPage = 0;
+
+    // Mettre à jour l'interface
+    if (this.currentQuery.name) {
+      this.searchComponent.setValue(this.currentQuery.name);
+    }
+
+    // Note: Les filtres seront mis à jour automatiquement par la recherche
+    this.performSearch();
+    
+    NotificationSystem.info('Recherche chargée depuis l\'historique');
+  }
+
+  exportResults() {
+    if (this.currentResults.length === 0) {
+      NotificationSystem.warning('Aucun résultat à exporter');
+      return;
+    }
+
+    // Export simple en JSON
+    const exportData = {
+      query: this.currentQuery,
+      total: this.totalResults,
+      results: this.currentResults.map(entry => ({
+        id: entry.resource.id,
+        name: entry.resource.name,
+        type: entry.resource.type?.[0]?.coding?.[0]?.code,
+        status: entry.resource.status,
+        identifier: entry.resource.identifier?.[0]?.value
+      })),
+      exportedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json'
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `structure_search_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    NotificationSystem.success('Résultats exportés avec succès');
+  }
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => {
+  window.structureSearch = new AdvancedStructureSearch();
+  
+  // Message de bienvenue
+  NotificationSystem.info('Interface de recherche avancée prête !');
+});
+</script>
+{% endblock %}

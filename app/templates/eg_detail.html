@@ -1,18 +1,11 @@
 {% extends "base.html" %}
 {% import "components.html" as components %}
+{% from "components/structure_nav.html" import structure_breadcrumb, quick_actions_panel %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
-    <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-        <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-        <span class="text-slate-400">/</span>
-        <a href="/admin/ght/{{ context.id }}" class="hover:text-blue-600 transition-colors">GHT</a>
-        <span class="text-slate-400">/</span>
-        <a href="/context/ght/{{ context.id }}?next=/admin/ght/{{ context.id }}/ej/{{ entite.id }}" class="hover:text-blue-600 transition-colors">{{ entite.name }}</a>
-        <span class="text-slate-400">/</span>
-        <span class="text-slate-800 font-medium">{{ geo.name }}</span>
-    </nav>
+    <!-- Breadcrumb enrichi avec hiérarchie complète -->
+    {{ structure_breadcrumb(geo, 'eg') }}
 
     <!-- Header -->
     <div class="mb-8">
@@ -93,26 +86,9 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                <h2 class="text-lg font-semibold text-slate-900 mb-4">Actions rapides</h2>
-                <div class="space-y-3">
-                    <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/new"
-                       class="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 hover:bg-blue-100 transition">
-                        Créer un pôle
-                        <span aria-hidden="true">+</span>
-                    </a>
-                    <a href="/context/ght/{{ context.id }}?next=/admin/ght/{{ context.id }}/ej/{{ entite.id }}"
-                       class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">
-                        Gérer les entités juridiques
-                        <span aria-hidden="true">&rarr;</span>
-                    </a>
-                    <a href="/structure"
-                       class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">
-                        Vue globale de la structure
-                        <span aria-hidden="true">&rarr;</span>
-                    </a>
-                </div>
-            </div>
+            <!-- Panneau d'actions rapides modernisé -->
+            {{ quick_actions_panel(geo, 'eg') }}
+            
             <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm lg:col-span-2">
                 <h2 class="text-lg font-semibold text-slate-900 mb-4">Données institutionnelles</h2>
                 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">

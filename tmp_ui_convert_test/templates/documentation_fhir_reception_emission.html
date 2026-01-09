@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Documentation FHIR — Réception et émission{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">API REST FHIR — Réception et Émission</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="flex items-center space-x-4">
+        <div class="btn">
+          <div class="text-3xl">📚</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">API REST FHIR — Réception et Émission</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <h1 class="text-3xl font-bold mb-6">API REST FHIR — Réception et Émission</h1>
+    
+    <div class="prose max-w-none">
+      <p class="text-lg mb-6">
+        MedData Bridge expose une API REST complète pour l'export et l'import de données au format FHIR R4, 
+        conforme au profil France (hl7.fhir.fr.core).
+      </p>
+
+      <div class="alert alert-info">
+        <p class="font-semibold">📖 Documentation complète</p>
+        <p>Pour la documentation technique détaillée de l'API FHIR (tous les endpoints, exemples, formats), 
+        consultez : <a href="/Doc/FHIR_API.html" class="text-blue-600 hover:underline">FHIR_API.html</a></p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="btn">
+          <h2 class="text-xl font-semibold mb-4 text-green-700">📤 Émission (Export)</h2>
+          <ul class="space-y-2">
+            <li>✅ Export de dossiers → Bundle FHIR (Patient, Encounter, EpisodeOfCare)</li>
+            <li>✅ Export de structure → Bundle FHIR (Location hiérarchique)</li>
+            <li>✅ Extensions FRCore appliquées (fr-core-encounter, fr-core-patient)</li>
+            <li>✅ Validation avec HAPI FHIR validator + IG France</li>
+            <li>✅ fullUrl stables : <code>ResourceType/&lt;id&gt;</code></li>
+          </ul>
+          <div class="mt-4">
+            <a href="/api-docs#tag/FHIR-Export" class="text-blue-600 hover:underline">→ Voir les endpoints d'export</a>
+          </div>
+        </div>
+
+        <div class="btn">
+          <h2 class="text-xl font-semibold mb-4 text-blue-700">📥 Réception (Import)</h2>
+          <ul class="space-y-2">
+            <li>✅ Import de Bundle FHIR → création/mise à jour entités (Patient, Encounter, Location)</li>
+            <li>✅ Résolution des références bundle-locales (resource_map partagé)</li>
+            <li>✅ Support des formats de référence : <code>Type/id</code>, <code>#id</code>, <code>urn:uuid:...</code></li>
+            <li>✅ Validation format bundle et contrôle EJ</li>
+            <li>✅ Tests unitaires et roundtrip validés</li>
+          </ul>
+          <div class="mt-4">
+            <a href="/api-docs#tag/FHIR-Import" class="text-blue-600 hover:underline">→ Voir les endpoints d'import</a>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-bold mb-4">Endpoints principaux</h2>
+      
+      <div class="btn">
+        <h3 class="font-semibold mb-2">Export de dossier (Encounter complet)</h3>
+        <code class="btn">GET /api/fhir/export/dossiers/{dossier_id}</code>
+        <p class="text-sm mt-2">Retourne un Bundle FHIR contenant Patient, Encounter, EpisodeOfCare et références Location.</p>
+      </div>
+
+      <div class="btn">
+        <h3 class="font-semibold mb-2">Export de structure organisationnelle</h3>
+        <code class="btn">GET /api/fhir/export/structure/{ej_id}</code>
+        <p class="text-sm mt-2">Retourne un Bundle FHIR (type transaction) avec la hiérarchie Location (EG, UF, USC, UH, Chambre, Lit).</p>
+      </div>
+
+      <div class="btn">
+        <h3 class="font-semibold mb-2">Import de Bundle FHIR</h3>
+        <code class="btn">POST /api/fhir/import/bundle</code>
+        <p class="text-sm mt-2">Importe un Bundle FHIR complet (Patient, Encounter, Location). Résout les références internes et crée/met à jour les entités en base.</p>
+      </div>
+
+      <h2 class="text-2xl font-bold mb-4 mt-8">Conformité et validation</h2>
+      
+      <div class="space-y-3">
+        <div class="flex items-start">
+          <span class="text-green-500 mr-2">✓</span>
+          <p><strong>Profil French Core (hl7.fhir.fr.core):</strong> Les ressources émises incluent les extensions et profils FRCore requis.</p>
+        </div>
+        <div class="flex items-start">
+          <span class="text-green-500 mr-2">✓</span>
+          <p><strong>Validation HAPI:</strong> Les bundles générés sont validés avec le validateur HAPI FHIR + IG pack French Core.</p>
+        </div>
+        <div class="flex items-start">
+          <span class="text-green-500 mr-2">✓</span>
+          <p><strong>Roundtrip testé:</strong> Un bundle émis peut être réimporté sans perte de données (tests unitaires en place).</p>
+        </div>
+        <div class="flex items-start">
+          <span class="text-green-500 mr-2">✓</span>
+          <p><strong>Références robustes:</strong> L'import gère les URL complètes, les références Type/id, les références #id, et les URN uuid.</p>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-bold mb-4 mt-8">Ressources complémentaires</h2>
+      
+      <ul class="space-y-2">
+        <li>
+          <a href="/Doc/FHIR_API.html" class="text-blue-600 hover:underline">📄 Documentation API FHIR complète</a> — 
+          tous les endpoints, paramètres, exemples de requêtes/réponses
+        </li>
+        <li>
+          <a href="/examples/fhir-bundles" class="text-blue-600 hover:underline">📦 Exemples de bundles FHIR</a> — 
+          bundles validés pour patients, encounters, structure
+        </li>
+        <li>
+          <a href="/docs/PROGRAM_DOCUMENTATION.md" class="text-blue-600 hover:underline">📚 Documentation programme</a> — 
+          architecture globale, convertisseurs, services
+        </li>
+        <li>
+          <a href="https://www.hl7.org/fhir/" target="_blank" class="text-blue-600 hover:underline">🌐 Spécification FHIR R4</a> — 
+          standard HL7 FHIR (site officiel)
+        </li>
+        <li>
+          <a href="https://simplifier.net/french-core" target="_blank" class="text-blue-600 hover:underline">🇫🇷 Profil French Core</a> — 
+          extensions et profils spécifiques France (hl7.fhir.fr.core)
+        </li>
+      </ul>
+    </div>
+  </div>
+{% endblock %}

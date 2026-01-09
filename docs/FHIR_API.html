@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API REST FHIR - Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; max-width: 1200px; margin: 2rem auto; padding: 0 2rem; color: #333; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 1.5rem; }
+        h1 { border-bottom: 3px solid #3498db; padding-bottom: 0.5rem; }
+        h2 { border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3rem; }
+        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+        pre { background: #f8f8f8; border: 1px solid #ddd; border-radius: 5px; padding: 1rem; overflow-x: auto; }
+        pre code { background: none; padding: 0; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; }
+        th { background: #3498db; color: white; font-weight: 600; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .codehilite { background: #f8f8f8; }
+    </style>
+</head>
+<body>
+<h1 id="api-rest-fhir-documentation">API REST FHIR - Documentation</h1>
+<h2 id="vue-densemble">Vue d'ensemble</h2>
+<p>MedDataBridge expose une API REST pour l'export et l'import de données au format FHIR R4.</p>
+<h3 id="url-de-base">URL de base</h3>
+<pre class="codehilite"><code>http://localhost:8000/api/fhir
+</code></pre>
+
+<h3 id="format">Format</h3>
+<p>Toutes les requêtes et réponses utilisent le format JSON avec le Content-Type <code>application/json</code>.</p>
+<h1 id="_1"></h1>
+<h2 id="endpoints-dexport">Endpoints d'Export</h2>
+<h3 id="get-apifhirexportstructureej_id">GET /api/fhir/export/structure/{ej_id}</h3>
+<p>Exporte la structure organisationnelle complète d'une entité juridique au format FHIR.</p>
+<p><strong>Paramètres:</strong></p>
+<ul>
+<li><code>ej_id</code> (path, required): ID de l'entité juridique</li>
+</ul>
+<p><strong>Réponse:</strong> Bundle FHIR de type 'transaction' contenant des ressources Location</p>
+<p><strong>Exemple de requête:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X GET &quot;http://localhost:8000/api/fhir/export/structure/1&quot;
+</code></pre>
+
+<p><strong>Exemple de réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;resourceType&quot;: &quot;Bundle&quot;,
+  &quot;type&quot;: &quot;transaction&quot;,
+  &quot;entry&quot;: [
+    {
+      &quot;resource&quot;: {
+        &quot;resourceType&quot;: &quot;Location&quot;,
+        &quot;id&quot;: &quot;EG1&quot;,
+        &quot;identifier&quot;: [
+          {
+            &quot;system&quot;: &quot;urn:oid:1.2.3&quot;,
+            &quot;value&quot;: &quot;EG1&quot;
+          }
+        ],
+        &quot;name&quot;: &quot;Site Principal&quot;,
+        &quot;type&quot;: [
+          {
+            &quot;coding&quot;: [
+              {
+                &quot;system&quot;: &quot;https://mos.esante.gouv.fr/NOS/TRE_R02-SecteurActivite/FHIR/TRE-R02-SecteurActivite&quot;,
+                &quot;code&quot;: &quot;ETBL&quot;,
+                &quot;display&quot;: &quot;Établissement&quot;
+              }
+            ]
+          }
+        ],
+        &quot;physicalType&quot;: {
+          &quot;coding&quot;: [
+            {
+              &quot;system&quot;: &quot;http://terminology.hl7.org/CodeSystem/location-physical-type&quot;,
+              &quot;code&quot;: &quot;si&quot;,
+              &quot;display&quot;: &quot;Site&quot;
+            }
+          ]
+        }
+      },
+      &quot;request&quot;: {
+        &quot;method&quot;: &quot;PUT&quot;,
+        &quot;url&quot;: &quot;Location/EG1&quot;
+      }
+    }
+  ]
+}
+</code></pre>
+
+<h1 id="_2"></h1>
+<h3 id="get-apifhirexportpatientsej_id">GET /api/fhir/export/patients/{ej_id}</h3>
+<p>Exporte les patients d'une entité juridique au format FHIR.</p>
+<p><strong>Paramètres:</strong></p>
+<ul>
+<li>
+<p><code>ej_id</code> (path, required): ID de l'entité juridique</p>
+</li>
+<li>
+<p><code>limit</code> (query, optional): Nombre maximum de patients à exporter (pagination)</p>
+</li>
+<li>
+<p><code>offset</code> (query, optional): Nombre de patients à sauter (pagination)</p>
+</li>
+</ul>
+<p><strong>Réponse:</strong> Bundle FHIR contenant des ressources Patient</p>
+<p><strong>Exemple de requête:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X GET &quot;http://localhost:8000/api/fhir/export/patients/1?limit=50&amp;offset=0&quot;
+</code></pre>
+
+<p><strong>Exemple de réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;resourceType&quot;: &quot;Bundle&quot;,
+  &quot;type&quot;: &quot;transaction&quot;,
+  &quot;entry&quot;: [
+    {
+      &quot;resource&quot;: {
+        &quot;resourceType&quot;: &quot;Patient&quot;,
+        &quot;id&quot;: &quot;PAT001&quot;,
+        &quot;identifier&quot;: [
+          {
+            &quot;type&quot;: {
+              &quot;coding&quot;: [
+                {
+                  &quot;system&quot;: &quot;http://terminology.hl7.org/CodeSystem/v2-0203&quot;,
+                  &quot;code&quot;: &quot;PI&quot;
+                }
+              ]
+            },
+            &quot;system&quot;: &quot;urn:oid:1.2.3.4.5&quot;,
+            &quot;value&quot;: &quot;IPP123456&quot;
+          }
+        ],
+        &quot;name&quot;: [
+          {
+            &quot;family&quot;: &quot;DOE&quot;,
+            &quot;given&quot;: [&quot;JOHN&quot;]
+          }
+        ],
+        &quot;gender&quot;: &quot;male&quot;,
+        &quot;birthDate&quot;: &quot;1980-01-01&quot;,
+        &quot;managingOrganization&quot;: {
+          &quot;reference&quot;: &quot;Organization/EJ1&quot;
+        }
+      },
+      &quot;request&quot;: {
+        &quot;method&quot;: &quot;PUT&quot;,
+        &quot;url&quot;: &quot;Patient/PAT001&quot;
+      }
+    }
+  ]
+}
+</code></pre>
+
+<h1 id="_3"></h1>
+<h3 id="get-apifhirexportvenuesej_id">GET /api/fhir/export/venues/{ej_id}</h3>
+<p>Exporte les venues (séjours/rencontres) d'une entité juridique au format FHIR.</p>
+<p><strong>Paramètres:</strong></p>
+<ul>
+<li>
+<p><code>ej_id</code> (path, required): ID de l'entité juridique</p>
+</li>
+<li>
+<p><code>limit</code> (query, optional): Nombre maximum de venues à exporter</p>
+</li>
+<li>
+<p><code>offset</code> (query, optional): Nombre de venues à sauter</p>
+</li>
+</ul>
+<p><strong>Réponse:</strong> Bundle FHIR contenant des ressources Encounter</p>
+<p><strong>Exemple de requête:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X GET &quot;http://localhost:8000/api/fhir/export/venues/1?limit=100&quot;
+</code></pre>
+
+<p><strong>Exemple de réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;resourceType&quot;: &quot;Bundle&quot;,
+  &quot;type&quot;: &quot;transaction&quot;,
+  &quot;entry&quot;: [
+    {
+      &quot;resource&quot;: {
+        &quot;resourceType&quot;: &quot;Encounter&quot;,
+        &quot;id&quot;: &quot;VEN001&quot;,
+        &quot;identifier&quot;: [
+          {
+            &quot;system&quot;: &quot;urn:oid:1.2.3.4.5&quot;,
+            &quot;value&quot;: &quot;NDA987654&quot;
+          }
+        ],
+        &quot;status&quot;: &quot;in-progress&quot;,
+        &quot;class&quot;: {
+          &quot;system&quot;: &quot;http://terminology.hl7.org/CodeSystem/v3-ActCode&quot;,
+          &quot;code&quot;: &quot;IMP&quot;,
+          &quot;display&quot;: &quot;inpatient encounter&quot;
+        },
+        &quot;subject&quot;: {
+          &quot;reference&quot;: &quot;Patient/PAT001&quot;
+        },
+        &quot;period&quot;: {
+          &quot;start&quot;: &quot;2023-01-01T12:00:00Z&quot;
+        },
+        &quot;location&quot;: [
+          {
+            &quot;location&quot;: {
+              &quot;reference&quot;: &quot;Location/UF1&quot;
+            }
+          }
+        ]
+      },
+      &quot;request&quot;: {
+        &quot;method&quot;: &quot;PUT&quot;,
+        &quot;url&quot;: &quot;Encounter/VEN001&quot;
+      }
+    }
+  ]
+}
+</code></pre>
+
+<h1 id="_4"></h1>
+<h3 id="get-apifhirexportallej_id">GET /api/fhir/export/all/{ej_id}</h3>
+<p>Exporte toutes les données (structure, patients, venues) en une seule requête.</p>
+<p><strong>Paramètres:</strong></p>
+<ul>
+<li><code>ej_id</code> (path, required): ID de l'entité juridique</li>
+</ul>
+<p><strong>Réponse:</strong> Objet JSON avec trois bundles séparés</p>
+<p><strong>Exemple de requête:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X GET &quot;http://localhost:8000/api/fhir/export/all/1&quot;
+</code></pre>
+
+<p><strong>Exemple de réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;structure&quot;: {
+    &quot;resourceType&quot;: &quot;Bundle&quot;,
+    &quot;type&quot;: &quot;transaction&quot;,
+    &quot;entry&quot;: [...]
+  },
+  &quot;patients&quot;: {
+    &quot;resourceType&quot;: &quot;Bundle&quot;,
+    &quot;type&quot;: &quot;transaction&quot;,
+    &quot;entry&quot;: [...]
+  },
+  &quot;venues&quot;: {
+    &quot;resourceType&quot;: &quot;Bundle&quot;,
+    &quot;type&quot;: &quot;transaction&quot;,
+    &quot;entry&quot;: [...]
+  }
+}
+</code></pre>
+
+<h1 id="_5"></h1>
+<h3 id="get-apifhirexportstatisticsej_id">GET /api/fhir/export/statistics/{ej_id}</h3>
+<p>Récupère les statistiques d'export pour une entité juridique.</p>
+<p><strong>Paramètres:</strong></p>
+<ul>
+<li><code>ej_id</code> (path, required): ID de l'entité juridique</li>
+</ul>
+<p><strong>Réponse:</strong> Objet JSON avec les compteurs</p>
+<p><strong>Exemple de requête:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X GET &quot;http://localhost:8000/api/fhir/export/statistics/1&quot;
+</code></pre>
+
+<p><strong>Exemple de réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;entite_juridique&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;Centre Hospitalier Test&quot;,
+    &quot;finess&quot;: &quot;123456789&quot;
+  },
+  &quot;locations&quot;: {
+    &quot;entites_geographiques&quot;: 3,
+    &quot;poles&quot;: 15,
+    &quot;services&quot;: 45,
+    &quot;unites_fonctionnelles&quot;: 90,
+    &quot;unites_hebergement&quot;: 90,
+    &quot;chambres&quot;: 450,
+    &quot;lits&quot;: 900,
+    &quot;total&quot;: 1593
+  },
+  &quot;patients&quot;: 2543,
+  &quot;venues&quot;: 5421
+}
+</code></pre>
+
+<h1 id="_6"></h1>
+<h2 id="endpoints-dimport">Endpoints d'Import</h2>
+<h3 id="post-apifhirimportbundle">POST /api/fhir/import/bundle</h3>
+<p>Importe un bundle FHIR complet.</p>
+<p><strong>Corps de la requête:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;ej_id&quot;: 1,
+  &quot;bundle&quot;: {
+    &quot;resourceType&quot;: &quot;Bundle&quot;,
+    &quot;type&quot;: &quot;transaction&quot;,
+    &quot;entry&quot;: [...]
+  }
+}
+</code></pre>
+
+<p><strong>Réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;status&quot;: &quot;success&quot;,
+  &quot;message&quot;: &quot;Import terminé: 10 créées, 5 mises à jour&quot;,
+  &quot;resources_created&quot;: 10,
+  &quot;resources_updated&quot;: 5,
+  &quot;errors&quot;: []
+}
+</code></pre>
+
+<p><strong>Exemple de requête:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X POST &quot;http://localhost:8000/api/fhir/import/bundle&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d @bundle.json
+</code></pre>
+
+<h1 id="_7"></h1>
+<h3 id="post-apifhirimportpatient">POST /api/fhir/import/patient</h3>
+<p>Importe une ressource Patient FHIR.</p>
+<p><strong>Corps de la requête:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;ej_id&quot;: 1,
+  &quot;patient&quot;: {
+    &quot;resourceType&quot;: &quot;Patient&quot;,
+    &quot;identifier&quot;: [...],
+    &quot;name&quot;: [...],
+    ...
+  }
+}
+</code></pre>
+
+<p><strong>Réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;status&quot;: &quot;success&quot;,
+  &quot;message&quot;: &quot;Patient importé avec succès&quot;,
+  &quot;resources_created&quot;: 1,
+  &quot;resources_updated&quot;: 0,
+  &quot;errors&quot;: []
+}
+</code></pre>
+
+<h1 id="_8"></h1>
+<h3 id="post-apifhirimportlocation">POST /api/fhir/import/location</h3>
+<p>Importe une ressource Location FHIR.</p>
+<p><strong>Corps de la requête:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;ej_id&quot;: 1,
+  &quot;location&quot;: {
+    &quot;resourceType&quot;: &quot;Location&quot;,
+    &quot;identifier&quot;: [...],
+    &quot;name&quot;: &quot;Unité de Cardiologie&quot;,
+    ...
+  }
+}
+</code></pre>
+
+<h1 id="_9"></h1>
+<h3 id="post-apifhirimportencounter">POST /api/fhir/import/encounter</h3>
+<p>Importe une ressource Encounter FHIR.</p>
+<p><strong>Corps de la requête:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;ej_id&quot;: 1,
+  &quot;encounter&quot;: {
+    &quot;resourceType&quot;: &quot;Encounter&quot;,
+    &quot;identifier&quot;: [...],
+    &quot;status&quot;: &quot;in-progress&quot;,
+    ...
+  }
+}
+</code></pre>
+
+<h1 id="_10"></h1>
+<h3 id="post-apifhirvalidatebundle">POST /api/fhir/validate/bundle</h3>
+<p>Valide un bundle FHIR sans l'importer.</p>
+<p><strong>Corps de la requête:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;resourceType&quot;: &quot;Bundle&quot;,
+  &quot;type&quot;: &quot;transaction&quot;,
+  &quot;entry&quot;: [...]
+}
+</code></pre>
+
+<p><strong>Réponse:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;valid&quot;: true,
+  &quot;errors&quot;: [],
+  &quot;warnings&quot;: [
+    &quot;Type de bundle 'batch' peut ne pas être supporté&quot;
+  ],
+  &quot;resource_count&quot;: 25
+}
+</code></pre>
+
+<p><strong>Exemple de requête:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X POST &quot;http://localhost:8000/api/fhir/validate/bundle&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d @bundle-to-validate.json
+</code></pre>
+
+<h1 id="_11"></h1>
+<h2 id="codes-derreur">Codes d'erreur</h2>
+<ul>
+<li>
+<p><strong>200 OK</strong>: Requête réussie</p>
+</li>
+<li>
+<p><strong>400 Bad Request</strong>: Requête invalide (bundle mal formé, etc.)</p>
+</li>
+<li>
+<p><strong>404 Not Found</strong>: Ressource non trouvée (EJ inexistante, etc.)</p>
+</li>
+<li>
+<p><strong>422 Unprocessable Entity</strong>: Données invalides (validation échouée)</p>
+</li>
+<li>
+<p><strong>500 Internal Server Error</strong>: Erreur serveur</p>
+</li>
+</ul>
+<h1 id="_12"></h1>
+<h2 id="pagination">Pagination</h2>
+<p>Les endpoints d'export supportent la pagination via les paramètres <code>limit</code> et <code>offset</code>:</p>
+<pre class="codehilite"><code class="language-bash"># Page 1 (50 premiers résultats)
+
+GET /api/fhir/export/patients/1?limit=50&amp;offset=0
+
+# Page 2 (résultats 51-100)
+
+GET /api/fhir/export/patients/1?limit=50&amp;offset=50
+
+# Page 3 (résultats 101-150)
+
+GET /api/fhir/export/patients/1?limit=50&amp;offset=100
+</code></pre>
+
+<h1 id="_13"></h1>
+<h2 id="exemples-dutilisation">Exemples d'utilisation</h2>
+<h3 id="export-complet-dune-structure">Export complet d'une structure</h3>
+<pre class="codehilite"><code class="language-bash">#!/bin/bash
+
+# Export de la structure
+
+curl -X GET &quot;http://localhost:8000/api/fhir/export/structure/1&quot; \
+  -o structure.json
+
+# Export des patients
+
+curl -X GET &quot;http://localhost:8000/api/fhir/export/patients/1&quot; \
+  -o patients.json
+
+# Export des venues
+
+curl -X GET &quot;http://localhost:8000/api/fhir/export/venues/1&quot; \
+  -o venues.json
+
+echo &quot;Export terminé&quot;
+</code></pre>
+
+<h3 id="import-dun-bundle">Import d'un bundle</h3>
+<pre class="codehilite"><code class="language-bash">#!/bin/bash
+
+# Valider le bundle avant import
+
+curl -X POST &quot;http://localhost:8000/api/fhir/validate/bundle&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d @my-bundle.json \
+  | jq .
+
+# Si valid=true, importer
+
+curl -X POST &quot;http://localhost:8000/api/fhir/import/bundle&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{
+    &quot;ej_id&quot;: 1,
+    &quot;bundle&quot;: '$(cat my-bundle.json)'
+  }' \
+  | jq .
+</code></pre>
+
+<h3 id="statistiques-dexport">Statistiques d'export</h3>
+<pre class="codehilite"><code class="language-bash">#!/bin/bash
+
+# Récupérer les statistiques
+
+curl -X GET &quot;http://localhost:8000/api/fhir/export/statistics/1&quot; \
+  | jq '.locations.total, .patients, .venues'
+</code></pre>
+
+<h1 id="_14"></h1>
+<h2 id="documentation-interactive">Documentation interactive</h2>
+<p>L'API est également documentée via Swagger UI, accessible à:</p>
+<pre class="codehilite"><code>http://localhost:8000/docs
+</code></pre>
+
+<p>Et ReDoc:</p>
+<pre class="codehilite"><code>http://localhost:8000/redoc
+</code></pre>
+</body>
+</html>

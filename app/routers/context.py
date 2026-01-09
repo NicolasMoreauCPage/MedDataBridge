@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models import Patient, Dossier
-from app.models_structure import GHTContext, EntiteJuridique
+from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 
 router = APIRouter()
 
@@ -47,17 +47,23 @@ def clear_context(kind: str | None = None, request: Request = None):
         request.session.pop("dossier_id", None)
     elif kind == "ght":
         request.session.pop("ght_context_id", None)
-        # si on efface le GHT, l'EJ n'est peut-être plus cohérent => on l'efface aussi
+        # si on efface le GHT, l'EJ et l'EG ne sont peut-être plus cohérents => on les efface aussi
         request.session.pop("ej_context_id", None)
+        request.session.pop("eg_context_id", None)
     elif kind == "ej":
         request.session.pop("ej_context_id", None)
-        # conserver le GHT si choisi indépendamment
+        # Si on nettoie l'EJ, nettoyer aussi l'EG pour cohérence
+        request.session.pop("eg_context_id", None)
+    elif kind == "eg":
+        request.session.pop("eg_context_id", None)
+        # conserver le GHT et l'EJ si choisis indépendamment
     else:
         # clear all known contexts
         request.session.pop("patient_id", None)
         request.session.pop("dossier_id", None)
         request.session.pop("ght_context_id", None)
         request.session.pop("ej_context_id", None)
+        request.session.pop("eg_context_id", None)
     return _redirect_back(request, fallback="/")
 
 
@@ -90,6 +96,8 @@ def set_ej_context(ej_id: int, request: Request, session: Session = Depends(get_
         return RedirectResponse("/admin/ght", status_code=303)
     # Définir le contexte EJ et, par cohérence d'UI, aligner le GHT
     request.session["ej_context_id"] = ej_id
+    # Si on sélectionne un EJ, nettoyer le contexte EG car ils sont exclusifs
+    request.session.pop("eg_context_id", None)
     if ej.ght_context_id:
         request.session["ght_context_id"] = ej.ght_context_id
     
@@ -117,3 +125,28 @@ def set_ej_context(ej_id: int, request: Request, session: Session = Depends(get_
             request.session.pop("patient_id", None)
     
     return _redirect_back(request, fallback=f"/admin/ght/{ej.ght_context_id}/ej/{ej_id}")
+
+
+@router.get("/eg/{eg_id}")
+def set_eg_context(eg_id: int, request: Request, session: Session = Depends(get_session)):
+    eg = session.get(EntiteGeographique, eg_id)
+    if not eg:
+        return RedirectResponse("/admin/ght", status_code=303)
+    # Définir le contexte EG et, par cohérence d'UI, aligner aussi l'EJ et le GHT
+    request.session["eg_context_id"] = eg_id
+    if eg.entite_juridique_id:
+        # Aligner le contexte EJ sur l'EJ propriétaire de cette EG
+        request.session["ej_context_id"] = eg.entite_juridique_id
+        ej = eg.entite_juridique
+        if ej and ej.ght_context_id:
+            # Et, si possible, aligner le contexte GHT
+            request.session["ght_context_id"] = ej.ght_context_id
+    
+    # Nettoyer les contextes patient/dossier (ils seront filtrés par l'EG)
+    request.session.pop("dossier_id", None)
+    request.session.pop("patient_id", None)
+
+    # Après sélection d'une EG, rediriger vers le détail de cette EG dans la
+    # structure (route "/structure/eg/{eg_id}") plutôt que l'ancien chemin
+    # "/structure/entites-geo/{eg_id}" qui n'existe plus.
+    return _redirect_back(request, fallback=f"/structure/eg/{eg_id}")

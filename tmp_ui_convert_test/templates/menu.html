@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="btn">
+    <h1 class="text-2xl font-semibold mb-4">Carte des menus</h1>
+    <p class="text-sm text-slate-600 mb-4">Vue dynamique de la structure des menus. Utilisez ceci pour découvrir les routes principales.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for section, items in menu.items() %}
+        <div class="bg-surface rounded-lg border border-slate-100 p-4">
+          <h3 class="font-semibold mb-2">{{ section }}</h3>
+          <ul class="list-disc pl-5 text-sm text-slate-700">
+            {% for it in items %}
+              <li>
+                {% if it.url.startswith('http') %}
+                  <a href="{{ it.url }}" target="_blank" rel="noopener" class="text-accent hover:underline">{{ it.label }}</a>
+                {% else %}
+                  <a href="{{ it.url }}" class="text-accent hover:underline">{{ it.label }}</a>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion HPRIM - Fichiers de Test{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900 flex items-center">
+          <i class="fas fa-file-code mr-3 text-blue-600"></i>
+          Gestion HPRIM - Fichiers de Test
+        </h1>
+        <p class="mt-2 text-slate-600">
+          Explorer, analyser et importer les messages HPRIM de test
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="refreshFiles()" class="btn-secondary">
+          <i class="fas fa-sync-alt mr-2"></i>Actualiser
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="btn">
+      <div class="flex items-center">
+        <div class="alert alert-info">
+          <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-slate-600">Fichiers HPRIM</p>
+          <p class="text-2xl font-bold text-slate-900" id="totalFiles">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="btn">
+      <div class="flex items-center">
+        <div class="alert alert-success">
+          <i class="fas fa-check-circle text-green-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-slate-600">Parsés</p>
+          <p class="text-2xl font-bold text-slate-900" id="parsedFiles">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="btn">
+      <div class="flex items-center">
+        <div class="p-3 bg-orange-100 rounded-lg">
+          <i class="fas fa-upload text-orange-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-slate-600">Importés</p>
+          <p class="text-2xl font-bold text-slate-900" id="importedFiles">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="btn">
+      <div class="flex items-center">
+        <div class="p-3 bg-purple-100 rounded-lg">
+          <i class="fas fa-database text-purple-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-slate-600">Cotations créées</p>
+          <p class="text-2xl font-bold text-slate-900" id="totalCotations">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres et recherche -->
+  <div class="btn">
+    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div class="flex-1 max-w-md">
+        <div class="relative">
+          <input type="text" id="searchInput" placeholder="Rechercher un fichier..."
+                 class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <select id="typeFilter" class="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">Tous types</option>
+          <option value="creation">Création</option>
+          <option value="modification">Modification</option>
+          <option value="suppression">Suppression</option>
+          <option value="ccam">CCAM</option>
+          <option value="ngap">NGAP</option>
+          <option value="ucd">UCD</option>
+        </select>
+        <button onclick="clearFilters()" class="px-4 py-2 text-slate-600 hover:text-slate-800">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste des fichiers -->
+  <div class="btn">
+    <div class="px-6 py-4 border-b border-slate-200">
+      <h2 class="text-lg font-semibold text-slate-900">Fichiers HPRIM disponibles</h2>
+    </div>
+
+    <div id="filesList" class="divide-y divide-slate-200">
+      <!-- Les fichiers seront chargés ici -->
+    </div>
+
+    <!-- Loader -->
+    <div id="loadingIndicator" class="flex items-center justify-center py-12">
+      <div class="alert alert-info"></div>
+      <span class="ml-3 text-slate-600">Chargement des fichiers...</span>
+    </div>
+
+    <!-- Message vide -->
+    <div id="emptyState" class="hidden text-center py-12">
+      <i class="fas fa-folder-open text-slate-400 text-4xl mb-4"></i>
+      <h3 class="text-lg font-medium text-slate-900 mb-2">Aucun fichier trouvé</h3>
+      <p class="text-slate-600">Vérifiez que le répertoire HPRIM de test est accessible.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de détails du fichier -->
+<div id="fileModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="btn">
+      <div class="flex items-center justify-between p-6 border-b border-slate-200">
+        <h3 class="text-xl font-bold text-slate-900" id="modalTitle">Détails du fichier</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <!-- Métadonnées -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="btn">
+            <h4 class="font-semibold text-slate-900 mb-3">Informations fichier</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-slate-600">Nom:</span>
+                <span class="font-mono text-slate-900" id="fileName">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">Taille:</span>
+                <span class="text-slate-900" id="fileSize">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">Modifié:</span>
+                <span class="text-slate-900" id="fileModified">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <h4 class="font-semibold text-slate-900 mb-3">Analyse HPRIM</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-slate-600">Type:</span>
+                <span class="text-slate-900" id="hprimType">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">Action:</span>
+                <span class="text-slate-900" id="hprimAction">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">Statut parsing:</span>
+                <span class="text-slate-900" id="parseStatus">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contenu du fichier -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold text-slate-900">Contenu du message HPRIM</h4>
+            <button onclick="copyContent()" class="text-blue-600 hover:text-blue-800 text-sm">
+              <i class="fas fa-copy mr-1"></i>Copier
+            </button>
+          </div>
+          <pre id="fileContent" class="btn"></pre>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3">
+          <button onclick="parseFile()" class="btn-primary flex-1">
+            <i class="fas fa-cogs mr-2"></i>Parser le message
+          </button>
+          <button onclick="importToCotations()" class="btn-success flex-1">
+            <i class="fas fa-upload mr-2"></i>Importer vers cotations
+          </button>
+          <button onclick="downloadFile()" class="btn-secondary">
+            <i class="fas fa-download mr-2"></i>Télécharger
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Variables globales
+let allFiles = [];
+let currentFile = null;
+
+// Chargement initial
+document.addEventListener('DOMContentLoaded', function() {
+  loadFiles();
+});
+
+// Fonctions principales
+async function loadFiles() {
+  showLoading(true);
+  try {
+    const response = await fetch('/roundtrip-hprim/test-files');
+    const data = await response.json();
+
+    allFiles = data.files || [];
+    updateStats();
+    renderFiles(allFiles);
+  } catch (error) {
+    console.error('Erreur chargement fichiers:', error);
+    showToast('Erreur lors du chargement des fichiers', true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+function updateStats() {
+  document.getElementById('totalFiles').textContent = allFiles.length;
+  // TODO: Calculer les vraies stats quand parsing implémenté
+  document.getElementById('parsedFiles').textContent = '0';
+  document.getElementById('importedFiles').textContent = '0';
+  document.getElementById('totalCotations').textContent = '0';
+}
+
+function renderFiles(files) {
+  const container = document.getElementById('filesList');
+
+  if (files.length === 0) {
+    document.getElementById('emptyState').classList.remove('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  document.getElementById('emptyState').classList.add('hidden');
+
+  container.innerHTML = files.map(file => `
+    <div class="btn">
+      <div class="flex items-center justify-between">
+        <div class="flex-1">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-file-code text-blue-600 text-lg"></i>
+            <div>
+              <h3 class="font-semibold text-slate-900">${file.filename}</h3>
+              <p class="text-sm text-slate-600">
+                ${formatFileSize(file.size)} • Modifié ${formatDate(file.modified)}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="viewFile('${file.filename}')"
+                  class="btn-secondary text-sm">
+            <i class="fas fa-eye mr-1"></i>Voir
+          </button>
+          <button onclick="parseFile('${file.filename}')"
+                  class="btn-primary text-sm">
+            <i class="fas fa-cogs mr-1"></i>Parser
+          </button>
+          <button onclick="importFile('${file.filename}')"
+                  class="btn-success text-sm">
+            <i class="fas fa-upload mr-1"></i>Importer
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function viewFile(filename) {
+  try {
+    const response = await fetch(`/roundtrip-hprim/test-files/${filename}`);
+    const data = await response.json();
+
+    currentFile = data;
+
+    // Remplir la modal
+    document.getElementById('modalTitle').textContent = `Détails: ${filename}`;
+    document.getElementById('fileName').textContent = filename;
+    document.getElementById('fileSize').textContent = formatFileSize(data.size);
+    document.getElementById('fileModified').textContent = formatDate(data.modified);
+    document.getElementById('fileContent').textContent = data.content;
+
+    // Analyse basique du type HPRIM
+    analyzeHprimContent(data.content);
+
+    // Afficher la modal
+    document.getElementById('fileModal').classList.remove('hidden');
+
+  } catch (error) {
+    console.error('Erreur chargement fichier:', error);
+    showToast('Erreur lors du chargement du fichier', true);
+  }
+}
+
+function analyzeHprimContent(content) {
+  // Analyse basique du contenu pour déterminer le type
+  let type = 'Inconnu';
+  let action = 'Inconnue';
+
+  if (content.includes('creationActeCCAM')) {
+    type = 'CCAM';
+    action = 'Création';
+  } else if (content.includes('creationActeNGAP')) {
+    type = 'NGAP';
+    action = 'Création';
+  } else if (content.includes('creationUCD')) {
+    type = 'UCD';
+    action = 'Création';
+  } else if (content.includes('Modification')) {
+    action = 'Modification';
+  } else if (content.includes('Suppression')) {
+    action = 'Suppression';
+  }
+
+  document.getElementById('hprimType').textContent = type;
+  document.getElementById('hprimAction').textContent = action;
+  document.getElementById('parseStatus').textContent = 'Non parsé';
+}
+
+async function parseFile(filename = null) {
+  const fileToParse = filename || (currentFile ? currentFile.filename : null);
+  if (!fileToParse) return;
+
+  try {
+    showLoading(true);
+    const response = await fetch(`/roundtrip-hprim/test-files/${fileToParse}`);
+
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // Afficher les résultats du parsing dans le modal
+    const modalContent = document.getElementById('fileModalContent');
+    const parsedInfo = result.parsed_data;
+
+    let content = `
+      <div class="mb-4">
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">Informations générales</h3>
+        <div class="btn">
+          <p><strong>Type de message:</strong> ${parsedInfo.type_message}</p>
+          <p><strong>Version:</strong> ${parsedInfo.version}</p>
+          <p><strong>Acquittement attendu:</strong> ${parsedInfo.acquittement_attendu ? 'Oui' : 'Non'}</p>
+          <p><strong>Identifiant attendu:</strong> ${parsedInfo.identifiant_attendu ? 'Oui' : 'Non'}</p>
+        </div>
+      </div>
+    `;
+
+    // En-tête du message
+    if (parsedInfo.entete) {
+      content += `
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">En-tête du message</h3>
+          <div class="btn">
+            <p><strong>Émetteur:</strong> ${parsedInfo.entete.emetteur?.nom || 'N/A'} (${parsedInfo.entete.emetteur?.id || 'N/A'})</p>
+            <p><strong>Destinataire:</strong> ${parsedInfo.entete.destinataire?.nom || 'N/A'} (${parsedInfo.entete.destinataire?.id || 'N/A'})</p>
+            <p><strong>Date d'émission:</strong> ${parsedInfo.entete.date_emission}</p>
+            <p><strong>ID message:</strong> ${parsedInfo.entete.message?.id || 'N/A'}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Événements
+    if (parsedInfo.evenements && parsedInfo.evenements.length > 0) {
+      content += `
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold text-slate-900 mb-2">Événements (${parsedInfo.evenements.length})</h3>
+      `;
+
+      parsedInfo.evenements.forEach((event, index) => {
+        content += `
+          <div class="btn">
+            <h4 class="font-medium text-slate-800">Événement ${index + 1}</h4>
+            <p><strong>Date d'action:</strong> ${event.date_action}</p>
+            <p><strong>Patient:</strong> ${event.patient?.nom || 'N/A'} ${event.patient?.prenom || ''} (${event.patient?.id || 'N/A'})</p>
+            <p><strong>Professionnel:</strong> ${event.professionnel?.nom || 'N/A'} ${event.professionnel?.prenom || ''} (${event.professionnel?.id || 'N/A'})</p>
+            <p><strong>Actes (${event.actes?.length || 0}):</strong></p>
+            <ul class="ml-4 mt-1">
+        `;
+
+        event.actes?.forEach(acte => {
+          content += `<li>• ${acte.type}: ${acte.code} - ${acte.libelle} (Qté: ${acte.quantite})</li>`;
+        });
+
+        content += `
+            </ul>
+          </div>
+        `;
+      });
+
+      content += `</div>`;
+    }
+
+    modalContent.innerHTML = content;
+    showToast('Fichier parsé avec succès', false);
+
+  } catch (error) {
+    console.error('Erreur parsing:', error);
+    showToast('Erreur lors du parsing du fichier', true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function importFile(filename) {
+  try {
+    showLoading(true);
+    const response = await fetch('/roundtrip-hprim/import-test-file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: filename })
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.status === 'success') {
+      showToast(`${result.cotations_created} cotations créées depuis ${filename}`, false);
+    } else {
+      showToast(`Erreur import: ${result.message}`, true);
+    }
+  } catch (error) {
+    console.error('Erreur import:', error);
+    showToast('Erreur lors de l\'import', true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function importToCotations() {
+  if (!currentFile) return;
+  await importFile(currentFile.filename);
+}
+
+// Fonctions utilitaires
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString('fr-FR');
+}
+
+function showLoading(show) {
+  document.getElementById('loadingIndicator').classList.toggle('hidden', !show);
+}
+
+function closeModal() {
+  document.getElementById('fileModal').classList.add('hidden');
+  currentFile = null;
+}
+
+function refreshFiles() {
+  loadFiles();
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('typeFilter').value = '';
+  renderFiles(allFiles);
+}
+
+function copyContent() {
+  const content = document.getElementById('fileContent').textContent;
+  navigator.clipboard.writeText(content).then(() => {
+    showToast('Contenu copié dans le presse-papiers', false);
+  });
+}
+
+function downloadFile() {
+  if (!currentFile) return;
+  const blob = new Blob([currentFile.content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = currentFile.filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showToast(message, error = false) {
+  // Créer un toast simple
+  const toast = document.createElement('div');
+  toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${
+    error ? 'bg-red-500' : 'bg-green-500'
+  }`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => document.body.removeChild(toast), 3000);
+}
+
+// Recherche et filtrage
+document.getElementById('searchInput').addEventListener('input', function(e) {
+  filterFiles();
+});
+
+document.getElementById('typeFilter').addEventListener('change', function(e) {
+  filterFiles();
+});
+
+function filterFiles() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const typeFilter = document.getElementById('typeFilter').value;
+
+  let filtered = allFiles.filter(file => {
+    const matchesSearch = file.filename.toLowerCase().includes(searchTerm);
+    const matchesType = !typeFilter ||
+      file.filename.toLowerCase().includes(typeFilter.toLowerCase());
+    return matchesSearch && matchesType;
+  });
+
+  renderFiles(filtered);
+}
+</script>
+
+<style>
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition;
+}
+
+.btn-secondary {
+  @apply bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-2 rounded-lg transition;
+}
+
+.btn-success {
+  @apply bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition;
+}
+</style>
+{% endblock %}

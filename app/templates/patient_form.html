@@ -64,6 +64,10 @@
         <span class="text-xl flex items-center gap-3">
           <span class="text-2xl">{{ icon('user', 'w-8 h-8') }}</span>
           <span>Identité du patient</span>
+          <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1"></span>
+            Obligatoire
+          </span>
         </span>
       </summary>
       <div class="p-6 space-y-4">
@@ -180,8 +184,12 @@
     <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm" open>
       <summary class="cursor-pointer bg-gradient-to-r from-emerald-50 via-teal-50 to-green-50 px-8 py-5 font-bold text-slate-800 hover:from-emerald-100 hover:via-teal-100 hover:to-green-100 transition-all duration-200 border-b-2 border-slate-200">
         <span class="text-xl flex items-center gap-3">
-          <span class="text-2xl">{{ icon('home', 'w-8 h-8') }}</span>
+          <span class="text-2xl">{{ icon('map', 'w-8 h-8') }}</span>
           <span>Coordonnées (domicile)</span>
+          <span class="ml-auto inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1"></span>
+            Recommandé
+          </span>
         </span>
       </summary>
       <div class="p-6 space-y-4">
@@ -259,8 +267,9 @@
     <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm">
       <summary class="cursor-pointer bg-gradient-to-r from-purple-50 via-violet-50 to-fuchsia-50 px-8 py-5 font-bold text-slate-800 hover:from-purple-100 hover:via-violet-100 hover:to-fuchsia-100 transition-all duration-200 border-b-2 border-slate-200">
         <span class="text-xl flex items-center gap-3">
-          <span class="text-2xl">{{ icon('home', 'w-8 h-8') }}</span>
+          <span class="text-2xl">{{ icon('map-pin', 'w-8 h-8') }}</span>
           <span>Lieu de naissance</span>
+          <span class="ml-auto text-xs text-slate-500 font-normal">Optionnel - Cliquer pour déplier</span>
         </span>
       </summary>
       <div class="p-6 space-y-4">
@@ -306,8 +315,9 @@
     <details class="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-sm">
       <summary class="cursor-pointer bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 px-8 py-5 font-bold text-slate-800 hover:from-amber-100 hover:via-orange-100 hover:to-yellow-100 transition-all duration-200 border-b-2 border-slate-200">
         <span class="text-xl flex items-center gap-3">
-          <span class="text-2xl">{{ icon('clipboard', 'w-8 h-8') }}</span>
+          <span class="text-2xl">{{ icon('clipboard-document-list', 'w-8 h-8') }}</span>
           <span>Informations administratives</span>
+          <span class="ml-auto text-xs text-slate-500 font-normal">NIR, Médecin traitant - Cliquer pour déplier</span>
         </span>
       </summary>
       <div class="p-6 space-y-4">
@@ -470,6 +480,70 @@
 </style>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // === Gestion des sections repliables avec animations ===
+    const updateSectionCounter = () => {
+      const allDetails = document.querySelectorAll('details');
+      const openDetails = document.querySelectorAll('details[open]');
+      console.log(`📋 Sections: ${openDetails.length}/${allDetails.length} ouvertes`);
+    };
+
+    // Animation smooth lors de l'ouverture/fermeture
+    document.querySelectorAll('details').forEach(details => {
+      const summary = details.querySelector('summary');
+      
+      summary.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        if (details.open) {
+          // Fermeture avec animation
+          const content = details.querySelector('summary + div');
+          const startHeight = content.offsetHeight;
+          content.style.height = startHeight + 'px';
+          content.style.overflow = 'hidden';
+          
+          requestAnimationFrame(() => {
+            content.style.transition = 'height 0.3s ease-out, opacity 0.3s ease-out';
+            content.style.height = '0px';
+            content.style.opacity = '0';
+          });
+          
+          setTimeout(() => {
+            details.removeAttribute('open');
+            content.style.height = '';
+            content.style.overflow = '';
+            content.style.opacity = '';
+            content.style.transition = '';
+            updateSectionCounter();
+          }, 300);
+        } else {
+          // Ouverture avec animation
+          details.setAttribute('open', '');
+          const content = details.querySelector('summary + div');
+          content.style.overflow = 'hidden';
+          content.style.height = '0px';
+          content.style.opacity = '0';
+          
+          requestAnimationFrame(() => {
+            const endHeight = content.scrollHeight;
+            content.style.transition = 'height 0.3s ease-out, opacity 0.3s ease-out';
+            content.style.height = endHeight + 'px';
+            content.style.opacity = '1';
+          });
+          
+          setTimeout(() => {
+            content.style.height = '';
+            content.style.overflow = '';
+            content.style.transition = '';
+            updateSectionCounter();
+          }, 300);
+        }
+      });
+    });
+
+    // Initialiser le compteur
+    updateSectionCounter();
+
+    // === Gestion de la génération d'identité ===
     const form = document.querySelector('form[data-patient-form]');
     const regenerateBtn = document.getElementById('regenerate-sample');
     if (!form || !regenerateBtn) {

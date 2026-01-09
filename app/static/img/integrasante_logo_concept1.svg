@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" width="320" height="120">
+  <defs>
+    <linearGradient id="bridge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0369A1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Logo Icon: Bridge with connected nodes -->
+  <g transform="translate(15, 20)">
+    <!-- Left pillar -->
+    <rect x="0" y="10" width="6" height="35" fill="#0369A1" rx="2"/>
+    <!-- Right pillar -->
+    <rect x="44" y="10" width="6" height="35" fill="#059669" rx="2"/>
+    
+    <!-- Bridge curve (Bezier path) -->
+    <path d="M 6 15 Q 25 5, 44 15" 
+          stroke="url(#bridge-gradient)" 
+          stroke-width="4" 
+          fill="none" 
+          stroke-linecap="round"/>
+    
+    <!-- Connection nodes -->
+    <circle cx="6" cy="15" r="4" fill="#0369A1"/>
+    <circle cx="25" cy="7" r="5" fill="#10B981"/>
+    <circle cx="44" cy="15" r="4" fill="#059669"/>
+    
+    <!-- Medical cross (subtle) -->
+    <g transform="translate(21, 25)">
+      <rect x="0" y="3" width="8" height="2" fill="#0EA5E9" opacity="0.6" rx="1"/>
+      <rect x="3" y="0" width="2" height="8" fill="#0EA5E9" opacity="0.6" rx="1"/>
+    </g>
+  </g>
+  
+  <!-- Text: IntegraSanté -->
+  <text x="85" y="42" font-family="Inter, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#1E293B" letter-spacing="-0.5">
+    IntegraSanté
+  </text>
+  
+  <!-- Text: by CPage -->
+  <text x="85" y="62" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#64748B" letter-spacing="0.5">
+    by CPage
+  </text>
+  
+  <!-- Tagline (optional) -->
+  <text x="85" y="80" font-family="Inter, -apple-system, sans-serif" font-size="10" font-weight="400" fill="#94A3B8" letter-spacing="0.3">
+    La plateforme d'intégration des données de santé
+  </text>
+</svg>

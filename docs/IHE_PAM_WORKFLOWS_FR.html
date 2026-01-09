@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Documentation des workflows IHE PAM (Profil France)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background: #f9f9f9; }
+    h1, h2, h3 { color: #2a4b7c; }
+    code, pre { background: #eef; padding: 2px 6px; border-radius: 3px; }
+    ul, ol { margin-left: 2em; }
+    .section { margin-bottom: 2em; }
+    .ref { font-size: 0.95em; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Documentation des workflows IHE PAM (Profil France)</h1>
+  <div class="section">
+    <h2>Objectif</h2>
+    <p>Ce document détaille les workflows applicatifs IHE PAM tels qu’implémentés dans MedData_Bridge, en conformité avec les spécifications IHE France. Il s’adresse aux experts de l’interopérabilité, aux développeurs et aux intégrateurs qui doivent valider ou étendre les enchaînements de mouvements hospitaliers.</p>
+  </div>
+  <div class="section">
+    <h2>Sommaire</h2>
+    <ol>
+      <li>Principes généraux des workflows PAM</li>
+      <li>Scénarios typiques et transitions</li>
+      <li>Règles de validation des enchaînements</li>
+      <li>Cas d’erreur et diagnostics</li>
+      <li>Outils de validation et jeux de test</li>
+      <li>Annexes (diagrammes, exemples)</li>
+    </ol>
+  </div>
+  <div class="section">
+    <h2>1. Principes généraux des workflows PAM</h2>
+    <ul>
+      <li>Un workflow PAM est une suite ordonnée d’événements HL7 (triggers ADT) pour un patient donné (PID-3).</li>
+      <li>Les transitions doivent respecter la logique métier hospitalière et les contraintes IHE France (admission, transfert, sortie, annulation, fusion, etc.).</li>
+      <li>Chaque événement modifie l’état du patient, du dossier, de la venue ou du mouvement.</li>
+      <li>Les workflows sont validés par le pipeline : parsing, mapping, validation métier, journalisation.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>2. Scénarios typiques et transitions</h2>
+    <h3>Admission classique</h3>
+    <ul>
+      <li>A01 : Admission</li>
+      <li>A02/A08 : Transfert ou modification</li>
+      <li>A03 : Sortie</li>
+      <li>A11/A13 : Annulation</li>
+    </ul>
+    <h3>Préadmission et changement de classe</h3>
+    <ul>
+      <li>A04/A05/A06/A07 : Préadmission, changement de classe, etc.</li>
+      <li>A03/A13 : Sortie ou annulation</li>
+    </ul>
+    <h3>Permission et retour</h3>
+    <ul>
+      <li>A21/A22/A52/A53 : Permission, retour, annulation</li>
+    </ul>
+    <h3>Fusion d’identités</h3>
+    <ul>
+      <li>A40 (PID/MRG) : Fusion de patients, ré-attribution des entités</li>
+    </ul>
+    <h3>Mise à jour partielle</h3>
+    <ul>
+      <li>Z99 : Update partiel, tolérance sandbox</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>3. Règles de validation des enchaînements</h2>
+    <ul>
+      <li>Admission (A01) doit précéder toute modification ou sortie.</li>
+      <li>Sortie (A03) ne doit jamais précéder l’admission.</li>
+      <li>Annulation (A11/A13) doit cibler un mouvement existant.</li>
+      <li>Les transitions doivent respecter la cohérence temporelle (datetime ZBE-2, EVN-2).</li>
+      <li>Les fusions (A40) doivent ré-attribuer tous les dossiers, venues, mouvements au survivant.</li>
+      <li>Les permissions (A21/A22) doivent être rattachées à un séjour existant.</li>
+      <li>Les mises à jour partielles (Z99) sont tolérées si le parent existe ou est virtuel.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>4. Cas d’erreur et diagnostics</h2>
+    <ul>
+      <li>A03 avant A01 : erreur de séquence, rejet ou fallback.</li>
+      <li>Annulation sans cible : fallback sur dernier mouvement.</li>
+      <li>Fusion avec identifiants manquants : log, rejet ou création de parent virtuel.</li>
+      <li>Collision d’identifiants : log, rejet ou création de lien virtuel.</li>
+      <li>Import incomplet : rollback transaction, log détaillé.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>5. Outils de validation et jeux de test</h2>
+    <ul>
+      <li><code>scripts/validate_pam.py workflow path/to/messages_dir</code> : construit la timeline, détecte les anomalies de séquence, d’identifiants, de transitions.</li>
+      <li>Jeux de données de test : <code>tests/artifacts/hospitalisation/</code>, <code>pam_archive_dst/</code>, <code>archives/tests/</code>.</li>
+      <li>Rapports : <code>reports/pam_import_report.json</code>.</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>6. Annexes</h2>
+    <ul>
+      <li>Diagrammes de workflow (admission → transfert → sortie → annulation).</li>
+      <li>Exemples de séquences HL7 : ADT^A01, ADT^A02, ADT^A03, ADT^A11, ADT^A40, Z99.</li>
+      <li>Références : <code>/Doc/SpecIHEPAM/Publication-IHE_FRANCE_PAM_National_Extension_v2.11.1.txt</code>, <code>/Doc/IHE_PAM_INTEGRATION_COMPLETE_FR.md</code>, code source.</li>
+    </ul>
+  </div>
+  <hr>
+  <p>Document rédigé le 30/11/2025. Pour toute extension, se référer aux modules cités, aux conventions de factorisation et aux contraintes officielles IHE France.</p>
+</body>
+</html>

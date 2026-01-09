@@ -1,0 +1,329 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-7.4.4, pluggy-1.6.0 -- /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/bin/python
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge
+configfile: pytest.ini
+testpaths: tests
+plugins: timeout-2.4.0, anyio-4.11.0, playwright-0.7.1, xdist-3.8.0, cov-7.0.0, base-url-2.1.0, hypothesis-6.148.8, asyncio-0.23.8, mock-3.15.1
+timeout: 300.0s
+timeout method: signal
+timeout func_only: False
+asyncio: mode=strict
+collecting ... 
+FastAPI app initialization
+
+Registering routes:
+ - Home router mounted at /
+ - Core entity routers mounted with their prefixes
+ - Mouvements AJAX router mounted at /mouvements/api
+ - API Structure router mounted at /api/mouvements
+ - Timeline router mounted
+ - Structure routers mounted
+ - Admin routers mounted under /admin/ght
+ - HPRIM CCAM router mounted
+ - HPRIM NGAP/Contracts/CCAM routers mounted
+ - HPRIM UCD routers mounted
+ - HPRIM LPP routers mounted
+ - HPRIM Management router mounted at /hprim
+ - Roundtrip HPRIM router mounted at /roundtrip-hprim
+ - Cotation moderne router mounted at /cotation-modern
+ - Integration routers mounted
+ - Validation and conformity routers mounted
+ - Context router mounted
+ - Scenario templates router mounted
+ - Scenario EJ config router mounted
+ - Utility routers mounted
+ - Cache router mounted at /api/cache
+ - Import examples router mounted at /import
+ - Authentication router mounted
+ - Protected admin router mounted at /api/admin
+ - FHIR API routers mounted
+ - Metrics UI router mounted at /metrics
+ - Monitoring dashboard mounted at /dashboard
+ - Test helpers mounted
+ - Debug router mounted at /debug
+All routes registered.
+Application ready with 435 routes
+collected 745 items / 1 skipped
+
+tests/test_admin_ej_route.py::test_ej_detail_route_basic PASSED          [  0%]
+tests/test_extended_seed_isolated.py::test_multi_ej_extended_seed_isolated PASSED [  0%]
+tests/api/test_api_ucd_lpp.py::TestUCDAPI::test_get_acts_by_dossier PASSED [  0%]
+tests/api/test_api_ucd_lpp.py::TestUCDAPI::test_get_act_by_id PASSED     [  0%]
+tests/api/test_api_ucd_lpp.py::TestUCDAPI::test_create_act PASSED        [  0%]
+tests/api/test_api_ucd_lpp.py::TestUCDAPI::test_update_act PASSED        [  0%]
+tests/api/test_api_ucd_lpp.py::TestUCDAPI::test_delete_act PASSED        [  0%]
+tests/api/test_api_ucd_lpp.py::TestLPPAPI::test_get_acts_by_dossier PASSED [  1%]
+tests/api/test_api_ucd_lpp.py::TestLPPAPI::test_get_act_by_id PASSED     [  1%]
+tests/api/test_api_ucd_lpp.py::TestLPPAPI::test_create_act PASSED        [  1%]
+tests/api/test_api_ucd_lpp.py::TestLPPAPI::test_update_act PASSED        [  1%]
+tests/api/test_api_ucd_lpp.py::TestLPPAPI::test_delete_act PASSED        [  1%]
+tests/coverage/test_coverage_reports.py::TestCoverageReports::test_minimum_coverage_threshold PASSED [  1%]
+tests/coverage/test_coverage_reports.py::TestCoverageReports::test_critical_modules_coverage PASSED [  1%]
+tests/coverage/test_coverage_reports.py::TestCoverageReports::test_branch_coverage PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestCoverageReports::test_uncovered_lines_analysis PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestCoverageReportsGeneration::test_html_report_generation PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestCoverageReportsGeneration::test_xml_report_generation PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestCoverageReportsGeneration::test_json_report_generation PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestCoverageReportsGeneration::test_coverage_trends_tracking PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestQualityMetrics::test_code_complexity_analysis PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestQualityMetrics::test_duplicate_code_detection PASSED [  2%]
+tests/coverage/test_coverage_reports.py::TestQualityMetrics::test_test_code_ratio PASSED [  3%]
+tests/coverage/test_coverage_reports.py::TestQualityMetrics::test_maintainability_index PASSED [  3%]
+tests/generated/test_crud_generated.py::test_patient_crud PASSED         [  3%]
+tests/generated/test_crud_generated.py::test_dossier_crud PASSED         [  3%]
+tests/generated/test_crud_generated.py::test_venue_crud PASSED           [  3%]
+tests/generated/test_crud_generated.py::test_mouvement_crud PASSED       [  3%]
+tests/generated/test_crud_generated.py::test_structure_ej_eg_crud PASSED [  3%]
+tests/generated/test_pid_name_type.py::test_pid5_includes_name_type PASSED [  4%]
+tests/integration/test_a06_a07_auto_detection.py::test_a06_external_to_hospitalized_auto_detection PASSED [  4%]
+tests/integration/test_a06_a07_auto_detection.py::test_a07_hospitalized_to_external_auto_detection PASSED [  4%]
+tests/integration/test_a06_a07_auto_detection.py::test_no_a06_a07_without_history PASSED [  4%]
+tests/integration/test_classification.py::test_classify_incoming_identifiers PASSED [  4%]
+tests/integration/test_data_migration.py::TestDataMigration::test_database_schema_migration_basic PASSED [  4%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_generic_fields_chambre PASSED [  4%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_generic_fields_lit PASSED [  4%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_namespace_hierarchy PASSED [  5%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_medecin_responsable PASSED [  5%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_scenario_execution_runs PASSED [  5%]
+tests/integration/test_data_migration.py::TestDataMigration::test_data_transformation_patient_normalization PASSED [  5%]
+tests/integration/test_data_migration.py::TestDataMigration::test_data_transformation_dossier_state_transitions PASSED [  5%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_backward_compatibility PASSED [  5%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_performance_large_dataset PASSED [  5%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_rollback_simulation PASSED [  6%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_data_integrity_constraints PASSED [  6%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_audit_trail_preservation PASSED [  6%]
+tests/integration/test_data_migration.py::TestDataMigration::test_migration_index_performance PASSED [  6%]
+tests/integration/test_dossier_workflow.py::TestDossierWorkflowIntegration::test_dossier_creation_and_state_transitions PASSED [  6%]
+tests/integration/test_dossier_workflow.py::TestDossierWorkflowIntegration::test_dossier_validation_rules PASSED [  6%]
+tests/integration/test_dossier_workflow.py::TestDossierWorkflowIntegration::test_dossier_with_multiple_venues PASSED [  6%]
+tests/integration/test_duplicate_fix.py::test_no_duplicates SKIPPED      [  6%]
+tests/integration/test_fhir_interop.py::TestFHIRInteroperability::test_fhir_export_import_roundtrip PASSED [  7%]
+tests/integration/test_fhir_interop.py::TestFHIRInteroperability::test_fhir_profile_compliance PASSED [  7%]
+tests/integration/test_fhir_interop.py::TestFHIRInteroperability::test_fhir_external_system_exchange PASSED [  7%]
+tests/integration/test_fhir_interop.py::TestFHIRInteroperability::test_fhir_validation_errors PASSED [  7%]
+tests/integration/test_fixtures_example.py::test_example_with_new_fixtures PASSED [  7%]
+tests/integration/test_fixtures_example.py::test_context_router_with_fixtures PASSED [  7%]
+tests/integration/test_fixtures_example.py::test_patients_with_context PASSED [  7%]
+tests/integration/test_hprim_api.py::test_hprim_api PASSED               [  8%]
+tests/integration/test_hprim_generation.py::test_hprim_generation PASSED [  8%]
+tests/integration/test_hprim_roundtrip.py::TestHprimRoundtrip::test_ngap_message_roundtrip PASSED [  8%]
+tests/integration/test_hprim_roundtrip.py::TestHprimRoundtrip::test_ccam_message_roundtrip PASSED [  8%]
+tests/integration/test_hprim_roundtrip.py::TestHprimRoundtrip::test_xml_encoding_preservation PASSED [  8%]
+tests/integration/test_hprim_roundtrip.py::TestHprimRoundtrip::test_validation_error_preservation PASSED [  8%]
+tests/integration/test_hprim_xml_roundtrip.py::test_hprim_xml_roundtrip[cotation0] PASSED [  8%]
+tests/integration/test_hprim_xml_roundtrip.py::test_hprim_xml_roundtrip[cotation1] PASSED [  8%]
+tests/integration/test_hprim_xml_roundtrip.py::test_hprim_xml_roundtrip[cotation2] PASSED [  9%]
+tests/integration/test_hprim_xml_roundtrip.py::test_hprim_xml_roundtrip[cotation3] PASSED [  9%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_patient_import_format_validation PASSED [  9%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_dossier_import_with_patient_reference PASSED [  9%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_venue_import_hierarchy SKIPPED [  9%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_data_cleaning_and_validation PASSED [  9%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_import_bulk_performance PASSED [  9%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_import_duplicate_handling PASSED [ 10%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_import_error_recovery PASSED [ 10%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_import_transaction_rollback PASSED [ 10%]
+tests/integration/test_legacy_import.py::TestLegacyImport::test_legacy_import_data_consistency_validation PASSED [ 10%]
+tests/integration/test_patient_workflow.py::TestPatientWorkflowIntegration::test_complete_patient_workflow PASSED [ 10%]
+tests/integration/test_patient_workflow.py::TestPatientWorkflowIntegration::test_patient_workflow_with_multiple_dossiers PASSED [ 10%]
+tests/integration/test_phase3_seed_integration.py::test_validator_import PASSED [ 10%]
+tests/integration/test_phase3_seed_integration.py::test_seed_imports PASSED [ 11%]
+tests/integration/test_phase3_seed_integration.py::test_validator_functionality PASSED [ 11%]
+tests/integration/test_phase3_seed_integration.py::test_corrections_report_function PASSED [ 11%]
+tests/integration/test_phase3b_seed_subset.py::test_seed_with_validator_subset PASSED [ 11%]
+tests/integration/test_realistic_timeplan.py::TestEventSequenceExtraction::test_extract_emergency_sequence PASSED [ 11%]
+tests/integration/test_realistic_timeplan.py::TestEventSequenceExtraction::test_extract_planned_admission_sequence PASSED [ 11%]
+tests/integration/test_realistic_timeplan.py::TestEventSequenceExtraction::test_extract_consultation_sequence PASSED [ 11%]
+tests/integration/test_realistic_timeplan.py::TestEventSequenceExtraction::test_extract_long_stay_sequence PASSED [ 11%]
+tests/integration/test_realistic_timeplan.py::TestEventSequenceExtraction::test_extract_empty_sequence PASSED [ 12%]
+tests/integration/test_realistic_timeplan.py::TestEventSequenceExtraction::test_extract_malformed_messages PASSED [ 12%]
+tests/integration/test_realistic_timeplan.py::TestWorkflowDetection::test_detect_emergency_workflow PASSED [ 12%]
+tests/integration/test_realistic_timeplan.py::TestWorkflowDetection::test_detect_planned_admission_workflow PASSED [ 12%]
+tests/integration/test_realistic_timeplan.py::TestWorkflowDetection::test_detect_consultation_workflow PASSED [ 12%]
+tests/integration/test_realistic_timeplan.py::TestWorkflowDetection::test_detect_long_stay_workflow PASSED [ 12%]
+tests/integration/test_realistic_timeplan.py::TestWorkflowDetection::test_detect_default_workflow PASSED [ 12%]
+tests/integration/test_realistic_timeplan.py::TestWorkflowDetection::test_detect_empty_workflow PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestTimeShiftConfigGeneration::test_create_emergency_config PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestTimeShiftConfigGeneration::test_create_planned_admission_config PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestTimeShiftConfigGeneration::test_create_consultation_config PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestTimeShiftConfigGeneration::test_create_long_stay_config PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestTimeShiftConfigGeneration::test_create_config_with_overrides PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestTimeShiftConfigGeneration::test_create_config_forced_workflow PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestTimeShiftConfigGeneration::test_create_config_empty_messages PASSED [ 13%]
+tests/integration/test_realistic_timeplan.py::TestScenarioSuggestion::test_suggest_emergency_timing PASSED [ 14%]
+tests/integration/test_realistic_timeplan.py::TestScenarioSuggestion::test_suggest_consultation_timing PASSED [ 14%]
+tests/integration/test_realistic_timeplan.py::TestScenarioSuggestion::test_suggest_empty_messages PASSED [ 14%]
+tests/integration/test_realistic_timeplan.py::TestHospitalWorkflowConfigs::test_all_workflows_present PASSED [ 14%]
+tests/integration/test_realistic_timeplan.py::TestHospitalWorkflowConfigs::test_emergency_intervals PASSED [ 14%]
+tests/integration/test_realistic_timeplan.py::TestHospitalWorkflowConfigs::test_planned_admission_intervals PASSED [ 14%]
+tests/integration/test_realistic_timeplan.py::TestHospitalWorkflowConfigs::test_consultation_intervals PASSED [ 14%]
+tests/integration/test_realistic_timeplan.py::TestHospitalWorkflowConfigs::test_long_stay_intervals PASSED [ 15%]
+tests/integration/test_realistic_timing_demo.py::test_scenario_timing_detection PASSED [ 15%]
+tests/integration/test_realistic_timing_demo.py::test_scenario_execution_with_realistic_timing PASSED [ 15%]
+tests/integration/test_roundtrip_simple.py::test_mllp_connection SKIPPED [ 15%]
+tests/integration/test_roundtrip_simple.py::test_roundtrip_scenario ERROR [ 15%]
+
+==================================== ERRORS ====================================
+__________________ ERROR at setup of test_roundtrip_scenario ___________________
+file /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/integration/test_roundtrip_simple.py, line 63
+  async def test_roundtrip_scenario(scenario_name: str):
+      """Test roundtrip complet pour un scénario"""
+      print(f"\n🧪 Test roundtrip pour: {scenario_name}")
+
+      try:
+          # Vérifier la connexion MLLP
+          if not await test_mllp_connection():
+              print("❌ Serveur MLLP non accessible")
+              return False
+
+          print("✅ Serveur MLLP accessible")
+
+          # Récupérer le scénario
+          with Session(engine) as session:
+              scenario = session.exec(
+                  select(InteropScenario).where(InteropScenario.name == scenario_name)
+              ).first()
+
+              if not scenario:
+                  print(f"❌ Scénario '{scenario_name}' non trouvé")
+                  return False
+
+              print(f"📋 Scénario trouvé: {scenario.name} ({scenario.category})")
+
+              # Récupérer les étapes
+              steps = session.exec(
+                  select(InteropScenarioStep).where(InteropScenarioStep.scenario_id == scenario.id)
+                  .order_by(InteropScenarioStep.order_index)
+              ).all()
+
+              print(f"📝 {len(steps)} étapes à traiter")
+
+              # Traiter chaque étape
+              for i, step in enumerate(steps, 1):
+                  print(f"\n  Étape {i}/{len(steps)}: {step.name}")
+
+                  if step.message_format == 'hl7' and step.payload:
+                      # Décoder le payload
+                      decoded_payload = decode_hl7_payload(step.payload)
+                      print(f"    📤 Envoi message HL7 ({len(decoded_payload)} chars)")
+
+                      # Envoyer le message
+                      response = await send_hl7_message(decoded_payload)
+                      print(f"    📥 Réponse: {response[:100]}...")
+
+                      # Valider la réponse
+                      if 'MSA|AA|' in response:
+                          print("    ✅ ACK positif reçu")
+                      elif 'ERROR' in response:
+                          print(f"    ❌ Erreur: {response}")
+                          return False
+                      else:
+                          print(f"    ⚠️ Réponse inattendue: {response[:50]}...")
+                  else:
+                      print(f"    ⏭️ Étape ignorée (format: {step.message_format})")
+
+          print(f"✅ Test roundtrip réussi pour {scenario_name}")
+          return True
+
+      except Exception as e:
+          print(f"❌ Erreur test roundtrip: {e}")
+          import traceback
+          traceback.print_exc()
+          return False
+E       fixture 'scenario_name' not found
+>       available fixtures: _artifacts_recorder, _pw_artifacts_folder, _session_event_loop, _verify_url, anyio_backend, anyio_backend_name, anyio_backend_options, authenticated_client, base_url, browser, browser_channel, browser_context_args, browser_name, browser_type, browser_type_launch_args, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, class_mocker, clean_db_tables, client, connect_options, context, cov, delete_output_dir, device, doctest_namespace, dossier_chemo_with_sessions, dossier_chemo_with_sessions_recurring, dossier_psy_day_hospital_multi, dossier_psy_day_hospital_recurring, event_loop, event_loop_policy, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, hl7_adt_a01, is_chromium, is_firefox, is_webkit, isolated_session, launch_browser, mocker, module_mocker, monkeypatch, new_context, no_cover, output_path, package_mocker, page, playwright, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_dossier, sample_ej, sample_ght, sample_patient, sample_uf, session, session_mocker, setup_database, setup_test_db, test_dossier, test_endpoints, test_patient, testrun_uid, tests/integration/test_roundtrip_simple.py::<event_loop>, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, worker_id
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/integration/test_roundtrip_simple.py:63
+=============================== warnings summary ===============================
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/pydantic/_internal/_config.py:291: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.8/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py:273
+.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py:273
+.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py:273
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py:273: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.8/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.8/migration/
+    warnings.warn(
+
+tests/unit/test_parallel_config.py:120
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/unit/test_parallel_config.py:120: PytestCollectionWarning: cannot collect test class 'TestMetricsCollector' because it has a __init__ constructor (from: tests/unit/test_parallel_config.py)
+    class TestMetricsCollector:
+
+app/services/test_scenario_generator.py:60
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/app/services/test_scenario_generator.py:60: PytestCollectionWarning: cannot collect test class 'TestScenarioGenerator' because it has a __init__ constructor (from: tests/unit/test_scenario_generator.py)
+    class TestScenarioGenerator:
+
+app/services/test_scenario_generator.py:26
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/app/services/test_scenario_generator.py:26: PytestCollectionWarning: cannot collect test class 'TestScenarioType' because it has a __new__ constructor (from: tests/unit/test_scenario_generator.py)
+    class TestScenarioType(Enum):
+
+tests/generated/test_crud_generated.py: 6 warnings
+tests/integration/test_data_migration.py: 104 warnings
+tests/integration/test_dossier_workflow.py: 10 warnings
+tests/integration/test_fhir_interop.py: 6 warnings
+tests/integration/test_legacy_import.py: 221 warnings
+tests/integration/test_patient_workflow.py: 5 warnings
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/pydantic/main.py:1087: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.8/migration/
+    warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+
+tests/generated/test_crud_generated.py::test_structure_ej_eg_crud
+tests/generated/test_crud_generated.py::test_structure_ej_eg_crud
+tests/generated/test_crud_generated.py::test_structure_ej_eg_crud
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/starlette/templating.py:161: DeprecationWarning: The `name` is not the first parameter anymore. The first parameter should be the `Request` instance.
+  Replace `TemplateResponse(name, {"request": request})` by `TemplateResponse(request, name)`.
+    warnings.warn(
+
+tests/integration/test_dossier_workflow.py::TestDossierWorkflowIntegration::test_dossier_with_multiple_venues
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/tests/integration/test_dossier_workflow.py:190: DeprecationWarning: 
+          🚨 You probably want to use `session.exec()` instead of `session.query()`.
+  
+          `session.exec()` is SQLModel's own short version with increased type
+          annotations.
+  
+          Or otherwise you might want to use `session.execute()` instead of
+          `session.query()`.
+          
+    mouvements = session.query(Mouvement).filter(Mouvement.venue_id.in_([v.id for v in venues])).all()
+
+tests/integration/test_duplicate_fix.py::test_no_duplicates
+tests/integration/test_roundtrip_simple.py::test_mllp_connection
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/_pytest/python.py:183: PytestUnhandledCoroutineWarning: async def functions are not natively supported and have been skipped.
+  You need to install a suitable plugin for your async framework, for example:
+    - anyio
+    - pytest-asyncio
+    - pytest-tornasync
+    - pytest-trio
+    - pytest-twisted
+    warnings.warn(PytestUnhandledCoroutineWarning(msg.format(nodeid)))
+
+tests/integration/test_phase3_seed_integration.py::test_validator_import
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but tests/integration/test_phase3_seed_integration.py::test_validator_import returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+tests/integration/test_phase3_seed_integration.py::test_seed_imports
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but tests/integration/test_phase3_seed_integration.py::test_seed_imports returned False, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+tests/integration/test_phase3_seed_integration.py::test_validator_functionality
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but tests/integration/test_phase3_seed_integration.py::test_validator_functionality returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+tests/integration/test_phase3b_seed_subset.py::test_seed_with_validator_subset
+  /home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/.venv/lib/python3.10/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but tests/integration/test_phase3b_seed_subset.py::test_seed_with_validator_subset returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/integration/test_roundtrip_simple.py::test_roundtrip_scenario
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============ 112 passed, 4 skipped, 377 warnings, 1 error in 53.53s ============

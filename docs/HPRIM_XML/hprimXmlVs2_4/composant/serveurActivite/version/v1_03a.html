@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 1.03a</DIV>
+
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Elimination des multi
+   choix sur actesCCAM et actesNGAP</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>G&eacute;n&eacute;rait
+      des erreurs de validation avec XMLSPY 2005 et outils annexes</FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Renommage des
+   typePatient, typeVenue en typePatientLight, typeVenueLight.</FONT></P>
+   <P STYLE="margin-bottom: 0cm"></P>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification de  la
+   valeur de elementFormDefault, passe a  &laquo;&nbsp;qualified&nbsp;&raquo;
+   pour les fichiers :</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>msgAcquittementsFraisDivers103a.xsd</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>msgAcquittementsPmsi103a.xsd</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>msgAcquittementsServeurActes103a.xsd</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>msgAcquittementsServeurEtatsPatient103a.xsd</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>sa_typesAcquittement.xsd</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>sa_typesTAA.xsd</FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification de la
+   balise &lt;quantiteFactionnee&gt; en &lt;quantiteFractionnee&gt;
+   dans typUCD</FONT></P>
+   <P STYLE="margin-bottom: 0cm"></P>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification du
+   typeMontant</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout balise
+      &lt;quantite&gt;</FONT></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modification de
+   &lt;evenementsServeurActes&gt;</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout attribut
+      realise (L'&eacute;v&eacute;nement port&eacute; par le message a
+      &eacute;t&eacute; effectivement produit ,la valeur 'non' induit un
+      effet pr&eacute;visionnel)</FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">pour
+   les UCD</SPAN></FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">R&eacute;vision
+      du typPrescripteur (&eacute;limination du choix)</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">la
+      balise &lt;montantEcartIndemnisable&gt; est devenue facultative</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">&lt;tauxTVA&gt;
+      est devenu facultatif</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">&lt;priseCharge&gt;
+      est devenu facultatif</SPAN></FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">pour
+   les LPP</SPAN></FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">la
+      balise &lt;montantEcartIndemnisable&gt; est devenue facultative</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">&lt;tauxTVA&gt;
+      est devenu facultatif</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">&lt;priseCharge&gt;
+      est devenu facultatif</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">&lt;siretFournisseur&gt;
+      est devenu facultatif</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">&lt;montantUnitaireAchatTTC&gt;
+      est devenu facultatif</SPAN></FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Pour
+   attrIndicateurParcoursSoins, ajout valeur :</SPAN></FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">medecinZoneDefic
+        :   m&eacute;decin g&eacute;n&eacute;raliste install&eacute; dans
+      une zone medicalement d&eacute;ficitaire (B2 = B)</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">medecinPrimoInst
+        :   m&eacute;decin g&eacute;n&eacute;raliste primo install&eacute;
+      r&eacute;cemment (B2 = J)</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">medecinNonTrait
+         :  patient orient&eacute; par un m&eacute;decin qui n'est pas
+      son m&eacute;decin traitant (B2 = M)</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">militaire
+         :    patient militaire sur prescription m&eacute;dicale des
+      arm&eacute;es (B2 = A)</SPAN></FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">exclusionMedical
+       :  exemple d'exclusion = tabacologie, toxicomanie (B2 = A) </SPAN></FONT>
+      </P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Pour
+   typeDemande</SPAN></FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">Ajout
+      attribut originePrescription </SPAN></FONT>
+      </P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3><SPAN STYLE="background: transparent">R&eacute;pond
+         &agrave; l'int&eacute;gration du dispositif &laquo; contrats
+         responsables &raquo; demand&eacute; par le document B2.</SPAN></FONT></P>
+      </UL>
+   </UL>
+</UL>
+</BODY>
+</HTML>

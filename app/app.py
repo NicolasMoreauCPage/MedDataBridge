@@ -1,7 +1,7 @@
 # Import ght router first to avoid circular imports
 import app.routers.ght as ght
 """
-Composition de l'application FastAPI (MedData Bridge)
+Composition de l'application FastAPI (IntegraSanté by CPage)
 
 Rôle de ce module
 - Construire l'instance FastAPI et y brancher middlewares, routeurs et admin.
@@ -69,7 +69,8 @@ from app.routers import (
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
-    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks
+    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks,
+    hprim_interventions, hprim_acquittements, cotations, cotations_saisie
 )
 from app.routers import menu
 
@@ -283,9 +284,28 @@ def create_app() -> FastAPI:
         from app.metrics import metrics
         return metrics.get_metrics()
 
+    # Prometheus exposition format (text/plain; version=0.0.4)
+    try:
+        from fastapi.responses import Response
+        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+        @app.get("/metrics/prom")
+        async def metrics_prometheus():
+            """Exposition des métriques Prometheus (scrape)."""
+            content = generate_latest()  # default registry
+            return Response(content=content, media_type=CONTENT_TYPE_LATEST)
+    except Exception:
+        # If prometheus_client isn't installed, skip this endpoint
+        pass
+
     # System routes - Tasks API
     app.include_router(tasks.router)
     print(" - Tasks API router mounted at /api/tasks")
+
+    # System Health API
+    from app.api import system_health
+    app.include_router(system_health.router)
+    print(" - System Health API router mounted at /api")
 
     print("\nRegistering routes:")
 
@@ -326,6 +346,45 @@ def create_app() -> FastAPI:
     app.include_router(fhir_structure.router)  # Has prefix /fhir
     app.include_router(structure_select.router)  # Has prefix /structure
     print(" - Structure routers mounted")
+    
+    # 3b. Analytics (Mode Gestionnaire)
+    from app.routers import analytics
+    app.include_router(analytics.router)
+    app.include_router(analytics.ui_router)
+    print(" - Analytics routers mounted at /api/analytics and /structure/analytics")
+    
+    # 3c. Alert Configuration (Mode Gestionnaire)
+    from app.routers import alert_config
+    app.include_router(alert_config.router)
+    app.include_router(alert_config.ui_router)
+    print(" - Alert config routers mounted at /api/alert-config and /structure/alert-config")
+    
+    # 3d. Export Analytics (Mode Gestionnaire)
+    from app.routers import export_analytics
+    app.include_router(export_analytics.router)
+    print(" - Export analytics router mounted at /api/analytics/export")
+    
+    # 3e. Design System Demo (Phase 5.2)
+    from app.routers import design_system
+    app.include_router(design_system.router)
+    print(" - Design System demo mounted at /design-system")
+    
+    # 3f. Structure Search Interface (Phase 5.3)
+    from app.routers import structure_search
+    app.include_router(structure_search.router)
+    print(" - Structure Search interface mounted at /structure/search")
+    
+    # 3e. Import/Export Structure Excel
+    from app.routers import structure_import_export
+    app.include_router(structure_import_export.router)
+    app.include_router(structure_import_export.ui_router)
+    print(" - Structure import/export routers mounted at /api/structure/export and /structure/import")
+    
+    # 3f. Structure Interactive (Phase 5 - Édition inline & drag-drop)
+    from app.routers import structure_interactive
+    app.include_router(structure_interactive.router)
+    app.include_router(structure_interactive.ui_router)
+    print(" - Structure interactive router mounted at /api/structure (PATCH, POST /move) and /structure/interactive")
     
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)
@@ -371,6 +430,30 @@ def create_app() -> FastAPI:
         print(" - HPRIM LPP routers mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM LPP routers not available: {e}")
+    
+    # HPRIM Interventions & Cotations router
+    try:
+        app.include_router(hprim_interventions.router)
+        print(" - HPRIM Interventions router mounted at /api/hprim/interventions")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM Interventions router not available: {e}")
+    
+    # HPRIM Acquittements router
+    try:
+        app.include_router(hprim_acquittements.router)
+        print(" - HPRIM Acquittements router mounted at /api/hprim/acquittements")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM Acquittements router not available: {e}")
+    
+    # Cotations routers (vue liste + saisie rapide)
+    try:
+        app.include_router(cotations.router)
+        app.include_router(cotations_saisie.router)
+        print(" - Cotations routers mounted:")
+        print("   • /dossiers/{id}/cotations (liste)")
+        print("   • /cotations/dossier/{id}/saisie (saisie rapide)")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Cotations routers not available: {e}")
     
     # REST APIs pour gestion patients et dossiers
     try:
@@ -554,7 +637,7 @@ if not testing:
         app,
         engine,
         base_url="/sqladmin",
-        title="MedData Bridge - Admin SQL",
+        title="IntegraSanté - Admin SQL",
         templates_dir=templates_path,
         authentication_backend=NoAuthBackend(secret_key="not-used-for-internal-app")
     )

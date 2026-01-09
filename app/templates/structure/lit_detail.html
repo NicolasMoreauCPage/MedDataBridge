@@ -1,15 +1,13 @@
 {% extends "base.html" %}
+{% from "macros/ui.html" import inheritance_field %}
+{% from "components/structure_nav.html" import structure_breadcrumb, quick_actions_panel %}
 
 {% block title %}Lit {{ lit.name }}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Lit:</span>
-  </nav>
+  {{ structure_breadcrumb(lit, 'lit') }}
 
   <!-- Header -->
   <div class="mb-8">
@@ -58,13 +56,12 @@
       {{ inheritance_field(lit, 'operational_status', 'Statut opérationnel') }}
       {{ inheritance_field(lit, 'status', 'Statut') }}
       {{ inheritance_field(lit, 'mode', 'Mode') }}
-      {{ inheritance_field(lit, 'physical_type', 'Type physique') }}
       {{ inheritance_field(lit, 'etage', 'Étage') }}
       {{ inheritance_field(lit, 'aile', 'Aile') }}
-      {{ inheritance_field(lit, 'opening_date', 'Date d\'ouverture', formatter='date') }}
-      {{ inheritance_field(lit, 'activation_date', 'Date d\'activation', formatter='date') }}
-      {{ inheritance_field(lit, 'closing_date', 'Date de fermeture', formatter='date') }}
-      {{ inheritance_field(lit, 'deactivation_date', 'Date de désactivation', formatter='date') }}
+      {{ inheritance_field(lit, 'opening_date', 'Date d\'ouverture') }}
+      {{ inheritance_field(lit, 'activation_date', 'Date d\'activation') }}
+      {{ inheritance_field(lit, 'closing_date', 'Date de fermeture') }}
+      {{ inheritance_field(lit, 'deactivation_date', 'Date de désactivation') }}
     </dl>
   </div>
 

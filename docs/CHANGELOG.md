@@ -7,7 +7,76 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-08
+
 ### ✨ Fonctionnalités
+- **Auto-transmission HPRIM pour cotations** (2026-01-08)
+  - Les actes de cotation (CCAM, NGAP, UCD, LPP) sont maintenant transmis automatiquement aux endpoints HPRIM configurés
+  - Cohérence avec le système d'auto-émission PAM/FHIR pour les entités (patient, venue, mouvement)
+  - Génération automatique de messages HPRIM XML `evenementsServeurActes` lors de la création d'actes
+  - Suppression du bouton manuel "Transmettre (HPRIM)" - transmission automatique dès la sauvegarde
+  - **Relai des cotations entrantes** : Les actes reçus via HPRIM sont aussi retransmis vers d'autres endpoints (comme PAM/FHIR)
+  - **Filtrage granulaire par type d'acte** : Configuration sélective par endpoint (emit_hprim_ccam, emit_hprim_ngap, emit_hprim_ucd, emit_hprim_lpp)
+  - Logs détaillés dans MessageLog pour traçabilité complète des émissions
+  - Support complet pour CCAM, NGAP, UCD et LPP
+
+### 🔒 Sécurité & Validation
+- **Validation de configuration des endpoints avant émission** (2026-01-08)
+  - Les messages ne sont plus générés si l'endpoint n'est pas correctement configuré
+  - **MLLP (HL7)** : Vérification obligatoire de `host` et `port` avant génération PAM/MFN
+  - **FHIR** : Vérification obligatoire de `base_url` avant génération identity/structure
+  - **HPRIM** : Système cohérent (default=False, validation déjà en place)
+  - Résolution du problème de pollution des archives avec messages erronés "Endpoint non configuré"
+  - Messages de debug détaillés dans les logs lors de skip d'un endpoint mal configuré
+  - Amélioration de la fiabilité : seuls les endpoints fonctionnels génèrent des messages
+
+- **Phase 6: Dossiers, Venues & Mouvements** (2026-01-08)
+  - Refonte complète des IHMs Dossiers & Venues (headers contextuels, listes modernisées, wizard d'admission en 3 étapes)
+  - Filtres avancés unifiés sur les listes (dossiers, venues, mouvements) avec raccourcis clavier globaux (Ctrl+N, Ctrl+S, /, Esc)
+  - Workflow mouvements moderne par venue (cartes d'événements, timeline chronologique, sélecteur hiérarchique de lits avec recherche)
+  - Plan de lits interactif par service/UF/UH/chambre avec KPIs d'occupation, statuts couleur, actions rapides (affecter, muter, voir venue)
+  - Détection des conflits de lits (plusieurs venues actives sur un même lit) avec mise en évidence visuelle et point d'entrée dédié pour résolution
+
+- **Phase 6 (suite) : Mouvements, Lits & Cotation** (2026-01-08)
+  - Finalisation du workflow mouvements : écran dédié par séjour avec timeline, catalogue d'évènements autorisés et intégration au plan de lits (drag & drop de mutation sur lit cible)
+  - Nouveau plan de lits temps réel : vue consolidée par service/UF/UH/chambre, indicateurs d'occupation, surlignage des conflits, actions rapides (ouvrir workflow, accéder au dossier)
+  - Workspace unique de cotation par dossier : fusion des anciennes vues "Saisie rapide" et "Liste" dans un seul écran moderne avec KPI, filtres et liste intégrée
+  - Saisie unifiée des actes CCAM/NGAP/UCD/LPP : formulaires complets avec auto-complétion, calcul automatique des montants et création côté back via `/cotations/api/{ccam,ngap,ucd,lpp}`
+  - Expérience clavier pour les codeurs : focus optimisé, raccourcis (validation, réinitialisation, navigation) et rechargement du workspace sans changer de contexte
+  - Refonte des menus "Structure" et "Activités" : libellés orientés métier (parcours patient, séjours, mouvements, plan de lits, codage), badges de contexte (GHT/EJ/patient/séjour) et mise en avant des nouvelles IHMs
+
+- **Phase 4.1: Import/Export Excel Structure** (2026-01-08)
+  - Import/Export complet de la structure hospitalière via Excel (8 feuilles)
+  - POST `/api/structure/import/excel` : Preview avec validation Pydantic
+  - POST `/api/structure/import/confirm` : Import transactionnel avec rollback
+  - 3 modes d'import : create, update, replace
+  - Interface Dropzone.js avec preview détaillée et gestion erreurs
+  - Documentation technique complète : [PHASE4.1_IMPORT_EXPORT_COMPLETE.md](PHASE4.1_IMPORT_EXPORT_COMPLETE.md)
+
+- **Phase 5.1: UX Interactive Moderne** (2026-01-08)
+  - Édition inline avec double-clic (PATCH `/api/structure/interactive/{type}/{id}`)
+  - Drag & drop avec SortableJS (POST `/api/structure/interactive/move`)
+  - Raccourcis clavier (Ctrl+N/E/D/F, Del, Esc, ?)
+  - Opérations en masse (POST `/api/structure/interactive/bulk-update`)
+  - Duplication d'entités (POST `/api/structure/interactive/duplicate`)
+  - Page démo interactive : `/structure/interactive`
+  - Documentation : [PHASE5_UX_MODERNE.md](PHASE5_UX_MODERNE.md)
+
+- **Phase 3.1: Mode Gestionnaire** (2026-01-08)
+  - Dashboard analytics avec KPIs temps réel
+  - 4 endpoints analytics : kpis, capacity-by-service, capacity-by-um, alerts
+  - Configuration des alertes (seuils d'occupation)
+  - Export rapports Excel/PDF/CSV
+  - Graphiques interactifs Chart.js
+  - Documentation : [SPRINT3_MODE_GESTIONNAIRE.md](SPRINT3_MODE_GESTIONNAIRE.md)
+
+- **Phases 1-2: Dashboard et Wizard Structure** (2026-01-08)
+  - Dashboard structure avec arbre hiérarchique (EG → Pôles → Services → UF/UH → Chambres → Lits)
+  - Wizard de création en 3 étapes avec templates (Hôpital, Clinique, EHPAD)
+  - CRUD complet pour toutes les entités
+  - Validation temps réel et calculs automatiques
+  - Documentation : [SPRINT1_DASHBOARD_STRUCTURE.md](SPRINT1_DASHBOARD_STRUCTURE.md), [SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md](SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md)
+
 - **Interface visualisation et import actes HPRIM** (2026-01-07)
   - Nouveau router `/hprim-cotation` pour visualiser les messages HPRIM de cotation reçus
   - Dashboard avec filtres par statut et recherche par NDA/IPP
@@ -39,6 +108,11 @@ et ce projet respecte [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   - Logs détaillés pour le débogage
 
 ### 📝 Documentation
+- **Phase 6 – Dossiers, Venues & Mouvements** (2026-01-08)
+  - Guide utilisateur Phase 6 : [PHASE6_GUIDE_UTILISATEUR.md](PHASE6_GUIDE_UTILISATEUR.md)
+  - Notes techniques Phase 6 (filtres, raccourcis, architecture) : [PHASE6_NOTES_TECHNIQUES.md](PHASE6_NOTES_TECHNIQUES.md)
+  - Synthèse mouvements & plan de lits : [PHASE6_MOUVEMENTS_LITS_GLOBAL.md](PHASE6_MOUVEMENTS_LITS_GLOBAL.md)
+
 - **Clarification des namespaces** (2026-01-06)
   - Nouveau guide `NAMESPACES_CLARIFICATION.md` expliquant OID/URI/nom
   - Distinction claire : HL7v2 (NOM+OID) vs FHIR (URI uniquement)

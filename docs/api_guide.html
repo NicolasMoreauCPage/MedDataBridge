@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide API développeur — MedData Bridge</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            line-height: 1.6; 
+            max-width: 1200px; 
+            margin: 2rem auto; 
+            padding: 0 2rem; 
+            color: #333; 
+        }
+        h1, h2, h3, h4 { color: #2c3e50; margin-top: 1.5rem; }
+        h1 { border-bottom: 3px solid #3498db; padding-bottom: 0.5rem; }
+        h2 { border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3rem; }
+        code { 
+            background: #f4f4f4; 
+            padding: 0.2rem 0.4rem; 
+            border-radius: 3px; 
+            font-size: 0.9em; 
+            font-family: 'Courier New', monospace;
+        }
+        pre { 
+            background: #f8f8f8; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            padding: 1rem; 
+            overflow-x: auto; 
+        }
+        pre code { background: none; padding: 0; }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            margin: 1rem 0; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 0.75rem; 
+            text-align: left; 
+        }
+        th { 
+            background: #3498db; 
+            color: white; 
+            font-weight: 600; 
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .codehilite { background: #f8f8f8; }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 1rem;
+            margin-left: 0;
+            color: #555;
+            background: #f9f9f9;
+            padding: 0.5rem 1rem;
+        }
+        ul, ol { padding-left: 2rem; }
+        li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+<h1 id="guide-api-meddata-bridge">Guide API - MedData Bridge</h1>
+<h2 id="endpoints-principaux">Endpoints Principaux</h2>
+<h3 id="sante-version">Santé &amp; Version</h3>
+<h4 id="get-health">GET /health</h4>
+<p>Check de santé</p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">{&quot;status&quot;: &quot;ok&quot;}
+</code></pre>
+
+<h4 id="get-apiversion">GET /api/version</h4>
+<p>Version de l'application</p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;version&quot;: &quot;0.2.0&quot;,
+  &quot;app&quot;: &quot;MedData_Bridge&quot;
+}
+</code></pre>
+
+<h3 id="patients">Patients</h3>
+<h4 id="get-patients">GET /patients</h4>
+<p>Liste patients (avec contexte GHT/EJ)</p>
+<p><strong>Query params</strong>:</p>
+<ul>
+<li>
+<p><code>search</code>: Filtre nom/prénom</p>
+</li>
+<li>
+<p><code>limit</code>: Limite résultats (défaut: 50)</p>
+</li>
+</ul>
+<h4 id="post-patients">POST /patients</h4>
+<p>Créer un patient</p>
+<p><strong>Body</strong> (JSON):</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;family&quot;: &quot;Dupont&quot;,
+  &quot;given&quot;: &quot;Jean&quot;,
+  &quot;birth_date&quot;: &quot;1980-01-15&quot;,
+  &quot;gender&quot;: &quot;male&quot;
+}
+</code></pre>
+
+<h4 id="get-patientsid">GET /patients/{id}</h4>
+<p>Détails d'un patient</p>
+<h4 id="put-patientsid">PUT /patients/{id}</h4>
+<p>Mise à jour patient</p>
+<h4 id="delete-patientsid">DELETE /patients/{id}</h4>
+<p>Suppression patient (logique)</p>
+<h3 id="dossiers">Dossiers</h3>
+<h4 id="get-dossiers">GET /dossiers</h4>
+<p>Liste dossiers</p>
+<p><strong>Filtres contextuels</strong>:</p>
+<ul>
+<li>
+<p>Patient si contexte actif</p>
+</li>
+<li>
+<p>EJ si contexte actif</p>
+</li>
+</ul>
+<h4 id="post-dossiers">POST /dossiers</h4>
+<p>Créer un dossier</p>
+<p><strong>Body</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;patient_id&quot;: 123,
+  &quot;dossier_seq&quot;: 45678,
+  &quot;uf_responsabilite&quot;: &quot;UF-MED&quot;,
+  &quot;admit_time&quot;: &quot;2025-11-08T10:00:00Z&quot;,
+  &quot;dossier_type&quot;: &quot;HOSPITALISE&quot;
+}
+</code></pre>
+
+<h4 id="get-dossiersid">GET /dossiers/{id}</h4>
+<p>Détails dossier + venues + mouvements</p>
+<h4 id="put-dossiersid">PUT /dossiers/{id}</h4>
+<p>Mise à jour dossier</p>
+<h3 id="mouvements">Mouvements</h3>
+<h4 id="get-mouvements">GET /mouvements</h4>
+<p>Liste mouvements (filtré par venue/dossier/patient selon contexte)</p>
+<h4 id="post-mouvements">POST /mouvements</h4>
+<p>Créer mouvement</p>
+<p><strong>Body</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;venue_id&quot;: 456,
+  &quot;mouvement_seq&quot;: 78901,
+  &quot;when&quot;: &quot;2025-11-08T14:30:00Z&quot;,
+  &quot;location&quot;: &quot;SERVICE-A/CHAMBRE-12/LIT-1&quot;,
+  &quot;trigger_event&quot;: &quot;A01&quot;,
+  &quot;action&quot;: &quot;INSERT&quot;,
+  &quot;uf_medicale_code&quot;: &quot;UF-MED-01&quot;,
+  &quot;nature&quot;: &quot;S&quot;
+}
+</code></pre>
+
+<h4 id="get-mouvementsid">GET /mouvements/{id}</h4>
+<p>Détails mouvement</p>
+<h4 id="put-mouvementsid">PUT /mouvements/{id}</h4>
+<p>Mise à jour mouvement</p>
+<h3 id="structure">Structure</h3>
+<h4 id="get-structureorganizations">GET /structure/organizations</h4>
+<p>Hiérarchie complète GHT → EJ → Pôle → Service → UF</p>
+<h4 id="get-structurelocations">GET /structure/locations</h4>
+<p>Hiérarchie locations UF → UH → Chambre → Lit</p>
+<h4 id="post-structurelocationstype">POST /structure/locations/{type}</h4>
+<p>Créer location (type: pole, service, uf, uh, chambre, lit)</p>
+<h3 id="messages">Messages</h3>
+<h4 id="get-messages">GET /messages</h4>
+<p>Consultation logs messages HL7</p>
+<p><strong>Query params</strong>:</p>
+<ul>
+<li>
+<p><code>status</code>: error | success | pending</p>
+</li>
+<li>
+<p><code>trigger_event</code>: A01, A02, etc.</p>
+</li>
+<li>
+<p><code>direction</code>: inbound | outbound</p>
+</li>
+<li>
+<p><code>limit</code>: 100 (défaut)</p>
+</li>
+</ul>
+<h4 id="get-messagesid">GET /messages/{id}</h4>
+<p>Détails message + contenu HL7 brut</p>
+<h4 id="post-messagesgenerate">POST /messages/generate</h4>
+<p>Génération manuelle message HL7</p>
+<p><strong>Body</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;patient_id&quot;: 123,
+  &quot;dossier_id&quot;: 456,
+  &quot;venue_id&quot;: 789,
+  &quot;trigger_event&quot;: &quot;A01&quot;
+}
+</code></pre>
+
+<h3 id="endpoints-systeme">Endpoints Système</h3>
+<h4 id="get-endpoints">GET /endpoints</h4>
+<p>Liste endpoints configurés (MLLP, File, HTTP)</p>
+<h4 id="post-endpoints">POST /endpoints</h4>
+<p>Créer endpoint</p>
+<p><strong>Body MLLP</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;name&quot;: &quot;HIS-Principal&quot;,
+  &quot;type&quot;: &quot;mllp&quot;,
+  &quot;host&quot;: &quot;192.168.1.100&quot;,
+  &quot;port&quot;: 2575,
+  &quot;direction&quot;: &quot;outbound&quot;,
+  &quot;ej_emetteur_id&quot;: 1
+}
+</code></pre>
+
+<h4 id="put-endpointsid">PUT /endpoints/{id}</h4>
+<p>Mise à jour endpoint</p>
+<h4 id="post-endpointsidtest">POST /endpoints/{id}/test</h4>
+<p>Test connexion endpoint</p>
+<h3 id="contextes">Contextes</h3>
+<h4 id="post-contextsetghtid">POST /context/set/ght/{id}</h4>
+<p>Activer contexte GHT</p>
+<h4 id="post-contextsetejid">POST /context/set/ej/{id}</h4>
+<p>Activer contexte EJ</p>
+<h4 id="post-contextsetpatientid">POST /context/set/patient/{id}</h4>
+<p>Activer contexte Patient</p>
+<h4 id="post-contextsetdossierid">POST /context/set/dossier/{id}</h4>
+<p>Activer contexte Dossier</p>
+<h4 id="get-contextclear">GET /context/clear</h4>
+<p>Effacer contexte</p>
+<p><strong>Query param</strong>: <code>kind</code> (ght | ej | patient | dossier | all)</p>
+<h2 id="codes-http-communs">Codes HTTP Communs</h2>
+<ul>
+<li>
+<p><code>200</code>: Succès</p>
+</li>
+<li>
+<p><code>201</code>: Créé</p>
+</li>
+<li>
+<p><code>400</code>: Requête invalide (validation failed)</p>
+</li>
+<li>
+<p><code>404</code>: Ressource introuvable</p>
+</li>
+<li>
+<p><code>409</code>: Conflit (ex: dossier_seq existe déjà)</p>
+</li>
+<li>
+<p><code>500</code>: Erreur serveur</p>
+</li>
+</ul>
+<h2 id="authentification">Authentification</h2>
+<p><strong>Note RC:</strong> Authentification simplifiée actuellement. La version 1.0 finale incluera:</p>
+<ul>
+<li>
+<p>OAuth2 / OIDC</p>
+</li>
+<li>
+<p>API Keys pour endpoints système</p>
+</li>
+<li>
+<p>Certificats TLS mutuel (MLLP sécurisé)</p>
+</li>
+</ul>
+<h2 id="rate-limiting">Rate Limiting</h2>
+<p><strong>Note RC:</strong> Rate limiting à implémenter pour v1.0 finale:</p>
+<ul>
+<li>
+<p>100 req/min par IP (API générale)</p>
+</li>
+<li>
+<p>1000 req/min pour MLLP inbound</p>
+</li>
+</ul>
+<h2 id="pagination">Pagination</h2>
+<p>Format standard:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;items&quot;: [...],
+  &quot;total&quot;: 250,
+  &quot;page&quot;: 1,
+  &quot;page_size&quot;: 50,
+  &quot;total_pages&quot;: 5
+}
+</code></pre>
+
+<p>Paramètres query:</p>
+<ul>
+<li>
+<p><code>page</code>: Numéro page (1-based)</p>
+</li>
+<li>
+<p><code>page_size</code>: Taille page (max 100)</p>
+</li>
+</ul>
+<h2 id="filtres-communs">Filtres Communs</h2>
+<ul>
+<li>
+<p><code>search</code>: Recherche textuelle</p>
+</li>
+<li>
+<p><code>created_after</code>: ISO8601 datetime</p>
+</li>
+<li>
+<p><code>created_before</code>: ISO8601 datetime</p>
+</li>
+<li>
+<p><code>status</code>: Statut entité</p>
+</li>
+</ul>
+<h2 id="scenarios-dinteroperation">Scénarios d'Interopération</h2>
+<h3 id="get-scenarios">GET /scenarios</h3>
+<p>Liste tous les scénarios</p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">[
+  {
+    &quot;id&quot;: 1,
+    &quot;key&quot;: &quot;admission-simple&quot;,
+    &quot;name&quot;: &quot;Admission Simple A01&quot;,
+    &quot;protocol&quot;: &quot;HL7v2&quot;,
+    &quot;steps_count&quot;: 3,
+    &quot;category&quot;: &quot;Urgences&quot;,
+    &quot;tags&quot;: &quot;admission,urgences&quot;
+  }
+]
+</code></pre>
+
+<h3 id="get-scenariosid">GET /scenarios/{id}</h3>
+<p>Détails d'un scénario avec steps</p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;id&quot;: 1,
+  &quot;key&quot;: &quot;admission-simple&quot;,
+  &quot;name&quot;: &quot;Admission Simple A01&quot;,
+  &quot;description&quot;: &quot;Patient admis aux urgences&quot;,
+  &quot;protocol&quot;: &quot;HL7v2&quot;,
+  &quot;category&quot;: &quot;Urgences&quot;,
+  &quot;tags&quot;: &quot;admission,urgences&quot;,
+  &quot;ght_context_id&quot;: 1,
+  &quot;time_anchor_mode&quot;: &quot;sliding&quot;,
+  &quot;time_anchor_days_offset&quot;: -1,
+  &quot;preserve_intervals&quot;: true,
+  &quot;jitter_min_minutes&quot;: 1,
+  &quot;jitter_max_minutes&quot;: 5,
+  &quot;steps&quot;: [
+    {
+      &quot;id&quot;: 10,
+      &quot;order_index&quot;: 0,
+      &quot;message_type&quot;: &quot;ADT^A01&quot;,
+      &quot;message_format&quot;: &quot;HL7v2&quot;,
+      &quot;delay_seconds&quot;: 0,
+      &quot;payload&quot;: &quot;MSH|^~\\&amp;|SENDING|...&quot;
+    }
+  ]
+}
+</code></pre>
+
+<h3 id="get-scenariosidexport">GET /scenarios/{id}/export</h3>
+<p>Exporter scénario en JSON (format import/export)</p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;id&quot;: 1,
+  &quot;key&quot;: &quot;admission-simple&quot;,
+  &quot;name&quot;: &quot;Admission Simple A01&quot;,
+  &quot;description&quot;: &quot;Patient admis aux urgences&quot;,
+  &quot;protocol&quot;: &quot;HL7v2&quot;,
+  &quot;tags&quot;: &quot;admission,urgences&quot;,
+  &quot;time_config&quot;: {
+    &quot;anchor_mode&quot;: &quot;sliding&quot;,
+    &quot;anchor_days_offset&quot;: -1,
+    &quot;fixed_start_iso&quot;: null,
+    &quot;preserve_intervals&quot;: true,
+    &quot;jitter_min&quot;: 1,
+    &quot;jitter_max&quot;: 5,
+    &quot;jitter_events&quot;: true
+  },
+  &quot;steps&quot;: [
+    {
+      &quot;order_index&quot;: 0,
+      &quot;message_type&quot;: &quot;ADT^A01&quot;,
+      &quot;format&quot;: &quot;HL7v2&quot;,
+      &quot;delay_seconds&quot;: 0,
+      &quot;payload&quot;: &quot;MSH|^~\\&amp;|SENDING|FACILITY|...&quot;
+    }
+  ]
+}
+</code></pre>
+
+<h3 id="post-scenariosimport">POST /scenarios/import</h3>
+<p>Importer scénario depuis JSON</p>
+<p><strong>Content-Type</strong>: <code>multipart/form-data</code></p>
+<p><strong>Form Fields</strong>:</p>
+<ul>
+<li>
+<p><code>ght_context_id</code> (int, required): Contexte GHT cible</p>
+</li>
+<li>
+<p><code>json_file</code> (file, optional): Fichier JSON à uploader</p>
+</li>
+<li>
+<p><code>json_data</code> (text, optional): JSON en texte brut (si pas de fichier)</p>
+</li>
+<li>
+<p><code>override_key</code> (string, optional): Nouvelle clé pour éviter collision</p>
+</li>
+<li>
+<p><code>override_name</code> (string, optional): Nouveau nom</p>
+</li>
+</ul>
+<p><strong>Exemple cURL</strong>:</p>
+<pre class="codehilite"><code class="language-bash"># Upload fichier
+
+curl -X POST http://localhost:8000/scenarios/import \
+  -F &quot;ght_context_id=1&quot; \
+  -F &quot;json_file=@scenario.json&quot;
+
+# Ou JSON direct
+
+curl -X POST http://localhost:8000/scenarios/import \
+  -F &quot;ght_context_id=1&quot; \
+  -F 'json_data={&quot;key&quot;:&quot;test&quot;,&quot;name&quot;:&quot;Test&quot;,&quot;protocol&quot;:&quot;HL7v2&quot;,&quot;steps&quot;:[]}'
+
+# Avec override
+
+curl -X POST http://localhost:8000/scenarios/import \
+  -F &quot;ght_context_id=1&quot; \
+  -F &quot;json_file=@scenario.json&quot; \
+  -F &quot;override_key=scenario-imported-2025&quot;
+</code></pre>
+
+<p><strong>Réponse Succès</strong> (303 Redirect vers <code>/scenarios/{new_id}</code>)</p>
+<p><strong>Réponse Erreur</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;detail&quot;: &quot;Erreur d'import: Un scénario avec la clé 'test-key' existe déjà&quot;
+}
+</code></pre>
+
+<h3 id="post-scenariosidsend">POST /scenarios/{id}/send</h3>
+<p>Rejouer un scénario vers un endpoint</p>
+<p><strong>Form Data</strong>:</p>
+<ul>
+<li>
+<p><code>endpoint_id</code> (int, required): ID de l'endpoint cible</p>
+</li>
+<li>
+<p><code>step_id</code> (int, optional): Si fourni, n'envoie que ce step</p>
+</li>
+</ul>
+<p><strong>Réponse Succès</strong> (303 Redirect)</p>
+<p><strong>Erreurs</strong>:</p>
+<ul>
+<li>
+<p><code>400</code>: Endpoint non configuré en mode sender</p>
+</li>
+<li>
+<p><code>404</code>: Scénario ou endpoint introuvable</p>
+</li>
+</ul>
+<h3 id="get-scenariosruns">GET /scenarios/runs</h3>
+<p>Dashboard d'exécution des scénarios (UI HTML)</p>
+<h3 id="get-scenariosrunsjson">GET /scenarios/runs.json</h3>
+<p>Liste des exécutions récentes (JSON)</p>
+<p><strong>Query params</strong>:</p>
+<ul>
+<li><code>limit</code>: Nombre max (défaut: 200)</li>
+</ul>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">[
+  {
+    &quot;id&quot;: 1001,
+    &quot;scenario_id&quot;: 1,
+    &quot;endpoint_id&quot;: 5,
+    &quot;status&quot;: &quot;success&quot;,
+    &quot;success_steps&quot;: 3,
+    &quot;error_steps&quot;: 0,
+    &quot;skipped_steps&quot;: 0,
+    &quot;total_steps&quot;: 3,
+    &quot;dry_run&quot;: false,
+    &quot;started_at&quot;: &quot;2025-11-09T10:30:00&quot;,
+    &quot;finished_at&quot;: &quot;2025-11-09T10:30:15&quot;
+  }
+]
+</code></pre>
+
+<h3 id="get-scenariosapistats">GET /scenarios/api/stats</h3>
+<p>Statistiques agrégées</p>
+<p><strong>Query params</strong>:</p>
+<ul>
+<li>
+<p><code>scenario_id</code> (int, optional): Filtrer par scénario</p>
+</li>
+<li>
+<p><code>endpoint_id</code> (int, optional): Filtrer par endpoint</p>
+</li>
+<li>
+<p><code>days_back</code> (int, default=30): Période d'analyse</p>
+</li>
+</ul>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;total_runs&quot;: 125,
+  &quot;success_rate&quot;: 0.96,
+  &quot;total_errors&quot;: 5,
+  &quot;avg_duration_seconds&quot;: 12.4,
+  &quot;period_days&quot;: 30
+}
+</code></pre>
+
+<h3 id="get-scenariosapiack-distribution">GET /scenarios/api/ack-distribution</h3>
+<p>Distribution des codes ACK</p>
+<p><strong>Query params</strong>: Identiques à <code>/stats</code></p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;AA&quot;: 115,
+  &quot;AE&quot;: 5,
+  &quot;AR&quot;: 3,
+  &quot;CA&quot;: 2
+}
+</code></pre>
+
+<h3 id="get-scenariosapitimeline">GET /scenarios/api/timeline</h3>
+<p>Exécutions par jour</p>
+<p><strong>Query params</strong>: Identiques à <code>/stats</code></p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;2025-11-09&quot;: 15,
+  &quot;2025-11-08&quot;: 22,
+  &quot;2025-11-07&quot;: 18,
+  ...
+}
+</code></pre>
+
+<h3 id="get-scenariosapicomparison">GET /scenarios/api/comparison</h3>
+<p>Comparaison de performances entre scénarios</p>
+<p><strong>Query params</strong>:</p>
+<ul>
+<li>
+<p><code>endpoint_id</code> (optional)</p>
+</li>
+<li>
+<p><code>days_back</code> (default=30)</p>
+</li>
+<li>
+<p><code>limit</code> (default=10): Nombre de scénarios</p>
+</li>
+</ul>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">[
+  {
+    &quot;scenario_id&quot;: 1,
+    &quot;scenario_name&quot;: &quot;Admission Simple&quot;,
+    &quot;total_runs&quot;: 45,
+    &quot;success_rate&quot;: 0.98,
+    &quot;avg_duration&quot;: 10.2
+  },
+  {
+    &quot;scenario_id&quot;: 2,
+    &quot;scenario_name&quot;: &quot;Transfert MCO&quot;,
+    &quot;total_runs&quot;: 38,
+    &quot;success_rate&quot;: 0.95,
+    &quot;avg_duration&quot;: 15.7
+  }
+]
+</code></pre>
+
+<h3 id="get-scenariosapirunrun_iderrors">GET /scenarios/api/run/{run_id}/errors</h3>
+<p>Détails des erreurs d'une exécution</p>
+<p><strong>Réponse</strong>:</p>
+<pre class="codehilite"><code class="language-json">[
+  {
+    &quot;step_order&quot;: 2,
+    &quot;message_type&quot;: &quot;ADT^A08&quot;,
+    &quot;error_message&quot;: &quot;Timeout MLLP après 30s&quot;,
+    &quot;ack_code&quot;: null,
+    &quot;timestamp&quot;: &quot;2025-11-09T10:35:22&quot;
+  }
+]
+</code></pre>
+
+<h2 id="validation-json-import">Validation JSON Import</h2>
+<p>Le JSON d'import doit respecter cette structure:</p>
+<p><strong>Champs Requis</strong>:</p>
+<ul>
+<li>
+<p><code>key</code> (string): Identifiant unique</p>
+</li>
+<li>
+<p><code>name</code> (string): Nom du scénario</p>
+</li>
+<li>
+<p><code>protocol</code> (string): "HL7v2" ou "FHIR"</p>
+</li>
+<li>
+<p><code>steps</code> (array): Liste des étapes</p>
+</li>
+</ul>
+<p><strong>Champs Optionnels</strong>:</p>
+<ul>
+<li>
+<p><code>description</code> (string)</p>
+</li>
+<li>
+<p><code>category</code> (string)</p>
+</li>
+<li>
+<p><code>tags</code> (string): Séparés par virgules</p>
+</li>
+<li>
+<p><code>time_config</code> (object):</p>
+</li>
+<li>
+<p><code>anchor_mode</code> (string): "sliding" | "fixed" | "none"</p>
+</li>
+<li>
+<p><code>anchor_days_offset</code> (int)</p>
+</li>
+<li>
+<p><code>fixed_start_iso</code> (string): Date ISO 8601</p>
+</li>
+<li>
+<p><code>preserve_intervals</code> (bool)</p>
+</li>
+<li>
+<p><code>jitter_min</code> (int): Minutes</p>
+</li>
+<li>
+<p><code>jitter_max</code> (int): Minutes</p>
+</li>
+<li>
+<p><code>jitter_events</code> (bool)</p>
+</li>
+</ul>
+<p><strong>Structure Step</strong>:</p>
+<ul>
+<li>
+<p><code>order_index</code> (int, required): Position dans séquence (0-based)</p>
+</li>
+<li>
+<p><code>message_type</code> (string, required): Type HL7 (ex: "ADT^A01")</p>
+</li>
+<li>
+<p><code>format</code> (string, optional): "HL7v2" ou "FHIR"</p>
+</li>
+<li>
+<p><code>delay_seconds</code> (int, optional): Délai avant ce step (0 par défaut)</p>
+</li>
+<li>
+<p><code>payload</code> (string, required): Contenu du message</p>
+</li>
+</ul>
+<p><strong>Validation Automatique</strong>:</p>
+<ul>
+<li>
+<p>Types vérifiés (steps = array, time_config = object)</p>
+</li>
+<li>
+<p>Champs requis présents</p>
+</li>
+<li>
+<p>Structure steps conforme</p>
+</li>
+<li>
+<p>Retourne erreur explicite si invalide</p>
+</li>
+</ul>
+<h1 id="_1"></h1>
+<p>Documentation API v0.3.0</p>
+</body>
+</html>

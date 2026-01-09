@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 1.03</DIV>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm; page-break-before: always"><FONT SIZE=3>Modification
+   du contenu de l’attribut attrExo</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout valeur C ( &agrave;
+      utiliser essentiellement dans le cadre de l’envoi d’actes ccam
+      valoris&eacute;s &agrave; partir du serveur d’actes vers un
+      tiers)</FONT></P>
+   </UL>
+</UL>
+<P STYLE="margin-left: 1.27cm; margin-bottom: 0cm"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout type de donn&eacute;es
+   </FONT>
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>pour balise
+      &lt;quantite&gt;  (balise p&egrave;re&nbsp;: &lt;acteNGAP&gt;)</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>pour balise
+      &lt;denombrement&gt;  (balise p&egrave;re&nbsp;: &lt;acteNGAP&gt;)</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>pour balise &lt;</FONT>
+      <FONT SIZE=3>lettreCle&gt;  (balise p&egrave;re&nbsp;: &lt;acteNGAP&gt;
+      )</FONT></P>
+   </UL>
+</UL>
+<P STYLE="margin-left: 1.27cm; margin-bottom: 0cm"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout de balises </FONT>
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Ajout balise
+      &lt;quantite&gt; en alternative facultative de la balise
+      &lt;positionDentaires&gt;</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Permet d’envoyer
+         plusieurs codes ccam identiques et r&eacute;alis&eacute;s au m&ecirc;me
+         instant et hors contexte dents;  pour exemple , les actes li&eacute;s
+         au doigts et pieds <FONT FACE="Times New Roman, serif">(<FONT COLOR="#000000">ECCA001
+         Suture de plaies de deux art&egrave;res d'un rayon de la main, par
+         abord direct)</FONT></FONT></FONT></P>
+      </UL>
+   </UL>
+</UL>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Mise en place d’une
+   liste de valeurs sur attribut codeErreur de la balise &lt;reponse&gt;
+   pour le flux acquittement. </FONT>
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Les informations
+      compl&eacute;mentaires se trouvent dans le document
+      HprimXML_ERR_103</FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+</UL>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Modificateur  </FONT>
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT COLOR="#000000"><FONT FACE="Times New Roman, serif"><FONT SIZE=3>Elimination
+      de la valeur indf pour l'attribut statut</FONT></FONT></FONT></P>
+   </UL>
+</UL>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>risque ( balise p&eacute;re
+   : &lt;priseCharge&gt;)</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT COLOR="#000000"><FONT FACE="Times New Roman, serif"><FONT SIZE=3>changement
+      du simpleType, passage d'integer en nombre2</FONT></FONT></FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm">sur typeFusionIntervention
+   </P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>R&eacute;vision
+      du type pour &lt;intervention&gt; et &lt;interventionEliminee&gt; ,
+      mise en place de &lt;typeInterventionBase&gt;</FONT></P>
+      <P STYLE="margin-bottom: 0cm; font-weight: medium"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>All&eacute;gement
+   du contenu patient + venue + personne physique</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm">sur typePatient</P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm">&eacute;limination de balise :
+         </P>
+         <UL>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;categorieSocioProfessionnelle&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;activiteSocioProfessionnelle&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;personnesPrevenir&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;droitOubli&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>&lt;nombreEnfants&gt;</FONT></P>
+         </UL>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm">sur typePersonnePhysique</P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm">&eacute;limination de balise :
+         </P>
+         <UL>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;nationalite&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;langueUsuelle&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;situationFamilleHprim&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;decede&gt;</P>
+         </UL>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm">sur typePersonne</P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm">&eacute;limination de balise :
+         </P>
+         <UL>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;alias&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;civiliteHprim&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;emails&gt;</P>
+         </UL>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm; font-weight: medium">Dans
+      enteteMessage</P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm">&eacute;limination de balise :
+         </P>
+         <UL>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;alias&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;telephones&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>&lt;emails&gt;</FONT></P>
+         </UL>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm">sur typeVenue</P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm">&eacute;limination de balise :
+         </P>
+         <UL>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;droitOubli&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;Placement&gt;</P>
+         </UL>
+      </UL>
+      <LI><P STYLE="margin-bottom: 0cm">sur typeNatureVenueHprim</P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm">&eacute;limination de balise :
+         </P>
+         <UL>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;accompagne&gt;</P>
+            <LI><P STYLE="margin-bottom: 0cm">&lt;Placement&gt;</P>
+         </UL>
+      </UL>
+   </UL>
+   <P STYLE="margin-bottom: 0cm; font-weight: medium"></P>
+   <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>Pour
+   typeEnteteMessage</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>ajout
+      attribut sens (definition du sens du flux)</FONT></P>
+      <UL>
+         <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>prodServ
+         (producteur vers serveur d'activit&eacute;)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>servProd
+         ( serveur d'activit&eacute; vers  producteur)</FONT></P>
+         <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>autre</FONT></P>
+         <P STYLE="margin-bottom: 0cm; font-weight: medium"></P>
+      </UL>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>Pour
+   typeIdentifiant (sur intervention, ccam, ngap, LPP, UCD)</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>ajout
+      attribut portee (local ou sih) </FONT>
+      </P>
+      <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>emetteur
+      et recepteur deviennent facultatives</FONT></P>
+      <P STYLE="margin-bottom: 0cm; font-weight: medium"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>Ajout
+   balise acteur + dateAction (balises facultatives) pour acteCCAM,
+   acteNGAP</FONT></P>
+   <P STYLE="margin-bottom: 0cm; font-weight: medium"></P>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour typePriseCharge</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT SIZE=3>ajout
+      attribut  indicateurParcoursSoins</FONT></P>
+   </UL>
+</UL>
+<P STYLE="margin-bottom: 0cm; font-weight: medium"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour typeActeCcam</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout attribut
+      optionCoordination (li&eacute; a l'executant , type 4S du B2 juin
+      2005)</FONT></P>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout attribut
+      topPreventionActionAmoAmc (type 4S du B2 juin 2005)</FONT></P>
+      <P STYLE="margin-bottom: 0cm"></P>
+   </UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>Pour typeDemande</FONT></P>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm"><FONT SIZE=3>ajout attribut lien
+      sur balise m&eacute;decin (possibilit&eacute; d'indiquer la notion
+      de  traitant, exigence B2 juin 2005)</FONT></P>
+   </UL>
+</UL>
+<P STYLE="margin-bottom: 0cm; font-weight: medium"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><FONT SIZE=3><SPAN STYLE="background: transparent">Gestion
+   des LPP (<FONT COLOR="#000000">liste des produits et prestations) </FONT></SPAN></FONT></FONT>
+   </P>
+</UL>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<UL>
+   <LI><P STYLE="margin-bottom: 0cm; font-weight: medium"><FONT FACE="Times New Roman, serif"><FONT SIZE=3><SPAN STYLE="background: transparent">Gestion
+   des UCD (<FONT COLOR="#000000">liste des m&eacute;dicaments) </FONT></SPAN></FONT></FONT>
+   </P>
+</UL>
+<P STYLE="margin-bottom: 0cm; font-weight: medium"><BR>
+</P>
+
+
+
+</BODY>
+</HTML>

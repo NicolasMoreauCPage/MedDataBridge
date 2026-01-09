@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Regle XML</TITLE>
+<LINK HREF=../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+
+<BODY>
+
+<DIV class='chapitre'> Régles XML</DIV>
+
+<DIV class='sChapitre'> Utilisation de XML-Schema pour d&eacute;finir les
+messages</DIV>
+
+<P>XML-Schema&nbsp;est une recommandation du W3C depuis le 2 mai 2001 (cf <A HREF="http://www.w3.org/TR">http://www.w3.org/TR</A>).
+H’ XML  s’appuie sur cette version de XML Schema.
+</P>
+<P>Le sch&eacute;ma XML d’un message aide &agrave; la production du message, et &agrave; sa validation en r&eacute;ception.
+</P>
+<P>Le sch&eacute;ma XML d’un message constitue un outil de validation garantissant que le message est bien conforme &agrave; la recommandation H’ XML&nbsp;: La validation d’un message par rapport &agrave; son sch&eacute;ma est une op&eacute;ration effectu&eacute;e par un &laquo;&nbsp;parser&nbsp;&raquo;,
+hors application. En particulier, un simple navigateur dot&eacute; d’un &laquo;&nbsp;parser&nbsp;&raquo; XML compatible avec XML Schema, est capable de trancher sur le terrain, les litiges entre syst&egrave;me &eacute;metteurs et syst&egrave;mes r&eacute;cepteurs. </P>
+<P>Les sch&eacute;mas ont &eacute;t&eacute;
+utilis&eacute;s de pr&eacute;f&eacute;rence aux DTD pour les raisons
+suivantes&nbsp;:</P>
+<UL>
+   <LI><P>Les sch&eacute;mas appartiennent r&eacute;ellement au monde XML ce qui n’est pas le cas des DTD</P></LI>
+   <LI><P>Les sch&eacute;mas assurent un contr&ocirc;le pr&eacute;cis de tout type de donn&eacute;es alors que les DTD ne connaissent que les &laquo;&nbsp;CDATA&nbsp;&raquo;
+   et les &laquo;&nbsp;PCDATA&nbsp;&raquo;.
+   </P></LI>
+   <LI><P>Les sch&eacute;mas utilisent une d&eacute;marche objet, permettant entre autres de d&eacute;river les types par restriction ou par extension, ce qui permet une plus
+   grande fidelit&eacute; des messages, par rapport au monde r&eacute;el   qu’ils d&eacute;crivent.</P></LI>
+   <LI><P>Les sch&eacute;mas sont pouss&eacute;s
+   en avant par le W3C et les grands industriels qui y participent ce
+   qui garantit la disponibilit&eacute; et l’&eacute;volution rapide
+   d’outils &laquo;&nbsp;grand public&nbsp;&raquo; les supportant
+   (parsers, navigateurs, bases de donn&eacute;es).</P></LI>
+</UL>
+
+<DIV class='sChapitre'> Conventions de nommage</DIV>
+
+<UL>
+   <LI><B>Nommage des &eacute;l&eacute;ments et attributs
+   dans les messages</B></LI>
+   <UL>
+   <LI>
+      <P>El&eacute;ments d&eacute;sign&eacute;s par des substantifs plut&ocirc;t que des
+   verbes.</P>
+   </LI>
+   <LI>
+      <P>Attributs   d&eacute;sign&eacute;s par des substantifs ou des adjectifs.</P>
+   </LI>
+   <LI>
+      <P>Mots simples en minuscules, sans abr&eacute;viation.</P>
+   <P>Mots compos&eacute;s   coll&eacute;s sans pr&eacute;position ni particule ni article, le
+   second mot et les suivants d&eacute;butant par une majuscule suivant la convention LCC (Lower Camel Case). Exemples&nbsp;: &lt;codePostal&gt;,   &lt;nomNaissance&gt;</P>
+   <LI>
+      <P>El&eacute;ments   r&eacute;p&eacute;titifs &laquo;&nbsp;au singulier&nbsp;&raquo;
+   introduits par un &eacute;l&eacute;ment p&egrave;re &laquo;&nbsp;au   pluriel&nbsp;&raquo; repr&eacute;sentant la collection. Exemples&nbsp;:</P></LI>
+   <P>&lt;telephones&gt;<BR/>
+   &nbsp;&nbsp;&nbsp;&lt;telephone&gt; &lt;/telephone&gt;<BR/>
+   &nbsp;&nbsp;&nbsp;&lt;telephone&gt;&lt;/telephone&gt;<BR/>
+   &lt;/telephones&gt;</P>
+   <LI>
+      <P>Pas d’accent dans les noms d’&eacute;l&eacute;ments
+   ou d’attributs.</P>
+   </LI>
+   </UL>
+
+   <LI><B>Nommage des types dans les sch&eacute;mas</B></LI>
+   <P>Le nommage des types suit les m&ecirc;mes conventions que celui des &eacute;l&eacute;ments et des attributs, avec en plus la convention suivante&nbsp;: Les noms de types complexes commencent par le mot &laquo;&nbsp;type&nbsp;&raquo;. Les noms de types simples omettent ce mot.</P>
+   <P>Le nommage des types simples pour la qualification d'un attribut débutent par &laquo;attr&raquo;.</P>
+</UL>
+
+<DIV class='sChapitre'> Encodage des messages</DIV>
+
+   <P>Encodage des messages&nbsp;: ISO-8859-1
+   (contenant les caract&egrave;res des langues d’Europe de l’ouest)
+   et supportant notamment les caract&egrave;res accentu&eacute;s de la
+   langue fran&ccedil;aise.</P>
+
+<DIV class='sChapitre'> Domaines de noms</DIV>
+
+   <P>D&eacute;finition d’un domaine de noms hprimXML r&eacute;f&eacute;ren&ccedil;ant le vocabulaire de
+   l’ensemble des messages de la recommandation Hprim XML.</P>
+   <UL>
+      <LI><P>URI&nbsp;:
+      http://www.hprim.org/hprimXML</P></LI>
+      <LI><P>D&eacute;clar&eacute; comme namespace par d&eacute;faut dans les sch&eacute;mas et dans les
+      messages.</P></LI>
+   </UL>
+   <P>D&eacute;finition d’un domaine de noms inseeXML r&eacute;f&eacute;ren&ccedil;ant le vocabulaire des
+   nomenclatures de l’INSEE utilis&eacute;es&nbsp;: code pays,
+   activit&eacute;s socio-professionnelles, cat&eacute;gories
+   socio-professionnelles,...</P>
+   <UL>
+      <LI><P>URI&nbsp;:
+      http://www.hprim.org/inseeXML</P></LI>
+      <LI><P>Associ&eacute; au pr&eacute;fixe  &laquo;&nbsp;insee&nbsp;:&nbsp;&raquo; dans les sch&eacute;mas et dans les messages.</P></LI>
+   </UL>
+
+<DIV class='sChapitre'>R&egrave;gles d’&eacute;criture des sch&eacute;mas XML</DIV>
+<UL>
+   <LI><B>Modularisation hi&eacute;rarchis&eacute;e des sch&eacute;mas</B></LI>
+   <UL>
+      <LI><P STYLE="margin-bottom: 0cm">Chaque sch&eacute;ma est de taille
+      r&eacute;duite et contient une classe d’information homog&egrave;ne&nbsp;:
+      Il d&eacute;finit un type d’&eacute;l&eacute;ment ou un ensemble
+      de types d’&eacute;l&eacute;ments apparent&eacute;s.</P>
+      <LI><P STYLE="margin-bottom: 0cm">Au premier niveau on trouve un
+      sch&eacute;ma par message. Le nom de ce sch&eacute;ma commence par
+      le mot-cl&eacute; &laquo;&nbsp;msg&nbsp;&raquo;
+      </P>
+      <LI><P STYLE="margin-bottom: 0cm">Ce sch&eacute;ma de premier niveau
+      inclut les sch&eacute;mas du second niveau qui d&eacute;finissent
+      les grands blocs d’information contenus dans le message</P>
+      <LI><P STYLE="margin-bottom: 0cm">Un sch&eacute;ma du second niveau
+      inclut &agrave; son tour les sch&eacute;mas des niveaux inf&eacute;rieurs
+      qui d&eacute;composent progressivement l’information.</P>
+      <LI><P STYLE="margin-bottom: 0cm">Au dernier niveau on trouve les
+      sch&eacute;mas d&eacute;finissant des informations &eacute;l&eacute;mentaires
+      et g&eacute;n&eacute;rales, communes &agrave; tous les messages&nbsp;:
+      adresses, num&eacute;ros de t&eacute;l&eacute;phone, num&eacute;ros
+      Adeli ...)</P>
+   </UL>
+   <BR/>
+   <LI><B>Restrictions d’&eacute;criture pour H’ XML</B></LI>
+   <P>Pas d’&eacute;l&eacute;ments globaux autres que l’&eacute;l&eacute;ment racine de chaque message.</P>
+   <P>Les attributs sont r&eacute;serv&eacute;s aux informations comportant un nombre de valeurs finis. Les autres informations sont stock&eacute;es dans des &eacute;l&eacute;ments.</P>
+   <P>Le mod&egrave;le de contenu &laquo;&nbsp;mixed
+   content&nbsp;&raquo; est proscrit&nbsp;: On ne m&eacute;lange pas les
+   donn&eacute;es caract&egrave;res avec les &eacute;l&eacute;ments
+   fils.</P>
+</UL>
+
+<DIV class='sChapitre'>Formalisme de repr&eacute;sentation</DIV>
+
+<P>Un message H’ XML est stock&eacute;
+dans un document XML dont l’&eacute;l&eacute;ment racine porte le
+nom du message. Exemple&nbsp;: &lt;evenementsServeurActes&gt;.</P>
+
+<UL>
+   <LI><B>Rappel XML</B></LI>
+   <P>Un document XML est un ensemble d’<B>&eacute;l&eacute;ments</B> qui s’emboitent strictement les
+   uns dans les autres en une structure arborescente. Certains de ces &eacute;l&eacute;ments sont porteurs d’<B>attributs</B>.</P>
+   <P>Le contenu d’un &eacute;l&eacute;ment de <B>type simple</B>&nbsp; est du texte repr&eacute;sentant une donn&eacute;e r&eacute;pondant au type de l’&eacute;l&eacute;ment.
+   (nombre, date, cha&icirc;ne,...).</P>
+   <P>La <B>valeur d’un attribut</B> est du texte repr&eacute;sentant une donn&eacute;e r&eacute;pondant au type de l’attribut (nombre, date, cha&icirc;ne, ...).</P>
+   <P STYLE="margin-bottom: 0cm">Un &eacute;l&eacute;ment de <B>type
+   complexe</B> est porteur d’attributs et/ou contient d’autres
+   &eacute;l&eacute;ments.</P>
+   <P>Le sch&eacute;ma XML d&eacute;finit la structure logique de l’arbre et la typologie de ses &eacute;l&eacute;ments et de leurs attributs.</P>
+   <P>Le sch&eacute;ma est donc repr&eacute;sent&eacute; sous la forme d’un arbre qui se lit de gauche &agrave; droite et de haut en bas.</P>
+
+   <LI><B>Repr&eacute;sentation</B></LI>
+   <P>La repr&eacute;sentation graphique d&eacute;crit les &eacute;l&eacute;ments et leurs types.</P>
+   <UL>
+   <LI>El&eacute;ment obligatoire de type complexe</LI>
+   <P><IMG SRC='image/exempleMessage.png'></P>
+   <P>L’&eacute;l&eacute;ment est repr&eacute;sent&eacute; par un rectangle en trait plein, la boite
+   d’ouverture sur le bord droit contient le signe + ou le signe -, et dans ce dernier cas la d&eacute;finition du type complexe de l’&eacute;l&eacute;ment appara&icirc;t dans un rectangle jaune en
+   pointill&eacute;.</P>
+
+   <LI>El&eacute;ment de cardinalit&eacute;s 0,n de type
+   complexe</LI>
+   <P><IMG SRC='image/elementMultiple.png'></P>
+   <P>L’&eacute;l&eacute;ment est repr&eacute;sent&eacute; par deux rectangles superpos&eacute;s, en
+   pointill&eacute; si la cardinalit&eacute; minimum est z&eacute;ro, en trait plein sinon. La boite d’ouverture sur le bord droit indique que le type est complexe. Les cardinalit&eacute;s minimum et
+   maximum sont indiqu&eacute;es sous le coin inf&eacute;rieur droit.</P>
+
+   <LI>El&eacute;ment optionnel de type simple</LI>
+   <P><IMG SRC='image/elementOptionnel.png'></P>
+   <P>L’&eacute;l&eacute;ment est repr&eacute;sent&eacute; par un rectangle en pointill&eacute;, avec
+   un signe dans le coin sup&eacute;rieur gauche indiquant qu’il s’agit d’un type simple, et sans boite d’ouverture sur le bord droit</P>
+   <LI>El&eacute;ment obligatoire de type simple</LI>
+   <P><IMG SRC='image/elementObligatoire.png'></P>
+   <P>L’&eacute;l&eacute;ment est repr&eacute;sent&eacute; par un rectangle en trait plein, avec un
+   signe dans le coin sup&eacute;rieur gauche indiquant qu’il s’agit d’un type simple, et sans boite d’ouverture sur le bord droit</P>
+   <LI>El&eacute;ment multiple de type simple</LI>
+   <P><IMG SRC='image/elementMultiple.png'></P>
+   <P>L’&eacute;l&eacute;ment est repr&eacute;sent&eacute; par deux rectangle superpos&eacute;s en
+   trait pointill&eacute; si la cardinalit&eacute; minimum est z&eacute;ro, en trait plein sinon. Les cardinalit&eacute;s pr&eacute;cises sont indiqu&eacute;es sous le coin inf&eacute;rieur droit.</P>
+
+   <LI>Type complexe contenant une s&eacute;quence d’&eacute;l&eacute;ments</LI>
+   <P><IMG SRC='image/typeComplexeSequence.png'></P>
+   <P>Un type complexe est symbolis&eacute; par un rectangle en trait plein au bord gauche arrondi.</P>
+
+   <LI>Type complexe contenant une alternative d’&eacute;l&eacute;ments</LI>
+   <P><IMG SRC='image/typeComplexeChoix.png'></P>
+   <P>Un &eacute;l&eacute;ment de type &laquo;&nbsp;unTypeComplexe&nbsp;&raquo; contient soit un &eacute;l&eacute;ment &laquo;&nbsp;choix1&nbsp;&raquo; de type complexe, soit un &eacute;l&eacute;ment
+   &laquo;&nbsp;choix2&nbsp;&raquo; de type simple, soit de un &agrave; quatre &eacute;l&eacute;ments &laquo;&nbsp;choix3&nbsp;&raquo; de type simple.</P>
+   </UL>
+</UL>
+
+<DIV class='sChapitre'> Régles générales</DIV>
+
+<UL>
+   <LI>Utilisation des &eacute;l&eacute;ments optionnels</LI>
+   <P>L’&eacute;metteur d’un message doit  faire figurer dans celui-ci tous les &eacute;l&eacute;ments
+   optionnels qui correspondent &agrave; des informations g&eacute;r&eacute;es
+   par son syst&egrave;me d’information, m&ecirc;me si ces informations sont vides pour l’occurrence du message.</P>
+   <P>Un &eacute;l&eacute;ment optionnel  pr&eacute;sent mais vide correspond &agrave; une information g&eacute;r&eacute;e  par l’&eacute;metteur, mais non renseign&eacute;e dans son syst&egrave;me
+   pour l’occurrence pr&eacute;sente.</P>
+   <P>Un &eacute;l&eacute;ment optionnel   pr&eacute;sent mais vide, est mat&eacute;rialis&eacute; par une   balise ouvrante-fermante.</P>
+   <P>Exemple&nbsp;: &lt;lieuNaissance/&gt;</P>
+   <P>Si l’&eacute;metteur est la seule source d’approvisionnement du r&eacute;cepteur pour une information v&eacute;hicul&eacute;e par un &eacute;l&eacute;ment optionnel, et si
+   l’&eacute;l&eacute;ment optionnel est vide dans le message re&ccedil;u,
+   le r&eacute;cepteur est suppos&eacute; effacer l’information
+   concern&eacute;e de son syst&egrave;me.</P>
+   <LI CLASS="western">Codes et nomenclatures</LI>
+   <P>Le principe  g&eacute;n&eacute;ral adopt&eacute; pour les &eacute;changes
+   d’informations susceptibles d’&ecirc;tre codifi&eacute;es et
+   mises en table, est le suivant&nbsp;:</P>
+   <P>L’information  codifiable est mise dans un &eacute;l&eacute;ment qui offre deux
+   solutions utilisables alternativement ou conjointement&nbsp;:</P>
+   <UL>
+      <LI><P>un attribut &laquo;&nbsp;<I>valeur</I>&nbsp;&raquo; qui porte le code
+      d&eacute;fini dans le dictionnaire Hprim.</P></LI>
+      <LI><P>trois  sous-&eacute;l&eacute;ments &lt;code&gt;, &lt;libelle&gt;,
+      &lt;dictionnaire&gt; qui permettent d’utiliser une nomenclature
+      libre, d&eacute;finie de gr&eacute; &agrave; gr&eacute; entre
+      l’&eacute;metteur et le r&eacute;cepteur.</P></LI>
+   </UL>
+   <P>Le dictionnaire Hprim d&eacute;finit des listes de valeurs pour chaque type d’information (voir le  chapitre C). Les codes sont d&eacute;finis sous la forme
+   d’abr&eacute;viations.</P>
+   <P>Dans quelques cas le dictionnaire Hprim fait r&eacute;f&eacute;rence &agrave; des dictionnaires externes.
+   Exemples&nbsp;: Modes d’entr&eacute;e et de sortie du PMSI,
+   nomenclatures des examens Names-Lab, nomenlature des unit&eacute;s,
+   des natures d’&eacute;chantillons, ...</P>
+</UL>
+
+<DIV class='sChapitre'> Gestion des versions</DIV>
+
+   <P>Les versions de la recommandation H’ XML  sont r&eacute;f&eacute;renc&eacute;es par un num&eacute;ro majeur sur un chiffre, et un num&eacute;ro mineur sur deux chiffres, suivi éventuellement par une lettre.
+   </P>
+   <P>Exemple&nbsp;: H’ XML version 1.00,  H’ XML version 1.03a</P>
+   <P>Certains messages peuvent &eacute;voluer entre deux versions de la recommandation. C’est pourquoi la version d’un message est d&eacute;finie par le num&eacute;ro majeur et le
+   num&eacute;ro mineur de la version &agrave; laquelle il appartient, plus un num&eacute;ro d’incr&eacute;ment et éventuellement une lettre propre au message.</P>
+   <P>Le num&eacute;ro de version d’un message est inscrit dans le nom de son sch&eacute;ma.</P>
+   <P STYLE="margin-bottom: 0cm">Exemple&nbsp;:
+   <FONT SIZE=2 STYLE="font-size: 9pt"><FONT COLOR="#000000"><SPAN STYLE="background: #ffffff"><B>msgEvenementsServeurActes100.xsd</B></SPAN>
+   est le sch&eacute;ma du message </FONT><SPAN STYLE="background: #ffffff"><FONT COLOR="#0000ff">&lt;</FONT><FONT COLOR="#800000">evenementsServeurActes</FONT></SPAN><FONT COLOR="#0000ff">&gt;</FONT></FONT>
+   <FONT SIZE=2 STYLE="font-size: 9pt"><FONT COLOR="#000000"> version
+   1.00.</FONT></FONT></P>
+   <P>Une instance de message indique son  num&eacute;ro de version par le nom du sch&eacute;ma qu’elle
+   r&eacute;f&eacute;rence dans son &eacute;l&eacute;ment racine, et par l'attribut version.</P>
+   <P>Exemple&nbsp;: </P>
+   <IMG SRC='image/versionXml.png'>
+
+</BODY>
+</HTML>

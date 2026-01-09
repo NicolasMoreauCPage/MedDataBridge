@@ -1,0 +1,249 @@
+/*-------------------------------------------*/
+/*   Feuille de style pour Hprim Xml         */
+/*-------------------------------------------*/
+
+
+a {
+   color: #000000;
+   text-align: center;
+   font-size: 12px;
+   font-family: Arial, Helvetica, sans-serif;
+ 
+ }
+
+a:hover {
+   font-style: italic;
+
+}
+a:focus {
+   color: #524AFF;
+   font-style: italic;
+}
+.titre {
+   color: #FF690A;
+   text-align: center;
+   font-weight: bold;
+   
+   font-size: 1.5em;
+   font-family: Arial, Helvetica, sans-serif;
+   border-style: double;
+   border-color: #0054C9;
+   margin-left: 100px;
+   margin-right: 100px;
+ 
+ }
+ .copyright {
+    color: #000000;
+    text-align: left;
+    font-weight: simple;
+    background-color: #FFFFFF;
+    font-size: 0.6em;
+    font-family: Arial, Helvetica, sans-serif;
+  
+ }
+ .logo {
+   background-image: url("./logoInterop.png");
+   background-repeat: no-repeat;
+   float: left;
+   width: 700px;
+   height: 92px;
+   margin-left: 10%;
+   margin-top: 20%;
+ 
+ }
+ 
+/* corps  */
+
+ .chapitre {
+   color: #0054C9;
+   text-align: center;
+   font-weight: bold;
+   background-color: #FFFFF;
+   border-style: solid;
+   border-width: 2px;
+   font-size: 1.5em;
+   font-family: Arial, Helvetica, sans-serif;
+   margin-bottom: 15px;
+   width: 100%;
+
+   
+ }
+ .sChapitre {
+   color: #173B4D;
+   text-align: left;
+   font-weight: bold;
+   background-color: #FFFFF;
+   border-bottom-style: solid;
+   border-bottom-width: 2px;
+   font-size: 1.5em;
+   font-family: Arial, Helvetica, sans-serif;
+   margin-bottom: 15px;
+ }
+ 
+ .definition {
+   font-family: Arial, Helvetica, sans-serif;
+   color: #000000;
+   margin-bottom: 0.8em;
+ }
+ .remarque {
+   font-weight: bold;
+ }
+ 
+.ligneEnteteElement {
+   width: 100%;  
+   color: #FFFFFF ;
+   background-color: #D95809;
+   text-align: center;
+   font-size: 0.9em;
+   font-family: Arial, Helvetica, sans-serif;
+   border-style: solid;
+   border-top: 1px outset;
+   border-right: 1px outset;
+   border-bottom: 1px outset;
+   border-left: 1px outset;
+   
+}
+ 
+.headerCellElement {
+   color: #FFFFFF;
+   background-color: #FF690A;
+   text-align: center;
+   font-weight: bold;
+   font-size: 0.9em;
+   font-family: Arial, Helvetica, sans-serif;
+   border-style: solid;
+   border-top: 1px outset;
+   border-right: 1px outset;
+   border-bottom: 1px outset;
+   border-left: 1px outset;    
+ }
+
+.ligneEnteteAttribut {
+   width: 100%;  
+   color: #333333 ;
+   background-color: #D95809;
+   text-align: center;
+   font-size: 0.9em;
+   font-family: Arial, Helvetica, sans-serif;
+   border-style: solid;
+   border-top: 1px outset;
+   border-right: 1px outset;
+   border-bottom: 1px outset;
+   border-left: 1px outset;
+   
+}
+ 
+.headerCellAttribut {
+   color: #333333;
+   background-color: #FF690A;
+   text-align: center;
+   font-weight: bold;
+   font-size: 0.9em;
+   font-family: Arial, Helvetica, sans-serif;
+   border-style: solid;
+   border-top: 1px outset;
+   border-right: 1px outset;
+   border-bottom: 1px outset;
+   border-left: 1px outset;    
+ }
+
+.cell {
+   text-align: left;
+   font-family: Arial, Helvetica, sans-serif;
+   font-size: 0.8em;
+   color: #000000;
+   border-style: solid;
+   border-top: 1px outset;
+   border-right: 1px outset;
+   border-bottom: 1px outset;
+   border-left: 1px outset;
+   padding-left: 5px;
+    
+ }
+
+/* lien pour index */
+
+.indexLink {
+   text-align: left; 
+   font-size: 12px;
+   font-family: Arial, Helvetica, sans-serif;
+   color: #000000;
+   margin-left: 10px;
+   margin-bottom: 10px;
+   margin-right: 10px;
+   height: 5%;
+   display: block;
+
+ }
+ 
+ .indexLink a {
+   margin-left: 10px;
+ }
+ 
+ .precLinkOn, .precLinkOf {
+    text-align: left; 
+    text-decoration: underline;
+    font-size: 12px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000000;
+    cursor: default;
+    margin-left: 10px;
+    margin-bottom: 10px;
+    padding-top: 4px;
+}
+  
+.precLinkOf {
+    font-style: normal;
+}
+
+.precLinkOn {
+    font-style: italic;
+}
+ 
+ /* lien pour index */
+ 
+.indexAccueil {
+    float: left;
+    text-align: left; 
+    font-size: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000000;
+    background-image: url("./logoInteropIcone.png");
+    background-repeat: no-repeat;
+    float: left;
+    width: 96px;
+    height: 50px;
+ }
+
+
+ 
+ /* detail */
+ 
+ .detailTheme {
+    color: #0054C9;
+    text-align: left;
+    font-weight: bold;
+    font-size: 1.5em;
+    font-family: Arial, Helvetica, sans-serif;
+ }
+ 
+  /* theme */
+  
+  .theme {
+     color: #0054C9;
+     text-align: left;
+     font-weight: bold;
+     font-size: 1.5em;
+     font-family: Arial, Helvetica, sans-serif;
+ }
+ 
+ /* puce */
+ 
+ .puce {
+   padding-left: 10px;
+   margin-left: 1px;
+ }
+ 
+.pied {
+     font-style: italic;
+}

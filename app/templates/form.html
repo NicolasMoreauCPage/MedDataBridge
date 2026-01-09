@@ -1,5 +1,5 @@
 {#
-  form.html - Template générique de formulaire pour MedData Bridge
+  form.html - Template générique de formulaire pour IntegraSanté
 
   Génère des formulaires dynamiques à partir d'une configuration Python (fields).
   - Champs pris en charge: text, email, tel, number, date, select, textarea
@@ -334,6 +334,31 @@
         });
       } catch (e) {
         /* ignore */
+      }
+    })();
+  </script>
+
+  <!-- Raccourci clavier: Ctrl+S / Cmd+S pour soumettre le formulaire -->
+  <script>
+    (function() {
+      try {
+        var form = document.querySelector('form[role="form"]');
+        if (!form) return;
+        document.addEventListener('keydown', function(e) {
+          if (!(e.ctrlKey || e.metaKey)) return;
+          if (!e.key || e.key.toLowerCase() !== 's') return;
+          // Éviter de déclencher dans les modals natives de saisie
+          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+            // On laisse le champ conserver le focus mais on intercepte le raccourci navigateur
+          }
+          e.preventDefault();
+          var submitBtn = document.getElementById('submit-btn') || form.querySelector('button[type="submit"]');
+          if (submitBtn && !submitBtn.disabled) {
+            submitBtn.click();
+          }
+        });
+      } catch (e) {
+        console.warn('Erreur init raccourci Ctrl+S sur formulaire:', e);
       }
     })();
   </script>

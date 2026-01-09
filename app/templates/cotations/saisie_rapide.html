@@ -1,0 +1,1563 @@
+{% extends "base.html" %}
+
+{% block title %}Saisie Rapide Cotations - {{ dossier.nda }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <!-- Header fixe -->
+    <div class="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="/dossiers/{{ dossier.id }}" class="text-slate-600 hover:text-slate-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900">Saisie Rapide</h1>
+                        <p class="text-sm text-slate-600">
+                            NDA <span class="font-mono font-semibold">{{ dossier.nda }}</span> — 
+                            {% if patient %}{{ patient.family }} {{ patient.given }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="showTemplates()" class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-medium">
+                        <span class="flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span>Templates</span>
+                        </span>
+                    </button>
+                    <button onclick="showHistory()" class="px-4 py-2 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-medium">
+                        <span class="flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Historique</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-6">
+        <!-- Statistiques rapides globales -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="text-2xl font-bold text-slate-900">{{ total_actes }}</div>
+                <div class="text-sm text-slate-600">Actes total</div>
+            </div>
+            <div class="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4">
+                <div class="text-2xl font-bold text-emerald-900">{{ ccam_count }}</div>
+                <div class="text-sm text-emerald-700">CCAM</div>
+            </div>
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <div class="text-2xl font-bold text-blue-900">{{ ngap_count }}</div>
+                <div class="text-sm text-blue-700">NGAP</div>
+            </div>
+            <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                <div class="text-2xl font-bold text-amber-900">{{ ucd_count }}</div>
+                <div class="text-sm text-amber-700">UCD</div>
+            </div>
+            <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                <div class="text-2xl font-bold text-purple-900">{{ lpp_count }}</div>
+                <div class="text-sm text-purple-700">LPP</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Panneau de saisie principal -->
+            <div class="lg:col-span-2">
+                <!-- Sélecteur de type d'acte -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-lg font-bold text-slate-900 mb-4">Type d'acte</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <button onclick="selectActeType('ccam')" id="btn-type-ccam" class="acte-type-btn p-4 border-2 border-emerald-200 bg-emerald-50 text-emerald-900 rounded-lg hover:border-emerald-500 hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">🏥</div>
+                            <div class="font-bold">CCAM</div>
+                            <div class="text-xs opacity-75">Actes techniques</div>
+                        </button>
+                        <button onclick="selectActeType('ngap')" id="btn-type-ngap" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-blue-500 rounded-lg hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">👨‍⚕️</div>
+                            <div class="font-bold">NGAP</div>
+                            <div class="text-xs opacity-75">Consultations</div>
+                        </button>
+                        <button onclick="selectActeType('ucd')" id="btn-type-ucd" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-amber-500 rounded-lg hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">💊</div>
+                            <div class="font-bold">UCD</div>
+                            <div class="text-xs opacity-75">Médicaments</div>
+                        </button>
+                        <button onclick="selectActeType('lpp')" id="btn-type-lpp" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-purple-500 rounded-lg hover:shadow-md transition-all">
+                            <div class="text-3xl mb-2">🩹</div>
+                            <div class="font-bold">LPP</div>
+                            <div class="text-xs opacity-75">Dispositifs</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulaire CCAM -->
+                <div id="form-ccam" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-emerald-900">Acte CCAM</h2>
+                        <button onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                    </div>
+                    
+                    <form id="ccam-form" class="space-y-4">
+                        <!-- Code acte avec auto-complétion -->
+                        <div class="relative">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Code acte CCAM <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="ccam-code" 
+                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all font-mono text-lg uppercase"
+                                   placeholder="Ex: HBMD001"
+                                   maxlength="7"
+                                   autocomplete="off"
+                                   required>
+                            <div id="ccam-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto">
+                                <!-- Auto-complétion dynamique -->
+                            </div>
+                            <p class="mt-1 text-xs text-slate-500">Format: 4 lettres + 3 chiffres (ex: HBMD001)</p>
+                        </div>
+
+                        <!-- Libellé auto-rempli -->
+                        <div id="ccam-libelle" class="hidden p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
+                            <p class="text-sm font-medium text-emerald-900" id="ccam-libelle-text"></p>
+                        </div>
+
+                        <!-- Codes activité et phase en ligne -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Activité <span class="text-red-500">*</span>
+                                </label>
+                                <select id="ccam-activite" class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="01">01 - Diagnostic et/ou thérapeutique</option>
+                                    <option value="04">04 - Activité de prélèvement</option>
+                                    <option value="05">05 - Activité d'accueil et de traitement des urgences</option>
+                                    <option value="07">07 - Activité de surveillance continue</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Phase <span class="text-red-500">*</span>
+                                </label>
+                                <select id="ccam-phase" class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
+                                    <option value="0">0 - Phase unique</option>
+                                    <option value="1">1 - Temps principaux</option>
+                                    <option value="2">2 - Temps complémentaires</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Date et heure -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Date <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" id="ccam-date" 
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Heure <span class="text-red-500">*</span>
+                                </label>
+                                <input type="time" id="ccam-heure" 
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Modificateurs -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Modificateurs
+                            </label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button type="button" onclick="toggleModificateur('Z1')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    Z1
+                                </button>
+                                <button type="button" onclick="toggleModificateur('K50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    K50
+                                </button>
+                                <button type="button" onclick="toggleModificateur('U50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    U50
+                                </button>
+                                <button type="button" onclick="toggleModificateur('P')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                    P
+                                </button>
+                            </div>
+                            <input type="hidden" id="ccam-modificateurs" value="">
+                        </div>
+
+                        <!-- Quantité et montant -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Quantité
+                                </label>
+                                <input type="number" id="ccam-quantite" value="1" min="1"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Montant (€)
+                                </label>
+                                <input type="number" id="ccam-montant" step="0.01" 
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       placeholder="Auto-calculé">
+                            </div>
+                        </div>
+
+                        <!-- Commentaire -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Commentaire
+                            </label>
+                            <textarea id="ccam-commentaire" rows="2"
+                                      class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                      placeholder="Informations complémentaires..."></textarea>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" class="flex-1 px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-lg hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all">
+                                ✓ Enregistrer
+                            </button>
+                            <button type="button" onclick="saveContinue()" class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all">
+                                + Suivant
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Formulaire NGAP -->
+                <div id="form-ngap" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-blue-900">Acte NGAP</h2>
+                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                    </div>
+
+                    <form id="ngap-form" class="space-y-4">
+                        <!-- Code NGAP avec auto-complétion -->
+                        <div class="relative">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                Lettre-clé NGAP <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="ngap-code"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all font-mono text-lg uppercase"
+                                   placeholder="Ex: C, CS, AMI"
+                                   autocomplete="off"
+                                   required>
+                            <div id="ngap-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
+                            <p class="mt-1 text-xs text-slate-500">Tapez une lettre-clé ou un libellé pour chercher</p>
+                        </div>
+
+                        <!-- Libellé auto-rempli -->
+                        <div id="ngap-libelle" class="hidden p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+                            <p class="text-sm font-medium text-blue-900" id="ngap-libelle-text"></p>
+                        </div>
+
+                        <!-- Coefficient / Dénombrement -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Coefficient</label>
+                                <input type="number" step="0.1" id="ngap-coefficient" value="1.0"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Dénombrement</label>
+                                <input type="number" id="ngap-denombrement" value="1" min="1"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                            </div>
+                        </div>
+
+                        <!-- Date et heure -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Date <span class="text-red-500">*</span></label>
+                                <input type="date" id="ngap-date"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                       required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Heure <span class="text-red-500">*</span></label>
+                                <input type="time" id="ngap-heure"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Montant -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Montant (€)</label>
+                            <input type="number" id="ngap-montant" step="0.01"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                   placeholder="Auto-calculé si le tarif de base est connu">
+                            <input type="hidden" id="ngap-tarif-base" value="">
+                        </div>
+
+                        <!-- Commentaire -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Commentaire</label>
+                            <textarea id="ngap-commentaire" rows="2"
+                                      class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                      placeholder="Informations complémentaires..."></textarea>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" class="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all">
+                                ✓ Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Formulaire UCD -->
+                <div id="form-ucd" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-amber-900">Médicament UCD</h2>
+                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                    </div>
+
+                    <form id="ucd-form" class="space-y-4">
+                        <!-- Code UCD avec auto-complétion -->
+                        <div class="relative">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Code UCD / CIP-13 <span class="text-red-500">*</span></label>
+                            <input type="text" id="ucd-code"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all font-mono text-sm"
+                                   placeholder="Ex: 3400892169407"
+                                   autocomplete="off"
+                                   required>
+                            <div id="ucd-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
+                            <p class="mt-1 text-xs text-slate-500">Tapez un code ou un libellé de médicament</p>
+                        </div>
+
+                        <!-- Libellé / dosage / forme -->
+                        <div class="space-y-2">
+                            <div id="ucd-libelle" class="hidden p-3 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
+                                <p class="text-sm font-medium text-amber-900" id="ucd-libelle-text"></p>
+                                <p class="text-xs text-amber-800" id="ucd-libelle-extra"></p>
+                            </div>
+                        </div>
+
+                        <!-- Date / heure -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Date <span class="text-red-500">*</span></label>
+                                <input type="date" id="ucd-date"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                                       required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Heure <span class="text-red-500">*</span></label>
+                                <input type="time" id="ucd-heure"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Quantité / prix -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Quantité</label>
+                                <input type="number" id="ucd-quantite" value="1" min="0.1" step="0.1"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Prix unitaire TTC (€)</label>
+                                <input type="number" id="ucd-prix-unitaire" step="0.01"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                                       placeholder="Pré-rempli par la recherche si disponible">
+                            </div>
+                        </div>
+
+                        <!-- Commentaire -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Commentaire</label>
+                            <textarea id="ucd-commentaire" rows="2"
+                                      class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                                      placeholder="Informations complémentaires..."></textarea>
+                        </div>
+
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" class="flex-1 px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-lg hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all">
+                                ✓ Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Formulaire LPP -->
+                <div id="form-lpp" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-purple-900">Dispositif LPP</h2>
+                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                    </div>
+
+                    <form id="lpp-form" class="space-y-4">
+                        <!-- Code LPP avec auto-complétion -->
+                        <div class="relative">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Code LPP</label>
+                            <input type="text" id="lpp-code"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-mono text-sm"
+                                   placeholder="Ex: 1162915"
+                                   autocomplete="off">
+                            <div id="lpp-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
+                            <p class="mt-1 text-xs text-slate-500">Vous pouvez chercher par code ou par libellé</p>
+                        </div>
+
+                        <!-- Libellé dispositif -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Libellé dispositif <span class="text-red-500">*</span></label>
+                            <input type="text" id="lpp-libelle"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                   required>
+                        </div>
+
+                        <!-- Date / heure -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Date <span class="text-red-500">*</span></label>
+                                <input type="date" id="lpp-date"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Heure <span class="text-red-500">*</span></label>
+                                <input type="time" id="lpp-heure"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Quantité / montant -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Quantité <span class="text-red-500">*</span></label>
+                                <input type="number" id="lpp-quantite" value="1" min="1"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-2">Montant unitaire TTC (€) <span class="text-red-500">*</span></label>
+                                <input type="number" id="lpp-prix-unitaire" step="0.01"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Commentaire -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Commentaire</label>
+                            <textarea id="lpp-commentaire" rows="2"
+                                      class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                      placeholder="Informations complémentaires..."></textarea>
+                        </div>
+
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" class="flex-1 px-6 py-4 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white font-bold rounded-lg hover:from-purple-700 hover:to-fuchsia-700 shadow-lg hover:shadow-xl transition-all">
+                                ✓ Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Panneau latéral -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Récapitulatif de la saisie (placeholder pour futures optimisations de session locale) -->
+                <div class="bg-white rounded-xl shadow-lg p-6 sticky top-24">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4">Raccourcis & session</h3>
+                    <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 mb-4">
+                        <h4 class="text-sm font-bold text-indigo-900 mb-3">⌨️ Raccourcis clavier</h4>
+                        <div class="space-y-2 text-xs text-indigo-800">
+                            <div class="flex justify-between">
+                                <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+S</span>
+                                <span>Enregistrer l'acte</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+Enter</span>
+                                <span>Enregistrer + rester en saisie</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+T</span>
+                                <span>Templates</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-mono bg-white px-2 py-1 rounded">Esc</span>
+                                <span>Fermer les modales</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historique intégré : filtres + liste -->
+                    <div id="cotations-history" class="space-y-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="text-sm font-bold text-slate-900">Actes du dossier</h4>
+                            <button type="button" onclick="toggleFilters()" class="px-2 py-1 text-xs bg-white border border-slate-300 text-slate-700 rounded-lg hover:border-slate-400">
+                                Filtres
+                            </button>
+                        </div>
+
+                        <div id="filters-panel" class="hidden bg-slate-50 rounded-lg p-3 mb-2">
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Type</label>
+                                    <select id="filter-type" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                        <option value="">Tous</option>
+                                        <option value="ccam">CCAM</option>
+                                        <option value="ngap">NGAP</option>
+                                        <option value="ucd">UCD</option>
+                                        <option value="lpp">LPP</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Statut</label>
+                                    <select id="filter-statut" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                        <option value="">Tous</option>
+                                        <option value="valide">Validé</option>
+                                        <option value="provisoire">Provisoire</option>
+                                        <option value="facture">Facturé</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Date début</label>
+                                    <input type="date" id="filter-date-debut" onchange="applyFilters()"
+                                           class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Date fin</label>
+                                    <input type="date" id="filter-date-fin" onchange="applyFilters()"
+                                           class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                </div>
+                            </div>
+                            <div class="flex justify-end space-x-1">
+                                <button type="button" onclick="resetFilters()" class="px-2 py-1 text-[11px] text-slate-600 hover:text-slate-900">
+                                    Réinitialiser
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                            <div class="max-h-96 overflow-y-auto">
+                                <table class="w-full text-xs">
+                                    <thead class="bg-slate-700 text-white">
+                                        <tr>
+                                            <th class="px-2 py-2 text-left">
+                                                <input type="checkbox" id="select-all" onchange="selectAll()"
+                                                       class="rounded border-slate-400 text-emerald-600 focus:ring-emerald-500">
+                                            </th>
+                                            <th class="px-2 py-2 text-left">Type</th>
+                                            <th class="px-2 py-2 text-left">Code</th>
+                                            <th class="px-2 py-2 text-left">Libellé</th>
+                                            <th class="px-2 py-2 text-left">Date</th>
+                                            <th class="px-2 py-2 text-left">Qté</th>
+                                            <th class="px-2 py-2 text-right">Montant</th>
+                                            <th class="px-2 py-2 text-center">Statut</th>
+                                            <th class="px-2 py-2 text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200" id="actes-tbody">
+                                        {% for acte in ccam_acts %}
+                                        <tr class="hover:bg-emerald-50 transition-colors acte-row" data-type="ccam" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
+                                            <td class="px-2 py-1.5">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" value="{{ acte.id }}">
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">CCAM</span>
+                                            </td>
+                                            <td class="px-2 py-1.5 font-mono font-bold text-emerald-900 text-xs">{{ acte.code_acte }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.quantite or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                                {{ "%.2f €"|format(acte.montant_total) if acte.montant_total else '—' }}
+                                            </td>
+                                            <td class="px-2 py-1.5 text-center">
+                                                <div class="flex flex-col space-y-0.5">
+                                                    {% if acte.valide %}
+                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    {% else %}
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    {% endif %}
+                                                    {% if acte.facture %}
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <div class="flex justify-center space-x-1">
+                                                    <button type="button" onclick="editActe('ccam', {{ acte.id }})" class="text-blue-600 hover:text-blue-800" title="Modifier">
+                                                        ✏️
+                                                    </button>
+                                                    <button type="button" onclick="deleteActe('ccam', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+
+                                        {% for acte in ngap_acts %}
+                                        <tr class="hover:bg-blue-50 transition-colors acte-row" data-type="ngap" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
+                                            <td class="px-2 py-1.5">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="{{ acte.id }}">
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded-full">NGAP</span>
+                                            </td>
+                                            <td class="px-2 py-1.5 font-mono font-bold text-blue-900 text-xs">{{ acte.lettre_cle }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.denombrement or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                                {{ "%.2f €"|format(acte.montant_total) if acte.montant_total else '—' }}
+                                            </td>
+                                            <td class="px-2 py-1.5 text-center">
+                                                <div class="flex flex-col space-y-0.5">
+                                                    {% if acte.valide %}
+                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    {% else %}
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    {% endif %}
+                                                    {% if acte.facture %}
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <div class="flex justify-center space-x-1">
+                                                    <button type="button" onclick="editActe('ngap', {{ acte.id }})" class="text-blue-600 hover:text-blue-800" title="Modifier">
+                                                        ✏️
+                                                    </button>
+                                                    <button type="button" onclick="deleteActe('ngap', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+
+                                        {% for acte in ucd_acts %}
+                                        <tr class="hover:bg-amber-50 transition-colors acte-row" data-type="ucd" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
+                                            <td class="px-2 py-1.5">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-amber-600 focus:ring-amber-500" value="{{ acte.id }}">
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">UCD</span>
+                                            </td>
+                                            <td class="px-2 py-1.5 font-mono font-bold text-amber-900 text-xs">{{ acte.code_ucd }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.quantite or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                                {% if acte.montant_unitaire_facture_ttc and acte.quantite %}
+                                                    {{ "%.2f €"|format(acte.montant_unitaire_facture_ttc * acte.quantite) }}
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-2 py-1.5 text-center">
+                                                <div class="flex flex-col space-y-0.5">
+                                                    {% if acte.valide %}
+                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    {% else %}
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    {% endif %}
+                                                    {% if acte.facture %}
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <div class="flex justify-center space-x-1">
+                                                    <button type="button" onclick="editActe('ucd', {{ acte.id }})" class="text-amber-600 hover:text-amber-800" title="Modifier">
+                                                        ✏️
+                                                    </button>
+                                                    <button type="button" onclick="deleteActe('ucd', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+
+                                        {% for acte in lpp_acts %}
+                                        <tr class="hover:bg-purple-50 transition-colors acte-row" data-type="lpp" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
+                                            <td class="px-2 py-1.5">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-purple-600 focus:ring-purple-500" value="{{ acte.id }}">
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">LPP</span>
+                                            </td>
+                                            <td class="px-2 py-1.5 font-mono font-bold text-purple-900 text-xs">{{ acte.code_lpp }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.quantite or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                                {% if acte.montant_unitaire_facture_ttc and acte.quantite %}
+                                                    {{ "%.2f €"|format(acte.montant_unitaire_facture_ttc * acte.quantite) }}
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-2 py-1.5 text-center">
+                                                <div class="flex flex-col space-y-0.5">
+                                                    {% if acte.valide %}
+                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    {% else %}
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    {% endif %}
+                                                    {% if acte.facture %}
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="px-2 py-1.5">
+                                                <div class="flex justify-center space-x-1">
+                                                    <button type="button" onclick="editActe('lpp', {{ acte.id }})" class="text-purple-600 hover:text-purple-800" title="Modifier">
+                                                        ✏️
+                                                    </button>
+                                                    <button type="button" onclick="deleteActe('lpp', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+
+                                        {% if not ccam_acts and not ngap_acts and not ucd_acts and not lpp_acts %}
+                                        <tr>
+                                            <td colspan="9" class="px-3 py-6 text-center text-slate-400 text-xs">
+                                                <div>
+                                                    <p class="font-semibold mb-1">Aucune cotation</p>
+                                                    <p>Commencez par ajouter des actes avec le panneau de gauche</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Actions groupées compactes -->
+                        <div id="bulk-actions" class="hidden mt-2">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-slate-700">
+                                    <span id="selected-count">0</span> acte(s) sélectionné(s)
+                                </span>
+                                <div class="flex space-x-1">
+                                    <button type="button" onclick="validateSelected()" class="px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">✓</button>
+                                    <button type="button" onclick="factureSelected()" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">📄</button>
+                                    <button type="button" onclick="deleteSelected()" class="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">🗑️</button>
+                                    <button type="button" onclick="deselectAll()" class="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium">Annuler</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Templates -->
+<div id="modal-templates" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black opacity-50" onclick="closeModal('modal-templates')"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8">
+            <button onclick="closeModal('modal-templates')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <h2 class="text-2xl font-bold text-slate-900 mb-6">Templates d'actes fréquents</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="useTemplate('consultation-generale')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Consultation générale</div>
+                    <div class="text-sm text-slate-600">NGAP: C (coef 1)</div>
+                </button>
+                <button onclick="useTemplate('ecg')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Électrocardiogramme</div>
+                    <div class="text-sm text-slate-600">CCAM: DEQP003</div>
+                </button>
+                <button onclick="useTemplate('radio-thorax')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Radio thorax</div>
+                    <div class="text-sm text-slate-600">CCAM: LBQH001</div>
+                </button>
+                <button onclick="useTemplate('pansement')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div class="font-bold text-slate-900">Pansement</div>
+                    <div class="text-sm text-slate-600">NGAP: AMI (coef 2)</div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedModificateurs = [];
+let sessionActes = [];
+let currentActeType = null;
+let selectedActes = new Set();
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    // Définir la date/heure par défaut à maintenant
+    const now = new Date();
+    document.getElementById('ccam-date').valueAsDate = now;
+    document.getElementById('ccam-heure').value = now.toTimeString().slice(0, 5);
+    document.getElementById('ngap-date').valueAsDate = now;
+    document.getElementById('ngap-heure').value = now.toTimeString().slice(0, 5);
+    document.getElementById('ucd-date').valueAsDate = now;
+    document.getElementById('ucd-heure').value = now.toTimeString().slice(0, 5);
+    document.getElementById('lpp-date').valueAsDate = now;
+    document.getElementById('lpp-heure').value = now.toTimeString().slice(0, 5);
+
+    // Raccourcis clavier
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('ccam-form')?.dispatchEvent(new Event('submit'));
+        }
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            saveContinue();
+        }
+        if (e.ctrlKey && e.key === 't') {
+            e.preventDefault();
+            showTemplates();
+        }
+        if (e.key === 'Escape') {
+            closeAllModals();
+        }
+    });
+
+    // Auto-complétion CCAM
+    document.getElementById('ccam-code')?.addEventListener('input', function(e) {
+        const value = e.target.value.toUpperCase();
+        if (value.length >= 3) {
+            searchCCAM(value);
+        } else {
+            document.getElementById('ccam-suggestions').classList.add('hidden');
+        }
+    });
+
+    // Auto-complétion NGAP
+    document.getElementById('ngap-code')?.addEventListener('input', function(e) {
+        const value = e.target.value.toUpperCase();
+        if (value.length >= 1) {
+            searchNGAP(value);
+        } else {
+            document.getElementById('ngap-suggestions').classList.add('hidden');
+        }
+    });
+
+    // Auto-complétion UCD
+    document.getElementById('ucd-code')?.addEventListener('input', function(e) {
+        const value = e.target.value;
+        if (value.length >= 3) {
+            searchUCD(value);
+        } else {
+            document.getElementById('ucd-suggestions').classList.add('hidden');
+        }
+    });
+
+    // Auto-complétion LPP
+    document.getElementById('lpp-code')?.addEventListener('input', function(e) {
+        const value = e.target.value;
+        if (value.length >= 2) {
+            searchLPP(value);
+        } else {
+            document.getElementById('lpp-suggestions').classList.add('hidden');
+        }
+    });
+
+    // Recalcul NGAP montant si on modifie coefficient / dénombrement
+    ['ngap-coefficient', 'ngap-denombrement'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', updateNgapMontantFromTarifBase);
+    });
+});
+
+function selectActeType(type) {
+    currentActeType = type;
+    
+    // Reset tous les boutons
+    document.querySelectorAll('.acte-type-btn').forEach(btn => {
+        btn.className = 'acte-type-btn p-4 border-2 border-slate-200 rounded-lg hover:shadow-md transition-all';
+    });
+    
+    // Activer le bouton sélectionné
+    const colors = {
+        'ccam': 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md',
+        'ngap': 'border-blue-500 bg-blue-50 text-blue-900 shadow-md',
+        'ucd': 'border-amber-500 bg-amber-50 text-amber-900 shadow-md',
+        'lpp': 'border-purple-500 bg-purple-50 text-purple-900 shadow-md'
+    };
+    document.getElementById(`btn-type-${type}`).className += ` ${colors[type]}`;
+    
+    // Cacher tous les formulaires
+    ['ccam', 'ngap', 'ucd', 'lpp'].forEach(t => {
+        document.getElementById(`form-${t}`).classList.add('hidden');
+    });
+    
+    // Afficher le formulaire sélectionné
+    document.getElementById(`form-${type}`).classList.remove('hidden');
+    
+    // Focus sur le premier champ
+    setTimeout(() => {
+        document.querySelector(`#form-${type} input`)?.focus();
+    }, 100);
+}
+
+function toggleModificateur(mod) {
+    const index = selectedModificateurs.indexOf(mod);
+    const btn = event.target;
+    
+    if (index > -1) {
+        selectedModificateurs.splice(index, 1);
+        btn.classList.remove('border-emerald-500', 'bg-emerald-500', 'text-white');
+        btn.classList.add('border-slate-200');
+    } else {
+        selectedModificateurs.push(mod);
+        btn.classList.add('border-emerald-500', 'bg-emerald-500', 'text-white');
+        btn.classList.remove('border-slate-200');
+    }
+    
+    document.getElementById('ccam-modificateurs').value = selectedModificateurs.join(',');
+}
+
+async function searchCCAM(query) {
+    try {
+        const response = await fetch(`/cotations/api/search/ccam?query=${encodeURIComponent(query)}&limit=10`);
+        const suggestions = await response.json();
+        
+        const suggestionsDiv = document.getElementById('ccam-suggestions');
+        if (suggestions.length > 0) {
+            suggestionsDiv.innerHTML = suggestions.map(s => `
+                <button type="button" onclick="selectCCAM('${s.code}', '${s.libelle}', ${s.tarif_base})" 
+                        class="w-full px-4 py-3 text-left hover:bg-emerald-50 transition-colors border-b border-slate-100 last:border-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-mono font-bold text-emerald-700">${s.code}</div>
+                            <div class="text-sm text-slate-600">${s.libelle}</div>
+                        </div>
+                        <div class="text-right ml-4">
+                            <div class="text-sm font-bold text-emerald-900">${s.tarif_base.toFixed(2)} €</div>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+            suggestionsDiv.classList.remove('hidden');
+        } else {
+            suggestionsDiv.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">Aucun résultat</div>';
+            suggestionsDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Erreur recherche CCAM:', error);
+    }
+}
+
+async function searchNGAP(query) {
+    try {
+        const response = await fetch(`/cotations/api/search/ngap?query=${encodeURIComponent(query)}&limit=10`);
+        const suggestions = await response.json();
+
+        const suggestionsDiv = document.getElementById('ngap-suggestions');
+        if (suggestions.length > 0) {
+            suggestionsDiv.innerHTML = suggestions.map(s => `
+                <button type="button" onclick="selectNGAP('${s.lettre_cle}', '${s.libelle.replace(/'/g, "&#39;")}', ${s.coefficient}, ${s.tarif_base})"
+                        class="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors border-b border-slate-100 last:border-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-mono font-bold text-blue-700">${s.lettre_cle}</div>
+                            <div class="text-sm text-slate-600">${s.libelle}</div>
+                        </div>
+                        <div class="text-right ml-4">
+                            <div class="text-sm font-bold text-blue-900">${s.tarif_base.toFixed(2)} €</div>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+            suggestionsDiv.classList.remove('hidden');
+        } else {
+            suggestionsDiv.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">Aucun résultat</div>';
+            suggestionsDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Erreur recherche NGAP:', error);
+    }
+}
+
+function selectNGAP(lettre_cle, libelle, coefficient = 1.0, tarif_base = null) {
+    document.getElementById('ngap-code').value = lettre_cle;
+    document.getElementById('ngap-libelle-text').textContent = libelle;
+    document.getElementById('ngap-libelle').classList.remove('hidden');
+    document.getElementById('ngap-suggestions').classList.add('hidden');
+
+    if (coefficient) {
+        document.getElementById('ngap-coefficient').value = coefficient;
+    }
+
+    if (tarif_base) {
+        document.getElementById('ngap-tarif-base').value = tarif_base.toString();
+        updateNgapMontantFromTarifBase();
+    }
+
+    document.getElementById('ngap-coefficient').focus();
+}
+
+function updateNgapMontantFromTarifBase() {
+    const tarifBaseStr = document.getElementById('ngap-tarif-base')?.value;
+    if (!tarifBaseStr) return;
+    const coef = parseFloat(document.getElementById('ngap-coefficient').value || '1');
+    const den = parseInt(document.getElementById('ngap-denombrement').value || '1', 10);
+    const tarifBase = parseFloat(tarifBaseStr);
+    if (isNaN(tarifBase)) return;
+    const montant = tarifBase * coef * den;
+    document.getElementById('ngap-montant').value = montant.toFixed(2);
+}
+
+async function searchUCD(query) {
+    try {
+        const response = await fetch(`/cotations/api/search/ucd?query=${encodeURIComponent(query)}&limit=10`);
+        const suggestions = await response.json();
+
+        const suggestionsDiv = document.getElementById('ucd-suggestions');
+        if (suggestions.length > 0) {
+            suggestionsDiv.innerHTML = suggestions.map(s => `
+                <button type="button" onclick="selectUCD('${s.code_ucd}', '${s.denomination.replace(/'/g, "&#39;")}', '${s.dosage || ''}', '${s.forme || ''}', ${s.prix})"
+                        class="w-full px-4 py-3 text-left hover:bg-amber-50 transition-colors border-b border-slate-100 last:border-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-mono font-bold text-amber-700">${s.code_ucd}</div>
+                            <div class="text-sm text-slate-600">${s.denomination}</div>
+                            <div class="text-xs text-slate-500">${s.dosage || ''} ${s.forme || ''}</div>
+                        </div>
+                        <div class="text-right ml-4">
+                            <div class="text-sm font-bold text-amber-900">${s.prix.toFixed(2)} €</div>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+            suggestionsDiv.classList.remove('hidden');
+        } else {
+            suggestionsDiv.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">Aucun résultat</div>';
+            suggestionsDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Erreur recherche UCD:', error);
+    }
+}
+
+function selectUCD(code_ucd, libelle, dosage, forme, prix) {
+    document.getElementById('ucd-code').value = code_ucd;
+    const libelleText = `${libelle}`;
+    const extra = [dosage, forme].filter(Boolean).join(' • ');
+    document.getElementById('ucd-libelle-text').textContent = libelleText;
+    document.getElementById('ucd-libelle-extra').textContent = extra;
+    document.getElementById('ucd-libelle').classList.remove('hidden');
+    document.getElementById('ucd-suggestions').classList.add('hidden');
+
+    if (prix) {
+        document.getElementById('ucd-prix-unitaire').value = prix.toFixed(2);
+    }
+
+    document.getElementById('ucd-quantite').focus();
+}
+
+async function searchLPP(query) {
+    try {
+        const response = await fetch(`/cotations/api/search/lpp?query=${encodeURIComponent(query)}&limit=10`);
+        const suggestions = await response.json();
+
+        const suggestionsDiv = document.getElementById('lpp-suggestions');
+        if (suggestions.length > 0) {
+            suggestionsDiv.innerHTML = suggestions.map(s => `
+                <button type="button" onclick="selectLPP('${s.code_lpp}', '${s.denomination.replace(/'/g, "&#39;")}', ${s.prix})"
+                        class="w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-slate-100 last:border-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-mono font-bold text-purple-700">${s.code_lpp}</div>
+                            <div class="text-sm text-slate-600">${s.denomination}</div>
+                        </div>
+                        <div class="text-right ml-4">
+                            <div class="text-sm font-bold text-purple-900">${s.prix.toFixed(2)} €</div>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+            suggestionsDiv.classList.remove('hidden');
+        } else {
+            suggestionsDiv.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">Aucun résultat</div>';
+            suggestionsDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Erreur recherche LPP:', error);
+    }
+}
+
+function selectLPP(code_lpp, libelle, prix) {
+    document.getElementById('lpp-code').value = code_lpp;
+    document.getElementById('lpp-libelle').value = libelle;
+    if (prix) {
+        document.getElementById('lpp-prix-unitaire').value = prix.toFixed(2);
+    }
+    document.getElementById('lpp-suggestions').classList.add('hidden');
+    document.getElementById('lpp-quantite').focus();
+}
+
+function selectCCAM(code, libelle, tarif = null) {
+    document.getElementById('ccam-code').value = code;
+    document.getElementById('ccam-libelle-text').textContent = libelle;
+    document.getElementById('ccam-libelle').classList.remove('hidden');
+    document.getElementById('ccam-suggestions').classList.add('hidden');
+    
+    // Pré-remplir le montant si disponible
+    if (tarif) {
+        document.getElementById('ccam-montant').value = tarif.toFixed(2);
+    }
+    
+    // Focus sur le champ suivant
+    document.getElementById('ccam-activite').focus();
+}
+
+function resetForm() {
+    if (currentActeType) {
+        document.getElementById(`${currentActeType}-form`).reset();
+        selectedModificateurs = [];
+        document.querySelectorAll('.modificateur-btn').forEach(btn => {
+            btn.classList.remove('border-emerald-500', 'bg-emerald-500', 'text-white');
+            btn.classList.add('border-slate-200');
+        });
+        document.getElementById('ccam-libelle').classList.add('hidden');
+    }
+}
+
+function saveContinue() {
+    // Enregistrer l'acte actuel
+    // TODO: Appel API
+    
+    // Ajouter à la session
+    sessionActes.push({
+        type: currentActeType,
+        code: document.getElementById('ccam-code').value,
+        date: new Date()
+    });
+    
+    updateSessionSummary();
+    resetForm();
+    
+    // Notification
+    showNotification('Acte enregistré ! Continuez la saisie...', 'success');
+}
+
+function updateSessionSummary() {
+    const summaryDiv = document.getElementById('session-summary');
+    if (sessionActes.length === 0) {
+        summaryDiv.innerHTML = `
+            <div class="text-center py-8 text-slate-400">
+                <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-sm">Aucun acte saisi</p>
+            </div>
+        `;
+        document.getElementById('session-actions').classList.add('hidden');
+    } else {
+        const colors = {ccam: 'emerald', ngap: 'blue', ucd: 'amber', lpp: 'purple'};
+        summaryDiv.innerHTML = sessionActes.map((acte, i) => `
+            <div class="flex items-center justify-between p-3 bg-${colors[acte.type]}-50 border border-${colors[acte.type]}-200 rounded-lg">
+                <div>
+                    <div class="font-mono font-bold text-${colors[acte.type]}-900">${acte.code}</div>
+                    <div class="text-xs text-${colors[acte.type]}-700">${acte.type.toUpperCase()}</div>
+                </div>
+                <button onclick="removeActe(${i})" class="text-${colors[acte.type]}-400 hover:text-${colors[acte.type]}-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+        document.getElementById('session-actions').classList.remove('hidden');
+    }
+}
+
+function removeActe(index) {
+    sessionActes.splice(index, 1);
+    updateSessionSummary();
+}
+
+function validateSession() {
+    if (confirm(`Valider ${sessionActes.length} acte(s) ?`)) {
+        // TODO: Appel API pour valider tous les actes
+        showNotification(`${sessionActes.length} acte(s) validé(s) avec succès !`, 'success');
+        sessionActes = [];
+        updateSessionSummary();
+        
+        // Rester sur le workspace et recharger pour mettre à jour la liste
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    }
+}
+
+function showTemplates() {
+    document.getElementById('modal-templates').classList.remove('hidden');
+}
+async function useTemplate(templateId) {
+    try {
+        const response = await fetch('/cotations/api/templates');
+        const templates = await response.json();
+        
+        // Trouver le template dans tous les types
+        let template = null;
+        let templateType = null;
+        
+        for (const [type, items] of Object.entries(templates)) {
+            const found = items.find(t => t.id === templateId);
+            if (found) {
+                template = found;
+                templateType = type;
+                break;
+            }
+        }
+        
+        if (template) {
+            // Sélectionner le type d'acte
+            selectActeType(templateType);
+            
+            // Remplir le formulaire selon le type
+            if (templateType === 'ccam') {
+                document.getElementById('ccam-code').value = template.code_acte;
+                document.getElementById('ccam-activite').value = template.code_activite;
+                document.getElementById('ccam-phase').value = template.code_phase;
+                document.getElementById('ccam-quantite').value = template.quantite;
+                
+                // Déclencher la recherche pour afficher le libellé
+                await searchCCAM(template.code_acte);
+                selectCCAM(template.code_acte, template.nom);
+            }
+            // TODO: Ajouter NGAP, UCD, LPP
+            
+            closeModal('modal-templates');
+            showNotification(`Template "${template.nom}" chargé`, 'success');
+        }
+    } catch (error) {
+        console.error('Erreur chargement template:', error);
+        showNotification('Erreur lors du chargement du template', 'error');
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+function closeAllModals() {
+    document.querySelectorAll('[id^="modal-"]').forEach(modal => {
+        modal.classList.add('hidden');
+    });
+}
+
+function showNotification(message, type) {
+    const colors = {
+        success: 'from-green-500 to-emerald-500',
+        error: 'from-red-500 to-pink-500',
+        info: 'from-blue-500 to-indigo-500'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-4 bg-gradient-to-r ${colors[type]} text-white font-bold rounded-lg shadow-2xl z-50 animate-slide-in`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('animate-fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Soumission formulaire CCAM
+document.getElementById('ccam-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        code_acte: document.getElementById('ccam-code').value,
+        code_activite: document.getElementById('ccam-activite').value,
+        code_phase: document.getElementById('ccam-phase').value,
+        execute_date: `${document.getElementById('ccam-date').value}T${document.getElementById('ccam-heure').value}`,
+        modificateurs: document.getElementById('ccam-modificateurs').value,
+        quantite: document.getElementById('ccam-quantite').value || 1,
+        montant_total: document.getElementById('ccam-montant').value || null,
+        commentaire: document.getElementById('ccam-commentaire').value || null,
+        dossier_id: {{ dossier.id }}
+    };
+    
+    try {
+        const response = await fetch('/cotations/api/ccam', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            showNotification('Acte CCAM enregistré avec succès !', 'success');
+            resetForm();
+            // Rester sur le workspace et recharger la liste des actes
+            window.location.reload();
+        } else {
+            throw new Error('Erreur lors de l\'enregistrement');
+        }
+    } catch (error) {
+        showNotification('Erreur: ' + error.message, 'error');
+    }
+});
+
+// Soumission formulaire NGAP
+document.getElementById('ngap-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = {
+        lettre_cle: document.getElementById('ngap-code').value,
+        coefficient: parseFloat(document.getElementById('ngap-coefficient').value || '1'),
+        denombrement: parseInt(document.getElementById('ngap-denombrement').value || '1', 10),
+        execute_date: `${document.getElementById('ngap-date').value}T${document.getElementById('ngap-heure').value}`,
+        montant_total: document.getElementById('ngap-montant').value || null,
+        commentaire: document.getElementById('ngap-commentaire').value || null,
+        dossier_id: {{ dossier.id }}
+    };
+
+    try {
+        const response = await fetch('/cotations/api/ngap', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            showNotification('Acte NGAP enregistré avec succès !', 'success');
+            resetForm();
+            window.location.reload();
+        } else {
+            const data = await response.json().catch(() => null);
+            const msg = data?.detail || "Erreur lors de l'enregistrement";
+            throw new Error(msg);
+        }
+    } catch (error) {
+        showNotification('Erreur: ' + error.message, 'error');
+    }
+});
+
+// Soumission formulaire UCD
+document.getElementById('ucd-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = {
+        code_ucd: document.getElementById('ucd-code').value,
+        denomination_libelle: document.getElementById('ucd-libelle-text').textContent || document.getElementById('ucd-code').value,
+        denomination_dosage: document.getElementById('ucd-libelle-extra').textContent || null,
+        execute_date: `${document.getElementById('ucd-date').value}T${document.getElementById('ucd-heure').value}`,
+        quantite: parseFloat(document.getElementById('ucd-quantite').value || '1'),
+        montant_unitaire_facture_ttc: document.getElementById('ucd-prix-unitaire').value ? parseFloat(document.getElementById('ucd-prix-unitaire').value) : null,
+        commentaire: document.getElementById('ucd-commentaire').value || null,
+        dossier_id: {{ dossier.id }}
+    };
+
+    try {
+        const response = await fetch('/cotations/api/ucd', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            showNotification('Acte UCD enregistré avec succès !', 'success');
+            resetForm();
+            window.location.reload();
+        } else {
+            const data = await response.json().catch(() => null);
+            const msg = data?.detail || "Erreur lors de l'enregistrement";
+            throw new Error(msg);
+        }
+    } catch (error) {
+        showNotification('Erreur: ' + error.message, 'error');
+    }
+});
+
+// Soumission formulaire LPP
+document.getElementById('lpp-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = {
+        code_lpp: document.getElementById('lpp-code').value || null,
+        denomination_libelle: document.getElementById('lpp-libelle').value,
+        execute_date: `${document.getElementById('lpp-date').value}T${document.getElementById('lpp-heure').value}`,
+        quantite: parseInt(document.getElementById('lpp-quantite').value || '1', 10),
+        montant_unitaire_facture_ttc: parseFloat(document.getElementById('lpp-prix-unitaire').value),
+        commentaire: document.getElementById('lpp-commentaire').value || null,
+        dossier_id: {{ dossier.id }}
+    };
+
+    try {
+        const response = await fetch('/cotations/api/lpp', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            showNotification('Acte LPP enregistré avec succès !', 'success');
+            resetForm();
+            window.location.reload();
+        } else {
+            const data = await response.json().catch(() => null);
+            const msg = data?.detail || "Erreur lors de l'enregistrement";
+            throw new Error(msg);
+        }
+    } catch (error) {
+        showNotification('Erreur: ' + error.message, 'error');
+    }
+});
+
+// Fonctions liste / filtres / actions groupées (extraites de la vue liste)
+function toggleFilters() {
+    document.getElementById('filters-panel').classList.toggle('hidden');
+}
+
+function applyFilters() {
+    const type = document.getElementById('filter-type').value;
+    const statut = document.getElementById('filter-statut').value;
+    const dateDebut = document.getElementById('filter-date-debut').value;
+    const dateFin = document.getElementById('filter-date-fin').value;
+
+    document.querySelectorAll('.acte-row').forEach(row => {
+        let show = true;
+
+        if (type && row.dataset.type !== type) show = false;
+
+        if (statut === 'valide' && row.dataset.valide !== 'True') show = false;
+        if (statut === 'provisoire' && row.dataset.valide === 'True') show = false;
+        if (statut === 'facture' && row.dataset.facture !== 'True') show = false;
+
+        const rowDate = row.dataset.date ? new Date(row.dataset.date) : null;
+        if (rowDate) {
+            if (dateDebut && rowDate < new Date(dateDebut)) show = false;
+            if (dateFin && rowDate > new Date(dateFin)) show = false;
+        }
+
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function resetFilters() {
+    document.getElementById('filter-type').value = '';
+    document.getElementById('filter-statut').value = '';
+    document.getElementById('filter-date-debut').value = '';
+    document.getElementById('filter-date-fin').value = '';
+    applyFilters();
+}
+
+function selectAll() {
+    const checked = document.getElementById('select-all').checked;
+    document.querySelectorAll('.acte-checkbox').forEach(cb => {
+        if (cb.closest('.acte-row').style.display !== 'none') {
+            cb.checked = checked;
+            if (checked) {
+                selectedActes.add(cb.value);
+            } else {
+                selectedActes.delete(cb.value);
+            }
+        }
+    });
+    updateBulkActions();
+}
+
+document.querySelectorAll('.acte-checkbox').forEach(cb => {
+    cb.addEventListener('change', function() {
+        if (this.checked) {
+            selectedActes.add(this.value);
+        } else {
+            selectedActes.delete(this.value);
+        }
+        updateBulkActions();
+    });
+});
+
+function updateBulkActions() {
+    const count = selectedActes.size;
+    const countSpan = document.getElementById('selected-count');
+    const bulkDiv = document.getElementById('bulk-actions');
+    if (!countSpan || !bulkDiv) return;
+    countSpan.textContent = count;
+    bulkDiv.classList.toggle('hidden', count === 0);
+}
+
+function deselectAll() {
+    selectedActes.clear();
+    document.querySelectorAll('.acte-checkbox').forEach(cb => cb.checked = false);
+    const selectAllCb = document.getElementById('select-all');
+    if (selectAllCb) selectAllCb.checked = false;
+    updateBulkActions();
+}
+
+async function validateSelected() {
+    if (selectedActes.size === 0) return;
+    if (confirm(`Valider ${selectedActes.size} acte(s) ?`)) {
+        // TODO: Appel API réel de validation
+        showNotification('Validation en cours (TODO API)...', 'info');
+    }
+}
+
+async function factureSelected() {
+    if (selectedActes.size === 0) return;
+    if (confirm(`Facturer ${selectedActes.size} acte(s) ?`)) {
+        // TODO: Appel API réel de facturation
+        showNotification('Facturation en cours (TODO API)...', 'info');
+    }
+}
+
+async function deleteSelected() {
+    if (selectedActes.size === 0) return;
+    if (confirm(`Supprimer définitivement ${selectedActes.size} acte(s) ?`)) {
+        // TODO: Appel API réel de suppression
+        showNotification('Suppression en cours (TODO API)...', 'info');
+    }
+}
+
+function editActe(type, id) {
+    // TODO: Ouvrir une modale d'édition inline dans le workspace
+    showNotification(`Édition ${type.toUpperCase()} #${id} (TODO)`, 'info');
+}
+
+function deleteActe(type, id) {
+    if (confirm('Supprimer cet acte ?')) {
+        // TODO: Appel API réel de suppression
+        showNotification(`Suppression ${type.toUpperCase()} #${id} (TODO API)`, 'info');
+    }
+}
+</script>
+
+<style>
+@keyframes slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+.animate-fade-out { animation: fade-out 0.3s ease-out; }
+</style>
+{% endblock %}

@@ -67,18 +67,61 @@
         
         <!-- Colonne gauche : Sélection événement -->
         <div class="space-y-6">
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700">
-              Type d'événement <span class="text-red-500">*</span>
-            </label>
-            <select name="event_code" id="event_code_field" required 
-                    class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
-              <option value="">— Choisir un événement —</option>
+          <div class="space-y-4">
+            <div class="space-y-2">
+              <label class="block text-sm font-semibold text-slate-700">
+                Type d'événement <span class="text-red-500">*</span>
+              </label>
+              <p class="text-xs text-slate-500">Choisissez visuellement le mouvement le plus adapté, ou utilisez la liste détaillée.
+              </p>
+            </div>
+
+            <!-- Mode opérateur : cartes de mouvements -->
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="event-card-grid">
               {% for event_code, metadata in event_catalog.items() %}
-              <option value="{{ event_code }}">{{ metadata.label }}</option>
+              <button type="button"
+                      class="event-card flex items-start gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-left shadow-sm hover:border-blue-400 hover:bg-blue-50/80 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      data-event-code="{{ event_code }}"
+                      data-requires-location="{{ 'true' if metadata.requires_location else 'false' }}">
+                <div class="mt-1">
+                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
+                    {{ loop.index }}
+                  </span>
+                </div>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                      {{ event_code }}
+                    </span>
+                    {% if metadata.requires_location %}
+                      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        🛏️ avec lit
+                      </span>
+                    {% endif %}
+                  </div>
+                  <p class="text-sm font-semibold text-slate-900">{{ metadata.label }}</p>
+                  {% if metadata.description %}
+                    <p class="text-xs text-slate-600 line-clamp-2">{{ metadata.description }}</p>
+                  {% endif %}
+                </div>
+              </button>
               {% endfor %}
-            </select>
-            <p class="text-xs text-slate-500">Seuls les événements autorisés depuis l'état actuel sont affichés</p>
+            </div>
+
+            <!-- Mode expert / fallback : liste déroulante -->
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Mode expert — liste complète
+              </label>
+              <select name="event_code" id="event_code_field" required 
+                      class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+                <option value="">— Choisir un événement —</option>
+                {% for event_code, metadata in event_catalog.items() %}
+                <option value="{{ event_code }}">{{ metadata.label }}</option>
+                {% endfor %}
+              </select>
+              <p class="text-xs text-slate-500">Seuls les événements autorisés depuis l'état actuel sont affichés.</p>
+            </div>
           </div>
 
           <div id="event-description" class="hidden rounded-xl bg-blue-50 border-2 border-blue-200 p-4">
@@ -100,26 +143,116 @@
             <label class="block text-sm font-semibold text-slate-700">
               Nouvelle localisation <span class="text-red-500">*</span>
             </label>
-            <select name="location" id="location-select"
-                    class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
-              <option value="">— Sélectionner un lit —</option>
-              {% for service in structure.values() %}
-                <optgroup label="🏥 {{ service.name }}">
-                  {% for uf in service.ufs.values() %}
-                    {% for uh in uf.unites_hebergement.values() %}
-                      {% for chambre in uh.chambres.values() %}
-                        {% for lit in chambre.lits %}
-                          <option value="{{ lit.name }}" data-full-path="{{ service.name }} > {{ uf.name }} > {{ uh.name }} > {{ chambre.name }}">
-                            🛏️ {{ lit.name }} ({{ chambre.name }})
-                          </option>
+            
+            <!-- Hidden input to store selected location -->
+            <input type="hidden" name="location" id="location-select" value="{% if prefilled_location %}{{ prefilled_location }}{% endif %}">
+            
+            <!-- Visual bed selector -->
+            <div class="rounded-xl border-2 border-slate-300 bg-white overflow-hidden">
+              <!-- Search bar -->
+              <div class="p-3 border-b border-slate-200 bg-slate-50">
+                <div class="relative">
+                  <input type="text" id="bed-search" placeholder="Rechercher un service, UF, chambre ou lit..."
+                         class="block w-full rounded-lg border border-slate-300 pl-10 pr-4 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors">
+                  <svg class="absolute left-3 top-2.5 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                </div>
+              </div>
+              
+              <!-- Hierarchical bed list -->
+              <div class="max-h-80 overflow-y-auto p-3" id="bed-hierarchy">
+                {% for service in structure.values() %}
+                <div class="mb-4 last:mb-0 service-group" data-service-name="{{ service.name }}">
+                  <button type="button" class="service-toggle flex w-full items-center justify-between rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 text-left hover:from-blue-100 hover:to-indigo-100 transition-colors">
+                    <span class="flex items-center gap-2 text-sm font-semibold text-blue-900">
+                      <svg class="h-4 w-4 transition-transform service-chevron" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                      🏥 {{ service.name }}
+                    </span>
+                    <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                      {% set bed_count = namespace(value=0) %}
+                      {% for uf in service.ufs.values() %}
+                        {% for uh in uf.unites_hebergement.values() %}
+                          {% for chambre in uh.chambres.values() %}
+                            {% set bed_count.value = bed_count.value + chambre.lits|length %}
+                          {% endfor %}
                         {% endfor %}
                       {% endfor %}
+                      {{ bed_count.value }} lits
+                    </span>
+                  </button>
+                  
+                  <div class="service-content hidden mt-2 ml-4 space-y-2">
+                    {% for uf in service.ufs.values() %}
+                    <div class="uf-group" data-uf-name="{{ uf.name }}">
+                      <div class="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-slate-600">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded bg-emerald-100 text-emerald-700">UF</span>
+                        {{ uf.name }}
+                      </div>
+                      
+                      <div class="ml-4 space-y-1">
+                        {% for uh in uf.unites_hebergement.values() %}
+                        <div class="uh-group" data-uh-name="{{ uh.name }}">
+                          {% for chambre in uh.chambres.values() %}
+                          <div class="chambre-group rounded-lg border border-slate-200 bg-white p-2" data-chambre-name="{{ chambre.name }}">
+                            <div class="mb-1.5 flex items-center justify-between">
+                              <span class="text-xs font-medium text-slate-700">🚪 {{ chambre.name }}</span>
+                              <span class="text-xs text-slate-500">{{ chambre.lits|length }} lit{% if chambre.lits|length > 1 %}s{% endif %}</span>
+                            </div>
+                            <div class="grid gap-1.5 sm:grid-cols-2">
+                              {% for lit in chambre.lits %}
+                              <button type="button" 
+                                      class="bed-option flex items-center justify-between rounded-lg border-2 px-3 py-2 text-left transition-all
+                                             {% if lit.status == 'free' %}border-emerald-200 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100{% elif lit.status == 'occupied' %}border-slate-200 bg-slate-50 hover:border-slate-300{% else %}border-amber-200 bg-amber-50 hover:border-amber-300{% endif %}"
+                                      data-bed-name="{{ lit.name }}"
+                                      data-bed-status="{{ lit.status }}"
+                                      data-full-path="{{ service.name }} > {{ uf.name }} > {{ uh.name }} > {{ chambre.name }}"
+                                      data-service="{{ service.name }}"
+                                      data-uf="{{ uf.name }}"
+                                      data-uh="{{ uh.name }}"
+                                      data-chambre="{{ chambre.name }}">
+                                <div class="flex items-center gap-2">
+                                  <span class="text-sm font-semibold {% if lit.status == 'free' %}text-emerald-900{% elif lit.status == 'occupied' %}text-slate-700{% else %}text-amber-900{% endif %}">
+                                    🛏️ {{ lit.name }}
+                                  </span>
+                                </div>
+                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold
+                                           {% if lit.status == 'free' %}bg-emerald-100 text-emerald-700{% elif lit.status == 'occupied' %}bg-slate-200 text-slate-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                                  {% if lit.status == 'free' %}✓ Libre{% elif lit.status == 'occupied' %}● Occupé{% else %}⚠ {{ lit.status }}{% endif %}
+                                </span>
+                              </button>
+                              {% endfor %}
+                            </div>
+                          </div>
+                          {% endfor %}
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </div>
                     {% endfor %}
-                  {% endfor %}
-                </optgroup>
-              {% endfor %}
-            </select>
-            <p class="text-xs text-slate-500" id="location-path"></p>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              
+              <!-- Selected location display -->
+              <div id="location-display" class="{% if not prefilled_location %}hidden{% endif %} border-t border-slate-200 bg-blue-50 px-3 py-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2 text-xs">
+                    <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="font-semibold text-blue-900">Sélection :</span>
+                    <span id="location-path" class="text-blue-700">{% if prefilled_location %}{{ prefilled_location }}{% endif %}</span>
+                  </div>
+                  <button type="button" id="clear-location" class="text-xs font-medium text-blue-600 hover:text-blue-800">
+                    ✕ Effacer
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -186,50 +319,62 @@
     </div>
     
     {% if mouvements %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200">
-        <thead class="bg-slate-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date & Heure</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Événement</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Localisation</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Commentaire</th>
-            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Intervenant</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100 bg-white">
+    <div class="px-6 py-6">
+      <ol class="relative border-s border-slate-200">
         {% for mouvement in mouvements|sort(attribute='when', reverse=True) %}
-          <tr class="hover:bg-slate-50 transition-colors">
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-slate-900">{{ mouvement.when.strftime('%d/%m/%Y') if mouvement.when else '-' }}</div>
-              <div class="text-xs text-slate-500">{{ mouvement.when.strftime('%H:%M') if mouvement.when else '' }}</div>
-            </td>
-            <td class="px-6 py-4">
-              <span class="inline-flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-1 text-sm font-semibold text-blue-700">
+        <li class="mb-6 ms-6">
+          <span class="absolute -start-1.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-blue-500 shadow-sm"></span>
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div class="text-sm font-semibold text-slate-900">
+                {{ mouvement.when.strftime('%d/%m/%Y') if mouvement.when else '-' }}
+                <span class="text-xs font-normal text-slate-500">
+                  {{ mouvement.when.strftime('%H:%M') if mouvement.when else '' }}
+                </span>
+              </div>
+              <div class="mt-1 inline-flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700">
                 {{ mouvement.type }}
-              </span>
-            </td>
-            <td class="px-6 py-4 text-sm text-slate-700">
-              {{ mouvement.location or mouvement.to_location or '-' }}
-            </td>
-            <td class="px-6 py-4 text-sm text-slate-600 max-w-xs truncate">
-              {{ mouvement.reason or '-' }}
-                {# Ajout: affichage label vocabulaire si disponible #}
+              </div>
+            </div>
+            <div class="mt-1 text-sm text-slate-700 sm:text-right">
+              <p class="font-medium">
+                {{ mouvement.location or mouvement.to_location or '-' }}
+              </p>
+            </div>
+          </div>
+          <div class="mt-2 space-y-1 text-xs text-slate-600">
+            {% if mouvement.reason or (mouvement.reason and reason_options) %}
+              <p>
+                <span class="font-semibold text-slate-700">Motif :</span>
+                {{ mouvement.reason or '-' }}
                 {% if mouvement.reason and reason_options %}
                   {% set reason_label = None %}
                   {% for opt in reason_options %}
                     {% if opt.value == mouvement.reason %}{% set reason_label = opt.label %}{% endif %}
                   {% endfor %}
-                  {{ reason_label or mouvement.reason }}
+                  {% if reason_label %}
+                    <span class="ml-1 text-slate-500">({{ reason_label }})</span>
+                  {% endif %}
                 {% endif %}
-            </td>
-            <td class="px-6 py-4 text-sm text-slate-600">
-              {{ mouvement.performer or '-' }}
-            </td>
-          </tr>
+              </p>
+            {% endif %}
+            {% if mouvement.reason and 'plan de lits' in mouvement.reason|lower %}
+              <p>
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                  🔄 Créé depuis le plan de lits (drag & drop)
+                </span>
+              </p>
+            {% endif %}
+            {% if mouvement.performer %}
+              <p>
+                <span class="font-semibold text-slate-700">Intervenant :</span>
+                {{ mouvement.performer }}
+              </p>
+            {% endif %}
+          </div>
+        </li>
         {% endfor %}
-        </tbody>
-      </table>
+      </ol>
     </div>
     {% else %}
     <div class="px-6 py-12 text-center">
@@ -251,27 +396,165 @@
   const eventCatalog = JSON.parse(document.getElementById('workflow-event-catalog').textContent);
   
   const eventSelect = document.getElementById('event_code_field');
+  const eventCards = document.querySelectorAll('.event-card');
   const locationField = document.getElementById('location-field');
   const locationSelect = document.getElementById('location-select');
   const locationPath = document.getElementById('location-path');
+  const locationDisplay = document.getElementById('location-display');
+  const clearLocationBtn = document.getElementById('clear-location');
+  const bedSearch = document.getElementById('bed-search');
   const reasonField = document.querySelector('[name="reason"]');
   const submitButton = document.getElementById('submit-button');
   const eventDescription = document.getElementById('event-description');
   const eventDescriptionText = document.getElementById('event-description-text');
   const movementDateTime = document.getElementById('movement_datetime');
-  
-  // Afficher le chemin complet de la localisation sélectionnée
-  if (locationSelect) {
-    locationSelect.addEventListener('change', function() {
-      const selectedOption = this.options[this.selectedIndex];
-      const fullPath = selectedOption.getAttribute('data-full-path');
-      if (fullPath && locationPath) {
-        locationPath.textContent = '📍 ' + fullPath;
-        locationPath.classList.remove('text-slate-500');
-        locationPath.classList.add('text-blue-600', 'font-medium');
-      } else if (locationPath) {
-        locationPath.textContent = '';
+
+  function updateCardSelection(selectedCode) {
+    eventCards.forEach((card) => {
+      const code = card.getAttribute('data-event-code');
+      if (code === selectedCode) {
+        card.classList.add('border-blue-500', 'bg-blue-50/90', 'shadow-md', 'ring-1', 'ring-blue-200');
+        card.classList.remove('border-slate-200');
+      } else {
+        card.classList.remove('border-blue-500', 'bg-blue-50/90', 'shadow-md', 'ring-1', 'ring-blue-200');
+        card.classList.add('border-slate-200');
       }
+    });
+  }
+
+  // Service accordion toggle
+  document.querySelectorAll('.service-toggle').forEach((toggle) => {
+    toggle.addEventListener('click', () => {
+      const content = toggle.nextElementSibling;
+      const chevron = toggle.querySelector('.service-chevron');
+      
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        chevron.style.transform = 'rotate(90deg)';
+      } else {
+        content.classList.add('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+      }
+    });
+  });
+
+  // Bed selection logic
+  document.querySelectorAll('.bed-option').forEach((bedBtn) => {
+    bedBtn.addEventListener('click', () => {
+      const bedName = bedBtn.getAttribute('data-bed-name');
+      const fullPath = bedBtn.getAttribute('data-full-path');
+      const bedStatus = bedBtn.getAttribute('data-bed-status');
+      
+      // Update hidden input
+      locationSelect.value = bedName;
+      
+      // Update display
+      locationPath.textContent = fullPath;
+      locationDisplay.classList.remove('hidden');
+      
+      // Visual feedback on selected bed
+      document.querySelectorAll('.bed-option').forEach((btn) => {
+        btn.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-1');
+      });
+      bedBtn.classList.add('ring-2', 'ring-blue-500', 'ring-offset-1');
+      
+      // Enable submit if all required fields are filled
+      validateForm();
+    });
+  });
+
+  // Clear location selection
+  if (clearLocationBtn) {
+    clearLocationBtn.addEventListener('click', () => {
+      locationSelect.value = '';
+      locationDisplay.classList.add('hidden');
+      document.querySelectorAll('.bed-option').forEach((btn) => {
+        btn.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-1');
+      });
+      validateForm();
+    });
+  }
+
+  // Bed search functionality
+  if (bedSearch) {
+    bedSearch.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      
+      document.querySelectorAll('.service-group').forEach((serviceGroup) => {
+        let serviceHasMatch = false;
+        const serviceName = serviceGroup.getAttribute('data-service-name').toLowerCase();
+        
+        serviceGroup.querySelectorAll('.uf-group').forEach((ufGroup) => {
+          let ufHasMatch = false;
+          const ufName = ufGroup.getAttribute('data-uf-name').toLowerCase();
+          
+          ufGroup.querySelectorAll('.chambre-group').forEach((chambreGroup) => {
+            let chambreHasMatch = false;
+            const chambreName = chambreGroup.getAttribute('data-chambre-name').toLowerCase();
+            
+            chambreGroup.querySelectorAll('.bed-option').forEach((bedBtn) => {
+              const bedName = bedBtn.getAttribute('data-bed-name').toLowerCase();
+              const matches = serviceName.includes(searchTerm) || 
+                            ufName.includes(searchTerm) || 
+                            chambreName.includes(searchTerm) || 
+                            bedName.includes(searchTerm);
+              
+              if (matches) {
+                bedBtn.style.display = '';
+                chambreHasMatch = true;
+                ufHasMatch = true;
+                serviceHasMatch = true;
+              } else {
+                bedBtn.style.display = 'none';
+              }
+            });
+            
+            chambreGroup.style.display = chambreHasMatch ? '' : 'none';
+          });
+          
+          ufGroup.style.display = ufHasMatch ? '' : 'none';
+        });
+        
+        // Auto-expand services with matches
+        if (serviceHasMatch && searchTerm) {
+          const content = serviceGroup.querySelector('.service-content');
+          const chevron = serviceGroup.querySelector('.service-chevron');
+          content.classList.remove('hidden');
+          chevron.style.transform = 'rotate(90deg)';
+        }
+        
+        serviceGroup.style.display = serviceHasMatch ? '' : 'none';
+      });
+    });
+  }
+  
+  // Validation function
+  function validateForm() {
+    const eventCode = eventSelect.value;
+    if (!eventCode) {
+      submitButton.disabled = true;
+      return;
+    }
+    
+    const metadata = eventCatalog[eventCode];
+    if (metadata && metadata.requires_location) {
+      const location = locationSelect.value;
+      submitButton.disabled = !location;
+    } else {
+      submitButton.disabled = false;
+    }
+  }
+  
+  // Sélection via les cartes d'événements
+  if (eventCards && eventCards.length) {
+    eventCards.forEach((card) => {
+      card.addEventListener('click', () => {
+        const code = card.getAttribute('data-event-code');
+        if (!code) return;
+        eventSelect.value = code;
+        updateCardSelection(code);
+        eventSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      });
     });
   }
   
@@ -293,6 +576,9 @@
       return;
     }
     
+    // Mettre à jour la sélection visuelle des cartes
+    updateCardSelection(eventCode);
+
     // Afficher la description
     eventDescription.classList.remove('hidden');
     eventDescriptionText.textContent = metadata.description;
@@ -305,31 +591,14 @@
       locationField.classList.add('hidden');
       locationSelect.required = false;
       locationSelect.value = '';
-      if (locationPath) locationPath.textContent = '';
+      if (locationDisplay) locationDisplay.classList.add('hidden');
     }
     
     // Placeholder du commentaire
     reasonField.placeholder = metadata.description;
     
     // Activer le bouton
-    submitButton.disabled = false;
-  });
-  
-  // Validation en temps réel
-  document.getElementById('movement-form').addEventListener('input', function() {
-    const eventCode = eventSelect.value;
-    if (!eventCode) {
-      submitButton.disabled = true;
-      return;
-    }
-    
-    const metadata = eventCatalog[eventCode];
-    if (metadata && metadata.requires_location) {
-      const location = locationSelect.value;
-      submitButton.disabled = !location;
-    } else {
-      submitButton.disabled = false;
-    }
+    validateForm();
   });
   
   // Validation avant soumission
@@ -340,6 +609,26 @@
       alert('⚠️ Veuillez saisir une date et heure pour le mouvement.');
       movementDateTime.focus();
       return false;
+    }
+  });
+  
+  // Raccourcis clavier globaux
+  document.addEventListener('keydown', (e) => {
+    // Alt+1/2/3 pour sélection rapide événements
+    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      const cards = Array.from(document.querySelectorAll('.event-card'));
+      const index = parseInt(e.key) - 1;
+      if (index >= 0 && index < cards.length && !e.target.matches('input, textarea, select')) {
+        e.preventDefault();
+        cards[index].click();
+        cards[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+    
+    // Ctrl+L pour accéder au plan de lits
+    if ((e.ctrlKey || e.metaKey) && e.key === 'l' && !e.target.matches('input, textarea, select')) {
+      e.preventDefault();
+      window.location.href = '/mouvements/plan-lits';
     }
   });
 })();

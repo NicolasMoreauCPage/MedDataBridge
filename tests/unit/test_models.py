@@ -502,7 +502,7 @@ class TestNGAPAct:
         assert act.execute_date == execute_date
         assert act.facturable is True
         assert act.valide is False
-        assert act.facture is False
+        assert act.facture == "non"
 
     def test_ngap_act_creation_complete(self):
         """Test création d'un acte NGAP complet."""
@@ -512,32 +512,28 @@ class TestNGAPAct:
             lettre_cle="B",
             coefficient=2.5,
             execute_date=execute_date,
-            prestataire_id=100,
             denombrement=3,
             position_dentaire="18",
-            execute_heure="10:30",
             numero_seance=1,
-            montant=150.0,
+            montant_total=150.0,
             commentaire="Acte complexe",
             facturable=True,
             valide=True,
-            facture=False
+            facture="non"
         )
 
         assert act.dossier_id == 1
         assert act.lettre_cle == "B"
         assert act.coefficient == 2.5
         assert act.execute_date == execute_date
-        assert act.prestataire_id == 100
         assert act.denombrement == 3
         assert act.position_dentaire == "18"
-        assert act.execute_heure == "10:30"
         assert act.numero_seance == 1
-        assert act.montant == 150.0
+        assert act.montant_total == 150.0
         assert act.commentaire == "Acte complexe"
         assert act.facturable is True
         assert act.valide is True
-        assert act.facture is False
+        assert act.facture == "non"
 
 
 class TestUCDAct:
@@ -548,55 +544,42 @@ class TestUCDAct:
         execute_date = datetime(2023, 12, 1, 10, 0, 0)
         act = UCDAct(
             dossier_id=1,
-            code_cip="3400935001324",
-            designation="Paracétamol",
-            quantite=10,
-            prix_unitaire=1.5,
-            montant_total=15.0,
+            code_ucd="3400935001324",
+            denomination_libelle="Paracétamol",
+            quantite=10.0,
             execute_date=execute_date
         )
 
         assert act.dossier_id == 1
-        assert act.code_cip == "3400935001324"
-        assert act.designation == "Paracétamol"
-        assert act.quantite == 10
-        assert act.prix_unitaire == 1.5
-        assert act.montant_total == 15.0
+        assert act.code_ucd == "3400935001324"
+        assert act.denomination_libelle == "Paracétamol"
+        assert act.quantite == 10.0
         assert act.execute_date == execute_date
-        assert act.facturable is True
-        assert act.valide is False
-        assert act.facture is False
 
     def test_ucd_act_creation_complete(self):
         """Test création d'un acte UCD complet."""
         execute_date = datetime(2023, 12, 1, 10, 0, 0)
         act = UCDAct(
             dossier_id=1,
-            code_cip="3400935001324",
-            designation="Paracétamol 500mg",
-            quantite=20,
-            prix_unitaire=2.0,
-            montant_total=40.0,
+            code_ucd="3400935001324",
+            denomination_libelle="Paracétamol 500mg",
+            denomination_dosage="500mg",
+            denomination_forme="comprimé",
+            quantite=20.0,
             execute_date=execute_date,
-            prestataire_id=100,
-            commentaire="Médicament d'urgence",
-            facturable=True,
-            valide=True,
-            facture=False
+            montant_unitaire_facture_ttc=2.0,
+            commentaire="Médicament d'urgence"
         )
 
         assert act.dossier_id == 1
-        assert act.code_cip == "3400935001324"
-        assert act.designation == "Paracétamol 500mg"
-        assert act.quantite == 20
-        assert act.prix_unitaire == 2.0
-        assert act.montant_total == 40.0
+        assert act.code_ucd == "3400935001324"
+        assert act.denomination_libelle == "Paracétamol 500mg"
+        assert act.denomination_dosage == "500mg"
+        assert act.denomination_forme == "comprimé"
+        assert act.quantite == 20.0
         assert act.execute_date == execute_date
-        assert act.prestataire_id == 100
+        assert act.montant_unitaire_facture_ttc == 2.0
         assert act.commentaire == "Médicament d'urgence"
-        assert act.facturable is True
-        assert act.valide is True
-        assert act.facture is False
 
 
 class TestLPPAct:
@@ -607,23 +590,17 @@ class TestLPPAct:
         execute_date = datetime(2023, 12, 1, 10, 0, 0)
         act = LPPAct(
             dossier_id=1,
-            code_lpp="1234567890123",
-            libelle="Prothèse dentaire",
-            prix_unitaire=500.0,
-            montant_total=500.0,
+            denomination_libelle="Prothèse dentaire",
+            montant_unitaire_facture_ttc=500.0,
+            quantite=1,
             execute_date=execute_date
         )
 
         assert act.dossier_id == 1
-        assert act.code_lpp == "1234567890123"
-        assert act.libelle == "Prothèse dentaire"
-        assert act.quantite == 1  # Valeur par défaut
-        assert act.prix_unitaire == 500.0
-        assert act.montant_total == 500.0
+        assert act.denomination_libelle == "Prothèse dentaire"
+        assert act.quantite == 1
+        assert act.montant_unitaire_facture_ttc == 500.0
         assert act.execute_date == execute_date
-        assert act.facturable is True
-        assert act.valide is False
-        assert act.facture is False
 
     def test_lpp_act_creation_complete(self):
         """Test création d'un acte LPP complet."""
@@ -631,30 +608,22 @@ class TestLPPAct:
         act = LPPAct(
             dossier_id=1,
             code_lpp="1234567890123",
-            libelle="Prothèse dentaire complète",
+            denomination_libelle="Prothèse dentaire complète",
             quantite=2,
-            prix_unitaire=750.0,
-            montant_total=1500.0,
+            montant_unitaire_facture_ttc=750.0,
             execute_date=execute_date,
-            prestataire_id=100,
-            commentaire="Prothèse de qualité supérieure",
-            facturable=True,
-            valide=True,
-            facture=False
+            siret_fournisseur="12345678901234",
+            commentaire="Prothèse de qualité supérieure"
         )
 
         assert act.dossier_id == 1
         assert act.code_lpp == "1234567890123"
-        assert act.libelle == "Prothèse dentaire complète"
+        assert act.denomination_libelle == "Prothèse dentaire complète"
         assert act.quantite == 2
-        assert act.prix_unitaire == 750.0
-        assert act.montant_total == 1500.0
+        assert act.montant_unitaire_facture_ttc == 750.0
         assert act.execute_date == execute_date
-        assert act.prestataire_id == 100
+        assert act.siret_fournisseur == "12345678901234"
         assert act.commentaire == "Prothèse de qualité supérieure"
-        assert act.facturable is True
-        assert act.valide is True
-        assert act.facture is False
 
 
 class TestCCAMAct:
@@ -673,20 +642,15 @@ class TestCCAMAct:
         assert act.dossier_id == 1
         assert act.code_acte == "AAAA123"
         assert act.code_activite == "01"
-        assert act.code_phase is None
-        assert act.modificateurs == ""
+        assert act.code_phase == "0"
         assert act.quantite == 1
         assert act.facturable is True
         assert act.valide is False
-        assert act.facture is False
-        assert isinstance(act.created_at, datetime)
-        assert isinstance(act.updated_at, datetime)
+        assert act.facture == "non"
 
     def test_ccam_act_creation_complete(self):
         """Test création d'un acte CCAM complet."""
         execute_date = datetime(2023, 12, 1, 10, 0, 0)
-        created_at = datetime(2023, 12, 1, 9, 0, 0)
-        updated_at = datetime(2023, 12, 1, 11, 0, 0)
 
         act = CCAMAct(
             dossier_id=1,
@@ -695,18 +659,13 @@ class TestCCAMAct:
             code_phase="01",
             modificateurs="A,B,C",
             execute_date=execute_date,
-            execute_heure="10:30",
             quantite=2,
-            montant=250.0,
-            extension="EXT001",
+            montant_total=250.0,
+            code_acte_extension_pmsi="EXT001",
             commentaire="Acte complexe avec modificateurs",
             facturable=True,
             valide=True,
-            facture=False,
-            executant_id=100,
-            prescripteur_id=200,
-            created_at=created_at,
-            updated_at=updated_at
+            facture="non"
         )
 
         assert act.dossier_id == 1
@@ -715,18 +674,13 @@ class TestCCAMAct:
         assert act.code_phase == "01"
         assert act.modificateurs == "A,B,C"
         assert act.execute_date == execute_date
-        assert act.execute_heure == "10:30"
         assert act.quantite == 2
-        assert act.montant == 250.0
-        assert act.extension == "EXT001"
+        assert act.montant_total == 250.0
+        assert act.code_acte_extension_pmsi == "EXT001"
         assert act.commentaire == "Acte complexe avec modificateurs"
         assert act.facturable is True
         assert act.valide is True
-        assert act.facture is False
-        assert act.executant_id == 100
-        assert act.prescripteur_id == 200
-        assert act.created_at == created_at
-        assert act.updated_at == updated_at
+        assert act.facture == "non"
 
 
 class TestContract:

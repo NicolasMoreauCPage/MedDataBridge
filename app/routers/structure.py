@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
+from pydantic import BaseModel
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 from app.services.fhir_structure import entity_to_fhir_location
@@ -19,13 +20,24 @@ from app.services.structure_schedule import (
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
+from app.models_structure import StructureTemplate
 
 logger = logging.getLogger(__name__)
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit,
-    LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType
+    LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType,
+    StructureTemplate,
 )
+
+# Valeurs standards pour le statut opérationnel des lits.
+# Ces valeurs sont alignées avec les jeux de données de démonstration
+# (structure_seed) et l'export FHIR (Location.operationalStatus).
+LIT_OPERATIONAL_STATUS_OPTIONS = [
+    "available",
+    "occupied",
+    "maintenance",
+]
 
 # Route principale pour les pages web
 
@@ -114,6 +126,18 @@ async def get_structure_tree(
     # If EJ context is present and no EGs match, Renvoie []
     if (ej_context is not None or eg_id_list) and not egs:
         return []
+    # Helper pour status effectif
+    def get_effective_status_value(entity):
+        status_value = getattr(entity, "status", None)
+        if hasattr(entity, "get_effective_status"):
+            try:
+                status_value = entity.get_effective_status()
+            except Exception:
+                status_value = getattr(entity, "status", None)
+        if isinstance(status_value, LocationStatus):
+            status_value = status_value.value
+        return status_value or "active"
+
     # Build tree structure
     tree = []
     for eg in egs:
@@ -121,6 +145,7 @@ async def get_structure_tree(
             "id": eg.id,
             "name": eg.name,
             "type": "eg",
+            "status": get_effective_status_value(eg),
             "poles": [],
             "services": [],
             "ufs": [],
@@ -133,6 +158,7 @@ async def get_structure_tree(
                 "id": pole.id,
                 "name": pole.name,
                 "type": "pole",
+                "status": get_effective_status_value(pole),
                 "services": [],
                 "ufs": [],
                 "unites_hebergement": [],
@@ -144,6 +170,7 @@ async def get_structure_tree(
                     "id": service.id,
                     "name": service.name,
                     "type": "service",
+                    "status": get_effective_status_value(service),
                     "ufs": [],
                     "unites_hebergement": [],
                     "chambres": [],
@@ -154,6 +181,7 @@ async def get_structure_tree(
                         "id": uf.id,
                         "name": uf.name,
                         "type": "uf",
+                        "status": get_effective_status_value(uf),
                         "unites_hebergement": [],
                         "chambres": [],
                         "lits": []
@@ -163,6 +191,7 @@ async def get_structure_tree(
                             "id": uh.id,
                             "name": uh.name,
                             "type": "uh",
+                            "status": get_effective_status_value(uh),
                             "chambres": [],
                             "lits": []
                         }
@@ -171,13 +200,15 @@ async def get_structure_tree(
                                 "id": chambre.id,
                                 "name": chambre.name,
                                 "type": "chambre",
+                                "status": get_effective_status_value(chambre),
                                 "lits": []
                             }
                             for lit in chambre.lits:
                                 lit_node = {
                                     "id": lit.id,
                                     "name": lit.name,
-                                    "type": "lit"
+                                    "type": "lit",
+                                    "status": get_effective_status_value(lit),
                                 }
                                 chambre_node["lits"].append(lit_node)
                             uh_node["chambres"].append(chambre_node)
@@ -187,6 +218,219 @@ async def get_structure_tree(
             eg_node["poles"].append(pole_node)
         tree.append(eg_node)
     return tree
+
+
+class StructureTemplateOut(BaseModel):
+    """Schéma de sortie simplifié pour les templates de structure.
+
+    On évite de renvoyer le payload JSON complet à ce stade (Phase 2.1),
+    l'objectif principal étant d'alimenter la liste de choix du wizard.
+    """
+
+    id: int
+    key: str
+    name: str
+    description: Optional[str] = None
+    is_default: bool = False
+
+
+@api_router.get("/templates", response_model=List[StructureTemplateOut])
+async def list_structure_templates(session: Session = Depends(get_session)):
+    """Retourne la liste des templates de structure disponibles pour le wizard.
+
+    Implémentation minimaliste : on lit les templates en base si présents,
+    sinon on renvoie un petit set de templates par défaut (non persistés)
+    pour garder le wizard pleinement fonctionnel même sans seed initial.
+    """
+    templates = session.exec(select(StructureTemplate)).all()
+    items: List[StructureTemplateOut] = []
+
+    if templates:
+        for tpl in templates:
+            items.append(
+                StructureTemplateOut(
+                    id=tpl.id,
+                    key=tpl.key,
+                    name=tpl.name,
+                    description=tpl.description,
+                    is_default=tpl.is_default,
+                )
+            )
+        return items
+
+    # Fallback : templates en mémoire si aucun en base (Phase 2.1)
+    defaults = [
+        StructureTemplateOut(id=1, key="chu", name="CHU", description="Centre Hospitalier Universitaire complexe", is_default=True),
+        StructureTemplateOut(id=2, key="ch", name="Centre Hospitalier", description="Établissement général polyvalent", is_default=False),
+        StructureTemplateOut(id=3, key="clinique", name="Clinique", description="Structure privée à forte composante ambulatoire", is_default=False),
+    ]
+    return defaults
+
+
+@api_router.get("/templates/{template_id}")
+async def get_structure_template(template_id: int, session: Session = Depends(get_session)):
+    """Retourne le détail complet d'un template, y compris son payload JSON.
+
+    Utilisé par le wizard à l'étape 2 pour charger la structure du template choisi.
+    """
+    template = session.get(StructureTemplate, template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template non trouvé")
+
+    return {
+        "id": template.id,
+        "key": template.key,
+        "name": template.name,
+        "description": template.description,
+        "template_type": template.template_type,
+        "is_default": template.is_default,
+        "payload": template.payload,
+    }
+
+
+# ============ APPLY TEMPLATE ============
+
+class UfPayload(BaseModel):
+    """Unité Fonctionnelle dans le payload du wizard."""
+    name: str
+    code_um: Optional[str] = None
+    type: Optional[str] = "mco"  # mco, ssr, psy, had
+
+
+class ServicePayload(BaseModel):
+    """Service dans le payload du wizard."""
+    name: str
+    short_name: Optional[str] = None
+    type: Optional[str] = "service"
+    ufs: List[UfPayload] = []
+
+
+class PolePayload(BaseModel):
+    """Pôle dans le payload du wizard."""
+    name: str
+    short_name: Optional[str] = None
+    type: Optional[str] = "pole"
+    services: List[ServicePayload] = []
+
+
+class UhPayload(BaseModel):
+    """Unité d'Hébergement dans le payload du wizard."""
+    name: str
+    chambres: int = 0
+    lits: int = 0
+
+
+class ApplyTemplateRequest(BaseModel):
+    """Requête pour appliquer un template modifié et créer la structure."""
+    eg_id: int  # Entité Géographique cible
+    payload: dict  # Contient {poles: [...]}
+    uhs: List[UhPayload] = []
+
+
+class ApplyTemplateResponse(BaseModel):
+    """Réponse après application du template."""
+    success: bool
+    message: str
+    created_entities: dict
+
+
+@api_router.post("/apply-template", response_model=ApplyTemplateResponse)
+async def apply_structure_template(
+    request: ApplyTemplateRequest,
+    session: Session = Depends(get_session)
+):
+    """Applique un template modifié et crée les entités de structure en base.
+
+    Crée les Poles, Services, UniteFonctionnelles à partir du payload JSON
+    modifié par l'utilisateur dans le wizard. Associe le tout à l'EG ciblée.
+    """
+    try:
+        # Vérifier que l'EG existe
+        eg = session.get(EntiteGeographique, request.eg_id)
+        if not eg:
+            raise HTTPException(status_code=404, detail=f"EntiteGeographique {request.eg_id} introuvable")
+
+        created = {
+            "poles": 0,
+            "services": 0,
+            "ufs": 0,
+            "uhs": 0,
+            "chambres": 0,
+            "lits": 0
+        }
+
+        # Extraire les pôles du payload
+        poles_data = request.payload.get("poles", [])
+
+        for pole_data in poles_data:
+            # Créer le pôle
+            pole = Pole(
+                name=pole_data.get("name"),
+                short_name=pole_data.get("short_name"),
+                entite_geographique_id=eg.id,
+                status=LocationStatus.ACTIVE
+            )
+            session.add(pole)
+            session.flush()  # Pour obtenir l'ID
+            created["poles"] += 1
+
+            # Créer les services du pôle
+            services_data = pole_data.get("services", [])
+            for service_data in services_data:
+                service = Service(
+                    name=service_data.get("name"),
+                    short_name=service_data.get("short_name"),
+                    pole_id=pole.id,
+                    entite_geographique_id=eg.id,
+                    status=LocationStatus.ACTIVE
+                )
+                session.add(service)
+                session.flush()
+                created["services"] += 1
+
+                # Créer les UF du service
+                ufs_data = service_data.get("ufs", [])
+                for uf_data in ufs_data:
+                    uf = UniteFonctionnelle(
+                        name=uf_data.get("name"),
+                        code_um=uf_data.get("code_um"),
+                        service_id=service.id,
+                        entite_geographique_id=eg.id,
+                        status=LocationStatus.ACTIVE
+                    )
+                    session.add(uf)
+                    created["ufs"] += 1
+
+        # Créer les UH si définies (optionnel)
+        for uh_data in request.uhs:
+            uh = UniteHebergement(
+                name=uh_data.name,
+                entite_geographique_id=eg.id,
+                status=LocationStatus.ACTIVE
+            )
+            session.add(uh)
+            session.flush()
+            created["uhs"] += 1
+
+            # Note: La création détaillée des chambres et lits nécessite plus d'inputs
+            # Pour l'instant on comptabilise juste les nombres fournis
+            created["chambres"] += uh_data.chambres
+            created["lits"] += uh_data.lits
+
+        session.commit()
+
+        return ApplyTemplateResponse(
+            success=True,
+            message=f"Structure créée avec succès pour {eg.name}",
+            created_entities=created
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Erreur lors de l'application du template: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création de la structure: {str(e)}")
 
 @api_router.get("/details/{type}/{id}")
 async def get_structure_details(
@@ -213,23 +457,164 @@ async def get_structure_details(
     if not entity:
         raise HTTPException(status_code=404, detail="Entité non trouvée")
         
-    # Construire un dictionnaire avec les détails
+    # Construire un dictionnaire avec les détails de base
+    status = getattr(entity, "status", None)
+    # Si une méthode get_effective_status existe, l'utiliser pour refléter l'état hérité
+    if hasattr(entity, "get_effective_status"):
+        try:
+            status = entity.get_effective_status()
+        except Exception:
+            status = getattr(entity, "status", None)
+
     details = {
         "id": entity.id,
         "name": entity.name,
         "type": type,
-        "identifier": getattr(entity, 'identifier', None),
-        "description": getattr(entity, 'description', None),
-        "status": getattr(entity, 'status', 'active')
+        "identifier": getattr(entity, "identifier", None),
+        "description": getattr(entity, "description", None),
+        "status": status or "active",
     }
-    
+
+    # Champs d'adresse communs si présents
+    for field in [
+        "address_line1",
+        "address_line2",
+        "address_line3",
+        "address_city",
+        "address_postalcode",
+        "address_country",
+    ]:
+        if hasattr(entity, field):
+            details[field] = getattr(entity, field)
+
     # Ajouter les champs spécifiques selon le type
-    if type == 'service':
-        details["service_type"] = getattr(entity, 'service_type', None)
-    elif type == 'uf':
-        details["uf_type"] = getattr(entity, 'uf_type', None)
-        
+    if type == "eg":
+        details["finess"] = getattr(entity, "finess", None)
+        details["category_code"] = getattr(entity, "category_code", None)
+        details["category_name"] = getattr(entity, "category_name", None)
+    elif type == "pole":
+        details["typology"] = getattr(entity, "typology", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+    elif type == "service":
+        details["service_type"] = getattr(entity, "service_type", None)
+        details["typology"] = getattr(entity, "typology", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "uf":
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["um_code"] = getattr(entity, "um_code", None)
+        details["typology"] = getattr(entity, "typology", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "uh":
+        details["typology"] = getattr(entity, "typology", None)
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "chambre":
+        details["typology"] = getattr(entity, "typology", None)
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["is_generic"] = getattr(entity, "is_generic", None)
+        details["max_occupancy"] = getattr(entity, "max_occupancy", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+    elif type == "lit":
+        details["typology"] = getattr(entity, "typology", None)
+        details["uf_type"] = getattr(entity, "uf_type", None)
+        details["operational_status"] = getattr(entity, "operational_status", None)
+        details["is_generic"] = getattr(entity, "is_generic", None)
+        details["max_occupancy"] = getattr(entity, "max_occupancy", None)
+        details["etage"] = getattr(entity, "etage", None)
+        details["aile"] = getattr(entity, "aile", None)
+        details["type_chambre"] = getattr(entity, "type_chambre", None)
+        details["gender_usage"] = getattr(entity, "gender_usage", None)
+
     return details
+
+
+class BulkItem(BaseModel):
+    type: str
+    id: int
+
+
+class BulkActionRequest(BaseModel):
+    action: str
+    items: List[BulkItem]
+
+
+@api_router.post("/bulk-action")
+async def bulk_action(
+    payload: BulkActionRequest,
+    session: Session = Depends(get_session),
+):
+    """Applique une action en lot (activer/désactiver) sur des structures.
+
+    Pour l'instant, seules les actions suivantes sont supportées :
+    - "activate"   → status = "active"
+    - "deactivate" → status = "inactive"
+    """
+
+    action_map = {
+        "activate": "active",
+        "deactivate": "inactive",
+    }
+
+    if payload.action not in action_map:
+        raise HTTPException(status_code=400, detail="Action invalide")
+
+    status_value = action_map[payload.action]
+
+    model_map = {
+        'eg': EntiteGeographique,
+        'pole': Pole,
+        'service': Service,
+        'uf': UniteFonctionnelle,
+        'uh': UniteHebergement,
+        'chambre': Chambre,
+        'lit': Lit,
+    }
+
+    updated = 0
+    not_found: List[dict] = []
+    invalid_types: List[str] = []
+
+    for item in payload.items:
+        model = model_map.get(item.type)
+        if not model:
+            invalid_types.append(item.type)
+            continue
+
+        entity = session.get(model, item.id)
+        if not entity:
+            not_found.append({"type": item.type, "id": item.id})
+            continue
+
+        if hasattr(entity, "status"):
+            setattr(entity, "status", status_value)
+            updated += 1
+
+    if updated:
+        session.commit()
+
+    return {
+        "action": payload.action,
+        "status": status_value,
+        "updated": updated,
+        "not_found": not_found,
+        "invalid_types": list(set(invalid_types)),
+    }
 
 
 @router.get("", response_class=HTMLResponse)
@@ -273,6 +658,29 @@ async def structure_dashboard(
         context["filtered_egs"] = [eg.id for eg in egs]
         context["no_ej_context"] = True  # Flag to show message in template
     return get_templates_with_filters(request).TemplateResponse(request, "structure_new.html", context)
+
+
+@router.get("/wizard", response_class=HTMLResponse)
+async def structure_wizard_page(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    """Page de wizard de saisie assistée pour créer une structure à partir de templates."""
+    context = {"request": request}
+    # On réutilise la même logique de filtrage EJ que pour la page principale
+    ej_context = request.session.get("ej_context_id")
+    if ej_context:
+        egs = session.exec(
+            select(EntiteGeographique)
+            .where(EntiteGeographique.entite_juridique_id == ej_context)
+        ).all()
+        context["filtered_ej_id"] = ej_context
+        context["filtered_egs"] = [eg.id for eg in egs]
+    else:
+        egs = session.exec(select(EntiteGeographique)).all()
+        context["filtered_egs"] = [eg.id for eg in egs]
+        context["no_ej_context"] = True
+    return get_templates_with_filters(request).TemplateResponse(request, "structure_wizard.html", context)
 
 @router.post("/import/hl7")
 async def import_structure_hl7(
@@ -413,6 +821,8 @@ async def update_entite_geographique(
         eg.identifier = identifier
     if finess is not None:
         eg.finess = finess
+    # Une EG est toujours de type "si" (site)
+    eg.physical_type = LocationPhysicalType.SI
     
     session.add(eg)
     session.commit()
@@ -613,6 +1023,8 @@ async def update_pole(
         pole.identifier = identifier
     if entite_geo_id:
         pole.entite_geo_id = int(entite_geo_id)
+    # Un pôle est toujours de type "area" (zone)
+    pole.physical_type = LocationPhysicalType.AREA
     apply_scheduled_status([pole])
     session.add(pole)
     session.commit()
@@ -771,6 +1183,8 @@ async def create_service(
     service: Service,
     session: Session = Depends(get_session)
 ):
+    # Un service est toujours de type "wa" (ward)
+    service.physical_type = LocationPhysicalType.WA
     apply_scheduled_status([service])
     session.add(service)
     session.commit()
@@ -804,7 +1218,12 @@ async def edit_service_form(
     poles = session.exec(select(Pole).order_by(Pole.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
         "structure/service_form.html",
-        {"request": request, "service": service, "poles": poles, "service_types": [t.value for t in LocationServiceType]},
+        {
+            "request": request,
+            "service": service,
+            "poles": poles,
+            "service_type_options": get_vocabulary_options("location-service-type"),
+        },
     )
 
 @router.post("/services/{service_id}")
@@ -826,6 +1245,8 @@ async def update_service(
         service.pole_id = int(pole_id)
     if service_type:
         service.service_type = LocationServiceType(service_type)
+    # Un service est toujours de type "wa" (ward)
+    service.physical_type = LocationPhysicalType.WA
     apply_scheduled_status([service])
     session.add(service)
     session.commit()
@@ -1045,6 +1466,8 @@ async def update_unite_fonctionnelle(
         uf.uf_type = uf_type
     if um_code is not None:
         uf.um_code = um_code
+    # Une UF est toujours de type "wa" (ward)
+    uf.physical_type = LocationPhysicalType.WA
     apply_scheduled_status([uf])
     session.add(uf)
     session.commit()
@@ -1096,8 +1519,8 @@ async def list_unites_hebergement(
             "request": request,
             "unites_hebergement": uhs,
             "unites_fonctionnelles": ufs,
-            "modes": ["instance", "hospitalization", "ambulatory", "virtual"],
-            "statuses": ["active", "suspended", "inactive"],
+            "mode_options": get_vocabulary_options("location-mode"),
+            "status_options": get_vocabulary_options("location-status"),
             "selected_uf_id": uf_id,
             "selected_mode": mode,
             "selected_status": status
@@ -1128,8 +1551,8 @@ async def new_unite_hebergement_form(
         {
             "request": request,
             "unites_fonctionnelles": ufs,
-            "modes": ["instance", "hospitalization", "ambulatory", "virtual"],
-            "statuses": ["active", "suspended", "inactive"],
+            "mode_options": get_vocabulary_options("location-mode"),
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": None,
             "deactivation_date_value": None,
         }
@@ -1192,8 +1615,8 @@ async def edit_unite_hebergement_form(
             "request": request,
             "uh": uh,
             "unites_fonctionnelles": ufs,
-            "modes": ["instance", "hospitalization", "ambulatory", "virtual"],
-            "statuses": ["active", "suspended", "inactive"],
+            "mode_options": get_vocabulary_options("location-mode"),
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": hl7_to_form_datetime(getattr(uh, "activation_date", None)),
             "deactivation_date_value": hl7_to_form_datetime(getattr(uh, "deactivation_date", None)),
         }
@@ -1207,14 +1630,13 @@ async def create_unite_hebergement(
     form = await request.form()
     mode_value = form.get("mode") or LocationMode.INSTANCE
     status_value = form.get("status") or LocationStatus.ACTIVE
-    physical_value = form.get("physical_type") or LocationPhysicalType.RO
     uh = UniteHebergement(
         name=form["name"],
         identifier=form["identifier"],
         unite_fonctionnelle_id=int(form["unite_fonctionnelle_id"]),
         mode=LocationMode(mode_value),
         status=LocationStatus(status_value),
-        physical_type=LocationPhysicalType(physical_value),
+        physical_type=LocationPhysicalType.WA,  # Une UH est toujours de type "wa" (ward)
     )
     uh.activation_date = form_datetime_to_hl7(form.get("activation_date"))
     uh.deactivation_date = form_datetime_to_hl7(form.get("deactivation_date"))
@@ -1240,8 +1662,8 @@ async def update_unite_hebergement(
     uh.unite_fonctionnelle_id = int(form["unite_fonctionnelle_id"])
     uh.mode = LocationMode(form.get("mode", uh.mode))
     uh.status = LocationStatus(form.get("status", uh.status))
-    physical_value = form.get("physical_type") or uh.physical_type
-    uh.physical_type = LocationPhysicalType(physical_value)
+    # Une UH est toujours de type "wa" (ward)
+    uh.physical_type = LocationPhysicalType.WA
     uh.activation_date = form_datetime_to_hl7(form.get("activation_date"))
     uh.deactivation_date = form_datetime_to_hl7(form.get("deactivation_date"))
     apply_scheduled_status([uh])
@@ -1351,8 +1773,8 @@ async def new_chambre_form(
         {
             "request": request,
             "unite_hebergement": uh,
-            "physical_types": [type.value for type in LocationPhysicalType],
-            "statuses": ["active", "suspended", "inactive"],
+            # Note: physical_type n'est pas fourni car une chambre est toujours de type "ro" (room)
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": None,
             "deactivation_date_value": None,
         }
@@ -1388,8 +1810,8 @@ async def edit_chambre_form(
             "request": request,
             "chambre": chambre,
             "unite_hebergement": chambre.unite_hebergement,
-            "physical_types": [type.value for type in LocationPhysicalType],
-            "statuses": [status.value for status in LocationStatus],
+            # Note: physical_type n'est pas fourni car une chambre est toujours de type "ro" (room)
+            "status_options": get_vocabulary_options("location-status"),
             "activation_date_value": hl7_to_form_datetime(getattr(chambre, "activation_date", None)),
             "deactivation_date_value": hl7_to_form_datetime(getattr(chambre, "deactivation_date", None)),
         },
@@ -1407,10 +1829,8 @@ async def update_chambre(
     form = await request.form()
     chambre.name = form.get("name", chambre.name)
     chambre.identifier = form.get("identifier", chambre.identifier)
-    # physical_type may change, keep provided or current
-    pt = form.get("physical_type")
-    if pt:
-        chambre.physical_type = LocationPhysicalType(pt)
+    # Une chambre est toujours de type "ro" (room)
+    chambre.physical_type = LocationPhysicalType.RO
     st = form.get("status")
     if st:
         chambre.status = LocationStatus(st)
@@ -1560,7 +1980,7 @@ async def create_chambre(
         name=form["name"],
         identifier=form["identifier"],
         unite_hebergement_id=int(form["unite_hebergement_id"]),
-        physical_type=LocationPhysicalType(form.get("physical_type", LocationPhysicalType.RO)),
+        physical_type=LocationPhysicalType.RO,  # Une chambre est toujours de type "ro" (room)
         mode=LocationMode(form.get("mode", LocationMode.INSTANCE)),
         status=LocationStatus(status_value),
         type_chambre=form.get("type_chambre"),
@@ -1750,7 +2170,8 @@ async def edit_lit_form(
             "request": request,
             "lit": lit,
             "chambres": chambres,
-            "statuses": [s.value for s in LocationStatus],
+            "status_options": get_vocabulary_options("location-status"),
+            "operational_statuses": LIT_OPERATIONAL_STATUS_OPTIONS,
         },
     )
 
@@ -1776,6 +2197,8 @@ async def update_lit(
         lit.status = LocationStatus(status)
     if operational_status is not None:
         lit.operational_status = operational_status
+    # Un lit est toujours de type "bd" (bed)
+    lit.physical_type = LocationPhysicalType.BD
     apply_scheduled_status([lit])
     session.add(lit)
     session.commit()

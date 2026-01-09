@@ -1,0 +1,27 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_SA.html' target='_top'>Sommaire </A><A HREF='./evenementServeurUCD_typeEvenementServeurUCD.html' target='frameCorps'>Elément précédent</A></DIV><DIV class='chapitre'>evenementsServeurActes [typeEvenementsServeurActes]</DIV>
+<DIV class='definition'>Définition des événements du serveur d'activité</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='enteteMessage_typeEnteteMessageSA.html' target='frameCorps'>enteteMessage</A> </TD><TD class='cell'>Définition de l'entête de message.</TD></TR>
+<TR> <TD class='cell'><A HREF='evenementServeurIntervention_typeServeurIntervention.html' target='frameCorps'>evenementServeurIntervention</A> </TD><TD class='cell'>Evénement de constitution d'une intervention.</TD></TR>
+<TR> <TD class='cell'><A HREF='evenementServeurActe_typeEvenementServeurActe.html' target='frameCorps'>evenementServeurActe</A> </TD><TD class='cell'>Evénement de constitution d'actes CCAM ou NGAP.</TD></TR>
+<TR> <TD class='cell'><A HREF='evenementServeurLPP_typeEvenementServeurLPP.html' target='frameCorps'>evenementServeurLPP</A> </TD><TD class='cell'>Evénement de constitution de Liste des Produits et Prestation
+.</TD></TR>
+<TR> <TD class='cell'><A HREF='evenementServeurUCD_typeEvenementServeurUCD.html' target='frameCorps'>evenementServeurUCD</A> </TD><TD class='cell'>Evénement de constitution d'Unité Commune de Dispensation</TD></TR>
+<TR> <TD class='cell'><A HREF='evenementFusionIntervention_typeFusionIntervention.html' target='frameCorps'>evenementFusionIntervention</A> </TD><TD class='cell'>Evénement permettant de fusionner une intervention vers une autre.</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>version</TD><TD class='cell'>Version du schéma utilisé. </TD><TD class='cell'>2.4</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>acquittementAttendu</TD><TD class='cell'>Attribut indiquant au recepteur de retourner à reception du message un acquittement. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>identifiantAttendu</TD><TD class='cell'>Attribut stipulant la demande de recevoir les identifiants définis par le serveur d'actes. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>realise</TD><TD class='cell'>L'événement porté par le message a été effectivement produit (la valeur 'non' induit un effet prévisionnel) </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+<TR><TD class='cell'>interrogation</TD><TD class='cell'>Cet attribut permet d'indiquer que le message est utilisé en mode requête et attend une réponse. </TD><TD class='cell'>non</TD><TD class='cell'> </TD></TR><TR><TD/><TD/><TD class='cell'>oui</TD><TD class='cell'> </TD></TR>
+</TABLE>
+</BODY></HTML>

@@ -1389,11 +1389,11 @@ def _build_fhir_targets(endpoint: SystemEndpoint) -> Sequence[Tuple[str, str, st
 
 def emit_to_senders_async(
     entity,
-    entity_type: Literal["patient", "dossier", "venue", "mouvement"],
+    entity_type: Literal["patient", "dossier", "venue", "mouvement", "ccam_act", "ngap_act", "ucd_act", "lpp_act"],
     session: Session,
     operation: str = "insert",
 ) -> None:
-    """Emit HL7/FHIR notifications for newly created or updated entities."""
+    """Emit HL7/FHIR/HPRIM notifications for newly created or updated entities and acts."""
 
     # Retry logic for SQLite concurrency errors
     max_retries = 3
@@ -1455,6 +1455,11 @@ def emit_to_senders_async(
         # Respect emission type flags
         # HL7 IHE PAM (identité/mouvements)
         if endpoint.kind == "MLLP" and getattr(endpoint, "emit_hl7_pam", True):
+            # Vérifier que l'endpoint MLLP est bien configuré
+            if not endpoint.host or not endpoint.port:
+                logger.debug(f"[MLLP] Endpoint {endpoint.id} not properly configured (missing host/port) - skipping PAM emission")
+                continue
+            
             if entity_type in ["patient", "venue", "mouvement"]:
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
@@ -1495,6 +1500,8 @@ def emit_to_senders_async(
                     try:
                         if endpoint.host and endpoint.port:
                             # call the dynamically imported sender (may be monkeypatched)
+                            import time as _time
+                            _start = _time.time()
                             ack_payload = _send_mllp(endpoint.host, endpoint.port, hl7_message)
                             from app.services.mllp import parse_msh_fields
                             ack_lines = ack_payload.split("\r") if ack_payload else []
@@ -1511,6 +1518,18 @@ def emit_to_senders_async(
                             else:
                                 ack_payload = "[No host/port configured]"
                                 status = "error"
+                            # Metrics for PAM outbound
+                            try:
+                                from app.metrics import record_pam_ack
+                                msg_type = hl7_fields.get("msg_type") or "ADT^unknown"
+                                record_pam_ack(
+                                    direction="outbound",
+                                    ack_code=ack_code or "",
+                                    message_type=msg_type,
+                                    duration_seconds=_time.time() - _start,
+                                )
+                            except Exception:
+                                pass
                     except Exception as exc:
                         status = "error"
                         ack_payload = str(exc)
@@ -1598,6 +1617,11 @@ def emit_to_senders_async(
                 pass
         # FHIR structure
         if endpoint.kind == "FHIR" and getattr(endpoint, "emit_fhir_structure", True):
+            # Vérifier que l'endpoint FHIR est bien configuré
+            if not endpoint.base_url:
+                logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping structure emission")
+                continue
+            
             if entity_type in ["dossier", "venue"]:
                 targets = _build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
@@ -1713,6 +1737,11 @@ def emit_to_senders_async(
                             time.sleep(60)
         # FHIR identity/movements
         if endpoint.kind == "FHIR" and getattr(endpoint, "emit_fhir_identity", True):
+            # Vérifier que l'endpoint FHIR est bien configuré
+            if not endpoint.base_url:
+                logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping identity emission")
+                continue
+            
             if entity_type in ["patient", "mouvement", "venue"]:
                 targets = _build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
@@ -1821,16 +1850,152 @@ def emit_to_senders_async(
                         if retry < max_retry:
                             time.sleep(60)
 
-        # HPRIM endpoints: emit HPRIM XML messages for cotation
-        # HPRIM is used specifically for medical billing/cotation (CCAM, NGAP, etc.)
-        # It should NOT receive general mouvement events, only specific cotation events
+        # HPRIM endpoints: emit HPRIM XML messages for cotation (AUTO-TRANSMISSION)
+        # HPRIM is used specifically for medical billing/cotation (CCAM, NGAP, UCD, LPP)
+        # Auto-transmission enabled for cotation acts (like PAM/FHIR for entities)
         if endpoint.kind == "HPRIM":
-            # Skip general entity emissions to HPRIM endpoints
-            # HPRIM messages are generated only for specific cotation events, not from general entity creation/modification
-            if entity_type in ["patient", "dossier", "venue", "mouvement"]:
+            # Only process cotation acts for HPRIM endpoints
+            if entity_type not in ["ccam_act", "ngap_act", "ucd_act", "lpp_act"]:
                 logger.debug(f"[HPRIM] Skipping {entity_type} emission to HPRIM endpoint {endpoint.id} - "
-                           f"HPRIM is reserved for cotation events only")
+                           f"HPRIM is reserved for cotation acts only")
                 continue  # Skip to next endpoint
+            
+            # Filter by act type based on endpoint configuration
+            if entity_type == "ccam_act" and not getattr(endpoint, 'emit_hprim_ccam', False):
+                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for CCAM acts")
+                continue
+            if entity_type == "ngap_act" and not getattr(endpoint, 'emit_hprim_ngap', False):
+                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for NGAP acts")
+                continue
+            if entity_type == "ucd_act" and not getattr(endpoint, 'emit_hprim_ucd', False):
+                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for UCD acts")
+                continue
+            if entity_type == "lpp_act" and not getattr(endpoint, 'emit_hprim_lpp', False):
+                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for LPP acts")
+                continue
+            
+            # Generate HPRIM XML for the cotation act
+            try:
+                from app.services.hprim.hprim_xml import HprimXmlService
+                from app.hprim_models import (
+                    HprimMessage, HprimEnteteMessage, HprimPatient, HprimActeCCAM, HprimActeNGAP,
+                    HprimMessageType, HprimAction
+                )
+                from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct, Dossier, Patient
+                
+                # Load related dossier and patient
+                dossier = session.get(Dossier, entity.dossier_id)
+                if not dossier:
+                    logger.error(f"[HPRIM] Dossier not found for act {entity.id}")
+                    continue
+                
+                patient = session.get(Patient, dossier.patient_id) if dossier.patient_id else None
+                if not patient:
+                    logger.error(f"[HPRIM] Patient not found for dossier {dossier.id}")
+                    continue
+                
+                # Build HPRIM message
+                entete = HprimEnteteMessage(
+                    message_id=f"COTATION-{entity.id}-{int(datetime.now().timestamp())}",
+                    date_emission=datetime.now(),
+                    emetteur_id=getattr(endpoint, 'sending_app', 'MEDBRIDGE'),
+                    emetteur_nom=getattr(endpoint, 'sending_facility', 'MedData Bridge'),
+                    destinataire_id=getattr(endpoint, 'receiving_app', 'REMOTE'),
+                    destinataire_nom=getattr(endpoint, 'receiving_facility', 'Remote System'),
+                    message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
+                )
+                
+                # Build patient info
+                hprim_patient = HprimPatient(
+                    ipp=patient.ipp,
+                    nom=patient.nom,
+                    prenom=patient.prenom,
+                    date_naissance=patient.date_naissance,
+                    sexe=patient.sexe
+                )
+                
+                # Build message based on act type
+                message = HprimMessage(
+                    entete=entete,
+                    patient=hprim_patient,
+                    version="2.4",
+                    acquittement_attendu=True,
+                    identifiant_attendu=True,
+                    realise=True,
+                    interrogation=False
+                )
+                
+                # Add act data based on type
+                if entity_type == "ccam_act" and isinstance(entity, CCAMAct):
+                    from app.hprim_models import HprimModificateur
+                    modificateurs = []
+                    if entity.modificateurs:
+                        for mod_code in entity.modificateurs.split(','):
+                            modificateurs.append(HprimModificateur(code=mod_code.strip()))
+                    
+                    hprim_acte = HprimActeCCAM(
+                        code_acte=entity.code_acte,
+                        code_activite=entity.code_activite,
+                        code_phase=entity.code_phase,
+                        date_execution=entity.execute_date,
+                        modificateurs=modificateurs,
+                        quantite=entity.quantite or 1,
+                        action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
+                        facturable=entity.facturable if hasattr(entity, 'facturable') else True,
+                        valide=entity.valide if hasattr(entity, 'valide') else False,
+                        facture=entity.facture if hasattr(entity, 'facture') else False
+                    )
+                    message.actes_ccam = [hprim_acte]
+                    
+                elif entity_type == "ngap_act" and isinstance(entity, NGAPAct):
+                    hprim_acte = HprimActeNGAP(
+                        lettre_cle=entity.lettre_cle,
+                        coefficient=entity.coefficient,
+                        date_execution=entity.execute_date,
+                        denombrement=entity.denombrement or 1,
+                        quantite=entity.quantite,
+                        action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
+                        facturable=entity.facturable if hasattr(entity, 'facturable') else True,
+                        valide=entity.valide if hasattr(entity, 'valide') else False
+                    )
+                    message.actes_ngap = [hprim_acte]
+                
+                # TODO: Add support for UCD and LPP acts when models are ready
+                elif entity_type in ["ucd_act", "lpp_act"]:
+                    logger.warning(f"[HPRIM] {entity_type} emission not yet implemented")
+                    continue
+                
+                # Generate XML
+                hprim_service = HprimXmlService()
+                hprim_xml = hprim_service.generate_xml(message)
+                
+                logger.info(f"[HPRIM] Generated XML for {entity_type} {entity.id} to endpoint {endpoint.id}")
+                
+                # Create message log
+                log = MessageLog(
+                    endpoint_id=endpoint.id,
+                    direction="outbound",
+                    status="pending",
+                    correlation_id=correlation_id,
+                    payload=hprim_xml,
+                    entity_type=entity_type,
+                    entity_id=entity.id,
+                    sent_at=None,
+                    response=None
+                )
+                session.add(log)
+                session.commit()
+                sent_logs.append(log)
+                
+                # TODO: Actually send the HPRIM XML via FILE/HTTP endpoint
+                # For now, just log it. The file poller or HTTP sender will handle it.
+                logger.info(f"[HPRIM] Queued {entity_type} emission for endpoint {endpoint.id}")
+                
+            except Exception as e:
+                logger.error(f"[HPRIM] Error generating/sending message for {entity_type} {entity.id}: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                continue
         
         # FILE outbox: write HL7/FHIR payloads to a filesystem outbox if configured
         if endpoint.kind == "FILE":

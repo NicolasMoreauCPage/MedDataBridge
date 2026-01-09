@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/contracts" class="hover:text-blue-600 transition-colors">Contrats</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/contracts/dossier/{{ contract.dossier_id }}" class="hover:text-blue-600 transition-colors">Dossier</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Contrat créé</span>
+  </nav>
+
+  <div class="btn">
+    <!-- Success message -->
+    <div class="alert alert-success">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-green-800">Contrat créé avec succès</h3>
+          <p class="mt-1 text-sm text-green-700">
+            Le contrat médical a été créé et est maintenant actif pour ce dossier.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contract details -->
+    <div class="border border-gray-200 rounded-lg p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Détails du contrat</h2>
+
+      <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Type de contrat</dt>
+          <dd class="mt-1 text-sm text-gray-900">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if contract.contract_type == 'NGAP' %}bg-blue-100 text-blue-800
+              {% elif contract.contract_type == 'UCD' %}bg-green-100 text-green-800
+              {% elif contract.contract_type == 'LPP' %}bg-purple-100 text-purple-800
+              {% endif %}">
+              {{ contract.contract_type }}
+            </span>
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Statut</dt>
+          <dd class="mt-1 text-sm text-gray-900">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              {{ contract.status.title() }}
+            </span>
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Date de début</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ contract.date_debut.strftime('%d/%m/%Y') }}</dd>
+        </div>
+
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Date de fin</dt>
+          <dd class="mt-1 text-sm text-gray-900">
+            {% if contract.date_fin %}
+              {{ contract.date_fin.strftime('%d/%m/%Y') }}
+            {% else %}
+              Indéterminée
+            {% endif %}
+          </dd>
+        </div>
+
+        {% if contract.organisme_payeur %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Organisme payeur</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ contract.organisme_payeur }}</dd>
+        </div>
+        {% endif %}
+
+        {% if contract.numero_contrat %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Numéro de contrat</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ contract.numero_contrat }}</dd>
+        </div>
+        {% endif %}
+
+        {% if contract.taux_prise_en_charge %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Taux de prise en charge</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ contract.taux_prise_en_charge }}%</dd>
+        </div>
+        {% endif %}
+
+        {% if contract.plafond_annuel %}
+        <div>
+          <dt class="text-sm font-medium text-gray-500">Plafond annuel</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ "%.2f"|format(contract.plafond_annuel) }} €</dd>
+        </div>
+        {% endif %}
+
+        {% if contract.conditions_particulieres %}
+        <div class="md:col-span-2">
+          <dt class="text-sm font-medium text-gray-500">Conditions particulières</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ contract.conditions_particulieres }}</dd>
+        </div>
+        {% endif %}
+
+        {% if contract.medecin_responsable %}
+        <div class="md:col-span-2">
+          <dt class="text-sm font-medium text-gray-500">Médecin responsable</dt>
+          <dd class="mt-1 text-sm text-gray-900">
+            Dr. {{ contract.medecin_responsable.family_name }} {{ contract.medecin_responsable.given_name }}
+            ({{ contract.medecin_responsable.rpps }})
+          </dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-4 mt-6 pt-6 border-t">
+      <a href="/contracts/dossier/{{ contract.dossier_id }}"
+         class="btn">
+        Voir tous les contrats
+      </a>
+      <a href="/contracts/create/{{ contract.dossier_id }}"
+         class="px-4 py-2 border border-indigo-300 rounded-md text-indigo-700 hover:bg-indigo-50 transition-colors">
+        Créer un autre contrat
+      </a>
+      <a href="/dossiers/{{ contract.dossier_id }}"
+         class="btn btn-primary">
+        Retour au dossier
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

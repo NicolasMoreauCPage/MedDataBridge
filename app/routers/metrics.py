@@ -219,3 +219,45 @@ async def metrics_dashboard_ui(request: Request):
         "metrics_dashboard.html",
         {}
     )
+
+
+@router.post("/test/populate", response_model=dict)
+async def populate_test_metrics():
+    """
+    Endpoint de test pour peupler le dashboard avec des données fictives.
+    À utiliser uniquement en développement.
+    
+    Returns:
+        Dictionnaire de confirmation avec le nombre de métriques ajoutées
+    """
+    # Peupler le collecteur UI
+    metrics.record_operation("hprim_validation_inbound", 0.10, "success", schema="msgEvenementsServeurActes2_4")
+    metrics.record_operation("hprim_validation_inbound", 0.12, "success", schema="msgEvenementsServeurActes2_4")
+    metrics.record_operation("hprim_validation_inbound", 0.08, "error", schema="msgEvenementsServeurActes2_4")
+    metrics.record_operation("hprim_validation_outbound", 0.09, "success", schema="msgEvenementsServeurActes2_4")
+    metrics.record_operation("hprim_validation_outbound", 0.11, "success", schema="msgEvenementsServeurActes2_4")
+    
+    metrics.record_operation("pam_message_inbound", 0.05, "success", ack_code="AA", message_type="ADT^A01")
+    metrics.record_operation("pam_message_inbound", 0.06, "success", ack_code="AA", message_type="ADT^A01")
+    metrics.record_operation("pam_message_inbound", 0.04, "error", ack_code="AE", message_type="ADT^A04")
+    metrics.record_operation("pam_message_outbound", 0.03, "success", ack_code="CA", message_type="ADT^A01")
+    metrics.record_operation("pam_message_outbound", 0.04, "success", ack_code="CA", message_type="ADT^A01")
+    metrics.record_operation("pam_message_outbound", 0.03, "success", ack_code="CA", message_type="ADT^A01")
+    
+    metrics.record_operation("fhir_import", 0.10, "success", resource="bundle", action="import")
+    metrics.record_operation("fhir_import", 0.08, "success", resource="patient", action="import")
+    metrics.record_operation("fhir_import", 0.09, "success", resource="location", action="import")
+    metrics.record_operation("fhir_import", 0.02, "error", resource="patient", action="import")
+    
+    metrics.record_operation("fhir_export", 0.07, "success", resource="patients", action="export")
+    metrics.record_operation("fhir_export", 0.08, "success", resource="venues", action="export")
+    metrics.record_operation("fhir_export", 0.06, "success", resource="all", action="export")
+    
+    all_metrics = metrics.get_metrics()
+    
+    return {
+        "status": "success",
+        "message": "Test metrics populated",
+        "operations_added": len(all_metrics),
+        "total_operations": sum(m.get("count", 0) for m in all_metrics.values())
+    }

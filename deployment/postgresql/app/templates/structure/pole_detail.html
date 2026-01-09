@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Pôle {{ pole.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/structure" class="hover:text-blue-600 transition-colors">Structure</a>
+    <span class="text-slate-400">/</span>
+    <a href="/structure/poles" class="hover:text-blue-600 transition-colors">Pôles</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{{ pole.name }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3"><div class="text-3xl">🏭</div></div>
+          <div><h1 class="text-3xl font-bold">{{ pole.name }}</h1><p class="text-blue-100 mt-1 font-mono">{{ pole.identifier }}</p></div>
+        </div>
+        <div class="flex gap-3">
+          <a href="/structure/poles/{{ pole.id }}/edit" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition-all duration-200">Modifier</a>
+          <a href="/structure/poles" class="bg-white text-blue-700 px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all duration-200 shadow-lg">Retour</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white shadow rounded-md p-4 mb-8">
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <dt class="text-sm font-medium text-gray-500">Identifiant</dt>
+        <dd class="mt-1 text-sm text-gray-900">{{ pole.identifier }}</dd>
+      </div>
+      <div>
+        <dt class="text-sm font-medium text-gray-500">Statut</dt>
+        <dd class="mt-1 text-sm text-gray-900">{{ pole.status }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <h3 class="text-lg font-semibold mb-3">Services du pôle</h3>
+  <div class="bg-white shadow overflow-hidden sm:rounded-md">
+    <ul role="list" class="divide-y divide-gray-200">
+      {% for s in services %}
+      <li>
+        <a href="/structure/services/{{ s.id }}" class="block hover:bg-gray-50 px-4 py-4">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-indigo-600">{{ s.name }}</p>
+            <p class="text-sm text-gray-500">{{ s.identifier }}</p>
+          </div>
+        </a>
+      </li>
+      {% else %}
+      <li class="px-4 py-6 text-sm text-gray-500">Aucun service</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

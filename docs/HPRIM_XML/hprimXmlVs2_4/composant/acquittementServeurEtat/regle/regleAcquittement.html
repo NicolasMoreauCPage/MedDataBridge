@@ -1,0 +1,29 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<html>
+<head>
+  <title>Regle acquittement</title>
+  <link href="../../../css/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<DIV class='chapitre'> Régles pour les acquittements</DIV>
+
+<p>L’utilisation de l’acquittement est conditionnée par l'alimentation de l'attribut <B>acquittementAttendu</B> à oui dans le message d'origine émis, présent sur la balise maitre.
+</p>
+L’indicateur d’acquittement du message est l’attribut obligatoire <B>statut</B> situé sur la balise enteteMessageAcquittement. Il porte sur la validation de l’ensemble des réponses emis dans l'acquittement.
+Il existe 2 niveaux de refus :
+   <ul>
+      <li>global, le message émis initialement est refusé dans son ensemble.Il s'agit notamment des valeurs rj (Rejet) et ncs  (Non conforme au schéma)</li>
+
+      <li>unitaire, à savoir au moins une réponse porte ce statut. L'ordre décroissant d'importance  des valeurs est le suivant :
+      <ul>
+         <li>err (Erreur)</li>
+         <li>avt (Avertissement)</li>
+      </ul>
+      Pour exemple, si au moins une réponse est en erreur, le statut prend comme valeur err.
+   </li>
+</p>
+</body>
+</html>

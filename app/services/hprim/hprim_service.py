@@ -123,12 +123,53 @@ class HprimService:
             Dictionnaire avec résultat du traitement
         """
         try:
+            import time as _time
+            start = _time.time()
             # Validation encodage
             if not self.xml_service.validate_encoding(xml_string):
+                # Metrics (encoding error)
+                try:
+                    from app.metrics import record_hprim_validation
+                    record_hprim_validation(
+                        succes=False,
+                        schema=None,
+                        error_type="encoding",
+                        direction="inbound",
+                        duration_seconds=_time.time() - start,
+                    )
+                except Exception:
+                    pass
                 return {
                     "succes": False,
                     "erreur": "Encodage invalide (ISO-8859-1 requis)",
                     "type_erreur": "ENCODING"
+                }
+
+            # Validation XSD: déterminer automatiquement le schéma selon le root
+            schema_auto = self.validator.guess_schema_name(xml_string) or 'evenements_serveur_actes'
+            is_valid_xsd, xsd_errors = self.validator.validate_xml_string(
+                xml_string,
+                schema_name=schema_auto
+            )
+            if not is_valid_xsd:
+                # Metrics (xsd error)
+                try:
+                    from app.metrics import record_hprim_validation
+                    record_hprim_validation(
+                        succes=False,
+                        schema=schema_auto,
+                        error_type="xsd",
+                        direction="inbound",
+                        duration_seconds=_time.time() - start,
+                    )
+                except Exception:
+                    pass
+                return {
+                    "succes": False,
+                    "erreur": f"Validation XSD échouée (schéma: {schema_auto})",
+                    "erreurs": xsd_errors,
+                    "type_erreur": "XSD_VALIDATION",
+                    "schema_utilise": schema_auto
                 }
 
             # Parsing XML
@@ -138,6 +179,18 @@ class HprimService:
             erreurs = self.valider_message(message)
 
             if erreurs:
+                # Metrics (content error)
+                try:
+                    from app.metrics import record_hprim_validation
+                    record_hprim_validation(
+                        succes=False,
+                        schema=schema_auto,
+                        error_type="content",
+                        direction="inbound",
+                        duration_seconds=_time.time() - start,
+                    )
+                except Exception:
+                    pass
                 return {
                     "succes": False,
                     "erreur": f"Validation échouée: {len(erreurs)} erreur(s)",
@@ -145,14 +198,38 @@ class HprimService:
                     "type_erreur": "VALIDATION"
                 }
 
+            # Metrics (success)
+            try:
+                from app.metrics import record_hprim_validation
+                record_hprim_validation(
+                    succes=True,
+                    schema=schema_auto,
+                    error_type=None,
+                    direction="inbound",
+                    duration_seconds=_time.time() - start,
+                )
+            except Exception:
+                pass
+
             return {
                 "succes": True,
                 "message": message,
-                "type_message": message.entete.message_type.value
+                "type_message": message.entete.message_type.value,
+                "schema_utilise": schema_auto
             }
 
         except Exception as e:
             logger.error(f"Erreur traitement XML: {e}")
+            try:
+                from app.metrics import record_hprim_validation
+                record_hprim_validation(
+                    succes=False,
+                    schema=None,
+                    error_type="processing",
+                    direction="inbound",
+                )
+            except Exception:
+                pass
             return {
                 "succes": False,
                 "erreur": str(e),

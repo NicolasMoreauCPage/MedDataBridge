@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Regle acte</TITLE>
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+
+<BODY>
+<DIV class='chapitre'> Régles pour les actes</DIV>
+
+<DIV class='sChapitre'> Création d'un acte</DIV>
+
+<P>La création du premier acte par l'élément &lt;evenementServeurActe&gt; peut permettre de constituer l'intervention à condition que les éléments de l'élement &lt;intervention&gt; soient correctement chargés.
+</P>
+
+<P>Lors de la création d’autres actes sur la même intervention, tant que l’identifiant intervention reste inchangé dans le message, le champ identifiant de l’intervention sera le seul champ de l’intervention exploité en réception des messages. Les autres champs relatifs à l’intervention dans le message, peuvent être incomplets ne seront pas pris en compte.</P>
+
+<P>Dans le cadre de l'association d'un acte à une intervention, la balise &lt;evenementServeurIntervention&gt; n'est pas
+necessaire et les sous-éléments de la balise &lt;intervention&gt; sous la balise
+ &lt;evenementServeurActe&gt; suffisent pour exploiter les champs identifiants de l’intervention à
+laquelle l’acte fait référence.</P>
+
+<DIV class='sChapitre'> Suppression du dernier acte</DIV>
+
+<P>Un message de suppression du dernier acte d’une intervention doit être
+interprété comme effectuant l’annulation de l’intervention.</P>
+
+<DIV class='sChapitre'> Indicateur « valide » des actes </DIV>
+
+<p>Dans le cadre de  la cohérence du regroupement dans une même
+intervention, et après transmission au serveur d’actes, le logiciel producteur
+récupère l’état du champ ‘valide’ de l’acte à partir :</p>
+<UL>
+   <LI><p>de l’acquittement des messages qu’il a envoyés au
+serveur d’actes (s’il a mis à jour des données).</p>
+   </LI>
+   <LI><p>de la réception des messages du serveur d’actes auquel
+il doit être abonné en réception, si des actes d’une intervention qui le concerne sont créés
+ou mis à jour par un autre producteur.(lorsque les actes du SIH ne sont pas partitionnés par logiciel
+producteur d’acte)</p>
+   </LI>
+
+</UL>
+
+<DIV class='sChapitre'> Réaffectation d'actes vers une autre venue</DIV>
+
+<P>La réaffectation d'actes à une autre venue passe par la suppression de ces actes de la venue initiale et la création de nouvelles lignes pour la nouvelle venue.
+</P>
+
+</BODY>
+</HTML>

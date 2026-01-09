@@ -65,17 +65,31 @@ def list_dossiers(
     patient_id: int | None = Query(None),
     dossier_type: DossierType | None = Query(None),
     dossier_seq: int | None = Query(None),
+    uf: str | None = Query(None, description="Filtrer par UF de responsabilité (contient)"),
+    medecin: str | None = Query(None, alias="attending_provider", description="Filtrer par médecin responsable (contient)"),
+    admit_from: str | None = Query(None, description="Filtrer par date d'admission à partir de (AAAA-MM-JJ)"),
+    admit_to: str | None = Query(None, description="Filtrer par date d'admission jusqu'à (AAAA-MM-JJ)"),
+    current_state: str | None = Query(None, description="Filtrer par état courant"),
     session=Depends(get_session)
 ):
+    # Récupérer les contextes EG et EJ (EG a priorité s'il est défini)
+    eg_context = getattr(request.state, "eg_context", None)
     ej_context = getattr(request.state, "ej_context", None)
-    ej_id = getattr(ej_context, "id", None)
+    eg_id = getattr(eg_context, "id", None)
+    ej_id = getattr(ej_context, "id", None) if not eg_id else None  # EJ seulement si pas d'EG
     
     dossiers = dossiers_service.get_dossiers(
         session,
         ej_id=ej_id,
+        eg_id=eg_id,
         patient_id=patient_id,
         dossier_type=dossier_type,
         dossier_seq=dossier_seq,
+        uf=uf,
+        medecin=medecin,
+        admit_from=admit_from,
+        admit_to=admit_to,
+        current_state=current_state,
     )
     
     # Compter les actes pour chaque dossier
@@ -104,7 +118,56 @@ def list_dossiers(
         {"type": "link", "label": "Import FHIR", "url": "/dossiers/import/fhir"}
     ]
 
-    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie", "Actes"], "rows": rows, "new_url": "/dossiers/new", "actions": actions, "show_actions": True}
+    filters = [
+        {
+            "label": "UF responsabilité",
+            "name": "uf",
+            "type": "text",
+            "value": uf or "",
+            "placeholder": "Ex : CARDIO"
+        },
+        {
+            "label": "Médecin responsable",
+            "name": "attending_provider",
+            "type": "text",
+            "value": medecin or "",
+            "placeholder": "Nom du praticien"
+        },
+        {
+            "label": "Type de dossier",
+            "name": "dossier_type",
+            "type": "select",
+            "value": dossier_type.value if dossier_type else "",
+            "placeholder": "Tous les types",
+            "options": [
+                {"value": dt.value, "label": dt.name.replace('_', ' ').capitalize()}
+                for dt in DossierType
+            ]
+        },
+        {
+            "label": "Admission à partir du",
+            "name": "admit_from",
+            "type": "text",
+            "value": admit_from or "",
+            "placeholder": "AAAA-MM-JJ"
+        },
+        {
+            "label": "Admission jusqu'au",
+            "name": "admit_to",
+            "type": "text",
+            "value": admit_to or "",
+            "placeholder": "AAAA-MM-JJ"
+        },
+        {
+            "label": "État courant",
+            "name": "current_state",
+            "type": "text",
+            "value": current_state or "",
+            "placeholder": "Ex : Hospitalisé, EN_SALLE..."
+        },
+    ]
+
+    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie", "Actes"], "rows": rows, "new_url": "/dossiers/new", "filters": filters, "actions": actions, "show_actions": True}
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 @public_router.get("/{dossier_id}", response_class=HTMLResponse)
@@ -155,6 +218,8 @@ def redirect_dossier_cotation(dossier_id: int):
     return RedirectResponse(url=f"/cotation-modern?dossier_id={dossier_id}", status_code=302)
 
 from typing import Optional
+
+
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(
     request: Request,
@@ -218,6 +283,59 @@ def new_dossier(
         ]
         fields.append({"name": "event_code", "label": "Code événement", "type": "select", "options": event_options})
     return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title": "Nouveau dossier", "fields": fields})
+
+
+@router.get("/new-wizard", response_class=HTMLResponse)
+def new_dossier_wizard(
+    request: Request,
+    patient_id: Optional[str] = Query(None),
+    session: Session = Depends(get_session),
+):
+    """Wizard d'admission guidée (Patient déjà sélectionné).
+
+    Cette vue propose une expérience en 3 étapes côté UI mais s'appuie
+    sur le POST existant `/dossiers/new` pour créer le dossier et la
+    pré-admission en base. Aucune logique métier n'est dupliquée ici.
+    """
+    print(f"[DEBUG] [/dossiers/new-wizard] query_params={request.query_params}, patient_id={patient_id}")
+    try:
+        patient_context = getattr(request.state, "patient_context", None)
+        print(f"[DEBUG] [/dossiers/new-wizard] patient_context initial={patient_context}")
+
+        if not patient_context and patient_id is not None:
+            from app.models import Patient
+            try:
+                pid_int = int(patient_id)
+                patient_context = session.get(Patient, pid_int)
+                if patient_context:
+                    request.state.patient_context = patient_context
+            except Exception as e:
+                print(f"[DEBUG] Exception conversion patient_id ou fetch patient dans /dossiers/new-wizard: {e}")
+                patient_context = None
+
+        if not patient_context:
+            print("[DEBUG] [/dossiers/new-wizard] aucun patient_context, redirection vers /patients")
+            return RedirectResponse("/patients", status_code=303)
+    except Exception as e:
+        print(f"[EXCEPTION in /dossiers/new-wizard]: {e}")
+        raise
+
+    now_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
+    ej_id = getattr(request.state, "ej_context.id", None)
+    uf_options = dossiers_service.get_uf_options(session, ej_id) if ej_id else []
+    dossier_type_opts = [
+        {"value": dt.value, "label": dt.name.replace("_", " ").capitalize()} for dt in DossierType
+    ]
+
+    ctx = {
+        "request": request,
+        "title": "Admission guidée",
+        "patient": patient_context,
+        "uf_options": uf_options,
+        "dossier_type_opts": dossier_type_opts,
+        "default_admit_time": now_str,
+    }
+    return get_templates_with_filters(request).TemplateResponse(request, "admission_wizard.html", ctx)
 
 @router.post("/new")
 def create_dossier(

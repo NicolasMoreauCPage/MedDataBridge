@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% from "macros/ui.html" import inheritance_field, status_badge %}
+
+{% block title %}Service {{ service.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/structure" class="hover:text-blue-600 transition-colors">Structure</a>
+    <span class="text-slate-400">/</span>
+    <a href="/structure/services" class="hover:text-blue-600 transition-colors">Services</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{{ service.name }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="absolute inset-0 bg-black/10"></div>
+      <div class="relative z-10 flex items-start justify-between">
+        <div class="flex items-center gap-4">
+          <div class="btn">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold">{{ service.name }}</h1>
+            <div class="flex items-center gap-3 mt-2">
+              <span class="btn">
+                {{ service.service_type or 'Non défini' }}
+              </span>
+              <span class="btn">
+                {{ service.identifier }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <a href="/structure/services/{{ service.id }}/edit" class="btn">Modifier</a>
+          <a href="/structure/services" class="btn">Retour</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Informations générales -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Propriétés avec héritage -->
+      <div class="btn">
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Propriétés du service
+          </h3>
+          <p class="text-sm text-slate-600 mt-1">Configuration et statuts avec indicateurs d'héritage</p>
+        </div>
+        <div class="p-6">
+          <dl class="space-y-1">
+            {{ inheritance_field(service, 'operational_status', 'Statut opérationnel') }}
+            {{ inheritance_field(service, 'status', 'Statut FHIR') }}
+            {{ inheritance_field(service, 'mode', 'Mode FHIR') }}
+            {{ inheritance_field(service, 'physical_type', 'Type physique') }}
+            {{ inheritance_field(service, 'etage', 'Étage') }}
+            {{ inheritance_field(service, 'aile', 'Aile') }}
+            {{ inheritance_field(service, 'type_chambre', 'Type de chambre') }}
+          </dl>
+        </div>
+      </div>
+
+      <!-- Dates avec héritage -->
+      <div class="btn">
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Dates importantes
+          </h3>
+          <p class="text-sm text-slate-600 mt-1">Périodes d'activité avec héritage</p>
+        </div>
+        <div class="p-6">
+          <dl class="space-y-1">
+            {{ inheritance_field(service, 'opening_date', 'Date d\'ouverture', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
+            {{ inheritance_field(service, 'activation_date', 'Date d\'activation', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
+            {{ inheritance_field(service, 'closing_date', 'Date de fermeture', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
+            {{ inheritance_field(service, 'deactivation_date', 'Date de désactivation', lambda d: d.strftime('%d/%m/%Y') if d else None) }}
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informations liées -->
+    <div class="space-y-6">
+      <!-- Pôle parent -->
+      <div class="btn">
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            Pôle parent
+          </h3>
+        </div>
+        <div class="p-6">
+          {% if service.pole %}
+          <div class="flex items-center gap-3">
+            <div class="alert alert-info">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              </svg>
+            </div>
+            <div>
+              <a href="/structure/poles/{{ service.pole.id }}" class="font-medium text-blue-600 hover:text-blue-800">{{ service.pole.name }}</a>
+              <p class="text-sm text-slate-500">{{ service.pole.identifier }}</p>
+            </div>
+          </div>
+          {% else %}
+          <p class="text-slate-500 text-sm">Aucun pôle parent défini</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Statistiques -->
+      <div class="btn">
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Statistiques
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-600">Unités Fonctionnelles</span>
+              <span class="font-semibold text-slate-900">{{ ufs|length }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-600">Chambres totales</span>
+              <span class="font-semibold text-slate-900">{{ ufs|sum(attribute='chambres', default=0)|length if ufs else 0 }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-600">Lits totaux</span>
+              <span class="font-semibold text-slate-900">{{ ufs|sum(attribute='chambres', default=0)|sum(attribute='lits', default=0)|length if ufs else 0 }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unités Fonctionnelles -->
+  <div class="mt-8">
+    <div class="btn">
+      <div class="btn">
+        <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+          </svg>
+          Unités Fonctionnelles ({{ ufs|length }})
+        </h3>
+        <p class="text-sm text-slate-600 mt-1">Unités fonctionnelles rattachées à ce service</p>
+      </div>
+      <div class="divide-y divide-slate-200">
+        {% for uf in ufs %}
+        <div class="btn">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+              </div>
+              <div>
+                <a href="/structure/ufs/{{ uf.id }}" class="font-medium text-indigo-600 hover:text-indigo-800">{{ uf.name }}</a>
+                <p class="text-sm text-slate-500">{{ uf.identifier }} • {{ uf.typology or 'Type non défini' }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              {{ status_badge(uf.get_effective_operational_status()) }}
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="px-6 py-8 text-center">
+          <svg class="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m8-5v2m0 0v2m0-2h2m-2 0h-2"/>
+          </svg>
+          <p class="text-slate-500">Aucune unité fonctionnelle rattachée</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 2.3</DIV>
+
+   <P class='sChapitre'> Compléments apportés pour la gestion de l'INS-NIR</P>
+   
+   <P>Nous avons : </P>
+   
+    <UL class='puce'>
+       <LI>retirer les traits qualifiées dédiés à l’INSi, balise &lt;traitsQualifiees&gt; et ces filles. </LI>
+       <LI>ajouter les prénoms de naissances, créer de nouvelles balises &lt;prenomsNaissance&gt;&lt;prenomNaissance&gt;. La balise &lt;prenomNaissance&gt; a une cardinalité de 2. La 1ere occurrence correspond au 1er prénom et la deuxième occurrence au second prénom et suivants. Dans le cas d’une identité créée ou modifiée par un appel au téléservice INSi, cette deuxième occurrence intégre la liste des prénoms retournée par le téléservice.</LI>
+       <LI>ajouter la date de naissance lunaire par la création d’une nouvelle balise &lt;dateLunaire&gt; avec ces filles &lt;jourLunaire&gt;&lt;moisLunaire&gt;&lt;anLunaire&gt;. &lt;dateLunaire&gt;  est une fille de dateNaissance.</LI>
+       <LI>ajouter le Code Officiel Géographique (COG) de l’INSEE du lieu de naissance, en créant une balise &lt; lieuNaissanceInsee&gt; fille de &lt;lieuNaissance&gt;.</LI>
+       <LI>agrandi la longueur autorisée pour les prénoms passant à 100 caractéres maximum.</LI>
+   </UL>
+
+
+   <P class='sChapitre'>FINESS de l’établissement de rattachement  du médecin prescripteur de l’UCD </P>
+   <UL class='puce'>
+      <LI>Ajout de la balise &lt;finessRattachementPrescripteur&gt; fille de &lt;prescripteur&gt; pour l’UCD.</LI>
+
+   </UL>
+
+     
+</BODY>
+</HTML>

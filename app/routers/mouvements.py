@@ -24,6 +24,215 @@ router = APIRouter(
     dependencies=[Depends(require_ght_context)]
 )
 
+
+@router.get("/plan-lits", response_class=HTMLResponse)
+def plan_lits(
+    request: Request,
+    session = Depends(get_session),
+    uf_filter: Optional[str] = Query(None, description="Filtrer par UF"),
+    service_filter: Optional[str] = Query(None, description="Filtrer par Service"),
+    status_filter: Optional[str] = Query(None, description="Filtrer par statut: free, occupied, closed"),
+):
+    """
+    Vue plan de lits : affiche tous les lits organisés par service/UF/UH/chambre
+    avec statut en temps réel et actions rapides pour affecter des patients.
+    """
+    from app.models_structure import Service, Pole
+    
+    # Récupérer les contextes EG et EJ (EG a priorité s'il est défini)
+    eg_context = getattr(request.state, "eg_context", None)
+    ej_context = getattr(request.state, "ej_context", None)
+    eg_id = getattr(eg_context, "id", None) if eg_context else None
+    # Si contexte EJ, utiliser la première EG de cet EJ
+    ej_id = getattr(ej_context, "id", None) if ej_context and not eg_id else None
+    
+    # Base query pour les lits avec toute la hiérarchie
+    query = (
+        select(Lit, Chambre, UniteHebergement, UniteFonctionnelle, Service)
+        .select_from(Lit)
+        .join(Lit.chambre)
+        .join(Chambre.unite_hebergement)
+        .join(UniteHebergement.unite_fonctionnelle)
+        .join(UniteFonctionnelle.service)
+        .join(Service.pole)
+    )
+    
+    # Filtre par contexte EG ou EJ
+    if eg_id:
+        query = query.where(Pole.entite_geo_id == eg_id)
+    elif ej_id:
+        # Si contexte EJ sans EG spécifique, filtrer via l'EJ du pôle
+        query = query.where(Pole.entite_juridique_id == ej_id)
+    
+    # Filtres additionnels
+    if uf_filter:
+        query = query.where(UniteFonctionnelle.identifier == uf_filter)
+    if service_filter:
+        query = query.where(Service.name.ilike(f"%{service_filter}%"))
+    if status_filter:
+        query = query.where(Lit.status == status_filter)
+    
+    locations = session.exec(query).all()
+    
+    # Organiser par service > UF > UH > Chambre > Lits
+    structure = {}
+    for lit, chambre, uh, uf, service in locations:
+        if service.id not in structure:
+            structure[service.id] = {
+                "id": service.id,
+                "name": service.name,
+                "service_type": service.service_type,
+                "ufs": {}
+            }
+        
+        if uf.id not in structure[service.id]["ufs"]:
+            structure[service.id]["ufs"][uf.id] = {
+                "id": uf.id,
+                "name": uf.name,
+                "identifier": uf.identifier,
+                "uhs": {}
+            }
+        
+        if uh.id not in structure[service.id]["ufs"][uf.id]["uhs"]:
+            structure[service.id]["ufs"][uf.id]["uhs"][uh.id] = {
+                "id": uh.id,
+                "name": uh.name,
+                "identifier": uh.identifier,
+                "chambres": {}
+            }
+        
+        if chambre.id not in structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"]:
+            structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id] = {
+                "id": chambre.id,
+                "name": chambre.name,
+                "identifier": chambre.identifier,
+                "lits": []
+            }
+        
+        # Récupérer venue/patient occupant le lit
+        occupant = None
+        # Une venue est active si elle a un lit assigné et que le dernier mouvement n'est pas une sortie
+        venue_actuelle = session.exec(
+            select(Venue, Dossier)
+            .join(Dossier)
+            .where(Venue.lit_id == lit.id)
+            .order_by(Venue.start_time.desc())
+        ).first()
+        
+        if venue_actuelle:
+            venue, dossier = venue_actuelle
+            # Vérifier que la venue est vraiment active (pas de mouvement de sortie)
+            dernier_mouvement = session.exec(
+                select(Mouvement)
+                .where(Mouvement.venue_id == venue.id)
+                .order_by(Mouvement.when.desc())
+            ).first()
+            
+            # Si pas de mouvement de sortie (A03, A13, A16, etc.) ou pas de end_time, la venue est active
+            is_active = True
+            if dernier_mouvement:
+                # Codes de sortie : A03 (discharge), A13 (cancel discharge), A16 (pending discharge)
+                sortie_codes = ['A03', 'A13', 'A16']
+                if any(code in (dernier_mouvement.type or '') for code in sortie_codes) and dernier_mouvement.end_time:
+                    is_active = False
+            
+            if is_active:
+                session.refresh(dossier, ['patient'])
+                if dossier.patient:
+                    occupant = {
+                        "venue_id": venue.id,
+                        "dossier_id": dossier.id,
+                        "patient_name": f"{dossier.patient.family} {dossier.patient.given}",
+                        "patient_id": dossier.patient.id,
+                        "venue_seq": venue.venue_seq,
+                        "dossier_seq": dossier.dossier_seq
+                    }
+        
+        # Détection conflit : plusieurs venues actives sur le même lit
+        # Pour simplifier, on compte les venues avec ce lit (peut être affiné si nécessaire)
+        conflits_count = session.exec(
+            select(Venue)
+            .where(Venue.lit_id == lit.id)
+        ).all()
+        
+        has_conflict = len(conflits_count) > 1
+        
+        structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id]["lits"].append({
+            "id": lit.id,
+            "name": lit.name,
+            "identifier": lit.identifier,
+            "status": lit.status or "unknown",
+            "operational_status": lit.operational_status,
+            "occupant": occupant,
+            "has_conflict": has_conflict,
+            "conflict_count": len(conflits_count) if has_conflict else 0
+        })
+    
+    # Calculer statistiques globales
+    total_lits = sum(
+        len(chambre["lits"])
+        for service in structure.values()
+        for uf in service["ufs"].values()
+        for uh in uf["uhs"].values()
+        for chambre in uh["chambres"].values()
+    )
+    
+    lits_libres = sum(
+        1
+        for service in structure.values()
+        for uf in service["ufs"].values()
+        for uh in uf["uhs"].values()
+        for chambre in uh["chambres"].values()
+        for lit in chambre["lits"]
+        if lit["status"] == "free"
+    )
+    
+    lits_occupes = sum(
+        1
+        for service in structure.values()
+        for uf in service["ufs"].values()
+        for uh in uf["uhs"].values()
+        for chambre in uh["chambres"].values()
+        for lit in chambre["lits"]
+        if lit["status"] == "occupied"
+    )
+    
+    taux_occupation = round((lits_occupes / total_lits * 100) if total_lits > 0 else 0, 1)
+    
+    # Récupérer liste des UFs pour filtres
+    all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
+    uf_options = [{"value": uf.identifier, "label": uf.name} for uf in all_ufs]
+    
+    # Récupérer liste des services pour filtres
+    all_services = session.exec(select(Service).order_by(Service.name)).all()
+    service_options = [{"value": service.name, "label": service.name} for service in all_services]
+    
+    ctx = {
+        "request": request,
+        "structure": structure,
+        "stats": {
+            "total": total_lits,
+            "libres": lits_libres,
+            "occupes": lits_occupes,
+            "taux_occupation": taux_occupation
+        },
+        "filters": {
+            "uf": uf_filter,
+            "service": service_filter,
+            "status": status_filter
+        },
+        "uf_options": uf_options,
+        "service_options": service_options,
+        "breadcrumbs": [
+            {"label": "Accueil", "url": "/"},
+            {"label": "Mouvements", "url": "/mouvements"},
+            {"label": "Plan de lits", "url": "/mouvements/plan-lits"}
+        ]
+    }
+    
+    return get_templates_with_filters(request).TemplateResponse(request, "plan_lits.html", ctx)
+
+
 def get_status_badge(status):
     colors = {
         'active': 'bg-green-100 text-green-800',
@@ -81,6 +290,9 @@ def list_mouvements(
     dossier_id: Optional[int] = Query(None, description="ID du dossier dont on veut voir les mouvements"),
     include_cancelled: bool = Query(False, description="Inclure les mouvements annulés dans la liste"),
     order: str = Query("asc", pattern="^(asc|desc)$", description="Ordre de tri par date"),
+    movement_type: Optional[str] = Query(None, alias="type", description="Filtrer par type HL7 (ADT^A01, A02, ... )"),
+    status: Optional[str] = Query(None, alias="status", description="Filtrer par statut du mouvement"),
+    location_filter: Optional[str] = Query(None, alias="location", description="Filtrer par localisation (contient)"),
     session=Depends(get_session)
 ):
     venue = None
@@ -181,6 +393,14 @@ def list_mouvements(
                 },
                 status_code=400
             )
+    # Filtres avancés globaux (type, statut, localisation)
+    if movement_type:
+        stmt = stmt.where(Mouvement.type == movement_type)
+    if status:
+        stmt = stmt.where(Mouvement.status == status)
+    if location_filter:
+        stmt = stmt.where(Mouvement.location.ilike(f"%{location_filter}%"))
+
     # Exécuter la requête si pas déjà fait
     if 'mouvements' not in locals():
         mouvements = session.exec(stmt).all()
@@ -241,6 +461,7 @@ def list_mouvements(
             "name": "type",
             "type": "select",
             "placeholder": "Tous les types",
+            "value": movement_type or "",
             "options": [
                 {"value": "ADT^A01", "label": "Admission"},
                 {"value": "ADT^A02", "label": "Transfert"},
@@ -253,6 +474,7 @@ def list_mouvements(
             "name": "status",
             "type": "select",
             "placeholder": "Tous les statuts",
+            "value": status or "",
             "options": [
                 {"value": "pending", "label": "En attente"},
                 {"value": "active", "label": "En cours"},
@@ -264,7 +486,8 @@ def list_mouvements(
             "label": "Localisation",
             "name": "location",
             "type": "text",
-            "placeholder": "Filtrer par localisation"
+            "placeholder": "Filtrer par localisation",
+            "value": location_filter or "",
         }
     ]
 

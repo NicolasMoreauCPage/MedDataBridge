@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center space-x-4">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+          <div class="text-3xl">✨</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Vue Interactive - Édition & Drag & Drop</h1>
+          <p class="text-white/90 mt-2">Double-cliquez pour éditer | Glissez-déposez pour réorganiser</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-blue-800">Comment utiliser :</h3>
+        <div class="mt-2 text-sm text-blue-700 space-y-1">
+          <div><strong>Double-clic</strong> sur un nom ou code pour l'éditer directement</div>
+          <div><strong>Entrée</strong> pour sauvegarder, <strong>Échap</strong> pour annuler</div>
+          <div><strong>Glissez ⋮⋮</strong> pour déplacer un élément (Services, UF, Lits)</div>
+          <div><strong>Raccourcis :</strong> Ctrl+D pour dupliquer, Del pour supprimer, ? pour l'aide</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Structure Tree avec édition inline -->
+  <div id="structure-tree" class="space-y-6">
+    {% for eg in egs %}
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+      <!-- Entité Géographique Header -->
+      <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 
+              data-editable 
+              data-item-id="{{ eg.id }}" 
+              data-item-type="entitegeographique" 
+              data-field="nom"
+              class="text-2xl font-bold text-white cursor-text hover:bg-white/10 px-2 py-1 rounded transition"
+              title="Double-clic pour éditer"
+            >
+              {{ eg.nom }}
+            </h2>
+            <p class="text-blue-100 text-sm mt-1">
+              Code: 
+              <span 
+                data-editable 
+                data-item-id="{{ eg.id }}" 
+                data-item-type="entitegeographique" 
+                data-field="code"
+                class="font-mono cursor-text hover:bg-white/10 px-1 rounded"
+                title="Double-clic pour éditer"
+              >
+                {{ eg.code }}
+              </span>
+            </p>
+          </div>
+          <div class="text-white/80 text-sm">
+            🏥 Entité Géographique
+          </div>
+        </div>
+      </div>
+
+      <!-- Pôles -->
+      {% if eg.poles %}
+      <div class="p-6 space-y-4">
+        {% for pole in eg.poles %}
+        <div class="border-l-4 border-indigo-400 bg-indigo-50 rounded-r-lg p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <span class="drag-handle text-gray-400 cursor-grab hover:text-gray-600 text-xl" title="Glisser pour réorganiser">⋮⋮</span>
+              <div>
+                <h3 
+                  data-editable 
+                  data-item-id="{{ pole.id }}" 
+                  data-item-type="pole" 
+                  data-field="nom"
+                  data-parent-id="{{ eg.id }}"
+                  data-parent-type="entitegeographique"
+                  class="text-xl font-semibold text-indigo-900 cursor-text hover:bg-white/50 px-2 py-1 rounded"
+                  title="Double-clic pour éditer"
+                >
+                  🏢 {{ pole.nom }}
+                </h3>
+                <p class="text-sm text-indigo-600">
+                  Code: <span 
+                    data-editable 
+                    data-item-id="{{ pole.id }}" 
+                    data-item-type="pole" 
+                    data-field="code"
+                    class="font-mono cursor-text hover:bg-white/50 px-1 rounded"
+                  >{{ pole.code }}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Services -->
+          {% if pole.services %}
+          <div 
+            data-sortable 
+            data-parent-id="{{ pole.id }}" 
+            data-parent-type="pole"
+            class="ml-8 space-y-3"
+          >
+            {% for service in pole.services %}
+            <div 
+              data-item-id="{{ service.id }}" 
+              data-item-type="service"
+              class="bg-white border border-emerald-200 rounded-lg p-3 hover:shadow-md transition"
+            >
+              <div class="flex items-center gap-3">
+                <span class="drag-handle text-gray-300 cursor-grab hover:text-gray-500">⋮⋮</span>
+                <div class="flex-1">
+                  <h4 
+                    data-editable 
+                    data-item-id="{{ service.id }}" 
+                    data-item-type="service" 
+                    data-field="nom"
+                    class="font-semibold text-emerald-800 cursor-text hover:bg-emerald-50 px-2 py-1 rounded"
+                  >
+                    🏛️ {{ service.nom }}
+                  </h4>
+                  <p class="text-xs text-emerald-600">
+                    Code: <span 
+                      data-editable 
+                      data-item-id="{{ service.id }}" 
+                      data-item-type="service" 
+                      data-field="code"
+                      class="font-mono cursor-text hover:bg-emerald-50 px-1 rounded"
+                    >{{ service.code }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- UFs -->
+              {% if service.unites_fonctionnelles %}
+              <div 
+                data-sortable 
+                data-parent-id="{{ service.id }}" 
+                data-parent-type="service"
+                class="ml-8 mt-2 space-y-2"
+              >
+                {% for uf in service.unites_fonctionnelles %}
+                <div 
+                  data-item-id="{{ uf.id }}" 
+                  data-item-type="unitefonctionnelle"
+                  class="bg-teal-50 border border-teal-200 rounded p-2 flex items-center gap-2 hover:bg-teal-100 transition"
+                >
+                  <span class="drag-handle text-gray-300 cursor-grab hover:text-gray-500 text-sm">⋮⋮</span>
+                  <div class="flex-1">
+                    <span 
+                      data-editable 
+                      data-item-id="{{ uf.id }}" 
+                      data-item-type="unitefonctionnelle" 
+                      data-field="nom"
+                      class="text-sm font-medium text-teal-800 cursor-text hover:bg-white px-1 rounded"
+                    >
+                      🔹 {{ uf.nom }}
+                    </span>
+                    <span class="text-xs text-teal-600 ml-2">
+                      (<span 
+                        data-editable 
+                        data-item-id="{{ uf.id }}" 
+                        data-item-type="unitefonctionnelle" 
+                        data-field="code"
+                        class="font-mono cursor-text hover:bg-white px-1 rounded"
+                      >{{ uf.code }}</span>)
+                    </span>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="ml-8 text-sm text-gray-500 italic">Aucun service dans ce pôle</div>
+          {% endif %}
+
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-6 text-center text-gray-500 italic">Aucun pôle défini</div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
+
+    {% if not egs %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+      <div class="text-4xl mb-4">📋</div>
+      <h3 class="text-lg font-semibold text-yellow-900 mb-2">Aucune structure disponible</h3>
+      <p class="text-yellow-700">Créez d'abord une Entité Géographique depuis le wizard</p>
+      <a href="/structure/wizard" class="inline-block mt-4 px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition">
+        Démarrer le wizard
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Stats -->
+  {% if egs %}
+  <div class="mt-8 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Statistiques de la structure</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-blue-600">{{ egs|length }}</div>
+        <div class="text-sm text-gray-600">Entités Géo.</div>
+      </div>
+      <div class="text-center">
+        <div class="text-3xl font-bold text-indigo-600">{{ total_poles }}</div>
+        <div class="text-sm text-gray-600">Pôles</div>
+      </div>
+      <div class="text-center">
+        <div class="text-3xl font-bold text-emerald-600">{{ total_services }}</div>
+        <div class="text-sm text-gray-600">Services</div>
+      </div>
+      <div class="text-center">
+        <div class="text-3xl font-bold text-teal-600">{{ total_ufs }}</div>
+        <div class="text-sm text-gray-600">UFs</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+/* Animation pour le fade out */
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.animate-fade-out {
+  animation: fadeOut 2s ease-in-out;
+}
+
+/* Style pour l'input inline */
+.inline-edit-input {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* Amélioration du drag handle */
+.drag-handle {
+  user-select: none;
+  -webkit-user-select: none;
+  transition: all 0.2s;
+}
+
+.drag-handle:active {
+  cursor: grabbing !important;
+}
+
+/* Style pour les éléments en cours de drag */
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-chosen {
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+</style>
+{% endblock %}

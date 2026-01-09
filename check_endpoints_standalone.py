@@ -10,9 +10,8 @@ def check_file_endpoints():
     
     # Essayer plusieurs chemins de DB
     db_paths = [
-        "/opt/meddata-bridge/data/meddata.db",
-        "/opt/meddatabridge/meddatabridge.db",
-        "./meddatabridge.db"
+        "./data/medbridge.db",
+        "./medbridge.db"
     ]
     
     db_path = None

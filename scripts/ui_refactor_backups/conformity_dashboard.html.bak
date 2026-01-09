@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/conformity" class="hover:text-blue-600 transition-colors">Conformité</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">{{ summary.ej.name }}</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="btn">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold">{{ summary.ej.name }}</h1>
+            <p class="text-green-100 mt-1 font-mono">FINESS: {{ summary.ej.finess_ej or 'N/A' }}</p>
+            {% if summary.ej.strict_pam_fr %}
+            <span class="btn btn-primary">
+              🔒 Mode strict IHE PAM France
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <a href="/conformity" class="btn">← Liste EJ</a>
+          <a href="/conformity/ej/{{ summary.ej.id }}/messages" class="btn">Tous les messages</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics Cards -->
+  <div class="grid gap-6 md:grid-cols-3 mb-8">
+    {{ ui.metric_card('Tous messages (7j)', summary.conformity_7d.total, 'total', summary.conformity_7d.rate) }}
+    {{ ui.metric_card('Messages entrants (7j)', summary.conformity_inbound_7d.total, 'total', summary.conformity_inbound_7d.rate) }}
+    {{ ui.metric_card('Messages sortants (7j)', summary.conformity_outbound_7d.total, 'total', summary.conformity_outbound_7d.rate) }}
+  </div>
+
+  <!-- Issues récurrentes -->
+  {% if summary.recurring_issues %}
+  <section class="btn" aria-labelledby="issues-heading">
+    <div class="px-6 py-4 border-b border-slate-200">
+      <h2 id="issues-heading" class="text-xl font-semibold text-slate-900">⚠️ Issues récurrentes (7 derniers jours)</h2>
+      <p class="text-sm text-slate-600 mt-1">Problèmes de validation les plus fréquents à corriger</p>
+    </div>
+    <ul class="divide-y divide-slate-200" role="list">
+      {% for issue in summary.recurring_issues %}
+      <li class="btn" role="listitem">
+        <div class="flex-1">
+          <div class="flex items-center space-x-2">
+            {% set sev = issue.severity %}
+            {% set sev_color = 'blue' %}
+            {% if sev == 'error' %}{% set sev_color='red' %}{% elif sev in ['warn','warning'] %}{% set sev_color='yellow' %}{% endif %}
+            <span class="px-2 py-1 rounded text-xs font-semibold bg-{{ sev_color }}-100 text-{{ sev_color }}-800" aria-label="Sévérité {{ sev }}">{{ sev|upper }}</span>
+            <code class="text-sm font-mono text-slate-700" aria-label="Code validation">{{ issue.code }}</code>
+          </div>
+          <p class="mt-1 text-sm text-slate-600" aria-label="Description de l'erreur">{{ issue.message }}</p>
+        </div>
+        <div class="ml-4 flex-shrink-0">
+          <span class="btn" aria-label="Occurrences">{{ issue.count }} occurrence{% if issue.count>1 %}s{% endif %}</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <!-- Timeline 30 jours -->
+  {% if summary.timeline_30d %}
+  <section class="btn" aria-labelledby="evolution-heading">
+    <div class="px-6 py-4 border-b border-slate-200">
+      <h2 id="evolution-heading" class="text-xl font-semibold text-slate-900">📈 Évolution (30 derniers jours)</h2>
+    </div>
+    <div class="p-6">
+      <div class="space-y-2" role="list">
+        {% for day in summary.timeline_30d %}
+        <div class="flex items-center space-x-4" role="listitem" aria-label="Jour {{ day.date }}">
+          <span class="text-xs text-slate-500 w-20" aria-label="Date">{{ day.date }}</span>
+          <div class="flex-1" aria-label="Barre de conformité">
+            <div class="flex items-center space-x-2">
+              {{ ui.progress_bar(day.rate) }}
+              <span class="text-xs font-medium text-slate-700 w-12 text-right" aria-label="Taux">{{ day.rate }}%</span>
+            </div>
+          </div>
+          <span class="text-xs text-slate-500 w-16 text-right" aria-label="Total messages">{{ day.total }} msg</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

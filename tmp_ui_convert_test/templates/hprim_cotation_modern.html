@@ -1,0 +1,726 @@
+<!--
+  cotation_modern.html - Interface moderne de cotation d'actes médicaux
+  - Responsive, mobile-first, design system moderne
+  - Validation temps réel, feedback utilisateur, accessibilité
+  - Composants réutilisables, modals, toasts, loader
+  - Recherche d'actes, résumé dynamique, drag & drop (prévu)
+-->
+{% extends "base.html" %}
+{% block title %}Cotation d'Actes Médicaux{% endblock %}
+{% block content %}
+<style>
+  /* Styles pour la modal */
+  .modal-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .hidden {
+    display: none !important;
+  }
+  /* Styles pour les toasts */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+  }
+  .toast.error {
+    background: #ef4444;
+  }
+  .toast.success {
+    background: #10b981;
+  }
+  .toast.warning {
+    background: #f59e0b;
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  /* Styles pour les loaders */
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  /* Styles pour les tooltips */
+  .tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+  }
+  /* Styles pour les animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in;
+  }
+  /* Styles pour les focus */
+  .focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  }
+</style>
+<style>
+  /* Styles pour la modal */
+  .modal-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .hidden {
+    display: none !important;
+  }
+  /* Styles pour les toasts */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+  }
+  .toast.error {
+    background: #ef4444;
+  }
+  .toast.success {
+    background: #10b981;
+  }
+  .toast.warning {
+    background: #f59e0b;
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  /* Styles pour les loaders */
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  /* Styles pour les tooltips */
+  .tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+  }
+  /* Styles pour les inputs avec validation */
+  .input-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 1px #ef4444;
+  }
+  .input-success {
+    border-color: #10b981;
+    box-shadow: 0 0 0 1px #10b981;
+  }
+  /* Styles pour les boutons d'action */
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+  .btn-secondary {
+    background: #f8fafc;
+    color: #475569;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-danger:hover {
+    background: #dc2626;
+  }
+  /* Styles pour les cartes */
+  .card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+  }
+  .card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+  /* Styles pour les badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-success {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .badge-error {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .badge-info {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  /* Styles pour les sections pliables */
+  .collapsible {
+    transition: all 0.3s ease;
+  }
+  .collapsible.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+  }
+  .collapsible.expanded {
+    max-height: 1000px;
+    opacity: 1;
+  }
+  /* Styles pour les animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in;
+  }
+  /* Styles pour les focus */
+  .focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  }
+</style>
+
+  <!-- Informations du dossier -->
+  <section class="btn">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold text-slate-800"><i class="fas fa-folder-open mr-2"></i>Dossier #{{ dossier.dossier_seq }}</h2>
+      <a href="/dossiers" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+        <i class="fas fa-arrow-left mr-1"></i>Retour aux dossiers
+      </a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="btn">
+        <div class="text-sm text-slate-600">Patient</div>
+        <div class="font-semibold text-slate-800">
+          {% if patient %}
+            {{ patient.nom|default('N/A') }} {{ patient.prenom|default('') }}
+          {% else %}
+            Patient non trouvé
+          {% endif %}
+        </div>
+      </div>
+      <div class="btn">
+        <div class="text-sm text-slate-600">Date d'admission</div>
+        <div class="font-semibold text-slate-800">{{ dossier.admit_time.strftime('%d/%m/%Y %H:%M') if dossier.admit_time else 'N/A' }}</div>
+      </div>
+      <div class="btn">
+        <div class="text-sm text-slate-600">Type de dossier</div>
+        <div class="font-semibold text-slate-800">{{ dossier.dossier_type.value if dossier.dossier_type else 'N/A' }}</div>
+      </div>
+      <div class="btn">
+        <div class="text-sm text-slate-600">État</div>
+        <div class="font-semibold text-slate-800">{{ dossier.current_state|default('Actif') }}</div>
+      </div>
+    </div>
+  </section>
+
+    <!-- Résumé dynamique -->
+    <section class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-semibold text-slate-800">Actes saisis <span id="nbActes" class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">0</span></h2>
+        <p class="text-slate-500 text-sm">Montant total : <span id="montantTotal" class="font-bold">0,00 €</span></p>
+      </div>
+      {{ components.button('Ajouter un acte', type='button', attrs='id="ajouterActeBtn" onclick="showModal()"', variant='primary') }}
+    </section>
+    <!-- Liste des actes -->
+    <section id="actesList" class="space-y-4 mb-8">
+      <!-- Actes dynamiques ici -->
+    </section>
+    
+    <!-- Résumé des actes -->
+    <section id="resumeSection" class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-6 mb-8 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-800">Résumé de la cotation</h3>
+          <p class="text-slate-600 text-sm">Récapitulatif des actes médicaux saisis</p>
+        </div>
+        <div class="text-right">
+          <div class="text-2xl font-bold text-indigo-600" id="totalActes">0</div>
+          <div class="text-sm text-slate-600">acte(s)</div>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-indigo-200">
+        <div class="flex justify-between items-center">
+          <span class="text-lg font-medium text-slate-700">Montant total :</span>
+          <span class="text-2xl font-bold text-green-600" id="totalTarif">0.00 €</span>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Formulaire patient/médecin/structure -->
+    <section class="btn">
+      <form id="cotationForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="patientNom" class="block text-sm font-medium text-slate-700">Nom patient <span class="text-red-500">*</span></label>
+          <input type="text" id="patientNom" name="patientNom" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label for="patientPrenom" class="block text-sm font-medium text-slate-700">Prénom patient <span class="text-red-500">*</span></label>
+          <input type="text" id="patientPrenom" name="patientPrenom" required class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label for="patientNaissance" class="block text-sm font-medium text-slate-700">Date de naissance</label>
+          <input type="date" id="patientNaissance" name="patientNaissance" class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label for="medecinNom" class="block text-sm font-medium text-slate-700">Nom médecin</label>
+          <input type="text" id="medecinNom" name="medecinNom" class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div class="md:col-span-2">
+          <label for="structure" class="block text-sm font-medium text-slate-700">Structure</label>
+          <input type="text" id="structure" name="structure" class="mt-1 block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+      </form>
+    </section>
+    <!-- Actions -->
+    <section class="flex gap-4 mb-8">
+      {{ components.button('Valider', type='button', attrs='id="validerBtn"', variant='primary') }}
+      {{ components.button('Émettre', type='button', attrs='id="emmettreBtn"', variant='primary') }}
+      {{ components.button('Réinitialiser', type='button', attrs='id="resetBtn"', variant='secondary') }}
+    </section>
+  </main>
+  <!-- Modal ajout/édition acte -->
+  <div id="modalBg" class="modal-bg hidden">
+    <div class="modal-content max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-slate-800"><i class="fas fa-plus-circle mr-2 text-indigo-600"></i>Ajouter/Modifier un acte médical</h2>
+        {{ components.button('&times;', type='button', attrs='id="closeModalBtn"', extra_classes='text-slate-400 hover:text-slate-600 text-2xl') }}
+      </div>
+
+      <form id="acteForm" class="space-y-6">
+        <!-- Informations générales -->
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-info-circle mr-2 text-blue-600"></i>Informations générales
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Recherche intelligente d'actes -->
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-search mr-2 text-blue-600"></i>Recherche d'actes médicaux
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label for="acteSearch" class="block text-sm font-medium text-slate-700 mb-1">Rechercher un acte</label>
+              <div class="relative">
+                <input type="text" id="acteSearch" name="acteSearch" class="block w-full rounded-lg border-2 border-slate-300 px-4 py-3 pl-10 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ex: échographie, coloscopie, consultation...">
+                <i class="fas fa-search absolute left-3 top-3.5 text-slate-400"></i>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Tapez le nom de l'acte pour voir les suggestions</p>
+            </div>
+            <div id="acteSuggestions" class="btn">
+              <!-- Suggestions d'actes apparaîtront ici -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Champs cachés pour l'acte sélectionné -->
+        <input type="hidden" id="codeActe" name="codeActe">
+        <input type="hidden" id="libelleActe" name="libelleActe">
+        
+        <!-- Détails de l'acte sélectionné -->
+        <div class="alert alert-info">
+          <h3 class="text-lg font-semibold text-slate-800 mb-3 flex items-center">
+            <i class="fas fa-info-circle mr-2 text-blue-600"></i>Acte sélectionné
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span class="text-sm text-slate-600">Code :</span>
+              <span id="selectedCode" class="font-mono font-bold text-lg text-blue-700"></span>
+            </div>
+            <div>
+              <span class="text-sm text-slate-600">Libellé :</span>
+              <span id="selectedLibelle" class="font-medium"></span>
+            </div>
+            <div>
+              <span class="text-sm text-slate-600">Tarif de base :</span>
+              <span id="selectedTarif" class="font-bold text-green-600"></span>
+            </div>
+            <div>
+              <span class="text-sm text-slate-600">Coefficient :</span>
+              <span id="selectedCoeff" class="font-medium"></span>
+            </div>
+          </div>
+        </div>
+            <div>
+              <label for="typeActe" class="block text-sm font-medium text-slate-700 mb-1">Type d'acte</label>
+              <select id="typeActe" name="typeActe" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">-- Sélectionner --</option>
+                <option value="consultation">Consultation</option>
+                <option value="intervention">Intervention chirurgicale</option>
+                <option value="imagerie">Imagerie médicale</option>
+                <option value="biologie">Biologie médicale</option>
+                <option value="soins">Soins infirmiers</option>
+                <option value="transport">Transport médical</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div>
+              <label for="urgence" class="block text-sm font-medium text-slate-700 mb-1">Niveau d'urgence</label>
+              <select id="urgence" name="urgence" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="normal">Normal</option>
+                <option value="urgent">Urgent</option>
+                <option value="tres-urgent">Très urgent</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Date et heure -->
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-calendar-alt mr-2 text-green-600"></i>Date et heure
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="dateActe" class="block text-sm font-medium text-slate-700 mb-1">Date de l'acte <span class="text-red-500">*</span></label>
+              <input type="date" id="dateActe" name="dateActe" required class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+              <label for="heureDebut" class="block text-sm font-medium text-slate-700 mb-1">Heure de début</label>
+              <input type="time" id="heureDebut" name="heureDebut" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+              <label for="dureeEstimee" class="block text-sm font-medium text-slate-700 mb-1">Durée estimée (min)</label>
+              <input type="number" id="dureeEstimee" name="dureeEstimee" min="1" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="15">
+            </div>
+          </div>
+        </div>
+
+        <!-- Prescripteurs et exécutants -->
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-user-md mr-2 text-purple-600"></i>Professionnels de santé
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="prescripteur" class="block text-sm font-medium text-slate-700 mb-1">Prescripteur</label>
+              <input type="text" id="prescripteur" name="prescripteur" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Dr. Martin">
+            </div>
+            <div>
+              <label for="executant" class="block text-sm font-medium text-slate-700 mb-1">Exécutant <span class="text-red-500">*</span></label>
+              <input type="text" id="executant" name="executant" required class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Dr. Dubois">
+            </div>
+            <div>
+              <label for="specialite" class="block text-sm font-medium text-slate-700 mb-1">Spécialité</label>
+              <select id="specialite" name="specialite" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">-- Sélectionner --</option>
+                <option value="medecine-generale">Médecine générale</option>
+                <option value="chirurgie">Chirurgie</option>
+                <option value="radiologie">Radiologie</option>
+                <option value="cardiologie">Cardiologie</option>
+                <option value="pediatrie">Pédiatrie</option>
+                <option value="gynecologie">Gynécologie</option>
+                <option value="ophtalmologie">Ophtalmologie</option>
+                <option value="dermatologie">Dermatologie</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div>
+              <label for="lieuRealisation" class="block text-sm font-medium text-slate-700 mb-1">Lieu de réalisation</label>
+              <select id="lieuRealisation" name="lieuRealisation" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">-- Sélectionner --</option>
+                <option value="cabinet">Cabinet médical</option>
+                <option value="hopital">Hôpital</option>
+                <option value="clinique">Clinique</option>
+                <option value="urgence">Service d'urgence</option>
+                <option value="domicile">Domicile</option>
+                <option value="telemedecine">Télémédecine</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aspects techniques et financiers -->
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-cogs mr-2 text-orange-600"></i>Aspects techniques et financiers
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="quantite" class="block text-sm font-medium text-slate-700 mb-1">Quantité</label>
+              <input type="number" id="quantite" name="quantite" min="1" value="1" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+        </div>
+        <!-- Calcul automatique du tarif -->
+        <div class="alert alert-success">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-calculator mr-2 text-green-600"></i>Calcul du tarif
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="btn">
+              <div class="text-sm text-slate-600">Tarif de base</div>
+              <div class="alert alert-success">-- €</div>
+            </div>
+            <div class="btn">
+              <div class="text-sm text-slate-600">Modificateurs</div>
+              <div id="tarifModificateurs" class="text-2xl font-bold text-orange-600">+0 €</div>
+            </div>
+            <div class="btn">
+              <div class="text-sm text-slate-600">Total</div>
+              <div class="alert alert-success">-- €</div>
+            </div>
+          </div>
+          <div class="mt-4 text-sm text-slate-600">
+            <i class="fas fa-info-circle mr-1"></i>
+            Tarif calculé selon la lettre clé et les coefficients régionaux applicables
+          </div>
+        </div>
+        <!-- Modificateurs avec explications -->
+        <div id="modificateursSection" class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-sliders-h mr-2 text-orange-600"></i>Modificateurs de cotation
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-3">
+              <label class="btn">
+                <input type="checkbox" id="modA" name="modificateurs" value="A" class="mt-1 text-orange-600 focus:ring-orange-500">
+                <div class="flex-1">
+                  <div class="font-medium text-slate-800">A - Anesthésie</div>
+                  <div class="text-sm text-slate-600">Majoration pour acte sous anesthésie</div>
+                </div>
+              </label>
+              <label class="btn">
+                <input type="checkbox" id="modB" name="modificateurs" value="B" class="mt-1 text-orange-600 focus:ring-orange-500">
+                <div class="flex-1">
+                  <div class="font-medium text-slate-800">B - Bilateral</div>
+                  <div class="text-sm text-slate-600">Acte réalisé des deux côtés</div>
+                </div>
+              </label>
+              <label class="btn">
+                <input type="checkbox" id="modC" name="modificateurs" value="C" class="mt-1 text-orange-600 focus:ring-orange-500">
+                <div class="flex-1">
+                  <div class="font-medium text-slate-800">C - Complexité</div>
+                  <div class="text-sm text-slate-600">Acte d'une complexité particulière</div>
+                </div>
+              </label>
+            </div>
+            <div class="space-y-3">
+              <label class="btn">
+                <input type="checkbox" id="modD" name="modificateurs" value="D" class="mt-1 text-orange-600 focus:ring-orange-500">
+                <div class="flex-1">
+                  <div class="font-medium text-slate-800">D - Diminution</div>
+                  <div class="text-sm text-slate-600">Diminution de la valeur de l'acte</div>
+                </div>
+              </label>
+              <label class="btn">
+                <input type="checkbox" id="modU" name="modificateurs" value="U" class="mt-1 text-orange-600 focus:ring-orange-500">
+                <div class="flex-1">
+                  <div class="font-medium text-slate-800">U - Urgence</div>
+                  <div class="text-sm text-slate-600">Acte réalisé en urgence</div>
+                </div>
+              </label>
+              <div class="alert alert-warning">
+                <div class="alert alert-warning">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  <strong>Modificateurs actifs :</strong> <span id="modificateursActifs">Aucun</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coefficients NGAP -->
+        <div id="coefficientsSection" class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-calculator mr-2 text-green-600"></i>Coefficients NGAP
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Coefficient régional</label>
+              <select id="coefficientRegional" name="coefficientRegional" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="1.0">Île-de-France (1.0)</option>
+                <option value="0.95">Provence-Alpes-Côte d'Azur (0.95)</option>
+                <option value="0.92">Auvergne-Rhône-Alpes (0.92)</option>
+                <option value="1.0" selected>Autre région (1.0)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Coefficient de majoration</label>
+              <input type="number" id="coefficientMajoration" name="coefficientMajoration" step="0.01" min="1.0" value="1.0" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+
+        <!-- Diagnostic et contexte -->
+        <div class="btn">
+          <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+            <i class="fas fa-stethoscope mr-2 text-red-600"></i>Diagnostic et contexte médical
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label for="diagnostic" class="block text-sm font-medium text-slate-700 mb-1">Diagnostic principal (CIM-10)</label>
+              <input type="text" id="diagnostic" name="diagnostic" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ex: I10 (Hypertension)">
+            </div>
+            <div>
+              <label for="motif" class="block text-sm font-medium text-slate-700 mb-1">Motif de l'acte</label>
+              <textarea id="motif" name="motif" rows="2" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Raison de la réalisation de cet acte"></textarea>
+            </div>
+            <div>
+              <label for="materiel" class="block text-sm font-medium text-slate-700 mb-1">Matériel/équipement utilisé</label>
+              <input type="text" id="materiel" name="materiel" class="block w-full rounded-lg border-2 border-slate-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ex: Échographe, Endoscope, etc.">
+            </div>
+          </div>
+        </div>
+
+    <script>
+        function showModal() {
+            document.getElementById('modalBg').classList.remove('hidden');
+        }
+        function hideModal() {
+            document.getElementById('modalBg').classList.add('hidden');
+        }
+    </script>
+{% endblock %}
+</body>
+</html>

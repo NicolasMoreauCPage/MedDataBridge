@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Auteur : Eric DUFOUR -->
+
+<HTML>
+<HEAD>
+<TITLE>Documentation Hprim XML</TITLE>
+
+<LINK HREF=../../../css/style.css REL="stylesheet" TYPE="text/css">
+
+</HEAD>
+<BODY>
+
+<DIV class='chapitre'> Version 2.00</DIV>
+
+
+
+   <P class='sChapitre'>Pour &lt;evenementServeurActe&gt; </P>
+
+
+   <UL>
+      <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">La balise &lt;intervention&gt; est devenue facultative.</SPAN></FONT></P>
+      </LI>
+      
+       
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+         <FONT SIZE=3><SPAN STYLE="background: transparent">pour la balise &lt;acteCCAM&gt;</SPAN></FONT></P></LI>
+         <UL>
+         <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+         <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout d'un attribut exonerationCCAM pour la balise &lt;acteCCAM&gt; permettant de gérer les règles d'exonération CCAM ( Type 053 du référentiel CCAM) :</SPAN></FONT></P>
+         <UL>
+            <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+            <FONT SIZE=3><SPAN STYLE="background: transparent">1 = acte pouvant être exonéré par la règle du seuil et exonérant alors la facture,</SPAN></FONT></P></LI>
+            <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+            <FONT SIZE=3><SPAN STYLE="background: transparent">2 = acte pouvant être exonéré par la règle du seuil mais n’exonérant pas la facture,</SPAN></FONT></P></LI>
+            <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+            <FONT SIZE=3><SPAN STYLE="background: transparent">3 = acte exonéré par nature et non exonérant pour la facture,</SPAN></FONT></P></LI>
+            <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+            <FONT SIZE=3><SPAN STYLE="background: transparent">4 = acte exonéré par nature et exonérant toute la facture,</SPAN></FONT></P></LI>
+            <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+            <FONT SIZE=3><SPAN STYLE="background: transparent">5 = acte ne pouvant pas être exonéré par la règle du seuil,</SPAN></FONT></P></LI>
+            <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+            <FONT SIZE=3><SPAN STYLE="background: transparent">7 = acte pouvant être exonéré par nature dans le cadre d'un dispositif de prévention.</SPAN></FONT></P></LI>
+         </UL>
+         <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+         <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout de la balise &lt;codeActeExtensionPMSI&gt;,  extension ATIH pour la CCAM descriptive à usage PMSI (2 chiffres).</SPAN></FONT></P></LI>
+      </UL>   
+         
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout d'un attribut interrogation (valeur O/N), indicateur de l'utilisation du message en mode query.</SPAN></FONT></P></LI>
+   </UL>
+
+
+   <P class='sChapitre'>Pour &lt;LPP&gt; </P>
+
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent"> Ajout de la balise &lt;identifiantFournisseur> avec un type code17Libelle120, alternative au SIRET (balise &lt;siretFournisseur&gt;),</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent"> Ajout de date de péremption du dispositif (balise &lt;datePeremption&gt;),</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout du numéro de série, identifiant unique du numéro de pièce sur 254 caractères alpha numériques (balise &lt;noSerie&gt;), </SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout du numéro de lot, ensemble de pièces cohérentes dans son processus de fabrication, (&lt;noLot&gt;),</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent"> Ajout d'un code interne &lt;codeInterneLPP&gt;,</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Elimination du choix entre &lt;codeLPP&gt; et &lt;codeCommercialLPP&gt;,</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">La balise &lt;LPPs&gt; est devenue facultative afin d'être homogène avec &lt;actesCCAM&gt; et &lt;actesNGAP&gt;,</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Les balises &lt;montantUnitaireAchatTTC&gt;, &lt;montantEcartIndemnisable&gt;, &lt;montantUnitaireFactureTTC&gt; ont changé de type de données en vu d'accepter la valeur 0,</SPAN></FONT></P></LI>
+    </UL>    
+
+   <P class='sChapitre'>Pour &lt;UCD&gt; </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Modification du type de donnée pour la balise &lt;noLot&gt;, passage en chaîne alphanumérique de longueur 15,</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Les balises &lt;montantUnitaireAchatTTC&gt; et &lt;montantUnitaireFactureTTC&gt; sont facultatives</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout d'un code interne &lt;codeInterneUCD&gt;,</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Elimination du choix entre &lt;codeUCD&gt; et &lt;codeCommercial&gt;,</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">La balise &lt;UCDs&gt; est devenue facultative,</SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Les balises &lt;montantUnitaireAchatTTC&gt;, &lt;montantEcartIndemnisable&gt;, &lt;montantUnitaireFactureTTC&gt;, &lt;montantMargeRetrocession&gt;, &lt;montantReconstitution&gt; ont changé de type de données en vu d'accepter la valeur 0,</SPAN></FONT></P></LI>
+     
+   </UL>
+
+   <P class='sChapitre'>Pour &lt;patient&gt; </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">La balise &lt;identite&gt; fille de la balise &lt;numeroIdentifiantSante&gt; est devenue facultative, elle était liée à la balise &lt;hebergeurDossierMedicalPersonnel&gt;, reliquat de la gestion du précédent DMP, </SPAN></FONT></P></LI>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">La balise &lt;hebergeurDossierMedicalPersonnel&gt; est supprimée,</SPAN></FONT></P></LI>
+    
+   </UL>
+   
+   <P class='sChapitre'>Pour &lt;acteur&gt; </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">La balise &lt;code&gt; fille de la balise &lt;identification&gt; change de type de données, elle accepte des valeurs alphanumériques de longueur maximale 17, </SPAN></FONT></P></LI>
+   </UL>
+ 
+   <P class='sChapitre'>Pour le type de données personnePhysique </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Le nom usuel et les prénoms sont devenus facultatifs</SPAN></FONT></P></LI>
+   </UL> 
+  
+   <P class='sChapitre'>Pour &lt;telephone&gt; </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Acceptation des numéros avec des caractères +(), </SPAN></FONT></P></LI>
+   </UL>  
+   
+    <P class='sChapitre'>Pour &lt;codePostal&gt; </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Possibilité de recevoir les codes postaux des pays étranger, </SPAN></FONT></P></LI>
+   </UL>  
+
+   <P class='sChapitre'>Pour &lt;numeroAdeli&gt; </P>
+   
+   <UL>
+      <LI><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+      <FONT SIZE=3><SPAN STYLE="background: transparent">Acceptation en deuxième position des valeurs A,B (ou a,b) pour le département de la Corse, </SPAN></FONT></P></LI>
+   </UL>  
+
+ <P class='sChapitre'>Divers </P>
+
+   <UL>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Ajout des valeurs d'attribut sans accent. Exemple, la valeur « création » pour l'attribut action est aussi présente en valeur « creation »,</SPAN></FONT></P></LI>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">Révision des pattern de nombre11, nombre13, nombre14. Autorisation des valeurs vides,</SPAN></FONT></P></LI>
+     <LI VALUE=1><P LANG="fr-FR" CLASS="western" ALIGN=LEFT STYLE="font-weight: normal">
+     <FONT SIZE=3><SPAN STYLE="background: transparent">  La balise &lt;extensionTemporaire&gt; permet d'ajouter temporairement des données nécessaires localement avant intégration dans la nouvelle version du schéma, ces extensions sont à utiliser avec parcimonie dans des contextes locaux pour une démarche de gré à gré et lorsque l'éditeur emploie ces extensions au delà d'un contexte local, il est demandé aux auteurs de remonter cette demande  au groupe Hprim XML pour qu'elle fasse potentiellement parti de la norme. Ces extensions seront accessibles pour les balises &lt;intervention&gt;, &lt;acteCCAM&gt;, &lt;acteNGAP&gt;, &lt;LPP&gt;, &lt;UCD&gt;,</SPAN></FONT></P></LI>    
+   </UL>   
+</BODY>
+</HTML>

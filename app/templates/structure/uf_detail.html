@@ -1,15 +1,13 @@
 {% extends "base.html" %}
+{% from "macros/ui.html" import inheritance_field %}
+{% from "components/structure_nav.html" import structure_breadcrumb, quick_actions_panel %}
 
 {% block title %}UF {{ uf.name }}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Unité Fonctionnelle:</span>
-  </nav>
+  {{ structure_breadcrumb(uf, 'uf') }}
 
   <!-- Header -->
   <div class="mb-8">
@@ -55,16 +53,14 @@
         <dt class="text-sm font-medium text-gray-500">Type UF</dt>
         <dd class="mt-1 text-sm text-gray-900">{{ uf.uf_type or '-' }}</dd>
       </div>
-      {{ inheritance_field(uf, 'operational_status', 'Statut opérationnel') }}
       {{ inheritance_field(uf, 'status', 'Statut') }}
       {{ inheritance_field(uf, 'mode', 'Mode') }}
-      {{ inheritance_field(uf, 'physical_type', 'Type physique') }}
       {{ inheritance_field(uf, 'etage', 'Étage') }}
       {{ inheritance_field(uf, 'aile', 'Aile') }}
-      {{ inheritance_field(uf, 'opening_date', 'Date d\'ouverture', formatter='date') }}
-      {{ inheritance_field(uf, 'activation_date', 'Date d\'activation', formatter='date') }}
-      {{ inheritance_field(uf, 'closing_date', 'Date de fermeture', formatter='date') }}
-      {{ inheritance_field(uf, 'deactivation_date', 'Date de désactivation', formatter='date') }}
+      {{ inheritance_field(uf, 'opening_date', 'Date d\'ouverture') }}
+      {{ inheritance_field(uf, 'activation_date', 'Date d\'activation') }}
+      {{ inheritance_field(uf, 'closing_date', 'Date de fermeture') }}
+      {{ inheritance_field(uf, 'deactivation_date', 'Date de désactivation') }}
     </dl>
   </div>
 

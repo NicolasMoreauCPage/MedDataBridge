@@ -63,11 +63,11 @@
     <div>
       <label for="status" class="block text-sm font-medium leading-6 text-gray-900">Statut</label>
       <div class="mt-2">
-        <select name="status" id="status"
-          class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
-          {% for s in statuses %}
-          <option value="{{ s }}" {% if lit.status == s %}selected{% endif %}>{{ s }}</option>
-          {% endfor %}
+          <select name="status" id="status" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+              <option value="">-- Sélectionner --</option>
+              {% for opt in status_options %}
+                  <option value="{{ opt.value }}" {% if lit and lit.status == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+              {% endfor %}
         </select>
       </div>
     </div>
@@ -75,9 +75,15 @@
     <div>
       <label for="operational_status" class="block text-sm font-medium leading-6 text-gray-900">Statut opérationnel</label>
       <div class="mt-2">
-        <input type="text" name="operational_status" id="operational_status"
-          value="{{ lit.operational_status or '' }}"
-          class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+        <select name="operational_status" id="operational_status"
+          class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600">
+          {% if lit.operational_status and lit.operational_status not in operational_statuses %}
+          <option value="{{ lit.operational_status }}" selected>{{ lit.operational_status }}</option>
+          {% endif %}
+          {% for s in operational_statuses %}
+          <option value="{{ s }}" {% if lit.operational_status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
       </div>
     </div>
 

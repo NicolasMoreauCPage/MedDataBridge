@@ -1,0 +1,32 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<HTML><HEAD> 
+<TITLE>Elément Hprim Xml </TITLE>
+<meta http-equiv='content-type'  content='text/html; charset=UTF-8'><meta name='author' content='Eric DUFOUR' />
+<meta name='copyright' content='&copy; 2007- INTEROP SANTE' />
+<meta name='description' content='Descriptif des schémas XML pour échange de données dans le secteur de la santé'/>
+ 
+<LINK HREF=../../../../css/style.css  REL='stylesheet' TYPE='text/css'></HEAD>
+<BODY><DIV class='indexLink'><A  HREF='../../indexH_XML_PMSI.html' target='_top'>Sommaire </A><SPAN class='precLinkOf' onClick='history.back()' onMouseOver =this.className='precLinkOn' onMouseOut =this.className='precLinkOf'>Elément précédent</SPAN></DIV><DIV class='chapitre'>rhs [typeRhs]</DIV>
+<DIV class='definition'>Résumé hebdomadaire de séjour.</DIV>
+<TABLE WIDTH='100%'><TH COLSPAN=2 class='ligneEnteteElement'> Eléments </TH><TR><TD class='headerCellElement'>Nom</TD><TD class='headerCellElement'>Commentaires</TD></TR>
+<TR> <TD class='cell'><A HREF='dateAction_xsd_dateTime.html' target='frameCorps'>dateAction</A> </TD><TD class='cell'>Date de réalisation de cet événement.</TD></TR>
+<TR> <TD class='cell'><A HREF='acteurAction_typeProfessionnelSante.html' target='frameCorps'>acteurAction</A> </TD><TD class='cell'>Acteur Déclencheur de cet action dans l'application créatrice des actes. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='identifiant_typeIdentifiantPMSI.html' target='frameCorps'>identifiant</A> </TD><TD class='cell'>Identifiant du résumé hebdomadaire de séjour.</TD></TR>
+<TR> <TD class='cell'><A HREF='dateHeureOptionnelleLundi_typeDateHeureOptionnelle.html' target='frameCorps'>dateHeureOptionnelleLundi</A> </TD><TD class='cell'>Date heure du lundi.</TD></TR>
+<TR> <TD class='cell'><A HREF='medecinResponsable_typeMedecin.html' target='frameCorps'>medecinResponsable</A> </TD><TD class='cell'>Médecin responsable. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='uniteMedicale_typeUniteMedRhs.html' target='frameCorps'>uniteMedicale</A> </TD><TD class='cell'>Unité médicale du résumé hebdomadaire de séjour.</TD></TR>
+<TR> <TD class='cell'><A HREF='joursPresence_typeJoursPresence.html' target='frameCorps'>joursPresence</A> </TD><TD class='cell'>Jours de présences du patient dans la semaine.</TD></TR>
+<TR> <TD class='cell'><A HREF='diagnostics_typeDiagnosticsRhs.html' target='frameCorps'>diagnostics</A> </TD><TD class='cell'>Diagnostics.</TD></TR>
+<TR> <TD class='cell'><A HREF='actes_typeActesRhs.html' target='frameCorps'>actes</A> </TD><TD class='cell'>Actes réalisés. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='actesReeducation_typeActesReeducation.html' target='frameCorps'>actesReeducation</A> </TD><TD class='cell'>Actes de rééducation. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='dependances_typeDependances.html' target='frameCorps'>dependances</A> </TD><TD class='cell'>Valeurs de dépendances.</TD></TR>
+<TR> <TD class='cell'><A HREF='dateDerniereIntervention_xsd_date.html' target='frameCorps'>dateDerniereIntervention</A> </TD><TD class='cell'>Date de derniére intervention dans les 30 derniers jours. [Elément facultatif]</TD></TR>
+<TR> <TD class='cell'><A HREF='groupage_typeGroupageSsr.html' target='frameCorps'>groupage</A> </TD><TD class='cell'>Valeurs du groupage. [Elément facultatif]</TD></TR>
+</TABLE><BR/>
+<TABLE WIDTH='100%'><TH COLSPAN=4 class='ligneEnteteAttribut'> Attributs</TH><TR><TD class='headerCellAttribut'>Nom</TD><TD class='headerCellAttribut'>Commentaire</TD><TD class='headerCellAttribut'>Valeur</TD><TD class='headerCellAttribut'>Information</TD></TR>
+<TR><TD class='cell'>action</TD><TD class='cell'>Action réalisée. </TD><TD class='cell'>creation</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>création</TD><TD class='cell'>Nouvel événement.</TD></TR><TR><TD/><TD/><TD class='cell'>information</TD><TD class='cell'>Renseignement à titre informatif.</TD></TR><TR><TD/><TD/><TD class='cell'>modification</TD><TD class='cell'>Les nouvelles valeurs doivent être mémorisées. Les valeurs précédentes devraient être historisées, si le systéme récepteur en a la capacité.</TD></TR><TR><TD/><TD/><TD class='cell'>remplacement</TD><TD class='cell'>Les valeurs transmises dans cette entité  annulent et remplacent les valeurs précédentes</TD></TR><TR><TD/><TD/><TD class='cell'>suppression</TD><TD class='cell'>Suppression de l'événement notifié</TD></TR>
+<TR><TD class='cell'>version</TD><TD class='cell'>Version du résumé hebdomadaire de séjour. </TD><TD class='cell'>M01</TD><TD class='cell'>Version M01</TD></TR><TR><TD/><TD/><TD class='cell'>M02</TD><TD class='cell'>Version M02</TD></TR><TR><TD/><TD/><TD class='cell'>M03</TD><TD class='cell'>Version M03</TD></TR><TR><TD/><TD/><TD class='cell'>M04</TD><TD class='cell'>Version M04</TD></TR><TR><TD/><TD/><TD class='cell'>M05</TD><TD class='cell'>Version M05</TD></TR>
+<TR><TD class='cell'>typeUniteSpecifique</TD><TD class='cell'>Type d'unité spécifique. </TD><TD class='cell'>08</TD><TD class='cell'>USP SSR (Unité Soins Palliatifs Soins de Suite et Réadaptation)</TD></TR><TR><TD/><TD/><TD class='cell'>09</TD><TD class='cell'>UCC (Unité cognitivo-comportementale)</TD></TR><TR><TD/><TD/><TD class='cell'>10</TD><TD class='cell'>EVC-EPR (Etat Végétatif Chronique – Etat Pauci Relationnel)</TD></TR>
+</TABLE>
+<TABLE WIDTH='100%'><TH class='ligneEnteteAttribut'> XPath</TH><TR><TD class='cell'>/evenementsPMSI/evenementPMSI/rhss</TD></TR></TABLE>
+</BODY></HTML>

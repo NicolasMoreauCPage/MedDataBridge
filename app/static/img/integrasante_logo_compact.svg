@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="350" height="105">
+  <defs>
+    <linearGradient id="compact-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Compact network icon -->
+  <g transform="translate(15, 30)">
+    <!-- Lines -->
+    <line x1="0" y1="0" x2="-8" y2="-8" stroke="#3B82F6" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="8" y2="-8" stroke="#8B5CF6" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="-8" y2="8" stroke="#8B5CF6" stroke-width="1.5" opacity="0.6"/>
+    <line x1="0" y1="0" x2="8" y2="8" stroke="#A855F7" stroke-width="1.5" opacity="0.6"/>
+    
+    <!-- Nodes -->
+    <circle cx="-8" cy="-8" r="2" fill="#3B82F6" stroke="white" stroke-width="1"/>
+    <circle cx="8" cy="-8" r="2" fill="#8B5CF6" stroke="white" stroke-width="1"/>
+    <circle cx="-8" cy="8" r="2" fill="#8B5CF6" stroke="white" stroke-width="1"/>
+    <circle cx="8" cy="8" r="2" fill="#A855F7" stroke="white" stroke-width="1"/>
+    
+    <!-- Center -->
+    <circle cx="0" cy="0" r="5" fill="url(#compact-gradient)" stroke="white" stroke-width="1.5"/>
+    <line x1="-2" y1="0" x2="2" y2="0" stroke="white" stroke-width="1" stroke-linecap="round"/>
+    <line x1="0" y1="-2" x2="0" y2="2" stroke="white" stroke-width="1" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="45" y="28" font-family="Outfit, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#1E293B" letter-spacing="-0.3">
+    IntegraSanté
+  </text>
+  <text x="45" y="42" font-family="Outfit, -apple-system, sans-serif" font-size="8" font-weight="300" fill="#64748B" letter-spacing="0.3">
+    by CPage
+  </text>
+</svg>

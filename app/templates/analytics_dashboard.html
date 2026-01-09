@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .kpi-card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 transition-all duration-200 hover:shadow-md;
+  }
+  .kpi-card.loading {
+    @apply animate-pulse;
+  }
+  .kpi-header {
+    @apply flex items-center justify-between;
+  }
+  .kpi-icon {
+    @apply text-3xl;
+  }
+  .kpi-value {
+    @apply text-4xl font-bold;
+  }
+  .kpi-trend {
+    @apply text-sm font-medium flex items-center gap-1;
+  }
+  .kpi-trend.positive {
+    @apply text-green-600;
+  }
+  .kpi-trend.negative {
+    @apply text-red-600;
+  }
+  .chart-container {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
+  }
+  .alert-item {
+    @apply bg-white rounded-lg border p-4 flex items-start gap-3 transition-all duration-200 hover:shadow-md;
+  }
+  .alert-item.high {
+    @apply border-red-300 bg-red-50;
+  }
+  .alert-item.medium {
+    @apply border-yellow-300 bg-yellow-50;
+  }
+  .alert-item.low {
+    @apply border-blue-300 bg-blue-50;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/structure" class="hover:text-blue-600 transition-colors">Structure</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Analytics</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+            <div class="text-3xl">📊</div>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold">Mode Gestionnaire</h1>
+            <p class="text-white/90 mt-1">Analytics & KPIs temps réel</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Boutons Export -->
+          <div class="flex gap-2">
+            <a href="/api/analytics/export/excel?eg_id=1&period=30d" 
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+               title="Exporter en Excel">
+              📊 Excel
+            </a>
+            <a href="/api/analytics/export/pdf?eg_id=1&period=30d"
+               class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+               title="Exporter en PDF">
+              📄 PDF
+            </a>
+            <a href="/api/analytics/export/csv?eg_id=1&period=30d&export_type=capacity"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+               title="Exporter en CSV">
+              📝 CSV
+            </a>
+          </div>
+          <!-- Sélecteur de période -->
+          <select id="periodSelector" class="bg-white/20 backdrop-blur-sm text-white border-white/30 rounded-lg px-4 py-2 font-medium focus:ring-2 focus:ring-white/50">
+            <option value="7d" selected>7 derniers jours</option>
+            <option value="30d">30 derniers jours</option>
+            <option value="1y">Année en cours</option>
+          </select>
+          <button id="refreshBtn" class="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            🔄 Rafraîchir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs Grid -->
+  <div class="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <!-- KPI 1: Taux d'occupation -->
+    <div class="kpi-card" id="kpi-occupation">
+      <div class="kpi-header">
+        <span class="text-sm font-medium text-slate-600">Taux d'occupation</span>
+        <span class="kpi-icon">🔵</span>
+      </div>
+      <div class="kpi-value text-blue-600" id="occupation-value">—</div>
+      <div class="kpi-trend" id="occupation-trend"></div>
+    </div>
+
+    <!-- KPI 2: DMS -->
+    <div class="kpi-card" id="kpi-dms">
+      <div class="kpi-header">
+        <span class="text-sm font-medium text-slate-600">DMS (jours)</span>
+        <span class="kpi-icon">🟢</span>
+      </div>
+      <div class="kpi-value text-green-600" id="dms-value">—</div>
+      <div class="kpi-trend" id="dms-trend"></div>
+    </div>
+
+    <!-- KPI 3: Taux de rotation -->
+    <div class="kpi-card" id="kpi-rotation">
+      <div class="kpi-header">
+        <span class="text-sm font-medium text-slate-600">Rotation</span>
+        <span class="kpi-icon">🟣</span>
+      </div>
+      <div class="kpi-value text-purple-600" id="rotation-value">—</div>
+      <div class="kpi-trend" id="rotation-trend"></div>
+    </div>
+
+    <!-- KPI 4: Capacité disponible -->
+    <div class="kpi-card" id="kpi-capacity">
+      <div class="kpi-header">
+        <span class="text-sm font-medium text-slate-600">Lits disponibles</span>
+        <span class="kpi-icon">🟡</span>
+      </div>
+      <div class="kpi-value text-yellow-600" id="capacity-value">—</div>
+      <div class="text-sm text-slate-500" id="capacity-total">sur —</div>
+    </div>
+
+    <!-- KPI 5: Taux d'ouverture -->
+    <div class="kpi-card" id="kpi-opening">
+      <div class="kpi-header">
+        <span class="text-sm font-medium text-slate-600">Taux d'ouverture</span>
+        <span class="kpi-icon">🔶</span>
+      </div>
+      <div class="kpi-value text-orange-600" id="opening-value">—</div>
+      <div class="text-sm text-slate-500">lits ouverts</div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Chart 1: Capacité par service -->
+    <div class="chart-container">
+      <h3 class="text-lg font-semibold text-slate-800 mb-4">📊 Capacité par service</h3>
+      <div class="relative" style="height: 400px;">
+        <canvas id="capacityByServiceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart 2: Répartition par type UM -->
+    <div class="chart-container">
+      <h3 class="text-lg font-semibold text-slate-800 mb-4">🥧 Répartition par type UM</h3>
+      <div class="relative" style="height: 400px;">
+        <canvas id="umDistributionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertes Section -->
+  <div class="mb-8">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-slate-800">🚨 Alertes actives</h3>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-slate-600">Filtrer :</span>
+          <select id="severityFilter" class="text-sm border-slate-200 rounded-lg px-3 py-1">
+            <option value="">Toutes</option>
+            <option value="high">🔴 Critiques</option>
+            <option value="medium">🟡 Moyennes</option>
+            <option value="low">🔵 Info</option>
+          </select>
+        </div>
+      </div>
+      <div id="alertsList" class="space-y-3">
+        <!-- Les alertes seront insérées ici -->
+        <div class="text-center text-slate-400 py-8">
+          Chargement des alertes...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Section -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 p-6">
+      <h3 class="text-lg font-semibold text-slate-800 mb-4">💾 Exporter les données</h3>
+      <div class="flex items-center gap-3">
+        <button class="btn-export bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-format="excel">
+          📊 Export Excel
+        </button>
+        <button class="btn-export bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-format="pdf">
+          📄 Export PDF
+        </button>
+        <button class="btn-export bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-format="csv">
+          📋 Export CSV
+        </button>
+        <span class="text-sm text-slate-500 ml-auto">
+          <em>Fonctionnalité en cours de développement (Sprint 3.1.4)</em>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// État global
+let currentEgId = {{ eg_id if eg_id else 1 }}; // Default à 1 pour MVP
+let currentPeriod = '7d';
+let charts = {};
+
+// Initialisation au chargement
+document.addEventListener('DOMContentLoaded', () => {
+  loadAllData();
+  
+  // Event listeners
+  document.getElementById('periodSelector').addEventListener('change', (e) => {
+    currentPeriod = e.target.value;
+    loadAllData();
+  });
+  
+  document.getElementById('refreshBtn').addEventListener('click', loadAllData);
+  
+  document.getElementById('severityFilter').addEventListener('change', (e) => {
+    loadAlerts(e.target.value);
+  });
+  
+  // Export buttons (placeholder pour Sprint 3.1.4)
+  document.querySelectorAll('.btn-export').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const format = e.target.dataset.format;
+      alert(`Export ${format.toUpperCase()} sera disponible dans Sprint 3.1.4`);
+    });
+  });
+});
+
+// Charger toutes les données
+async function loadAllData() {
+  showLoadingState();
+  
+  try {
+    await Promise.all([
+      loadKPIs(),
+      loadCapacityByService(),
+      loadCapacityByUM(),
+      loadAlerts()
+    ]);
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error);
+    showError('Impossible de charger les données analytics');
+  }
+}
+
+// Afficher état de chargement
+function showLoadingState() {
+  document.querySelectorAll('.kpi-card').forEach(card => {
+    card.classList.add('loading');
+  });
+}
+
+// Charger les KPIs
+async function loadKPIs() {
+  try {
+    const response = await fetch(`/api/analytics/kpis?eg_id=${currentEgId}&period=${currentPeriod}`);
+    const data = await response.json();
+    
+    // Taux d'occupation
+    document.getElementById('occupation-value').textContent = `${data.occupation_rate}%`;
+    updateTrend('occupation-trend', data.occupation_trend);
+    
+    // DMS
+    document.getElementById('dms-value').textContent = data.dms.toFixed(1);
+    updateTrend('dms-trend', data.dms_trend);
+    
+    // Rotation
+    document.getElementById('rotation-value').textContent = data.rotation_rate.toFixed(2);
+    updateTrend('rotation-trend', data.rotation_trend);
+    
+    // Capacité
+    document.getElementById('capacity-value').textContent = data.available_beds;
+    document.getElementById('capacity-total').textContent = `sur ${data.total_beds}`;
+    
+    // Taux d'ouverture
+    document.getElementById('opening-value').textContent = `${data.beds_opening_rate}%`;
+    
+    // Retirer loading state
+    document.querySelectorAll('.kpi-card').forEach(card => {
+      card.classList.remove('loading');
+    });
+  } catch (error) {
+    console.error('Erreur KPIs:', error);
+  }
+}
+
+// Mettre à jour l'affichage de tendance
+function updateTrend(elementId, value) {
+  const element = document.getElementById(elementId);
+  if (!value) {
+    element.textContent = '';
+    return;
+  }
+  
+  const isPositive = value > 0;
+  const arrow = isPositive ? '↗' : '↘';
+  const sign = isPositive ? '+' : '';
+  
+  element.className = `kpi-trend ${isPositive ? 'positive' : 'negative'}`;
+  element.textContent = `${arrow} ${sign}${value.toFixed(1)}%`;
+}
+
+// Charger capacité par service
+async function loadCapacityByService() {
+  try {
+    const response = await fetch(`/api/analytics/capacity-by-service?eg_id=${currentEgId}`);
+    const data = await response.json();
+    
+    // Détruire ancien chart si existe
+    if (charts.capacityByService) {
+      charts.capacityByService.destroy();
+    }
+    
+    // Préparer les données
+    const labels = data.map(s => s.service_name);
+    const totalBeds = data.map(s => s.total_beds);
+    const occupiedBeds = data.map(s => s.occupied_beds);
+    const colors = data.map(s => {
+      if (s.status_color === 'red') return 'rgba(239, 68, 68, 0.8)';
+      if (s.status_color === 'yellow') return 'rgba(245, 158, 11, 0.8)';
+      return 'rgba(34, 197, 94, 0.8)';
+    });
+    
+    // Créer le chart
+    const ctx = document.getElementById('capacityByServiceChart').getContext('2d');
+    charts.capacityByService = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Lits occupés',
+            data: occupiedBeds,
+            backgroundColor: colors,
+            borderRadius: 6
+          },
+          {
+            label: 'Lits disponibles',
+            data: data.map((s, i) => totalBeds[i] - occupiedBeds[i]),
+            backgroundColor: 'rgba(226, 232, 240, 0.6)',
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false }
+          },
+          y: {
+            stacked: true,
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          tooltip: {
+            callbacks: {
+              afterLabel: (context) => {
+                const index = context.dataIndex;
+                return `Taux: ${data[index].occupation_rate}%`;
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Erreur capacité par service:', error);
+  }
+}
+
+// Charger répartition par UM
+async function loadCapacityByUM() {
+  try {
+    const response = await fetch(`/api/analytics/capacity-by-um?eg_id=${currentEgId}`);
+    const data = await response.json();
+    
+    // Détruire ancien chart si existe
+    if (charts.umDistribution) {
+      charts.umDistribution.destroy();
+    }
+    
+    // Couleurs par type UM
+    const umColors = {
+      'MCO': 'rgba(59, 130, 246, 0.8)',   // Bleu
+      'SSR': 'rgba(34, 197, 94, 0.8)',    // Vert
+      'PSY': 'rgba(139, 92, 246, 0.8)',   // Violet
+      'HAD': 'rgba(245, 158, 11, 0.8)'    // Jaune
+    };
+    
+    const labels = data.map(um => `${um.um_code} - ${um.um_label}`);
+    const values = data.map(um => um.total_beds);
+    const colors = data.map(um => umColors[um.um_code] || 'rgba(148, 163, 184, 0.8)');
+    
+    // Créer le chart
+    const ctx = document.getElementById('umDistributionChart').getContext('2d');
+    charts.umDistribution = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const index = context.dataIndex;
+                const um = data[index];
+                return [
+                  `Lits: ${um.total_beds}`,
+                  `Occupés: ${um.occupied_beds}`,
+                  `Taux: ${um.occupation_rate}%`
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Erreur répartition UM:', error);
+  }
+}
+
+// Charger les alertes
+async function loadAlerts(severity = '') {
+  try {
+    let url = `/api/analytics/alerts?eg_id=${currentEgId}`;
+    if (severity) url += `&severity=${severity}`;
+    
+    const response = await fetch(url);
+    const alerts = await response.json();
+    
+    const alertsList = document.getElementById('alertsList');
+    
+    if (alerts.length === 0) {
+      alertsList.innerHTML = '<div class="text-center text-slate-400 py-8">✅ Aucune alerte active</div>';
+      return;
+    }
+    
+    alertsList.innerHTML = alerts.map(alert => {
+      const severityIcon = {
+        'high': '🚨',
+        'medium': '⚠️',
+        'low': '💤'
+      }[alert.severity];
+      
+      return `
+        <div class="alert-item ${alert.severity}">
+          <div class="text-2xl">${severityIcon}</div>
+          <div class="flex-1">
+            <div class="font-semibold text-slate-800 mb-1">${alert.entity_name}</div>
+            <div class="text-sm text-slate-600">${alert.message}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-bold ${getValueColor(alert.current_value, alert.threshold_value, alert.alert_type)}">
+              ${alert.current_value}%
+            </div>
+            <div class="text-xs text-slate-500">Seuil: ${alert.threshold_value}%</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Erreur alertes:', error);
+  }
+}
+
+// Couleur valeur alerte
+function getValueColor(value, threshold, type) {
+  if (type === 'suroccupation' || type === 'tension') {
+    return value >= threshold ? 'text-red-600' : 'text-yellow-600';
+  } else {
+    return value < threshold ? 'text-blue-600' : 'text-green-600';
+  }
+}
+
+// Afficher erreur
+function showError(message) {
+  alert(message);
+}
+
+// Mettre à jour les liens d'export selon la période sélectionnée
+function updateExportLinks() {
+  const period = document.getElementById('periodSelector').value;
+  const egId = 1; // TODO: récupérer dynamiquement l'EG sélectionnée
+  
+  const excelLink = document.querySelector('a[href*="/export/excel"]');
+  const pdfLink = document.querySelector('a[href*="/export/pdf"]');
+  const csvLink = document.querySelector('a[href*="/export/csv"]');
+  
+  if (excelLink) excelLink.href = `/api/analytics/export/excel?eg_id=${egId}&period=${period}`;
+  if (pdfLink) pdfLink.href = `/api/analytics/export/pdf?eg_id=${egId}&period=${period}`;
+  if (csvLink) csvLink.href = `/api/analytics/export/csv?eg_id=${egId}&period=${period}&export_type=capacity`;
+}
+
+// Event listener sur changement de période
+document.getElementById('periodSelector').addEventListener('change', () => {
+  updateExportLinks();
+  loadAllData();
+});
+
+// Initialiser les liens d'export au chargement
+document.addEventListener('DOMContentLoaded', () => {
+  updateExportLinks();
+});
+</script>
+{% endblock %}

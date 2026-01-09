@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 font-medium">Modifier le type du dossier #</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="btn btn-primary">
+      <div class="flex items-center space-x-4">
+        <div class="btn">
+          <div class="text-3xl">🔹</div>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Modifier le type du dossier #</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <nav class="mb-8" aria-label="Breadcrumb">
+        <ol class="list-none p-0 inline-flex text-gray-600">
+            <li class="flex items-center">
+                <a href="/dossiers" class="text-blue-500 hover:text-blue-700">Dossiers</a>
+                <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z"/></svg>
+            </li>
+            <li class="flex items-center">
+                <a href="/dossiers/{{ dossier.id|default('', true) }}" class="text-blue-500 hover:text-blue-700">Dossier #{{ dossier.dossier_seq|default('', true) }}</a>
+                <svg class="fill-current w-3 h-3 mx-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M285.476 272.971L91.132 467.314c-9.373 9.373-24.569 9.373-33.941 0l-22.667-22.667c-9.357-9.357-9.375-24.522-.04-33.901L188.505 256 34.484 101.255c-9.335-9.379-9.317-24.544.04-33.901l22.667-22.667c9.373-9.373 24.569-9.373 33.941 0L285.475 239.03c9.373 9.372 9.373 24.568.001 33.941z"/></svg>
+            </li>
+            <li>
+                <span class="text-gray-500">Modifier le type</span>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="btn">
+    <h1 class="text-2xl font-bold mb-6">Modifier le type du dossier #{{ dossier.dossier_seq|default('', true) }}</h1>
+        
+        <div class="mb-6">
+                            <p class="text-gray-700">Type actuel: 
+                                    <span class="font-medium">
+                                        {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+                                        {% set type_label = None %}
+                                        {% for opt in dossier_type_options %}
+                                            {% if opt.value == current_type %}{% set type_label = opt.label %}{% endif %}
+                                        {% endfor %}
+                                        {{ type_label or current_type or '-' }}
+                                    </span>
+                            </p>
+        </div>
+
+        <form id="changeTypeForm" class="mb-6">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="newType">
+                    Nouveau type
+                </label>
+                <select id="newType" name="newType" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
+                    {% for opt in dossier_type_options %}
+                      <option value="{{ opt.value }}" {% if opt.value == current_type %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-center">
+                <button type="submit" class="btn btn-primary">
+                    Modifier
+                </button>
+                <a href="/dossiers/{{ dossier.id }}" class="text-gray-500 hover:text-gray-700">
+                    Annuler
+                </a>
+            </div>
+        </form>
+
+        <!-- Zone d'avertissement -->
+        <div id="warningArea" class="hidden">
+            <div class="alert alert-warning">
+                <p class="font-bold mb-2">Attention</p>
+                <div id="warningMessages"></div>
+                
+                <div class="mt-4">
+                    <button id="forceChange" class="btn btn-primary">
+                        Forcer le changement
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone de succès -->
+        <div id="successArea" class="hidden">
+            <div class="alert alert-success">
+                <p class="font-bold">Succès</p>
+                <p>Le type du dossier a été modifié avec succès.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('changeTypeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newType = document.getElementById('newType').value;
+    
+    try {
+        const response = await fetch(`/dossier-type/{{ dossier.id }}/change?new_type=${newType}`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'error') {
+            // Afficher les avertissements
+            document.getElementById('warningArea').classList.remove('hidden');
+            document.getElementById('warningMessages').innerHTML = result.warnings.map(w => `<p>${w}</p>`).join('');
+            
+            // Configuration du bouton de forçage
+            document.getElementById('forceChange').onclick = async () => {
+                try {
+                    const forceResponse = await fetch(`/dossier-type/{{ dossier.id }}/change?new_type=${newType}&force=true`, {
+                        method: 'POST'
+                    });
+                    const forceResult = await forceResponse.json();
+                    
+                    if (forceResult.status === 'success') {
+                        document.getElementById('warningArea').classList.add('hidden');
+                        document.getElementById('successArea').classList.remove('hidden');
+                        setTimeout(() => window.location.href = '/dossiers/{{ dossier.id }}', 2000);
+                    }
+                } catch (error) {
+                    console.error('Erreur lors du forçage:', error);
+                }
+            };
+        } else if (result.status === 'success') {
+            // Afficher le succès
+            document.getElementById('successArea').classList.remove('hidden');
+            document.getElementById('warningArea').classList.add('hidden');
+            // Redirection après 2 secondes
+            setTimeout(() => window.location.href = '/dossiers/{{ dossier.id }}', 2000);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+});
+</script>
+{% endblock %}

@@ -921,16 +921,43 @@ def seed_cotations_to_dossiers(engine) -> int:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Initialisation complète de la base de données")
-    parser.add_argument("--reset", action="store_true", help="Supprime medbridge.db avant init")
-    parser.add_argument("--skip-vocab", action="store_true", help="Saute l'initialisation des vocabulaires")
-    parser.add_argument("--skip-population", action="store_true", help="Saute le seed de population patients")
-    parser.add_argument("--skip-scenarios", action="store_true", help="Saute l'import des scénarios HL7/HPRIM")
-    parser.add_argument("--minimal", action="store_true", help="Seed minimal (1 patient seulement)")
-    parser.add_argument("--rich", action="store_true", help="Seed riche (40 patients avec scénarios)")
-    parser.add_argument("--demo-scenarios", action="store_true", help="Ajoute scénarios démo complexes")
-    parser.add_argument("--with-cotations", action="store_true", help="Ajoute cotations médicales réalistes")
+    parser = argparse.ArgumentParser(
+        description="Initialisation complète de la base de données (mode FULL par défaut)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Par défaut, lance une initialisation COMPLÈTE :
+  • Structure + vocabulaires + endpoints + namespaces
+  • 120 patients + dossiers + mouvements (seed standard)
+  • Tous les scénarios HL7/HPRIM/IHE PAM (~400 scénarios)
+  • Cotations médicales réalistes
+
+Utilisez les options ci-dessous uniquement pour personnaliser.
+        """
+    )
+    parser.add_argument("--reset", action="store_true", 
+                       help="Supprime data/medbridge.db avant init")
+    
+    # Options pour réduire le seed (par défaut = FULL)
+    parser.add_argument("--skip-vocab", action="store_true", 
+                       help="Saute l'initialisation des vocabulaires")
+    parser.add_argument("--skip-population", action="store_true", 
+                       help="Saute le seed de population patients")
+    parser.add_argument("--skip-scenarios", action="store_true", 
+                       help="Saute l'import des scénarios HL7/HPRIM")
+    parser.add_argument("--minimal", action="store_true", 
+                       help="Seed minimal : 1 seul patient (au lieu de 120)")
+    
     args = parser.parse_args()
+    
+    # PAR DÉFAUT : mode FULL (rich + cotations + demo-scenarios)
+    if not args.minimal:
+        args.rich = True
+        args.with_cotations = True
+        args.demo_scenarios = True
+    else:
+        args.rich = False
+        args.with_cotations = False
+        args.demo_scenarios = False
 
     if args.reset and DB_PATH.exists():
         print("→ Suppression de medbridge.db existante...")

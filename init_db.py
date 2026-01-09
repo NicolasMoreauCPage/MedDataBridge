@@ -188,13 +188,10 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
         act = LPPAct(
             dossier_id=dossier.id,
             code_lpp="1234567890123",
-            libelle="Pansement adhésif",
+            denomination_libelle="Pansement adhésif",
             quantite=1,
-            prix_unitaire=25.00,
-            montant_total=25.00,
-            execute_date=admit_time + timedelta(days=1, hours=4),
-            facturable=True,
-            valide=True
+            montant_unitaire_facture_ttc=25.00,
+            execute_date=admit_time + timedelta(days=1, hours=4)
         )
         session.add(act)
         total_count += 1
@@ -867,13 +864,10 @@ def seed_cotations_to_dossiers(engine) -> int:
                     act = LPPAct(
                         dossier_id=dossier.id,
                         code_lpp=acte_data["code_lpp"],
-                        libelle=acte_data["libelle"],
+                        denomination_libelle=acte_data["libelle"],
                         quantite=1,
-                        prix_unitaire=acte_data["montant"],
-                        montant_total=acte_data["montant"],
-                        execute_date=admit_time + timedelta(days=1, hours=i),
-                        facturable=True,
-                        valide=True
+                        montant_unitaire_facture_ttc=acte_data["montant"],
+                        execute_date=admit_time + timedelta(days=1, hours=i)
                     )
                     session.add(act)
                     total_cotations += 1
@@ -927,13 +921,10 @@ def seed_cotations_to_dossiers(engine) -> int:
                 act = LPPAct(
                     dossier_id=dossier.id,
                     code_lpp="1234567890123",
-                    libelle="Pansement adhésif",
+                    denomination_libelle="Pansement adhésif",
                     quantite=1,
-                    prix_unitaire=25.00,
-                    montant_total=25.00,
-                    execute_date=admit_time + timedelta(days=1, hours=4),
-                    facturable=True,
-                    valide=True
+                    montant_unitaire_facture_ttc=25.00,
+                    execute_date=admit_time + timedelta(days=1, hours=4)
                 )
                 session.add(act)
                 total_cotations += 1

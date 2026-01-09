@@ -1,8 +1,8 @@
 # État des Tests - MedData Bridge
 
-Date: 9 janvier 2026
+Date: 9 janvier 2026 (Mise à jour)
 
-## ✅ Tests Fonctionnels (8/8 passés)
+## ✅ Tests Fonctionnels (14/14 passés)
 
 ### Tests HPRIM
 - `test_hprim_cotations.py` (4 tests) ✅
@@ -18,10 +18,22 @@ Date: 9 janvier 2026
 - `test_admin_ej_route.py` (1 test) ✅
   - test_ej_detail_route_basic
 
-### Tests Models  
+### Tests Models - TOUS CORRIGÉS ✅
 - `test_models.py::TestNGAPAct` (2 tests) ✅
   - test_ngap_act_creation_minimal
   - test_ngap_act_creation_complete
+
+- `test_models.py::TestUCDAct` (2 tests) ✅
+  - test_ucd_act_creation_minimal
+  - test_ucd_act_creation_complete
+
+- `test_models.py::TestLPPAct` (2 tests) ✅
+  - test_lpp_act_creation_minimal
+  - test_lpp_act_creation_complete
+
+- `test_models.py::TestCCAMAct` (2 tests) ✅
+  - test_ccam_act_creation_minimal
+  - test_ccam_act_creation_complete
 
 ## ⚠️ Tests Nécessitant des Corrections
 

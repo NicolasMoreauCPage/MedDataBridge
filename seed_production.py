@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Script d'initialisation de la base de données pour la production."""
 import sys
-sys.path.insert(0, '/opt/meddata-bridge')
+import os
+from pathlib import Path
+
+# Ajouter le répertoire courant au path si on est en prod
+if os.path.exists('/opt/meddata-bridge'):
+    sys.path.insert(0, '/opt/meddata-bridge')
 
 from datetime import datetime, timedelta
 from app.db import init_db
@@ -11,8 +16,8 @@ from app.models_structure import GHTContext
 from app.models import Patient, Dossier, DossierType, CCAMAct, NGAPAct, UCDAct, LPPAct
 from sqlmodel import Session, create_engine, select
 
-# Utiliser le chemin absolu vers la base de données
-engine = create_engine('sqlite:////opt/meddata-bridge/data/medbridge.db')
+# Utiliser le chemin relatif data/ qui fonctionne en dev et en prod
+engine = create_engine('sqlite:///./data/medbridge.db')
 
 print('[1/4] Initialisation du schema de base de donnees...')
 init_db()

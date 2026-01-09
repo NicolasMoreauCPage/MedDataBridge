@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Vérifier via l'API si les données sont accessibles."""
 import sys
-sys.path.insert(0, '/opt/meddata-bridge')
+import os
+
+# Ajouter le répertoire courant au path si on est en prod
+if os.path.exists('/opt/meddata-bridge'):
+    sys.path.insert(0, '/opt/meddata-bridge')
 
 # Simple test avec SQLite direct
 import sqlite3
 
-db_path = '/opt/meddata-bridge/data/medbridge.db'
+db_path = './data/medbridge.db'
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 

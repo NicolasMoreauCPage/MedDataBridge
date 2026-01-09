@@ -35,8 +35,8 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['lit_id'], ['lits.id'], ),
         sa.ForeignKeyConstraint(['eg_id'], ['entite_geographique.id'], ),
         sa.ForeignKeyConstraint(['uf_id'], ['unite_fonctionnelle.id'], ),
-        sa.ForeignKeyConstraint(['service_id'], ['services.id'], ),
-        sa.ForeignKeyConstraint(['pole_id'], ['poles.id'], ),
+        sa.ForeignKeyConstraint(['service_id'], ['service.id'], ),
+        sa.ForeignKeyConstraint(['pole_id'], ['pole.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_occupation_snapshots_snapshot_date', 'occupation_snapshots', ['snapshot_date'])

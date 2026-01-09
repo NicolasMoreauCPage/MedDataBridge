@@ -115,9 +115,8 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
                 code_acte=acte_data["code_acte"],
                 code_activite=acte_data["code_activite"],
                 execute_date=admit_time + timedelta(days=1, hours=i*2),
-                montant=acte_data["montant"],
-                facturable=True,
-                valide=True
+                montant_total=acte_data["montant"],
+                facture="non"
             )
             session.add(act)
             total_count += 1
@@ -133,10 +132,9 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
                 lettre_cle=acte_data["lettre_cle"],
                 coefficient=acte_data["coefficient"],
                 execute_date=admit_time + timedelta(days=1, hours=i),
-                montant=acte_data["montant"],
+                montant_total=acte_data["montant"],
                 denombrement=1,
-                facturable=True,
-                valide=True
+                facture="non"
             )
             session.add(act)
             total_count += 1
@@ -148,9 +146,8 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
             code_acte="HBMD001",
             code_activite="01",
             execute_date=admit_time + timedelta(days=1),
-            montant=120.0,
-            facturable=True,
-            valide=True
+            montant_total=120.0,
+            facture="non"
         )
         session.add(act)
         total_count += 1
@@ -161,10 +158,9 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
             lettre_cle="B",
             coefficient=1.5,
             execute_date=admit_time + timedelta(days=1, hours=2),
-            montant=37.50,
+            montant_total=37.50,
             denombrement=1,
-            facturable=True,
-            valide=True
+            facture="non"
         )
         session.add(act)
         total_count += 1
@@ -172,14 +168,11 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
         # 1 UCD
         act = UCDAct(
             dossier_id=dossier.id,
-            code_cip="3400936050501",
-            designation="DOLIPRANE 1000MG",
+            code_ucd="3400936050501",
+            denomination_libelle="DOLIPRANE 1000MG",
             quantite=2,
-            prix_unitaire=4.50,
-            montant_total=9.00,
-            execute_date=admit_time + timedelta(days=1, hours=3),
-            facturable=True,
-            valide=True
+            montant_unitaire_facture_ttc=4.50,
+            execute_date=admit_time + timedelta(days=1, hours=3)
         )
         session.add(act)
         total_count += 1
@@ -801,9 +794,8 @@ def seed_cotations_to_dossiers(engine) -> int:
                         code_acte=acte_data["code_acte"],
                         code_activite=acte_data["code_activite"],
                         execute_date=admit_time + timedelta(days=1, hours=i*2),
-                        montant=acte_data["montant"],
-                        facturable=True,
-                        valide=True
+                        montant_total=acte_data["montant"],
+                        facture="non"
                     )
                     session.add(act)
                     total_cotations += 1
@@ -823,10 +815,9 @@ def seed_cotations_to_dossiers(engine) -> int:
                         lettre_cle=acte_data["lettre_cle"],
                         coefficient=acte_data["coefficient"],
                         execute_date=admit_time + timedelta(days=1, hours=i),
-                        montant=acte_data["montant"],
+                        montant_total=acte_data["montant"],
                         denombrement=1,
-                        facturable=True,
-                        valide=True
+                        facture="non"
                     )
                     session.add(act)
                     total_cotations += 1
@@ -841,14 +832,11 @@ def seed_cotations_to_dossiers(engine) -> int:
                 for i, acte_data in enumerate(ucd_actes):
                     act = UCDAct(
                         dossier_id=dossier.id,
-                        code_cip=acte_data["code_cip"],
-                        designation=acte_data["designation"],
+                        code_ucd=acte_data["code_cip"],
+                        denomination_libelle=acte_data["designation"],
                         quantite=acte_data["quantite"],
-                        prix_unitaire=acte_data["prix"],
-                        montant_total=acte_data["quantite"] * acte_data["prix"],
-                        execute_date=admit_time + timedelta(days=1, hours=i),
-                        facturable=True,
-                        valide=True
+                        montant_unitaire_facture_ttc=acte_data["prix"],
+                        execute_date=admit_time + timedelta(days=1, hours=i)
                     )
                     session.add(act)
                     total_cotations += 1
@@ -881,9 +869,8 @@ def seed_cotations_to_dossiers(engine) -> int:
                     code_acte="HBMD001",
                     code_activite="01",
                     execute_date=admit_time + timedelta(days=1),
-                    montant=120.0,
-                    facturable=True,
-                    valide=True
+                    montant_total=120.0,
+                    facture="non"
                 )
                 session.add(act)
                 total_cotations += 1
@@ -894,10 +881,9 @@ def seed_cotations_to_dossiers(engine) -> int:
                     lettre_cle="B",
                     coefficient=1.5,
                     execute_date=admit_time + timedelta(days=1, hours=2),
-                    montant=37.50,
+                    montant_total=37.50,
                     denombrement=1,
-                    facturable=True,
-                    valide=True
+                    facture="non"
                 )
                 session.add(act)
                 total_cotations += 1
@@ -905,14 +891,11 @@ def seed_cotations_to_dossiers(engine) -> int:
                 # Ajouter 1 UCD
                 act = UCDAct(
                     dossier_id=dossier.id,
-                    code_cip="3400936050501",
-                    designation="DOLIPRANE 1000MG",
+                    code_ucd="3400936050501",
+                    denomination_libelle="DOLIPRANE 1000MG",
                     quantite=2,
-                    prix_unitaire=4.50,
-                    montant_total=9.00,
-                    execute_date=admit_time + timedelta(days=1, hours=3),
-                    facturable=True,
-                    valide=True
+                    montant_unitaire_facture_ttc=4.50,
+                    execute_date=admit_time + timedelta(days=1, hours=3)
                 )
                 session.add(act)
                 total_cotations += 1

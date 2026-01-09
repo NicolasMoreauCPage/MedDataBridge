@@ -1,6 +1,6 @@
 # Scripts Directory
 
-Ce répertoire contient tous les scripts utilitaires du projet MedDataBridge, organisés par fonction.
+Ce répertoire contient tous les scripts utilitaires du projet IntegraSanté, organisés par fonction.
 
 ## 📁 Structure
 

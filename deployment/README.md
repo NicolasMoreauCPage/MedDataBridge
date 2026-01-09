@@ -1,4 +1,4 @@
-# Déploiement MedData Bridge
+# Déploiement IntegraSanté
 
 Ce répertoire contient tous les fichiers et scripts nécessaires au déploiement du projet.
 

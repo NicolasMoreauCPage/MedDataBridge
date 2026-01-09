@@ -1,4 +1,4 @@
-# Documentation technique — MedData Bridge
+# Documentation technique — IntegraSanté
 
 Ce dossier centralise la documentation développeur sur la validation, la
 logique métier et l'architecture des services.

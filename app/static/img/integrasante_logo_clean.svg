@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="25 15 265 70" width="320" height="100">
+  <defs>
+    <linearGradient id="clean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icon minimaliste sans halo ni particules -->
+  <g transform="translate(40, 25)">
+    <!-- Branches -->
+    <line x1="0" y1="0" x2="-14" y2="-14" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" />
+    <line x1="0" y1="0" x2="14" y2="-14" stroke="#6366F1" stroke-width="2" stroke-linecap="round" />
+    <line x1="0" y1="0" x2="-14" y2="14" stroke="#6366F1" stroke-width="2" stroke-linecap="round" />
+    <line x1="0" y1="0" x2="14" y2="14" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Nœuds -->
+    <circle cx="-14" cy="-14" r="4" fill="#3B82F6" />
+    <circle cx="14" cy="-14" r="4" fill="#6366F1" />
+    <circle cx="-14" cy="14" r="4" fill="#6366F1" />
+    <circle cx="14" cy="14" r="4" fill="#8B5CF6" />
+
+    <!-- Nœud central -->
+    <circle cx="0" cy="0" r="7" fill="url(#clean-gradient)" />
+    <line x1="-3" y1="0" x2="3" y2="0" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="0" y1="-3" x2="0" y2="3" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Texte principal -->
+  <text x="95" y="45" font-family="Outfit, -apple-system, system-ui, sans-serif" font-size="28" font-weight="700" fill="#0F172A" letter-spacing="-0.5">
+    IntegraSanté
+  </text>
+
+  <!-- Signature by CPage -->
+  <text x="95" y="63" font-family="Outfit, -apple-system, system-ui, sans-serif" font-size="13" font-weight="300" fill="#6B7280" letter-spacing="0.4">
+    by CPage
+  </text>
+</svg>

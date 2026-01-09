@@ -1,11 +1,11 @@
-# MedData Bridge - Guide de Déploiement Production
+# IntegraSanté - Guide de Déploiement Production
 ## Serveur Fedora 7.9 sans connexion Internet
 
 ---
 
 ## 📋 Vue d'ensemble
 
-Ce package contient tout le nécessaire pour déployer MedData Bridge sur un serveur Fedora 7.9 **sans connexion Internet** avec Python 3.8.
+Ce package contient tout le nécessaire pour déployer IntegraSanté sur un serveur Fedora 7.9 **sans connexion Internet** avec Python 3.8.
 
 ### Prérequis serveur
 - ✅ Fedora 7.9

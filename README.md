@@ -1,6 +1,6 @@
-# MedData Bridge
+# IntegraSanté by CPage
 
-MedData Bridge est une plateforme légère d'interopérabilité destinée à la qualification et au test d'interfaces HL7 / FHIR (IHE PAM, HPRIM, etc.).
+IntegraSanté est une plateforme légère d'interopérabilité destinée à la qualification et au test d'interfaces HL7 / FHIR (IHE PAM, HPRIM, etc.).
 
 L'objectif principal est de fournir un environnement reproductible pour :
 - importer et valider des messages HPRIM/HL7 ;

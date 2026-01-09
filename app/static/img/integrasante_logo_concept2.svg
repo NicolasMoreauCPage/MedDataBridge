@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" width="320" height="120">
+  <defs>
+    <linearGradient id="puzzle-gradient-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0EA5E9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0284C7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="puzzle-gradient-2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="puzzle-gradient-3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Logo Icon: Three interlocking puzzle pieces -->
+  <g transform="translate(15, 15)">
+    <!-- Puzzle piece 1 (FHIR - Blue) -->
+    <path d="M 0 10 L 0 30 L 10 30 Q 12 28 10 26 Q 8 24 10 22 L 10 10 Q 8 8 6 10 Q 4 12 6 14 Z" 
+          fill="url(#puzzle-gradient-1)" 
+          stroke="#0369A1" 
+          stroke-width="1.5"/>
+    <text x="3" y="24" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="white">F</text>
+    
+    <!-- Puzzle piece 2 (HPRIM - Green) -->
+    <path d="M 15 10 L 15 30 L 35 30 L 35 22 Q 37 20 35 18 Q 33 16 35 14 L 35 10 Z" 
+          fill="url(#puzzle-gradient-2)" 
+          stroke="#059669" 
+          stroke-width="1.5"/>
+    <text x="21" y="24" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="white">H</text>
+    
+    <!-- Puzzle piece 3 (HL7 - Purple) -->
+    <path d="M 40 10 L 40 14 Q 38 16 40 18 Q 42 20 40 22 L 40 30 L 60 30 L 60 10 Z" 
+          fill="url(#puzzle-gradient-3)" 
+          stroke="#7C3AED" 
+          stroke-width="1.5"/>
+    <text x="47" y="24" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="white">7</text>
+    
+    <!-- Connection lines (showing integration) -->
+    <line x1="10" y1="20" x2="15" y2="20" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="2,2" opacity="0.5"/>
+    <line x1="35" y1="20" x2="40" y2="20" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="2,2" opacity="0.5"/>
+  </g>
+  
+  <!-- Text: IntegraSanté -->
+  <text x="90" y="42" font-family="Poppins, -apple-system, sans-serif" font-size="28" font-weight="600" fill="#1E293B" letter-spacing="-0.5">
+    IntegraSanté
+  </text>
+  
+  <!-- Text: by CPage -->
+  <text x="90" y="62" font-family="Poppins, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#64748B" opacity="0.85" letter-spacing="0.5">
+    by CPage
+  </text>
+  
+  <!-- Tagline (optional) -->
+  <text x="90" y="80" font-family="Poppins, -apple-system, sans-serif" font-size="10" font-weight="400" fill="#94A3B8" letter-spacing="0.3">
+    Connectez vos standards de santé
+  </text>
+</svg>

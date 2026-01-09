@@ -1,6 +1,6 @@
 # Tests Directory
 
-Ce répertoire contient tous les tests du projet MedDataBridge, organisés par type et portée.
+Ce répertoire contient tous les tests du projet IntegraSanté, organisés par type et portée.
 
 ## 📁 Structure
 

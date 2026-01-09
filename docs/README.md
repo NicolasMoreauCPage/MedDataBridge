@@ -1,6 +1,6 @@
-# Documentation MedData Bridge
+# Documentation IntegraSanté
 
-Ce dossier contient la documentation technique et fonctionnelle de MedData Bridge.
+Ce dossier contient la documentation technique et fonctionnelle d'IntegraSanté.
 
 ## 📚 Documents disponibles
 

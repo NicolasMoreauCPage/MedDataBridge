@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title|default('MedData Bridge') }}</title>
+  <title>{{ title|default('IntegraSanté by CPage') }}</title>
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='css/forms.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='css/design-system.css') }}">
   <!-- <link rel="stylesheet" href="{{ url_for('static', path='css/animations.css') }}"> -->
-  <meta name="description" content="Interface de gestion des données médicales et interopérabilité FHIR/HL7">
-  <meta name="theme-color" content="#2563eb">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+  <meta name="description" content="Plateforme d'intégration des données de santé - Interopérabilité FHIR/HPRIM/HL7">
+  <meta name="theme-color" content="#8B5CF6">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='img/integrasante_favicon_concept3.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -156,12 +156,9 @@
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-surface focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-surface/95" role="banner">
     <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
-      <a href="/" class="flex items-center gap-3 text-lg font-semibold text-accent transition-all duration-200 hover:opacity-80 group">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-alt text-white shadow-md group-hover:shadow-lg transition-all duration-200">MD</span>
-        <div class="flex flex-col leading-4">
-          <span class="font-semibold text-base text-heading">MedData Bridge</span>
-          <span class="text-[11px] text-muted">Plateforme d'interopérabilité</span>
-        </div>
+      <a href="/" class="flex items-center gap-3 text-lg font-semibold transition-all duration-200 hover:opacity-80 group">
+        <img src="{{ url_for('static', path='img/integrasante_logo_badge.svg') }}" alt="IntegraSanté by CPage" class="h-16 w-auto block dark:hidden" />
+        <img src="{{ url_for('static', path='img/integrasante_logo_badge_dark.svg') }}" alt="IntegraSanté by CPage" class="h-16 w-auto hidden dark:block" />
       </a>
       <div class="flex items-center gap-2">
         {% if request and request.state and request.state.ght_context %}
@@ -974,20 +971,15 @@
     <div class="mx-auto max-w-content px-4 py-6">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-alt text-white text-sm font-bold shadow-sm">
-            MD
-          </span>
-          <div class="flex flex-col">
-            <span class="font-semibold text-heading text-sm">MedData Bridge</span>
-            <span class="text-xs text-muted">Plateforme d'interopérabilité santé</span>
-          </div>
+          <img src="{{ url_for('static', path='img/integrasante_logo_badge.svg') }}" alt="IntegraSanté by CPage" class="h-12 w-auto block dark:hidden" />
+          <img src="{{ url_for('static', path='img/integrasante_logo_badge_dark.svg') }}" alt="IntegraSanté by CPage" class="h-12 w-auto hidden dark:block" />
         </div>
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center gap-3 text-xs text-muted">
             <span class="px-2 py-1 rounded-md bg-surface border text-heading font-mono text-xs">v{{ request.state.version|default('1.0.0-alpha.1') }}</span>
             <span class="text-muted">•</span>
-            <span>© 2025 MedData Bridge</span>
+            <span>© 2025 IntegraSanté by CPage</span>
           </div>
           <div class="flex flex-wrap items-center gap-3">
             <a href="/docs/changelog" class="text-muted hover:text-accent transition-colors flex items-center gap-1.5 text-xs">

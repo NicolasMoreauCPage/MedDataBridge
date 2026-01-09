@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="fav2-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0EA5E9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0284C7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fav2-grad-2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="fav2-grad-3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="64" height="64" fill="white" rx="12"/>
+  
+  <!-- Three puzzle pieces -->
+  <g transform="translate(12, 16)">
+    <!-- Piece 1 (Blue) -->
+    <path d="M 0 4 L 0 20 L 6 20 Q 7.5 18.5 6 17 Q 4.5 15.5 6 14 L 6 4 Q 4.5 2.5 3 4 Q 1.5 5.5 3 7 Z" 
+          fill="url(#fav2-grad-1)" 
+          stroke="#0369A1" 
+          stroke-width="1"/>
+    
+    <!-- Piece 2 (Green) -->
+    <path d="M 10 4 L 10 20 L 24 20 L 24 14 Q 25.5 12.5 24 11 Q 22.5 9.5 24 8 L 24 4 Z" 
+          fill="url(#fav2-grad-2)" 
+          stroke="#059669" 
+          stroke-width="1"/>
+    
+    <!-- Piece 3 (Purple) -->
+    <path d="M 28 4 L 28 8 Q 26.5 9.5 28 11 Q 29.5 12.5 28 14 L 28 20 L 42 20 L 42 4 Z" 
+          fill="url(#fav2-grad-3)" 
+          stroke="#7C3AED" 
+          stroke-width="1"/>
+  </g>
+</svg>

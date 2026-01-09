@@ -1,7 +1,7 @@
 # Import ght router first to avoid circular imports
 import app.routers.ght as ght
 """
-Composition de l'application FastAPI (MedData Bridge)
+Composition de l'application FastAPI (IntegraSanté by CPage)
 
 Rôle de ce module
 - Construire l'instance FastAPI et y brancher middlewares, routeurs et admin.
@@ -637,7 +637,7 @@ if not testing:
         app,
         engine,
         base_url="/sqladmin",
-        title="MedData Bridge - Admin SQL",
+        title="IntegraSanté - Admin SQL",
         templates_dir=templates_path,
         authentication_backend=NoAuthBackend(secret_key="not-used-for-internal-app")
     )

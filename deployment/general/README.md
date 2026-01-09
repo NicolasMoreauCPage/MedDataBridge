@@ -1,8 +1,8 @@
-# 📦 MedDataBridge - Package de Déploiement RHEL 7.9
+# 📦 IntegraSanté - Package de Déploiement RHEL 7.9
 
-## 🎯 Vue d'Ensemble
+## 👋 Vue d'ensemble
 
-Ce package contient tout le nécessaire pour déployer MedDataBridge sur **RHEL 7.9** avec **Python 3.13**, en mode **offline** (sans accès Internet).
+Ce package contient tout le nécessaire pour déployer IntegraSanté sur **RHEL 7.9** avec **Python 3.13**, en mode **offline** (sans accès Internet).
 
 ---
 

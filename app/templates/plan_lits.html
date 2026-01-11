@@ -253,6 +253,7 @@
     <div class="p-6">
       <form id="assign-form" method="POST" action="/mouvements/plan-lits/assign" class="space-y-4">
         <input type="hidden" name="lit_id" id="modal-lit-id">
+        <input type="hidden" name="selected_patient_id" id="selected-patient-id">
         
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-2">Lit sélectionné</label>
@@ -302,27 +303,62 @@ function closeAssignModal() {
   document.getElementById('search-results').innerHTML = '';
 }
 
-// Recherche patient (à implémenter avec endpoint API)
+// Recherche patient (autocomplete via API)
 let searchTimeout;
-document.getElementById('patient-search').addEventListener('input', (e) => {
+const searchInput = document.getElementById('patient-search');
+const searchResults = document.getElementById('search-results');
+const confirmAssignBtn = document.getElementById('confirm-assign');
+const assignForm = document.getElementById('assign-form');
+const selectedPatientIdInput = document.getElementById('selected-patient-id');
+confirmAssignBtn.disabled = true;
+selectedPatientIdInput.value = '';
+
+searchInput.addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
   const query = e.target.value.trim();
-  
   if (query.length < 2) {
-    document.getElementById('search-results').classList.add('hidden');
+    searchResults.classList.add('hidden');
+    searchResults.innerHTML = '';
+    confirmAssignBtn.disabled = true;
+    selectedPatientIdInput.value = '';
     return;
   }
-  
-  searchTimeout = setTimeout(() => {
-    // TODO: appeler endpoint de recherche
-    console.log('Recherche:', query);
-    // Pour l'instant, afficher un message
-    document.getElementById('search-results').innerHTML = `
-      <div class="text-sm text-slate-500 p-3">
-        🔍 Recherche en cours... (endpoint à implémenter)
-      </div>
-    `;
-    document.getElementById('search-results').classList.remove('hidden');
+  searchTimeout = setTimeout(async () => {
+    searchResults.innerHTML = `<div class=\"text-sm text-slate-500 p-3\">🔍 Recherche en cours...</div>`;
+    searchResults.classList.remove('hidden');
+    try {
+      const resp = await fetch(`/mouvements/api/plan-lits/patient-search?q=${encodeURIComponent(query)}`);
+      if (!resp.ok) throw new Error('Erreur API');
+      const data = await resp.json();
+      if (data.results && data.results.length > 0) {
+        searchResults.innerHTML = data.results.map(p => `
+          <div class=\"p-2 hover:bg-emerald-50 rounded cursor-pointer patient-result\" data-patient-id=\"${p.id}\" data-patient-name=\"${p.family} ${p.given || ''}\">
+            <div class=\"font-semibold\">${p.family} <span class=\"text-slate-700\">${p.given || ''}</span></div>
+            <div class=\"text-xs text-slate-500\">${p.identifier ? 'IPP: ' + p.identifier + ' · ' : ''}${p.birth_date || ''}${p.gender ? ' · ' + p.gender : ''}</div>
+          </div>
+        `).join('');
+        // Add click event listeners to patient results
+        document.querySelectorAll('.patient-result').forEach(el => {
+          el.addEventListener('click', () => {
+            // Highlight selected
+            document.querySelectorAll('.patient-result').forEach(r => r.classList.remove('bg-emerald-100'));
+            el.classList.add('bg-emerald-100');
+            // Store selected patient id in hidden input
+            selectedPatientIdInput.value = el.dataset.patientId;
+            // Enable confirm button
+            confirmAssignBtn.disabled = false;
+          });
+        });
+      } else {
+        searchResults.innerHTML = `<div class=\"text-sm text-slate-500 p-3\">Aucun patient trouvé</div>`;
+        confirmAssignBtn.disabled = true;
+        selectedPatientIdInput.value = '';
+      }
+    } catch (err) {
+      searchResults.innerHTML = `<div class=\"text-sm text-red-500 p-3\">Erreur lors de la recherche</div>`;
+      confirmAssignBtn.disabled = true;
+      selectedPatientIdInput.value = '';
+    }
   }, 300);
 });
 

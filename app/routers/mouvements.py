@@ -1,4 +1,23 @@
+
+# ...existing code...
+
+# ...existing code...
+
+# Affecter un patient à un lit (plan-lits)
+from fastapi import status
+
+# ...existing code...
+
+
+# ...existing code...
+
+# Affecter un patient à un lit (plan-lits)
+from fastapi import status
+
+# ...existing code...
+
 from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select
@@ -7,7 +26,28 @@ from typing import Optional
 import logging
 from app.db import get_session, get_next_sequence, peek_next_sequence
 from app.services.vocabulary_lookup import get_vocabulary_options
-from app.models import Mouvement, Venue, Dossier
+from app.models import Mouvement, Venue, Dossier, Patient
+from sqlmodel import or_
+
+
+
+# Correct FastAPI dependency for request object
+from fastapi import Request as FastAPIRequest
+def require_ght_context_dep(request: FastAPIRequest):
+    from app.dependencies.ght import require_ght_context as _require_ght_context
+    return _require_ght_context(request)
+
+router = APIRouter(
+    prefix="/mouvements",
+    tags=["mouvements"],
+    dependencies=[Depends(require_ght_context_dep)]
+)
+
+# --- Patient search endpoint for plan-lits assignment popup ---
+
+
+# --- Patient search endpoint for plan-lits assignment popup (AJAX, no GHT context required) ---
+# (Moved below ajax_router definition)
 from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
@@ -2075,6 +2115,38 @@ def delete_uf(uf_id: int, session=Depends(get_session), request: Request = None)
     session.delete(uf)
     session.commit()
     return RedirectResponse(url="/mouvements/new", status_code=303)
+
+@ajax_router.get("/plan-lits/patient-search", response_class=JSONResponse)
+def patient_search_api(
+    q: str = Query(..., min_length=2, description="Nom, prénom, identifiant, etc."),
+    limit: int = Query(10, ge=1, le=50),
+    session=Depends(get_session),
+):
+    """API endpoint for patient autocomplete/search in plan-lits assignment popup."""
+    query = (
+        select(Patient)
+        .where(
+            or_(
+                Patient.family.ilike(f"%{q}%"),
+                Patient.given.ilike(f"%{q}%"),
+                Patient.identifier.ilike(f"%{q}%")
+            )
+        )
+        .limit(limit)
+    )
+    patients = session.exec(query).all()
+    results = [
+        {
+            "id": p.id,
+            "identifier": p.identifier,
+            "family": p.family,
+            "given": p.given,
+            "birth_date": str(p.birth_date) if p.birth_date else None,
+            "gender": p.gender,
+        }
+        for p in patients
+    ]
+    return {"results": results}
 
 
 

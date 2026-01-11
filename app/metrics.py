@@ -241,3 +241,25 @@ def record_fhir_event(
         action=(action or "unknown").lower(),
         status_code=status_code,
     )
+
+
+# Provide a `metrics` object for tests and other modules that import
+# `from app.metrics import metrics`.
+try:
+    # Prefer the MetricsCollector instance from the structured logging module
+    from app.utils.structured_logging import metrics as metrics  # type: ignore
+except Exception:
+    # If not available, create a local fallback collector with minimal API
+    class _FallbackMetrics:
+        def __init__(self):
+            self._data = {}
+
+        def get_metrics(self, operation=None):
+            return self._data if operation is None else self._data.get(operation, {})
+
+        def record_operation(self, operation, duration, status="success", **kwargs):
+            self._data.setdefault(operation, {"count": 0, "total_duration": 0.0})
+            self._data[operation]["count"] += 1
+            self._data[operation]["total_duration"] += duration or 0.0
+
+    metrics = _FallbackMetrics()

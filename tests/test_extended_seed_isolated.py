@@ -17,6 +17,7 @@ from app.services.structure_seed import (
 )
 
 engine = create_engine("sqlite:///:memory:")
+import app.models_vocabulary  # ensure vocabulary models are registered before create_all
 SQLModel.metadata.create_all(engine)
 
 def session_factory_local():

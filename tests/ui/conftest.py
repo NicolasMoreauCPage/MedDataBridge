@@ -82,9 +82,6 @@ def patient_context(page, test_server):
     return None
 # Temporary file to fix conftest.py
 import pytest
-from app.app import create_app
-from app.db import get_session, engine
-from fastapi import FastAPI
 import os
 import uvicorn
 from multiprocessing import Process
@@ -101,6 +98,9 @@ def run_app(host, port):
     # fixture uses browser navigation to set session where possible.
     os.environ["TESTING"] = "0"
 
+    # Import create_app inside the server process to avoid initializing the
+    # full FastAPI app during pytest collection in the parent process.
+    from app.app import create_app
     app = create_app()
     config = uvicorn.Config(
         app,

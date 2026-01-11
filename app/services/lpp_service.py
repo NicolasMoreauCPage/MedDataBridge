@@ -41,17 +41,23 @@ class LPPService:
         if abs(act_data.montant_total - expected_total) > 0.01:
             raise HTTPException(status_code=400, detail="Montant total incohérent avec prix unitaire * quantité")
 
-        # Créer l'acte
+        # Créer l'acte — mapper les champs du schéma vers le modèle LPPAct
+        # Le modèle attend `montant_unitaire_facture_ttc` (obligatoire),
+        # tandis que le schéma utilise `prix_unitaire` et `montant_total`.
+        montant_unitaire = float(act_data.prix_unitaire)
+        quantite_val = int(act_data.quantite) if act_data.quantite is not None else 1
+        if montant_unitaire is None or montant_unitaire <= 0:
+            raise HTTPException(status_code=400, detail="montant_unitaire_facture_ttc doit être positif et renseigné")
+
         act = LPPAct(
             dossier_id=act_data.dossier_id,
             code_lpp=act_data.code_lpp,
-            libelle=act_data.libelle,
-            quantite=act_data.quantite,
-            prix_unitaire=act_data.prix_unitaire,
-            montant_total=act_data.montant_total,
+            denomination_libelle=act_data.libelle,
+            quantite=quantite_val,
+            montant_unitaire_facture_ttc=montant_unitaire,
             execute_date=act_data.execute_date,
-            prestataire_id=act_data.prestataire_id,
-            commentaire=act_data.commentaire
+            prestataire_id=getattr(act_data, "prestataire_id", None),
+            commentaire=getattr(act_data, "commentaire", None),
         )
 
         self.db.add(act)

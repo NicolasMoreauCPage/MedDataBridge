@@ -22,7 +22,7 @@ from sqlmodel import select
 from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.db import get_session
+from app.db import session_factory
 from app.models_structure import GHTContext, EntiteJuridique
 from app.models import Patient, Dossier
 from app.models_endpoints import MessageLog
@@ -50,14 +50,11 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
             logger.debug("[get_active_ght_context] context_id=%s", context_id)
 
         if context_id:
-            session = next(get_session())
-            try:
+            with session_factory() as session:
                 ctx = session.get(GHTContext, context_id)
                 if debug_enabled:
                     logger.debug("[get_active_ght_context] Loaded context: %s", getattr(ctx, 'name', None))
                 return ctx
-            finally:
-                session.close()
         # Solution de repli for tests: if the signed session cookie isn't parsed but
         # tests have set a simple cookie 'medbridge_test' and/or a JSON
         # 'medbridge_test_data' payload, read those and attempt to resolve
@@ -78,8 +75,7 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                             parsed = _json.loads(raw)
                         plain_gid = parsed.get("ght_id")
                         if plain_gid is not None:
-                            session = next(get_session())
-                            try:
+                            with session_factory() as session:
                                 ctx = session.get(GHTContext, int(plain_gid))
                                 # Best-effort populate session for the request
                                 try:
@@ -92,8 +88,6 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                                     # ignore session set failures
                                     pass
                                 return ctx
-                            finally:
-                                session.close()
                     except Exception:
                         # parsing failed; fall back to older cookie approach
                         pass
@@ -101,12 +95,9 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                 if request.cookies.get("medbridge_test"):
                     plain_gid = request.cookies.get("ght_context_id")
                     if plain_gid:
-                        session = next(get_session())
-                        try:
+                        with session_factory() as session:
                             ctx = session.get(GHTContext, int(plain_gid))
                             return ctx
-                        finally:
-                            session.close()
         except Exception:
             pass
     except Exception as e:
@@ -120,11 +111,8 @@ async def get_active_patient_context(request: Request) -> Optional[Patient]:
     try:
         patient_id = request.session.get("patient_id")
         if patient_id:
-            session = next(get_session())
-            try:
+            with session_factory() as session:
                 return session.get(Patient, patient_id)
-            finally:
-                session.close()
     except Exception:
         pass
     return None
@@ -135,11 +123,8 @@ async def get_active_ej_context(request: Request) -> Optional[EntiteJuridique]:
     try:
         ej_id = request.session.get("ej_context_id")
         if ej_id:
-            session = next(get_session())
-            try:
+            with session_factory() as session:
                 return session.get(EntiteJuridique, ej_id)
-            finally:
-                session.close()
     except Exception:
         pass
     return None
@@ -150,11 +135,8 @@ async def get_active_dossier_context(request: Request) -> Optional[Dossier]:
     try:
         dossier_id = request.session.get("dossier_id")
         if dossier_id:
-            session = next(get_session())
-            try:
+            with session_factory() as session:
                 return session.get(Dossier, dossier_id)
-            finally:
-                session.close()
     except Exception:
         pass
     return None
@@ -172,8 +154,7 @@ async def get_error_message_count(request: Request) -> int:
     - Sinon: tous les messages en erreur
     """
     try:
-        session = next(get_session())
-        try:
+        with session_factory() as session:
             query = select(func.count(MessageLog.id)).where(MessageLog.validation_status == "error")
             
             # Filtrer par contexte du plus spécifique au plus général
@@ -203,8 +184,6 @@ async def get_error_message_count(request: Request) -> int:
             
             result = session.execute(query).scalar_one()
             return result or 0
-        finally:
-            session.close()
     except Exception:
         return 0
 

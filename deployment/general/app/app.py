@@ -97,18 +97,18 @@ async def lifespan(app: FastAPI):
         register_entity_events()
         register_structure_entity_events()
         logging.info("Entity event listeners registered for automatic emission")
-        # Démarrage idempotent
-        sess = next(get_session())
-        try:
+        # Démarrage idempotent - use explicit session context manager
+        with session_factory() as sess:
             # Initialiser les vocabulaires si demandé
             if os.getenv("INIT_VOCAB", "0") in ("1", "true", "True"):
                 from app.vocabulary_init import init_vocabularies
-                init_vocabularies(sess)
-                logging.info("Vocabulaires initialisés")
-            
+                try:
+                    init_vocabularies(sess)
+                    logging.info("Vocabulaires initialisés")
+                except Exception as e:
+                    logging.error(f"Erreur initialisation vocabulaires: {e}")
+
             await mllp_manager.reload_all(sess)
-        finally:
-            sess.close()
         
         # Démarrer le scheduler pour le polling des endpoints FILE
         # Par défaut: 60 secondes (1 minute). Configurable via FILE_POLL_INTERVAL

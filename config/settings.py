@@ -27,6 +27,12 @@ class Settings:
     # File polling
     file_poll_interval: int = int(os.getenv("FILE_POLL_INTERVAL", "60"))
 
+    # Task concurrency (default used in tests and runtime if not configured)
+    max_concurrent_tasks: int = int(os.getenv("MAX_CONCURRENT_TASKS", "3"))
+    # Task manager defaults
+    task_timeout: int = int(os.getenv("TASK_TIMEOUT", "3600"))
+    task_worker_count: int = int(os.getenv("TASK_WORKER_COUNT", "3"))
+
 
 # Global settings instance
 settings = Settings()

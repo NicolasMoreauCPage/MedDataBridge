@@ -19,6 +19,7 @@ from contextlib import suppress
 from sqlmodel import select
 from app.models_endpoints import SystemEndpoint
 from app.services.mllp import start_mllp_server, stop_mllp_server
+from config.settings import settings
 
 class MLLPManager:
     """Gestionnaire de serveurs MLLP.
@@ -40,6 +41,9 @@ class MLLPManager:
 
     async def start_endpoint(self, endpoint: SystemEndpoint):
         """Démarre un endpoint MLLP s'il est éligible et non déjà démarré."""
+        # During tests, avoid starting network servers
+        if getattr(settings, "testing", False):
+            return
         if endpoint.kind != "MLLP" or endpoint.role not in ("receiver","both"):
             return
         if not endpoint.host or not endpoint.port:
@@ -85,6 +89,9 @@ class MLLPManager:
 
     async def stop_all(self):
         """Arrête tous les serveurs en cours."""
+        # During tests, no-op
+        if getattr(settings, "testing", False):
+            return
         async with self._lock:
             servers = list(self.servers.values())
             self.servers.clear()
@@ -98,6 +105,9 @@ class MLLPManager:
         Arrête d'abord les serveurs existants, puis démarre tous les
         endpoints MLLP ayant `is_enabled=True`.
         """
+        # During tests, skip reloading MLLP endpoints
+        if getattr(settings, "testing", False):
+            return
         await self.stop_all()
         eps = session.exec(
             select(SystemEndpoint).where(

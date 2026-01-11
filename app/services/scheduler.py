@@ -9,10 +9,11 @@ from typing import Optional
 from datetime import datetime
 
 from sqlmodel import Session
-from app.db import get_session
+from app.db import session_factory
 from app.services.file_poller import scan_file_endpoints
 from sqlmodel import select
 from app.models_shared import SystemEndpoint
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +39,13 @@ class BackgroundScheduler:
     
     async def start(self):
         """Start the background scheduler"""
+        import os
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            logger.info("Scheduler not started: running under pytest")
+            return
         if self.running:
             logger.warning("Scheduler already running")
             return
-        
         self.running = True
         self.task = asyncio.create_task(self._poll_loop())
         logger.info(f"Background scheduler started (poll interval: {self.poll_interval_seconds}s)")
@@ -77,11 +81,8 @@ class BackgroundScheduler:
     
     async def _scan_file_endpoints(self):
         """Scan all file endpoints"""
-        # Create a session for this scan
-        session_gen = get_session()
-        session = next(session_gen)
-        
-        try:
+        # Create a session for this scan using the explicit factory
+        with session_factory() as session:
             # Quick check: if there are no enabled FILE endpoints, skip the expensive scan.
             stmt = select(SystemEndpoint).where(
                 SystemEndpoint.kind == "FILE",
@@ -94,7 +95,6 @@ class BackgroundScheduler:
 
             logger.debug("Scanning file endpoints...")
             stats = await scan_file_endpoints(session)
-            
             if stats['files_processed'] > 0 or stats['errors']:
                 logger.info(
                     f"File scan complete: {stats['endpoints_scanned']} endpoints, "
@@ -106,11 +106,7 @@ class BackgroundScheduler:
                 if stats['errors']:
                     for error in stats['errors']:
                         logger.error(f"  - {error}")
-        finally:
-            try:
-                next(session_gen, None)  # Close the session
-            except StopIteration:
-                pass
+        # context manager ensures session closed/rolled back correctly
 
 
 # Global scheduler instance
@@ -141,12 +137,22 @@ async def start_scheduler(poll_interval_seconds: int = 60):
         poll_interval_seconds: Polling interval (default: 60s = 1 minute)
     """
     scheduler = get_scheduler(poll_interval_seconds)
+    # During tests we avoid starting background tasks
+    if getattr(settings, "testing", False):
+        logger.info("Skipping scheduler start in testing mode")
+        return
+
     await scheduler.start()
 
 
 async def stop_scheduler():
     """Stop the background scheduler"""
     global _scheduler
+    if getattr(settings, "testing", False):
+        logger.info("Skipping scheduler stop in testing mode")
+        _scheduler = None
+        return
+
     if _scheduler:
         await _scheduler.stop()
         _scheduler = None

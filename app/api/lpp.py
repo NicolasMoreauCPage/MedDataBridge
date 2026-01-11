@@ -8,10 +8,10 @@ from app.db import get_session
 from app.schemas.lpp import LPPActCreate, LPPActUpdate, LPPActResponse
 from app.services.lpp_service import LPPService
 
-router = APIRouter(prefix="/lpp", tags=["LPP API"])
+router = APIRouter(prefix="/api/lpp", tags=["LPP API"])
 
 
-@router.post("/", response_model=LPPActResponse)
+@router.post("/", response_model=LPPActResponse, status_code=201)
 async def create_lpp_act(
     act: LPPActCreate,
     session: Session = Depends(get_session)
@@ -107,7 +107,7 @@ async def update_lpp_act(
     return await service.update_act(act_id, act)
 
 
-@router.delete("/{act_id}")
+@router.delete("/{act_id}", status_code=204)
 async def delete_lpp_act(
     act_id: int,
     session: Session = Depends(get_session)

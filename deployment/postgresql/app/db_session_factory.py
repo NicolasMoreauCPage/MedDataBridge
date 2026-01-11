@@ -1,11 +1,6 @@
 # app/db_session_factory.py
-from contextlib import contextmanager
-from app.db import get_session
+from app.db import session_factory as session_factory_impl
 
-@contextmanager
+# Re-export the session_factory from the main app.db module for deployment
 def session_factory():
-    s = next(get_session())
-    try:
-        yield s
-    finally:
-        s.close()
+    return session_factory_impl()

@@ -8,10 +8,10 @@ from app.db import get_session
 from app.schemas.ucd import UCDActCreate, UCDActUpdate, UCDActResponse
 from app.services.ucd_service import UCDService
 
-router = APIRouter(prefix="/ucd", tags=["UCD API"])
+router = APIRouter(prefix="/api/ucd", tags=["UCD API"])
 
 
-@router.post("/", response_model=UCDActResponse)
+@router.post("/", response_model=UCDActResponse, status_code=201)
 async def create_ucd_act(
     act: UCDActCreate,
     session: Session = Depends(get_session)
@@ -107,7 +107,7 @@ async def update_ucd_act(
     return await service.update_act(act_id, act)
 
 
-@router.delete("/{act_id}")
+@router.delete("/{act_id}", status_code=204)
 async def delete_ucd_act(
     act_id: int,
     session: Session = Depends(get_session)

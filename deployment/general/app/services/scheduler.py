@@ -9,7 +9,7 @@ from typing import Optional
 from datetime import datetime
 
 from sqlmodel import Session
-from app.db import get_session
+from app.db import session_factory
 from app.services.file_poller import scan_file_endpoints
 from sqlmodel import select
 from app.models_shared import SystemEndpoint
@@ -77,11 +77,8 @@ class BackgroundScheduler:
     
     async def _scan_file_endpoints(self):
         """Scan all file endpoints"""
-        # Create a session for this scan
-        session_gen = get_session()
-        session = next(session_gen)
-        
-        try:
+        # Create a session for this scan using the explicit factory
+        with session_factory() as session:
             # Quick check: if there are no enabled FILE endpoints, skip the expensive scan.
             stmt = select(SystemEndpoint).where(
                 SystemEndpoint.kind == "FILE",
@@ -94,7 +91,6 @@ class BackgroundScheduler:
 
             logger.debug("Scanning file endpoints...")
             stats = await scan_file_endpoints(session)
-            
             if stats['files_processed'] > 0 or stats['errors']:
                 logger.info(
                     f"File scan complete: {stats['endpoints_scanned']} endpoints, "
@@ -106,11 +102,7 @@ class BackgroundScheduler:
                 if stats['errors']:
                     for error in stats['errors']:
                         logger.error(f"  - {error}")
-        finally:
-            try:
-                next(session_gen, None)  # Close the session
-            except StopIteration:
-                pass
+        # context manager ensures session closed/rolled back correctly
 
 
 # Global scheduler instance

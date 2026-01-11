@@ -1,6 +1,36 @@
 <!doctype html>
 <html lang="fr" class="font-sans" data-theme="light">
 <head>
+  <script>
+    // Pré-flight theme: appliquer le thème stocké (ou auto) avant le rendu
+    (function(){
+      try {
+        const saved = localStorage.getItem('theme') || 'auto';
+        const html = document.documentElement;
+        function applyTheme(t) {
+          if (t === 'auto') {
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (prefersDark) {
+              html.classList.add('dark');
+              html.setAttribute('data-theme', 'dark');
+            } else {
+              html.classList.remove('dark');
+              html.setAttribute('data-theme', 'light');
+            }
+          } else if (t === 'dark') {
+            html.classList.add('dark');
+            html.setAttribute('data-theme', 'dark');
+          } else {
+            html.classList.remove('dark');
+            html.setAttribute('data-theme', 'light');
+          }
+        }
+        applyTheme(saved);
+      } catch (e) {
+        // defensive: ne pas empêcher le rendu si localStorage n'est pas disponible
+      }
+    })();
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title|default('IntegraSanté by CPage') }}</title>

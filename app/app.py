@@ -93,8 +93,10 @@ mllp_manager = MLLPManager(session_factory=session_factory, on_message=on_messag
 async def lifespan(app: FastAPI):
     # En tests, on ne veut pas initialiser la DB de production (medbridge.db) ni démarrer
     # des serveurs MLLP en arrière-plan. Les tests surchargent l'accès DB via
-    # des overrides, on saute donc init/reload quand TESTING est présent.
-    testing = settings.testing
+    # des overrides, on saute donc init/reload quand TESTING est présent ou PYTEST_RUNNING.
+    import os
+    PYTEST_RUNNING = "PYTEST_CURRENT_TEST" in os.environ
+    testing = settings.testing or PYTEST_RUNNING
     if not testing:
         init_db()
         # Provide the running asyncio loop to runners so synchronous handlers
@@ -110,14 +112,22 @@ async def lifespan(app: FastAPI):
         register_structure_entity_events()
         logging.info("Entity event listeners registered for automatic emission")
         # Démarrage idempotent
-        sess = next(get_session())
-        try:
+        # Use an explicit session context manager here instead of consuming
+        # the dependency generator with next(get_session()). Calling
+        # next(get_session()) leaves the generator open and can cause the
+        # underlying context manager to never exit, producing transaction
+        # state errors like 'cannot rollback - no transaction is active'.
+        with session_factory() as sess:
             # Initialiser les vocabulaires si demandé
             if os.getenv("INIT_VOCAB", "0") in ("1", "true", "True"):
                 from app.vocabulary_init import init_vocabularies
-                init_vocabularies(sess)
-                logging.info("Vocabulaires initialisés")
-            
+                init_scenario = False
+                try:
+                    init_vocabularies(sess)
+                    logging.info("Vocabulaires initialisés")
+                except Exception as e:
+                    logging.error(f"Erreur initialisation vocabulaires: {e}")
+
             # Démarrer les serveurs MLLP pour tous les endpoints configurés
             try:
                 await mllp_manager.reload_all(sess)
@@ -125,8 +135,6 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logging.error(f"Erreur lors du démarrage des serveurs MLLP: {e}")
                 logging.warning("L'application continue sans les serveurs MLLP")
-        finally:
-            sess.close()
         
         # Démarrer le scheduler pour le polling des endpoints FILE
         # Par défaut: 60 secondes (1 minute). Configurable via FILE_POLL_INTERVAL

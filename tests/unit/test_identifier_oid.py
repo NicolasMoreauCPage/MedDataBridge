@@ -10,7 +10,7 @@ os.environ['LOG_LEVEL'] = 'DEBUG'
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.services.transport_inbound import on_message_inbound_async
-from app.db import get_session
+from app.db import get_session, session_factory
 from app.models_shared import SystemEndpoint
 
 async def test():
@@ -18,10 +18,10 @@ async def test():
         message = f.read()
     
     print("=== Testing identifier OID extraction ===")
-    session = next(get_session())
-    endpoint = session.get(SystemEndpoint, 1)
-    result = await on_message_inbound_async(message, session, endpoint)
-    print(f"\n=== RESULT: {result}")
+    with session_factory() as session:
+        endpoint = session.get(SystemEndpoint, 1)
+        result = await on_message_inbound_async(message, session, endpoint)
+        print(f"\n=== RESULT: {result}")
 
 if __name__ == "__main__":
     asyncio.run(test())

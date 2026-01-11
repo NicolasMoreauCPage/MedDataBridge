@@ -12,62 +12,18 @@ from typing import Dict, Any
 # Ensure app runs in testing mode
 os.environ.setdefault("TESTING", "1")
 
-from app.app import app
+# Delay importing the FastAPI app to fixture runtime to avoid heavy
+# initialization during pytest collection. Import `app` inside fixtures
+# that actually require it.
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an event loop for the session."""
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
 
 
-@pytest.fixture(scope="session")
-async def browser():
-    """Launch browser for E2E tests."""
-    async with async_playwright() as playwright:
-        # Use Chromium for consistent testing
-        browser = await playwright.chromium.launch(
-            headless=True,  # Set to False for debugging
-            args=['--no-sandbox', '--disable-dev-shm-usage']
-        )
-        yield browser
-        await browser.close()
 
+# Note: Use Playwright pytest plugin-provided fixtures (playwright, browser, page, context)
+# to avoid conflicts and ensure correct async fixture behavior.
 
-@pytest.fixture(scope="session")
-async def context(browser):
-    """Create browser context with common settings."""
-    context = await browser.new_context(
-        viewport={'width': 1280, 'height': 720},
-        locale='fr-FR',
-        timezone_id='Europe/Paris',
-        # Enable JavaScript and allow permissions
-        permissions=['geolocation'],
-        # Record traces for debugging failures
-        record_video_dir="tests/artifacts/videos" if os.getenv("RECORD_VIDEO") else None,
-        record_har_path="tests/artifacts/har.json" if os.getenv("RECORD_HAR") else None
-    )
-    yield context
-    await context.close()
-
-
-@pytest.fixture
-async def page(context):
-    """Create a new page for each test."""
-    page = await context.new_page()
-    
-    # Set longer timeout for complex operations
-    page.set_default_timeout(30000)
-    
-    # Add console logging for debugging
-    if os.getenv("DEBUG_CONSOLE"):
-        page.on("console", lambda msg: print(f"Console {msg.type}: {msg.text}"))
-        page.on("pageerror", lambda error: print(f"Page Error: {error}"))
-    
-    yield page
-    await page.close()
+# Keep `test_server` fixture to point to local server under test.
 
 
 @pytest.fixture(scope="session")
@@ -78,18 +34,21 @@ def test_server():
 
 @pytest.fixture
 async def authenticated_page(page, test_server):
-    """Create an authenticated page session for protected routes."""
-    # Navigate to authentication if required
+    """Use the plugin-provided `page` fixture and ensure the session is ready for protected routes."""
+    # Ensure timeout/console behavior matches previous expectations
+    page.set_default_timeout(30000)
+
+    # Navigate to root to prime any server-side session/cookies
     await page.goto(f"{test_server}/")
-    
-    # Check if authentication is required
+
+    # If server redirects to /login or /auth, tests may need to provide credentials.
+    # For now assume public access or that TEST_AUTH_TOKEN is set and server accepts it.
     current_url = page.url
     if "/login" in current_url or "/auth" in current_url:
-        # Handle authentication here if needed
-        # For now, assume public access or mock auth
+        # No-op: leave it to tests or environment to provide auth flow.
         pass
-    
-    return page
+
+    yield page
 
 
 class E2ETestHelpers:

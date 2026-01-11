@@ -17,186 +17,190 @@ from playwright.async_api import expect
 
 @pytest.mark.e2e_integration
 @pytest.mark.asyncio
-async def test_complete_user_workflow(authenticated_page, test_server, e2e_helpers):
+async def test_complete_user_workflow(page, test_server, e2e_helpers):
     """Test le workflow complet utilisateur à travers toutes les phases."""
-    page = authenticated_page
-    
+
     # 1. Démarrer depuis l'accueil
+    import inspect
+    print("DEBUG: page type:", type(page), "isasyncgen:", inspect.isasyncgen(page), "iscoroutine:", inspect.iscoroutine(page))
+    try:
+        # try to print a short representation
+        print("DEBUG: page repr:", repr(page)[:200])
+    except Exception as _:
+        pass
+
     await page.goto(f"{test_server}/")
     await e2e_helpers.wait_for_network_idle(page)
-    
     # 2. Navigation vers Design System
     design_link = page.locator("a[href*='/design-system']")
     if await design_link.count() > 0:
         await design_link.click()
         await e2e_helpers.wait_for_network_idle(page)
-        
+
         # Vérifier qu'on est sur la page Design System
         await expect(page).to_have_url("*/design-system")
         await e2e_helpers.assert_element_visible(page, ".design-system-container")
-        
+
         # Screenshot étape 1
         await e2e_helpers.take_screenshot(page, "integration_step1_design_system")
-    
+
     # 3. Navigation vers Interface Interactive
     interactive_link = page.locator("a[href*='/structure/interactive']")
     if await interactive_link.count() > 0:
         await interactive_link.click()
         await e2e_helpers.wait_for_network_idle(page)
-        
+
         # Vérifier la page Interactive
         await expect(page).to_have_url("*/structure/interactive")
         await e2e_helpers.assert_element_visible(page, ".structure-interactive-container")
-        
+
         # Test interaction rapide
         structure_card = page.locator(".structure-card").first
         if await structure_card.count() > 0:
             await structure_card.click()
-        
+
         # Screenshot étape 2
         await e2e_helpers.take_screenshot(page, "integration_step2_interactive")
-    
+
     # 4. Navigation vers Recherche Avancée
     search_link = page.locator("a[href*='/structure/search']")
     if await search_link.count() > 0:
         await search_link.click()
         await e2e_helpers.wait_for_network_idle(page)
-        
+
         # Vérifier la page Recherche
         await expect(page).to_have_url("*/structure/search")
         await e2e_helpers.assert_element_visible(page, ".search-container")
-        
+
         # Test recherche rapide
         search_input = page.locator(".search-input, input[name='search']")
         if await search_input.count() > 0:
             await search_input.fill("test integration")
-            
+
             search_button = page.locator(".search-button, .btn-search")
             if await search_button.count() > 0:
                 await search_button.click()
-            
+
             await e2e_helpers.wait_for_network_idle(page)
             await asyncio.sleep(2)
-        
+
         # Screenshot étape 3
         await e2e_helpers.take_screenshot(page, "integration_step3_search")
-    
+
     # 5. Retour vers Design System pour vérifier la cohérence
     if await page.locator("a[href*='/design-system']").count() > 0:
         await page.locator("a[href*='/design-system']").click()
         await e2e_helpers.wait_for_network_idle(page)
-        
+
         # Vérifier que le Design System est toujours cohérent
         await e2e_helpers.assert_element_visible(page, ".color-palette-section")
-        
+
         # Screenshot final
         await e2e_helpers.take_screenshot(page, "integration_step4_complete_workflow")
 
 
 @pytest.mark.e2e_integration
 @pytest.mark.asyncio
-async def test_design_system_consistency(authenticated_page, test_server, e2e_helpers):
+async def test_design_system_consistency(page, test_server, e2e_helpers):
     """Test la cohérence du Design System à travers toutes les pages."""
-    page = authenticated_page
-    
+
     # Pages à tester
     phase_5_pages = [
         ("/design-system", ".design-system-container"),
         ("/structure/interactive", ".structure-interactive-container"),
         ("/structure/search", ".search-container")
     ]
-    
+
     css_variables_to_check = [
         "--color-ght",
-        "--color-eg", 
+        "--color-eg",
         "--color-pole",
         "--color-service",
         "--urgence-1",
         "--urgence-5"
     ]
-    
+
     css_values = {}
-    
+
     for page_url, main_selector in phase_5_pages:
         # Naviguer vers la page
         await page.goto(f"{test_server}{page_url}")
         await e2e_helpers.wait_for_network_idle(page)
-        
+
         # Vérifier que la page se charge
         await e2e_helpers.assert_element_visible(page, main_selector)
-        
+
         # Vérifier les variables CSS
         for css_var in css_variables_to_check:
             css_value = await page.evaluate(f"""
                 getComputedStyle(document.documentElement).getPropertyValue('{css_var}')
             """)
-            
+
             if css_var not in css_values:
                 css_values[css_var] = css_value.strip()
             else:
                 # Vérifier la cohérence
                 assert css_values[css_var] == css_value.strip(), \
                     f"CSS variable {css_var} inconsistent: {css_values[css_var]} vs {css_value.strip()}"
-        
+
         # Vérifier la présence de composants du Design System
         common_components = [
             ".structure-card",
             ".btn-primary",
             ".search-input"
         ]
-        
+
         for component in common_components:
             if await page.locator(component).count() > 0:
                 # Le composant existe, vérifier qu'il a les bonnes classes
                 element = page.locator(component).first
                 class_name = await element.get_attribute("class")
                 assert class_name, f"Component {component} should have classes"
-        
+
         # Screenshot de chaque page pour comparaison visuelle
         await e2e_helpers.take_screenshot(page, f"consistency_check_{page_url.replace('/', '_')}")
-    
+
     print("Design System consistency check passed!")
 
 
 @pytest.mark.e2e_integration
 @pytest.mark.asyncio
-async def test_navigation_menu_consistency(authenticated_page, test_server, e2e_helpers):
+async def test_navigation_menu_consistency(page, test_server, e2e_helpers):
     """Test la cohérence du menu de navigation."""
-    page = authenticated_page
-    
+
     expected_nav_links = [
         ("Design System", "/design-system"),
-        ("Interactive", "/structure/interactive"), 
+        ("Interactive", "/structure/interactive"),
         ("Search", "/structure/search")
     ]
-    
+
     # Test sur chaque page Phase 5
     pages_to_test = [
         "/design-system",
-        "/structure/interactive", 
+        "/structure/interactive",
         "/structure/search"
     ]
-    
+
     for current_page in pages_to_test:
         await page.goto(f"{test_server}{current_page}")
         await e2e_helpers.wait_for_network_idle(page)
-        
+
         # Vérifier la présence du menu de navigation
         nav_menu = page.locator(".nav-menu, .navigation, header nav")
         if await nav_menu.count() > 0:
             await expect(nav_menu).to_be_visible()
-            
+
             # Vérifier chaque lien de navigation
             for link_text, link_url in expected_nav_links:
                 nav_link = page.locator(f"a:has-text('{link_text}'), a[href*='{link_url}']")
                 if await nav_link.count() > 0:
                     # Vérifier que le lien est visible et cliquable
                     await expect(nav_link.first).to_be_visible()
-                    
+
                     # Vérifier l'URL du lien
                     href = await nav_link.first.get_attribute("href")
                     assert link_url in (href or ""), f"Link should point to {link_url}"
-        
+
         # Screenshot du menu sur chaque page
         await e2e_helpers.take_screenshot(page, f"navigation_menu_{current_page.replace('/', '_')}")
 

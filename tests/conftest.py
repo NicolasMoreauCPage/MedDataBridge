@@ -53,34 +53,8 @@ from datetime import datetime
 import asyncio
 
 
-# Provide a safe wrapper for asyncio.run that can be used inside pytest
-# where an event loop may already be running (pytest-asyncio). This wrapper
-# will run the coroutine in a new thread with its own event loop when needed.
-def asyncio_run_safe(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
 
-    if loop and loop.is_running():
-        import concurrent.futures
-
-        def _runner():
-            return _original_asyncio_run(coro)
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(_runner)
-            return fut.result()
-    else:
-        return _original_asyncio_run(coro)
-
-
-# Preserve the original asyncio.run before overriding it so the safe wrapper
-# can call the real implementation and avoid recursion.
-_original_asyncio_run = asyncio.run
-# Override asyncio.run with the safe wrapper to handle cases where
-# an event loop is already running (e.g., in pytest-asyncio tests).
-asyncio.run = asyncio_run_safe
+# Correction: Ne pas override asyncio.run, laisser pytest-asyncio gérer l'event loop.
 
  # Optional import-time DB initialization/seeding used by some integration scripts.
  # Disabled by default during pytest runs to avoid interfering with test fixtures

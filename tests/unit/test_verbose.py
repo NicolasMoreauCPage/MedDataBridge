@@ -15,7 +15,7 @@ os.environ['LOG_LEVEL'] = 'DEBUG'
 sys.path.insert(0, '.')
 
 import asyncio
-from app.db import get_session
+from app.db import get_session, session_factory
 from app.models_shared import SystemEndpoint
 from app.services.transport_inbound import on_message_inbound_async
 from sqlalchemy import text
@@ -26,16 +26,20 @@ async def test():
     
     print("\n=== DÉBUT DU TEST ===\n")
     
-    session = next(get_session())
-    endpoint = session.get(SystemEndpoint, 1)
-    
-    result = await on_message_inbound_async(message, session, endpoint)
-    
-    print(f"\n=== RÉSULTAT ===")
-    print(f"ACK: {result[:150]}...")
-    
-    # Forcer un commit
-    session.commit()
+    with session_factory() as session:
+        endpoint = session.get(SystemEndpoint, 1)
+
+        result = await on_message_inbound_async(message, session, endpoint)
+
+        print(f"\n=== RÉSULTAT ===")
+        print(f"ACK: {result[:150]}...")
+
+        # Forcer un commit
+        session.commit()
+        
+        # Stats finales
+        patients = session.execute(text("SELECT COUNT(*) FROM patient")).scalar()
+        print(f"\n✅ Patients en base: {patients}")
     
     # Stats finales
     patients = session.execute(text("SELECT COUNT(*) FROM patient")).scalar()

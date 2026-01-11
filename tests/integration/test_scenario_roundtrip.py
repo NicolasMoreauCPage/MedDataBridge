@@ -461,7 +461,8 @@ def run_roundtrip_test():
     print("=" * 60)
     print(f"Date: {datetime.now().isoformat()}")
     
-    with next(get_session()) as session:
+    from app.db import session_factory
+    with session_factory() as session:
         # 1. Configurer l'EJ
         config = setup_ej_config(session)
         

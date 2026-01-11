@@ -2154,15 +2154,24 @@ class _EmitToSendersWrapper:
         self._async = async_callable
 
     def __call__(self, entity, entity_type, session: Session, **kwargs):
-        coro = self._async(entity, entity_type, session, **kwargs)
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # No running loop: run synchronously
-            return asyncio.run(coro)
-        else:
-            # Running loop present: Renvoie coroutine to be awaited by caller
-            return coro
+        # The underlying implementation may be async (returning a coroutine)
+        # or synchronous (returning None or a regular value). Detect and
+        # handle both cases to avoid passing None to asyncio.run.
+        result = self._async(entity, entity_type, session, **kwargs)
+        # If the underlying call returned a coroutine, either run it
+        # synchronously when no loop is running, or return it for the
+        # caller to await when a loop is present.
+        if asyncio.iscoroutine(result):
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No running loop: run synchronously
+                return asyncio.run(result)
+            else:
+                # Running loop present: return coroutine to be awaited by caller
+                return result
+        # Not a coroutine: it's a regular/sync function result (possibly None)
+        return result
 
 
 emit_to_senders = _EmitToSendersWrapper(emit_to_senders_async)

@@ -10,7 +10,7 @@ os.environ['PAM_AUTO_CREATE_UF'] = '1'
 sys.path.insert(0, os.path.dirname(__file__))
 
 from app.services.transport_inbound import on_message_inbound_async
-from app.db import get_session
+from app.db import get_session, session_factory
 from app.models_shared import SystemEndpoint
 
 async def test():
@@ -21,20 +21,20 @@ async def test():
         print("=== Testing single message import ===")
         print(f"Message: {message[:100]}...")
         
-        session = next(get_session())
-        endpoint = session.get(SystemEndpoint, 1)
-        print(f"Endpoint: {endpoint.name} (ID: {endpoint.id})")
-        
-        result = await on_message_inbound_async(message, session, endpoint)
-        print(f"\n=== RESULT: {result[:200]}")
-        
-        # Check database
-        from sqlalchemy import text
-        patients = session.execute(text("SELECT COUNT(*) FROM patient")).scalar()
-        identifiers = session.execute(text("SELECT COUNT(*) FROM identifier")).scalar()
-        print(f"\nDatabase stats:")
-        print(f"  Patients: {patients}")
-        print(f"  Identifiers: {identifiers}")
+        with session_factory() as session:
+            endpoint = session.get(SystemEndpoint, 1)
+            print(f"Endpoint: {endpoint.name} (ID: {endpoint.id})")
+
+            result = await on_message_inbound_async(message, session, endpoint)
+            print(f"\n=== RESULT: {result[:200]}")
+
+            # Check database
+            from sqlalchemy import text
+            patients = session.execute(text("SELECT COUNT(*) FROM patient")).scalar()
+            identifiers = session.execute(text("SELECT COUNT(*) FROM identifier")).scalar()
+            print(f"\nDatabase stats:")
+            print(f"  Patients: {patients}")
+            print(f"  Identifiers: {identifiers}")
         
     except Exception as e:
         print(f"\n=== ERROR ===")

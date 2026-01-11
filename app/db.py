@@ -38,8 +38,17 @@ from sqlalchemy.pool import StaticPool
 
 # Import de la configuration centralisée
 from config.settings import settings
+import sys
 
-if settings.testing:
+# Consider we're in testing mode when either the Settings say so or we're
+# running under pytest (common for local test runs launched via
+# `python -m pytest`). This makes SQLModel.metadata.create_all() run for
+# in-memory engines during test collection so fixtures relying on an
+# initialized schema don't fail with "no such table".
+_running_under_pytest = any("pytest" in arg for arg in sys.argv)
+testing_flag = bool(settings.testing or _running_under_pytest)
+
+if testing_flag:
     engine = create_engine(
         "sqlite:///:memory:",
         echo=False,
@@ -59,9 +68,8 @@ else:
     # Configuration avancée du pool de connexions pour SQLite
     from sqlalchemy.pool import StaticPool, QueuePool
 
-    # Pour SQLite, utiliser StaticPool en production pour éviter les problèmes de threading
-    # mais QueuePool pour les tests si nécessaire
-    pool_class = StaticPool if not settings.testing else QueuePool
+    # For non-testing runs, prefer StaticPool for SQLite; during testing use QueuePool
+    pool_class = StaticPool if not testing_flag else QueuePool
 
     # Préparer les arguments du moteur selon le type de base
     engine_kwargs = {
@@ -115,7 +123,6 @@ def init_db() -> None:
 
         # Dossiers
         conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_patient_id ON dossier(patient_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_venue_id ON dossier(venue_id);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_entite_juridique ON dossier(entite_juridique_id);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_type ON dossier(type);")
 
@@ -157,9 +164,22 @@ def init_db() -> None:
             init_scenario_templates(_s)
 
 def get_session():
-    """Dépendance FastAPI: fournit une session courte (context manager)."""
-    with Session(engine) as session:
+    """Dépendance FastAPI: fournit une session courte.
+
+    Use explicit open/close so we can catch DBAPI errors during close
+    (some SQLite builds raise on rollback when no transaction is active)
+    and avoid the exception bubbling out of the ASGI request finalizer.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    session = Session(engine)
+    try:
         yield session
+    finally:
+        try:
+            session.close()
+        except Exception as e:
+            logger.warning("Error while closing DB session: %s", e)
 
 def session_factory():
     """Factory explicite pour obtenir une session non gérée (scripts utilitaires)."""

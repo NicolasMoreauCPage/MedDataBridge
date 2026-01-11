@@ -1,14 +1,14 @@
 """
 Script pour vérifier si le message MFN a créé des structures
 """
-from app.db import get_session
+from app.db import session_factory
 from app.models_shared import MessageLog
 from app.models_transport import SystemEndpoint
 from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from sqlmodel import select
 
 def main():
-    session = next(get_session())
+    with session_factory() as session:
     
     # 1. Vérifier le message
     print("=== MESSAGE ===")
@@ -84,7 +84,7 @@ def main():
         ght = ej.ght_context if ej else None
         print(f"  - {eg.name} (FINESS: {eg.finess}) - EJ: {ej.name if ej else 'None'}, GHT: {ght.name if ght else 'None'}")
     
-    session.close()
+    # session closed by contextmanager
 
 if __name__ == "__main__":
     main()

@@ -16,7 +16,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlmodel import Session, select
-from app.db import get_session
+from app.db import session_factory
 from app.models_structure import Chambre, Lit
 from app.services.structure_validation import is_generic_resource, auto_detect_generic_resources
 
@@ -26,7 +26,7 @@ def init_generic_resources():
 
     print("🔧 Initialisation des chambres et lits génériques (ZGEN)...")
 
-    with next(get_session()) as session:
+    with session_factory() as session:
         # Compter les ressources avant
         total_chambres = session.exec(select(Chambre)).all()
         total_lits = session.exec(select(Lit)).all()

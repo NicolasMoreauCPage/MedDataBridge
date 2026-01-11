@@ -5,6 +5,19 @@ from enum import Enum
 
 if TYPE_CHECKING:
     from app.models_practitioners import MedecinResponsable
+else:
+    # Ensure the MedecinResponsable model is imported and registered in SQLModel
+    # metadata at import time so foreign-key relationships to
+    # `medecinresponsable` are available when create_all() is called from
+    # scripts or tests that import structure models directly.
+    try:
+        import app.models_practitioners  # noqa: F401
+    except Exception:
+        # If import fails (e.g. during partial test runs), proceed silently;
+        # tests that require the practitioners model will still fail later
+        # with a clearer error. This defensive import avoids NoReferencedTableError
+        # in common create_all() call sites by ensuring the model is registered.
+        pass
 
 
 class StructureTemplateType(str, Enum):

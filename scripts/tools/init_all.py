@@ -23,7 +23,7 @@ import subprocess
 from pathlib import Path
 parent_dir = str(Path(__file__).resolve().parent.parent)
 # Import des autres scripts
-from app.vocabulary_init import init_vocabularies
+from app.vocabularies.init import init_vocabularies
 from app.services.structure_seed import DEMO_STRUCTURE, ensure_demo_structure
 from datetime import datetime, timedelta
 

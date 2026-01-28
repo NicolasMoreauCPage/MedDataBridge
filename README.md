@@ -108,6 +108,24 @@ uvicorn app.app:app --reload --port 8000
 - **Cotation moderne** : http://localhost:8000/cotation-modern/select
 - **API docs** : http://localhost:8000/docs
 
+## 🚀 Initialisation des scénarios HL7/HPRIM (NOUVEAU)
+
+Depuis 2026, l'import des scénarios d'intégration HL7/HPRIM/IHE PAM ne dépend plus des fichiers HL7/HPRIM d'origine.
+
+- **Source unique** : Tous les scénarios sont exportés dans un fichier JSON unique (`data/scenarios_seed_data.json`).
+- **Script de seed** : Utilisez le script Python `seed_scenarios_from_json.py` pour insérer tous les scénarios et étapes dans la base de données.
+- **Plus de dépendance aux fichiers HL7/HPRIM** : Le seed est 100% Python/DB, reproductible et versionné.
+
+### Exemple d'utilisation
+
+```bash
+python3 seed_scenarios_from_json.py
+```
+
+Ce script importe tous les scénarios (IHE PAM, HPRIM, etc.) dans la base, en évitant les doublons.
+
+> **Note :** L'ancien import basé sur les fichiers HL7/HPRIM est désactivé dans `init_db.py`.
+
 ## Endpoints utiles pour les tests d'interop
 - Recherche de dossiers (publique, conçue pour qualification) :
   - `GET /cotation-modern/search?q=<query>&page=<n>&per_page=<m>`

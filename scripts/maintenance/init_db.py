@@ -576,224 +576,8 @@ def extract_hprim_xml(content: str) -> str:
     return xml_content
 
 
-def import_hl7_scenarios():
-    """Importe les scénarios HL7 IHE PAM depuis les fichiers source"""
-    from app.db import engine
-    from app.models_scenarios import InteropScenario, InteropScenarioStep
-    from sqlmodel import Session, select
-
-    print("🔍 Recherche des fichiers HL7...")
-
-    # Chemin vers les fichiers HL7
-    hl7_dir = Path("Doc/interfaces.integration_src/interfaces.integration/src/main/resources/data/entrant/hl7")
-
-    if not hl7_dir.exists():
-        print(f"❌ Répertoire HL7 non trouvé: {hl7_dir}")
-        return 0
-
-    hl7_files = list(hl7_dir.glob("*.hl7"))
-    print(f"📁 Trouvé {len(hl7_files)} fichiers HL7 dans {hl7_dir}")
-
-    imported_count = 0
-
-    with Session(engine) as session:
-        for hl7_file in hl7_files:
-            try:
-                print(f"  📄 Traitement: {hl7_file.name}")
-
-                # Lire le contenu du fichier
-                with open(hl7_file, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-
-                # Extraire les messages HL7
-                messages = extract_hl7_messages(content)
-
-                if not messages:
-                    print(f"    ⚠️ Aucun message trouvé dans {hl7_file.name}")
-                    continue
-
-                # Créer le scénario
-                scenario_name = f"IHE PAM - {hl7_file.stem.replace('_', ' ')}"
-                scenario_key = f"ihe_pam_{hl7_file.stem.lower()}"
-
-                # Vérifier si le scénario existe déjà
-                existing = session.exec(
-                    select(InteropScenario).where(InteropScenario.key == scenario_key)
-                ).first()
-
-                if existing:
-                    print(f"    ⏭️ Scénario déjà existant: {scenario_name}")
-                    continue
-
-                # Créer le scénario
-                scenario = InteropScenario(
-                    name=scenario_name,
-                    key=scenario_key,
-                    category="IHE_PAM",
-                    description=f"Scénario IHE PAM importé depuis {hl7_file.name}",
-                    is_active=True
-                )
-                session.add(scenario)
-                session.flush()  # Pour obtenir l'ID
-
-                # Ajouter les étapes
-                for i, message in enumerate(messages, 1):
-                    trigger = extract_trigger_from_message(message)
-
-                    step = InteropScenarioStep(
-                        scenario_id=scenario.id,
-                        order_index=i,
-                        name=f"Message HL7 {trigger}",
-                        message_format="hl7",
-                        payload=message,
-                        description=f"Étape {i}: Message HL7 {trigger}"
-                    )
-                    session.add(step)
-
-                session.commit()
-                imported_count += 1
-                print(f"    ✅ Créé: {scenario_name} ({len(messages)} messages)")
-
-            except Exception as e:
-                print(f"    ❌ Erreur traitement {hl7_file.name}: {e}")
-                session.rollback()
-                continue
-
-    return imported_count
 
 
-def import_hprim_scenarios():
-    """Importe les scénarios HPRIM depuis les fichiers source"""
-    from app.db import engine
-    from app.models_scenarios import InteropScenario, InteropScenarioStep
-    from sqlmodel import Session, select
-
-    print("🔍 Recherche des fichiers HPRIM...")
-
-    # Chemin vers les fichiers HPRIM
-    hprim_dir = Path("Doc/interfaces.integration_src/interfaces.integration/src/main/resources/data/entrant/hprimxml")
-
-    if not hprim_dir.exists():
-        print(f"❌ Répertoire HPRIM non trouvé: {hprim_dir}")
-        return 0
-
-    hprim_files = list(hprim_dir.glob("*.txt"))
-    print(f"📁 Trouvé {len(hprim_files)} fichiers HPRIM dans {hprim_dir}")
-
-    imported_count = 0
-
-    with Session(engine) as session:
-        for hprim_file in hprim_files:
-            try:
-                print(f"  📄 Traitement: {hprim_file.name}")
-
-                # Lire le contenu du fichier
-                with open(hprim_file, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-
-                # Extraire les messages HL7 et XML HPRIM
-                hl7_messages = []
-                hprim_xml = ""
-
-                # Séparer HL7 et HPRIM
-                lines = content.split('\n')
-                current_hl7 = []
-                in_xml = False
-
-                for line in lines:
-                    line = line.strip()
-                    if not line:
-                        continue
-
-                    if line.startswith('MSH|<?xml'):
-                        # Début du XML HPRIM
-                        if current_hl7:
-                            hl7_messages.append('\r'.join(current_hl7))
-                            current_hl7 = []
-                        in_xml = True
-                        hprim_xml = line
-                    elif in_xml:
-                        hprim_xml += '\n' + line
-                    elif line.startswith('MSH'):
-                        # Nouveau message HL7
-                        if current_hl7:
-                            hl7_messages.append('\r'.join(current_hl7))
-                        current_hl7 = [line]
-                    else:
-                        if current_hl7:
-                            current_hl7.append(line)
-
-                # Ajouter le dernier message HL7
-                if current_hl7:
-                    hl7_messages.append('\r'.join(current_hl7))
-
-                if not hl7_messages and not hprim_xml:
-                    print(f"    ⚠️ Aucun contenu trouvé dans {hprim_file.name}")
-                    continue
-
-                # Créer le scénario
-                scenario_name = f"HPRIM - {hprim_file.stem.replace('_', ' ')}"
-                scenario_key = f"hprim_{hprim_file.stem.lower()}"
-
-                # Vérifier si le scénario existe déjà
-                existing = session.exec(
-                    select(InteropScenario).where(InteropScenario.key == scenario_key)
-                ).first()
-
-                if existing:
-                    print(f"    ⏭️ Scénario déjà existant: {scenario_name}")
-                    continue
-
-                # Créer le scénario
-                scenario = InteropScenario(
-                    name=scenario_name,
-                    key=scenario_key,
-                    category="HPRIM_COTATION",
-                    description=f"Scénario HPRIM importé depuis {hprim_file.name}",
-                    is_active=True
-                )
-                session.add(scenario)
-                session.flush()  # Pour obtenir l'ID
-
-                # Ajouter les étapes HL7
-                step_number = 1
-                for message in hl7_messages:
-                    trigger = extract_trigger_from_message(message)
-
-                    step = InteropScenarioStep(
-                        scenario_id=scenario.id,
-                        order_index=step_number,
-                        name=f"Message HL7 {trigger}",
-                        message_format="hl7",
-                        payload=message,
-                        description=f"Étape {step_number}: Message HL7 {trigger}"
-                    )
-                    session.add(step)
-                    step_number += 1
-
-                # Ajouter l'étape HPRIM si présente
-                if hprim_xml:
-                    step = InteropScenarioStep(
-                        scenario_id=scenario.id,
-                        order_index=step_number,
-                        name="Message HPRIM XML",
-                        message_format="hprim",
-                        payload=hprim_xml,
-                        description=f"Étape {step_number}: Acte HPRIM XML"
-                    )
-                    session.add(step)
-
-                session.commit()
-                imported_count += 1
-                total_steps = len(hl7_messages) + (1 if hprim_xml else 0)
-                print(f"    ✅ Créé: {scenario_name} ({total_steps} étapes)")
-
-            except Exception as e:
-                print(f"    ❌ Erreur traitement {hprim_file.name}: {e}")
-                session.rollback()
-                continue
-
-    return imported_count
 
 
 def seed_cotations_to_dossiers(engine) -> int:
@@ -1042,7 +826,7 @@ def main():
     print("ÉTAPE 2/4 : Initialisation des vocabulaires")
     print("=" * 60)
     try:
-        from app.vocabulary_init import init_vocabularies
+        from app.vocabularies.init import init_vocabularies
         with Session(engine) as session:
             init_vocabularies(session)
         print("✓ Vocabulaires initialisés (35 systèmes, 207 valeurs)\n")
@@ -1074,41 +858,59 @@ def main():
     print("✓ Population configurée\n")
 
 
-    # 5. Import scénarios IHE HL7 (toujours exécutés)
+
+    # 5. Import scénarios HL7 (nouveau seed)
     print("=" * 60)
-    print("ÉTAPE 5/8 : Import des scénarios IHE HL7")
+    print("ÉTAPE 5/8 : Import des scénarios HL7 (seed)")
     print("=" * 60)
     try:
-        hl7_count = import_hl7_scenarios()
-        print(f"✓ {hl7_count} scénarios IHE HL7 importés\n")
+        sys.path.insert(0, str(Path(__file__).parent.parent / "data"))
+        from seed_hl7_scenarios import seed_hl7_scenarios
+        from app.models_scenarios import InteropScenario
+        seed_hl7_scenarios()
+        with Session(engine) as session:
+            hl7_count = len(list(session.exec(
+                select(InteropScenario).where(InteropScenario.category == "IHE_PAM")
+            )))
+        print("✓ Scénarios HL7 importés via seed_hl7_scenarios.py\n")
     except Exception as e:
-        print(f"✗ Échec import scénarios IHE HL7: {e}")
+        print(f"✗ Échec import scénarios HL7: {e}")
         sys.exit(1)
 
-    # 6. Import scénarios d'intégration HL7/HPRIM (toujours exécutés)
+    # 6. Import scénarios HPRIM (nouveau seed)
     print("=" * 60)
-    print("ÉTAPE 6/8 : Import des scénarios d'intégration HL7/HPRIM")
+    print("ÉTAPE 6/8 : Import des scénarios HPRIM (seed)")
     print("=" * 60)
+
     try:
-        hprim_count = import_hprim_scenarios()
-        print(f"✓ {hprim_count} scénarios HPRIM importés\n")
+        from scripts.manual.seed_hprim_scenarios import seed_hprim_scenarios
+        from app.models_scenarios import InteropScenario
+        seed_hprim_scenarios()
+        with Session(engine) as session:
+            hprim_count = len(list(session.exec(
+                select(InteropScenario).where(InteropScenario.category == "HPRIM")
+            )))
+        print("✓ Scénarios HPRIM importés via seed_hprim_scenarios.py\n")
     except Exception as e:
         print(f"✗ Échec import scénarios HPRIM: {e}")
         sys.exit(1)
 
-    # 7. Scénarios HL7 IHE PAM (toujours exécutés)
+    # 7. Import scénarios IHE PAM (nouveau seed)
     print("=" * 60)
-    print("ÉTAPE 7/8 : Import des scénarios HL7 IHE PAM (124 scénarios)")
+    print("ÉTAPE 7/8 : Import des scénarios IHE PAM (seed)")
     print("=" * 60)
+
     try:
-        # Import du script seed_hl7_scenarios.py
-        sys.path.insert(0, str(Path(__file__).parent.parent / "manual"))
-        from seed_hl7_scenarios import seed_hl7_scenarios
-        seed_hl7_scenarios()
-        print("✓ 124 scénarios HL7 IHE PAM importés\n")
-        pam_count = 124
+        from scripts.manual.seed_ihe_pam_scenarios import seed_ihe_pam_scenarios
+        from app.models_scenarios import InteropScenario
+        seed_ihe_pam_scenarios()
+        with Session(engine) as session:
+            pam_count = len(list(session.exec(
+                select(InteropScenario).where(InteropScenario.category == "IHE_PAM")
+            )))
+        print("✓ Scénarios IHE PAM importés via seed_ihe_pam_scenarios.py\n")
     except Exception as e:
-        print(f"✗ Échec import scénarios HL7 PAM: {e}")
+        print(f"✗ Échec import scénarios IHE PAM: {e}")
         sys.exit(1)
 
     # 8. Cotations médicales réalistes (toujours exécutées)
@@ -1139,10 +941,11 @@ def main():
     print("  • Namespaces   : 13 (IPP/NDA/VENUE par EJ + global)")
     print("  • Population   : 120 patients, dossiers et mouvements (standard)")
     print("  • Scénarios démo : 3 scénarios complexes (transferts/annulations)")
-    print(f"  • Scénarios IHE HL7 : {hl7_count} scénarios importés")
-    print(f"  • Scénarios HPRIM : {hprim_count} scénarios importés")
-    print(f"  • Scénarios HL7 PAM : {pam_count} scénarios IHE PAM importés")
-    print(f"  • Total scénarios : {hl7_count + hprim_count + pam_count} scénarios d'intégration")
+    print(f"  • Scénarios IHE HL7 : {hl7_count if 'hl7_count' in locals() else '?'} scénarios importés")
+    print(f"  • Scénarios HPRIM : {hprim_count if 'hprim_count' in locals() else '?'} scénarios importés")
+    print(f"  • Scénarios HL7 PAM : {pam_count if 'pam_count' in locals() else '?'} scénarios IHE PAM importés")
+    total_scenarios = sum([v for v in [locals().get('hl7_count'), locals().get('hprim_count'), locals().get('pam_count')] if isinstance(v, int)])
+    print(f"  • Total scénarios : {total_scenarios} scénarios d'intégration")
     print(f"  • Cotations    : {cotations_added} cotations médicales ajoutées")
     print("\nLe serveur peut être démarré avec:")
     print("  uvicorn app.app:app --reload")

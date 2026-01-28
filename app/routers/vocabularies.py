@@ -14,7 +14,7 @@ def _ensure_vocabularies(session: Session) -> None:
     if systems_present:
         return
     try:
-        from app.vocabulary_init import init_vocabularies
+        from app.vocabularies.init import init_vocabularies
 
         init_vocabularies(session)
         session.commit()

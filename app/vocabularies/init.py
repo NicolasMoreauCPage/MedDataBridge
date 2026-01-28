@@ -1,3 +1,324 @@
+def create_semantic_identity_reliability(session) -> list:
+    """
+    Crée un vocabulaire sémantique pour le statut d'identité (PID-32),
+    avec mapping vers HL7v2 et interne.
+    """
+    semantic_system = VocabularySystem(
+        name="semantic-identity-reliability",
+        label="Statut identité (sémantique)",
+        system_type=VocabularySystemType.LOCAL,
+        is_user_defined=False,
+        description="Concepts sémantiques pour le statut d'identité, avec mapping HL7v2/interne"
+    )
+    values = [
+        VocabularyValue(code="VIDE", display="Identité vide", order=1),
+        VocabularyValue(code="PROV", display="Identité provisoire", order=2),
+        VocabularyValue(code="VALI", display="Identité validée", order=3),
+        VocabularyValue(code="DOUTE", display="Identité douteuse", order=4),
+        VocabularyValue(code="FICTI", display="Identité fictive", order=5),
+        VocabularyValue(code="QUAL", display="Identité qualifiée", order=6),
+        VocabularyValue(code="DOUB", display="Identité doublon", order=7),
+    ]
+    semantic_system.values = values
+    session.add(semantic_system)
+    session.flush()
+
+    hl7_system = VocabularySystem(
+        name="identity-reliability-hl7v2",
+        label="Statut identité (HL7v2)",
+        system_type=VocabularySystemType.HL7V2,
+        is_user_defined=False
+    )
+    session.add(hl7_system)
+    session.flush()
+
+    mappings = [
+        VocabularyMapping(source_value=values[0], target_system=hl7_system, target_code="VIDE"),
+        VocabularyMapping(source_value=values[1], target_system=hl7_system, target_code="PROV"),
+        VocabularyMapping(source_value=values[2], target_system=hl7_system, target_code="VALI"),
+        VocabularyMapping(source_value=values[3], target_system=hl7_system, target_code="DOUTE"),
+        VocabularyMapping(source_value=values[4], target_system=hl7_system, target_code="FICTI"),
+        VocabularyMapping(source_value=values[5], target_system=hl7_system, target_code="QUAL"),
+        VocabularyMapping(source_value=values[6], target_system=hl7_system, target_code="DOUB"),
+    ]
+    for m in mappings:
+        session.add(m)
+    session.flush()
+    return [semantic_system, hl7_system]
+
+def create_semantic_movement_type(session) -> list:
+    """
+    Crée un vocabulaire sémantique pour le type de mouvement (ZBE-4),
+    avec mapping vers HL7v2 et interne.
+    """
+    semantic_system = VocabularySystem(
+        name="semantic-movement-type",
+        label="Type mouvement (sémantique)",
+        system_type=VocabularySystemType.LOCAL,
+        is_user_defined=False,
+        description="Concepts sémantiques pour le type de mouvement, avec mapping HL7v2/interne"
+    )
+    values = [
+        VocabularyValue(code="ADM", display="Admission", order=1),
+        VocabularyValue(code="DIS", display="Sortie", order=2),
+        VocabularyValue(code="TRF", display="Transfert", order=3),
+        VocabularyValue(code="REG", display="Régularisation", order=4),
+        VocabularyValue(code="PRE", display="Pré-admission", order=5),
+        VocabularyValue(code="ANN", display="Annulation", order=6),
+        VocabularyValue(code="DEC", display="Décès", order=7),
+        VocabularyValue(code="AUT", display="Autorisation", order=8),
+        VocabularyValue(code="DUP", display="Duplication", order=9),
+        VocabularyValue(code="ERR", display="Erreur", order=10),
+        VocabularyValue(code="CAN", display="Annulation", order=11),
+        VocabularyValue(code="MOD", display="Modification", order=12),
+    ]
+    semantic_system.values = values
+    session.add(semantic_system)
+    session.flush()
+
+    hl7_system = VocabularySystem(
+        name="movement-type-hl7v2",
+        label="Type mouvement (HL7v2)",
+        system_type=VocabularySystemType.HL7V2,
+        is_user_defined=False
+    )
+    session.add(hl7_system)
+    session.flush()
+
+    mappings = [
+        VocabularyMapping(source_value=v, target_system=hl7_system, target_code=v.code) for v in values
+    ]
+    for m in mappings:
+        session.add(m)
+    session.flush()
+    return [semantic_system, hl7_system]
+
+def create_semantic_movement_nature(session) -> list:
+    """
+    Crée un vocabulaire sémantique pour la nature de mouvement (ZBE-9),
+    avec mapping vers HL7v2 et interne.
+    """
+    semantic_system = VocabularySystem(
+        name="semantic-movement-nature",
+        label="Nature mouvement (sémantique)",
+        system_type=VocabularySystemType.LOCAL,
+        is_user_defined=False,
+        description="Concepts sémantiques pour la nature de mouvement, avec mapping HL7v2/interne"
+    )
+    values = [
+        VocabularyValue(code="NAT1", display="Nature 1", order=1),
+        VocabularyValue(code="NAT2", display="Nature 2", order=2),
+        VocabularyValue(code="NAT3", display="Nature 3", order=3),
+        VocabularyValue(code="NAT4", display="Nature 4", order=4),
+        VocabularyValue(code="NAT5", display="Nature 5", order=5),
+    ]
+    semantic_system.values = values
+    session.add(semantic_system)
+    session.flush()
+
+    hl7_system = VocabularySystem(
+        name="movement-nature-hl7v2",
+        label="Nature mouvement (HL7v2)",
+        system_type=VocabularySystemType.HL7V2,
+        is_user_defined=False
+    )
+    session.add(hl7_system)
+    session.flush()
+
+    mappings = [
+        VocabularyMapping(source_value=v, target_system=hl7_system, target_code=v.code) for v in values
+    ]
+    for m in mappings:
+        session.add(m)
+    session.flush()
+    return [semantic_system, hl7_system]
+
+# --- Type d'identifiant (fusion sémantique)
+def create_semantic_identifier_type(session) -> list:
+    """
+    Crée un vocabulaire sémantique pour le type d'identifiant, avec mapping HL7v2/FHIR/interne.
+    """
+    semantic_system = VocabularySystem(
+        name="semantic-identifier-type",
+        label="Type d'identifiant (sémantique)",
+        system_type=VocabularySystemType.LOCAL,
+        is_user_defined=False,
+        description="Concepts sémantiques pour le type d'identifiant, avec mapping HL7v2/FHIR/interne"
+    )
+    values = [
+        VocabularyValue(code="IPP", display="Identifiant Patient Permanent", order=1),
+        VocabularyValue(code="NDA", display="Numéro de Dossier Administratif", order=2),
+        VocabularyValue(code="NA", display="Numéro d'Admission", order=3),
+        VocabularyValue(code="VN", display="Numéro de Venue", order=4),
+        VocabularyValue(code="PI", display="Patient Interne", order=5),
+        VocabularyValue(code="PG", display="Patient Global", order=6),
+        VocabularyValue(code="SS", display="Sécurité Sociale", order=7),
+        VocabularyValue(code="PC", display="Personne à Contacter", order=8),
+        VocabularyValue(code="NDP", display="Numéro Dossier Patient", order=9),
+        VocabularyValue(code="MVT", display="Identifiant de Mouvement", order=10),
+        VocabularyValue(code="FINESS", display="Numéro FINESS Établissement", order=11)
+    ]
+    semantic_system.values = values
+    session.add(semantic_system)
+    session.flush()
+
+    hl7_system = VocabularySystem(
+        name="identifier-type-hl7v2",
+        label="Type d'identifiant (HL7v2 Table 0203)",
+        system_type=VocabularySystemType.HL7V2,
+        is_user_defined=False
+    )
+    session.add(hl7_system)
+    session.flush()
+
+    fhir_system = VocabularySystem(
+        name="identifier-type-fhir",
+        label="Type d'identifiant (FHIR)",
+        system_type=VocabularySystemType.FHIR,
+        is_user_defined=False
+    )
+    session.add(fhir_system)
+    session.flush()
+
+    # Mappings principaux (exemples, à compléter selon besoins réels)
+    mappings = [
+        VocabularyMapping(source_value=values[0], target_system=hl7_system, target_code="IPP"),
+        VocabularyMapping(source_value=values[0], target_system=fhir_system, target_code="PI"),
+        VocabularyMapping(source_value=values[1], target_system=hl7_system, target_code="NDA"),
+        VocabularyMapping(source_value=values[1], target_system=fhir_system, target_code="AN"),
+        VocabularyMapping(source_value=values[2], target_system=hl7_system, target_code="AN"),
+        VocabularyMapping(source_value=values[2], target_system=fhir_system, target_code="AN"),
+        VocabularyMapping(source_value=values[3], target_system=hl7_system, target_code="VN"),
+        VocabularyMapping(source_value=values[3], target_system=fhir_system, target_code="VN"),
+        VocabularyMapping(source_value=values[4], target_system=hl7_system, target_code="PI"),
+        VocabularyMapping(source_value=values[4], target_system=fhir_system, target_code="PI"),
+        VocabularyMapping(source_value=values[5], target_system=hl7_system, target_code="PI"),
+        VocabularyMapping(source_value=values[5], target_system=fhir_system, target_code="PI"),
+        VocabularyMapping(source_value=values[6], target_system=hl7_system, target_code="SS"),
+        VocabularyMapping(source_value=values[6], target_system=fhir_system, target_code="SS"),
+        VocabularyMapping(source_value=values[7], target_system=hl7_system, target_code="PN"),
+        VocabularyMapping(source_value=values[7], target_system=fhir_system, target_code="PPN"),
+        VocabularyMapping(source_value=values[8], target_system=hl7_system, target_code="PI"),
+        VocabularyMapping(source_value=values[8], target_system=fhir_system, target_code="PI"),
+        VocabularyMapping(source_value=values[9], target_system=hl7_system, target_code="VN"),
+        VocabularyMapping(source_value=values[9], target_system=fhir_system, target_code="VN"),
+        VocabularyMapping(source_value=values[10], target_system=hl7_system, target_code="FINESS"),
+        VocabularyMapping(source_value=values[10], target_system=fhir_system, target_code="FIN"),
+    ]
+    for m in mappings:
+        session.add(m)
+    session.flush()
+    return [semantic_system, hl7_system, fhir_system]
+
+# --- Type INS (fusion sémantique)
+def create_semantic_ins_type(session) -> list:
+    """
+    Crée un vocabulaire sémantique pour le type INS, avec mapping HL7v2/FHIR/interne.
+    """
+    semantic_system = VocabularySystem(
+        name="semantic-ins-type",
+        label="Type INS (sémantique)",
+        system_type=VocabularySystemType.LOCAL,
+        is_user_defined=False,
+        description="Concepts sémantiques pour le type INS, avec mapping HL7v2/FHIR/interne"
+    )
+    values = [
+        VocabularyValue(code="NIR", display="Numéro d'Inscription au Répertoire", order=1),
+        VocabularyValue(code="INS-C", display="INS Calculé", order=2)
+    ]
+    semantic_system.values = values
+    session.add(semantic_system)
+    session.flush()
+
+    hl7_system = VocabularySystem(
+        name="ins-type-hl7v2",
+        label="Type INS (HL7v2 PID-3.5)",
+        system_type=VocabularySystemType.HL7V2,
+        is_user_defined=False
+    )
+    session.add(hl7_system)
+    session.flush()
+
+    fhir_system = VocabularySystem(
+        name="ins-type-fhir",
+        label="Type INS (FHIR)",
+        system_type=VocabularySystemType.FHIR,
+        is_user_defined=False
+    )
+    session.add(fhir_system)
+    session.flush()
+
+    mappings = [
+        VocabularyMapping(source_value=values[0], target_system=hl7_system, target_code="NIR"),
+        VocabularyMapping(source_value=values[0], target_system=fhir_system, target_code="NIR"),
+        VocabularyMapping(source_value=values[1], target_system=hl7_system, target_code="INS-C"),
+        VocabularyMapping(source_value=values[1], target_system=fhir_system, target_code="INS-C"),
+    ]
+    for m in mappings:
+        session.add(m)
+    session.flush()
+    return [semantic_system, hl7_system, fhir_system]
+def create_semantic_patient_class(session) -> list:
+    """
+    Crée un vocabulaire sémantique pour la classe patient (patient class/type),
+    avec mapping vers HL7v2 (PV1-2), FHIR Encounter.class, etc.
+    """
+    # Système sémantique unique
+    semantic_system = VocabularySystem(
+        name="semantic-patient-class",
+        label="Classe patient (sémantique)",
+        system_type=VocabularySystemType.LOCAL,
+        is_user_defined=False,
+        description="Concepts sémantiques pour la classe patient, avec mapping HL7v2/FHIR"
+    )
+    values = [
+        VocabularyValue(code="HOSPITALISE", display="Hospitalisé", definition="Hospitalisation complète", order=1),
+        VocabularyValue(code="EXTERNE", display="Externe", definition="Consultation externe", order=2),
+        VocabularyValue(code="URGENCE", display="Urgence", definition="Passage aux urgences", order=3),
+        VocabularyValue(code="HOSPITALISATION_PARTIELLE", display="Hospitalisation partielle", definition="Hospitalisation de jour/nuit", order=4),
+    ]
+    semantic_system.values = values
+    session.add(semantic_system)
+    session.flush()
+
+    # Systèmes cibles (HL7v2, FHIR)
+    hl7_system = VocabularySystem(
+        name="patient-class-hl7v2",
+        label="Classe patient (HL7v2)",
+        system_type=VocabularySystemType.HL7V2,
+        oid="2.16.840.1.113883.12.4",
+        is_user_defined=False
+    )
+    fhir_system = VocabularySystem(
+        name="patient-class-fhir",
+        label="Classe patient (FHIR)",
+        system_type=VocabularySystemType.FHIR,
+        uri="http://hl7.org/fhir/v3/ActCode",
+        is_user_defined=False
+    )
+    session.add(hl7_system)
+    session.add(fhir_system)
+    session.flush()
+
+    # Mappings pour chaque valeur sémantique
+    mappings = [
+        # Hospitalisé
+        VocabularyMapping(source_value=values[0], target_system=hl7_system, target_code="I"),  # HL7v2: I = Inpatient
+        VocabularyMapping(source_value=values[0], target_system=fhir_system, target_code="IMP"),  # FHIR: IMP = inpatient encounter
+        # Externe
+        VocabularyMapping(source_value=values[1], target_system=hl7_system, target_code="O"),  # HL7v2: O = Outpatient
+        VocabularyMapping(source_value=values[1], target_system=fhir_system, target_code="AMB"),  # FHIR: AMB = ambulatory
+        # Urgence
+        VocabularyMapping(source_value=values[2], target_system=hl7_system, target_code="E"),  # HL7v2: E = Emergency
+        VocabularyMapping(source_value=values[2], target_system=fhir_system, target_code="EMER"),  # FHIR: EMER = emergency
+        # Hospitalisation partielle
+        VocabularyMapping(source_value=values[3], target_system=hl7_system, target_code="P"),  # HL7v2: P = Partial hospitalization
+        VocabularyMapping(source_value=values[3], target_system=fhir_system, target_code="SS"),  # FHIR: SS = short stay
+    ]
+    for m in mappings:
+        session.add(m)
+    session.flush()
+    return [semantic_system, hl7_system, fhir_system]
 """
 Initialisation des vocabulaires standards et leurs correspondances
 """
@@ -20,81 +341,68 @@ from app.services.vocabulary_fhir_fr import (
 )
 from app.services.vocabulary_mappings import init_vocabulary_mappings
 
-def create_administrative_gender() -> List[VocabularySystem]:
-    """Crée les vocabulaires pour le genre administratif"""
-    systems = []
-    
-    # --- Genre administratif (IHE interne) ---
+
+def create_semantic_administrative_gender(session) -> List[VocabularySystem]:
+    """
+    Crée un vocabulaire sémantique pour le genre administratif,
+    avec mapping vers HL7v2 et FHIR.
+    """
+    # Système sémantique unique
+    semantic_system = VocabularySystem(
+        name="semantic-administrative-gender",
+        label="Sexe administratif (sémantique)",
+        system_type=VocabularySystemType.LOCAL,
+        is_user_defined=False,
+        description="Concepts sémantiques pour le genre administratif, avec mapping HL7v2/FHIR"
+    )
+    values = [
+        VocabularyValue(code="FEMME", display="Femme", definition="Femme (tous standards)", order=1),
+        VocabularyValue(code="HOMME", display="Homme", definition="Homme (tous standards)", order=2),
+        VocabularyValue(code="AUTRE", display="Autre", definition="Autre genre", order=3),
+        VocabularyValue(code="INCONNU", display="Inconnu", definition="Genre non spécifié", order=4)
+    ]
+    semantic_system.values = values
+    session.add(semantic_system)
+    session.flush()  # Pour avoir les IDs
+
+    # Systèmes cibles (HL7v2, FHIR)
+    hl7_system = VocabularySystem(
+        name="administrative-gender-hl7v2",
+        label="Sexe administratif (HL7v2)",
+        system_type=VocabularySystemType.HL7V2,
+        oid="2.16.840.1.113883.12.1",
+        is_user_defined=False
+    )
     fhir_system = VocabularySystem(
-        name="administrative-gender",
-        label="Genre administratif (IHE)",
+        name="administrative-gender-fhir",
+        label="Sexe administratif (FHIR)",
         system_type=VocabularySystemType.FHIR,
         uri="http://hl7.org/fhir/administrative-gender",
         is_user_defined=False
     )
-    
-    fhir_values = [
-        VocabularyValue(code="male", display="Masculin", definition="Homme", order=1),
-        VocabularyValue(code="female", display="Féminin", definition="Femme", order=2),
-        VocabularyValue(code="other", display="Autre", definition="Autre genre", order=3),
-        VocabularyValue(code="unknown", display="Inconnu", definition="Genre non spécifié", order=4)
-    ]
-    fhir_system.values = fhir_values
-    systems.append(fhir_system)
-    
-    # Système HL7v2 (Table 0001) utilisé pour les mappings
-    hl7_system = VocabularySystem(
-        name="administrative-gender-v2",
-        label="Sexe administratif (HL7v2)",
-        oid="2.16.840.1.113883.12.1",
-        system_type=VocabularySystemType.HL7V2,
-        is_user_defined=False,
-        description="Table HL7 0001 - Administrative Sex"
-    )
-    
-    hl7_values = [
-        VocabularyValue(code="M", display="Masculin", definition="Homme", order=1),
-        VocabularyValue(code="F", display="Féminin", definition="Femme", order=2),
-        VocabularyValue(code="O", display="Autre", definition="Autre", order=3),
-        VocabularyValue(code="U", display="Inconnu", definition="Inconnu", order=4),
-        VocabularyValue(code="A", display="Ambigu", definition="Ambigu", order=5),
-        VocabularyValue(code="N", display="Non applicable", definition="Non applicable", order=6)
-    ]
-    hl7_system.values = hl7_values
-    
-    # Mappings
+    session.add(hl7_system)
+    session.add(fhir_system)
+    session.flush()
+
+    # Mappings pour chaque valeur sémantique
     mappings = [
-        # FHIR male -> HL7 M
-        VocabularyMapping(
-            source_value=fhir_values[0],  # male
-            target_system=hl7_system,
-            target_code="M",
-            map_type="equivalent"
-        ),
-        # FHIR female -> HL7 F
-        VocabularyMapping(
-            source_value=fhir_values[1],  # female
-            target_system=hl7_system,
-            target_code="F",
-            map_type="equivalent"
-        ),
-        # FHIR other -> HL7 O
-        VocabularyMapping(
-            source_value=fhir_values[2],  # other
-            target_system=hl7_system,
-            target_code="O",
-            map_type="equivalent"
-        ),
-        # FHIR unknown -> HL7 U
-        VocabularyMapping(
-            source_value=fhir_values[3],  # unknown
-            target_system=hl7_system,
-            target_code="U",
-            map_type="equivalent"
-        )
+        # Femme
+        VocabularyMapping(source_value=values[0], target_system=hl7_system, target_code="F"),
+        VocabularyMapping(source_value=values[0], target_system=fhir_system, target_code="female"),
+        # Homme
+        VocabularyMapping(source_value=values[1], target_system=hl7_system, target_code="M"),
+        VocabularyMapping(source_value=values[1], target_system=fhir_system, target_code="male"),
+        # Autre
+        VocabularyMapping(source_value=values[2], target_system=hl7_system, target_code="O"),
+        VocabularyMapping(source_value=values[2], target_system=fhir_system, target_code="other"),
+        # Inconnu
+        VocabularyMapping(source_value=values[3], target_system=hl7_system, target_code="U"),
+        VocabularyMapping(source_value=values[3], target_system=fhir_system, target_code="unknown"),
     ]
-    
-    return [fhir_system, hl7_system]
+    for m in mappings:
+        session.add(m)
+    session.flush()
+    return [semantic_system, hl7_system, fhir_system]
 
 def create_dossier_type_vocabularies(session) -> List[VocabularySystem]:
     """Crée les vocabulaires pour le type de dossier (mapping vers patient class)"""
@@ -788,8 +1096,8 @@ def init_vocabularies(session):
     
     all_systems = []
     
+
     # Vocabulaires de base
-    all_systems.extend(create_administrative_gender())
     all_systems.extend(create_encounter_status())
     all_systems.extend(create_dossier_type_vocabularies(session))
     all_systems.extend(create_identity_reliability_vocabularies(session))
@@ -799,6 +1107,17 @@ def init_vocabularies(session):
     all_systems.extend(create_action_type_vocabularies())
     all_systems.extend(create_execution_status_vocabularies())
     all_systems.extend(create_entity_type_vocabularies())
+
+    # Vocabulaires sémantiques unifiés (nouveau modèle)
+    all_systems.extend(create_semantic_administrative_gender(session))
+    all_systems.extend(create_semantic_patient_class(session))
+    all_systems.extend(create_semantic_identity_reliability(session))
+    all_systems.extend(create_semantic_movement_type(session))
+    all_systems.extend(create_semantic_movement_nature(session))
+
+    # Vocabulaires sémantiques unifiés (nouveaux pivots)
+    all_systems.extend(create_semantic_identifier_type(session))
+    all_systems.extend(create_semantic_ins_type(session))
     
     # Vocabulaires IHE PAM FR
     all_systems.extend(create_patient_type_vocabularies())

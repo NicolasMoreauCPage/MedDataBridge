@@ -40,7 +40,10 @@ from typing import List, Dict, Optional, Set, TYPE_CHECKING
 import re
 import os  # needed for EXTENDED_MODE env flag
 
+
 from app.services.mllp import parse_msh_fields
+from app.models_vocabulary import VocabularySystem, VocabularyValue
+from sqlmodel import select
 
 # Import only for type checking to avoid circular imports
 if TYPE_CHECKING:
@@ -205,6 +208,35 @@ def _get_first_segment(msg: str, prefix: str) -> Optional[str]:
 
 def _field(parts: List[str], idx: int) -> str:
     return parts[idx] if len(parts) > idx else ""
+
+
+def _validate_code_with_vocab(
+    code: str,
+    field_name: str,
+    issues: List[ValidationIssue],
+    session=None,
+    vocab_names: Optional[List[str]] = None,
+    fallback: Optional[Set[str]] = None,
+    severity: str = "error",
+    required: bool = True,
+    msg: Optional[str] = None,
+) -> None:
+    """
+    Validate a codified field against dynamic vocabulary (db) or fallback set.
+    """
+    if not code:
+        if required:
+            issues.append(ValidationIssue(f"{field_name}_MISSING", f"{field_name} est requis", severity=severity))
+        return
+    valid_codes = None
+    if session is not None and vocab_names:
+        vocab = session.exec(select(VocabularySystem).where(VocabularySystem.name.in_(vocab_names))).first()
+        if vocab:
+            valid_codes = {v.code for v in vocab.values}
+    if not valid_codes and fallback:
+        valid_codes = fallback
+    if valid_codes and code not in valid_codes:
+        issues.append(ValidationIssue(f"{field_name}_INVALID", msg or f"{field_name} doit être dans {valid_codes}, reçu: {code}", severity=severity))
 
 
 def _validate_segment_order(msg: str, trigger: str, issues: List[ValidationIssue]) -> None:
@@ -610,55 +642,174 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
         issues.append(ValidationIssue("PID_MISSING", "PID segment is required"))
     else:
         pid_parts = pid.split("|")
-        
         # PID-3 (Patient Identifier List) - CX type validation
         pid3 = _field(pid_parts, 3)
         if not pid3:
             issues.append(ValidationIssue("PID3_EMPTY", "PID-3 (Patient Identifier List) must not be empty"))
         else:
-            # Répétitions séparées par ~ pour PID-3
             for idx, cx_id in enumerate(pid3.split("~")):
                 if cx_id:
                     _validate_cx_identifier(cx_id, f"PID3[{idx}]", issues)
-        
         # PID-5 (Patient Name) - XPN type validation
         pid5 = _field(pid_parts, 5)
         if not pid5:
             issues.append(ValidationIssue("PID5_MISSING", "PID-5 (Patient Name) is strongly recommended", severity="warn"))
         else:
-            # Répétitions séparées par ~ pour PID-5
             for idx, xpn_name in enumerate(pid5.split("~")):
                 if xpn_name:
                     _validate_xpn_name(xpn_name, f"PID5[{idx}]", issues)
-        
         # PID-7 (Date of Birth) - TS type validation
         pid7 = _field(pid_parts, 7)
         if pid7:
             _validate_ts_timestamp(pid7, "PID7", issues)
-        
         # PID-11 (Patient Address) - XAD type validation
         pid11 = _field(pid_parts, 11)
         if pid11:
-            # Répétitions séparées par ~ pour PID-11
             for idx, xad_addr in enumerate(pid11.split("~")):
                 if xad_addr:
                     _validate_xad_address(xad_addr, f"PID11[{idx}]", issues)
-        
         # PID-13 (Phone Number - Home) - XTN type validation
         pid13 = _field(pid_parts, 13)
         if pid13:
-            # Répétitions séparées par ~ pour PID-13
             for idx, xtn_phone in enumerate(pid13.split("~")):
                 if xtn_phone:
                     _validate_xtn_telecom(xtn_phone, f"PID13[{idx}]", issues)
-        
         # PID-14 (Phone Number - Business) - XTN type validation
         pid14 = _field(pid_parts, 14)
         if pid14:
-            # Répétitions séparées par ~ pour PID-14
             for idx, xtn_phone in enumerate(pid14.split("~")):
                 if xtn_phone:
                     _validate_xtn_telecom(xtn_phone, f"PID14[{idx}]", issues)
+        # PID-6 (Nom de la mère, XPN, optionnel mais conseillé)
+        pid6 = _field(pid_parts, 6)
+        if pid6:
+            _validate_xpn_name(pid6, "PID6", issues)
+        # PID-8 (Sexe, IS, obligatoire)
+        pid8 = _field(pid_parts, 8)
+        _validate_code_with_vocab(
+            pid8,
+            "PID8",
+            issues,
+            session=session if 'session' in locals() else None,
+            vocab_names=["semantic-administrative-gender"],
+            fallback={"M", "F", "O", "U"},
+            severity="error",
+            required=True,
+            msg=f"PID-8 (Sexe) doit être une valeur du vocabulaire sémantique, reçu: {pid8}"
+        )
+        # PID-15 (Langue principale, CE, optionnel)
+        pid15 = _field(pid_parts, 15)
+        if pid15 and len(pid15) < 2:
+            issues.append(ValidationIssue("PID15_FORMAT", "PID-15 (Langue principale) doit être un code de langue valide", severity="warn"))
+        # PID-16 (Situation famille, CE, optionnel)
+        pid16 = _field(pid_parts, 16)
+        # PID-18 (Numéro dossier administratif, CX, optionnel mais conseillé)
+        pid18 = _field(pid_parts, 18)
+        if pid18:
+            _validate_cx_identifier(pid18, "PID18", issues)
+        # PID-32 (Statut identité, RNIV)
+        pid32 = _field(pid_parts, 32)
+        _validate_code_with_vocab(
+            pid32,
+            "PID32",
+            issues,
+            session=session if 'session' in locals() else None,
+            vocab_names=["semantic-identity-reliability"],
+            fallback={"VIDE", "PROV", "VALI", "DOUTE", "FICTI", "QUAL", "DOUB"},
+            severity="error",
+            required=True,
+            msg=f"PID-32 (Statut identité) doit être une valeur du vocabulaire sémantique, reçu: {pid32}"
+        )
+
+    # PV1 validation (champs principaux)
+    pv1 = _get_first_segment(msg, "PV1")
+    if pv1:
+        pv1_parts = pv1.split("|")
+        pv1_2 = _field(pv1_parts, 2)
+        _validate_code_with_vocab(
+            pv1_2,
+            "PV1_2",
+            issues,
+            session=session if 'session' in locals() else None,
+            vocab_names=["semantic-patient-class"],
+            fallback={"E", "I", "O", "P", "R", "B", "C", "N", "U"},
+            severity="error",
+            required=True,
+            msg=f"PV1-2 (Classe patient) doit être une valeur du vocabulaire sémantique, reçu: {pv1_2}"
+        )
+        pv1_3 = _field(pv1_parts, 3)
+        if not pv1_3:
+            issues.append(ValidationIssue("PV1_3_MISSING", "PV1-3 (Hébergement) est requis", severity="error"))
+        pv1_10 = _field(pv1_parts, 10)
+        pv1_19 = _field(pv1_parts, 19)
+        if not pv1_19:
+            issues.append(ValidationIssue("PV1_19_MISSING", "PV1-19 (Identifiant venue) est requis", severity="warn"))
+
+    # ZBE validation (tous champs principaux)
+    zbe = _get_first_segment(msg, "ZBE")
+    if zbe:
+        zbe_parts = zbe.split("|")
+        zbe_2 = _field(zbe_parts, 2)
+        if not zbe_2:
+            issues.append(ValidationIssue("ZBE2_MISSING", "ZBE-2 (Date/heure mouvement) requise", severity="error"))
+        zbe_3 = _field(zbe_parts, 3)
+        zbe_4 = _field(zbe_parts, 4)
+        _validate_code_with_vocab(
+            zbe_4,
+            "ZBE4",
+            issues,
+            session=session if 'session' in locals() else None,
+            vocab_names=["semantic-movement-type"],
+            fallback={"ADM", "DIS", "TRF", "REG", "PRE", "ANN", "DEC", "AUT", "DUP", "ERR", "CAN", "MOD"},
+            severity="error",
+            required=True,
+            msg=f"ZBE-4 (Type mouvement) doit être une valeur du vocabulaire sémantique, reçu: {zbe_4}"
+        )
+        zbe_5 = _field(zbe_parts, 5)
+        zbe_6 = _field(zbe_parts, 6)
+        zbe_7 = _field(zbe_parts, 7)
+        zbe_8 = _field(zbe_parts, 8)
+        zbe_9 = _field(zbe_parts, 9)
+        _validate_code_with_vocab(
+            zbe_9,
+            "ZBE9",
+            issues,
+            session=session if 'session' in locals() else None,
+            vocab_names=["semantic-movement-nature"],
+            fallback={"NAT1", "NAT2", "NAT3", "NAT4", "NAT5"},
+            severity="warn",
+            required=False,
+            msg=f"ZBE-9 (Nature mouvement) doit être une valeur du vocabulaire sémantique, reçu: {zbe_9}"
+        )
+
+    # MRG (fusion, optionnel)
+    mrg = _get_first_segment(msg, "MRG")
+    if mrg:
+        mrg_parts = mrg.split("|")
+        mrg_1 = _field(mrg_parts, 1)
+        if not mrg_1:
+            issues.append(ValidationIssue("MRG1_MISSING", "MRG-1 (Identifiants à fusionner) est requis pour fusion", severity="error"))
+
+    # NK1 (contact, optionnel)
+    nk1 = _get_first_segment(msg, "NK1")
+    if nk1:
+        nk1_parts = nk1.split("|")
+        nk1_2 = _field(nk1_parts, 2)
+        nk1_3 = _field(nk1_parts, 3)
+        nk1_4 = _field(nk1_parts, 4)
+        if not nk1_2:
+            issues.append(ValidationIssue("NK1_2_MISSING", "NK1-2 (Relation contact) est recommandé", severity="info"))
+        if not nk1_3:
+            issues.append(ValidationIssue("NK1_3_MISSING", "NK1-3 (Adresse contact) est recommandé", severity="info"))
+
+    # PD1 (compléments patient, optionnel)
+    pd1 = _get_first_segment(msg, "PD1")
+    if pd1:
+        pd1_parts = pd1.split("|")
+        pd1_2 = _field(pd1_parts, 2)
+        pd1_12 = _field(pd1_parts, 12)
+        if not pd1_2:
+            issues.append(ValidationIssue("PD1_2_MISSING", "PD1-2 (Mode de vie) est recommandé", severity="info"))
 
     # Validation structure HAPI détaillée (si trigger connu)
     if trigger in SEGMENT_RULES:

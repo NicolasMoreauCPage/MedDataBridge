@@ -120,7 +120,7 @@ async def lifespan(app: FastAPI):
         with session_factory() as sess:
             # Initialiser les vocabulaires si demandé
             if os.getenv("INIT_VOCAB", "0") in ("1", "true", "True"):
-                from app.vocabulary_init import init_vocabularies
+                from app.vocabularies.init import init_vocabularies
                 init_scenario = False
                 try:
                     init_vocabularies(sess)

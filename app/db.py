@@ -124,14 +124,12 @@ def init_db() -> None:
         # Dossiers
         conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_patient_id ON dossier(patient_id);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_entite_juridique ON dossier(entite_juridique_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_type ON dossier(type);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_dossier_type ON dossier(dossier_type);")
 
         # Venues
         conn.execute("CREATE INDEX IF NOT EXISTS idx_venue_entite_juridique ON venue(entite_juridique_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_venue_name ON venue(name);")
 
         # Mouvements
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_dossier_id ON mouvement(dossier_id);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_venue_id ON mouvement(venue_id);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_date ON mouvement(date);")
 

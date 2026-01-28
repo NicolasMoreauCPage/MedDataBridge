@@ -124,7 +124,7 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
         "title": "Modifier patient", "patient": p, "action_url": f"/patients/{patient_id}/edit",
         "identity_reliability_options": get_vocabulary_options("identity-reliability-rniv"),
         "marital_status_options": get_vocabulary_options("marital-status"),
-        "ins_type_options": get_vocabulary_options("ins-type"),
+        "ins_type_options": get_vocabulary_options("semantic-ins-type"),
         "gender_options": get_vocabulary_options("administrative-gender-v2"),
         "country_options": get_vocabulary_options("country-codes"),
     })
@@ -197,7 +197,7 @@ def new_patient_form(request: Request):
         "title": "Nouveau patient", "patient": None, "action_url": "/patients/new",
         "identity_reliability_options": get_vocabulary_options("identity-reliability-rniv"),
         "marital_status_options": get_vocabulary_options("marital-status"),
-        "ins_type_options": get_vocabulary_options("ins-type"),
+        "ins_type_options": get_vocabulary_options("semantic-ins-type"),
         "gender_options": get_vocabulary_options("administrative-gender-v2"),
         "country_options": get_vocabulary_options("country-codes"),
         "sample_data": sample_identity,

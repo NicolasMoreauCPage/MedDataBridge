@@ -237,7 +237,56 @@ class Venue(SQLModel, table=True):
  # --- Mouvement (appartient à une Venue) ---
 # ...existing code...
 
-class Mouvement(SQLModel, table=True):
+class ZFDSegment(SQLModel, table=True):
+    """
+    Segment ZFD : Complément démographique (IHE France PAM)
+    Champs principaux :
+    - ZFD-5 : Mode d’obtention de l’identité (IS)
+    - ZFD-7 : Justificatif d’identité (IS)
+    - ZFD-8 : Date de fin de validité du justificatif d’identité (TS)
+    - ZFD-1 : Date Lunaire (NA)
+    - ZFD-2 : Nombre de semaines de gestation (NM)
+    - ZFD-3 : Consentement SMS (ID)
+    - ZFD-4 : Indicateur de date de naissance modifiée (IS)
+    - ZFD-6 : Date d’interrogation du téléservice INSi (TS)
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: Optional[int] = Field(default=None, foreign_key="patient.id")
+    mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id")
+    zfd_1_date_lunaire: Optional[str] = Field(default=None, description="ZFD-1 Date Lunaire (NA, format: JJ-MM-AAAA ou vecteur)")
+    zfd_2_semaines_gestation: Optional[int] = Field(default=None, description="ZFD-2 Nombre de semaines de gestation (NM)")
+    zfd_3_consentement_sms: Optional[str] = Field(default=None, description="ZFD-3 Consentement SMS (Y/N)")
+    zfd_4_indicateur_naissance_modifiee: Optional[str] = Field(default=None, description="ZFD-4 Indicateur de date de naissance modifiée (Y/N)")
+    zfd_5_mode_obtention_identite: Optional[str] = Field(default=None, description="ZFD-5 Mode d’obtention de l’identité (SM, CV, INSI, CB, RFID)")
+    zfd_6_date_interrogation_insi: Optional[date] = Field(default=None, description="ZFD-6 Date d’interrogation du téléservice INSi (TS)")
+    zfd_7_justificatif_identite: Optional[str] = Field(default=None, description="ZFD-7 Type de justificatif d’identité (selon table IHE-ZFD-7)")
+    zfd_8_date_fin_validite_justificatif: Optional[date] = Field(default=None, description="ZFD-8 Date de fin de validité du justificatif d’identité (TS)")
+
+    patient: Optional["Patient"] = Relationship()
+    mouvement: Optional["Mouvement"] = Relationship()
+
+    # Pour l'intégration HL7 :
+    # - Ajoutez la logique de parsing/génération dans les modules HL7
+    # - Ajoutez la table à l'API (FastAPI routers/schemas)
+    """
+    Segment ZFD : Complément démographique (IHE France PAM)
+    Champs principaux :
+    - ZFD-5 : Mode d’obtention de l’identité (IS)
+    - ZFD-7 : Justificatif d’identité (IS)
+    - ZFD-8 : Date de fin de validité du justificatif d’identité (TS)
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    patient_id: Optional[int] = Field(default=None, foreign_key="patient.id")
+    mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id")
+    zfd_5_mode_obtention_identite: Optional[str] = Field(default=None, description="ZFD-5 Mode d’obtention de l’identité (SM, CV, INSI, CB, RFID)")
+    zfd_7_justificatif_identite: Optional[str] = Field(default=None, description="ZFD-7 Type de justificatif d’identité (selon table IHE-ZFD-7)")
+    zfd_8_date_fin_validite_justificatif: Optional[date] = Field(default=None, description="ZFD-8 Date de fin de validité du justificatif d’identité (TS)")
+
+    # Optionally, link to Patient and Mouvement
+    # patient: Optional["Patient"] = Relationship(back_populates="zfd_segments")
+    # mouvement: Optional["Mouvement"] = Relationship(back_populates="zfd_segments")
+
+    # Ajoutez d'autres champs ZFD si besoin (ZFD-1 à ZFD-4, ZFD-6)
     id: Optional[int] = Field(default=None, primary_key=True)
     mouvement_seq: int = Field(index=True, unique=True)     # identifiant métier unique
     venue_id: int = Field(foreign_key="venue.id")

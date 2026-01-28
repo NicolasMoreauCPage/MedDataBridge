@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sqlmodel import Session
 from app.db import engine, init_db
-from app.vocabulary_init import init_vocabularies
+from app.vocabularies.init import init_vocabularies
 
 def main():
     """

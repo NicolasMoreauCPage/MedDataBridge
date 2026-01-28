@@ -46,7 +46,7 @@ def reset_database(init_vocab: bool = False):
     
     if init_vocab:
         print("\n📚 Initializing vocabulary systems...")
-        from app.vocabulary_init import init_vocabularies
+        from app.vocabularies.init import init_vocabularies
         session = session_factory()
         try:
             init_vocabularies(session)

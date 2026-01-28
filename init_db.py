@@ -93,7 +93,7 @@ def _ensure_sequences(session: Session) -> None:
     for name in ["patient", "dossier", "venue", "mouvement"]:
         if not session.get(Sequence, name):
             session.add(Sequence(name=name, value=0))
-    session.commit()
+    # Pas de valeur de retour
 
 
 def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type: str = "MIXED") -> int:
@@ -190,297 +190,6 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
         total_count += 1
     
     # Mettre à jour les flags
-    if total_count > 0:
-        dossier.has_cotations = True
-        dossier.cotations_count = total_count
-    
-    return total_count
-
-
-def _add_cotations_to_existing_dossiers() -> None:
-    """Ajoute des cotations aux dossiers existants (pour seed standard) - 70% de couverture."""
-    with Session(engine) as session:
-        # Récupérer tous les dossiers existants
-        dossiers = session.exec(select(Dossier)).all()
-        
-        if not dossiers:
-            print("Aucun dossier trouvé, cotations non ajoutées.")
-            return
-        
-        # Distribution réaliste des types de cotations
-        # CCAM et NGAP plus fréquents (actes médicaux courants)
-        # UCD et LPP moins fréquents (médicaments et dispositifs)
-        # MIXED : cas complexes avec plusieurs types
-        cotation_weights = {
-            "CCAM": 30,    # Actes techniques courants
-            "NGAP": 25,    # Actes médicaux et infirmiers
-            "MIXED": 20,   # Cas complexes
-            "UCD": 15,     # Médicaments onéreux
-            "LPP": 10,     # Dispositifs médicaux
-        }
-        
-        cotation_pool = []
-        for cot_type, weight in cotation_weights.items():
-            cotation_pool.extend([cot_type] * weight)
-        
-        added = 0
-        
-        # Ajouter des cotations à 70% des dossiers
-        for i, dossier in enumerate(dossiers):
-            # 70% des dossiers ont des cotations (0-69 sur 100)
-            if (i * 7) % 10 < 7:
-                cotation_type = choice(cotation_pool)
-                count = _add_cotations_to_dossier(session, dossier, cotation_type)
-                added += 1
-                if added <= 3:  # Afficher les 3 premiers exemples
-                    patient = session.get(Patient, dossier.patient_id)
-                    print(f"  • {patient.family} {patient.given}: {count} cotations ({cotation_type})")
-        
-        session.commit()
-        coverage = (added / len(dossiers) * 100) if len(dossiers) > 0 else 0
-        print(f"✓ {added} dossiers enrichis avec des cotations ({coverage:.1f}% de couverture)")
-
-
-def seed_minimal() -> None:
-    """Seed minimal avec 1 patient de démo."""
-    with Session(engine) as session:
-        _ensure_sequences(session)
-        patient = Patient(
-            family="DOE",
-            given="John",
-            birth_date="1985-05-05",
-            gender="male",
-            city="Paris",
-            postal_code="75000",
-            country="FR",
-            identity_reliability_code="VALI",
-            identity_reliability_date="2024-01-01",
-            identity_reliability_source="CNI",
-        )
-        session.add(patient)
-        session.commit()
-        session.refresh(patient)
-
-        dossier_seq = get_next_sequence(session, "dossier")
-        dossier = Dossier(
-            dossier_seq=dossier_seq,
-            patient_id=patient.id,
-            uf_responsabilite="UF-EXT-1-1-1",  # sera valide si structure étendue; sinon valeur libre
-            admit_time=datetime.utcnow(),
-            dossier_type=DossierType.HOSPITALISE,
-            reason="Admission initiale",
-        )
-        session.add(dossier)
-        session.commit()
-        session.refresh(dossier)
-
-        venue_seq = get_next_sequence(session, "venue")
-        venue = Venue(
-            venue_seq=venue_seq,
-            dossier_id=dossier.id,
-            uf_responsabilite=dossier.uf_responsabilite,
-            start_time=datetime.utcnow(),
-            code="VENUE-1",
-            label="Unité Initiale",
-            operational_status="active",
-        )
-        session.add(venue)
-        session.commit()
-        session.refresh(venue)
-
-        mouvement_seq = get_next_sequence(session, "mouvement")
-        mouvement = Mouvement(
-            mouvement_seq=mouvement_seq,
-            venue_id=venue.id,
-            when=datetime.utcnow(),
-            location=f"{venue.uf_responsabilite}^BOX-1^CH-01",
-            trigger_event="A01",
-            movement_type="Admission",
-        )
-        session.add(mouvement)
-        session.commit()
-        
-        # Ajouter des cotations au dossier
-        _add_cotations_to_dossier(session, dossier, cotation_type="MIXED")
-        session.commit()
-        
-        print("✓ Seed minimal inséré (avec cotations)")
-
-
-def seed_rich(nb_patients: int = 200) -> None:
-    """Seed riche avec scénarios de mouvements réalistes.
-    
-    Volumes générés (nb_patients=200):
-    - 200 patients avec données variées
-    - 200 dossiers (1 par patient)
-    - 400-600 venues (2-3 par dossier)
-    - 800-1200 mouvements (plusieurs par venue)
-    - 150-250 cotations (50-75% des dossiers)
-    """
-    with Session(engine) as session:
-        _ensure_sequences(session)
-
-        # Collect UF codes si structure présente
-        uf_codes = [uf.identifier for uf in session.exec(select(UniteFonctionnelle)).all()]
-        if not uf_codes:
-            uf_codes = ["UF-RICH-1", "UF-RICH-2", "UF-RICH-3", "UF-RICH-4"]
-        
-        # Données réalistes pour génération
-        prenoms_m = ["Alexandre", "Antoine", "Arthur", "Baptiste", "Benjamin", "Charles", "Clément", "David", 
-                     "Étienne", "François", "Gabriel", "Hugo", "Jean", "Julien", "Laurent", "Luc", "Lucas",
-                     "Marc", "Martin", "Mathieu", "Maxime", "Nicolas", "Olivier", "Paul", "Pierre", "Raphaël",
-                     "Simon", "Thomas", "Victor", "Vincent"]
-        prenoms_f = ["Amélie", "Anne", "Aurélie", "Camille", "Caroline", "Catherine", "Céline", "Charlotte",
-                     "Chloé", "Claire", "Émilie", "Emma", "Julie", "Juliette", "Laura", "Léa", "Louise",
-                     "Lucie", "Manon", "Marie", "Marine", "Martine", "Nathalie", "Pauline", "Sarah", "Sophie",
-                     "Stéphanie", "Valentine", "Valérie", "Zoé"]
-        noms = ["Martin", "Bernard", "Thomas", "Petit", "Robert", "Richard", "Durand", "Dubois", "Moreau",
-                "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux", "David", "Bertrand", "Morel",
-                "Fournier", "Girard", "Bonnet", "Dupont", "Lambert", "Fontaine", "Rousseau", "Vincent",
-                "Muller", "Lefèvre", "Faure", "André", "Mercier", "Blanc", "Guerin", "Boyer", "Garnier",
-                "Chevalier", "François", "Legrand", "Gauthier", "Garcia", "Perrin", "Robin", "Clément",
-                "Morin", "Nicolas", "Henry", "Roussel", "Mathieu", "Gautier", "Masson"]
-        villes = ["Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Nantes", "Strasbourg", "Montpellier",
-                  "Bordeaux", "Lille", "Rennes", "Reims", "Le Havre", "Saint-Étienne", "Toulon", "Grenoble",
-                  "Dijon", "Angers", "Nîmes", "Villeurbanne", "Le Mans", "Aix-en-Provence", "Clermont-Ferrand",
-                  "Brest", "Tours", "Amiens", "Limoges", "Annecy", "Perpignan", "Boulogne-Billancourt"]
-        
-        types_admission = ["Admission aux urgences", "Admission programmée", "Transfert autre établissement",
-                          "Admission en consultation", "Admission post-opératoire"]
-        
-        print(f"Génération de {nb_patients} patients avec parcours réalistes...")
-        
-        for i in range(1, nb_patients + 1):
-            # Alternance homme/femme
-            is_male = i % 2 == 0
-            gender = "male" if is_male else "female"
-            prenom = choice(prenoms_m if is_male else prenoms_f)
-            nom = choice(noms)
-            
-            # Âge varié : 20-90 ans
-            age_years = 20 + (i % 70)
-            birth_year = 2024 - age_years
-            birth_month = (i % 12) + 1
-            birth_day = ((i * 7) % 28) + 1
-            
-            patient = Patient(
-                family=nom,
-                given=prenom,
-                birth_date=f"{birth_year}-{birth_month:02d}-{birth_day:02d}",
-                gender=gender,
-                city=choice(villes),
-                postal_code=f"{13000 + (i % 87000):05d}",
-                country="FR",
-                identity_reliability_code="VALI" if i % 10 != 0 else "PROV",
-                identity_reliability_date="2024-02-01",
-                identity_reliability_source="CNI" if i % 3 == 0 else "PP",
-            )
-            session.add(patient)
-            session.commit()
-            session.refresh(patient)
-
-            dossier_seq = get_next_sequence(session, "dossier")
-            uf_resp = choice(uf_codes)
-            
-            # Type de dossier varié
-            if i % 5 == 0:
-                dtype = DossierType.HOSPITALISATION_PARTIELLE
-            elif i % 7 == 0:
-                dtype = DossierType.EXTERNE
-            elif i % 11 == 0:
-                dtype = DossierType.URGENCE
-            else:
-                dtype = DossierType.HOSPITALISE
-                
-            dossier = Dossier(
-                dossier_seq=dossier_seq,
-                patient_id=patient.id,
-                uf_responsabilite=uf_resp,
-                admit_time=datetime.utcnow() - timedelta(days=i % 90),
-                dossier_type=dtype,
-                reason=choice(types_admission),
-            )
-            session.add(dossier)
-            session.commit()
-            session.refresh(dossier)
-
-            # Nombre de venues varié : 2-4 selon le parcours
-            nb_venues = 2 if dtype == DossierType.HOSPITALISATION_PARTIELLE else (3 if i % 3 == 0 else 2)
-            venues = []
-            
-            for v in range(1, nb_venues + 1):
-                venue_seq = get_next_sequence(session, "venue")
-                venue = Venue(
-                    venue_seq=venue_seq,
-                    dossier_id=dossier.id,
-                    uf_responsabilite=choice(uf_codes),
-                    start_time=datetime.utcnow() - timedelta(days=i % 60, hours=v),
-                    code=f"VENUE-{i}-{v}",
-                    label=f"Séjour {v}",
-                    operational_status="active" if v == nb_venues else "finished",
-                )
-                session.add(venue)
-                session.commit()
-                session.refresh(venue)
-                venues.append(venue)
-
-            # Mouvements réalistes : admission + transferts + sortie
-            nb_mouvements = nb_venues + 1  # Au moins 1 mouvement par venue + sortie
-            
-            # Admission
-            mouvement_seq = get_next_sequence(session, "mouvement")
-            mouvement = Mouvement(
-                mouvement_seq=mouvement_seq,
-                venue_id=venues[0].id,
-                when=dossier.admit_time,
-                location=f"{venues[0].uf_responsabilite}^CHAMBRE-{(i % 50) + 1}^LIT-{(i % 2) + 1}",
-                trigger_event="A01",
-                movement_type="Admission",
-            )
-            session.add(mouvement)
-            
-            # Transferts entre venues
-            for v_idx in range(len(venues) - 1):
-                mouvement_seq = get_next_sequence(session, "mouvement")
-                mouvement = Mouvement(
-                    mouvement_seq=mouvement_seq,
-                    venue_id=venues[v_idx + 1].id,
-                    when=venues[v_idx + 1].start_time,
-                    location=f"{venues[v_idx + 1].uf_responsabilite}^CHAMBRE-{((i + v_idx) % 50) + 1}^LIT-{((i + v_idx) % 2) + 1}",
-                    trigger_event="A02",
-                    movement_type="Transfert",
-                    from_location=venues[v_idx].uf_responsabilite,
-                    to_location=venues[v_idx + 1].uf_responsabilite,
-                )
-                session.add(mouvement)
-            
-            # Sortie (pour les dossiers terminés)
-            if dtype != DossierType.EXTERNE and i % 3 != 0:
-                mouvement_seq = get_next_sequence(session, "mouvement")
-                mouvement = Mouvement(
-                    mouvement_seq=mouvement_seq,
-                    venue_id=venues[-1].id,
-                    when=datetime.utcnow() - timedelta(days=(i % 30)),
-                    location=f"{venues[-1].uf_responsabilite}^SORTIE",
-                    trigger_event="A03",
-                    movement_type="Sortie",
-                )
-                session.add(mouvement)
-            
-            session.commit()
-            
-            # Affichage progrès
-            if i % 50 == 0:
-                print(f"  → {i}/{nb_patients} patients créés...")
-
-        print(f"✓ Seed riche inséré ({nb_patients} patients)")
-
-
-def seed_demo_scenarios() -> None:
-    """Insère 3 patients avec scénarios de transferts / annulations."""
-    with Session(engine) as session:
-        _ensure_sequences(session)
-        now = datetime.utcnow()
         scenario_defs = [
             ("SCENARIO-TRANSFERTS", ["A01", "A02", "A02", "A03"]),
             ("SCENARIO-ANNULATION", ["A01", "A11", "A01", "A02", "A03"]),
@@ -553,14 +262,16 @@ def seed_demo_scenarios() -> None:
         print("✓ Scénarios démo insérés")
 
 
-def extract_hl7_messages(hl7_content: str) -> list:
+
+# --- Utilitaires HL7 ---
+from app.utils.hl7_detector import HL7Detector
+
+def extract_trigger_from_message(hl7_msg: str) -> str:
     """Extrait le trigger event (ex: A01, A02) d'un message HL7"""
-    lines = hl7_msg.split('\\r')
-    for line in lines:
-        if line.startswith('MSH|'):
-            fields = line.split('|')
-            if len(fields) >= 9:
-                return fields[8]  # MSH-9: Message Type
+    details = HL7Detector.get_message_type_details(hl7_msg)
+    trigger = details.get('trigger_event')
+    if trigger:
+        return trigger
     return "UNKNOWN"
 
 
@@ -598,7 +309,7 @@ def import_hl7_scenarios():
     print("🔍 Recherche des fichiers HL7...")
 
     # Chemin vers les fichiers HL7
-    hl7_dir = Path("Doc/interfaces.integration_src/interfaces.integration/src/main/resources/data/entrant/hl7")
+    hl7_dir = Path("docs/interfaces.integration_src/interfaces.integration/src/main/resources/data/entrant/hl7")
 
     if not hl7_dir.exists():
         print(f"❌ Répertoire HL7 non trouvé: {hl7_dir}")
@@ -684,7 +395,7 @@ def import_hprim_scenarios():
     print("🔍 Recherche des fichiers HPRIM...")
 
     # Chemin vers les fichiers HPRIM
-    hprim_dir = Path("Doc/interfaces.integration_src/interfaces.integration/src/main/resources/data/entrant/hprimxml")
+    hprim_dir = Path("docs/interfaces.integration_src/interfaces.integration/src/main/resources/data/entrant/hprimxml")
 
     if not hprim_dir.exists():
         print(f"❌ Répertoire HPRIM non trouvé: {hprim_dir}")
@@ -1078,7 +789,7 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         print("ÉTAPE 2/4 : Initialisation des vocabulaires")
         print("=" * 60)
         try:
-            from app.vocabulary_init import init_vocabularies
+            from app.vocabularies.init import init_vocabularies
             with Session(engine) as session:
                 init_vocabularies(session)
             print("✓ Vocabulaires initialisés (35 systèmes, 207 valeurs)\n")
@@ -1131,35 +842,14 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         print("✓ Population configurée\n")
 
 
-    # 5. Import scénarios IHE HL7 (partie intégrante du programme)
+    # 5 & 6. Import scénarios HL7/HPRIM (remplacé par seed JSON)
     if not args.skip_scenarios:
         print("=" * 60)
-        print("ÉTAPE 5/8 : Import des scénarios IHE HL7")
+        print("ÉTAPE 5/8 : Import des scénarios HL7/HPRIM (NOUVEAU SEED)")
         print("=" * 60)
-        try:
-            hl7_count = import_hl7_scenarios()
-            print(f"✓ {hl7_count} scénarios IHE HL7 importés\n")
-        except Exception as e:
-            print(f"✗ Échec import scénarios IHE HL7: {e}")
-            sys.exit(1)
+        print("→ L'import des scénarios HL7/HPRIM depuis les fichiers est désactivé. Utilisez seed_scenarios_from_json.py pour le seed complet à partir du JSON exporté.")
     else:
-        print("→ Scénarios IHE HL7 sautés (--skip-scenarios)\n")
-        hl7_count = 0
-
-    # 6. Import scénarios d'intégration HL7/HPRIM (partie intégrante du programme)
-    if not args.skip_scenarios:
-        print("=" * 60)
-        print("ÉTAPE 6/8 : Import des scénarios d'intégration HL7/HPRIM")
-        print("=" * 60)
-        try:
-            hprim_count = import_hprim_scenarios()
-            print(f"✓ {hprim_count} scénarios HPRIM importés\n")
-        except Exception as e:
-            print(f"✗ Échec import scénarios HPRIM: {e}")
-            sys.exit(1)
-    else:
-        print("→ Scénarios HPRIM sautés (--skip-scenarios)\n")
-        hprim_count = 0
+        print("→ Scénarios HL7/HPRIM sautés (--skip-scenarios)\n")
 
     # 7. Scénarios HL7 IHE PAM (partie intégrante du programme)
     if not args.skip_scenarios:

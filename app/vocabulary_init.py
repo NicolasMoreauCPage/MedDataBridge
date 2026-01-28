@@ -295,81 +295,6 @@ def _create_contact_relationship_and_role_vocab() -> List[VocabularySystem]:
 
     return [rel_system, role_system]
 
-def create_administrative_gender() -> List[VocabularySystem]:
-    """Crée les vocabulaires pour le genre administratif"""
-    systems = []
-    
-    # --- Genre administratif (IHE interne) ---
-    fhir_system = VocabularySystem(
-        name="administrative-gender",
-        label="Genre administratif (IHE)",
-        system_type=VocabularySystemType.FHIR,
-        uri="http://hl7.org/fhir/administrative-gender",
-        is_user_defined=False
-    )
-    
-    fhir_values = [
-        VocabularyValue(code="male", display="Masculin", definition="Homme", order=1),
-        VocabularyValue(code="female", display="Féminin", definition="Femme", order=2),
-        VocabularyValue(code="other", display="Autre", definition="Autre genre", order=3),
-        VocabularyValue(code="unknown", display="Inconnu", definition="Genre non spécifié", order=4)
-    ]
-    fhir_system.values = fhir_values
-    systems.append(fhir_system)
-    
-    # Système HL7v2 (Table 0001) utilisé pour les mappings
-    hl7_system = VocabularySystem(
-        name="administrative-gender-v2",
-        label="Sexe administratif (HL7v2)",
-        oid="2.16.840.1.113883.12.1",
-        system_type=VocabularySystemType.HL7V2,
-        is_user_defined=False,
-        description="Table HL7 0001 - Administrative Sex"
-    )
-    
-    hl7_values = [
-        VocabularyValue(code="M", display="Masculin", definition="Homme", order=1),
-        VocabularyValue(code="F", display="Féminin", definition="Femme", order=2),
-        VocabularyValue(code="O", display="Autre", definition="Autre", order=3),
-        VocabularyValue(code="U", display="Inconnu", definition="Inconnu", order=4),
-        VocabularyValue(code="A", display="Ambigu", definition="Ambigu", order=5),
-        VocabularyValue(code="N", display="Non applicable", definition="Non applicable", order=6)
-    ]
-    hl7_system.values = hl7_values
-    
-    # Mappings
-    mappings = [
-        # FHIR male -> HL7 M
-        VocabularyMapping(
-            source_value=fhir_values[0],  # male
-            target_system=hl7_system,
-            target_code="M",
-            map_type="equivalent"
-        ),
-        # FHIR female -> HL7 F
-        VocabularyMapping(
-            source_value=fhir_values[1],  # female
-            target_system=hl7_system,
-            target_code="F",
-            map_type="equivalent"
-        ),
-        # FHIR other -> HL7 O
-        VocabularyMapping(
-            source_value=fhir_values[2],  # other
-            target_system=hl7_system,
-            target_code="O",
-            map_type="equivalent"
-        ),
-        # FHIR unknown -> HL7 U
-        VocabularyMapping(
-            source_value=fhir_values[3],  # unknown
-            target_system=hl7_system,
-            target_code="U",
-            map_type="equivalent"
-        )
-    ]
-    
-    return [fhir_system, hl7_system]
 
 def create_encounter_status() -> List[VocabularySystem]:
     """Statut d'une venue - vocabulaire interne et mappings HL7v2 PV1-44/45"""
@@ -430,9 +355,10 @@ def init_vocabularies(session):
     """Initialise toutes les listes de valeurs standards"""
     
     all_systems = []
-    
     # Vocabulaires de base
-    all_systems.extend(create_administrative_gender())
+    from app.vocabularies.init import create_semantic_administrative_gender, create_semantic_patient_class
+    all_systems.extend(create_semantic_administrative_gender(session))
+    all_systems.extend(create_semantic_patient_class(session))
     all_systems.extend(create_encounter_status())
     
     # Vocabulaires IHE PAM FR

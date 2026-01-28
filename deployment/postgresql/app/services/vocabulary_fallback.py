@@ -29,7 +29,7 @@ DEFAULT_MAPPINGS = {
     },
 
     # Types d'identifiant (HL7 Table 0203 / FHIR identifier.type)
-    "identifier-type": {
+    "semantic-identifier-type": {
         "IPP": "PI",             # Patient Internal ID
         "NDA": "AN",             # Account Number
         "NA": "AN",              # Account Number

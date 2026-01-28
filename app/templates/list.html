@@ -381,7 +381,11 @@ function submitBulkExecuteFromList(e) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('input.row-select').forEach(el => el.addEventListener('change', updateBulkToolbar));
+  document.querySelectorAll('input.row-select').forEach(el => {
+    el.addEventListener('change', updateBulkToolbar);
+    // Prevent row click navigation when interacting with the checkbox
+    el.addEventListener('click', function(e){ e.stopPropagation(); });
+  });
   const select = document.querySelector('select#bulkEndpoint');
   if (select) select.addEventListener('change', updateBulkToolbar);
   const btn = document.getElementById('bulkSubmitBtn');

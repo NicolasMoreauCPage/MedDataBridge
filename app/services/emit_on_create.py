@@ -1016,16 +1016,37 @@ def generate_pam_hl7(
                     session, getattr(dossier, 'entite_juridique_id', None), "MVT",
                     forced_system=mv_ident.system, forced_oid=mv_ident.oid
                 )
-                # ZBE-1 movement identifier: value^namespace^oid^ISO-style authority
-                zbe_id = f"{mv_ident.value}^{ns_type}^{mv_ident.oid or mv_ident.system}^ISO"
+                # Build assigning authority in the form 'system&oid&ISO' when possible
+                if ns_auth:
+                    authority = ns_auth
+                else:
+                    if getattr(mv_ident, 'system', None) and getattr(mv_ident, 'oid', None):
+                        authority = f"{mv_ident.system}&{mv_ident.oid}&ISO"
+                    elif getattr(mv_ident, 'system', None):
+                        authority = mv_ident.system
+                    elif getattr(mv_ident, 'oid', None):
+                        authority = f"HOSP&{mv_ident.oid}&ISO"
+                    else:
+                        authority = "HOSP"
+                type_code = ns_type or "MVT"
+                # ZBE-1 movement identifier as CX: value^^^assigningAuthority^type
+                zbe_id = f"{mv_ident.value}^^^{authority}^{type_code}"
             else:
                 # No MVT identifier found, use mouvement_seq with MVT namespace if available
                 mvt_auth, mvt_type = _resolve_namespace_authority(
                     session, getattr(dossier, 'entite_juridique_id', None), "MVT",
                     forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
                 )
-                # mvt_auth may be 'system&oid&ISO' or system; include mvt_type as type code
-                zbe_id = f"{entity.mouvement_seq}^{mvt_type}^{mvt_auth}^ISO"
+                # mvt_auth may be 'system&oid&ISO' or system; normalize assigning authority
+                if mvt_auth:
+                    authority = mvt_auth
+                else:
+                    if forced_identifier_system and forced_identifier_oid:
+                        authority = f"{forced_identifier_system}&{forced_identifier_oid}&ISO"
+                    else:
+                        authority = forced_identifier_system or "HOSP"
+                type_code = mvt_type or "MVT"
+                zbe_id = f"{entity.mouvement_seq}^^^{authority}^{type_code}"
         except Exception:
             # Keep control_id as Solution de repli on any error
             zbe_id = control_id
@@ -1997,6 +2018,81 @@ def emit_to_senders_async(
                 logger.error(traceback.format_exc())
                 continue
         
+        # SFTP outbox: write HL7/FHIR payloads to a remote SFTP if configured
+        if endpoint.kind == "SFTP":
+            from datetime import datetime
+            import os
+            import random
+            try:
+                from app.adapters.sftp_writer import SFTPWriter
+                # Build HL7 for PAM events (patient/venue/mouvement)
+                hl7_message = None
+                if entity_type in ["patient", "venue", "mouvement"]:
+                    hl7_message = generate_pam_hl7(
+                        entity,
+                        entity_type,
+                        session,
+                        operation=operation,
+                        msh_sending_app=getattr(endpoint, 'sending_app', None),
+                        msh_sending_facility=getattr(endpoint, 'sending_facility', None),
+                        msh_receiving_app=getattr(endpoint, 'receiving_app', None),
+                        msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
+                    )
+                # Fallback to FHIR payload when HL7 not applicable
+                if not hl7_message:
+                    fhir_payload = generate_fhir(entity, entity_type, session)
+                    payload_str = json.dumps(fhir_payload, default=str)
+                    ext = "json"
+                else:
+                    payload_str = hl7_message
+                    ext = "hl7"
+
+                # Unique filename: entityType_id_timestamp-rand.ext
+                suffix = f"{int(datetime.utcnow().timestamp())}-{random.randint(1000,9999)}"
+                filename = f"{entity_type}_{getattr(entity,'id', 'unknown')}_{suffix}.{ext}"
+                remote_path = endpoint.ftp_remote_outbox_path or "."
+                writer = SFTPWriter(
+                    host=endpoint.ftp_host,
+                    port=endpoint.ftp_port or 22,
+                    username=endpoint.ftp_username,
+                    password=endpoint.ftp_password,
+                    remote_path=remote_path
+                )
+                writer.connect()
+                writer.write_file(filename, payload_str)
+                writer.disconnect()
+                # Record MessageLog
+                endpoint_id = endpoint.id
+                log = MessageLog(
+                    direction="out",
+                    kind="SFTP",
+                    endpoint_id=endpoint_id,
+                    payload=(payload_str[:100000] if payload_str else ""),
+                    ack_payload=f"SENT_SFTP:{filename}",
+                    status="sent",
+                    correlation_id=getattr(entity, 'correlation_id', None),
+                )
+                session.add(log)
+                session.commit()
+            except Exception as exc:
+                endpoint_id_safe = locals().get('endpoint_id', getattr(endpoint, 'id', 'unknown'))
+                logger.error(f"[emit_on_create] Failed to write SFTP outbox for endpoint={endpoint_id_safe}: {exc}")
+                session.rollback()
+                try:
+                    log = MessageLog(
+                        direction="out",
+                        kind="SFTP",
+                        endpoint_id=endpoint_id_safe if isinstance(endpoint_id_safe, int) else None,
+                        payload=(payload_str[:100000] if 'payload_str' in locals() and payload_str else ""),
+                        ack_payload=str(exc),
+                        status="error",
+                        correlation_id=getattr(entity, 'correlation_id', None),
+                    )
+                    session.add(log)
+                    session.commit()
+                except Exception:
+                    logger.exception("Failed to persist SFTP MessageLog after write failure")
+
         # FILE outbox: write HL7/FHIR payloads to a filesystem outbox if configured
         if endpoint.kind == "FILE":
             # Write HL7 / FHIR payloads to filesystem outbox. If the endpoint has an

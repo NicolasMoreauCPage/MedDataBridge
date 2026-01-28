@@ -95,6 +95,79 @@
 
   <!-- Formulaire de configuration -->
   <form method="post" action="/endpoints/{{ e.id }}/update" class="space-y-6">
+
+    <!-- Section: Configuration des événements associés -->
+    <details class="bg-white rounded-2xl border-2 border-blue-300 shadow-md overflow-hidden" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-blue-100 to-blue-200 px-6 py-4 font-semibold text-blue-900 hover:from-blue-200 hover:to-blue-300 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-blue-200 flex items-center justify-center">
+          <svg class="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h2a4 4 0 014 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </div>
+        <span class="text-lg">Configuration des événements associés</span>
+      </summary>
+      <div class="p-6">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_hl7_pam" value="true" {% if e.emit_hl7_pam %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              HL7 IHE PAM (Identité/Mouvements)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les messages ADT (identité/mouvements) selon le standard IHE PAM.</p>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_fhir_identity" value="true" {% if e.emit_fhir_identity %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              FHIR Identité/Mouvements (Patient/Encounter)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les ressources FHIR d'identité et mouvements (Patient, Encounter).</p>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_hl7_mfn" value="true" {% if e.emit_hl7_mfn %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              HL7 MFN (Structure)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les messages MFN (structure) pour la gestion des structures.</p>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_fhir_structure" value="true" {% if e.emit_fhir_structure %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              FHIR Structure (Location/Organization)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les ressources FHIR de structure (Location, Organization).</p>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_hprim_ccam" value="true" {% if e.emit_hprim_ccam %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              HPRIM CCAM (Actes médicaux)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les messages HPRIM XML pour la cotation des actes CCAM.</p>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_hprim_ngap" value="true" {% if e.emit_hprim_ngap %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              HPRIM NGAP (GHS)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les messages HPRIM XML pour la cotation NGAP/GHS.</p>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_hprim_ucd" value="true" {% if e.emit_hprim_ucd %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              HPRIM UCD (Médicaments)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les messages HPRIM XML pour la cotation des médicaments.</p>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="emit_hprim_lpp" value="true" {% if e.emit_hprim_lpp %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+              HPRIM LPP (Dispositifs implantables)
+            </label>
+            <p class="text-xs text-slate-500 ml-7">Émet les messages HPRIM XML pour la cotation des dispositifs implantables.</p>
+          </div>
+        </div>
+      </div>
+    </details>
     
     <!-- Section: Configuration générale -->
     <details class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" open>

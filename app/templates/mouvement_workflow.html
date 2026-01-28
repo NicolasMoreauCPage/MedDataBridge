@@ -144,16 +144,19 @@
               Nouvelle localisation <span class="text-red-500">*</span>
             </label>
             
-            <!-- Hidden input to store selected location -->
+            <!-- Hidden input to store selected location and optional lit_id -->
             <input type="hidden" name="location" id="location-select" value="{% if prefilled_location %}{{ prefilled_location }}{% endif %}">
+            <input type="hidden" name="lit_id" id="lit-id-input" value="">
             
             <!-- Visual bed selector -->
             <div class="rounded-xl border-2 border-slate-300 bg-white overflow-hidden">
               <!-- Search bar -->
               <div class="p-3 border-b border-slate-200 bg-slate-50">
                 <div class="relative">
-                  <input type="text" id="bed-search" placeholder="Rechercher un service, UF, chambre ou lit..."
-                         class="block w-full rounded-lg border border-slate-300 pl-10 pr-4 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors">
+                      <input type="text" id="bed-search" placeholder="Rechercher un service, UF, chambre ou lit..."
+                        autocomplete="off"
+                        class="block w-full rounded-lg border border-slate-300 pl-10 pr-4 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors">
+                      <div id="bed-suggestions" class="absolute left-0 right-0 mt-10 z-50 hidden bg-white border border-slate-200 rounded-lg shadow-lg max-h-56 overflow-y-auto text-sm"></div>
                   <svg class="absolute left-3 top-2.5 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
@@ -475,57 +478,124 @@
     });
   }
 
-  // Bed search functionality
+  // Bed search / Autocomplete functionality (debounced server lookup, fallback to local filter)
   if (bedSearch) {
-    bedSearch.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      
-      document.querySelectorAll('.service-group').forEach((serviceGroup) => {
-        let serviceHasMatch = false;
-        const serviceName = serviceGroup.getAttribute('data-service-name').toLowerCase();
-        
-        serviceGroup.querySelectorAll('.uf-group').forEach((ufGroup) => {
-          let ufHasMatch = false;
-          const ufName = ufGroup.getAttribute('data-uf-name').toLowerCase();
+    const suggestionsBox = document.getElementById('bed-suggestions');
+    const litIdInput = document.getElementById('lit-id-input');
+
+    function debounce(fn, delay) {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), delay);
+      };
+    }
+
+    async function fetchSuggestions(term) {
+      try {
+        const resp = await fetch(`/api/mouvements/location-search?q=${encodeURIComponent(term)}&limit=10`);
+        if (!resp.ok) return [];
+        return await resp.json();
+      } catch (e) {
+        console.warn('Autocomplete fetch failed', e);
+        return [];
+      }
+    }
+
+    function renderSuggestions(items) {
+      suggestionsBox.innerHTML = '';
+      if (!items || items.length === 0) {
+        suggestionsBox.classList.add('hidden');
+        return;
+      }
+      items.forEach((it) => {
+        const el = document.createElement('div');
+        el.className = 'px-3 py-2 hover:bg-slate-50 cursor-pointer';
+        el.textContent = `${it.full_path}`;
+        el.dataset.type = it.type || '';
+        el.dataset.id = it.id || '';
+        el.dataset.label = it.label || '';
+        el.addEventListener('click', () => {
+          // When a suggestion is clicked, set hidden inputs and display
+          const full = it.full_path || it.label;
+          document.getElementById('location-select').value = full;
+          if (it.type === 'lit' && it.id) {
+            litIdInput.value = it.id;
+            document.getElementById('location-path').textContent = full;
+          } else {
+            litIdInput.value = '';
+            document.getElementById('location-path').textContent = full;
+          }
+          locationDisplay.classList.remove('hidden');
+          // highlight corresponding bed if present in DOM
+          document.querySelectorAll('.bed-option').forEach((btn) => btn.classList.remove('ring-2','ring-blue-500','ring-offset-1'));
+          // close suggestions
+          suggestionsBox.classList.add('hidden');
+          validateForm();
+        });
+        suggestionsBox.appendChild(el);
+      });
+      suggestionsBox.classList.remove('hidden');
+    }
+
+    const doSearch = debounce(async (e) => {
+      const term = e.target.value.trim();
+      if (!term) {
+        // restore full list
+        document.querySelectorAll('.service-group').forEach(sg => { sg.style.display = ''; sg.querySelectorAll('.chambre-group, .uf-group').forEach(n => n.style.display=''); });
+        suggestionsBox.classList.add('hidden');
+        return;
+      }
+
+      if (term.length < 3) {
+        // fallback to local DOM filter for short terms
+        document.querySelectorAll('.service-group').forEach((serviceGroup) => {
+          let serviceHasMatch = false;
+          const serviceName = serviceGroup.getAttribute('data-service-name').toLowerCase();
           
-          ufGroup.querySelectorAll('.chambre-group').forEach((chambreGroup) => {
-            let chambreHasMatch = false;
-            const chambreName = chambreGroup.getAttribute('data-chambre-name').toLowerCase();
+          serviceGroup.querySelectorAll('.uf-group').forEach((ufGroup) => {
+            let ufHasMatch = false;
+            const ufName = ufGroup.getAttribute('data-uf-name').toLowerCase();
             
-            chambreGroup.querySelectorAll('.bed-option').forEach((bedBtn) => {
-              const bedName = bedBtn.getAttribute('data-bed-name').toLowerCase();
-              const matches = serviceName.includes(searchTerm) || 
-                            ufName.includes(searchTerm) || 
-                            chambreName.includes(searchTerm) || 
-                            bedName.includes(searchTerm);
+            ufGroup.querySelectorAll('.chambre-group').forEach((chambreGroup) => {
+              let chambreHasMatch = false;
+              const chambreName = chambreGroup.getAttribute('data-chambre-name').toLowerCase();
               
-              if (matches) {
-                bedBtn.style.display = '';
-                chambreHasMatch = true;
-                ufHasMatch = true;
-                serviceHasMatch = true;
-              } else {
-                bedBtn.style.display = 'none';
-              }
+              chambreGroup.querySelectorAll('.bed-option').forEach((bedBtn) => {
+                const bedName = bedBtn.getAttribute('data-bed-name').toLowerCase();
+                const matches = serviceName.includes(term) || 
+                              ufName.includes(term) || 
+                              chambreName.includes(term) || 
+                              bedName.includes(term);
+                
+                if (matches) {
+                  bedBtn.style.display = '';
+                  chambreHasMatch = true;
+                  ufHasMatch = true;
+                  serviceHasMatch = true;
+                } else {
+                  bedBtn.style.display = 'none';
+                }
+              });
+              
+              chambreGroup.style.display = chambreHasMatch ? '' : 'none';
             });
             
-            chambreGroup.style.display = chambreHasMatch ? '' : 'none';
+            ufGroup.style.display = ufHasMatch ? '' : 'none';
           });
           
-          ufGroup.style.display = ufHasMatch ? '' : 'none';
+          serviceGroup.style.display = serviceHasMatch ? '' : 'none';
         });
-        
-        // Auto-expand services with matches
-        if (serviceHasMatch && searchTerm) {
-          const content = serviceGroup.querySelector('.service-content');
-          const chevron = serviceGroup.querySelector('.service-chevron');
-          content.classList.remove('hidden');
-          chevron.style.transform = 'rotate(90deg)';
-        }
-        
-        serviceGroup.style.display = serviceHasMatch ? '' : 'none';
-      });
-    });
+        suggestionsBox.classList.add('hidden');
+        return;
+      }
+
+      // remote lookup
+      const items = await fetchSuggestions(term);
+      renderSuggestions(items);
+    }, 250);
+
+    bedSearch.addEventListener('input', doSearch);
   }
   
   // Validation function

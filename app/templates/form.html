@@ -38,38 +38,61 @@
     </div>
   </div>
 
-  <h2 class="text-xl font-semibold text-slate-800">{{ title }}</h2>
+  <div class="max-w-5xl mx-auto py-8 px-4 space-y-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-sm text-slate-500">
+      <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      <a href="/endpoints" class="hover:text-blue-600 transition-colors">Endpoints</a>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      <span class="text-slate-700 font-medium">{{ title }}</span>
+    </nav>
 
-  {% if error %}
-  <div class="p-4 bg-red-50 border border-red-300 rounded-xl">
-    <div class="flex items-center gap-3">
-      <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span class="text-red-700">{{ error }}</span>
+    <!-- Header avec gradient -->
+    <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-8 text-white relative overflow-hidden">
+      <div class="absolute inset-0 bg-black/10"></div>
+      <div class="relative z-10 flex items-start justify-between">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold">{{ title }}</h1>
+            </div>
+          </div>
+          <p class="text-white/70 text-sm mt-2">Gérez la configuration et le rattachement de ce système.</p>
+        </div>
+      </div>
     </div>
-  </div>
-  {% endif %}
 
-  {# Déterminer si le formulaire contient des champs de transition d'état #}
-  {% set has_transitions = (fields | selectattr('name', 'equalto', 'current_state') | list | length) > 0 %}
+    {% if error %}
+    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+      <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      {{ error }}
+    </div>
+    {% endif %}
 
-  <form
-    role="form"
-    method="post"
-    action="{{ action_url or '' }}"
-    class="space-y-6 {{ 'has-state-transitions' if has_transitions else '' }}"
-  >
-    <div class="form-grid grid gap-4 md:gap-6">
+    <form role="form" method="post" action="{{ action_url or '' }}" class="space-y-6">
+      {% set section_open = false %}
       {% for field in fields %}
         {% if field.type == 'section' %}
-          <div class="col-span-2 mt-6 mb-2 flex items-center gap-2">
-            {% if field.icon %}
-              <span class="inline-block"><i class="fa fa-{{ field.icon }} text-blue-600"></i></span>
-            {% endif %}
-            <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200">{{ field.label }}</h3>
-            {% if field.help %}<p class="text-xs text-slate-500 ml-2">{{ field.help }}</p>{% endif %}
-          </div>
+          {% if section_open %}</div></details>{% endif %}
+          <details class="bg-white rounded-2xl border-2 border-blue-300 shadow-md overflow-hidden" open>
+            <summary class="cursor-pointer bg-gradient-to-r from-blue-100 to-blue-200 px-6 py-4 font-semibold text-blue-900 hover:from-blue-200 hover:to-blue-300 transition-colors flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-blue-200 flex items-center justify-center">
+                <i class="fa fa-{{ field.icon }} text-blue-700"></i>
+              </div>
+              <span class="text-lg">{{ field.label }}</span>
+            </summary>
+            <div class="p-6">
+              {% if field.help %}<p class="text-xs text-slate-500 mb-4">{{ field.help }}</p>{% endif %}
+              <div class="grid gap-6 md:grid-cols-2">
+              {% set section_open = true %}
         {% elif field.type == 'subsection' %}
           <div class="col-span-2 mt-4 mb-1 flex items-center gap-2">
             {% if field.icon %}
@@ -78,7 +101,7 @@
             <h4 class="text-md font-semibold text-blue-700 dark:text-blue-300">{{ field.label }}</h4>
           </div>
         {% elif field.type == 'divider' %}
-          <div class="col-span-2 my-4"><hr class="border-t border-slate-300 dark:border-slate-600"></div>
+          </div></div></details>{% set section_open = false %}
         {% elif field.hidden %}
           <input type="hidden" name="{{ field.name }}" value="{{ field.value or '' }}" />
         {% elif field.type == 'checkbox' %}
@@ -185,53 +208,33 @@
           </div>
         {% endif %}
       {% endfor %}
-    </div>
+      {% if section_open %}</div></div></details>{% endif %}
 
-    <div class="mt-8 flex flex-col gap-4">
-      <div class="flex items-center justify-between">
-        <div class="flex gap-4">
-          <button type="submit" class="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded flex items-center gap-2 transition" onclick="try{ this.form && this.form.setAttribute('data-submit-attempted','1'); if (this.form && this.form.manager && typeof this.form.manager.handleSubmit==='function'){ this.form.manager.handleSubmit(event); return false; } }catch(e){}" id="submit-btn">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="submit-icon">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      <div class="flex flex-wrap items-center justify-between gap-4 pt-4">
+        <div class="flex gap-3">
+          <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
-            <span id="submit-text">Enregistrer</span>
+            Enregistrer
           </button>
           {% if cancel_url %}
-            <a href="{{ cancel_url }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Annuler</a>
+            <a href="{{ cancel_url }}" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-slate-700 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+              Retour
+            </a>
           {% endif %}
         </div>
         <span class="text-sm text-slate-500 flex items-center gap-1">
           <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           Les champs marqués d'un astérisque sont obligatoires
         </span>
       </div>
-      <div id="form-feedback" class="hidden rounded-xl border p-4 mt-4"></div>
-    </div>
-  </form>
-
-  <!-- Inline quick-init: attache rapidement un FormManager si besoin. -->
-  <script>
-    (function(){
-      try {
-        const form = document.querySelector('form[role="form"]');
-        if (!form) return;
-        const tryAttach = () => {
-          if (form.manager) return true;
-          if (window.FormManager) {
-            try {
-              form.manager = new FormManager(form);
-              form.setAttribute('data-forms-manager', '1');
-              if (form.classList && form.classList.contains('has-state-transitions')) {
-                if (window.StateTransitionManager && typeof window.StateTransitionManager.setupTransitionValidation === 'function') {
-                  window.StateTransitionManager.setupTransitionValidation(form);
-                }
-              }
-              return true;
-            } catch (e) {
-              console.error('Failed to attach FormManager inline fallback', e);
-              return false;
+    </form>
             }
           }
           return false;

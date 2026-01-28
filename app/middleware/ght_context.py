@@ -231,11 +231,29 @@ class GHTContextMiddleware(BaseHTTPMiddleware):
         request.state.ght_context = await get_active_ght_context(request)
         # Ajouter le contexte EJ si présent
         request.state.ej_context = await get_active_ej_context(request)
+        # Cohérence : si EJ présent mais pas de GHT, restaurer le GHT parent de l'EJ
+        if request.state.ej_context and not request.state.ght_context:
+            # Charger le GHT parent depuis l'EJ
+            ght_ctx = getattr(request.state.ej_context, "ght_context", None)
+            if ght_ctx is not None:
+                # Convertir en dict pour éviter DetachedInstanceError
+                request.state.ght_context = {k: getattr(ght_ctx, k) for k in dir(ght_ctx) if not k.startswith('_') and not callable(getattr(ght_ctx, k))}
+                # Mettre à jour la session pour garder la cohérence
+                try:
+                    request.session["ght_context_id"] = ght_ctx.id
+                except Exception:
+                    pass
         # Ajouter le contexte EG si présent
         request.state.eg_context = await get_active_eg_context(request)
         # Si aucun GHT n'est défini mais qu'un EJ est sélectionné, déduire le GHT depuis l'EJ
         if not request.state.ght_context and request.state.ej_context and getattr(request.state.ej_context, "ght_context", None):
-            request.state.ght_context = request.state.ej_context.ght_context
+            # Avoid DetachedInstanceError: copy ght_context to a dict if present
+            ght_ctx = request.state.ej_context.ght_context
+            if ght_ctx is not None:
+                # Convert to dict to avoid lazy loading after session close
+                request.state.ght_context = {k: getattr(ght_ctx, k) for k in dir(ght_ctx) if not k.startswith('_') and not callable(getattr(ght_ctx, k))}
+            else:
+                request.state.ght_context = None
         # Si aucun GHT n'est défini mais qu'un EG est sélectionné, déduire le GHT depuis l'EJ de l'EG
         if not request.state.ght_context and request.state.eg_context and getattr(request.state.eg_context, "entite_juridique", None):
             ej = request.state.eg_context.entite_juridique

@@ -18,6 +18,7 @@ import asyncio
 from app.models_shared import SystemEndpoint, MessageLog
 from app.models_structure import GHTContext
 from app.adapters.filesystem_transport import FileSystemReader
+from app.adapters.sftp_transport import SFTPReader
 from app.utils.hl7_detector import HL7Detector
 from app.services.mfn_importer import import_mfn
 from app.services.transport_inbound import on_message_inbound_async
@@ -72,13 +73,13 @@ class FilePollerService:
         Returns:
             dict with processing statistics
         """
-        # Find all FILE endpoints that are enabled
+        # Find all FILE and SFTP endpoints that are enabled
         stmt = select(SystemEndpoint).where(
-            SystemEndpoint.kind == "FILE",
+            (SystemEndpoint.kind == "FILE") | (SystemEndpoint.kind == "SFTP"),
             SystemEndpoint.is_enabled == True
         )
         endpoints = self.session.exec(stmt).all()
-        
+
         for endpoint in endpoints:
             try:
                 await self._scan_endpoint(endpoint)
@@ -87,30 +88,69 @@ class FilePollerService:
                 error_msg = f"Error scanning endpoint {endpoint.name}: {str(e)}"
                 self.stats['errors'].append(error_msg)
                 print(error_msg)
-        
+
         return self.stats
     
     async def _scan_endpoint(self, endpoint: SystemEndpoint):
-        """Scan a single file endpoint"""
-        if not endpoint.inbox_path:
-            return
-        
+        """Scan a single file or SFTP endpoint"""
         # Parse file extensions
         extensions = []
         if endpoint.file_extensions:
             extensions = [ext.strip() for ext in endpoint.file_extensions.split(',')]
-        
-        # Create file reader
+
+        # SFTP endpoint
+        if getattr(endpoint, 'ftp_use_sftp', False) and endpoint.ftp_host and endpoint.ftp_remote_inbox_path:
+            logger.info(f"[SFTP] Scanning SFTP endpoint: {endpoint.ftp_host}:{endpoint.ftp_port or 22}{endpoint.ftp_remote_inbox_path}")
+            reader = SFTPReader(
+                host=endpoint.ftp_host,
+                port=endpoint.ftp_port or 22,
+                username=endpoint.ftp_username,
+                password=endpoint.ftp_password,
+                remote_path=endpoint.ftp_remote_inbox_path,
+                extensions=extensions if extensions else None,
+                archive_path=endpoint.ftp_remote_archive_path,
+                error_path=endpoint.ftp_remote_error_path
+            )
+            try:
+                reader.connect()
+                files = reader.list_pending_files()
+                for filename in files:
+                    try:
+                        content = reader.read_file(filename)
+                        # Simuler Path pour compatibilité avec _process_message
+                        class DummyPath:
+                            def __init__(self, name): self.name = name
+                        await self._process_message(content, DummyPath(filename), endpoint)
+                        # Déplacer le fichier traité
+                        if reader.archive_path:
+                            reader.move_file(filename, reader.archive_path)
+                        else:
+                            reader.remove_file(filename)
+                        self.stats['files_processed'] += 1
+                    except Exception as e:
+                        logger.error(f"[SFTP] Error processing {filename}: {e}", exc_info=True)
+                        if reader.error_path:
+                            try:
+                                reader.move_file(filename, reader.error_path)
+                            except Exception:
+                                pass
+                        self.stats['errors'].append(f"SFTP error: {filename}: {e}")
+                reader.disconnect()
+            except Exception as e:
+                logger.error(f"[SFTP] Connection or scan failed: {e}", exc_info=True)
+                self.stats['errors'].append(f"SFTP connection error: {e}")
+            return
+
+        # Local FILE endpoint (par défaut)
+        if not endpoint.inbox_path:
+            return
         reader = FileSystemReader(
             inbox_path=endpoint.inbox_path,
             extensions=extensions if extensions else None,
             archive_path=endpoint.archive_path,
             error_path=endpoint.error_path
         )
-        
-        # Process all pending files
         async def process_message(content: str, file_path: Path) -> bool:
-            """Handler function for processing each message"""
             try:
                 return await self._process_message(content, file_path, endpoint)
             except Exception as e:
@@ -118,8 +158,6 @@ class FilePollerService:
                 self.stats['errors'].append(error_msg)
                 logger.error(f"[CALLBACK] {error_msg}", exc_info=True)
                 return False
-        
-        # Process files synchronously but handle async message processing
         result = await self._process_all_files_async(reader, process_message)
         self.stats['files_processed'] += result['processed']
     

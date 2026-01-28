@@ -119,6 +119,52 @@ SEGMENT_ORDER = {
 }
 
 
+def load_custom_segment_rules(file_path: str | None = None) -> None:
+    """Charge des règles personnalisées depuis un fichier JSON et fusionne
+    avec les règles par défaut en mémoire. Le fichier attendu est un objet JSON
+    dont les clés sont les triggers (ex: "A01") et les valeurs des maps similaires
+    à SEGMENT_RULES (required/optional) et/ou une clé "segment_order".
+    """
+    import json
+    from pathlib import Path
+
+    data_dir = Path(__file__).parent.parent / "data"
+    path = Path(file_path) if file_path else data_dir / "pam_custom_rules.json"
+    if not path.exists():
+        return
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            return
+        for trigger, rules in payload.items():
+            try:
+                if not isinstance(rules, dict):
+                    continue
+                # Merge required/optional lists
+                req = rules.get("required")
+                opt = rules.get("optional")
+                if req or opt:
+                    SEGMENT_RULES[trigger] = {
+                        "required": list(req) if isinstance(req, list) else SEGMENT_RULES.get(trigger, {}).get("required", []),
+                        "optional": list(opt) if isinstance(opt, list) else SEGMENT_RULES.get(trigger, {}).get("optional", []),
+                    }
+                # Merge segment order if provided
+                seg_order = rules.get("segment_order") or rules.get("order")
+                if seg_order and isinstance(seg_order, list):
+                    SEGMENT_ORDER[trigger] = list(seg_order)
+            except Exception:
+                continue
+    except Exception:
+        return
+
+
+# Attempt to load custom rules at import time if file exists
+try:
+    load_custom_segment_rules()
+except Exception:
+    pass
+
+
 @dataclass
 class ValidationIssue:
     code: str

@@ -21,3 +21,14 @@ sentry-sdk>=2.20.0
 typer>=0.15.1
 alembic==1.13.2
 passlib>=1.7.4
+
+# XML validation
+xmlschema>=2.5.0
+lxml>=5.2.0
+
+# Export (Mode Gestionnaire - Analytics)
+openpyxl>=3.1.2  # Export Excel
+reportlab>=4.0.0  # Export PDF
+
+# Cache/Backend
+redis>=4.0.0

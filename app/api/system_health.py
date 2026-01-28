@@ -33,11 +33,11 @@ async def get_endpoints_status(session: Session = Depends(get_session)) -> list[
             result.append({
                 "id": ep.id,
                 "name": ep.name,
-                "endpoint_type": ep.endpoint_type,
-                "is_active": ep.is_active,
+                "endpoint_type": ep.kind,
+                "is_active": ep.is_enabled,
                 "status": "RUNNING" if ep.id in running_ids else "STOPPED",
-                "host": ep.host,
-                "port": ep.port
+                "host": getattr(ep, 'host', None),
+                "port": getattr(ep, 'port', None)
             })
         
         return result
@@ -66,8 +66,8 @@ async def get_messages_summary(
         
         # Appliquer les filtres
         if status:
-            # MessageLog a un champ "status" ou "level"
-            stmt = stmt.where(MessageLog.level == status.upper())
+            # MessageLog a un champ "status"
+            stmt = stmt.where(MessageLog.status == status.lower())
         
         if date_from:
             date_from_dt = datetime.strptime(date_from, "%Y-%m-%d")

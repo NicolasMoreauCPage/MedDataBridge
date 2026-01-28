@@ -94,7 +94,7 @@
   </div>
 
   <!-- Formulaire de configuration -->
-  <form method="post" action="/endpoints/{{ e.id }}/update" class="space-y-6">
+  <form method="post" action="{{ '/endpoints/new' if creation_mode else '/endpoints/' ~ e.id ~ '/update' }}" class="space-y-6">
     
     <!-- Section: Configuration générale -->
     <details class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" open>
@@ -288,7 +288,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
-          Enregistrer
+          {{ 'Créer' if creation_mode else 'Enregistrer' }}
         </button>
         <a href="/endpoints" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-slate-700 bg-white border-2 border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,7 +300,8 @@
     </div>
   </form>
 
-  <!-- Actions supplémentaires -->
+  {% if not creation_mode %}
+  <!-- Actions supplémentaires (uniquement en mode édition) -->
   <div class="flex flex-wrap gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
     {% if e.kind != 'FILE' %}
     <form method="post" action="/endpoints/{{ e.id }}/start">
@@ -331,6 +332,7 @@
       </button>
     </form>
   </div>
+  {% endif %}
 
   <!-- Script filtrage EJ par GHT -->
   <script>

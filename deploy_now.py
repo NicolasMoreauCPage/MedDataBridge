@@ -68,13 +68,14 @@ def create_deployment_package():
             for root, dirs, files in os.walk(base_dir):
                 # Exclure les dossiers indésirables
                 dirs[:] = [d for d in dirs if d not in exclude_patterns]
-                
                 for file in files:
+                    # Exclure tous les .html dans docs/HPRIM_XML/
+                    file_path = os.path.join(root, file)
+                    if file_path.replace("\\", "/").startswith("docs/HPRIM_XML/") and file.endswith(".html"):
+                        continue
                     # Vérifier les exclusions
                     if any(excl in file for excl in exclude_patterns if not excl.startswith(".")):
                         continue
-                    
-                    file_path = os.path.join(root, file)
                     files_to_add.add(file_path)
     
     # Ajouter les fichiers racine

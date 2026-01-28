@@ -203,14 +203,12 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
 
 @router.get("/new", response_class=HTMLResponse)
 def new_endpoint(request: Request, session=Depends(get_session)):
-    from app.form_config import EndpointKind, EndpointRole, AuthKind
     from app.models_structure import GHTContext, EntiteJuridique
     from sqlmodel import select
-    
     # Contexts from request
     ght_ctx = getattr(request.state, 'ght_context', None)
     ej_ctx = getattr(request.state, 'ej_context', None)
-    
+
     # Récupérer les GHT et EJ disponibles
     ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
     # If a GHT context is active, limit EJs to that GHT to avoid showing EJs from other GHTs
@@ -221,52 +219,38 @@ def new_endpoint(request: Request, session=Depends(get_session)):
         )).all()
     else:
         ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
-    
-    ght_options = [{"value": "", "label": "(Aucun)"}] + [{"value": str(g.id), "label": g.name} for g in ghts]
-    ej_options = [{"value": "", "label": "(Aucun)"}] + [{"value": str(e.id), "label": f"{e.name} (FINESS: {e.finess_ej})"} for e in ejs]
-    
-    kind_value = request.query_params.get("kind") or "MLLP"
-    fields = [
-        {"type": "section", "label": "Configuration du Endpoint", "icon": "server", "help": "Paramétrez le système d'intégration à créer."},
-        {"label": "Nom du système", "name": "name", "type": "text", "required": True, "help": "Nom lisible du serveur ou du système cible."},
-        {"label": "Type de connexion", "name": "kind", "type": "select", "options": EndpointKind.choices(), "value": kind_value, "required": True, "help": "Protocole utilisé (MLLP, FHIR, FILE, etc.)."},
-        {"label": "Rôle du système", "name": "role", "type": "select", "options": EndpointRole.choices(), "value": "receiver", "required": True, "help": "Définissez le rôle: réception (receiver) ou émission (sender)."},
-        {"label": "Actif", "name": "is_enabled", "type": "select", "options": [{"value": "true", "label": "Oui"}, {"value": "false", "label": "Non"}], "value": "true", "required": True, "help": "Le endpoint sera-t-il actif dès la création ?"},
-        {"type": "divider"},
-        {"type": "section", "label": "Type d'émission", "icon": "share", "help": "Sélectionnez les types de messages à émettre."},
-        {"type": "subsection", "label": "Identité / Mouvements", "icon": "user"},
-        {"label": "HL7 IHE PAM (Identité/Mouvements)", "name": "emit_hl7_pam", "type": "checkbox", "value": True, "help": "Émet les messages ADT (identité/mouvements) selon le standard IHE PAM."},
-        {"label": "FHIR Identité/Mouvements (Patient/Encounter)", "name": "emit_fhir_identity", "type": "checkbox", "value": True, "help": "Émet les ressources FHIR d'identité et mouvements (Patient, Encounter)."},
-        {"type": "subsection", "label": "Structure", "icon": "building"},
-        {"label": "HL7 MFN (Structure)", "name": "emit_hl7_mfn", "type": "checkbox", "value": True, "help": "Émet les messages MFN (structure) pour la gestion des structures."},
-        {"label": "FHIR Structure (Location/Organization)", "name": "emit_fhir_structure", "type": "checkbox", "value": True, "help": "Émet les ressources FHIR de structure (Location, Organization)."},
-        {"type": "subsection", "label": "Cotation HPRIM XML", "icon": "file-text"},
-        {"label": "HPRIM CCAM (Actes médicaux)", "name": "emit_hprim_ccam", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation des actes CCAM."},
-        {"label": "HPRIM NGAP (GHS)", "name": "emit_hprim_ngap", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation NGAP/GHS."},
-        {"label": "HPRIM UCD (Médicaments)", "name": "emit_hprim_ucd", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation des médicaments."},
-        {"label": "HPRIM LPP (Dispositifs implantables)", "name": "emit_hprim_lpp", "type": "checkbox", "value": False, "help": "Émet les messages HPRIM XML pour la cotation des dispositifs implantables."},
-        {"type": "divider"},
-        {"type": "section", "label": "Contexte d'établissement", "icon": "hospital", "help": "Associez le endpoint à un GHT ou à un établissement juridique."},
-        {"label": "GHT Context", "name": "ght_context_id", "type": "select", "options": ght_options, "help": "Obligatoire pour endpoints structure (MFN)", "value": (str(ght_ctx.id) if ght_ctx else None), "hidden": (True if ght_ctx else False), "empty_message": "Aucun GHT actif disponible. Créez d'abord un contexte GHT depuis le menu Contextes > GHT."},
-        {"label": "Établissement Juridique", "name": "entite_juridique_id", "type": "select", "options": ej_options, "help": "Obligatoire pour endpoints identité/mouvements (ADT)", "value": (str(ej_ctx.id) if ej_ctx else None), "hidden": (True if ej_ctx else False), "empty_message": "Aucun EJ actif disponible. Créez d'abord une Entité Juridique depuis le menu Structure."},
-        {"type": "divider"},
-        {"type": "section", "label": "Paramètres techniques", "icon": "cog", "help": "Renseignez les paramètres techniques selon le type de connexion."},
-    {"label": "Host (MLLP)", "name": "host", "type": "text", "placeholder": "0.0.0.0", "required": False, "help": "Adresse IP ou nom d'hôte pour MLLP."},
-    {"label": "Port (MLLP)", "name": "port", "type": "number", "required": False, "help": "Port TCP pour MLLP."},
-    {"label": "Sending App (MSH-3)", "name": "sending_app", "type": "text", "required": False, "help": "Champ MSH-3 pour HL7."},
-    {"label": "Sending Facility (MSH-4)", "name": "sending_facility", "type": "text", "required": False, "help": "Champ MSH-4 pour HL7."},
-    {"label": "Receiving App (MSH-5)", "name": "receiving_app", "type": "text", "required": False, "help": "Champ MSH-5 pour HL7."},
-    {"label": "Receiving Facility (MSH-6)", "name": "receiving_facility", "type": "text", "required": False, "help": "Champ MSH-6 pour HL7."},
-    {"label": "FHIR base URL", "name": "base_url", "type": "text", "required": False, "help": "URL de base pour les endpoints FHIR."},
-    {"label": "Auth kind", "name": "auth_kind", "type": "select", "options": AuthKind.choices(), "value": "none", "required": False, "help": "Type d'authentification pour FHIR."},
-    {"label": "Auth token (si bearer)", "name": "auth_token", "type": "text", "required": False, "help": "Jeton d'authentification pour FHIR."},
-    {"label": "Inbox Path (FILE)", "name": "inbox_path", "type": "text", "placeholder": "C:/data/inbox", "required": False, "help": "Répertoire d'entrée pour le mode FILE."},
-    {"label": "Outbox Path (FILE)", "name": "outbox_path", "type": "text", "placeholder": "C:/data/outbox", "required": False, "help": "Répertoire de sortie pour le mode FILE."},
-    {"label": "Archive Path (FILE)", "name": "archive_path", "type": "text", "placeholder": "C:/data/archive", "required": False, "help": "Répertoire d'archivage pour le mode FILE."},
-    {"label": "Error Path (FILE)", "name": "error_path", "type": "text", "placeholder": "C:/data/error", "required": False, "help": "Répertoire d'erreur pour le mode FILE."},
-    {"label": "File Extensions (FILE)", "name": "file_extensions", "type": "text", "placeholder": ".hl7,.txt", "required": False, "help": "Extensions de fichiers acceptées pour le mode FILE."},
-    ]
-    return get_templates_with_filters(request).TemplateResponse(request, "form.html", {"request": request, "title":"Nouveau système", "fields":fields, "action_url": "/endpoints/new", "cancel_url": "/endpoints"})
+
+    # Create a temporary empty endpoint object to populate the template
+    e = SystemEndpoint()
+    e.name = ''
+    e.kind = (request.query_params.get('kind') or 'MLLP')
+    e.role = 'receiver'
+    e.is_enabled = True
+    # Default emits: keep same defaults as form
+    e.emit_hl7_pam = True
+    e.emit_fhir_identity = True
+    e.emit_hl7_mfn = True
+    e.emit_fhir_structure = True
+    e.emit_hprim_ccam = False
+    e.emit_hprim_ngap = False
+    e.emit_hprim_ucd = False
+    e.emit_hprim_lpp = False
+
+    # All endpoints for anti-rebond select
+    all_endpoints = session.exec(select(SystemEndpoint)).all()
+
+    ctx = {
+        "request": request,
+        "title": "Nouveau système",
+        "e": e,
+        "all_endpoints": all_endpoints,
+        "ghts": ghts,
+        "ejs": ejs,
+        "action_url": "/endpoints/new",
+        "cancel_url": "/endpoints",
+        "is_new": True
+    }
+    return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", ctx)
 
 @router.post("/new")
 def create_endpoint(
@@ -299,6 +283,7 @@ def create_endpoint(
     emit_hprim_ngap: bool = Form(False),
     emit_hprim_ucd: bool = Form(False),
     emit_hprim_lpp: bool = Form(False),
+    linked_endpoint_id: str = Form(None),
     session=Depends(get_session),
 ):
     # Debug: print all incoming form data
@@ -354,6 +339,12 @@ def create_endpoint(
         emit_hprim_ucd=bool(emit_hprim_ucd),
         emit_hprim_lpp=bool(emit_hprim_lpp)
     )
+    # linked endpoint (anti-rebond)
+    if linked_endpoint_id and str(linked_endpoint_id).strip():
+        try:
+            e.linked_endpoint_id = int(linked_endpoint_id)
+        except Exception:
+            pass
     session.add(e); session.commit()
     session.refresh(e)  # Get the assigned ID
     

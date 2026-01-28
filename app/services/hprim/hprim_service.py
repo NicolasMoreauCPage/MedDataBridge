@@ -151,28 +151,26 @@ class HprimService:
                 xml_string,
                 schema_name=schema_auto
             )
-            if not is_valid_xsd:
-                # Metrics (xsd error)
-                try:
-                    from app.metrics import record_hprim_validation
-                    record_hprim_validation(
-                        succes=False,
-                        schema=schema_auto,
-                        error_type="xsd",
-                        direction="inbound",
-                        duration_seconds=_time.time() - start,
-                    )
-                except Exception:
-                    pass
-                return {
-                    "succes": False,
-                    "erreur": f"Validation XSD échouée (schéma: {schema_auto})",
-                    "erreurs": xsd_errors,
-                    "type_erreur": "XSD_VALIDATION",
-                    "schema_utilise": schema_auto
-                }
+            # Toujours archiver le résultat de la validation XSD (même si KO)
+            try:
+                from app.metrics import record_hprim_validation
+                record_hprim_validation(
+                    succes=is_valid_xsd,
+                    schema=schema_auto,
+                    error_type=(None if is_valid_xsd else "xsd"),
+                    direction="inbound",
+                    duration_seconds=_time.time() - start,
+                )
+            except Exception:
+                pass
+            # Si XSD KO, on continue l'intégration mais on ajoute le résultat dans le retour
+            xsd_result = {
+                "xsd_valid": is_valid_xsd,
+                "xsd_errors": xsd_errors if not is_valid_xsd else None,
+                "schema_utilise": schema_auto
+            }
 
-            # Parsing XML
+            # Parsing XML (on tente même si XSD KO)
             message = self.xml_service.parse_xml(xml_string)
 
             # Validation contenu
@@ -195,7 +193,8 @@ class HprimService:
                     "succes": False,
                     "erreur": f"Validation échouée: {len(erreurs)} erreur(s)",
                     "erreurs": [e.__dict__ for e in erreurs],
-                    "type_erreur": "VALIDATION"
+                    "type_erreur": "VALIDATION",
+                    **xsd_result
                 }
 
             # Metrics (success)
@@ -215,7 +214,7 @@ class HprimService:
                 "succes": True,
                 "message": message,
                 "type_message": message.entete.message_type.value,
-                "schema_utilise": schema_auto
+                **xsd_result
             }
 
         except Exception as e:

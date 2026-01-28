@@ -870,7 +870,11 @@ class HprimXmlService:
     def _parse_acte_ccam(self, acte_elem: ET.Element) -> HprimActeCCAM:
         """Parse un acte CCAM"""
         # Attributs
-        action = HprimAction(acte_elem.get("action", "CREATION"))
+        action_str = acte_elem.get("action", "CREATION")
+        # Normaliser accents pour compatibilité
+        if action_str.lower() in ("création", "Création"):
+            action_str = "creation"
+        action = HprimAction(action_str.upper() if action_str.isupper() else action_str.lower())
         facturable = acte_elem.get("facturable", "oui") == "oui"
         valide = acte_elem.get("valide", "non") == "oui"
         facture = acte_elem.get("facture", "non") == "oui"
@@ -1015,7 +1019,10 @@ class HprimXmlService:
     def _parse_acte_ngap(self, acte_elem: ET.Element) -> HprimActeNGAP:
         """Parse un acte NGAP"""
         # Attributs
-        action = HprimAction(acte_elem.get("action", "CREATION"))
+        action_str = acte_elem.get("action", "CREATION")
+        if action_str.lower() in ("création", "Création"):
+            action_str = "creation"
+        action = HprimAction(action_str.upper() if action_str.isupper() else action_str.lower())
         facturable = acte_elem.get("facturable", "oui") == "oui"
         valide = acte_elem.get("valide", "non") == "oui"
         facture = acte_elem.get("facture", "non") == "oui"

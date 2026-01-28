@@ -49,7 +49,8 @@ async def structure_interactive_page(
     
     # Enrichir chaque EG avec ses pôles → services → UFs
     for eg in egs:
-        statement_poles = select(Pole).where(Pole.eg_id == eg.id)
+        # Pole model uses 'entite_geo_id' as foreign key to EntiteGeographique
+        statement_poles = select(Pole).where(Pole.entite_geo_id == eg.id)
         eg.poles = session.exec(statement_poles).all()
         
         for pole in eg.poles:

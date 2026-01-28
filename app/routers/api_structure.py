@@ -7,6 +7,8 @@ from sqlmodel import Session, select
 from typing import List, Dict
 from app.db import get_session
 from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
+from app.models_structure import Service
+from sqlmodel import or_
 
 router = APIRouter(prefix="/api/mouvements", tags=["api", "structure"])
 

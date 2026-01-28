@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Règles de validation IHE PAM / HPRIM (JSON)</h1>
+    <p class="text-sm text-gray-600 mb-4">Editez des règles de validation au format JSON. Sauvegarder écrira dans <strong>app/data/pam_custom_rules.json</strong> et tentera de recharger le validateur en mémoire.</p>
+
+    <div class="mb-4">
+      <textarea id="rulesArea" rows="24" class="w-full border rounded p-3 font-mono">{{ rules_json }}</textarea>
+    </div>
+
+    <div class="flex gap-3">
+      <button id="saveBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Sauvegarder</button>
+      <button id="reloadBtn" class="px-4 py-2 bg-gray-200 rounded">Recharger</button>
+    </div>
+
+    <div id="msg" class="mt-4"></div>
+  </div>
+
+  <script>
+    async function saveRules() {
+      const txt = document.getElementById('rulesArea').value;
+      let parsed;
+      try {
+        parsed = JSON.parse(txt);
+      } catch(e) {
+        document.getElementById('msg').innerText = 'JSON invalide: ' + e.message;
+        return;
+      }
+      const resp = await fetch('/api/validation-rules', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(parsed)});
+      const data = await resp.json();
+      document.getElementById('msg').innerText = data.message || JSON.stringify(data);
+    }
+    document.getElementById('saveBtn').addEventListener('click', saveRules);
+    document.getElementById('reloadBtn').addEventListener('click', () => location.reload());
+  </script>
+{% endblock %}

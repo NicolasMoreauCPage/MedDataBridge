@@ -206,7 +206,14 @@
 
    <xsd:simpleType name="numeroVersion">
       <xsd:restriction base="xsd:string">
+         <xsd:enumeration value="1.04"/>
+         <xsd:enumeration value="1.06"/>
+         <xsd:enumeration value="2.0"/>
+         <xsd:enumeration value="2.1"/>
+         <xsd:enumeration value="2.2"/>
+         <xsd:enumeration value="2.3"/>
          <xsd:enumeration value="2.4"/>
+         <xsd:enumeration value="2.5"/>
       </xsd:restriction>
    </xsd:simpleType>
    <xsd:simpleType name="ouiNon">

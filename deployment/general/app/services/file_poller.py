@@ -175,7 +175,7 @@ class FilePollerService:
             .where(MessageLog.endpoint_id == endpoint.id)
         ).first()
         if msg_log:
-            # Update existing log
+            # Update existing log (no add, just update fields)
             msg_log.kind = "HL7"
             msg_log.message_type = f"{details['message_code']}^{details['trigger_event']}" if details['trigger_event'] else details['message_code']
             msg_log.status = "received"
@@ -192,6 +192,7 @@ class FilePollerService:
                 payload=content
             )
             self.session.add(msg_log)
+        # Commit only once, and do not re-add msg_log later
         self.session.commit()
         
         # Route based on category
@@ -203,7 +204,7 @@ class FilePollerService:
             self.stats['unknown_messages'] += 1
             msg_log.status = "error"
             msg_log.ack_payload = f"Unknown message category: {category}"
-            self.session.add(msg_log)
+            # msg_log est déjà dans la session, inutile de le ré-ajouter
             self.session.commit()
             return False
     
@@ -238,7 +239,7 @@ class FilePollerService:
             else:
                 msg_log.status = "ack_ok"
                 msg_log.ack_payload = f"MFN import completed: {ack}"
-            self.session.add(msg_log)
+            # msg_log est déjà dans la session, inutile de le ré-ajouter
             self.session.commit()
             self.stats['mfn_messages'] += 1
             return ack_code not in ("AE", "AR")

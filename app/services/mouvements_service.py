@@ -48,6 +48,8 @@ class MouvementsService:
         **kwargs
     ) -> Mouvement:
         """Crée un nouveau mouvement."""
+        venue = self.session.get(Venue, venue_id)
+        ej_id = venue.entite_juridique_id if venue else None
         mouvement = Mouvement(
             venue_id=venue_id,
             when=when,
@@ -55,6 +57,7 @@ class MouvementsService:
             uh_id=uh_id,
             nature=nature,
             medecin_responsable_id=medecin_responsable_id,
+            entite_juridique_id=ej_id,
             **kwargs
         )
         self.session.add(mouvement)

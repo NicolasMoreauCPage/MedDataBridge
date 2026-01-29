@@ -41,6 +41,7 @@ from typing import List, Tuple
 from datetime import datetime, timedelta
 from random import choice
 
+
 # Imports pour les nouvelles fonctionnalités
 from sqlmodel import Session, select
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType, Sequence
@@ -49,6 +50,9 @@ from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHeberge
 from app.models_structure import LocationPhysicalType, LocationServiceType
 from app.db import init_db as init_db_schema, engine, get_next_sequence
 from random import choice
+
+# Import seed helpers from maintenance script
+from scripts.maintenance.init_db import seed_rich, seed_minimal, seed_demo_scenarios, _add_cotations_to_existing_dossiers
 
 DB_PATH = Path("medbridge.db")
 
@@ -913,10 +917,20 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         if args.demo_scenarios:
             print("  • Scénarios démo : 3 scénarios complexes (transferts/annulations)")
     if not args.skip_scenarios:
-        print(f"  • Scénarios IHE HL7 : {hl7_count} scénarios importés")
-        print(f"  • Scénarios HPRIM : {hprim_count} scénarios importés")
-        print(f"  • Scénarios HL7 PAM : {pam_count} scénarios IHE PAM importés")
-        print(f"  • Total scénarios : {hl7_count + hprim_count + pam_count} scénarios d'intégration")
+        # Affichage robuste même si certaines variables ne sont pas définies
+        pam_count_disp = pam_count if 'pam_count' in locals() else '?'
+        hprim_count_disp = hprim_count if 'hprim_count' in locals() else '?'
+        print(f"  • Scénarios HL7 PAM : {pam_count_disp} scénarios IHE PAM importés")
+        print(f"  • Scénarios HPRIM : {hprim_count_disp} scénarios importés")
+        try:
+            total = 0
+            if 'pam_count' in locals() and isinstance(pam_count, int):
+                total += pam_count
+            if 'hprim_count' in locals() and isinstance(hprim_count, int):
+                total += hprim_count
+            print(f"  • Total scénarios : {total} scénarios d'intégration")
+        except Exception:
+            print("  • Total scénarios : ? scénarios d'intégration")
     else:
         print("  • Scénarios    : sautés (--skip-scenarios)")
     print("\nLe serveur peut être démarré avec:")

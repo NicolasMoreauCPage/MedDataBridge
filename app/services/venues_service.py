@@ -39,6 +39,9 @@ def create_venue(session: Session, venue_data: VenueCreateSchema) -> Venue:
         data = venue_data.dict()
         # avoid passing venue_seq twice if provided by the schema
         data.pop("venue_seq", None)
+        # Assigne l'EJ du dossier parent si non fourni
+        if not data.get("entite_juridique_id"):
+            data["entite_juridique_id"] = dossier.entite_juridique_id
         venue = Venue(**data, venue_seq=seq)
         session.add(venue)
         session.commit()

@@ -201,6 +201,7 @@ def _create_realistic_cotations(session: Session, dossier: Dossier, admission_re
             acte = UCDAct(
                 dossier_id=dossier.id,
                 code_cip=cotation["cip"],
+                code_ucd=cotation["cip"],  # Ajouté pour respecter la contrainte NOT NULL
                 designation=cotation["designation"],
                 quantite=cotation["quantite"],
                 prix_unitaire=cotation["prix_unit"],
@@ -216,6 +217,7 @@ def _create_realistic_cotations(session: Session, dossier: Dossier, admission_re
                 quantite=cotation["quantite"],
                 prix_unitaire=cotation["prix_unit"],
                 montant_total=cotation["quantite"] * cotation["prix_unit"],
+                montant_unitaire_facture_ttc=cotation["prix_unit"],
                 execute_date=execute_date,
                 prestataire_id=medecin.id
             )
@@ -255,7 +257,7 @@ def _get_or_create_ght(session: Session) -> GHTContext:
         mfn_endpoint = SystemEndpoint(
             name="HL7 MFN GHT DEMO",
             kind=EndpointKind.MLLP,
-            role=EndpointRole.BOTH,
+            role=EndpointRole.RECEIVER,
             is_enabled=True,
             ght_context_id=ght.id,
             host="localhost",
@@ -273,7 +275,7 @@ def _get_or_create_ght(session: Session) -> GHTContext:
         endpoint = SystemEndpoint(
             name="FHIR GHT DEMO",
             kind=EndpointKind.FHIR,
-            role=EndpointRole.BOTH,
+            role=EndpointRole.RECEIVER,
             is_enabled=True,
             ght_context_id=ght.id,
             base_url="http://localhost:8000/fhir",
@@ -355,7 +357,7 @@ def _create_ej(session: Session, ght: GHTContext) -> EntiteJuridique:
     pam_endpoint = SystemEndpoint(
         name=f"IHE PAM {ej.short_name}",
         kind=EndpointKind.MLLP,
-        role=EndpointRole.BOTH,
+        role=EndpointRole.RECEIVER,
         is_enabled=True,
         entite_juridique_id=ej.id,
         host="localhost",
@@ -368,7 +370,7 @@ def _create_ej(session: Session, ght: GHTContext) -> EntiteJuridique:
     endpoint = SystemEndpoint(
         name=f"FHIR {ej.short_name}",
         kind=EndpointKind.FHIR,
-        role=EndpointRole.BOTH,
+        role=EndpointRole.RECEIVER,
         is_enabled=True,
         entite_juridique_id=ej.id,
         base_url="http://localhost:8000/fhir",
@@ -595,7 +597,10 @@ def _create_patients_and_movements(session: Session):
         dossier = Dossier(
             dossier_seq=get_next_sequence(session, "dossier"),
             patient_id=patient.id,
-            admit_time=now, dossier_type=DossierType.HOSPITALISE, reason=ps["admission_reason"]
+            admit_time=now,
+            dossier_type=DossierType.HOSPITALISE,
+            reason=ps["admission_reason"],
+            entite_juridique_id=ej.id,
         )
         session.add(dossier); session.commit(); session.refresh(dossier)
         # Créer identifiant IPP pour le patient
@@ -789,7 +794,7 @@ def main():
             pam_endpoint = SystemEndpoint(
                 name=f"IHE PAM {ej.short_name}",
                 kind=EndpointKind.MLLP,
-                role=EndpointRole.BOTH,
+                role=EndpointRole.RECEIVER,
                 is_enabled=True,
                 entite_juridique_id=ej.id,
                 host="localhost",
@@ -802,7 +807,7 @@ def main():
             endpoint = SystemEndpoint(
                 name=f"FHIR {ej.short_name}",
                 kind=EndpointKind.FHIR,
-                role=EndpointRole.BOTH,
+                role=EndpointRole.RECEIVER,
                 is_enabled=True,
                 entite_juridique_id=ej.id,
                 base_url="http://localhost:8000/fhir",

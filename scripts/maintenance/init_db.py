@@ -279,7 +279,11 @@ def seed_minimal() -> None:
         if existing:
             print("Seed minimal ignoré (patients déjà présents).")
             return
+
         _ensure_sequences(session)
+        # Récupère une EJ existante (la première trouvée)
+        ej = session.exec(select(EntiteJuridique)).first()
+        ej_id = ej.id if ej else None
         patient = Patient(
             family="DOE",
             given="John",
@@ -291,6 +295,7 @@ def seed_minimal() -> None:
             identity_reliability_code="VALI",
             identity_reliability_date="2024-01-01",
             identity_reliability_source="CNI",
+            entite_juridique_id=ej_id,
         )
         session.add(patient)
         session.commit()
@@ -304,6 +309,7 @@ def seed_minimal() -> None:
             admit_time=datetime.utcnow(),
             dossier_type=DossierType.HOSPITALISE,
             reason="Admission initiale",
+            entite_juridique_id=ej_id,
         )
         session.add(dossier)
         session.commit()
@@ -357,12 +363,21 @@ def seed_rich(nb_patients: int = 40) -> None:
             return
         _ensure_sequences(session)
 
+
         # Collect UF codes si structure présente
         uf_codes = [uf.identifier for uf in session.exec(select(UniteFonctionnelle)).all()]
         if not uf_codes:
             uf_codes = ["UF-RICH-1", "UF-RICH-2"]
 
+        # Collect all EJs
+        ej_list = session.exec(select(EntiteJuridique)).all()
+        num_ej = len(ej_list)
+
         for i in range(1, nb_patients + 1):
+            # Assign EJ in round-robin
+            ej = ej_list[(i - 1) % num_ej] if num_ej > 0 else None
+            ej_id = ej.id if ej else None
+
             patient = Patient(
                 family=f"RICH-{i:03d}",
                 given=choice(["Alice", "Bob", "Chloé", "David", "Eva"]),
@@ -374,6 +389,7 @@ def seed_rich(nb_patients: int = 40) -> None:
                 identity_reliability_code="VALI",
                 identity_reliability_date="2024-02-01",
                 identity_reliability_source="CNI",
+                entite_juridique_id=ej_id,
             )
             session.add(patient)
             session.commit()
@@ -388,6 +404,7 @@ def seed_rich(nb_patients: int = 40) -> None:
                 admit_time=datetime.utcnow(),
                 dossier_type=DossierType.HOSPITALISE,
                 reason="Admission auto",
+                entite_juridique_id=ej_id,
             )
             session.add(dossier)
             session.commit()

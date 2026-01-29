@@ -229,7 +229,12 @@ let charts = {};
 
 // Initialisation au chargement
 document.addEventListener('DOMContentLoaded', () => {
-  loadAllData();
+  ensureChart().then(() => {
+    loadAllData();
+  }).catch(() => {
+    console.warn('Chart.js failed to load dynamically; charts will show placeholders.');
+    loadAllData();
+  });
   
   // Event listeners
   document.getElementById('periodSelector').addEventListener('change', (e) => {
@@ -251,6 +256,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// Ensure Chart.js is available; try to load from CDN if not present
+function ensureChart() {
+  return new Promise((resolve, reject) => {
+    if (typeof Chart !== 'undefined') return resolve();
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Chart.js load failed'));
+    document.head.appendChild(script);
+  });
+}
 
 // Charger toutes les données
 async function loadAllData() {
@@ -336,6 +354,13 @@ async function loadCapacityByService() {
     if (charts.capacityByService) {
       charts.capacityByService.destroy();
     }
+
+    // Si pas de Chart disponible, afficher message
+    if (typeof Chart === 'undefined') {
+      const container = document.getElementById('capacityByServiceChart').parentElement;
+      container.innerHTML = '<div class="text-center text-slate-400 py-20">Chart.js non chargé — impossible d\'afficher le graphique.</div>';
+      return;
+    }
     
     // Préparer les données
     const labels = data.map(s => s.service_name);
@@ -347,6 +372,12 @@ async function loadCapacityByService() {
       return 'rgba(34, 197, 94, 0.8)';
     });
     
+    if (!labels.length) {
+      const container = document.getElementById('capacityByServiceChart').parentElement;
+      container.innerHTML = '<div class="text-center text-slate-400 py-20">Aucune donnée disponible pour la capacité par service.</div>';
+      return;
+    }
+
     // Créer le chart
     const ctx = document.getElementById('capacityByServiceChart').getContext('2d');
     charts.capacityByService = new Chart(ctx, {
@@ -412,6 +443,12 @@ async function loadCapacityByUM() {
     if (charts.umDistribution) {
       charts.umDistribution.destroy();
     }
+
+    if (typeof Chart === 'undefined') {
+      const container = document.getElementById('umDistributionChart').parentElement;
+      container.innerHTML = '<div class="text-center text-slate-400 py-20">Chart.js non chargé — impossible d\'afficher le graphique.</div>';
+      return;
+    }
     
     // Couleurs par type UM
     const umColors = {
@@ -425,6 +462,12 @@ async function loadCapacityByUM() {
     const values = data.map(um => um.total_beds);
     const colors = data.map(um => umColors[um.um_code] || 'rgba(148, 163, 184, 0.8)');
     
+    if (!labels.length) {
+      const container = document.getElementById('umDistributionChart').parentElement;
+      container.innerHTML = '<div class="text-center text-slate-400 py-20">Aucune donnée disponible pour la répartition UM.</div>';
+      return;
+    }
+
     // Créer le chart
     const ctx = document.getElementById('umDistributionChart').getContext('2d');
     charts.umDistribution = new Chart(ctx, {

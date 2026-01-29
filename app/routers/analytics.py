@@ -178,8 +178,8 @@ def get_capacity_by_service(
         results.append(CapacityByServiceResponse(
             service_id=service.id,
             service_name=service.name,
-            service_code=service.code_court,
-            total_beds=total_beds,
+            service_code=getattr(service, 'identifier', None) or getattr(service, 'short_name', None),
+            total_beds=int(total_beds),
             occupied_beds=occupied_beds,
             occupation_rate=round(occupation_rate, 1),
             status_color=status_color

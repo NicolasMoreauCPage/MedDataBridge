@@ -53,7 +53,7 @@
               class="text-2xl font-bold text-white cursor-text hover:bg-white/10 px-2 py-1 rounded transition"
               title="Double-clic pour éditer"
             >
-              {{ eg.nom }}
+              {{ eg.name }}
             </h2>
             <p class="text-blue-100 text-sm mt-1">
               Code: 
@@ -65,7 +65,7 @@
                 class="font-mono cursor-text hover:bg-white/10 px-1 rounded"
                 title="Double-clic pour éditer"
               >
-                {{ eg.code }}
+                {{ eg.identifier or eg.finess or '' }}
               </span>
             </p>
           </div>
@@ -94,7 +94,7 @@
                   class="text-xl font-semibold text-indigo-900 cursor-text hover:bg-white/50 px-2 py-1 rounded"
                   title="Double-clic pour éditer"
                 >
-                  🏢 {{ pole.nom }}
+                  🏢 {{ pole.name }}
                 </h3>
                 <p class="text-sm text-indigo-600">
                   Code: <span 
@@ -103,7 +103,7 @@
                     data-item-type="pole" 
                     data-field="code"
                     class="font-mono cursor-text hover:bg-white/50 px-1 rounded"
-                  >{{ pole.code }}</span>
+                    >{{ pole.identifier or '' }}</span>
                 </p>
               </div>
             </div>
@@ -133,7 +133,7 @@
                     data-field="nom"
                     class="font-semibold text-emerald-800 cursor-text hover:bg-emerald-50 px-2 py-1 rounded"
                   >
-                    🏛️ {{ service.nom }}
+                    🏛️ {{ service.name }}
                   </h4>
                   <p class="text-xs text-emerald-600">
                     Code: <span 
@@ -142,7 +142,7 @@
                       data-item-type="service" 
                       data-field="code"
                       class="font-mono cursor-text hover:bg-emerald-50 px-1 rounded"
-                    >{{ service.code }}</span>
+                    >{{ service.identifier or '' }}</span>
                   </p>
                 </div>
               </div>
@@ -170,7 +170,7 @@
                       data-field="nom"
                       class="text-sm font-medium text-teal-800 cursor-text hover:bg-white px-1 rounded"
                     >
-                      🔹 {{ uf.nom }}
+                      🔹 {{ uf.name }}
                     </span>
                     <span class="text-xs text-teal-600 ml-2">
                       (<span 
@@ -179,9 +179,42 @@
                         data-item-type="unitefonctionnelle" 
                         data-field="code"
                         class="font-mono cursor-text hover:bg-white px-1 rounded"
-                      >{{ uf.code }}</span>)
+                      >{{ uf.identifier or '' }}</span>)
                     </span>
                   </div>
+                  <!-- Unités d'hébergement (chambres & lits) -->
+                  {% if uf.unites_hebergement %}
+                  <div class="ml-4 w-full mt-3 space-y-3">
+                    {% for uh in uf.unites_hebergement %}
+                    <div class="bg-white border border-gray-200 rounded-lg p-3">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <div class="font-medium text-sm">🏠 {{ uh.name or uh.short_name or '' }}</div>
+                          <div class="text-xs text-gray-500">Code: {{ uh.identifier or '' }}</div>
+                        </div>
+                        <div class="text-xs text-gray-400">UH</div>
+                      </div>
+
+                      {% if uh.chambres %}
+                      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {% for chambre in uh.chambres %}
+                        <div class="border rounded p-2">
+                          <div class="font-semibold">🚪 {{ chambre.name or chambre.identifier or '' }}</div>
+                          {% if chambre.lits %}
+                          <div class="text-sm text-gray-600 mt-1">
+                            {% for lit in chambre.lits %}
+                              <span class="inline-block mr-2">🛏️ {{ lit.name or lit.identifier or '' }}</span>
+                            {% endfor %}
+                          </div>
+                          {% endif %}
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% endif %}
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
                 </div>
                 {% endfor %}
               </div>

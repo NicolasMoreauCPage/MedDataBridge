@@ -24,7 +24,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 from app.dependencies.db_deps import get_session
-from app.models_structure import Lit, Service, UniteFonctionnelle
+from app.models_structure import Lit, Service, UniteFonctionnelle, Chambre, UniteHebergement, Pole
 
 
 router = APIRouter(prefix="/api/analytics/export", tags=["Analytics Export"])
@@ -33,8 +33,21 @@ router = APIRouter(prefix="/api/analytics/export", tags=["Analytics Export"])
 def get_kpi_data(session: Session, eg_id: int, period: str):
     """Récupère les données KPIs pour export (simulations MVP)"""
     # Simulation des KPIs (même logique que dans analytics.py)
+    # Récupérer les lits appartenant à l'entité géographique en descendant la hiérarchie
+    # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle -> Service -> Pole -> EntiteGeographique
+    sub_ufs = select(UniteFonctionnelle.id).where(
+        UniteFonctionnelle.service_id.in_(
+            select(Service.id).where(Service.pole_id.in_(
+                select(Pole.id).where(Pole.entite_geo_id == eg_id)
+            ))
+        )
+    )
+
+    sub_uh = select(UniteHebergement.id).where(UniteHebergement.unite_fonctionnelle_id.in_(sub_ufs))
+    sub_ch = select(Chambre.id).where(Chambre.unite_hebergement_id.in_(sub_uh))
+
     total_lits = session.exec(
-        select(Lit).where(Lit.eg_id == eg_id)
+        select(Lit).where(Lit.chambre_id.in_(sub_ch))
     ).all()
     
     nb_lits_total = len(total_lits)
@@ -54,21 +67,28 @@ def get_kpi_data(session: Session, eg_id: int, period: str):
 
 def get_capacity_data(session: Session, eg_id: int):
     """Récupère les données de capacité par service"""
+    # Récupérer les services attachés aux pôles de l'entité géographique
     services = session.exec(
-        select(Service).where(Service.eg_id == eg_id)
+        select(Service).where(Service.pole_id.in_(select(Pole.id).where(Pole.entite_geo_id == eg_id)))
     ).all()
     
     data = []
     for service in services:
-        lits = session.exec(
-            select(Lit).where(Lit.service_id == service.id)
-        ).all()
+        # Récupérer lits via chambres -> UH -> UF -> service
+        sub_ufs = select(UniteFonctionnelle.id).where(UniteFonctionnelle.service_id == service.id)
+        sub_uh = select(UniteHebergement.id).where(UniteHebergement.unite_fonctionnelle_id.in_(sub_ufs))
+        sub_ch = select(Chambre.id).where(Chambre.unite_hebergement_id.in_(sub_uh))
+
+        lits = session.exec(select(Lit).where(Lit.chambre_id.in_(sub_ch))).all()
         
         nb_lits = len(lits)
         if nb_lits > 0:
             occupation = random.uniform(65, 95)
+            svc_name = getattr(service, 'name', None) or getattr(service, 'short_name', None) or f"Service {service.id}"
+            svc_code = getattr(service, 'identifier', None) or getattr(service, 'short_name', None)
             data.append({
-                "service": service.nom or f"Service {service.code}",
+                "service": svc_name if svc_name else (f"Service {service.id}"),
+                "service_code": svc_code,
                 "nb_lits": nb_lits,
                 "taux_occupation": round(occupation, 1),
                 "lits_occupes": int(nb_lits * occupation / 100),

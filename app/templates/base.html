@@ -182,7 +182,7 @@
   <!-- Hidden element to force Tailwind to generate dark mode utilities -->
   <div class="hidden dark:bg-slate-900 dark:text-slate-100"></div>
   {% import 'components.html' as components %}
-  {% from 'macros/ui.html' import icon, breadcrumbs as ui_breadcrumbs, status_bar, toast_container %}
+  {% from 'macros/ui.html' import icon, breadcrumbs as ui_breadcrumbs, status_bar, toast_container, modal, confirm_modal %}
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-surface focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-surface/95" role="banner">
     <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
@@ -1056,6 +1056,8 @@
     // Recharger toutes les 2 minutes
     setInterval(loadAlertCount, 120000);
   </script>
+
+    {% block scripts %}{% endblock %}
 
   <!-- Phase 5 - UX Moderne: Drag & Drop + Édition inline -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>

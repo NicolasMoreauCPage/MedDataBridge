@@ -1510,7 +1510,7 @@ def seed_demo_population(
             identity_reliability_code=_get_random_vocab_value("identity-reliability-rniv"),
             external_id=ipp_value,
             ght_context_id=context.id,
-            entite_juridique_id=ej_id,
+            entite_juridique_id=ej_id,  # Always assign EJ
         )
         session.add(patient)
         session.flush()  # ensure patient.id
@@ -1554,7 +1554,7 @@ def seed_demo_population(
             admit_time=admit_dt,
             discharge_time=discharge_dt if dossier_type in [DossierType.HOSPITALISE, DossierType.URGENCE] else None,
             dossier_type=dossier_type,
-            entite_juridique_id=ej_id,
+            entite_juridique_id=ej_id,  # Always assign EJ
             uf_responsabilite=uf_resp.um_code if uf_resp else None,
             uf_hebergement=uf_heberg.um_code if uf_heberg else None,
         )

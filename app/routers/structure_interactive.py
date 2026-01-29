@@ -60,6 +60,20 @@ async def structure_interactive_page(
             for service in pole.services:
                 statement_ufs = select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)
                 service.unites_fonctionnelles = session.exec(statement_ufs).all()
+            
+            # Charger les unités d'hébergement -> chambres -> lits pour chaque UF
+            for service in pole.services:
+                for uf in (service.unites_fonctionnelles or []):
+                    statement_uh = select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == uf.id)
+                    uf.unites_hebergement = session.exec(statement_uh).all()
+
+                    for uh in (uf.unites_hebergement or []):
+                        statement_chambres = select(Chambre).where(Chambre.unite_hebergement_id == uh.id)
+                        uh.chambres = session.exec(statement_chambres).all()
+
+                        for chambre in (uh.chambres or []):
+                            statement_lits = select(Lit).where(Lit.chambre_id == chambre.id)
+                            chambre.lits = session.exec(statement_lits).all()
     
     # Calculer stats
     total_poles = sum(len(eg.poles) for eg in egs)

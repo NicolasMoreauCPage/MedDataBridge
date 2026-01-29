@@ -16,7 +16,7 @@ from app.services.scenario_identity_generator import (
 )
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.utils.flash import flash
-from app.models import Patient
+from app.models import Patient, Dossier
 
 def get_templates(request: Request):
     """Retourne l'instance templates globale avec les filtres enregistrés"""
@@ -51,14 +51,26 @@ def list_patients(request: Request, session=Depends(get_session)):
     """Displays the list of patients, filtered by the current GHT/EJ context."""
     ght_context = getattr(request.state, "ght_context", None)
     ej_context = getattr(request.state, "ej_context", None)
+    # Allow bypassing context filtering via query param ?all=1
+    show_all = str(request.query_params.get('all', '')).lower() in ('1', 'true', 'yes')
     
     query = select(Patient)
-    if ej_context and getattr(ej_context, "id", None):
-        query = query.where(Patient.entite_juridique_id == ej_context.id)
-    elif ght_context and getattr(ght_context, "id", None):
-        query = query.where(Patient.ght_context_id == ght_context.id)
+    if not show_all:
+        if ej_context and getattr(ej_context, "id", None):
+            ej_id = ej_context.id
+            # Patients directly linked to the EJ OR having a Dossier linked to the EJ
+            subq = select(Dossier.patient_id).where(Dossier.entite_juridique_id == ej_id)
+            query = query.where(
+                (Patient.entite_juridique_id == ej_id) | (Patient.id.in_(subq))
+            )
+        elif ght_context and getattr(ght_context, "id", None):
+            query = query.where(Patient.ght_context_id == ght_context.id)
         
     patients = session.exec(query).all()
+    # Si le contexte filtre à zéro patients, exposer un flag pour la bannière explicite
+    context_filtered_empty = False
+    if not patients and not show_all and (ej_context and getattr(ej_context, "id", None)):
+        context_filtered_empty = True
     
     rows = [
         {
@@ -90,6 +102,21 @@ def list_patients(request: Request, session=Depends(get_session)):
         "rows": rows, "new_url": "/patients/new", "filters": filters,
         "actions": actions, "show_actions": True
     }
+    if context_filtered_empty:
+        ctx["context_filtered_empty"] = True
+    # Expose active context info to the template so the UI can show a banner
+    if ej_context and getattr(ej_context, "id", None):
+        ctx["active_context"] = {
+            "kind": "ej",
+            "name": getattr(ej_context, "name", ""),
+            "clear_url": "/context/clear?kind=ej"
+        }
+    elif ght_context and getattr(ght_context, "id", None):
+        ctx["active_context"] = {
+            "kind": "ght",
+            "name": getattr(ght_context, "name", ""),
+            "clear_url": "/context/clear?kind=ght"
+        }
     
     templates = get_templates(request)
     return templates.TemplateResponse(request, "list.html", ctx)

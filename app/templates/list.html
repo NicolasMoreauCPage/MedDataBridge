@@ -10,6 +10,21 @@
 </div>
 {% endif %}
 
+{% if active_context %}
+  <div class="mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800 flex items-center justify-between">
+    <div>
+      Affichage filtré par le contexte <strong>{{ active_context.name }}</strong> ({{ active_context.kind }}).
+      {% if context_filtered_empty %}
+        <span class="ml-2 text-red-700 font-semibold">Aucun patient trouvé pour ce contexte.</span>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="{{ active_context.clear_url }}" class="text-yellow-800 underline">Effacer le contexte</a>
+      <a href="/patients?all=1" class="text-yellow-800 underline">Afficher tous</a>
+    </div>
+  </div>
+{% endif %}
+
 {# Header avec titre et actions #}
 <div class="bg-gradient-to-r from-white to-gray-50 rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm">
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

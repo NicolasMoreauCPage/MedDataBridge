@@ -162,6 +162,7 @@ async def create_mouvement(
     location: str = Form(None),
     reason: str = Form(None),
     performer: str = Form(None),
+    lit_id: Optional[str] = Form(None),
     request: Request = None,
     session: Session = Depends(get_session)
 ):
@@ -192,6 +193,33 @@ async def create_mouvement(
         raise HTTPException(status_code=400, detail=f"Unsupported event code {event_code}")
 
     movement_type, requires_location = event_mapping[event_code]
+
+    # Si un lit précis est fourni (workflow avancé / plan de lits), le récupérer
+    target_lit = None
+    lit_id_value: Optional[int] = None
+    if lit_id is not None and str(lit_id).strip() != "":
+        try:
+            lit_id_value = int(lit_id)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Lit cible introuvable")
+    if lit_id_value is not None:
+        target_lit = session.get(Lit, lit_id_value)
+        if not target_lit:
+            raise HTTPException(status_code=400, detail="Lit cible introuvable")
+
+        # Valider que le lit n'est pas déjà occupé par une autre venue active
+        active_on_lit = session.exec(
+            select(Venue)
+            .where(Venue.lit_id == lit_id_value)
+            .where(Venue.id != venue_id)
+            .where(Venue.end_time.is_(None))  # type: ignore[attr-defined]
+        ).all()
+        if active_on_lit:
+            raise HTTPException(status_code=400, detail="Le lit sélectionné est déjà occupé par une autre venue active")
+
+        # Si aucune location explicite n'est fournie, utiliser le nom du lit
+        if not location:
+            location = target_lit.name
 
     if requires_location and not location:
         raise HTTPException(status_code=400, detail="Location is required for this movement")

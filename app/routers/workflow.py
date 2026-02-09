@@ -171,7 +171,7 @@ async def create_mouvement(
     location: str = Form(None),
     reason: str = Form(None),
     performer: str = Form(None),
-    lit_id: Optional[int] = Form(None),
+    lit_id: Optional[str] = Form(None),
     request: Request = None,
     session: Session = Depends(get_session)
 ):
@@ -205,8 +205,14 @@ async def create_mouvement(
 
     # Si un lit précis est fourni (workflow avancé / drag&drop plan de lits), le récupérer
     target_lit = None
-    if lit_id is not None:
-        target_lit = session.get(Lit, lit_id)
+    lit_id_value: Optional[int] = None
+    if lit_id is not None and str(lit_id).strip() != "":
+        try:
+            lit_id_value = int(lit_id)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Lit cible introuvable")
+    if lit_id_value is not None:
+        target_lit = session.get(Lit, lit_id_value)
         if not target_lit:
             raise HTTPException(status_code=400, detail="Lit cible introuvable")
 
@@ -214,7 +220,7 @@ async def create_mouvement(
         # (même logique que le plan de lits pour les conflits)
         active_on_lit = session.exec(
             select(Venue)
-            .where(Venue.lit_id == lit_id)
+            .where(Venue.lit_id == lit_id_value)
             .where(Venue.id != venue_id)
             .where(Venue.end_time.is_(None))  # type: ignore[attr-defined]
         ).all()

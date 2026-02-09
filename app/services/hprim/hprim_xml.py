@@ -377,7 +377,7 @@ class HprimXmlService:
 
     def _add_acte_ccam(self, parent: ET.Element, acte: HprimActeCCAM):
         """Ajoute un acte CCAM"""
-        acte_elem = ET.SubElement(parent, "acteCCAM")
+        acte_elem = ET.SubElement(parent, "{%s}acteCCAM" % self.NAMESPACE)
 
         # Attributs
         acte_elem.set("action", acte.action.value)
@@ -411,55 +411,56 @@ class HprimXmlService:
             acte_elem.set("PMSI", acte.pmsi)
 
         # Date action
-        ET.SubElement(acte_elem, "dateAction").text = datetime.now().isoformat()
+        ET.SubElement(acte_elem, "{%s}dateAction" % self.NAMESPACE).text = datetime.now().isoformat()
 
         # Acteur
-        acteur = ET.SubElement(acte_elem, "acteur")
+        acteur = ET.SubElement(acte_elem, "{%s}acteur" % self.NAMESPACE)
         self._add_professionnel(acteur, "medecin", acte.executant)
 
         # Identifiant
-        identifiant = ET.SubElement(acte_elem, "identifiant")
-        emetteur = ET.SubElement(identifiant, "emetteur")
+        identifiant = ET.SubElement(acte_elem, "{%s}identifiant" % self.NAMESPACE)
+        emetteur = ET.SubElement(identifiant, "{%s}emetteur" % self.NAMESPACE)
         emetteur.text = acte.identifiant
         emetteur.set("portee", "local")
 
         # Codes acte
-        ET.SubElement(acte_elem, "codeActe").text = acte.code_acte
+        ET.SubElement(acte_elem, "{%s}codeActe" % self.NAMESPACE).text = acte.code_acte
         if acte.code_acte_extension_pmsi:
-            ET.SubElement(acte_elem, "codeActeExtensionPMSI").text = acte.code_acte_extension_pmsi
-        ET.SubElement(acte_elem, "codeActivite").text = acte.code_activite
-        ET.SubElement(acte_elem, "codePhase").text = acte.code_phase
+            ET.SubElement(acte_elem, "{%s}codeActeExtensionPMSI" % self.NAMESPACE).text = acte.code_acte_extension_pmsi
+        ET.SubElement(acte_elem, "{%s}codeActivite" % self.NAMESPACE).text = acte.code_activite
+        if acte.code_phase:
+            ET.SubElement(acte_elem, "{%s}codePhase" % self.NAMESPACE).text = acte.code_phase
 
         # Exécution
-        execute = ET.SubElement(acte_elem, "execute")
-        ET.SubElement(execute, "date").text = acte.execute_date.date().isoformat()
+        execute = ET.SubElement(acte_elem, "{%s}execute" % self.NAMESPACE)
+        ET.SubElement(execute, "{%s}date" % self.NAMESPACE).text = acte.execute_date.date().isoformat()
         if acte.execute_heure:
-            ET.SubElement(execute, "heure").text = acte.execute_heure
+            ET.SubElement(execute, "{%s}heure" % self.NAMESPACE).text = acte.execute_heure
 
         # Exécutant
-        executant = ET.SubElement(acte_elem, "executant")
-        medecins = ET.SubElement(executant, "medecins")
+        executant = ET.SubElement(acte_elem, "{%s}executant" % self.NAMESPACE)
+        medecins = ET.SubElement(executant, "{%s}medecins" % self.NAMESPACE)
         self._add_professionnel(medecins, "medecin", acte.executant)
 
         # Modificateurs
         if acte.modificateurs:
-            modificateurs = ET.SubElement(acte_elem, "modificateurs")
+            modificateurs = ET.SubElement(acte_elem, "{%s}modificateurs" % self.NAMESPACE)
             for mod in acte.modificateurs:
-                mod_elem = ET.SubElement(modificateurs, "modificateur")
+                mod_elem = ET.SubElement(modificateurs, "{%s}modificateur" % self.NAMESPACE)
                 mod_elem.text = mod.code
                 mod_elem.set("statut", mod.statut)
 
         # Quantité
-        ET.SubElement(acte_elem, "quantite").text = str(acte.quantite)
+        ET.SubElement(acte_elem, "{%s}quantite" % self.NAMESPACE).text = str(acte.quantite)
 
         # Prise en charge
         if acte.prise_charge:
-            prise_charge = ET.SubElement(acte_elem, "priseCharge")
+            prise_charge = ET.SubElement(acte_elem, "{%s}priseCharge" % self.NAMESPACE)
             pc = acte.prise_charge
             if pc.risque:
-                ET.SubElement(prise_charge, "risque").text = pc.risque
+                ET.SubElement(prise_charge, "{%s}risque" % self.NAMESPACE).text = pc.risque
             if pc.date_demande_accord:
-                ET.SubElement(prise_charge, "dateDemandeAccord").text = pc.date_demande_accord
+                ET.SubElement(prise_charge, "{%s}dateDemandeAccord" % self.NAMESPACE).text = pc.date_demande_accord
             if pc.entente_prealable:
                 prise_charge.set("ententePrealable", pc.entente_prealable)
             if pc.indicateur_parcours_soins:
@@ -467,13 +468,13 @@ class HprimXmlService:
 
         # Montant
         if acte.montant:
-            montant = ET.SubElement(acte_elem, "montant")
-            ET.SubElement(montant, "valeur").text = str(acte.montant.valeur)
-            ET.SubElement(montant, "devise").text = acte.montant.devise
+            montant = ET.SubElement(acte_elem, "{%s}montant" % self.NAMESPACE)
+            ET.SubElement(montant, "{%s}valeur" % self.NAMESPACE).text = str(acte.montant.valeur)
+            ET.SubElement(montant, "{%s}devise" % self.NAMESPACE).text = acte.montant.devise
 
         # Commentaire
         if acte.commentaire:
-            ET.SubElement(acte_elem, "commentaire").text = acte.commentaire
+            ET.SubElement(acte_elem, "{%s}commentaire" % self.NAMESPACE).text = acte.commentaire
 
     def _add_acte_ngap(self, parent: ET.Element, acte: HprimActeNGAP):
         """Ajoute un acte NGAP"""
@@ -499,56 +500,56 @@ class HprimXmlService:
             acte_elem.set("activiteRecherche", "oui")
 
         # Identifiant
-        ET.SubElement(acte_elem, "identifiant").text = acte.identifiant
+        ET.SubElement(acte_elem, "{%s}identifiant" % self.NAMESPACE).text = acte.identifiant
 
         # Lettre clé
-        ET.SubElement(acte_elem, "lettreCle").text = acte.lettre_cle
+        ET.SubElement(acte_elem, "{%s}lettreCle" % self.NAMESPACE).text = acte.lettre_cle
 
         # Coefficient
-        ET.SubElement(acte_elem, "coefficient").text = str(acte.coefficient)
+        ET.SubElement(acte_elem, "{%s}coefficient" % self.NAMESPACE).text = str(acte.coefficient)
 
         # Date exécution
-        ET.SubElement(acte_elem, "dateExecution").text = acte.execute_date.isoformat()
+        ET.SubElement(acte_elem, "{%s}dateExecution" % self.NAMESPACE).text = acte.execute_date.isoformat()
 
         # Prestataire
-        prestataire = ET.SubElement(acte_elem, "prestataire")
+        prestataire = ET.SubElement(acte_elem, "{%s}prestataire" % self.NAMESPACE)
         self._add_professionnel(prestataire, "medecin", acte.prestataire)
 
         # Dénombrement
         if acte.denombrement:
-            ET.SubElement(acte_elem, "denombrement").text = str(acte.denombrement)
+            ET.SubElement(acte_elem, "{%s}denombrement" % self.NAMESPACE).text = str(acte.denombrement)
 
         # Position dentaire
         if acte.position_dentaire:
-            ET.SubElement(acte_elem, "positionDentaire").text = acte.position_dentaire
+            ET.SubElement(acte_elem, "{%s}positionDentaire" % self.NAMESPACE).text = acte.position_dentaire
 
         # Heure exécution
         if acte.execute_heure:
-            ET.SubElement(acte_elem, "heureExecution").text = acte.execute_heure
+            ET.SubElement(acte_elem, "{%s}heureExecution" % self.NAMESPACE).text = acte.execute_heure
 
         # Numéro séance
         if acte.numero_seance:
-            ET.SubElement(acte_elem, "numeroSeance").text = str(acte.numero_seance)
+            ET.SubElement(acte_elem, "{%s}numeroSeance" % self.NAMESPACE).text = str(acte.numero_seance)
 
         # NABMS
         if acte.nabms:
-            nabms = ET.SubElement(acte_elem, "nabms")
+            nabms = ET.SubElement(acte_elem, "{%s}nabms" % self.NAMESPACE)
             for nabm in acte.nabms:
-                ET.SubElement(nabms, "nabm").text = str(nabm)
+                ET.SubElement(nabms, "{%s}nabm" % self.NAMESPACE).text = str(nabm)
 
         # Minor/Major
         if acte.minor_major:
-            ET.SubElement(acte_elem, "minorMajor").text = acte.minor_major
+            ET.SubElement(acte_elem, "{%s}minorMajor" % self.NAMESPACE).text = acte.minor_major
 
         # Montant
         if acte.montant:
-            montant = ET.SubElement(acte_elem, "montant")
-            ET.SubElement(montant, "valeur").text = str(acte.montant.valeur)
-            ET.SubElement(montant, "devise").text = acte.montant.devise
+            montant = ET.SubElement(acte_elem, "{%s}montant" % self.NAMESPACE)
+            ET.SubElement(montant, "{%s}valeur" % self.NAMESPACE).text = str(acte.montant.valeur)
+            ET.SubElement(montant, "{%s}devise" % self.NAMESPACE).text = acte.montant.devise
 
         # Commentaire
         if acte.commentaire:
-            ET.SubElement(acte_elem, "commentaire").text = acte.commentaire
+            ET.SubElement(acte_elem, "{%s}commentaire" % self.NAMESPACE).text = acte.commentaire
 
     def _add_patient(self, parent: ET.Element, patient: HprimPatient):
         """Ajoute les informations patient"""
@@ -569,7 +570,8 @@ class HprimXmlService:
         element = ET.SubElement(parent, "{%s}%s" % (self.NAMESPACE, tag))
         ET.SubElement(element, "{%s}nom" % self.NAMESPACE).text = prof.nom
         ET.SubElement(element, "{%s}prenom" % self.NAMESPACE).text = prof.prenom
-        ET.SubElement(element, "{%s}numeroRPPS" % self.NAMESPACE).text = prof.numero_rpps
+        if prof.numero_rpps:
+            ET.SubElement(element, "{%s}numeroRPPS" % self.NAMESPACE).text = prof.numero_rpps
 
         if prof.numero_adeli:
             ET.SubElement(element, "{%s}numeroAdeli" % self.NAMESPACE).text = prof.numero_adeli

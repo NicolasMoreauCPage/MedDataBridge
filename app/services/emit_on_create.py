@@ -3,6 +3,7 @@ logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal, Sequence, Tuple
 
@@ -1473,15 +1474,24 @@ def emit_to_senders_async(
         snapshot = None
         if use_snapshot:
             snapshot = _snapshot_entity(entity, entity_type, session)
-        # Respect emission type flags
-        # HL7 IHE PAM (identité/mouvements)
-        if endpoint.kind == "MLLP" and getattr(endpoint, "emit_hl7_pam", True):
+        
+        # ================================================================================
+        # FILTRAGE PAR TYPE D'ENTITÉ ET ABONNEMENT
+        # Chaque bloc vérifie : 1) le type d'endpoint, 2) l'abonnement activé, 
+        # 3) le type d'entité compatible, 4) la configuration requise
+        # ================================================================================
+        
+        # HL7 IHE PAM (identité/mouvements) - MLLP uniquement
+        # Types d'entités compatibles : patient, venue, mouvement
+        if endpoint.kind == "MLLP" and entity_type in ["patient", "venue", "mouvement"]:
+            # Vérifier si l'abonnement HL7 PAM est activé
+            if not getattr(endpoint, "emit_hl7_pam", True):
+                logger.debug(f"[MLLP] Endpoint {endpoint.id} has emit_hl7_pam=False - skipping PAM emission for {entity_type}")
+                # Ne pas utiliser continue ici, on veut permettre d'autres types d'émission
             # Vérifier que l'endpoint MLLP est bien configuré
-            if not endpoint.host or not endpoint.port:
+            elif not endpoint.host or not endpoint.port:
                 logger.debug(f"[MLLP] Endpoint {endpoint.id} not properly configured (missing host/port) - skipping PAM emission")
-                continue
-            
-            if entity_type in ["patient", "venue", "mouvement"]:
+            else:
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 hl7_message = generate_pam_hl7(
@@ -1631,19 +1641,25 @@ def emit_to_senders_async(
                     retry += 1
                     if retry < max_retry:
                         time.sleep(60)
-        # HL7 MFN (structure)
-        if endpoint.kind == "MLLP" and getattr(endpoint, "emit_hl7_mfn", True):
-            if entity_type == "structure":
+        # HL7 MFN (structure) - MLLP uniquement
+        # Types d'entités compatibles : structure
+        if endpoint.kind == "MLLP" and entity_type == "structure":
+            if not getattr(endpoint, "emit_hl7_mfn", True):
+                logger.debug(f"[MLLP] Endpoint {endpoint.id} has emit_hl7_mfn=False - skipping MFN emission")
+            elif not endpoint.host or not endpoint.port:
+                logger.debug(f"[MLLP] Endpoint {endpoint.id} not properly configured (missing host/port) - skipping MFN emission")
+            else:
                 # MFN emission logic here (call your MFN generator and sender)
                 pass
-        # FHIR structure
-        if endpoint.kind == "FHIR" and getattr(endpoint, "emit_fhir_structure", True):
-            # Vérifier que l'endpoint FHIR est bien configuré
-            if not endpoint.base_url:
+        
+        # FHIR structure (Location/Organization) - FHIR uniquement
+        # Types d'entités compatibles : dossier, venue
+        if endpoint.kind == "FHIR" and entity_type in ["dossier", "venue"]:
+            if not getattr(endpoint, "emit_fhir_structure", True):
+                logger.debug(f"[FHIR] Endpoint {endpoint.id} has emit_fhir_structure=False - skipping structure emission for {entity_type}")
+            elif not endpoint.base_url:
                 logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping structure emission")
-                continue
-            
-            if entity_type in ["dossier", "venue"]:
+            else:
                 targets = _build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
@@ -1692,78 +1708,79 @@ def emit_to_senders_async(
                         )
                         session.add(log)
                         session.commit()
-                    return
-                # Import FHIR transport at call time so tests can monkeypatch
-                from app.services.fhir_transport import post_fhir_bundle as _send_fhir
+                else:
+                    # Import FHIR transport at call time so tests can monkeypatch
+                    from app.services.fhir_transport import post_fhir_bundle as _send_fhir
 
-                for base_url, auth_kind, auth_token in targets:
-                    retry = 0
-                    max_retry = 3
-                    while retry < max_retry:
-                        status = "generated"
-                        ack_payload = ""
-                        payload_str = json.dumps(fhir_payload, default=str)
-                        try:
-                            status_code, response_body = _run_async(_send_fhir(
-                                base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
-                            ))
-                            status = "sent" if 200 <= status_code < 300 else "error"
-                            ack_payload = json.dumps(response_body or {}, default=str)
-                        except Exception as exc:
-                            status = "error"
-                            ack_payload = str(exc)
-                        if correlation_id:
-                            existing_log = session.exec(
-                                select(MessageLog)
-                                .where(MessageLog.endpoint_id == endpoint.id)
-                                .where(MessageLog.direction == "out")
-                                .where(MessageLog.correlation_id == correlation_id)
-                            ).first()
+                    for base_url, auth_kind, auth_token in targets:
+                        retry = 0
+                        max_retry = 3
+                        while retry < max_retry:
+                            status = "generated"
+                            ack_payload = ""
+                            payload_str = json.dumps(fhir_payload, default=str)
+                            try:
+                                status_code, response_body = _run_async(_send_fhir(
+                                    base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
+                                ))
+                                status = "sent" if 200 <= status_code < 300 else "error"
+                                ack_payload = json.dumps(response_body or {}, default=str)
+                            except Exception as exc:
+                                status = "error"
+                                ack_payload = str(exc)
+                            if correlation_id:
+                                existing_log = session.exec(
+                                    select(MessageLog)
+                                    .where(MessageLog.endpoint_id == endpoint.id)
+                                    .where(MessageLog.direction == "out")
+                                    .where(MessageLog.correlation_id == correlation_id)
+                                ).first()
+                                if existing_log:
+                                    logger.info(f"[RECEPTION] Updated existing FHIR MessageLog id={existing_log.id} with FHIR payload")
+                            else:
+                                existing_log = session.exec(
+                                    select(MessageLog)
+                                    .where(MessageLog.endpoint_id == endpoint.id)
+                                    .where(MessageLog.kind == "FHIR")
+                                    .where(MessageLog.status.in_(["error", "pending"]))
+                                    .order_by(MessageLog.created_at.desc())
+                                ).first()
+                                logger.info(f"[RECEPTION] Created new FHIR MessageLog for endpoint={endpoint.id}, correlation_id={correlation_id}")
                             if existing_log:
-                                logger.info(f"[RECEPTION] Updated existing FHIR MessageLog id={existing_log.id} with FHIR payload")
-                        else:
-                            existing_log = session.exec(
-                                select(MessageLog)
-                                .where(MessageLog.endpoint_id == endpoint.id)
-                                .where(MessageLog.kind == "FHIR")
-                                .where(MessageLog.status.in_(["error", "pending"]))
-                                .order_by(MessageLog.created_at.desc())
-                            ).first()
-                            logger.info(f"[RECEPTION] Created new FHIR MessageLog for endpoint={endpoint.id}, correlation_id={correlation_id}")
-                        if existing_log:
-                            existing_log.payload = payload_str
-                            existing_log.ack_payload = ack_payload
-                            existing_log.status = status
-                            existing_log.created_at = datetime.utcnow()
-                            session.commit()
-                        else:
-                            if payload_str is None:
-                                logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
-                            safe_payload = payload_str or ""
-                            log = MessageLog(
-                                direction="out",
-                                kind="FHIR",
-                                endpoint_id=endpoint.id,
-                                payload=safe_payload,
-                                ack_payload=ack_payload,
-                                status=status,
-                                correlation_id=correlation_id,
-                            )
-                            session.add(log)
-                            session.commit()
-                        if status == "sent":
-                            break
-                        retry += 1
-                        if retry < max_retry:
-                            time.sleep(60)
-        # FHIR identity/movements
-        if endpoint.kind == "FHIR" and getattr(endpoint, "emit_fhir_identity", True):
-            # Vérifier que l'endpoint FHIR est bien configuré
-            if not endpoint.base_url:
+                                existing_log.payload = payload_str
+                                existing_log.ack_payload = ack_payload
+                                existing_log.status = status
+                                existing_log.created_at = datetime.utcnow()
+                                session.commit()
+                            else:
+                                if payload_str is None:
+                                    logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
+                                safe_payload = payload_str or ""
+                                log = MessageLog(
+                                    direction="out",
+                                    kind="FHIR",
+                                    endpoint_id=endpoint.id,
+                                    payload=safe_payload,
+                                    ack_payload=ack_payload,
+                                    status=status,
+                                    correlation_id=correlation_id,
+                                )
+                                session.add(log)
+                                session.commit()
+                            if status == "sent":
+                                break
+                            retry += 1
+                            if retry < max_retry:
+                                time.sleep(60)
+        
+        # FHIR identity/movements (Patient/Encounter) - FHIR uniquement
+        # Types d'entités compatibles : patient, mouvement, venue
+        if endpoint.kind == "FHIR" and entity_type in ["patient", "mouvement", "venue"]:
+            if not getattr(endpoint, "emit_fhir_identity", True):
+                logger.debug(f"[FHIR] Endpoint {endpoint.id} has emit_fhir_identity=False - skipping identity emission for {entity_type}")
+            elif not endpoint.base_url:
                 logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping identity emission")
-                continue
-            
-            if entity_type in ["patient", "mouvement", "venue"]:
+            else:
                 targets = _build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
@@ -1809,78 +1826,73 @@ def emit_to_senders_async(
                         )
                         session.add(log)
                         session.commit()
-                    return
-                # Import FHIR transport at call time so tests can monkeypatch
-                from app.services.fhir_transport import post_fhir_bundle as _send_fhir
+                else:
+                    # Import FHIR transport at call time so tests can monkeypatch
+                    from app.services.fhir_transport import post_fhir_bundle as _send_fhir
 
-                for base_url, auth_kind, auth_token in targets:
-                    retry = 0
-                    max_retry = 3
-                    while retry < max_retry:
-                        status = "generated"
-                        ack_payload = ""
-                        payload_str = json.dumps(fhir_payload, default=str)
-                        try:
-                            status_code, response_body = _run_async(_send_fhir(
-                                base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
-                            ))
-                            status = "sent" if 200 <= status_code < 300 else "error"
-                            ack_payload = json.dumps(response_body or {}, default=str)
-                        except Exception as exc:
-                            status = "error"
-                            ack_payload = str(exc)
-                        if correlation_id:
-                            existing_log = session.exec(
-                                select(MessageLog)
-                                .where(MessageLog.endpoint_id == endpoint.id)
-                                .where(MessageLog.direction == "out")
-                                .where(MessageLog.correlation_id == correlation_id)
-                            ).first()
-                        else:
-                            existing_log = session.exec(
-                                select(MessageLog)
-                                .where(MessageLog.endpoint_id == endpoint.id)
-                                .where(MessageLog.kind == "FHIR")
-                                .where(MessageLog.status.in_(["error", "pending"]))
-                                .order_by(MessageLog.created_at.desc())
-                            ).first()
-                        if existing_log:
-                            existing_log.payload = payload_str
-                            existing_log.ack_payload = ack_payload
-                            existing_log.status = status
-                            existing_log.created_at = datetime.utcnow()
-                            session.commit()
-                        else:
-                            if payload_str is None:
-                                logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
-                            safe_payload = payload_str or ""
-                            log = MessageLog(
-                                direction="out",
-                                kind="FHIR",
-                                endpoint_id=endpoint.id,
-                                payload=safe_payload,
-                                ack_payload=ack_payload,
-                                status=status,
-                                correlation_id=correlation_id,
-                            )
-                            session.add(log)
-                            session.commit()
-                        if status == "sent":
-                            break
-                        retry += 1
-                        if retry < max_retry:
-                            time.sleep(60)
+                    for base_url, auth_kind, auth_token in targets:
+                        retry = 0
+                        max_retry = 3
+                        while retry < max_retry:
+                            status = "generated"
+                            ack_payload = ""
+                            payload_str = json.dumps(fhir_payload, default=str)
+                            try:
+                                status_code, response_body = _run_async(_send_fhir(
+                                    base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
+                                ))
+                                status = "sent" if 200 <= status_code < 300 else "error"
+                                ack_payload = json.dumps(response_body or {}, default=str)
+                            except Exception as exc:
+                                status = "error"
+                                ack_payload = str(exc)
+                            if correlation_id:
+                                existing_log = session.exec(
+                                    select(MessageLog)
+                                    .where(MessageLog.endpoint_id == endpoint.id)
+                                    .where(MessageLog.direction == "out")
+                                    .where(MessageLog.correlation_id == correlation_id)
+                                ).first()
+                            else:
+                                existing_log = session.exec(
+                                    select(MessageLog)
+                                    .where(MessageLog.endpoint_id == endpoint.id)
+                                    .where(MessageLog.kind == "FHIR")
+                                    .where(MessageLog.status.in_(["error", "pending"]))
+                                    .order_by(MessageLog.created_at.desc())
+                                ).first()
+                            if existing_log:
+                                existing_log.payload = payload_str
+                                existing_log.ack_payload = ack_payload
+                                existing_log.status = status
+                                existing_log.created_at = datetime.utcnow()
+                                session.commit()
+                            else:
+                                if payload_str is None:
+                                    logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
+                                safe_payload = payload_str or ""
+                                log = MessageLog(
+                                    direction="out",
+                                    kind="FHIR",
+                                    endpoint_id=endpoint.id,
+                                    payload=safe_payload,
+                                    ack_payload=ack_payload,
+                                    status=status,
+                                    correlation_id=correlation_id,
+                                )
+                                session.add(log)
+                                session.commit()
+                            if status == "sent":
+                                break
+                            retry += 1
+                            if retry < max_retry:
+                                time.sleep(60)
 
         # HPRIM endpoints: emit HPRIM XML messages for cotation (AUTO-TRANSMISSION)
         # HPRIM is used specifically for medical billing/cotation (CCAM, NGAP, UCD, LPP)
         # Auto-transmission enabled for cotation acts (like PAM/FHIR for entities)
-        if endpoint.kind == "HPRIM":
-            # Only process cotation acts for HPRIM endpoints
-            if entity_type not in ["ccam_act", "ngap_act", "ucd_act", "lpp_act"]:
-                logger.debug(f"[HPRIM] Skipping {entity_type} emission to HPRIM endpoint {endpoint.id} - "
-                           f"HPRIM is reserved for cotation acts only")
-                continue  # Skip to next endpoint
-            
+        # Types d'entités compatibles : ccam_act, ngap_act, ucd_act, lpp_act
+        if endpoint.kind == "HPRIM" and entity_type in ["ccam_act", "ngap_act", "ucd_act", "lpp_act"]:
             # Filter by act type based on endpoint configuration
             if entity_type == "ccam_act" and not getattr(endpoint, 'emit_hprim_ccam', False):
                 logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for CCAM acts")
@@ -1899,10 +1911,11 @@ def emit_to_senders_async(
             try:
                 from app.services.hprim.hprim_xml import HprimXmlService
                 from app.hprim_models import (
-                    HprimMessage, HprimEnteteMessage, HprimPatient, HprimActeCCAM, HprimActeNGAP,
-                    HprimMessageType, HprimAction
+                    HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
+                    HprimActeCCAM, HprimActeNGAP, HprimMessageType, HprimAction
                 )
                 from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct, Dossier, Patient
+                from app.models_practitioners import MedecinResponsable
                 
                 # Load related dossier and patient
                 dossier = session.get(Dossier, entity.dossier_id)
@@ -1926,19 +1939,71 @@ def emit_to_senders_async(
                     message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
                 )
                 
+                def _build_hprim_professionnel(medecin: MedecinResponsable | None) -> HprimProfessionnel:
+                    if medecin:
+                        return HprimProfessionnel(
+                            nom=medecin.family_name or "INCONNU",
+                            prenom=medecin.given_name or "",
+                            numero_rpps=medecin.rpps,
+                            numero_adeli=medecin.adeli,
+                            specialite=medecin.specialty,
+                        )
+                    return HprimProfessionnel(nom="INCONNU", prenom="")
+
+                def _normalize_sexe(value: str | None) -> str | None:
+                    if not value:
+                        return None
+                    v = str(value).lower()
+                    if v in {"m", "male", "masculin"}:
+                        return "M"
+                    if v in {"f", "female", "feminin", "féminin"}:
+                        return "F"
+                    return "U"
+
+                patient_identifier = (
+                    getattr(patient, "identifier", None)
+                    or getattr(patient, "nir", None)
+                    or getattr(patient, "ins_c", None)
+                    or str(patient.id)
+                )
+                if getattr(patient, "identifier", None):
+                    patient_ident_clef = "IPP"
+                elif getattr(patient, "nir", None) or getattr(patient, "ins_c", None):
+                    patient_ident_clef = "INS"
+                else:
+                    patient_ident_clef = "ID"
+                date_naissance = getattr(patient, "birth_date", None) or getattr(patient, "date_naissance", None)
+                date_naissance_str = date_naissance.isoformat() if hasattr(date_naissance, "isoformat") else None
+
                 # Build patient info
                 hprim_patient = HprimPatient(
-                    ipp=patient.ipp,
+                    identifiant_id=str(patient_identifier),
+                    identifiant_clef=patient_ident_clef,
                     nom=patient.nom,
-                    prenom=patient.prenom,
-                    date_naissance=patient.date_naissance,
-                    sexe=patient.sexe
+                    prenom=patient.prenom or "",
+                    date_naissance=date_naissance_str,
+                    sexe=_normalize_sexe(getattr(patient, "gender", None) or getattr(patient, "sexe", None))
                 )
+
+                # Resolve acteur (professionnel)
+                medecin = None
+                if entity_type == "ccam_act":
+                    medecin = getattr(entity, "executant", None) or getattr(entity, "prescripteur", None)
+                    if medecin is None and getattr(entity, "executant_id", None):
+                        medecin = session.get(MedecinResponsable, entity.executant_id)
+                    if medecin is None and getattr(entity, "prescripteur_id", None):
+                        medecin = session.get(MedecinResponsable, entity.prescripteur_id)
+                elif entity_type == "ngap_act":
+                    medecin = getattr(entity, "prestataire", None)
+                    if medecin is None and getattr(entity, "prestataire_id", None):
+                        medecin = session.get(MedecinResponsable, entity.prestataire_id)
+                acteur = _build_hprim_professionnel(medecin)
                 
                 # Build message based on act type
                 message = HprimMessage(
                     entete=entete,
                     patient=hprim_patient,
+                    acteur=acteur,
                     version="2.4",
                     acquittement_attendu=True,
                     identifiant_attendu=True,
@@ -1955,12 +2020,15 @@ def emit_to_senders_async(
                             modificateurs.append(HprimModificateur(code=mod_code.strip()))
                     
                     hprim_acte = HprimActeCCAM(
+                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"CCAM-{entity.id}"),
                         code_acte=entity.code_acte,
                         code_activite=entity.code_activite,
                         code_phase=entity.code_phase,
-                        date_execution=entity.execute_date,
+                        execute_date=entity.execute_date,
+                        executant=acteur,
                         modificateurs=modificateurs,
                         quantite=entity.quantite or 1,
+                        execute_heure=getattr(entity, "execute_heure", None),
                         action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
                         facturable=entity.facturable if hasattr(entity, 'facturable') else True,
                         valide=entity.valide if hasattr(entity, 'valide') else False,
@@ -1970,14 +2038,18 @@ def emit_to_senders_async(
                     
                 elif entity_type == "ngap_act" and isinstance(entity, NGAPAct):
                     hprim_acte = HprimActeNGAP(
+                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"NGAP-{entity.id}"),
                         lettre_cle=entity.lettre_cle,
-                        coefficient=entity.coefficient,
-                        date_execution=entity.execute_date,
+                        coefficient=Decimal(str(entity.coefficient)),
+                        execute_date=entity.execute_date,
+                        prestataire=acteur,
                         denombrement=entity.denombrement or 1,
-                        quantite=entity.quantite,
+                        execute_heure=getattr(entity, "execute_heure", None),
+                        position_dentaire=getattr(entity, "position_dentaire", None),
                         action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
                         facturable=entity.facturable if hasattr(entity, 'facturable') else True,
-                        valide=entity.valide if hasattr(entity, 'valide') else False
+                        valide=entity.valide if hasattr(entity, 'valide') else False,
+                        facture=entity.facture if hasattr(entity, 'facture') else False
                     )
                     message.actes_ngap = [hprim_acte]
                 

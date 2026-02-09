@@ -63,11 +63,17 @@
     </div>
 
     <!-- Bouton d'exécution en haut -->
-    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 shadow-sm flex items-center justify-between">
-      <div class="text-sm text-slate-700">
-        <span id="topExecutionInfo">
-          Sélectionnez un endpoint et au moins 1 scénario
-        </span>
+      <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 shadow-sm flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="text-sm text-slate-700">
+          <span id="topExecutionInfo">
+            Sélectionnez un endpoint et au moins 1 scénario
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="repeatCount" class="text-xs text-slate-600">Nombre d'exécution</label>
+          <input type="number" name="repeat_count" id="repeatCount" min="1" value="1" class="w-20 px-2 py-1 border rounded text-sm">
+        </div>
       </div>
       <button type="submit" id="topSubmitBtn" disabled class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,7 +335,11 @@ function updateSelectedCount() {
     }
   });
   
-  console.log('[DEBUG] Total messages:', totalMessages);
+  console.log('[DEBUG] Total messages (per run):', totalMessages);
+
+  const repeat = parseInt(document.getElementById('repeatCount')?.value) || 1;
+  totalMessages = totalMessages * repeat;
+  console.log('[DEBUG] Repeat count:', repeat, 'Total messages (x repeat):', totalMessages);
   
   // Mettre à jour les compteurs
   document.getElementById('selectedMessages').textContent = totalMessages;
@@ -408,6 +418,11 @@ function initializePage() {
   scenarioCheckboxes.forEach(cb => {
     cb.addEventListener('change', updateSelectedCount);
   });
+
+  const repeatInput = document.getElementById('repeatCount');
+  if (repeatInput) {
+    repeatInput.addEventListener('input', updateSelectedCount);
+  }
   
   // Appeler une fois au démarrage
   updateSelectedCount();

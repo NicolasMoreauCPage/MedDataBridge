@@ -307,6 +307,7 @@ async def bulk_execute_scenarios(
     request: Request,
     endpoint_id: int = Form(...),
     scenario_ids: list[int] = Form(...),
+    repeat_count: int = Form(1),
     session: Session = Depends(get_session)
 ):
     """Exécute plusieurs scénarios sur un endpoint en arrière-plan."""
@@ -327,7 +328,7 @@ async def bulk_execute_scenarios(
     # Convertir les scenario_ids en entiers et charger les noms avant de quitter la session
     scenario_ids_int = []
     scenario_names = {}
-    total_messages = 0
+    total_messages_per_run = 0
     
     for scenario_id_str in scenario_ids:
         try:
@@ -341,11 +342,23 @@ async def bulk_execute_scenarios(
                     select(InteropScenarioStep)
                     .where(InteropScenarioStep.scenario_id == scenario_id)
                 ).all()
-                total_messages += len(steps)
+                total_messages_per_run += len(steps)
         except (ValueError, TypeError):
             continue
     
     total_scenarios = len(scenario_ids_int)
+    # Validate repeat_count
+    try:
+        repeat_count = int(repeat_count)
+    except Exception:
+        repeat_count = 1
+    if repeat_count < 1:
+        repeat_count = 1
+    MAX_REPEAT = 1000
+    if repeat_count > MAX_REPEAT:
+        repeat_count = MAX_REPEAT
+
+    total_messages = total_messages_per_run * repeat_count
     endpoint_name = endpoint.name
     endpoint_id_copy = endpoint.id
     
@@ -367,45 +380,47 @@ async def bulk_execute_scenarios(
                 logger.error(f"[Background] Endpoint {endpoint_id_copy} introuvable")
                 return
             
-            for scenario_id in scenario_ids_int:
-                scenario = bg_session.get(InteropScenario, scenario_id)
-                if not scenario:
-                    error_count += 1
-                    continue
-                
-                scenario_name = scenario.name
-                
-                # Charger les steps
-                steps = bg_session.exec(
-                    select(InteropScenarioStep)
-                    .where(InteropScenarioStep.scenario_id == scenario_id)
-                    .order_by(InteropScenarioStep.order_index)
-                ).all()
-                
-                if not steps:
-                    error_count += 1
-                    continue
-                
-                try:
-                    logger.info(f"[Background] Exécution du scénario '{scenario_name}' sur '{endpoint_name}'")
-                    result = await execute_scenario_on_endpoint(
-                        endpoint=bg_endpoint,
-                        scenario=scenario,
-                        steps=steps,
-                        session=bg_session
-                    )
-                    
-                    if result.get('error_count', 0) == 0:
-                        success_count += 1
-                        logger.info(f"[Background] ✅ '{scenario_name}' exécuté avec succès")
-                    else:
+            # Exécuter chaque scénario 'repeat_count' fois
+            for i in range(repeat_count):
+                for scenario_id in scenario_ids_int:
+                    scenario = bg_session.get(InteropScenario, scenario_id)
+                    if not scenario:
+                        error_count += 1
+                        continue
+
+                    scenario_name = scenario.name
+
+                    # Charger les steps
+                    steps = bg_session.exec(
+                        select(InteropScenarioStep)
+                        .where(InteropScenarioStep.scenario_id == scenario_id)
+                        .order_by(InteropScenarioStep.order_index)
+                    ).all()
+
+                    if not steps:
+                        error_count += 1
+                        continue
+
+                    try:
+                        logger.info(f"[Background] Exécution ({i+1}/{repeat_count}) du scénario '{scenario_name}' sur '{endpoint_name}'")
+                        result = await execute_scenario_on_endpoint(
+                            endpoint=bg_endpoint,
+                            scenario=scenario,
+                            steps=steps,
+                            session=bg_session
+                        )
+
+                        if result.get('error_count', 0) == 0:
+                            success_count += 1
+                            logger.info(f"[Background] ✅ '{scenario_name}' exécuté avec succès (run {i+1})")
+                        else:
+                            error_count += 1
+                            failed_scenarios.append(scenario_name)
+                            logger.warning(f"[Background] ⚠️ '{scenario_name}' exécuté avec {result.get('error_count', 0)} erreurs (run {i+1})")
+                    except Exception as e:
                         error_count += 1
                         failed_scenarios.append(scenario_name)
-                        logger.warning(f"[Background] ⚠️ '{scenario_name}' exécuté avec {result.get('error_count', 0)} erreurs")
-                except Exception as e:
-                    error_count += 1
-                    failed_scenarios.append(scenario_name)
-                    logger.error(f"[Background] ❌ Erreur lors de l'exécution de '{scenario_name}': {str(e)[:200]}")
+                        logger.error(f"[Background] ❌ Erreur lors de l'exécution de '{scenario_name}': {str(e)[:200]}")
             
             # Log final
             if error_count == 0 and success_count > 0:

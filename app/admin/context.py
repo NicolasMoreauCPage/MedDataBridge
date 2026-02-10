@@ -9,10 +9,14 @@ class GHTContextAdmin(ModelView, model=GHTContext):
     name_plural = "GHTs"
     icon = "fa fa-database"
     column_list = ["id", "name", "code", "description", "is_active", "created_at"]
+    column_details_list = ["id", "name", "code", "description", "is_active", "created_at"]
     column_searchable_list = ["name", "code"]
     column_sortable_list = ["id", "name", "code", "created_at"]
     column_default_sort = ("id", False)
-    name_plural = "GHTs"
+    can_view_details = True
+    can_edit = True
+    can_delete = False
+    edit_model = True
 
 
 class EntiteJuridiqueAdmin(ModelView, model=EntiteJuridique):

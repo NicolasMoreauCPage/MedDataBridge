@@ -127,15 +127,16 @@
 <!-- Tableau des dossiers -->
 <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200 shadow-sm">
   <table class="min-w-full text-sm leading-relaxed">
+    <caption class="sr-only">Vue par dossier avec statut global des messages ({{ dossiers|length }} dossier(s))</caption>
     <thead class="bg-slate-50">
       <tr>
-        <th class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Statut</th>
-        <th class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Dossier</th>
-        <th class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">IPP</th>
-        <th class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Messages</th>
-        <th class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Types</th>
-        <th class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Dernière activité</th>
-        <th class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Actions</th>
+        <th scope="col" class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Statut</th>
+        <th scope="col" class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Dossier</th>
+        <th scope="col" class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">IPP</th>
+        <th scope="col" class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Messages</th>
+        <th scope="col" class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Types</th>
+        <th scope="col" class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Dernière activité</th>
+        <th scope="col" class="text-left font-semibold text-slate-500 px-4 py-3 uppercase text-xs tracking-wide">Actions</th>
       </tr>
     </thead>
     <tbody>

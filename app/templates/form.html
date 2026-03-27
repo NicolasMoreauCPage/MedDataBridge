@@ -18,7 +18,7 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6" aria-label="Fil d'ariane formulaire">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
     <span class="text-slate-400">/</span>
     <span class="text-slate-800 font-medium">{{ title }}</span>
@@ -40,7 +40,7 @@
 
   <div class="max-w-5xl mx-auto py-8 px-4 space-y-8">
     <!-- Breadcrumb -->
-    <nav class="flex items-center gap-2 text-sm text-slate-500">
+    <nav class="flex items-center gap-2 text-sm text-slate-500" aria-label="Fil d'ariane endpoint">
       <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       <a href="/endpoints" class="hover:text-blue-600 transition-colors">Endpoints</a>
@@ -77,7 +77,8 @@
     </div>
     {% endif %}
 
-    <form role="form" method="post" action="{{ action_url or '' }}" class="space-y-6">
+    <p id="generic-form-help" class="sr-only">Les champs marqués d'une étoile sont obligatoires.</p>
+    <form role="form" method="post" action="{{ action_url or '' }}" class="space-y-6" aria-describedby="generic-form-help">
       {% set section_open = false %}
       {% for field in fields %}
         {% if field.type == 'section' %}

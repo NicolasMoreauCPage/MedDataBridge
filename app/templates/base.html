@@ -38,13 +38,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='css/forms.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='css/design-system.css') }}">
-  <!-- <link rel="stylesheet" href="{{ url_for('static', path='css/animations.css') }}"> -->
+  <link rel="stylesheet" href="{{ url_for('static', path='css/animations.css') }}">
   <meta name="description" content="Plateforme d'intégration des données de santé - Interopérabilité FHIR/HPRIM/HL7">
-  <meta name="theme-color" content="#8B5CF6">
+  <meta name="theme-color" content="#0f766e">
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='img/integrasante_favicon_concept3.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     /* Variables CSS essentielles pour le dark mode et branding */
     :root {
@@ -94,13 +94,21 @@
     /* Styles de base - maintenant minimalistes */
     body {
       min-height: 100vh;
+      font-family: "Source Sans 3", sans-serif;
       background-color: #f8fafc; /* slate-50 */
+      background-image: radial-gradient(circle at 90% 0%, rgba(14, 165, 233, 0.08), transparent 35%), radial-gradient(circle at 0% 100%, rgba(20, 184, 166, 0.1), transparent 40%);
       color: #1f2937; /* slate-800 */
+    }
+
+    h1, h2, h3, .font-sans {
+      font-family: "Manrope", sans-serif;
+      letter-spacing: -0.01em;
     }
     
     /* Dark mode styles */
     .dark body {
       background-color: #0f172a; /* slate-900 */
+      background-image: radial-gradient(circle at 90% 0%, rgba(45, 212, 191, 0.1), transparent 35%), radial-gradient(circle at 0% 100%, rgba(59, 130, 246, 0.12), transparent 40%);
       color: #f1f5f9; /* slate-100 */
     }
     
@@ -123,7 +131,7 @@
     
     /* Focus visible pour accessibilité */
     *:focus-visible {
-      @apply outline-blue-500;
+      outline: 2px solid #2563eb;
       outline-offset: 2px;
     }
 
@@ -200,40 +208,48 @@
           </a>
         {% endif %}
         {% if request and request.state and request.state.eg_context %}
-          <a href="/context/eg/{{ request.state.eg_context.id }}" class="hidden md:flex items-center gap-2 rounded-full bg-primary/10 hover:bg-primary/20 px-3 py-1 text-sm text-primary transition-colors" title="Contexte Entité Géographique actif - Cliquer pour voir la page principale">
+          <div class="hidden md:flex items-center gap-2 rounded-full bg-primary/10 hover:bg-primary/20 px-3 py-1 text-sm text-primary transition-colors" title="Contexte Entité Géographique actif - Cliquer pour voir la page principale">
+            <a href="/context/eg/{{ request.state.eg_context.id }}" class="inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             <span>{{ request.state.eg_context.name }}</span>
             {% if request.state.eg_context.finess %}
               <span class="text-xs text-primary">• FINESS {{ request.state.eg_context.finess }}</span>
             {% endif %}
+            </a>
             <a href="/context/clear?kind=eg" class="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full hover:bg-primary/20 text-primary" title="Effacer le contexte géographique">&times;</a>
-          </a>
+          </div>
         {% elif request and request.state and request.state.ej_context %}
-          <a href="/context/ght/{{ request.state.ej_context.ght_context_id }}?next=/admin/ght/{{ request.state.ej_context.ght_context_id }}/ej/{{ request.state.ej_context.id }}" class="hidden md:flex items-center gap-2 rounded-full bg-success/10 hover:bg-success/20 px-3 py-1 text-sm text-success transition-colors" title="Contexte Établissement Juridique actif - Cliquer pour voir la page principale">
+          <div class="hidden md:flex items-center gap-2 rounded-full bg-success/10 hover:bg-success/20 px-3 py-1 text-sm text-success transition-colors" title="Contexte Établissement Juridique actif - Cliquer pour voir la page principale">
+            <a href="/context/ght/{{ request.state.ej_context.ght_context_id }}?next=/admin/ght/{{ request.state.ej_context.ght_context_id }}/ej/{{ request.state.ej_context.id }}" class="inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h4l2-2h6l2 2h4v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
             <span>{{ request.state.ej_context.name }}</span>
             {% if request.state.ej_context.finess_ej %}
               <span class="text-xs text-success">• FINESS {{ request.state.ej_context.finess_ej }}</span>
             {% endif %}
+            </a>
             <a href="/context/clear?kind=ej" class="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full hover:bg-success/20 text-success" title="Effacer le contexte établissement">&times;</a>
-          </a>
+          </div>
         {% endif %}
         {% if request and request.state and request.state.patient_context %}
-          <a href="/patients/{{ request.state.patient_context.id }}" class="hidden md:flex items-center gap-2 rounded-full bg-success/10 hover:bg-success/20 px-3 py-1 text-sm text-success transition-colors" title="Contexte Patient actif - Cliquer pour voir la page du patient">
+          <div class="hidden md:flex items-center gap-2 rounded-full bg-success/10 hover:bg-success/20 px-3 py-1 text-sm text-success transition-colors" title="Contexte Patient actif - Cliquer pour voir la page du patient">
+            <a href="/patients/{{ request.state.patient_context.id }}" class="inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 0 0118 0z"/></svg>
             <span>
               {{ request.state.patient_context.family }} {{ request.state.patient_context.given }}
             </span>
             <span class="text-xs text-success">#{{ request.state.patient_context.id }}</span>
+            </a>
             <a href="/context/clear?kind=patient" class="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full hover:bg-success/20 text-success" title="Effacer le contexte patient">&times;</a>
           </div>
         {% endif %}
         {% if request and request.state and request.state.dossier_context %}
-          <a href="/dossiers/{{ request.state.dossier_context.id }}" class="hidden md:flex items-center gap-2 rounded-full bg-accent-alt/10 hover:bg-accent-alt/20 px-3 py-1 text-sm text-accent-alt transition-colors" title="Contexte Dossier actif - Cliquer pour voir la page du dossier">
+          <div class="hidden md:flex items-center gap-2 rounded-full bg-accent-alt/10 hover:bg-accent-alt/20 px-3 py-1 text-sm text-accent-alt transition-colors" title="Contexte Dossier actif - Cliquer pour voir la page du dossier">
+            <a href="/dossiers/{{ request.state.dossier_context.id }}" class="inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h4l2-2h6l2 2h4v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
             <span>
               Dossier #{{ request.state.dossier_context.dossier_seq or request.state.dossier_context.id }}
             </span>
+            </a>
             <a href="/context/clear?kind=dossier" class="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full hover:bg-accent-alt/20 text-accent-alt" title="Effacer le contexte dossier">&times;</a>
           </div>
         {% endif %}
@@ -261,7 +277,7 @@
         </button>
       </div>
       <div class="md:hidden flex items-center gap-2">
-        <button id="menu-btn" class="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" aria-label="Menu principal">
+        <button id="menu-btn" class="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" aria-label="Menu principal" aria-expanded="false" aria-controls="mobile-menu">
           <svg class="w-6 h-6 text-slate-700 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
       </div>
@@ -681,15 +697,30 @@
       const btn = document.getElementById('menu-btn');
       const menu = document.getElementById('mobile-menu');
       if (btn && menu) {
+        const closeMenu = () => {
+          menu.classList.add('hidden');
+          btn.setAttribute('aria-expanded', 'false');
+        };
         btn.addEventListener('click', () => {
-          menu.classList.toggle('hidden');
+          const isOpen = menu.classList.toggle('hidden') === false;
+          btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            closeMenu();
+          }
+        });
+        document.addEventListener('click', (event) => {
+          if (!menu.classList.contains('hidden') && !menu.contains(event.target) && !btn.contains(event.target)) {
+            closeMenu();
+          }
         });
       }
     </script>
   </header>
 
   <div class="min-h-screen flex flex-col">
-    <main id="main-content" role="main" class="flex-1 mx-auto max-w-content px-4 py-6 animate-fade-in">
+    <main id="main-content" role="main" tabindex="-1" class="flex-1 mx-auto max-w-content px-4 py-6 animate-fade-in">
       {% if request.state and request.state.flash_messages %}
         <div class="space-y-2 mb-6" aria-live="polite">
           {% for flash in request.state.flash_messages %}
@@ -728,6 +759,7 @@
       document.querySelectorAll('nav a').forEach(link => {
         if (link.getAttribute('href') === path) {
           link.classList.add('bg-blue-50', 'text-blue-700');
+          link.setAttribute('aria-current', 'page');
         }
       });
     });

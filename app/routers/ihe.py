@@ -1,6 +1,6 @@
 """Routes FastAPI pour les profils IHE PIX/PDQ et FHIR PIXm/PDQm."""
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse, HTMLResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from sqlmodel import Session
 import logging
 
@@ -19,14 +19,44 @@ pix_pdq_manager = PIXPDQManager()
 @router.get("/", response_class=HTMLResponse)
 async def ihe_dashboard(request: Request):
     """Dashboard IHE"""
-    return "<html><body><h1>IHE - Profils d'intéropérabilité</h1><p>PIX/PDQ et FHIR PIXm/PDQm</p></body></html>"
-
-
-# Dashboard route
-@router.get("/", response_class=HTMLResponse)
-async def ihe_dashboard(request: Request):
-    """Dashboard IHE"""
-    return "<html><body><h1>IHE - Profils d'intéropérabilité</h1><p>PIX/PDQ et FHIR PIXm/PDQm</p></body></html>"
+    templates = request.app.state.templates
+    return templates.TemplateResponse(
+        request,
+        "module_dashboard.html",
+        {
+            "request": request,
+            "title": "IHE",
+            "module_name": "IHE - PIX/PDQ et PIXm/PDQm",
+            "module_description": "Pilotez les échanges d'identité patient via les profils IHE (HL7v2 et FHIR) depuis une interface unifiée.",
+            "docs_url": "/documentation/pam-integration",
+            "endpoints": [
+                {
+                    "method": "POST",
+                    "title": "PIX Query",
+                    "url": "/ihe/pix/query",
+                    "description": "Requête HL7v2 QBP^Q23 (cross-reference d'identifiants).",
+                },
+                {
+                    "method": "POST",
+                    "title": "PDQ Query",
+                    "url": "/ihe/pdq/query",
+                    "description": "Requête HL7v2 QBP^Q22 (démographie patient).",
+                },
+                {
+                    "method": "POST",
+                    "title": "PIXm",
+                    "url": "/ihe/pixm/$ihe-pix",
+                    "description": "Requête FHIR PIXm pour identifiants patients.",
+                },
+                {
+                    "method": "GET",
+                    "title": "PDQm",
+                    "url": "/ihe/pdqm/Patient",
+                    "description": "Recherche FHIR Patient via profil PDQm.",
+                },
+            ],
+        },
+    )
 
 
 # Routes HL7v2 PIX/PDQ

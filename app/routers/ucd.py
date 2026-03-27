@@ -10,7 +10,19 @@ router = APIRouter(prefix="/ucd", tags=["UCD"])
 @router.get("/", response_class=HTMLResponse)
 async def ucd_dashboard(request: Request):
     """Dashboard UCD"""
-    return "<html><body><h1>UCD - Unité Commune de Dispensation</h1><p>Module en développement</p></body></html>"
+    templates = request.app.state.templates
+    return templates.TemplateResponse(
+        request,
+        "module_dashboard.html",
+        {
+            "request": request,
+            "title": "UCD",
+            "module_name": "UCD - Unité Commune de Dispensation",
+            "module_description": "Centralisez les références UCD et facilitez la saisie des produits de dispensation.",
+            "docs_url": "/docs/COTATION_FONCTIONNELLE.md",
+            "endpoints": [],
+        },
+    )
 
 
 # TODO: Implémenter la gestion de la nomenclature UCD

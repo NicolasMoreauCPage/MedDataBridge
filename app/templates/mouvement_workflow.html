@@ -3,7 +3,7 @@
 {% block content %}
 <div class="space-y-6">
   {% if request.query_params.get('success') %}
-  <div class="rounded-xl bg-green-50 border-2 border-green-200 p-4">
+  <div id="movement-success-banner" class="rounded-xl bg-green-50 border-2 border-green-200 p-4" role="status" aria-live="polite">
     <div class="flex gap-3">
       <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -15,14 +15,19 @@
     </div>
   </div>
   <script>
-    // Recharger la page sans le paramètre success après 2 secondes
+    // Nettoyer l'URL sans recharger la page pour éviter une rupture de contexte
     setTimeout(() => {
       const url = new URL(window.location);
       url.searchParams.delete('success');
-      window.location.href = url.toString();
-    }, 2000);
+      window.history.replaceState({}, '', url.toString());
+      const banner = document.getElementById('movement-success-banner');
+      if (banner) {
+        banner.classList.add('hidden');
+      }
+    }, 3500);
   </script>
   {% endif %}
+  <div id="movement-form-feedback" class="sr-only" role="status" aria-live="polite"></div>
   
   <!-- Contexte patient compact -->
   <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
@@ -42,7 +47,7 @@
         {% if mouvements %}
           {% set last_event = mouvements[-1].type.split('^')[-1] if mouvements[-1].type else mouvements[-1].type %}
           <p class="text-xs text-blue-600 mb-1">Statut actuel</p>
-          <p class="inline-flex items-center gap-2 rounded-full bg-white border border-blue-300 px-4 py-2 text-base font-semibold text-blue-700 shadow-sm">
+          <p class="inline-flex items-center gap-2 rounded-full bg-white border border-blue-300 px-4 py-2 text-base font-semibold text-blue-700 shadow-sm" role="status" aria-live="polite">
             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3"/></svg>
             {{ last_event }}
           </p>
@@ -77,12 +82,14 @@
             </div>
 
             <!-- Mode opérateur : cartes de mouvements -->
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="event-card-grid">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="event-card-grid" role="group" aria-label="Sélection rapide du type d'événement">
               {% for event_code, metadata in event_catalog.items() %}
               <button type="button"
                       class="event-card flex items-start gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-left shadow-sm hover:border-blue-400 hover:bg-blue-50/80 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
                       data-event-code="{{ event_code }}"
-                      data-requires-location="{{ 'true' if metadata.requires_location else 'false' }}">
+                      data-requires-location="{{ 'true' if metadata.requires_location else 'false' }}"
+                      aria-pressed="false"
+                      aria-label="Sélectionner {{ metadata.label }}{% if metadata.requires_location %}, avec localisation obligatoire{% endif %}">
                 <div class="mt-1">
                   <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
                     {{ loop.index }}
@@ -411,6 +418,7 @@
   const eventDescription = document.getElementById('event-description');
   const eventDescriptionText = document.getElementById('event-description-text');
   const movementDateTime = document.getElementById('movement_datetime');
+  const feedback = document.getElementById('movement-form-feedback');
 
   function updateCardSelection(selectedCode) {
     eventCards.forEach((card) => {
@@ -418,9 +426,11 @@
       if (code === selectedCode) {
         card.classList.add('border-blue-500', 'bg-blue-50/90', 'shadow-md', 'ring-1', 'ring-blue-200');
         card.classList.remove('border-slate-200');
+        card.setAttribute('aria-pressed', 'true');
       } else {
         card.classList.remove('border-blue-500', 'bg-blue-50/90', 'shadow-md', 'ring-1', 'ring-blue-200');
         card.classList.add('border-slate-200');
+        card.setAttribute('aria-pressed', 'false');
       }
     });
   }
@@ -676,9 +686,16 @@
     const dateValue = movementDateTime.value;
     if (!dateValue) {
       e.preventDefault();
-      alert('⚠️ Veuillez saisir une date et heure pour le mouvement.');
+      if (feedback) {
+        feedback.textContent = 'Veuillez saisir une date et heure pour le mouvement.';
+      }
+      alert('Veuillez saisir une date et heure pour le mouvement.');
       movementDateTime.focus();
       return false;
+    }
+
+    if (feedback) {
+      feedback.textContent = 'Enregistrement du mouvement en cours.';
     }
   });
   

@@ -52,8 +52,10 @@
       {% if filters %}
         <button 
           type="button"
+          id="toggle-filters-btn"
+          aria-expanded="false"
+          aria-controls="list-filters-panel"
           class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          @click="showFilters = !showFilters"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -89,7 +91,7 @@
 
 {# Filtres #}
 {% if filters %}
-  <div x-show="showFilters">
+  <div id="list-filters-panel" hidden>
     {{ components.search_filter(filters, request.url.path) }}
   </div>
 {% endif %}
@@ -209,18 +211,19 @@
 
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-slate-200">
+      <caption class="sr-only">{{ title|default('Liste') }} avec {{ rows|length }} élément(s)</caption>
       <thead class="bg-slate-50">
         <tr>
           {% if all_endpoints %}
-            <th class="px-6 py-3.5"></th>
+            <th scope="col" class="px-6 py-3.5 sticky-col"><span class="sr-only">Sélection</span></th>
           {% endif %}
           {% for header in headers %}
-            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
               {{ header }}
             </th>
           {% endfor %}
           {% if show_actions %}
-            <th class="relative px-6 py-3.5 text-right">
+            <th scope="col" class="relative px-6 py-3.5 text-right">
               <span class="sr-only">Actions</span>
             </th>
           {% endif %}
@@ -230,6 +233,7 @@
         {% for row in rows %}
           <tr class="hover:bg-blue-50/50 transition-colors list-item-enter {% if row.css_class %}{{ row.css_class }}{% endif %} {% if row.detail_url %}cursor-pointer hover:shadow-sm{% endif %}" 
               style="animation-delay: {{ loop.index * 50 }}ms" 
+              {% if row.detail_url %}role="link" tabindex="0" aria-label="Ouvrir le détail de la ligne {{ loop.index }}"{% endif %}
               {% if row.detail_url %}onclick="window.location.href='{{ row.detail_url }}'"{% endif %}>
             {# Checkbox column for bulk actions if endpoints available #}
             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 sticky-col">
@@ -324,7 +328,7 @@
           </tr>
         {% else %}
           <tr>
-            <td colspan="{{ headers|length + (1 if show_actions else 0) }}" class="px-6 py-12">
+            <td colspan="{{ headers|length + (1 if show_actions else 0) + (1 if all_endpoints else 0) }}" class="px-6 py-12">
               {{ components.empty_state(
                 'Aucun élément',
                 'Aucun élément ne correspond à vos critères. Modifiez vos filtres ou créez un nouvel élément.',
@@ -396,6 +400,52 @@ function submitBulkExecuteFromList(e) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  const filterToggleBtn = document.getElementById('toggle-filters-btn');
+  const filterPanel = document.getElementById('list-filters-panel');
+
+  if (filterToggleBtn && filterPanel) {
+    const setFiltersVisibility = (isVisible) => {
+      if (isVisible) {
+        filterPanel.removeAttribute('hidden');
+      } else {
+        filterPanel.setAttribute('hidden', 'hidden');
+      }
+      filterToggleBtn.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+    };
+
+    filterToggleBtn.addEventListener('click', () => {
+      const isHidden = filterPanel.hasAttribute('hidden');
+      setFiltersVisibility(isHidden);
+      if (isHidden) {
+        const firstInput = filterPanel.querySelector('input, select, textarea');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if ((event.key === 'Escape' || event.key === 'Esc') && !filterPanel.hasAttribute('hidden')) {
+        setFiltersVisibility(false);
+      }
+    });
+  }
+
+  document.querySelectorAll('tr[role="link"][tabindex="0"]').forEach((row) => {
+    row.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        row.click();
+      }
+    });
+  });
+
+  document.querySelectorAll('tr[role="link"] a, tr[role="link"] button, tr[role="link"] form, tr[role="link"] input').forEach((interactiveEl) => {
+    interactiveEl.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+  });
+
   document.querySelectorAll('input.row-select').forEach(el => {
     el.addEventListener('change', updateBulkToolbar);
     // Prevent row click navigation when interacting with the checkbox

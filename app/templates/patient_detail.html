@@ -4,7 +4,7 @@
 {% block content %}
 <div class="max-w-6xl mx-auto space-y-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center gap-2 text-sm text-gray-600">
+  <nav class="flex items-center gap-2 text-sm text-gray-600" aria-label="Fil d'ariane patient">
     <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     <a href="/patients" class="hover:text-blue-600 transition-colors">Patients</a>
@@ -259,7 +259,7 @@
 
     <!-- Sidebar actions -->
     <div class="space-y-4">
-      <div class="bg-white rounded-2xl border-2 border-slate-200 p-6 shadow-sm sticky top-4">
+      <div class="bg-white rounded-2xl border-2 border-slate-200 p-6 shadow-sm sticky top-4" role="region" aria-label="Actions patient">
         <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">Actions</h3>
         <div class="space-y-3">
           <a href="/timeline/patient/{{ patient.id }}" class="block w-full px-4 py-3 text-sm font-medium text-center text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl hover:from-purple-700 hover:to-pink-700 shadow-lg transition-all">
@@ -292,7 +292,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-2xl font-bold text-slate-900">Dossiers du patient</h3>
+          <h3 id="patient-dossiers-title" class="text-2xl font-bold text-slate-900">Dossiers du patient</h3>
           <p class="text-sm text-slate-500">{{ dossiers|length if dossiers else 0 }} dossier(s)</p>
         </div>
       </div>

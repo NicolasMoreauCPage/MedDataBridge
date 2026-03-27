@@ -10,7 +10,7 @@
 {% endif %}
 <div class="max-w-6xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6" aria-label="Fil d'ariane formulaire patient">
     <a href="/" class="hover:text-blue-600 transition-colors">{{ icon('home', 'w-4 h-4') }} Accueil</a>
     <span class="text-slate-400">/</span>
     <a href="/patients" class="hover:text-blue-600 transition-colors">Patients</a>
@@ -55,7 +55,8 @@
     </div>
   </div>
 
-  <form method="post" action="{{ action_url }}" class="space-y-6" data-patient-form="true">
+  <p id="patient-form-help" class="sr-only">Les champs marqués d'une étoile sont obligatoires.</p>
+  <form method="post" action="{{ action_url }}" class="space-y-6" data-patient-form="true" aria-describedby="patient-form-help">
     <div class="form-grid grid gap-4 md:gap-6">
     
     <!-- Section Identité -->

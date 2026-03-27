@@ -2,7 +2,7 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+    <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6" aria-label="Fil d'ariane formulaire">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
     <span class="text-gray-400">/</span>
     <span class="text-gray-900 font-medium">{{ title }}</span>
@@ -22,7 +22,6 @@
     </div>
   </div>
 
-  <h2 class="text-2xl font-bold text-blue-600 mb-6">{{ title }}</h2>
   {% if error %}
     <div class="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 mb-4 animate-fadeIn">
       <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +31,8 @@
     </div>
   {% endif %}
 
-  <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-2xl mx-auto" {% if action_url %}action="{{ action_url }}"{% endif %} novalidate role="form">
+  <p id="simple-form-help" class="sr-only">Les champs marqués d'une étoile sont obligatoires.</p>
+  <form method="post" class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 max-w-2xl mx-auto" {% if action_url %}action="{{ action_url }}"{% endif %} novalidate role="form" aria-describedby="simple-form-help">
     <div class="grid gap-6">
       {% for field in fields %}
         <div class="space-y-2 relative group">

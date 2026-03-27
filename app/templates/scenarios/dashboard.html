@@ -3,34 +3,26 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
-  <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Page</span>
-  </nav>
+  {{ components.breadcrumb(breadcrumbs) if breadcrumbs }}
 
-  <!-- Header -->
-  <div class="mb-8">
-    <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-lg">
-      <div class="flex items-center space-x-4">
-        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-          <div class="text-3xl">📊</div>
-        </div>
-        <div>
-          <h1 class="text-3xl font-bold">Page</h1>
-        </div>
+  <div class="mb-8 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-white to-cyan-50 p-8 shadow-sm">
+    <div class="flex items-start gap-4">
+      <div class="rounded-xl bg-indigo-600 p-3 text-white shadow-md">
+        <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6m3 6V7m3 10v-3m3 3V4M3 20h18" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900">{{ title }}</h1>
+        <p class="mt-2 text-sm text-slate-600">
+          Vue d'ensemble des exécutions de scénarios sur les {{ filters.days_back }} derniers jours.
+        </p>
+        <p class="mt-1 text-sm text-slate-500">
+          Analysez les succès, erreurs et tendances pour piloter vos campagnes IHE.
+        </p>
       </div>
     </div>
   </div>
-{{ components.breadcrumb(breadcrumbs) if breadcrumbs }}
-
-<div class="mb-8">
-  <h1 class="text-2xl font-semibold text-slate-900">{{ title }}</h1>
-  <p class="mt-1 text-sm text-slate-600">
-    Vue d'ensemble des exécutions de scénarios sur les {{ filters.days_back }} derniers jours
-  </p>
-</div>
 
 {# Statistiques en cartes #}
 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">

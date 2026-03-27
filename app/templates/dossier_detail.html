@@ -3,7 +3,7 @@
 {% block content %}
 <div class="max-w-7xl mx-auto py-8 px-4 space-y-6">
   <!-- Breadcrumb - Style Moderne -->
-  <nav class="flex items-center gap-2 text-sm">
+  <nav class="flex items-center gap-2 text-sm" aria-label="Fil d'ariane dossier">
     <a href="/" class="text-slate-600 hover:text-indigo-600 font-medium transition-all duration-300 hover:scale-105">Accueil</a>
     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     <a href="/dossiers" class="text-slate-600 hover:text-indigo-600 font-medium transition-all duration-300 hover:scale-105">Dossiers</a>
@@ -13,7 +13,7 @@
 
   {# Navigation rapide Patient - Style Moderne 2024-2026 #}
   {% if patient %}
-  <div class="flex flex-wrap gap-3">
+  <nav class="flex flex-wrap gap-3" aria-label="Navigation rapide du dossier">
     <a href="/patients/{{ patient.id }}" class="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 px-6 py-3.5 font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 border border-emerald-400/50">
       <div class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +39,7 @@
       📋 <span id="cotations-label">Voir les cotations</span>
       <span id="cotations-badge" class="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-black rounded-full bg-white/30 backdrop-blur-sm text-white border border-white/50"></span>
     </a>
-  </div>
+  </nav>
   {% endif %}
 
   <!-- Header Dossier - Style Moderne 2024-2026 -->
@@ -280,7 +280,7 @@
 
   <div class="space-y-6">
     <!-- Actions - Style Moderne -->
-    <div class="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-2xl overflow-hidden sticky top-24">
+    <div class="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-2xl overflow-hidden sticky top-24" role="region" aria-label="Actions dossier">
       <div class="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-600 px-6 py-5 flex items-center gap-3 text-white relative overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
         <div class="relative z-10 flex items-center gap-3 w-full">

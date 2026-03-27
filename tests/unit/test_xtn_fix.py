@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """Test validation of message #5544 with corrected XTN parsing."""
+import os
+import pytest
 from app.services.pam_validation import validate_pam
 
+_MSG_PATH = "/tmp/test_msg_5544.hl7"
+
+if not os.path.exists(_MSG_PATH):
+    pytest.skip("Test message file not found: " + _MSG_PATH, allow_module_level=True)
+
 # Read message
-with open("/tmp/test_msg_5544.hl7", "r") as f:
+with open(_MSG_PATH, "r") as f:
     message = f.read()
 
 print("🧪 Testing validation of message #5544 with XTN fix\n")

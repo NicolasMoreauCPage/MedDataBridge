@@ -8,6 +8,7 @@ from typing import List, Optional
 from datetime import datetime
 from app.db import get_session
 from app.models import Dossier, Patient, Venue, Mouvement, DossierType
+from app.services.dossiers_service import DossierListSchema
 
 router = APIRouter(prefix="/api/dossiers", tags=["Dossiers API"])
 
@@ -88,7 +89,7 @@ async def get_dossier(
     return dossier
 
 
-@router.get("/", response_model=List[Dossier])
+@router.get("/", response_model=List[DossierListSchema])
 async def list_dossiers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -115,7 +116,7 @@ async def list_dossiers(
         session: Session DB injectée automatiquement
         
     Returns:
-        List[Dossier]: Liste des dossiers correspondant aux critères
+        List[DossierListSchema]: Liste des dossiers correspondant aux critères
         
     Example:
         ```
@@ -123,21 +124,27 @@ async def list_dossiers(
         GET /api/dossiers?ej_id=1&dossier_type=HOSPITALISE&date_start=2025-01-01
         ```
     """
-    query = select(Dossier)
-    
-    if patient_id:
-        query = query.where(Dossier.patient_id == patient_id)
-    if dossier_type:
-        query = query.where(Dossier.dossier_type == dossier_type)
-    if ej_id:
-        query = query.where(Dossier.ej_id == ej_id)
-    if date_start:
-        query = query.where(Dossier.date_start >= date_start)
-    if date_end:
-        query = query.where(Dossier.date_end <= date_end)
-    
-    query = query.order_by(Dossier.date_start.desc()).offset(skip).limit(limit)
-    return session.exec(query).all()
+    try:
+        query = select(Dossier)
+        
+        if patient_id:
+            query = query.where(Dossier.patient_id == patient_id)
+        if dossier_type:
+            query = query.where(Dossier.dossier_type == dossier_type)
+        if ej_id:
+            query = query.where(Dossier.entite_juridique_id == ej_id)
+        if date_start:
+            query = query.where(Dossier.admit_time >= date_start)
+        if date_end:
+            query = query.where(Dossier.admit_time <= date_end)
+        
+        query = query.order_by(Dossier.admit_time.desc()).offset(skip).limit(limit)
+        dossiers = session.exec(query).all()
+        
+        # Convert Dossier objects to DossierListSchema for response
+        return [DossierListSchema.from_orm(d) for d in dossiers]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération des dossiers: {str(e)}")
 
 
 @router.put("/{dossier_id}", response_model=Dossier)

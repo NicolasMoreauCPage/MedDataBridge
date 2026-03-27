@@ -8,13 +8,14 @@ from typing import List, Optional
 from datetime import date
 from app.db import get_session
 from app.models import Patient, Dossier
+from app.services.patients_service import PatientCreateSchema, create_patient
 
 router = APIRouter(prefix="/api/patients", tags=["Patients API"])
 
 
 @router.post("/", response_model=Patient, status_code=201)
-async def create_patient(
-    patient: Patient,
+async def create_patient_endpoint(
+    patient: PatientCreateSchema,
     session: Session = Depends(get_session)
 ):
     """
@@ -38,10 +39,11 @@ async def create_patient(
         }
         ```
     """
-    session.add(patient)
-    session.commit()
-    session.refresh(patient)
-    return patient
+    try:
+        new_patient = create_patient(session, patient)
+        return new_patient
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création du patient: {str(e)}")
 
 
 @router.get("/{patient_id}", response_model=Patient)

@@ -70,7 +70,7 @@ from app.routers import (
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
     interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks,
-    hprim_interventions, hprim_acquittements, cotations, cotations_saisie
+    hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie
 )
 from app.routers import menu
 
@@ -452,6 +452,20 @@ def create_app() -> FastAPI:
         print(" - HPRIM Acquittements router mounted at /api/hprim/acquittements")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM Acquittements router not available: {e}")
+    
+    # HPRIM Management router (import, dashboard, etc.)
+    try:
+        app.include_router(hprim_management.router)
+        print(" - HPRIM Management router mounted at /hprim")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"HPRIM Management router not available: {e}")
+    
+    # NGAP router (nursing acts)
+    try:
+        app.include_router(ngap.router)
+        print(" - NGAP router mounted at /ngap")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"NGAP router not available: {e}")
     
     # Cotations routers (vue liste + saisie rapide)
     try:

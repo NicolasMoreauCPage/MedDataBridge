@@ -1,6 +1,6 @@
 """Routes FastAPI pour les profils IHE PIX/PDQ et FHIR PIXm/PDQm."""
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, HTMLResponse
 from sqlmodel import Session
 import logging
 
@@ -14,6 +14,20 @@ router = APIRouter(prefix="/ihe", tags=["ihe"])
 logger = logging.getLogger(__name__)
 
 pix_pdq_manager = PIXPDQManager()
+
+# Dashboard route
+@router.get("/", response_class=HTMLResponse)
+async def ihe_dashboard(request: Request):
+    """Dashboard IHE"""
+    return "<html><body><h1>IHE - Profils d'intéropérabilité</h1><p>PIX/PDQ et FHIR PIXm/PDQm</p></body></html>"
+
+
+# Dashboard route
+@router.get("/", response_class=HTMLResponse)
+async def ihe_dashboard(request: Request):
+    """Dashboard IHE"""
+    return "<html><body><h1>IHE - Profils d'intéropérabilité</h1><p>PIX/PDQ et FHIR PIXm/PDQm</p></body></html>"
+
 
 # Routes HL7v2 PIX/PDQ
 @router.post("/pix/query")

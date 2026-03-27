@@ -50,13 +50,21 @@ class TestDatabaseModule(unittest.TestCase):
         # Simuler mode production
         os.environ["TESTING"] = "0"
 
-        # Recharger le module pour prendre en compte la variable d'environnement
+        # app.db also checks sys.argv for pytest args; mask those to simulate
+        # a non-pytest production environment during this reload.
+        import sys
         import importlib
         import app.db
-        importlib.reload(app.db)
-
-        # Vérifier que le moteur utilise un fichier SQLite
-        self.assertIn("medbridge.db", str(app.db.engine.url))
+        original_argv = sys.argv
+        sys.argv = ["app"]
+        try:
+            importlib.reload(app.db)
+            # Vérifier que le moteur utilise un fichier SQLite
+            self.assertIn("medbridge.db", str(app.db.engine.url))
+        finally:
+            sys.argv = original_argv
+            os.environ["TESTING"] = "1"
+            importlib.reload(app.db)
 
     def test_engine_configuration_testing(self):
         """Test configuration du moteur en mode test."""
@@ -93,8 +101,8 @@ class TestDatabaseModule(unittest.TestCase):
             mock_create_all.assert_called_once()
 
             # Vérifier que le mode WAL a été activé
-            mock_sqlite_connect.assert_called_once_with("medbridge.db")
-            mock_conn.execute.assert_called_once_with("PRAGMA journal_mode=WAL;")
+            mock_sqlite_connect.assert_called_once_with("data/medbridge.db")
+            mock_conn.execute.assert_any_call("PRAGMA journal_mode=WAL;")
             mock_conn.close.assert_called_once()
 
             # Vérifier que les templates ont été initialisés
@@ -117,8 +125,7 @@ class TestDatabaseModule(unittest.TestCase):
     def test_get_session(self, mock_session_class):
         """Test obtention d'une session via la dépendance FastAPI."""
         mock_session = Mock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session_class.return_value.__exit__.return_value = None
+        mock_session_class.return_value = mock_session
 
         # Simuler l'usage comme générateur FastAPI
         session_gen = get_session()

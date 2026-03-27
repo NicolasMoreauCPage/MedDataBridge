@@ -340,15 +340,9 @@ def create_encounter_status() -> List[VocabularySystem]:
     hl7_system.values = hl7_values
     
     # Mappings
-    mappings = [
-        VocabularyMapping(source_value=fhir_values[0], target_system=hl7_system, target_code="P"),  # planned -> P
-        VocabularyMapping(source_value=fhir_values[1], target_system=hl7_system, target_code="A"),  # arrived -> A
-        VocabularyMapping(source_value=fhir_values[3], target_system=hl7_system, target_code="H"),  # in-progress -> H
-        VocabularyMapping(source_value=fhir_values[4], target_system=hl7_system, target_code="L"),  # onleave -> L
-        VocabularyMapping(source_value=fhir_values[5], target_system=hl7_system, target_code="C"),  # finished -> C
-        VocabularyMapping(source_value=fhir_values[6], target_system=hl7_system, target_code="X")   # cancelled -> X
-    ]
-    
+    # NOTE: encounter-status mappings are created via init_vocabulary_mappings()
+    # after commit so that value IDs are available. Do not create them here.
+
     return [fhir_system, hl7_system]
 
 def init_vocabularies(session):
@@ -410,12 +404,18 @@ def init_vocabularies(session):
     # attached them to VocabularyValue.mappings in-memory. These mapping
     # objects are not attached to the DB session and trigger SAWarnings when
     # SQLModel autoflush inspects relationships. Clear any such in-memory
-    # mappings before adding systems to the session.
+    # mappings ONLY on transient (non-session-tracked) objects to avoid
+    # corrupting already-persisted relationships.
+    from sqlalchemy import inspect as _sa_inspect
     for system in all_systems:
         for val in getattr(system, "values", []) or []:
-            if hasattr(val, "mappings") and val.mappings:
-                # detach in-memory mapping instances to avoid autoflush warnings
-                val.mappings = []
+            try:
+                state = _sa_inspect(val)
+                if state.transient:
+                    # Safe to clear raw in-memory collection directly
+                    val.__dict__.pop('mappings', None)
+            except Exception:
+                pass
 
     for system in all_systems:
         session.add(system)

@@ -31,6 +31,27 @@ class DossierUpdateSchema(BaseModel):
     admit_time: datetime
     dossier_seq: int
 
+class DossierListSchema(BaseModel):
+    """Schéma de réponse simplifié pour la liste des dossiers."""
+    id: int
+    dossier_seq: int
+    patient_id: int
+    admit_time: datetime
+    discharge_time: Optional[datetime] = None
+    dossier_type: DossierType
+    entite_juridique_id: Optional[int] = None
+    uf_responsabilite: Optional[str] = None
+    medecin_responsable_id: Optional[int] = None
+    admission_type: Optional[str] = None
+    admission_source: Optional[str] = None
+    attending_provider: Optional[str] = None
+    reason: Optional[str] = None
+    current_state: Optional[str] = None
+    has_cotations: bool = False
+    cotations_count: int = 0
+    
+    model_config = {"from_attributes": True}
+
 def get_uf_options(session: Session, ej_id: int) -> List[dict]:
     """Récupère les options de l'UF pour les formulaires."""
     if not ej_id:

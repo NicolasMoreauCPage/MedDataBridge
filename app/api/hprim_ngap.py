@@ -18,6 +18,10 @@ from app.hprim_models import (
     HprimMessage, HprimMessageType, HprimAction, HprimContexteDossier
 )
 from app.services.hprim import HprimService, HprimValidationError
+from app.api.hprim_ccam import (
+    PatientInfo, MedecinInfo, VenueInfo, ReceptionRequest, ReceptionResponse,
+    hprim_service
+)
 
 logger = logging.getLogger(__name__)
 
@@ -349,8 +353,5 @@ async def envoyer_acquittement_hprim(acquittement_xml: str, destinataire: str):
     logger.info(f"Acquittement envoyé à {destinataire}")
 
 
-# Importer les modèles partagés depuis hprim_ccam
-from app.api.hprim_ccam import (
-    PatientInfo, MedecinInfo, VenueInfo, ReceptionRequest, ReceptionResponse,
-    hprim_service
-)
+# Les modèles partagés PatientInfo, MedecinInfo, VenueInfo, ReceptionRequest,
+# ReceptionResponse et hprim_service sont importés en haut du fichier.

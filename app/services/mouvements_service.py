@@ -5,6 +5,7 @@ from typing import Optional, List
 from datetime import datetime
 from sqlmodel import Session, select
 from app.models import Mouvement, Venue
+from app.db import get_next_sequence
 from pydantic import BaseModel
 
 
@@ -12,22 +13,28 @@ class MouvementCreateSchema(BaseModel):
     """Schéma pour la création d'un mouvement."""
     venue_id: int
     when: datetime
+    trigger_event: Optional[str] = None
+    location: Optional[str] = None
+    status: Optional[str] = None
     uf_id: Optional[int] = None
     uh_id: Optional[int] = None
     nature: Optional[str] = None
     medecin_responsable_id: Optional[int] = None
 
 
-def create_mouvement(session: Session, data: MouvementCreateSchema) -> Mouvement:
+def create_mouvement(session: Session, mouvement_data: MouvementCreateSchema) -> Mouvement:
     """Fonction helper pour créer un mouvement."""
     service = MouvementsService(session)
     return service.create_mouvement(
-        venue_id=data.venue_id,
-        when=data.when,
-        uf_id=data.uf_id,
-        uh_id=data.uh_id,
-        nature=data.nature,
-        medecin_responsable_id=data.medecin_responsable_id
+        venue_id=mouvement_data.venue_id,
+        when=mouvement_data.when,
+        trigger_event=mouvement_data.trigger_event,
+        location=mouvement_data.location,
+        status=mouvement_data.status,
+        uf_id=mouvement_data.uf_id,
+        uh_id=mouvement_data.uh_id,
+        nature=mouvement_data.nature,
+        medecin_responsable_id=mouvement_data.medecin_responsable_id
     )
 
 
@@ -41,6 +48,9 @@ class MouvementsService:
         self,
         venue_id: int,
         when: datetime,
+        trigger_event: Optional[str] = None,
+        location: Optional[str] = None,
+        status: Optional[str] = None,
         uf_id: Optional[int] = None,
         uh_id: Optional[int] = None,
         nature: Optional[str] = None,
@@ -51,8 +61,12 @@ class MouvementsService:
         venue = self.session.get(Venue, venue_id)
         ej_id = venue.entite_juridique_id if venue else None
         mouvement = Mouvement(
+            mouvement_seq=get_next_sequence(self.session, "mouvement"),
             venue_id=venue_id,
             when=when,
+            trigger_event=trigger_event,
+            location=location,
+            status=status,
             uf_id=uf_id,
             uh_id=uh_id,
             nature=nature,

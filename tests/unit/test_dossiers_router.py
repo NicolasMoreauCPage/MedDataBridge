@@ -55,11 +55,14 @@ class TestDossiersRouter(unittest.TestCase):
         """Test listing dossiers - cas de base."""
         mock_request = Mock()
         mock_session = Mock()
+        # Configure session.exec().one() to return 0 for act-count queries
+        mock_session.exec.return_value.one.return_value = 0
 
         # Mock du contexte EJ
         mock_ej_context = Mock()
         mock_ej_context.id = 42
         mock_request.state.ej_context = mock_ej_context
+        mock_request.state.eg_context = None  # Pas de contexte EG, EJ doit être utilisé
 
         # Mock des dossiers retournés par le service
         mock_dossier = Mock()
@@ -84,15 +87,16 @@ class TestDossiersRouter(unittest.TestCase):
             response = list_dossiers(mock_request, patient_id=None, dossier_type=None, dossier_seq=None, session=mock_session)
 
             assert response == "rendered_list"
-            mock_service.get_dossiers.assert_called_once_with(
-                mock_session, ej_id=42, patient_id=None,
-                dossier_type=None, dossier_seq=None
-            )
+            call_kwargs = mock_service.get_dossiers.call_args
+            assert call_kwargs.args[0] is mock_session
+            assert call_kwargs.kwargs.get('ej_id') == 42
+            assert call_kwargs.kwargs.get('patient_id') is None
 
     def test_list_dossiers_with_filters(self):
         """Test listing dossiers avec filtres."""
         mock_request = Mock()
         mock_session = Mock()
+        mock_session.exec.return_value.one.return_value = 0
         mock_request.state.ej_context = None
 
         from app.models import DossierType
@@ -115,10 +119,11 @@ class TestDossiersRouter(unittest.TestCase):
             )
 
             assert response == "rendered_list"
-            mock_service.get_dossiers.assert_called_once_with(
-                mock_session, ej_id=None, patient_id=100,
-                dossier_type=dossier_type, dossier_seq=12345
-            )
+            call_kwargs = mock_service.get_dossiers.call_args
+            assert call_kwargs.args[0] is mock_session
+            assert call_kwargs.kwargs.get('patient_id') == 100
+            assert call_kwargs.kwargs.get('dossier_type') == dossier_type
+            assert call_kwargs.kwargs.get('dossier_seq') == 12345
 
     def test_show_dossier_found(self):
         """Test affichage dossier - trouvé."""

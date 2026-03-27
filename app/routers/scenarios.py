@@ -488,6 +488,14 @@ def run_detail(run_id: int, request: Request, session: Session = Depends(get_ses
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 
+
+# Dashboard route (must be before /{scenario_id} to avoid conflicts)
+@router.get("/dashboard", response_class=HTMLResponse)
+def dashboard_redirect(request: Request):
+    """Redirect /scenarios/dashboard to /scenarios/runs (the actual dashboard)."""
+    return RedirectResponse(url="/scenarios/runs", status_code=302)
+
+
 @router.get("/{scenario_id}", response_class=HTMLResponse)
 def scenario_detail(scenario_id: int, request: Request, session: Session = Depends(get_session)):
     scenario = get_scenario(session, scenario_id)

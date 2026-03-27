@@ -163,21 +163,21 @@ def import_adt_into_ght(
     
     # Créer patient si absent
     if not patient:
-            birth_date_str = pid_data["birth_date"]
-            birth_date_obj = None
-            if birth_date_str:
-                try:
-                    birth_date_obj = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
-                except Exception:
-                    birth_date_obj = None
-            patient = Patient(
-                family=pid_data["family"],
-                given=pid_data["given"],
-                birth_date=birth_date_obj,
-                gender=pid_data["gender"],
-                identity_reliability_code="VALI",
-                country="FR"
-            )
+        birth_date_str = pid_data["birth_date"]
+        birth_date_obj = None
+        if birth_date_str:
+            try:
+                birth_date_obj = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
+            except Exception:
+                birth_date_obj = None
+        patient = Patient(
+            family=pid_data["family"],
+            given=pid_data["given"],
+            birth_date=birth_date_obj,
+            gender=pid_data["gender"],
+            identity_reliability_code="VALI",
+            country="FR"
+        )
         session.add(patient)
         session.commit()
         session.refresh(patient)
@@ -185,7 +185,7 @@ def import_adt_into_ght(
         # Créer identifiants patient (IPP)
         ipp_ns = ns_by_type.get("IPP") or ns_by_type.get("IPP-RT")
         if ipp_ns and pid_data["identifiers"]:
-            for id_info in id_info["identifiers"]:
+            for id_info in pid_data["identifiers"]:
                 ident = Identifier(
                     patient_id=patient.id,
                     type=IdentifierType.IPP,

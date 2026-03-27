@@ -34,8 +34,8 @@ class TestMouvementsService:
 
         mouvement_data = MouvementCreateSchema(
             venue_id=venue.id,
-            event_code="A01",
-            movement_datetime=datetime.now(),
+            when=datetime.now(),
+            trigger_event="A01",
             location="CHAMBRE_101",
             status="active"
         )
@@ -69,8 +69,8 @@ class TestMouvementsService:
 
         mouvement_data = MouvementCreateSchema(
             venue_id=venue.id,
-            event_code="A02",
-            movement_datetime=datetime.now()
+            when=datetime.now(),
+            trigger_event="A02"
         )
 
         mouvement = create_mouvement(session=session, mouvement_data=mouvement_data)

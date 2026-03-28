@@ -40,6 +40,9 @@ node_modules/
 
 # Test hypothesis data
 .hypothesis/
+.coverage
+.coverage.*
+htmlcov/
 
 # Temporary scripts and fixes
 fix_*.py

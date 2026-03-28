@@ -13,9 +13,34 @@ class FHIRImportService:
     def __init__(self, session: Session):
         self.session = session
     
-    def import_bundle(self, bundle: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_bundle(self, bundle: Any) -> Dict[str, Any]:
+        """Normalize dict/Pydantic-like bundle objects to a plain dict."""
+        if isinstance(bundle, dict):
+            return bundle
+        if hasattr(bundle, "model_dump"):
+            return bundle.model_dump()
+        if hasattr(bundle, "dict"):
+            return bundle.dict()
+        raise ValueError("Unsupported bundle payload")
+
+    def _validate_bundle(self, bundle: Dict[str, Any]) -> bool:
+        """Basic Bundle validation hook (kept for test compatibility)."""
+        return bundle.get("resourceType") == "Bundle"
+
+    async def _process_patient(self, resource: Dict[str, Any]) -> Optional[int]:
+        """Process a FHIR Patient resource and return internal id."""
+        patient = self.import_patient(resource)
+        return patient.id if patient else None
+
+    async def _process_encounter(self, resource: Dict[str, Any]) -> Optional[int]:
+        """Process a FHIR Encounter resource and return internal id if created."""
+        venue = self.import_encounter(resource)
+        return venue.id if venue else None
+
+    async def import_bundle(self, bundle: Dict[str, Any]) -> Dict[str, Any]:
         """Importe un Bundle FHIR."""
-        if bundle.get("resourceType") != "Bundle":
+        bundle = self._normalize_bundle(bundle)
+        if not self._validate_bundle(bundle):
             raise ValueError("Resource type must be Bundle")
         
         results = {
@@ -26,9 +51,22 @@ class FHIRImportService:
         
         entries = bundle.get("entry", [])
         for entry in entries:
-            resource = entry.get("resource", {})
+            if isinstance(entry, dict):
+                resource = entry.get("resource", {})
+            else:
+                resource = getattr(entry, "resource", {})
+                if hasattr(resource, "model_dump"):
+                    resource = resource.model_dump()
+                elif hasattr(resource, "dict"):
+                    resource = resource.dict()
             try:
-                imported = self.import_resource(resource)
+                resource_type = resource.get("resourceType")
+                if resource_type == "Patient":
+                    imported = await self._process_patient(resource)
+                elif resource_type == "Encounter":
+                    imported = await self._process_encounter(resource)
+                else:
+                    imported = self.import_resource(resource)
                 if imported:
                     results["imported"] += 1
                     results["resources"].append(imported)

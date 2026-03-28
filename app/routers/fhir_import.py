@@ -12,6 +12,7 @@ from app.converters.fhir_import_converter import (
     FHIRImportError
 )
 from pydantic import BaseModel
+from app.services.fhir_profile_validator import FHIRProfileValidator
 
 
 router = APIRouter(prefix="/api/fhir", tags=["FHIR Import"])
@@ -322,7 +323,9 @@ async def import_encounter(
 
 @router.post("/validate/bundle", response_model=dict)
 async def validate_bundle(
-    bundle: Dict[str, Any] = Body(...)
+    bundle: Dict[str, Any] = Body(...),
+    strict: bool = True,
+    profile: str = "fr-core",
 ):
     """
     Valide un bundle FHIR sans l'importer.
@@ -336,46 +339,6 @@ async def validate_bundle(
     Returns:
         Résultat de la validation avec liste des erreurs/avertissements
     """
-    errors = []
-    warnings = []
-    
-    # Vérifier que c'est un bundle
-    if bundle.get("resourceType") != "Bundle":
-        errors.append("Le document doit être un Bundle FHIR")
-        return {
-            "valid": False,
-            "errors": errors,
-            "warnings": warnings
-        }
-    
-    # Vérifier le type de bundle
-    bundle_type = bundle.get("type")
-    if bundle_type not in ["transaction", "batch", "collection"]:
-        warnings.append(f"Type de bundle '{bundle_type}' peut ne pas être supporté")
-    
-    # Valider chaque entrée
-    entries = bundle.get("entry", [])
-    for i, entry in enumerate(entries):
-        resource = entry.get("resource")
-        if not resource:
-            errors.append(f"Entrée {i}: ressource manquante")
-            continue
-        
-        resource_type = resource.get("resourceType")
-        if not resource_type:
-            errors.append(f"Entrée {i}: type de ressource manquant")
-            continue
-        
-        # Vérifier les types supportés
-        supported_types = ["Patient", "Location", "Encounter", "Organization"]
-        if resource_type not in supported_types:
-            warnings.append(
-                f"Entrée {i}: type de ressource '{resource_type}' peut ne pas être supporté"
-            )
-    
-    return {
-        "valid": len(errors) == 0,
-        "errors": errors,
-        "warnings": warnings,
-        "resource_count": len(entries)
-    }
+    validator = FHIRProfileValidator()
+    report = validator.validate_bundle(bundle, strict=strict, profile=profile)
+    return report.to_dict()

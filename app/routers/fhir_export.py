@@ -54,7 +54,7 @@ async def export_structure(
         record_fhir_event("outbound", "structure", "export", True, 200, _time.time() - _start)
     except Exception:
         pass
-    return bundle.dict()
+    return bundle.model_dump()
 
 
 @router.get("/export/patients/{ej_id}", response_model=dict)
@@ -103,7 +103,7 @@ async def export_patients(
         record_fhir_event("outbound", "patient", "export", True, 200, _time.time() - _start)
     except Exception:
         pass
-    return bundle.dict()
+    return bundle.model_dump()
 
 
 @router.get("/export/venues/{ej_id}", response_model=dict)
@@ -148,7 +148,7 @@ async def export_venues(
         record_fhir_event("outbound", "encounter", "export", True, 200, _time.time() - _start)
     except Exception:
         pass
-    return bundle.dict()
+    return bundle.model_dump()
 
 
 @router.get("/export/all/{ej_id}", response_model=dict)
@@ -196,9 +196,9 @@ async def export_all(
         pass
     
     return {
-        "structure": structure_bundle.dict(),
-        "patients": patients_bundle.dict(),
-        "venues": venues_bundle.dict()
+        "structure": structure_bundle.model_dump(),
+        "patients": patients_bundle.model_dump(),
+        "venues": venues_bundle.model_dump()
     }
 
 

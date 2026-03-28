@@ -301,7 +301,7 @@ class EncounterToFHIRConverter:
         locations = []
         if location_ref:
             locations.append({
-                "location": location_ref.dict(),
+                "location": location_ref.model_dump(),
                 "status": "active"
             })
         

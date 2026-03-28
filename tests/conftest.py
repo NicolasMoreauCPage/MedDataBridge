@@ -804,6 +804,7 @@ def sample_uf(session: Session, sample_ej):
     """Crée et retourne une unité fonctionnelle de test"""
     from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle
     from sqlmodel import select
+    from sqlalchemy.exc import IntegrityError
     
     # Créer la hiérarchie si nécessaire
     eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == sample_ej.id)).first()
@@ -816,7 +817,11 @@ def sample_uf(session: Session, sample_ej):
         session.add(eg)
         session.commit()
     
-    pole = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).first()
+    # `Pole.identifier` is globally unique in DB. Reuse by identifier first to avoid
+    # collisions when fixtures run multiple times with different EG rows.
+    pole = session.exec(select(Pole).where(Pole.identifier == "POLE_TEST")).first()
+    if pole and pole.entite_geo_id != eg.id:
+        pole = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).first()
     if not pole:
         pole = Pole(
             identifier="POLE_TEST",
@@ -824,7 +829,11 @@ def sample_uf(session: Session, sample_ej):
             entite_geo_id=eg.id
         )
         session.add(pole)
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            pole = session.exec(select(Pole).where(Pole.identifier == "POLE_TEST")).first()
     
     service = session.exec(select(Service).where(Service.pole_id == pole.id)).first()
     if not service:
@@ -834,7 +843,11 @@ def sample_uf(session: Session, sample_ej):
             pole_id=pole.id
         )
         session.add(service)
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            service = session.exec(select(Service).where(Service.identifier == "SRV_TEST")).first()
     
     uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).first()
     if not uf:
@@ -844,8 +857,13 @@ def sample_uf(session: Session, sample_ej):
             service_id=service.id
         )
         session.add(uf)
-        session.commit()
-        session.refresh(uf)
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == "UF_TEST_FIXTURE")).first()
+        if uf:
+            session.refresh(uf)
     
     return uf
 

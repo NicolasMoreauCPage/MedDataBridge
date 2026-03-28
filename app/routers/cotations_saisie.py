@@ -71,6 +71,7 @@ async def get_saisie_rapide(
     total_actes = len(ccam_acts) + len(ngap_acts) + len(ucd_acts) + len(lpp_acts)
 
     return templates.TemplateResponse(
+        request,
         "cotations/saisie_rapide.html",
         {
             "request": request,

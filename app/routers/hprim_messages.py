@@ -429,6 +429,7 @@ async def hprim_messages_dashboard(
     }
 
     return templates.TemplateResponse(
+        request,
         "hprim/messages_dashboard.html",
         {
             "request": request,
@@ -451,6 +452,7 @@ async def view_hprim_message(
     message = session.get(HprimMessage, message_id)
     if not message:
         return templates.TemplateResponse(
+            request,
             "error.html",
             {"request": request, "message": "Message HPRIM introuvable"},
             status_code=404,
@@ -485,6 +487,7 @@ async def view_hprim_message(
         parse_error = parse_error or str(exc)
 
     return templates.TemplateResponse(
+        request,
         "hprim/message_detail.html",
         {
             "request": request,
@@ -551,6 +554,7 @@ async def dossiers_avec_cotations(request: Request, session: Session = Depends(g
     )
 
     return templates.TemplateResponse(
+        request,
         "hprim/dossiers_cotations.html",
         {"request": request, "dossiers": dossiers},
     )

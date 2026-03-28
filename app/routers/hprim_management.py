@@ -19,7 +19,7 @@ async def hprim_test_files_interface(request: Request):
     """
     Interface web pour explorer, analyser et importer les fichiers HPRIM de test.
     """
-    return templates.TemplateResponse("hprim_test_files.html", {
+    return templates.TemplateResponse(request, "hprim_test_files.html", {
         "request": request,
         "title": "Gestion HPRIM - Fichiers de Test"
     })
@@ -29,7 +29,7 @@ async def hprim_import_interface(request: Request):
     """
     Interface pour uploader et traiter des messages HPRIM entrants.
     """
-    return templates.TemplateResponse("hprim_import.html", {
+    return templates.TemplateResponse(request, "hprim_import.html", {
         "request": request,
         "title": "Import HPRIM"
     })
@@ -58,7 +58,7 @@ async def hprim_messages_history(
         "inbound": len([item for item in messages if item.direction == "inbound"]),
         "roundtrip": len([item for item in messages if item.direction == "roundtrip"]),
     }
-    return templates.TemplateResponse("hprim/persistent_messages.html", {
+    return templates.TemplateResponse(request, "hprim/persistent_messages.html", {
         "request": request,
         "title": "Historique HPRIM",
         "messages": messages,
@@ -82,7 +82,7 @@ async def hprim_message_detail(request: Request, message_id: str, session: Sessi
         except json.JSONDecodeError:
             validation_errors = [{"message": message.validation_errors}]
 
-    return templates.TemplateResponse("hprim/persistent_message_detail.html", {
+    return templates.TemplateResponse(request, "hprim/persistent_message_detail.html", {
         "request": request,
         "title": f"Message HPRIM {message.message_id}",
         "message": message,

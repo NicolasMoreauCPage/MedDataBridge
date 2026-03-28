@@ -2,8 +2,9 @@
 Service d'importation de ressources FHIR.
 """
 from typing import Dict, Any, Optional, List
-from sqlmodel import Session
-from app.models import Patient, Dossier, Venue
+from sqlmodel import Session, select
+from app.models import Patient, Dossier, Venue, Mouvement
+from datetime import datetime
 import json
 
 
@@ -112,9 +113,120 @@ class FHIRImportService:
         return patient
     
     def import_encounter(self, fhir_encounter: Dict[str, Any]) -> Optional[Venue]:
-        """Importe un Encounter FHIR comme Venue."""
-        # TODO: Implémenter l'import d'Encounter
-        return None
+        """Importe un Encounter FHIR comme Venue (admission/mouvement)."""
+        try:
+            # Extract patient reference
+            subject = fhir_encounter.get("subject", {})
+            patient_ref = subject.get("reference", "")
+            
+            if not patient_ref:
+                raise ValueError("Encounter must have a patient reference (subject)")
+            
+            # Parse patient ID from reference (e.g., "Patient/123" → 123)
+            patient_id = int(patient_ref.split("/")[-1])
+            
+            # Find patient and associated dossier
+            patient = self.session.exec(select(Patient).where(Patient.id == patient_id)).first()
+            if not patient:
+                raise ValueError(f"Patient {patient_id} not found")
+            
+            # Get the main dossier (assuming one dossier per patient for FHIR import)
+            dossier = self.session.exec(
+                select(Dossier).where(Dossier.patient_id == patient_id)
+            ).first()
+            if not dossier:
+                # Create a default dossier if none exists
+                dossier = Dossier(patient_id=patient_id, admitting_organization="DEFAULT")
+                self.session.add(dossier)
+                self.session.flush()
+            
+            # Extract encounter details
+            period = fhir_encounter.get("period", {})
+            start_time_str = period.get("start")
+            end_time_str = period.get("end")
+            
+            if not start_time_str:
+                raise ValueError("Encounter period.start is required")
+            
+            # Parse datetime
+            start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+            end_time = None
+            if end_time_str:
+                end_time = datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
+            
+            # Extract location and class information
+            status = fhir_encounter.get("status", "in-progress")
+            encounter_class = fhir_encounter.get("class", {})
+            class_code = encounter_class.get("code", "AMB")  # Default to ambulatory
+            
+            location_refs = fhir_encounter.get("location", [])
+            location_code = None
+            if location_refs and len(location_refs) > 0:
+                location_ref = location_refs[0].get("location", {})
+                location_code = location_ref.get("reference", "").split("/")[-1]
+            
+            # Get next venue sequence
+            last_venue = self.session.exec(
+                select(Venue).order_by(Venue.venue_seq.desc())
+            ).first()
+            next_seq = (last_venue.venue_seq if last_venue else 0) + 1
+            
+            # Create Venue (admission)
+            venue = Venue(
+                venue_seq=next_seq,
+                dossier_id=dossier.id,
+                code=location_code,
+                label=f"Venue from Encounter {fhir_encounter.get('id', 'unknown')}",
+                assigned_location=location_code,
+                uf_responsabilite=encounter_class.get("display", "").split("-")[0] if encounter_class.get("display") else None,
+                nature=self._map_encounter_class_to_nature(class_code),
+                start_time=start_time,
+                hospital_service=encounter_class.get("display"),
+                attending_provider=None  # Would need to extract from participant[type=ATND]
+            )
+            
+            self.session.add(venue)
+            self.session.flush()
+            
+            # Create associated Mouvement (movement/status change)
+            last_mouvement = self.session.exec(
+                select(Mouvement).order_by(Mouvement.mouvement_seq.desc())
+            ).first()
+            next_mov_seq = (last_mouvement.mouvement_seq if last_mouvement else 0) + 1
+            
+            mouvement = Mouvement(
+                mouvement_seq=next_mov_seq,
+                venue_id=venue.id,
+                type=f"ADT^A01",  # Default ADT admission
+                when=start_time,
+                end_time=end_time,
+                status=status,
+                location=location_code,
+                trigger_event="A01",  # Admission
+                action="INSERT",
+                nature=self._map_encounter_class_to_nature(class_code),
+                uf_responsabilite=venue.uf_responsabilite
+            )
+            
+            self.session.add(mouvement)
+            self.session.commit()
+            self.session.refresh(venue)
+            
+            return venue
+            
+        except Exception as e:
+            self.session.rollback()
+            raise ValueError(f"Failed to import Encounter: {str(e)}")
+    
+    def _map_encounter_class_to_nature(self, class_code: str) -> str:
+        """Map FHIR Encounter class to IHE PAM nature code."""
+        mapping = {
+            "AMB": "S",      # Ambulatory → Soins
+            "IMP": "H",      # Inpatient → Hospitalisation
+            "EMER": "U",     # Emergency
+            "VR": "M",       # Virtual → Mouvement
+        }
+        return mapping.get(class_code, "S")
     
     def export_patient_to_fhir(self, patient: Patient) -> Dict[str, Any]:
         """Exporte un Patient vers FHIR."""

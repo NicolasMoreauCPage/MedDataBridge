@@ -5,6 +5,8 @@ API endpoints pour la gestion des actes CCAM HPRIM
 """
 
 import logging
+import json
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -12,8 +14,10 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlmodel import select
 
 from app.db import get_session
+from app.models.hprim_models import HprimCCAMAct as StoredHprimCCAMAct, HprimMessage as StoredHprimMessage
 from app.hprim_models import (
     HprimActeCCAM, HprimPatient, HprimProfessionnel,
     HprimMessage, HprimMessageType, HprimAction
@@ -146,6 +150,168 @@ class ReceptionResponse(BaseModel):
 hprim_service = HprimService()
 
 
+def _split_modificateurs(raw_value: Optional[str]) -> List[str]:
+    if not raw_value:
+        return []
+    return [item for item in raw_value.split(",") if item]
+
+
+def _join_modificateurs(values: List[str]) -> str:
+    return ",".join(value.strip() for value in values if value and value.strip())
+
+
+def _serialize_validation_errors(errors: List[HprimValidationError]) -> str:
+    payload = [
+        {"code": err.code, "message": err.message, "field": err.field}
+        for err in errors
+    ]
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _message_filename(message_id: str) -> str:
+    return f"{message_id}.xml"
+
+
+def _make_acte_response(record: StoredHprimCCAMAct) -> ActeCCAMResponse:
+    return ActeCCAMResponse(
+        id=record.id,
+        code_acte=record.code_acte,
+        code_activite=record.code_activite,
+        code_phase=record.code_phase,
+        executant_rpps=record.executant_rpps,
+        date_execution=record.date_execution,
+        quantite=record.quantite,
+        modificateurs=_split_modificateurs(record.modificateurs),
+        montant=record.montant,
+        commentaire=record.commentaire,
+        action=record.action,
+        facturable=record.facturable,
+        valide=record.valide,
+        facture=record.facture,
+    )
+
+
+def _persist_message(
+    db: Session,
+    *,
+    message_id: str,
+    type_message: str,
+    direction: str,
+    status: str,
+    xml_content: str,
+    patient_id: Optional[str] = None,
+    emetteur_id: Optional[str] = None,
+    destinataire_id: Optional[str] = None,
+    validation_errors: Optional[List[HprimValidationError]] = None,
+    source: Optional[str] = None,
+) -> StoredHprimMessage:
+    stored = db.get(StoredHprimMessage, message_id)
+    if not stored:
+        stored = StoredHprimMessage(
+            message_id=message_id,
+            type_message=type_message,
+            direction=direction,
+        )
+
+    stored.type_message = type_message
+    stored.direction = direction
+    stored.status = status
+    stored.patient_id = patient_id
+    stored.emetteur_id = emetteur_id
+    stored.destinataire_id = destinataire_id
+    stored.filename = _message_filename(message_id)
+    stored.source = source
+    stored.xml_content = xml_content
+    stored.xml_size = len(xml_content)
+    stored.validation_errors = _serialize_validation_errors(validation_errors or []) if validation_errors else None
+    stored.updated_at = datetime.utcnow()
+    db.add(stored)
+    return stored
+
+
+def _persist_acte_record(
+    db: Session,
+    *,
+    acte_id: str,
+    patient_id: Optional[str],
+    message_id: Optional[str],
+    code_acte: str,
+    code_activite: str,
+    code_phase: str,
+    executant_rpps: str,
+    date_execution: datetime,
+    quantite: int,
+    modificateurs: List[str],
+    montant: Optional[float],
+    commentaire: Optional[str],
+    action: str,
+    facturable: bool,
+    valide: bool,
+    facture: bool,
+    deleted: bool = False,
+) -> StoredHprimCCAMAct:
+    stored = db.get(StoredHprimCCAMAct, acte_id)
+    if not stored:
+        stored = StoredHprimCCAMAct(id=acte_id)
+        stored.created_at = datetime.utcnow()
+
+    stored.patient_id = patient_id
+    stored.message_id = message_id
+    stored.code_acte = code_acte
+    stored.code_activite = code_activite
+    stored.code_phase = code_phase
+    stored.executant_rpps = executant_rpps
+    stored.date_execution = date_execution
+    stored.quantite = quantite
+    stored.modificateurs = _join_modificateurs(modificateurs)
+    stored.montant = montant
+    stored.commentaire = commentaire
+    stored.action = action
+    stored.facturable = facturable
+    stored.valide = valide
+    stored.facture = facture
+    stored.deleted = deleted
+    stored.updated_at = datetime.utcnow()
+    db.add(stored)
+    return stored
+
+
+@router.post("", response_model=ActeCCAMResponse)
+async def creer_acte_ccam(
+    acte: ActeCCAMRequest,
+    patient_id: Optional[str] = None,
+    db: Session = Depends(get_session),
+):
+    """Créer un acte CCAM unitaire via API (hors flux XML)."""
+    try:
+        acte_id = str(uuid.uuid4())
+        record = _persist_acte_record(
+            db,
+            acte_id=acte_id,
+            patient_id=patient_id,
+            message_id=None,
+            code_acte=acte.code_acte,
+            code_activite=acte.code_activite,
+            code_phase=acte.code_phase,
+            executant_rpps=acte.executant_rpps,
+            date_execution=acte.date_execution,
+            quantite=acte.quantite,
+            modificateurs=list(acte.modificateurs),
+            montant=acte.montant,
+            commentaire=acte.commentaire,
+            action=HprimAction.CREATION.value,
+            facturable=True,
+            valide=False,
+            facture=False,
+        )
+        db.commit()
+        db.refresh(record)
+        return _make_acte_response(record)
+    except Exception as e:
+        logger.error(f"Erreur création acte CCAM: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur interne: {str(e)}")
+
+
 @router.post("/emission", response_model=MessageHPRIMResponse)
 async def emettre_actes_ccam(
     request: EmissionRequest,
@@ -235,6 +401,7 @@ async def emettre_actes_ccam(
 
         # Créer les actes CCAM
         actes = []
+        persisted_actes: List[StoredHprimCCAMAct] = []
         for acte_req in request.actes:
             acte = hprim_service.creer_acte_ccam_simple(
                 code_acte=acte_req.code_acte,
@@ -267,8 +434,42 @@ async def emettre_actes_ccam(
         # Générer le XML
         xml_content = hprim_service.generer_xml(message, valider=False)
 
-        # TODO: Sauvegarder en base de données
-        # TODO: Ajouter à la file d'attente d'envoi
+        _persist_message(
+            db,
+            message_id=message.entete.message_id,
+            type_message=message.entete.message_type.value,
+            direction="outbound",
+            status="validated" if not erreurs_validation else "validation_error",
+            xml_content=xml_content,
+            patient_id=request.patient.identifiant_id,
+            emetteur_id=request.emetteur_id,
+            destinataire_id=request.destinataire_id,
+            validation_errors=erreurs_validation,
+            source="api-hprim-ccam-emission",
+        )
+        for acte in actes:
+            persisted_actes.append(
+                _persist_acte_record(
+                    db,
+                    acte_id=acte.identifiant,
+                    patient_id=request.patient.identifiant_id,
+                    message_id=message.entete.message_id,
+                    code_acte=acte.code_acte,
+                    code_activite=acte.code_activite,
+                    code_phase=acte.code_phase,
+                    executant_rpps=acte.executant.numero_rpps or "",
+                    date_execution=acte.execute_date,
+                    quantite=acte.quantite,
+                    modificateurs=[m.code for m in acte.modificateurs],
+                    montant=float(acte.montant.valeur) if acte.montant else None,
+                    commentaire=acte.commentaire,
+                    action=acte.action.value,
+                    facturable=acte.facturable,
+                    valide=acte.valide,
+                    facture=acte.facture,
+                )
+            )
+        db.commit()
 
         # Préparer la réponse
         response = MessageHPRIMResponse(
@@ -350,7 +551,42 @@ async def recevoir_actes_ccam(
             )
             actes_recus.append(acte_response)
 
-        # TODO: Sauvegarder en base si validate_only=False
+            if not request.validate_only:
+                _persist_acte_record(
+                    db,
+                    acte_id=acte.identifiant,
+                    patient_id=message.patient.identifiant_id,
+                    message_id=message.entete.message_id,
+                    code_acte=acte.code_acte,
+                    code_activite=acte.code_activite,
+                    code_phase=acte.code_phase,
+                    executant_rpps=acte.executant.numero_rpps or "",
+                    date_execution=acte.execute_date,
+                    quantite=acte.quantite,
+                    modificateurs=[m.code for m in acte.modificateurs],
+                    montant=float(acte.montant.valeur) if acte.montant else None,
+                    commentaire=acte.commentaire,
+                    action=acte.action.value,
+                    facturable=acte.facturable,
+                    valide=acte.valide,
+                    facture=acte.facture,
+                )
+
+        if not request.validate_only:
+            _persist_message(
+                db,
+                message_id=message.entete.message_id,
+                type_message=message.entete.message_type.value,
+                direction="inbound",
+                status="received",
+                xml_content=request.xml_content,
+                patient_id=message.patient.identifiant_id,
+                emetteur_id=message.entete.emetteur_id,
+                destinataire_id=message.entete.destinataire_id,
+                validation_errors=[],
+                source="api-hprim-ccam-reception",
+            )
+            db.commit()
 
         return ReceptionResponse(
             succes=True,
@@ -377,8 +613,15 @@ async def consulter_acte_ccam(
     Retourne les détails d'un acte CCAM spécifique.
     """
     try:
-        # TODO: Implémenter la récupération depuis la base
-        raise HTTPException(status_code=501, detail="Fonctionnalité non implémentée")
+        acte_record = db.get(StoredHprimCCAMAct, acte_id)
+
+        if not acte_record or acte_record.deleted:
+            raise HTTPException(status_code=404, detail="Acte CCAM introuvable")
+
+        return _make_acte_response(acte_record)
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         logger.error(f"Erreur consultation acte {acte_id}: {e}")
@@ -397,8 +640,37 @@ async def modifier_acte_ccam(
     Permet de modifier les propriétés d'un acte CCAM.
     """
     try:
-        # TODO: Implémenter la modification en base
-        raise HTTPException(status_code=501, detail="Fonctionnalité non implémentée")
+        existing = db.get(StoredHprimCCAMAct, acte_id)
+        if not existing or existing.deleted:
+            raise HTTPException(status_code=404, detail="Acte CCAM introuvable")
+
+        updated = _persist_acte_record(
+            db,
+            acte_id=acte_id,
+            patient_id=existing.patient_id,
+            message_id=existing.message_id,
+            code_acte=acte_update.code_acte,
+            code_activite=acte_update.code_activite,
+            code_phase=acte_update.code_phase,
+            executant_rpps=acte_update.executant_rpps,
+            date_execution=acte_update.date_execution,
+            quantite=acte_update.quantite,
+            modificateurs=list(acte_update.modificateurs),
+            montant=acte_update.montant,
+            commentaire=acte_update.commentaire,
+            action=HprimAction.MODIFICATION.value,
+            facturable=existing.facturable,
+            valide=existing.valide,
+            facture=existing.facture,
+            deleted=False,
+        )
+        db.commit()
+        db.refresh(updated)
+
+        return _make_acte_response(updated)
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         logger.error(f"Erreur modification acte {acte_id}: {e}")
@@ -416,8 +688,24 @@ async def supprimer_acte_ccam(
     Marque un acte comme supprimé (logique ou physique selon la politique).
     """
     try:
-        # TODO: Implémenter la suppression en base
-        raise HTTPException(status_code=501, detail="Fonctionnalité non implémentée")
+        existing = db.get(StoredHprimCCAMAct, acte_id)
+        if not existing or existing.deleted:
+            raise HTTPException(status_code=404, detail="Acte CCAM introuvable")
+
+        existing.deleted = True
+        existing.action = HprimAction.SUPPRESSION.value
+        existing.updated_at = datetime.utcnow()
+        db.add(existing)
+        db.commit()
+
+        return {
+            "status": "deleted",
+            "acte_id": acte_id,
+            "deleted_at": datetime.now().isoformat(),
+        }
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         logger.error(f"Erreur suppression acte {acte_id}: {e}")
@@ -437,13 +725,31 @@ async def historique_actes_patient(
     Retourne la liste paginée des actes CCAM d'un patient.
     """
     try:
-        # TODO: Implémenter la récupération depuis la base
+        safe_limit = max(1, min(limit, 200))
+        safe_offset = max(0, offset)
+
+        statement = (
+            select(StoredHprimCCAMAct)
+            .where(StoredHprimCCAMAct.patient_id == patient_id)
+            .where(StoredHprimCCAMAct.deleted == False)
+            .order_by(StoredHprimCCAMAct.date_execution.desc())
+            .offset(safe_offset)
+            .limit(safe_limit)
+        )
+        total_statement = (
+            select(StoredHprimCCAMAct)
+            .where(StoredHprimCCAMAct.patient_id == patient_id)
+            .where(StoredHprimCCAMAct.deleted == False)
+        )
+        paginated = list(db.exec(statement).all())
+        total = len(db.exec(total_statement).all())
+
         return {
             "patient_id": patient_id,
-            "actes": [],
-            "total": 0,
-            "limit": limit,
-            "offset": offset
+            "actes": [_make_acte_response(item).model_dump(mode="json") for item in paginated],
+            "total": total,
+            "limit": safe_limit,
+            "offset": safe_offset,
         }
 
     except Exception as e:

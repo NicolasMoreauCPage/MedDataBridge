@@ -1,165 +1,176 @@
 {% extends "base.html" %}
 
+{% block title %}Messages HPRIM Cotation - MedDataBridge{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
-  <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Messages HPRIM Cotation</span>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  .cotation-shell {
+    --ink: #0f172a;
+    --muted: #475569;
+    --line: #d8dee8;
+    --accent: #0f766e;
+    --accent-soft: #ccfbf1;
+    --panel: #ffffff;
+    --bg: radial-gradient(circle at 10% 5%, #d1fae5 0%, #f8fafc 35%, #ecfeff 100%);
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+  }
+
+  .hero-panel {
+    background: linear-gradient(120deg, #115e59 0%, #0f766e 45%, #0e7490 100%);
+    box-shadow: 0 16px 32px rgba(15, 118, 110, 0.28);
+  }
+
+  .metric-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  }
+
+  .filter-panel,
+  .table-shell {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
+  }
+
+  .status-chip {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .row-hover:hover {
+    background: #f0fdfa;
+  }
+
+  @media (max-width: 768px) {
+    .compact-stack {
+      display: grid;
+      gap: 0.75rem;
+    }
+  }
+</style>
+
+<div class="cotation-shell max-w-7xl mx-auto px-4 py-6 rounded-2xl">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-5" aria-label="Fil d'ariane">
+    <a href="/" class="hover:text-teal-700 transition-colors">Accueil</a>
+    <span>/</span>
+    <span class="text-slate-900 font-semibold">Messages HPRIM Cotation</span>
   </nav>
 
-  <!-- Header -->
-  <div class="mb-8">
-    <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 rounded-2xl p-8 text-white shadow-lg">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-            <div class="text-3xl">💊</div>
-          </div>
-          <div>
-            <h1 class="text-3xl font-bold">Messages HPRIM Cotation</h1>
-            <p class="text-white/90 mt-1">Visualisation des actes CCAM, NGAP, UCD, LPP reçus</p>
-          </div>
-        </div>
-        <div class="flex gap-3">
-          <a href="/hprim-cotation/dossiers-avec-cotations" 
-             class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
-            📁 Dossiers avec cotations
-          </a>
-        </div>
+  <section class="hero-panel rounded-3xl p-7 text-white mb-7">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+      <div>
+        <p class="uppercase tracking-[0.2em] text-xs text-cyan-100 mb-2">Pilotage Cotations</p>
+        <h1 class="text-3xl lg:text-4xl font-bold leading-tight">Centre de contrôle HPRIM</h1>
+        <p class="text-cyan-100 mt-2 max-w-2xl">Surveillez les messages entrants, isolez les erreurs et accédez à l’import dossier en un seul flux.</p>
       </div>
+      <a href="/hprim-cotation/dossiers-avec-cotations" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 transition-colors font-semibold">
+        Ouvrir la vue dossiers
+      </a>
     </div>
-  </div>
+  </section>
 
-  <!-- Statistiques -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm text-slate-600">Total messages</p>
-          <p class="text-3xl font-bold text-slate-900">{{ stats.total }}</p>
-        </div>
-        <div class="text-4xl">📨</div>
-      </div>
-    </div>
-    
-    <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm text-slate-600">Reçus</p>
-          <p class="text-3xl font-bold text-green-600">{{ stats.received }}</p>
-        </div>
-        <div class="text-4xl">✅</div>
-      </div>
-    </div>
-    
-    <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm text-slate-600">Erreurs</p>
-          <p class="text-3xl font-bold text-red-600">{{ stats.error }}</p>
-        </div>
-        <div class="text-4xl">❌</div>
-      </div>
-    </div>
-  </div>
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
+    <article class="metric-card rounded-2xl p-5">
+      <p class="text-sm text-slate-600">Messages total</p>
+      <p class="text-4xl font-bold text-slate-900 mt-2">{{ stats.total }}</p>
+    </article>
+    <article class="metric-card rounded-2xl p-5">
+      <p class="text-sm text-slate-600">Reçus</p>
+      <p class="text-4xl font-bold text-emerald-700 mt-2">{{ stats.received }}</p>
+    </article>
+    <article class="metric-card rounded-2xl p-5">
+      <p class="text-sm text-slate-600">Erreurs</p>
+      <p class="text-4xl font-bold text-rose-700 mt-2">{{ stats.error }}</p>
+    </article>
+  </section>
 
-  <!-- Filtres -->
-  <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200 mb-6">
-    <form method="get" class="flex gap-4 items-end">
-      <div class="flex-1">
-        <label class="block text-sm font-medium text-slate-700 mb-2">Rechercher</label>
-        <input type="text" name="search" value="{{ search_term or '' }}"
-               placeholder="NDA, IPP, ou contenu du message..."
-               class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-      </div>
-      
-      <div class="w-48">
-        <label class="block text-sm font-medium text-slate-700 mb-2">Statut</label>
-        <select name="status" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+  <section class="filter-panel rounded-2xl p-5 mb-6">
+    <form method="get" class="grid grid-cols-1 lg:grid-cols-[2fr_1fr_auto_auto] gap-3 items-end compact-stack">
+      <label class="block">
+        <span class="block text-sm font-semibold text-slate-700 mb-1">Recherche</span>
+        <input type="text" name="search" value="{{ search_term or '' }}" placeholder="Message ID, patient, fichier, XML"
+               class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-300 focus:border-teal-600">
+      </label>
+      <label class="block">
+        <span class="block text-sm font-semibold text-slate-700 mb-1">Statut</span>
+        <select name="status" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-300 focus:border-teal-600">
           <option value="">Tous</option>
           <option value="received" {% if current_status == 'received' %}selected{% endif %}>Reçu</option>
+          <option value="validated" {% if current_status == 'validated' %}selected{% endif %}>Validé</option>
+          <option value="stored" {% if current_status == 'stored' %}selected{% endif %}>Archivé</option>
+          <option value="stored_with_errors" {% if current_status == 'stored_with_errors' %}selected{% endif %}>Archivé avec erreurs</option>
           <option value="processed" {% if current_status == 'processed' %}selected{% endif %}>Traité</option>
           <option value="error" {% if current_status == 'error' %}selected{% endif %}>Erreur</option>
         </select>
-      </div>
-      
-      <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-        🔍 Filtrer
-      </button>
-      
+      </label>
+      <button type="submit" class="px-5 py-2.5 rounded-xl bg-teal-700 text-white font-semibold hover:bg-teal-800">Filtrer</button>
       {% if search_term or current_status %}
-      <a href="/hprim-cotation/" class="px-6 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors">
-        ✖️ Réinitialiser
-      </a>
+      <a href="/hprim-cotation/" class="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 text-center">Reset</a>
       {% endif %}
     </form>
-  </div>
+  </section>
 
-  <!-- Liste des messages -->
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+  <section class="table-shell rounded-2xl overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-200">
-        <thead class="bg-slate-50">
+        <thead class="bg-slate-900 text-slate-100">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Correlation ID</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Statut</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Endpoint</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+            <th class="px-5 py-3 text-left text-xs uppercase tracking-wider">Message</th>
+            <th class="px-5 py-3 text-left text-xs uppercase tracking-wider">Date</th>
+            <th class="px-5 py-3 text-left text-xs uppercase tracking-wider">Patient / Fichier</th>
+            <th class="px-5 py-3 text-left text-xs uppercase tracking-wider">Statut</th>
+            <th class="px-5 py-3 text-left text-xs uppercase tracking-wider">Type / Direction</th>
+            <th class="px-5 py-3 text-right text-xs uppercase tracking-wider">Action</th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-slate-200">
+        <tbody class="divide-y divide-slate-200">
           {% if messages %}
             {% for msg in messages %}
-            <tr class="hover:bg-slate-50 transition-colors">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
-                #{{ msg.id }}
+            <tr class="row-hover transition-colors">
+              <td class="px-5 py-4 text-sm font-mono text-slate-900">{{ msg.message_id }}</td>
+              <td class="px-5 py-4 text-sm text-slate-700">{{ msg.created_at.strftime("%d/%m/%Y %H:%M") if msg.created_at else "N/A" }}</td>
+              <td class="px-5 py-4 text-sm">
+                <p class="font-mono text-slate-900">{{ msg.patient_id or "N/A" }}</p>
+                <p class="text-slate-500">{{ msg.filename or "Sans fichier" }}</p>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                {{ msg.created_at.strftime("%d/%m/%Y %H:%M") if msg.created_at else "N/A" }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
-                {{ msg.correlation_id[:30] if msg.correlation_id else "N/A" }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  {% if msg.status == 'received' %}bg-green-100 text-green-800
-                  {% elif msg.status == 'error' %}bg-red-100 text-red-800
-                  {% else %}bg-slate-100 text-slate-800{% endif %}">
+              <td class="px-5 py-4">
+                <span class="status-chip inline-flex items-center px-2.5 py-1 rounded-full text-xs
+                  {% if msg.status == 'received' %}bg-emerald-100 text-emerald-800
+                  {% elif msg.status == 'error' %}bg-rose-100 text-rose-800
+                  {% elif msg.status in ['stored', 'stored_with_errors'] %}bg-cyan-100 text-cyan-800
+                  {% else %}bg-slate-100 text-slate-700{% endif %}">
                   {{ msg.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                {{ msg.endpoint_id or "N/A" }}
+              <td class="px-5 py-4 text-sm text-slate-700">
+                <p>{{ msg.type_message or "N/A" }}</p>
+                <p class="text-slate-500">{{ msg.direction or "N/A" }}</p>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
-                <a href="/hprim-cotation/message/{{ msg.id }}" 
-                   class="text-blue-600 hover:text-blue-800 font-medium">
-                  👁️ Voir détails
-                </a>
+              <td class="px-5 py-4 text-right">
+                <a href="/hprim-cotation/message/{{ msg.message_id }}" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-700">Ouvrir</a>
               </td>
             </tr>
             {% endfor %}
           {% else %}
             <tr>
               <td colspan="6" class="px-6 py-12 text-center text-slate-500">
-                <div class="text-4xl mb-2">📭</div>
-                <p>Aucun message HPRIM trouvé</p>
-                <p class="text-sm mt-2">Les messages de cotation apparaîtront ici une fois reçus</p>
+                <p class="text-2xl mb-2">Aucun message HPRIM</p>
+                <p class="text-sm">Les messages importables apparaîtront ici après réception.</p>
               </td>
             </tr>
           {% endif %}
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
   {% if messages and messages|length == 100 %}
-  <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-    ℹ️ Seuls les 100 derniers messages sont affichés. Utilisez les filtres pour affiner votre recherche.
+  <div class="mt-4 p-3 rounded-xl bg-cyan-50 text-cyan-800 border border-cyan-200 text-sm">
+    Limite d’affichage atteinte (100 messages). Utilisez les filtres pour cibler un segment.
   </div>
   {% endif %}
 </div>

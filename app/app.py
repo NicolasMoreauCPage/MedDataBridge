@@ -413,21 +413,30 @@ def create_app() -> FastAPI:
     # HPRIM CCAM integration (stub router)
     try:
         from app.routers import ccam
+        from app.api import hprim_ccam
+        from app.api import hprim_messages as hprim_messages_api
         app.include_router(ccam.router)
+        app.include_router(hprim_ccam.router)
+        app.include_router(hprim_messages_api.router)
         print(" - HPRIM CCAM router mounted at /ccam")
+        print(" - HPRIM CCAM API router mounted at /api/hprim/actes/ccam")
+        print(" - HPRIM Messages API router mounted at /api/hprim/messages")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM CCAM router not available: {e}")
     
     
     # HPRIM UCD router
     try:
+        from app.api import hprim_ngap
         from app.api import ucd
         from app.routers import ucd as ucd_router
+        app.include_router(hprim_ngap.router)
         app.include_router(ucd.router)
         app.include_router(ucd_router.router)
+        print(" - HPRIM NGAP router mounted at /api/hprim/actes/ngap")
         print(" - HPRIM UCD routers mounted")
     except Exception as e:
-        logging.getLogger(__name__).warning(f"HPRIM UCD routers not available: {e}")
+        logging.getLogger(__name__).warning(f"HPRIM NGAP/UCD routers not available: {e}")
     
     # HPRIM LPP router
     try:

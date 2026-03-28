@@ -3,27 +3,70 @@
 {% block title %}Saisie Rapide Cotations - {{ dossier.nda }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+    .rapid-shell {
+        font-family: 'Space Grotesk', sans-serif;
+        background: radial-gradient(circle at 10% 0%, #d1fae5 0%, #f8fafc 40%, #ecfeff 100%);
+    }
+
+    .rapid-topbar {
+        background: linear-gradient(130deg, #0f172a 0%, #155e75 55%, #0f766e 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.22);
+    }
+
+    .rapid-chip {
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(6px);
+    }
+
+    .metric-pane {
+        background: #fff;
+        border: 1px solid #d8dee8;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .workspace-pane {
+        background: #fff;
+        border: 1px solid #d8dee8;
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+    }
+
+    .acte-type-btn {
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .acte-type-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+    }
+</style>
+
+<div class="rapid-shell min-h-screen">
     <!-- Header fixe -->
-    <div class="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
-        <div class="container mx-auto px-4 py-3">
+        <div class="rapid-topbar sticky top-0 z-50 text-white">
+                <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <a href="/dossiers/{{ dossier.id }}" class="text-slate-600 hover:text-slate-900">
+                                        <a href="/dossiers/{{ dossier.id }}" class="rapid-chip rounded-xl px-2.5 py-2 hover:bg-white/20 transition-colors" aria-label="Retour dossier">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>
                     </a>
                     <div>
-                        <h1 class="text-xl font-bold text-slate-900">Saisie Rapide</h1>
-                        <p class="text-sm text-slate-600">
-                            NDA <span class="font-mono font-semibold">{{ dossier.nda }}</span> — 
-                            {% if patient %}{{ patient.family }} {{ patient.given }}{% endif %}
+                                                <p class="uppercase tracking-[0.2em] text-xs text-cyan-100 mb-1">Cotations Workspace</p>
+                                                <h1 class="text-2xl font-bold">Saisie rapide</h1>
+                                                <p class="text-sm text-cyan-100 mt-1">
+                                                        NDA <span class="font-mono font-semibold">{{ dossier.nda }}</span>
+                                                        {% if patient %} · {{ patient.family }} {{ patient.given }}{% endif %}
                         </p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <button onclick="showTemplates()" class="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors font-medium">
+                                        <button onclick="showTemplates()" class="rapid-chip px-4 py-2 rounded-xl hover:bg-white/20 transition-colors font-semibold">
                         <span class="flex items-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -31,7 +74,7 @@
                             <span>Templates</span>
                         </span>
                     </button>
-                    <button onclick="showHistory()" class="px-4 py-2 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-medium">
+                    <button onclick="showHistory()" class="rapid-chip px-4 py-2 rounded-xl hover:bg-white/20 transition-colors font-semibold">
                         <span class="flex items-center space-x-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -47,23 +90,23 @@
     <div class="container mx-auto px-4 py-6">
         <!-- Statistiques rapides globales -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-md p-4">
+            <div class="metric-pane rounded-xl p-4">
                 <div class="text-2xl font-bold text-slate-900">{{ total_actes }}</div>
                 <div class="text-sm text-slate-600">Actes total</div>
             </div>
-            <div class="bg-emerald-50 border-2 border-emerald-200 rounded-lg p-4">
+            <div class="metric-pane bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4">
                 <div class="text-2xl font-bold text-emerald-900">{{ ccam_count }}</div>
                 <div class="text-sm text-emerald-700">CCAM</div>
             </div>
-            <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+            <div class="metric-pane bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                 <div class="text-2xl font-bold text-blue-900">{{ ngap_count }}</div>
                 <div class="text-sm text-blue-700">NGAP</div>
             </div>
-            <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+            <div class="metric-pane bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
                 <div class="text-2xl font-bold text-amber-900">{{ ucd_count }}</div>
                 <div class="text-sm text-amber-700">UCD</div>
             </div>
-            <div class="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+            <div class="metric-pane bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
                 <div class="text-2xl font-bold text-purple-900">{{ lpp_count }}</div>
                 <div class="text-sm text-purple-700">LPP</div>
             </div>
@@ -73,7 +116,7 @@
             <!-- Panneau de saisie principal -->
             <div class="lg:col-span-2">
                 <!-- Sélecteur de type d'acte -->
-                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="workspace-pane rounded-xl p-6 mb-6">
                     <h2 class="text-lg font-bold text-slate-900 mb-4">Type d'acte</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <button onclick="selectActeType('ccam')" id="btn-type-ccam" class="acte-type-btn p-4 border-2 border-emerald-200 bg-emerald-50 text-emerald-900 rounded-lg hover:border-emerald-500 hover:shadow-md transition-all">

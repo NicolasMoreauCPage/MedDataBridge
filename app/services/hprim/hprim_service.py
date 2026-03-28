@@ -5,12 +5,16 @@ Orchestration des fonctionnalités de cotation des actes
 """
 
 import logging
+from decimal import Decimal
+from xml.etree import ElementTree as ET
 from datetime import datetime
 from typing import List, Optional, Dict, Any
+from uuid import uuid4
 
 from app.hprim_models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
-    HprimActeCCAM, HprimMessageType, HprimAction, HprimVenue
+    HprimActeCCAM, HprimActeNGAP, HprimMessageType, HprimAction, HprimVenue,
+    HprimMontant
 )
 from .hprim_validator import HprimValidator, HprimValidationError
 from .hprim_xml import HprimXmlService
@@ -55,7 +59,7 @@ class HprimService:
             Message HPRIM prêt à être généré
         """
         if not message_id:
-            message_id = f"MSG_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            message_id = uuid4().hex[:17].upper()
 
         entete = HprimEnteteMessage(
             emetteur_id=emetteur_id,
@@ -298,6 +302,84 @@ class HprimService:
             montant=montant_obj
         )
 
+    def creer_acte_ngap_simple(
+        self,
+        lettre_cle: str,
+        coefficient: float,
+        execute_date: datetime,
+        prestataire_rpps: Optional[str] = None,
+        denombrement: Optional[int] = None,
+        position_dentaire: Optional[str] = None,
+        execute_heure: Optional[str] = None,
+        numero_seance: Optional[int] = None,
+        nabms: Optional[List[int]] = None,
+        minor_major: Optional[str] = None,
+        montant: Optional[float] = None,
+        commentaire: Optional[str] = None,
+        bhn_phns: Optional[Dict[str, Any]] = None,
+    ) -> HprimActeNGAP:
+        prestataire = HprimProfessionnel(
+            nom="INCONNU",
+            prenom="INCONNU",
+            numero_rpps=prestataire_rpps or "00000000000",
+        )
+
+        montant_obj = None
+        if montant is not None:
+            montant_obj = HprimMontant(valeur=Decimal(str(montant)))
+
+        identifiant = f"NGAP_{lettre_cle}_{execute_date.strftime('%Y%m%d_%H%M%S')}"
+        return HprimActeNGAP(
+            identifiant=identifiant,
+            lettre_cle=lettre_cle,
+            coefficient=Decimal(str(coefficient)),
+            execute_date=execute_date,
+            prestataire=prestataire,
+            denombrement=denombrement,
+            position_dentaire=position_dentaire,
+            execute_heure=execute_heure,
+            numero_seance=numero_seance,
+            nabms=nabms or [],
+            minor_major=minor_major,
+            montant=montant_obj,
+            commentaire=commentaire,
+            bhn_phns=bhn_phns,
+        )
+
+    def creer_message_actes_ngap(
+        self,
+        emetteur_id: str,
+        emetteur_nom: str,
+        destinataire_id: str,
+        destinataire_nom: str,
+        patient: HprimPatient,
+        acteur: HprimProfessionnel,
+        actes: List[HprimActeNGAP],
+        venue: Optional[HprimVenue] = None,
+        dossier_id: Optional[str] = None,
+        message_id: Optional[str] = None,
+    ) -> HprimMessage:
+        if not message_id:
+            message_id = uuid4().hex[:17].upper()
+
+        entete = HprimEnteteMessage(
+            emetteur_id=emetteur_id,
+            emetteur_nom=emetteur_nom,
+            destinataire_id=destinataire_id,
+            destinataire_nom=destinataire_nom,
+            date_emission=datetime.now(),
+            message_id=message_id,
+            message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES,
+        )
+
+        return HprimMessage(
+            entete=entete,
+            patient=patient,
+            acteur=acteur,
+            venue=venue,
+            actes_ngap=actes,
+        )
+
     def generer_acquittement(
         self,
         message_original: HprimMessage,
@@ -315,8 +397,21 @@ class HprimService:
         Returns:
             XML d'acquittement
         """
-        # TODO: Implémenter la génération d'acquittement
-        raise NotImplementedError("Génération d'acquittement non implémentée")
+        root = ET.Element("acquittementServeurActes")
+        entete = ET.SubElement(root, "entete")
+        ET.SubElement(entete, "identifiantMessageOriginal").text = message_original.entete.message_id
+        ET.SubElement(entete, "dateAcquittement").text = datetime.utcnow().isoformat()
+        ET.SubElement(entete, "statut").text = statut
+
+        erreurs_elem = ET.SubElement(root, "erreurs")
+        for erreur in erreurs or []:
+            erreur_elem = ET.SubElement(erreurs_elem, "erreur")
+            ET.SubElement(erreur_elem, "code").text = str(erreur.get("code", "UNKNOWN"))
+            ET.SubElement(erreur_elem, "message").text = str(erreur.get("message", ""))
+            if erreur.get("field"):
+                ET.SubElement(erreur_elem, "champ").text = str(erreur["field"])
+
+        return ET.tostring(root, encoding="unicode")
 
     def get_statistiques_validation(self) -> Dict[str, Any]:
         """

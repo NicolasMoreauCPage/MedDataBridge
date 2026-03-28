@@ -12,6 +12,7 @@ import logging
 from app.db import get_session
 from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
 from app.models_practitioners import MedecinResponsable
+from app.models_vocabulary import VocabularySystem, VocabularyValue
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +105,79 @@ async def search_ccam_codes(
     Returns:
         Liste de suggestions [{code, libelle, tarif_base}]
     """
-    # TODO: Implémenter recherche dans référentiel CCAM
-    # Pour l'instant, retour de données de démonstration
+    if not query or not query.strip():
+        return JSONResponse([])
+
+    query = query.strip()
+    if limit < 1:
+        limit = 1
+    if limit > 50:
+        limit = 50
+
+    query_lower = query.lower()
+
+    # 1) Recherche dans les actes CCAM déjà saisis (source opérationnelle locale)
+    ccam_rows = session.exec(
+        select(CCAMAct)
+        .where(CCAMAct.code_acte.is_not(None))
+        .order_by(CCAMAct.execute_date.desc())
+    ).all()
+
+    seen_codes: set[str] = set()
+    live_results = []
+    for row in ccam_rows:
+        code = (row.code_acte or "").strip().upper()
+        if not code or code in seen_codes:
+            continue
+
+        label = row.commentaire or "Acte CCAM saisi"
+        if query_lower in code.lower() or query_lower in label.lower():
+            live_results.append(
+                {
+                    "code": code,
+                    "libelle": label,
+                    "tarif_base": float(row.montant_total) if row.montant_total is not None else None,
+                }
+            )
+            seen_codes.add(code)
+
+        if len(live_results) >= limit:
+            return JSONResponse(live_results)
+
+    # 2) Fallback sur vocabulaire CCAM si disponible
+    vocab_results = []
+    vocab_systems = session.exec(select(VocabularySystem)).all()
+    ccam_system_ids = [
+        vs.id for vs in vocab_systems
+        if vs.id is not None and (
+            "ccam" in (vs.name or "").lower()
+            or "ccam" in (vs.label or "").lower()
+            or "ccam" in (vs.uri or "").lower()
+        )
+    ]
+
+    if ccam_system_ids:
+        vocab_values = session.exec(
+            select(VocabularyValue).where(VocabularyValue.system_id.in_(ccam_system_ids))
+        ).all()
+        for value in vocab_values:
+            code = (value.code or "").strip().upper()
+            display = (value.display or "").strip()
+            if not code or code in seen_codes:
+                continue
+            if query_lower in code.lower() or query_lower in display.lower():
+                vocab_results.append(
+                    {
+                        "code": code,
+                        "libelle": display or "Code CCAM",
+                        "tarif_base": None,
+                    }
+                )
+                seen_codes.add(code)
+            if len(live_results) + len(vocab_results) >= limit:
+                break
+
+    # 3) Fallback sécurisé de démonstration (si pas de data locale)
     demo_results = [
         {"code": "HBMD001", "libelle": "Échographie cardiaque transthoracique", "tarif_base": 70.28},
         {"code": "HBLD004", "libelle": "Échographie obstétricale du premier trimestre", "tarif_base": 81.92},
@@ -117,13 +189,21 @@ async def search_ccam_codes(
         {"code": "EBQH001", "libelle": "Radiographie du crâne, 1 ou 2 incidences", "tarif_base": 25.27},
     ]
     
-    query_lower = query.lower()
-    filtered = [
+    filtered_demo = [
         r for r in demo_results 
         if query_lower in r["code"].lower() or query_lower in r["libelle"].lower()
     ]
-    
-    return JSONResponse(filtered[:limit])
+
+    results = live_results + vocab_results
+    if len(results) < limit:
+        for demo in filtered_demo:
+            if demo["code"] not in seen_codes:
+                results.append(demo)
+                seen_codes.add(demo["code"])
+            if len(results) >= limit:
+                break
+
+    return JSONResponse(results[:limit])
 
 
 @router.get("/api/search/ngap", name="search_ngap_codes")

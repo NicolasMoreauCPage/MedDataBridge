@@ -3,276 +3,164 @@
 {% block title %}Détail Message HPRIM - MedDataBridge{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
-    <!-- En-tête -->
-    <div class="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-lg shadow-lg p-6 mb-6">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <span class="text-5xl">💊</span>
-                <div>
-                    <h1 class="text-3xl font-bold text-white">Message HPRIM - Cotation</h1>
-                    <p class="text-emerald-100 mt-1">ID: {{ message.id }} | {{ message.received_at.strftime('%d/%m/%Y %H:%M') if message.received_at else 'N/A' }}</p>
-                </div>
-            </div>
-            <a href="/hprim-cotation/" class="bg-white text-emerald-600 px-4 py-2 rounded-lg font-semibold hover:bg-emerald-50 transition-colors">
-                ← Retour à la liste
-            </a>
+<style>
+  .detail-shell {
+    --line: #d8dee8;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --hero: linear-gradient(130deg, #134e4a 0%, #0f766e 45%, #155e75 100%);
+    background: radial-gradient(circle at 10% 0%, #d1fae5 0%, #f8fafc 40%, #ecfeff 100%);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .act-table thead {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+
+  .act-table tbody tr:hover {
+    background: #f0fdfa;
+  }
+</style>
+
+<div class="detail-shell container mx-auto px-4 py-6 rounded-2xl">
+  <section class="rounded-3xl p-6 text-white mb-6" style="background: var(--hero); box-shadow: 0 16px 30px rgba(15, 118, 110, 0.25);">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <p class="text-cyan-100 text-xs tracking-[0.2em] uppercase mb-2">Message HPRIM</p>
+        <h1 class="text-3xl font-bold">{{ message.message_id }}</h1>
+        <p class="text-cyan-100 mt-2">{{ message.created_at.strftime('%d/%m/%Y %H:%M') if message.created_at else 'N/A' }} · {{ message.type_message or 'N/A' }}</p>
+      </div>
+      <a href="/hprim-cotation/" class="inline-flex items-center px-4 py-2 rounded-xl bg-white/15 border border-white/30 hover:bg-white/25 font-semibold">
+        Retour à la liste
+      </a>
+    </div>
+  </section>
+
+  <section class="panel rounded-2xl p-5 mb-5">
+    <h2 class="text-xl font-bold text-slate-900 mb-3">Contexte message</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+      <div>
+        <p class="text-slate-500">Statut</p>
+        <p class="font-semibold text-slate-900">{{ message.status }}</p>
+      </div>
+      <div>
+        <p class="text-slate-500">Direction</p>
+        <p class="font-semibold text-slate-900">{{ message.direction or 'N/A' }}</p>
+      </div>
+      <div>
+        <p class="text-slate-500">Patient archivé</p>
+        <p class="font-mono text-slate-900">{{ message.patient_id or 'N/A' }}</p>
+      </div>
+      <div>
+        <p class="text-slate-500">Source</p>
+        <p class="text-slate-900">{{ message.source or message.filename or 'N/A' }}</p>
+      </div>
+    </div>
+  </section>
+
+  {% if success_message %}
+  <div class="panel rounded-2xl p-4 mb-4 border-emerald-300 text-emerald-800">{{ success_message }}</div>
+  {% endif %}
+
+  {% if error %}
+  <div class="panel rounded-2xl p-5 mb-5 border-rose-300 bg-rose-50">
+    <h2 class="text-lg font-bold text-rose-800 mb-2">Erreur de parsing</h2>
+    <p class="text-rose-700">{{ error }}</p>
+  </div>
+  {% else %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+      {% if patient_info %}
+      <section class="panel rounded-2xl p-5">
+        <h2 class="text-lg font-bold text-slate-900 mb-3">Patient</h2>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-slate-500">Identifiant:</span> <span class="font-mono">{{ patient_info.identifiant or 'N/A' }}</span></p>
+          <p><span class="text-slate-500">Nom:</span> {{ patient_info.nom or 'N/A' }}</p>
+          <p><span class="text-slate-500">Prénom:</span> {{ patient_info.prenom or 'N/A' }}</p>
+          <p><span class="text-slate-500">Date de naissance:</span> {{ patient_info.date_naissance or 'N/A' }}</p>
         </div>
+      </section>
+      {% endif %}
+
+      {% if venue_info or dossier %}
+      <section class="panel rounded-2xl p-5">
+        <h2 class="text-lg font-bold text-slate-900 mb-3">Séjour</h2>
+        <div class="space-y-2 text-sm">
+          <p><span class="text-slate-500">NDA:</span> <span class="font-mono">{{ venue_info.identifiant if venue_info else (dossier.dossier_seq if dossier else 'N/A') }}</span></p>
+          <p><span class="text-slate-500">Libellé:</span> {{ venue_info.libelle if venue_info else 'N/A' }}</p>
+          <p><span class="text-slate-500">Dossier applicatif:</span> {{ dossier.id if dossier else 'Non rapproché' }}</p>
+        </div>
+        {% if dossier %}
+        <a href="/dossiers/{{ dossier.id }}" class="inline-flex mt-3 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700">Ouvrir le dossier</a>
+        {% endif %}
+      </section>
+      {% endif %}
     </div>
 
-    <!-- Informations du message -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-xl font-bold text-slate-800 mb-4">Informations du message</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <span class="text-sm text-slate-600 font-semibold">Status</span>
-                <div class="mt-1">
-                    {% if message.status == 'received' %}
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            ✓ Reçu
-                        </span>
-                    {% elif message.status == 'error' %}
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                            ✗ Erreur
-                        </span>
-                    {% else %}
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                            {{ message.status }}
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-            <div>
-                <span class="text-sm text-slate-600 font-semibold">Correlation ID</span>
-                <p class="text-slate-900 mt-1 font-mono text-sm">{{ message.correlation_id or 'N/A' }}</p>
-            </div>
-            <div>
-                <span class="text-sm text-slate-600 font-semibold">Endpoint</span>
-                <p class="text-slate-900 mt-1">{{ message.endpoint.name if message.endpoint else 'N/A' }}</p>
-            </div>
-        </div>
-    </div>
-
-    {% if error %}
-        <!-- Erreur de parsing -->
-        <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-            <div class="flex items-start">
-                <span class="text-3xl mr-4">⚠️</span>
-                <div>
-                    <h2 class="text-xl font-bold text-red-800 mb-2">Erreur de parsing HPRIM</h2>
-                    <p class="text-red-700">{{ error }}</p>
-                </div>
-            </div>
-        </div>
-    {% else %}
-        <!-- Patient -->
-        {% if patient %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-bold text-slate-800 mb-4">👤 Patient</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <span class="text-sm text-slate-600 font-semibold">Nom</span>
-                    <p class="text-slate-900 mt-1">{{ patient.nom or 'N/A' }}</p>
-                </div>
-                <div>
-                    <span class="text-sm text-slate-600 font-semibold">Prénom</span>
-                    <p class="text-slate-900 mt-1">{{ patient.prenom or 'N/A' }}</p>
-                </div>
-                <div>
-                    <span class="text-sm text-slate-600 font-semibold">Date de naissance</span>
-                    <p class="text-slate-900 mt-1">{{ patient.date_naissance or 'N/A' }}</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Venue -->
-        {% if venue %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-bold text-slate-800 mb-4">🏥 Séjour</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <span class="text-sm text-slate-600 font-semibold">Numéro de séjour (NDA)</span>
-                    <p class="text-slate-900 mt-1 font-mono">{{ venue.numero_sejour or 'N/A' }}</p>
-                </div>
-                <div>
-                    <span class="text-sm text-slate-600 font-semibold">Date d'entrée</span>
-                    <p class="text-slate-900 mt-1">{{ venue.date_entree or 'N/A' }}</p>
-                </div>
-                <div>
-                    <span class="text-sm text-slate-600 font-semibold">Date de sortie</span>
-                    <p class="text-slate-900 mt-1">{{ venue.date_sortie or 'N/A' }}</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Actes CCAM -->
-        {% if ccam_actes %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-slate-800">🔬 Actes CCAM ({{ ccam_actes|length }})</h2>
-                <form method="POST" action="/hprim-cotation/message/{{ message.id }}/import-ccam" style="display: inline;">
-                    <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
-                        ✓ Importer les actes CCAM
-                    </button>
-                </form>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Code</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Activité</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Phase</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Quantité</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Exécutant</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Modificateurs</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Montant</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
-                        {% for acte in ccam_actes %}
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-4 py-3 text-sm font-mono text-slate-900">{{ acte.code }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.activite or '-' }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.phase or '-' }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.date }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.quantite }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.executant or '-' }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.modificateurs or '-' }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.montant if acte.montant else '-' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Actes NGAP -->
-        {% if ngap_actes %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-slate-800">💉 Actes NGAP ({{ ngap_actes|length }})</h2>
-                <form method="POST" action="/hprim-cotation/message/{{ message.id }}/import-ngap" style="display: inline;">
-                    <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
-                        ✓ Importer les actes NGAP
-                    </button>
-                </form>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Lettre clé</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Coefficient</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Exécutant</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Montant</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
-                        {% for acte in ngap_actes %}
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-4 py-3 text-sm font-mono text-slate-900">{{ acte.lettre_cle }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.coefficient }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.date }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.executant or '-' }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.montant if acte.montant else '-' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Actes UCD -->
-        {% if ucd_actes %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-slate-800">💊 Actes UCD ({{ ucd_actes|length }})</h2>
-                <form method="POST" action="/hprim-cotation/message/{{ message.id }}/import-ucd" style="display: inline;">
-                    <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
-                        ✓ Importer les actes UCD
-                    </button>
-                </form>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Code CIP</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Désignation</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Quantité</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Prix unitaire</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Montant total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
-                        {% for acte in ucd_actes %}
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-4 py-3 text-sm font-mono text-slate-900">{{ acte.code_cip }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.designation }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.quantite }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.prix_unitaire }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.montant_total }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Actes LPP -->
-        {% if lpp_actes %}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-slate-800">🔧 Actes LPP ({{ lpp_actes|length }})</h2>
-                <form method="POST" action="/hprim-cotation/message/{{ message.id }}/import-lpp" style="display: inline;">
-                    <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
-                        ✓ Importer les actes LPP
-                    </button>
-                </form>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Code LPP</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Libellé</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Quantité</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Prix unitaire</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">Montant total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
-                        {% for acte in lpp_actes %}
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-4 py-3 text-sm font-mono text-slate-900">{{ acte.code_lpp }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.libelle }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.quantite }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.prix_unitaire }}</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">{{ acte.montant_total }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Aucun acte -->
-        {% if not ccam_actes and not ngap_actes and not ucd_actes and not lpp_actes %}
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-            <span class="text-5xl mb-3 block">📭</span>
-            <p class="text-yellow-800 text-lg font-semibold">Aucun acte trouvé dans ce message HPRIM</p>
-            <p class="text-yellow-700 mt-2">Le message ne contient pas d'actes CCAM, NGAP, UCD ou LPP.</p>
-        </div>
-        {% endif %}
+    {% macro render_act_table(title, icon, import_url, headers, rows, key_map) %}
+    {% if rows %}
+    <section class="panel rounded-2xl p-5 mb-5">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
+        <h2 class="text-lg font-bold text-slate-900">{{ icon }} {{ title }} ({{ rows|length }})</h2>
+        <form method="POST" action="{{ import_url }}">
+          <button type="submit" class="px-4 py-2 rounded-xl bg-teal-700 text-white font-semibold hover:bg-teal-800">Importer</button>
+        </form>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="act-table min-w-full divide-y divide-slate-200 text-sm">
+          <thead>
+            <tr>
+              {% for h in headers %}
+              <th class="px-4 py-2 text-left text-xs uppercase tracking-wider">{{ h }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              {% for key in key_map %}
+              <td class="px-4 py-3 text-slate-800">
+                {% set v = row[key] %}
+                {% if v and v.strftime is defined %}
+                  {{ v.strftime('%d/%m/%Y %H:%M') }}
+                {% else %}
+                  {{ v if v is not none and v != '' else '-' }}
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
     {% endif %}
+    {% endmacro %}
+
+    {{ render_act_table('Actes CCAM', '🔬', '/hprim-cotation/message/' ~ message.message_id ~ '/import-ccam', ['Code', 'Activité', 'Phase', 'Date', 'Quantité', 'Exécutant', 'Modificateurs', 'Montant'], ccam_actes, ['code', 'activite', 'phase', 'date', 'quantite', 'executant', 'modificateurs', 'montant']) }}
+
+    {{ render_act_table('Actes NGAP', '💉', '/hprim-cotation/message/' ~ message.message_id ~ '/import-ngap', ['Lettre clé', 'Coefficient', 'Date', 'Exécutant', 'Montant'], ngap_actes, ['lettre_cle', 'coefficient', 'date', 'executant', 'montant']) }}
+
+    {{ render_act_table('Actes UCD', '💊', '/hprim-cotation/message/' ~ message.message_id ~ '/import-ucd', ['Code', 'Désignation', 'Quantité', 'Montant'], ucd_actes, ['code', 'libelle', 'quantite', 'montant']) }}
+
+    {{ render_act_table('Actes LPP', '🔧', '/hprim-cotation/message/' ~ message.message_id ~ '/import-lpp', ['Code', 'Libellé', 'Quantité', 'Montant'], lpp_actes, ['code', 'libelle', 'quantite', 'montant']) }}
+
+    {% if not ccam_actes and not ngap_actes and not ucd_actes and not lpp_actes %}
+    <section class="panel rounded-2xl p-8 text-center mb-5">
+      <h2 class="text-xl font-bold text-slate-900 mb-2">Aucun acte détecté</h2>
+      <p class="text-slate-600">Le message ne contient pas de lignes importables CCAM/NGAP/UCD/LPP.</p>
+    </section>
+    {% endif %}
+
+    <section class="panel rounded-2xl p-5">
+      <h2 class="text-lg font-bold text-slate-900 mb-3">Archive XML</h2>
+      <pre class="bg-slate-950 text-slate-100 rounded-xl p-4 overflow-x-auto text-xs whitespace-pre-wrap">{{ message.xml_content }}</pre>
+    </section>
+  {% endif %}
 </div>
 {% endblock %}

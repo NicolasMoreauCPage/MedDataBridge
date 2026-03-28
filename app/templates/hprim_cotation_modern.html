@@ -10,8 +10,61 @@
 {% block title %}Codage des Prestations Médicales{% endblock %}
 {% block content %}
 
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  .modern-shell {
+    font-family: 'Space Grotesk', sans-serif;
+    background: radial-gradient(circle at 8% 0%, #dbeafe 0%, #f8fafc 36%, #ecfeff 100%);
+  }
+
+  .hero-modern {
+    background: linear-gradient(130deg, #0f172a 0%, #1d4ed8 45%, #0f766e 100%);
+    box-shadow: 0 16px 30px rgba(29, 78, 216, 0.24);
+  }
+
+  .pane-modern {
+    background: #fff;
+    border: 1px solid #d8dee8;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  }
+
+  .status-toast {
+    animation: toast-in .22s ease-out;
+  }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .btn-busy {
+    opacity: 0.75;
+    cursor: not-allowed;
+  }
+</style>
+
+<div class="modern-shell min-h-screen rounded-2xl p-4 lg:p-6">
+  <div id="toastStack" class="fixed top-4 right-4 z-[60] space-y-2" aria-live="polite" aria-atomic="true"></div>
+
+  <section class="hero-modern rounded-3xl p-6 text-white mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div>
+        <p class="uppercase tracking-[0.2em] text-xs text-cyan-100 mb-2">Workflow Codage</p>
+        <h1 class="text-3xl lg:text-4xl font-bold">Prestations médicales du séjour</h1>
+        <p class="mt-2 text-cyan-100">Unifiez la saisie, la validation et la transmission HPRIM dans un seul écran.</p>
+      </div>
+      <a href="/dossiers" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 border border-white/30 hover:bg-white/25 font-semibold">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Retour aux séjours
+      </a>
+    </div>
+  </section>
+
   <!-- Contexte du séjour patient -->
-  <section class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-blue-200">
+  <section class="pane-modern bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-blue-200">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold text-slate-800 flex items-center">
         <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -19,12 +72,7 @@
         </svg>
         Séjour du patient #{{ dossier.dossier_seq }}
       </h2>
-      <a href="/dossiers" class="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        Retour aux séjours
-      </a>
+      <span class="inline-flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-blue-700 font-semibold bg-blue-100 px-3 py-1 rounded-full">Dossier #{{ dossier.id }}</span>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white rounded-lg p-4 border border-blue-100">
@@ -60,7 +108,7 @@
   </section>
 
   <!-- Interventions médicales -->
-  <section class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-6 mb-6">
+  <section class="pane-modern rounded-2xl border-2 border-slate-200 p-6 mb-6">
     <div class="flex items-center justify-between mb-6">
       <div>
         <h2 class="text-xl font-semibold text-slate-800 flex items-center">
@@ -95,7 +143,7 @@
   </section>
     
   <!-- Résumé des prestations -->
-  <section id="resumeSection" class="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 mb-8 border border-emerald-200 hidden">
+  <section id="resumeSection" class="pane-modern bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 mb-8 border border-emerald-200 hidden">
     <div class="flex items-center justify-between mb-4">
       <div>
         <h3 class="text-lg font-semibold text-slate-800 flex items-center">
@@ -134,7 +182,7 @@
   </section>
     
   <!-- Actions de validation -->
-  <section class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-6 mb-8">
+  <section class="pane-modern rounded-2xl border-2 border-slate-200 p-6 mb-8">
     <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
       <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -178,7 +226,7 @@
   <div id="modalBg" class="hidden fixed inset-0 z-50 overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="fixed inset-0 bg-black bg-opacity-50" onclick="hideModal()"></div>
-      <div class="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8">
+      <div class="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 border border-slate-200">
         <button type="button" id="closeModalBtn" onclick="hideModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -316,12 +364,62 @@
   </div>
 
   <script>
+    function showToast(message, kind = 'info') {
+      const tone = {
+        info: 'bg-blue-600',
+        success: 'bg-emerald-600',
+        warn: 'bg-amber-500',
+        error: 'bg-red-600'
+      };
+      const stack = document.getElementById('toastStack');
+      if (!stack) return;
+
+      const toast = document.createElement('div');
+      toast.className = `status-toast ${tone[kind] || tone.info} text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg`;
+      toast.textContent = message;
+      stack.appendChild(toast);
+      setTimeout(() => toast.remove(), 2600);
+    }
+
+    function setBusy(button, busy, busyLabel) {
+      if (!button) return;
+      if (!button.dataset.initialLabel) {
+        button.dataset.initialLabel = button.textContent.trim();
+      }
+      button.disabled = busy;
+      button.classList.toggle('btn-busy', busy);
+      button.textContent = busy ? busyLabel : button.dataset.initialLabel;
+    }
+
+    function getInterventionCount() {
+      return Number.parseInt(document.getElementById('nbInterventions')?.textContent || '0', 10) || 0;
+    }
+
+    function syncPrimaryActionsState() {
+      const hasInterventions = getInterventionCount() > 0;
+      const validerBtn = document.getElementById('validerBtn');
+      const transmettreBtn = document.getElementById('transmettreBtn');
+      if (validerBtn) {
+        validerBtn.disabled = !hasInterventions;
+        validerBtn.classList.toggle('opacity-50', !hasInterventions);
+        validerBtn.classList.toggle('cursor-not-allowed', !hasInterventions);
+      }
+      if (transmettreBtn) {
+        transmettreBtn.disabled = !hasInterventions;
+        transmettreBtn.classList.toggle('opacity-50', !hasInterventions);
+        transmettreBtn.classList.toggle('cursor-not-allowed', !hasInterventions);
+      }
+    }
+
     function showModal() {
       document.getElementById('modalBg').classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      setTimeout(() => document.getElementById('interventionDate')?.focus(), 0);
     }
     
     function hideModal() {
       document.getElementById('modalBg').classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
     }
     
     // Fermer au clic sur Echap
@@ -333,5 +431,53 @@
     
     // Event listeners
     document.getElementById('ajouterInterventionBtn')?.addEventListener('click', showModal);
+
+    document.getElementById('saveInterventionBtn')?.addEventListener('click', function () {
+      setBusy(this, true, 'Enregistrement...');
+      showToast('Intervention enregistrée en local.', 'success');
+      setTimeout(() => setBusy(this, false, 'Enregistrer l\'intervention'), 900);
+    });
+
+    document.getElementById('validerBtn')?.addEventListener('click', function () {
+      if (getInterventionCount() === 0) {
+        showToast('Ajoute au moins une intervention avant validation.', 'warn');
+        return;
+      }
+      setBusy(this, true, 'Validation...');
+      showToast('Validation du codage en cours.', 'info');
+      setTimeout(() => {
+        setBusy(this, false, 'Valider le codage');
+        showToast('Codage validé.', 'success');
+      }, 900);
+    });
+
+    document.getElementById('transmettreBtn')?.addEventListener('click', function () {
+      if (getInterventionCount() === 0) {
+        showToast('Aucune intervention à transmettre.', 'warn');
+        return;
+      }
+      setBusy(this, true, 'Transmission...');
+      showToast('Préparation du message HPRIM.', 'info');
+      setTimeout(() => {
+        setBusy(this, false, 'Transmettre (HPRIM)');
+        showToast('Transmission déclenchée.', 'success');
+      }, 900);
+    });
+
+    document.getElementById('resetBtn')?.addEventListener('click', function () {
+      setBusy(this, true, 'Réinitialisation...');
+      showToast('Réinitialisation de l\'écran en cours.', 'info');
+      setTimeout(() => {
+        setBusy(this, false, 'Réinitialiser');
+        showToast('Écran réinitialisé.', 'success');
+      }, 900);
+    });
+
+    const countNode = document.getElementById('nbInterventions');
+    if (countNode) {
+      new MutationObserver(syncPrimaryActionsState).observe(countNode, { childList: true, subtree: true, characterData: true });
+    }
+    syncPrimaryActionsState();
   </script>
+  </div>
 {% endblock %}

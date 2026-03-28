@@ -1,6 +1,4 @@
-"""
-Module CCAM - Classification Commune des Actes Médicaux (stub).
-"""
+"""Module CCAM - Classification Commune des Actes Médicaux."""
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
@@ -20,9 +18,22 @@ async def ccam_dashboard(request: Request):
             "module_name": "CCAM - Classification Commune des Actes Médicaux",
             "module_description": "Recherchez et exploitez les actes CCAM dans les parcours de codage et de facturation.",
             "docs_url": "/docs/COTATION_FONCTIONNELLE.md",
-            "endpoints": [],
+            "endpoints": [
+                {
+                    "method": "GET",
+                    "path": "/cotations/api/search/ccam?query=HBMD",
+                    "description": "Recherche de codes CCAM (auto-complétion)",
+                },
+                {
+                    "method": "POST",
+                    "path": "/api/hprim/actes/ccam/emission",
+                    "description": "Émission HPRIM XML d'actes CCAM",
+                },
+                {
+                    "method": "GET",
+                    "path": "/dossiers/{dossier_id}/cotations",
+                    "description": "Workspace de cotations du dossier",
+                },
+            ],
         },
     )
-
-
-# TODO: Implémenter la gestion de la nomenclature CCAM

@@ -1131,14 +1131,206 @@ class HprimXmlService:
     def _parse_actes_lpp(self, evenement: ET.Element) -> List[Any]:
         """Parse les actes LPP d'un événement"""
         actes = []
-        # TODO: Implémenter le parsing des actes LPP
+        actes_lpp_elem = evenement.find(".//{http://www.hprim.org/hprimXML}actesLPP")
+        if actes_lpp_elem is not None:
+            for acte_elem in actes_lpp_elem.findall(".//{http://www.hprim.org/hprimXML}acteLPP"):
+                acte = self._parse_acte_lpp(acte_elem)
+                actes.append(acte)
         return actes
+
+    def _parse_acte_lpp(self, acte_elem: ET.Element) -> Any:
+        """Parse un acte LPP"""
+        from types import SimpleNamespace
+        
+        # Attributs
+        action_str = acte_elem.get("action", "creation")
+        if action_str.lower() in ("création", "Création"):
+            action_str = "creation"
+        
+        facturable = acte_elem.get("facturable", "oui") == "oui"
+        valide = acte_elem.get("valide", "non") == "oui"
+        facture = acte_elem.get("facture", "non")
+        gratuit = acte_elem.get("gratuit") == "oui"
+        
+        # Identifiant
+        identifiant = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant", "")
+        
+        # Codes LPP (obligatoire: montant unitaire facturé TTC)
+        code_interne_lpp = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeInterneLPP", None)
+        code_lpp = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeLPP", None)
+        code_commercial_lpp = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeCommercialLPP", None)
+        
+        # Dénomination
+        denomination_libelle = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}denomination/{http://www.hprim.org/hprimXML}libelle", None)
+        
+        # Date d'exécution (obligatoire)
+        execute_date_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}execute/{http://www.hprim.org/hprimXML}date")
+        execute_date = datetime.fromisoformat(execute_date_str) if execute_date_str and not execute_date_str.startswith('$') else datetime.now()
+        
+        # Quantité (obligatoire)
+        quantite_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}quantite", "1")
+        quantite = int(quantite_str) if quantite_str else 1
+        
+        # Montants (montant unitaire facturé TTC obligatoire)
+        montant_unitaire_facture_ttc_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}montant/{http://www.hprim.org/hprimXML}montantUnitaireFactureTTC", "0.0")
+        montant_value = Decimal(montant_unitaire_facture_ttc_str) if montant_unitaire_facture_ttc_str else Decimal("0.0")
+        montant = SimpleNamespace(valeur=montant_value, devise="EUR") if montant_value else None
+        
+        # Prise en charge
+        risque = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}priseCharge/{http://www.hprim.org/hprimXML}risque", None)
+        entente_prealable = acte_elem.get("ententePrealable", None)
+        indicateur_parcours_soins = acte_elem.get("indicateurParcoursSoins", None)
+        date_demande_accord_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}priseCharge/{http://www.hprim.org/hprimXML}dateDemandeAccord")
+        date_demande_accord = date_demande_accord_str if date_demande_accord_str else None
+        
+        # Fournisseur
+        siret_fournisseur = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}siretFournisseur", None)
+        
+        # Autres champs
+        nature_prestation = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}naturePrestation", None)
+        numero_lot = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroLot", None)
+        numero_serie = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroSerie", None)
+        iud_id = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}IUD", None)
+        commentaire = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}commentaire")
+        
+        return SimpleNamespace(
+            identifiant=identifiant,
+            code_interne_lpp=code_interne_lpp,
+            code_lpp=code_lpp,
+            code_commercial_lpp=code_commercial_lpp,
+            denomination_libelle=denomination_libelle,
+            execute_date=execute_date,
+            quantite=quantite,
+            montant=montant,
+            risque=risque,
+            entente_prealable=entente_prealable,
+            indicateur_parcours_soins=indicateur_parcours_soins,
+            date_demande_accord=date_demande_accord,
+            siret_fournisseur=siret_fournisseur,
+            nature_prestation=nature_prestation,
+            numero_lot=numero_lot,
+            numero_serie=numero_serie,
+            iud_id=iud_id,
+            commentaire=commentaire,
+            action=action_str,
+            facturable=facturable,
+            valide=valide,
+            facture=facture,
+            gratuit=gratuit
+        )
 
     def _parse_actes_ucd(self, evenement: ET.Element) -> List[Any]:
         """Parse les actes UCD d'un événement"""
         actes = []
-        # TODO: Implémenter le parsing des actes UCD
+        actes_ucd_elem = evenement.find(".//{http://www.hprim.org/hprimXML}actesUCD")
+        if actes_ucd_elem is not None:
+            for acte_elem in actes_ucd_elem.findall(".//{http://www.hprim.org/hprimXML}acteUCD"):
+                acte = self._parse_acte_ucd(acte_elem)
+                actes.append(acte)
         return actes
+
+    def _parse_acte_ucd(self, acte_elem: ET.Element) -> Any:
+        """Parse un acte UCD"""
+        from types import SimpleNamespace
+        
+        # Attributs
+        action_str = acte_elem.get("action", "creation")
+        if action_str.lower() in ("création", "Création"):
+            action_str = "creation"
+        
+        facturable = acte_elem.get("facturable", "oui") == "oui"
+        valide = acte_elem.get("valide", "non") == "oui"
+        facture = acte_elem.get("facture", "non")
+        gratuit = acte_elem.get("gratuit") == "oui"
+        liberal = acte_elem.get("liberal") == "oui"
+        retrocession = acte_elem.get("retrocession") == "oui"
+        essai_therapeutique = acte_elem.get("essaiTherapeutique") == "oui"
+        
+        # Identifiant
+        identifiant = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant", "")
+        
+        # Codes UCD (Code CIP-13 obligatoire)
+        code_interne_ucd = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeInterneUCD", None)
+        code_ucd = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeUCD", None)
+        code_commercial = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeCommercial", None)
+        
+        # Dénomination
+        denomination_libelle = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}denomination/{http://www.hprim.org/hprimXML}libelle", None)
+        denomination_dosage = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}denomination/{http://www.hprim.org/hprimXML}dosage", None)
+        denomination_forme = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}denomination/{http://www.hprim.org/hprimXML}forme", None)
+        
+        # Date (obligatoire) avec nature optionnelle
+        execute_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}execute")
+        execute_date = datetime.now()
+        nature_date = None
+        if execute_elem is not None:
+            date_str = execute_elem.findtext(".//{http://www.hprim.org/hprimXML}date")
+            if date_str and not date_str.startswith('$'):
+                try:
+                    execute_date = datetime.fromisoformat(date_str)
+                except ValueError:
+                    pass
+            nature_date = execute_elem.get("natureDate", None)
+        
+        # Quantité fractionnée (obligatoire)
+        quantite_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}quantite", "1")
+        quantite = float(quantite_str) if quantite_str else 1.0
+        
+        # Montants
+        taux_tva_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}montant/{http://www.hprim.org/hprimXML}tauxTVA")
+        taux_tva = float(taux_tva_str) if taux_tva_str else None
+        
+        montant_unitaire_facture_ttc_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}montant/{http://www.hprim.org/hprimXML}montantUnitaireFactureTTC", "0.0")
+        montant_value = Decimal(montant_unitaire_facture_ttc_str) if montant_unitaire_facture_ttc_str else Decimal("0.0")
+        montant = SimpleNamespace(valeur=montant_value, devise="EUR") if montant_value else None
+        
+        # Prise en charge
+        risque = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}priseCharge/{http://www.hprim.org/hprimXML}risque", None)
+        entente_prealable = acte_elem.get("ententePrealable", None)
+        indicateur_parcours_soins = acte_elem.get("indicateurParcoursSoins", None)
+        date_demande_accord_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}priseCharge/{http://www.hprim.org/hprimXML}dateDemandeAccord")
+        date_demande_accord = date_demande_accord_str if date_demande_accord_str else None
+        
+        # Fournisseur
+        siret_fournisseur = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}siretFournisseur", None)
+        numero_lot = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroLot", None)
+        
+        # Autres champs
+        nature_prestation = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}naturePrestation", None)
+        code_indication_les = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeIndicationLES", None)
+        commentaire = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}commentaire")
+        
+        return SimpleNamespace(
+            identifiant=identifiant,
+            code_interne_ucd=code_interne_ucd,
+            code_ucd=code_ucd,
+            code_commercial=code_commercial,
+            denomination_libelle=denomination_libelle,
+            denomination_dosage=denomination_dosage,
+            denomination_forme=denomination_forme,
+            execute_date=execute_date,
+            nature_date=nature_date,
+            quantite=quantite,
+            montant=montant,
+            taux_tva=taux_tva,
+            risque=risque,
+            entente_prealable=entente_prealable,
+            indicateur_parcours_soins=indicateur_parcours_soins,
+            date_demande_accord=date_demande_accord,
+            siret_fournisseur=siret_fournisseur,
+            numero_lot=numero_lot,
+            nature_prestation=nature_prestation,
+            code_indication_les=code_indication_les,
+            commentaire=commentaire,
+            action=action_str,
+            facturable=facturable,
+            valide=valide,
+            facture=facture,
+            gratuit=gratuit,
+            liberal=liberal,
+            retrocession=retrocession,
+            essai_therapeutique=essai_therapeutique
+        )
 
     def _parse_patient(self, patient_elem: ET.Element) -> HprimPatient:
         """Parse un élément patient"""

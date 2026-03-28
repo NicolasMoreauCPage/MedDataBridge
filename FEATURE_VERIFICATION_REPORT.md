@@ -5,6 +5,41 @@
 
 ---
 
+## UPDATE ADDENDUM (March 27, 2026 - UX/UI & Accessibility)
+
+Following the initial bug verification phase, a full UX remediation pass was completed and validated.
+
+### What was improved
+- Shared module dashboard introduced for CCAM/UCD/LPP/IHE landing pages
+- Global layout quality improvements (typography, visual hierarchy, ambient backgrounds)
+- Accessibility hardening on shared templates:
+   - robust focus styles
+   - keyboard-friendly interactive rows
+   - table semantics (`caption`, `scope="col"`)
+   - `aria-current`, `aria-expanded`, `aria-controls` on navigation controls
+   - invalid nested-link markup fixes in header context badges
+- Workflow page refinements:
+   - patient and dossier detail navigation semantics improved
+   - movement workflow success handling switched from forced reload to in-place URL cleanup
+   - live status feedback added for form/replay actions
+- Form consistency pass on shared form templates:
+   - breadcrumb semantics and form guidance harmonized
+   - duplicate heading removed in compact form template
+
+### Validation snapshot
+- Targeted template diagnostics: no errors on modified templates
+- Route health checks after changes:
+   - `/patients`, `/dossiers`, `/mouvements`, `/messages`, `/messages/by-dossier` -> `200`
+   - key form pages (`/patients/new`, `/dossiers/new`, `/endpoints/new`, `/messages/send`) -> `200`
+
+### Delivery status
+- UX/accessibility work committed and pushed to `main`
+- Commit lineage includes:
+   - `dc47c82` (UX harmonization wave)
+   - rebased/pushed head: `b461015`
+
+---
+
 ## EXECUTIVE SUMMARY
 
 Systematic feature-by-feature testing revealed **7 bugs** across the IntegraSanté application:

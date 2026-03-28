@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
+from app.routers.ght.namespaces import validate_and_extract_oid
 
 
 @pytest.mark.api
@@ -250,7 +251,7 @@ def test_update_namespace_success(client: TestClient, session: Session):
 
 
 def test_update_namespace_validation_error(client: TestClient, session: Session):
-    """Test mise à jour namespace avec données invalides"""
+    """Test mise à jour namespace: nom vide -> nom généré automatiquement"""
     ght = GHTContext(name="Test GHT", code="TST")
     session.add(ght)
     session.commit()
@@ -265,17 +266,92 @@ def test_update_namespace_validation_error(client: TestClient, session: Session)
     session.commit()
 
     form_data = {
-        "name": "",  # Name requis manquant
+        "name": "",  # Nom vide: le routeur génère un nom à partir type+OID
         "system": "http://test.example.org",
         "type": "PI",
         "description": "Test description",
         "oid": "1.2.3.4.5"
     }
 
+    client.follow_redirects = False
     response = client.post(f"/admin/ght/{ght.id}/namespaces/{namespace.id}/edit", data=form_data)
 
-    assert response.status_code == 422
-    errors = response.json()
-    # Pydantic validation error format
-    assert len(errors["detail"]) > 0
-    assert any("name" in str(error) and "required" in str(error) for error in errors["detail"])
+    assert response.status_code == 303
+    updated_ns = session.get(IdentifierNamespace, namespace.id)
+    assert updated_ns.name == "PI_1_2_3_4_5"
+    assert updated_ns.oid == "1.2.3.4.5"
+
+
+def test_validate_and_extract_oid_auto_extract_success():
+    """URI urn:oid => extraction automatique de l'OID."""
+    is_valid, error_msg, extracted_oid = validate_and_extract_oid("urn:oid:1.2.250.1.71.1.2.2", "")
+    assert is_valid is True
+    assert error_msg is None
+    assert extracted_oid == "1.2.250.1.71.1.2.2"
+
+
+def test_validate_and_extract_oid_detects_incoherence():
+    """Rejette URI/OID incohérents conformément aux specs."""
+    is_valid, error_msg, extracted_oid = validate_and_extract_oid(
+        "urn:oid:1.2.250.1.71.1.2.2",
+        "1.2.250.1.71.9.9.9",
+    )
+    assert is_valid is False
+    assert extracted_oid is None
+    assert error_msg is not None
+    assert "Incohérence" in error_msg
+
+
+def test_create_namespace_with_urn_oid_auto_populates_oid(client: TestClient, session: Session):
+    """Création namespace: extraction OID + génération du nom si name vide."""
+    ght = GHTContext(name="Test GHT", code="TST")
+    session.add(ght)
+    session.commit()
+
+    form_data = {
+        "name": "",
+        "system": "urn:oid:1.2.250.1.71.1.2.2",
+        "oid": "",
+        "type": "IPP",
+        "description": "Namespace auto OID",
+    }
+
+    client.follow_redirects = False
+    response = client.post(f"/admin/ght/{ght.id}/namespaces/new", data=form_data)
+    assert response.status_code == 303
+
+    created = session.exec(
+        select(IdentifierNamespace)
+        .where(IdentifierNamespace.ght_context_id == ght.id)
+        .where(IdentifierNamespace.system == "urn:oid:1.2.250.1.71.1.2.2")
+    ).all()
+    assert len(created) == 1
+    assert created[0].oid == "1.2.250.1.71.1.2.2"
+    assert created[0].name == "IPP_1_2_250_1_71_1_2_2"
+
+
+def test_create_namespace_rejects_incoherent_urn_oid(client: TestClient, session: Session):
+    """Création namespace: rejet quand URI et OID fournis sont incohérents."""
+    ght = GHTContext(name="Test GHT", code="TST")
+    session.add(ght)
+    session.commit()
+
+    form_data = {
+        "name": "Bad namespace",
+        "system": "urn:oid:1.2.250.1.71.1.2.2",
+        "oid": "1.2.250.1.71.9.9.9",
+        "type": "IPP",
+        "description": "Namespace incoherent",
+    }
+
+    client.follow_redirects = False
+    response = client.post(f"/admin/ght/{ght.id}/namespaces/new", data=form_data)
+    assert response.status_code == 303
+    assert response.headers["location"].endswith(f"/admin/ght/{ght.id}/namespaces/new")
+
+    created = session.exec(
+        select(IdentifierNamespace)
+        .where(IdentifierNamespace.ght_context_id == ght.id)
+        .where(IdentifierNamespace.system == "urn:oid:1.2.250.1.71.1.2.2")
+    ).all()
+    assert len(created) == 0

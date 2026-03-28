@@ -42,12 +42,6 @@ class ActeCCAMRequest(BaseModel):
     montant: Optional[float] = Field(None, description="Montant en euros")
     commentaire: Optional[str] = Field(None, description="Commentaire")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-
 class PatientInfo(BaseModel):
     """Informations patient pour HPRIM"""
     identifiant_id: str = Field(..., description="ID patient")
@@ -110,12 +104,6 @@ class ActeCCAMResponse(BaseModel):
     valide: bool
     facture: bool
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-
 class MessageHPRIMResponse(BaseModel):
     """Réponse pour un message HPRIM"""
     message_id: str
@@ -124,12 +112,6 @@ class MessageHPRIMResponse(BaseModel):
     xml_size: int
     validation_errors: List[Dict[str, Any]] = Field(default_factory=list)
     created_at: datetime
-
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
 
 class ReceptionRequest(BaseModel):
     """Requête de réception d'actes CCAM"""

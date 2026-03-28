@@ -48,12 +48,6 @@ class ActeNGAPRequest(BaseModel):
     commentaire: Optional[str] = Field(None, description="Commentaire")
     bhn_phns: Optional[Dict[str, Any]] = Field(None, description="BHN/PHNS")
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-
 class NGAPInfo(BaseModel):
     """Informations NGAP pour HPRIM"""
     lettre_cle: str = Field(..., description="Lettre-clé")
@@ -94,12 +88,6 @@ class ActeNGAPResponse(BaseModel):
     valide: bool
     facture: bool
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
-
 class MessageNGAPResponse(BaseModel):
     """Réponse pour un message NGAP"""
     message_id: str
@@ -110,12 +98,6 @@ class MessageNGAPResponse(BaseModel):
     validation_errors: List[Dict[str, Any]]
     created_at: datetime
     dossier_id: Optional[str] = None
-
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
-
 
 class ReceptionNGAPResponse(BaseModel):
     succes: bool

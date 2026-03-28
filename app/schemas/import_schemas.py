@@ -1,8 +1,8 @@
 """
-Schémas Pydantic pour l'import Excel de structure
-Validation des données par feuille Excel
+Schémas Pydantic pour l'import Excel de structure.
+Validation des données par feuille Excel.
 """
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from enum import Enum
 
@@ -47,11 +47,13 @@ class ExcelRowEG(BaseModel):
     code_postal: Optional[str] = None
     telephone: Optional[str] = None
     
-    @validator('code')
+    @field_validator('code')
+    @classmethod
     def code_must_be_uppercase(cls, v):
         return v.upper().strip()
     
-    @validator('nom')
+    @field_validator('nom')
+    @classmethod
     def nom_must_be_stripped(cls, v):
         return v.strip()
 
@@ -64,7 +66,8 @@ class ExcelRowPole(BaseModel):
     description: Optional[str] = None
     responsable: Optional[str] = None
     
-    @validator('code', 'eg_code')
+    @field_validator('code', 'eg_code')
+    @classmethod
     def codes_must_be_uppercase(cls, v):
         return v.upper().strip()
 
@@ -78,7 +81,8 @@ class ExcelRowService(BaseModel):
     description: Optional[str] = None
     responsable: Optional[str] = None
     
-    @validator('code', 'pole_code')
+    @field_validator('code', 'pole_code')
+    @classmethod
     def codes_must_be_uppercase(cls, v):
         return v.upper().strip()
 
@@ -92,7 +96,8 @@ class ExcelRowUF(BaseModel):
     capacite: Optional[int] = Field(None, ge=0)
     description: Optional[str] = None
     
-    @validator('code', 'service_code')
+    @field_validator('code', 'service_code')
+    @classmethod
     def codes_must_be_uppercase(cls, v):
         return v.upper().strip()
 
@@ -105,7 +110,8 @@ class ExcelRowUH(BaseModel):
     capacite: Optional[int] = Field(None, ge=0)
     etage: Optional[str] = None
     
-    @validator('code', 'service_code')
+    @field_validator('code', 'service_code')
+    @classmethod
     def codes_must_be_uppercase(cls, v):
         return v.upper().strip()
 
@@ -118,7 +124,8 @@ class ExcelRowChambre(BaseModel):
     capacite: Optional[int] = Field(None, ge=1, le=6)
     numero: Optional[str] = None
     
-    @validator('code', 'uh_code')
+    @field_validator('code', 'uh_code')
+    @classmethod
     def codes_must_be_uppercase(cls, v):
         return v.upper().strip()
 
@@ -130,7 +137,8 @@ class ExcelRowLit(BaseModel):
     chambre_code: str = Field(..., description="Code de la Chambre parent")
     numero: Optional[str] = None
     
-    @validator('code', 'chambre_code')
+    @field_validator('code', 'chambre_code')
+    @classmethod
     def codes_must_be_uppercase(cls, v):
         return v.upper().strip()
 

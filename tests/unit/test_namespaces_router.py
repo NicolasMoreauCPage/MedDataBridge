@@ -13,8 +13,6 @@ from sqlmodel import Session, select
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
 from app.routers.ght.namespaces import validate_and_extract_oid
 
-
-@pytest.mark.api
 def test_new_namespace_form(client: TestClient, session: Session):
     """Test affichage formulaire création namespace GHT"""
     # Créer un contexte GHT

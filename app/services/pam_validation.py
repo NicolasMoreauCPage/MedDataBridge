@@ -63,6 +63,7 @@ SEGMENT_RULES = {
     "A04": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     "A05": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     "A06": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A07": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     "A08": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     "A11": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     "Z99": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
@@ -71,6 +72,8 @@ SEGMENT_RULES = {
     "A21": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     "A22": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     "A23": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A52": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
+    "A53": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
     # Identité: PV1 optionnel; MRG pour fusion
     "A28": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "PV1", "PV2"]},
     "A31": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "PV1", "PV2"]},
@@ -107,6 +110,7 @@ SEGMENT_ORDER = {
     "A04": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A05": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A06": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A07": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A08": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A11": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "Z99": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
@@ -115,10 +119,17 @@ SEGMENT_ORDER = {
     "A21": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A22": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A23": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A52": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
+    "A53": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A28": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A31": ["MSH", "EVN", "PID", "PD1", "NK1", "PV1", "PV2"],
     "A40": ["MSH", "EVN", "PID", "PD1", "NK1", "MRG"],
     "A47": ["MSH", "EVN", "PID", "PD1", "MRG"],
+}
+
+# Segments explicitement exclus du profil IHE PAM FR (hors extensions locales)
+FORBIDDEN_PAM_SEGMENTS = {
+    "AL1", "DG1", "OBX", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA", "DB1"
 }
 
 
@@ -176,12 +187,27 @@ class ValidationIssue:
 
 
 @dataclass
+class ValidationAuditEntry:
+    """Audit trail entry for validation execution."""
+    timestamp: str          # ISO 8601 format
+    trigger: str            # ADT trigger event
+    direction: str          # "in" or "out"
+    is_valid: bool
+    issues_count: int       # Total issues found
+    errors_count: int       # Count of error severity
+    warnings_count: int     # Count of warning severity
+    profile: str            # Profile used (IHE_PAM_FR)
+    strict_semantic: bool   # Semantic strictness flag
+
+
+@dataclass
 class ValidationResult:
     is_valid: bool
     level: str              # ok|warn|fail
     event: str              # e.g., A01
     message_type: str       # e.g., ADT^A01
     issues: List[ValidationIssue]
+    audit: Optional[ValidationAuditEntry] = None
 
     def to_dict(self) -> Dict:
         return {
@@ -190,6 +216,7 @@ class ValidationResult:
             "event": self.event,
             "message_type": self.message_type,
             "issues": [asdict(i) for i in self.issues],
+            "audit": asdict(self.audit) if self.audit else None,
         }
 
 
@@ -567,8 +594,96 @@ def _get_all_segments(msg: str) -> Set[str]:
     return segments
 
 
-def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -> ValidationResult:
+def _validate_z_segments(msg: str, trigger: str, issues: List[ValidationIssue], strict_inbound: bool) -> None:
+    """
+    Validate French extension Z-segments beyond ZBE.
+    
+    Supported Z-segments:
+    - ZBE: Movement tracking (validated separately)
+    - ZPD: Patient demographics extension
+    - ZIS: Identifier system extension
+    - ZAD: Address extension
+    """
+    segments = _get_all_segments(msg)
+    
+    # Extract Z-segments (excluding ZBE which is already validated)
+    z_segments = {s for s in segments if s.startswith("Z") and s != "ZBE"}
+    
+    for z_seg_type in z_segments:
+        z_seg_line = _get_first_segment(msg, z_seg_type)
+        if not z_seg_line:
+            continue
+            
+        parts = z_seg_line.split("|")
+        
+        # ZPD (Patient Demographics Extension)
+        if z_seg_type == "ZPD":
+            # ZPD-1: Extension ID (should be present)
+            ext_id = _field(parts, 1)
+            if not ext_id:
+                issues.append(ValidationIssue(
+                    "ZPD_1_MISSING",
+                    "ZPD-1 (Extension ID) is required when ZPD segment present",
+                    severity="error" if strict_inbound else "warn"
+                ))
+        
+        # ZIS (Identifier System Extension)
+        elif z_seg_type == "ZIS":
+            # ZIS-1: System code (required)
+            sys_code = _field(parts, 1)
+            if not sys_code:
+                issues.append(ValidationIssue(
+                    "ZIS_1_MISSING",
+                    "ZIS-1 (System Code) is required when ZIS segment present",
+                    severity="error" if strict_inbound else "warn"
+                ))
+            # ZIS-2: System OID (should match HL7 standards)
+            sys_oid = _field(parts, 2)
+            if sys_oid and not sys_oid.replace(".", "").isdigit():
+                issues.append(ValidationIssue(
+                    "ZIS_2_INVALID",
+                    f"ZIS-2 (System OID) must be numeric dot format, got: {sys_oid}",
+                    severity="warn"
+                ))
+        
+        # ZAD (Address Extension)
+        elif z_seg_type == "ZAD":
+            # ZAD-1: Address type (should be present)
+            addr_type = _field(parts, 1)
+            if not addr_type:
+                issues.append(ValidationIssue(
+                    "ZAD_1_MISSING",
+                    "ZAD-1 (Address Type) is recommended when ZAD segment present",
+                    severity="info"
+                ))
+
+
+
+def validate_pam(
+    msg: str,
+    direction: str = "in",
+    profile: str = "IHE_PAM_FR",
+    strict_semantic: bool = False,
+    include_audit: bool = False
+) -> ValidationResult:
+    """
+    Validate HL7 ADT message against IHE PAM FR profile.
+    
+    Args:
+        msg: HL7 message string (CR-delimited)
+        direction: "in"/"inbound" (strict) or "out"/"outbound" (tolerant)
+        profile: Profile name (default: "IHE_PAM_FR")
+        strict_semantic: If True, A06/A07 semantic violations are error-level (default False for backward compat)
+        include_audit: If True, add audit trail entry to result (default False)
+    
+    Returns:
+        ValidationResult with is_valid, level, issues, and optional audit trail
+    """
+    from datetime import datetime
+    
     issues: List[ValidationIssue] = []
+    strict_inbound = (direction or "in").lower() in {"in", "inbound", "incoming"}
+    validation_start = datetime.utcnow().isoformat() if include_audit else None
 
     if not msg or not msg.startswith("MSH|"):
         issues.append(ValidationIssue("STRUCTURE", "Message must start with MSH"))
@@ -581,6 +696,13 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
 
     msg_type = f"{msh.get('type','')}^{msh.get('trigger','')}".strip("^")
     trigger = msh.get("trigger") or ""
+
+    if (msh.get("type") or "").upper() == "ADT" and trigger not in SEGMENT_RULES:
+        issues.append(ValidationIssue(
+            "TRIGGER_UNSUPPORTED",
+            f"Trigger ADT^{trigger} non supporte par le profil IHE PAM FR",
+            severity="error"
+        ))
 
     # HL7 v2.5 base rules: MSH validation
     msh_line = _get_first_segment(msg, "MSH")
@@ -694,7 +816,7 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
             vocab_names=["semantic-administrative-gender"],
             fallback={"M", "F", "O", "U"},
             severity="error",
-            required=True,
+            required=strict_inbound,
             msg=f"PID-8 (Sexe) doit être une valeur du vocabulaire sémantique, reçu: {pid8}"
         )
         # PID-15 (Langue principale, CE, optionnel)
@@ -717,7 +839,7 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
             vocab_names=["semantic-identity-reliability"],
             fallback={"VIDE", "PROV", "VALI", "DOUTE", "FICTI", "QUAL", "DOUB"},
             severity="error",
-            required=True,
+            required=strict_inbound,
             msg=f"PID-32 (Statut identité) doit être une valeur du vocabulaire sémantique, reçu: {pid32}"
         )
 
@@ -739,7 +861,11 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
         )
         pv1_3 = _field(pv1_parts, 3)
         if not pv1_3:
-            issues.append(ValidationIssue("PV1_3_MISSING", "PV1-3 (Hébergement) est requis", severity="error"))
+            issues.append(ValidationIssue(
+                "PV1_3_MISSING",
+                "PV1-3 (Hébergement) est requis",
+                severity="error" if strict_inbound else "warn"
+            ))
         pv1_10 = _field(pv1_parts, 10)
         pv1_19 = _field(pv1_parts, 19)
         if not pv1_19:
@@ -760,7 +886,7 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
             issues,
             session=session if 'session' in locals() else None,
             vocab_names=["semantic-movement-type"],
-            fallback={"ADM", "DIS", "TRF", "REG", "PRE", "ANN", "DEC", "AUT", "DUP", "ERR", "CAN", "MOD"},
+            fallback={"INSERT", "UPDATE", "CANCEL", "ADM", "DIS", "TRF", "REG", "PRE", "ANN", "DEC", "AUT", "DUP", "ERR", "CAN", "MOD"},
             severity="error",
             required=True,
             msg=f"ZBE-4 (Type mouvement) doit être une valeur du vocabulaire sémantique, reçu: {zbe_4}"
@@ -776,14 +902,16 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
             issues,
             session=session if 'session' in locals() else None,
             vocab_names=["semantic-movement-nature"],
-            fallback={"NAT1", "NAT2", "NAT3", "NAT4", "NAT5"},
-            severity="warn",
+            fallback={"S", "H", "M", "L", "D", "SM", "NAT1", "NAT2", "NAT3", "NAT4", "NAT5"},
+            severity="info",
             required=False,
             msg=f"ZBE-9 (Nature mouvement) doit être une valeur du vocabulaire sémantique, reçu: {zbe_9}"
         )
 
-    # MRG (fusion, optionnel)
+    # MRG (fusion, obligatoire pour A40/A47)
     mrg = _get_first_segment(msg, "MRG")
+    if trigger in {"A40", "A47"} and not mrg:
+        issues.append(ValidationIssue("MRG_MISSING", f"Segment MRG obligatoire pour ADT^{trigger}", severity="error"))
     if mrg:
         mrg_parts = mrg.split("|")
         mrg_1 = _field(mrg_parts, 1)
@@ -853,9 +981,21 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
             issues.append(ValidationIssue("PV1_MISSING", f"PV1 segment is required for event {trigger}"))
         if trigger in IDENTITY_ONLY and pv1:
             issues.append(ValidationIssue("PV1_UNEXPECTED", f"PV1 is generally not expected for identity-only event {trigger}", severity="info"))
+
+    # Segments interdits par le profil IHE PAM FR
+    present_segments = _get_all_segments(msg)
+    forbidden_present = sorted(s for s in present_segments if s in FORBIDDEN_PAM_SEGMENTS)
+    for seg in forbidden_present:
+        issues.append(ValidationIssue(
+            f"{seg}_FORBIDDEN",
+            f"Segment {seg} interdit par le profil IHE PAM FR",
+            severity="error"
+        ))
     
     # Validation ZBE (IHE PAM FR étendue)
     zbe = _get_first_segment(msg, "ZBE")
+    if strict_inbound and trigger and trigger not in IDENTITY_ONLY and not zbe:
+        issues.append(ValidationIssue("ZBE_MISSING", f"Segment ZBE obligatoire pour ADT^{trigger}", severity="error"))
     if zbe:
         zbe_parts = zbe.split("|")
         zbe_1 = _field(zbe_parts, 1)
@@ -880,7 +1020,7 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
                 issues.append(ValidationIssue(
                     "ZBE1_NAMESPACE_MISSING",
                     "ZBE-1 doit contenir un namespace (composant 2 ou 3) pour l'identifiant de mouvement",
-                    severity="error"
+                    severity="error" if strict_inbound else "warn"
                 ))
 
         # ZBE-2 date/heure
@@ -1033,7 +1173,11 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
 
             # For stay/admission related events, the UF (PointOfCare) should be present
             if trigger in REQUIRE_PV1 and not pov:
-                issues.append(ValidationIssue("PV1_3_1_MISSING", f"PV1-3.1 (UF / PointOfCare) is expected for event {trigger}", severity="error"))
+                issues.append(ValidationIssue(
+                    "PV1_3_1_MISSING",
+                    f"PV1-3.1 (UF / PointOfCare) is expected for event {trigger}",
+                    severity="error" if strict_inbound else "warn"
+                ))
 
             # A02 transfers in BP6: destination must include UF + Chambre + Lit
             if trigger == "A02":
@@ -1048,6 +1192,9 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
             if loc_status and loc_status not in {"O", "U", "R", "P"}:
                 issues.append(ValidationIssue("PV1_3_5_INVALID", f"PV1-3.5 (LocationStatus) has unexpected value '{loc_status}'", severity="info"))
 
+    # Validate extended Z-segments (beyond ZBE)
+    _validate_z_segments(msg, trigger, issues, strict_inbound)
+
     # Determine overall level
     has_error = any(i.severity == "error" for i in issues)
     has_warn = any(i.severity == "warn" for i in issues)
@@ -1061,10 +1208,39 @@ def validate_pam(msg: str, direction: str = "in", profile: str = "IHE_PAM_FR") -
     except Exception:
         pass
 
-    return ValidationResult(is_valid=is_valid, level=level, event=trigger, message_type=msg_type, issues=issues)
+    # Build audit trail if requested
+    audit_entry = None
+    if include_audit:
+        error_count = sum(1 for i in issues if i.severity == "error")
+        warn_count = sum(1 for i in issues if i.severity == "warn")
+        audit_entry = ValidationAuditEntry(
+            timestamp=validation_start or datetime.utcnow().isoformat(),
+            trigger=trigger,
+            direction=direction,
+            is_valid=is_valid,
+            issues_count=len(issues),
+            errors_count=error_count,
+            warnings_count=warn_count,
+            profile=profile,
+            strict_semantic=strict_semantic
+        )
+
+    return ValidationResult(
+        is_valid=is_valid,
+        level=level,
+        event=trigger,
+        message_type=msg_type,
+        issues=issues,
+        audit=audit_entry
+    )
 
 
-def validate_pam_semantics(hl7_message: str, venue_id: Optional[int] = None, session = None) -> ValidationResult:
+def validate_pam_semantics(
+    hl7_message: str,
+    venue_id: Optional[int] = None,
+    session = None,
+    strict: bool = False
+) -> ValidationResult:
     """
     Validate semantic coherence of A06/A07 messages with venue movement history.
     
@@ -1076,11 +1252,13 @@ def validate_pam_semantics(hl7_message: str, venue_id: Optional[int] = None, ses
         hl7_message: HL7 ADT message string
         venue_id: ID of the venue (optional for structural validation)
         session: SQLModel session (required for history check)
+        strict: If True, semantic violations are error-level; if False (default), warn-level
     
     Returns:
         ValidationResult: Result with is_valid, level, issues
-        - Adds "warn" level issues if semantic problems detected
-        - Does not fail validation, allows manual review
+        - Adds "warn" or "error" level issues based on strict flag
+        - If strict=True, semantic problems block validation (is_valid=False)
+        - If strict=False (default), allows manual review (is_valid=True + warns)
     
     Note: This validation requires database access (session) and venue context.
     If venue_id or session is None, returns structural validation only.
@@ -1249,13 +1427,27 @@ def validate_pam_semantics(hl7_message: str, venue_id: Optional[int] = None, ses
             )
         )
     
-    # Determine level
+    # Determine level (considering strict flag)
     has_error = any(i.severity == "error" for i in issues)
     has_warn = any(i.severity == "warn" for i in issues)
+    
+    # If strict mode, treat warnings as errors for semantic checks
+    if strict and has_warn:
+        for issue in issues:
+            if issue.severity == "warn":
+                issue.severity = "error"
+        has_error = True
+    
     level = "fail" if has_error else ("warn" if has_warn else "ok")
-    is_valid = True  # Never fail on semantics, only warn
+    is_valid = not has_error  # Valid only if no errors (considering strict mode)
     
     return ValidationResult(is_valid=is_valid, level=level, event=trigger, message_type="", issues=issues)
 
 
-__all__ = ["validate_pam", "validate_pam_semantics", "ValidationResult", "ValidationIssue"]
+__all__ = [
+    "validate_pam",
+    "validate_pam_semantics",
+    "ValidationResult",
+    "ValidationIssue",
+    "ValidationAuditEntry",
+]

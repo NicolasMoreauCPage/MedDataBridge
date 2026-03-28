@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 class HprimService:
     """Service principal pour la gestion HPRIM"""
 
+    MESSAGE_SCHEMA_BY_TYPE = {
+        HprimMessageType.EVENEMENTS_SERVEUR_ACTES: "evenements_serveur_actes",
+        HprimMessageType.ACQUITTEMENTS_SERVEUR_ACTES: "acquittements_serveur_actes",
+    }
+
     def __init__(self):
         self.validator = HprimValidator()
         self.xml_service = HprimXmlService()
@@ -59,7 +64,7 @@ class HprimService:
             Message HPRIM prêt à être généré
         """
         if not message_id:
-            message_id = uuid4().hex[:17].upper()
+            message_id = uuid4().hex[:12].upper()
 
         entete = HprimEnteteMessage(
             emetteur_id=emetteur_id,
@@ -114,7 +119,25 @@ class HprimService:
                     "message"
                 ) from erreurs[0]
 
-        return self.xml_service.generate_xml(message)
+        xml_content = self.xml_service.generate_xml(message)
+
+        if valider:
+            is_valid, xsd_errors = self.validate_generated_xml(xml_content, message.entete.message_type)
+            if not is_valid:
+                raise HprimValidationError(
+                    "XSD_VALIDATION_FAILED",
+                    "; ".join(xsd_errors),
+                    "xml"
+                )
+
+        return xml_content
+
+    def validate_generated_xml(self, xml_string: str, message_type: HprimMessageType) -> tuple[bool, list[str]]:
+        """Valide le XML généré contre le schéma HPRIM officiel correspondant."""
+        schema_name = self.MESSAGE_SCHEMA_BY_TYPE.get(message_type)
+        if not schema_name:
+            return False, [f"Aucun schéma connu pour {message_type}"]
+        return self.validator.validate_xml_string(xml_string, schema_name)
 
     def traiter_message_xml(self, xml_string: str) -> Dict[str, Any]:
         """
@@ -288,7 +311,7 @@ class HprimService:
             montant_obj = HprimMontant(valeur=Decimal(str(montant)))
 
         # Générer l'identifiant
-        identifiant = f"CCAM_{code_acte}_{date_execution.strftime('%Y%m%d_%H%M%S')}"
+        identifiant = f"C{uuid4().hex[:16].upper()}"
 
         return HprimActeCCAM(
             identifiant=identifiant,
@@ -328,7 +351,7 @@ class HprimService:
         if montant is not None:
             montant_obj = HprimMontant(valeur=Decimal(str(montant)))
 
-        identifiant = f"NGAP_{lettre_cle}_{execute_date.strftime('%Y%m%d_%H%M%S')}"
+        identifiant = f"N{uuid4().hex[:16].upper()}"
         return HprimActeNGAP(
             identifiant=identifiant,
             lettre_cle=lettre_cle,
@@ -360,7 +383,7 @@ class HprimService:
         message_id: Optional[str] = None,
     ) -> HprimMessage:
         if not message_id:
-            message_id = uuid4().hex[:17].upper()
+            message_id = uuid4().hex[:12].upper()
 
         entete = HprimEnteteMessage(
             emetteur_id=emetteur_id,

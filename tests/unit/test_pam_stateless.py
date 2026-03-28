@@ -46,3 +46,39 @@ def test_no_ins_c_check_present():
     res = validate_pam(msg)
     codes = {i.code for i in res.issues}
     assert "PID3_INS_C_MISSING" not in codes
+
+
+def test_a40_requires_mrg_segment():
+    msh = _base_msh("A40")
+    pid = "PID|1|12345||DOE^JOHN||19700101||||||||+33123456789"
+    msg = "\r".join([msh, pid]) + "\r"
+
+    res = validate_pam(msg)
+    codes = {i.code for i in res.issues}
+    assert "MRG_MISSING" in codes
+    assert not res.is_valid
+
+
+def test_rejects_forbidden_clinical_segments():
+    msh = _base_msh("A01")
+    pid = "PID|1|12345||DOE^JOHN||19700101||||||||+33123456789"
+    pv1 = "PV1|1|I|WARD^101^A1^^O|3|||||||||||||||||||||VIS001"
+    zbe = "ZBE|1001^^^SYS&1.2.3&ISO|202501010101||INSERT|N||^^^^^^UF^^^7700||H"
+    obx = "OBX|1|TX|TEST^TEST||FORBIDDEN"
+    msg = "\r".join([msh, pid, pv1, zbe, obx]) + "\r"
+
+    res = validate_pam(msg)
+    codes = {i.code for i in res.issues}
+    assert "OBX_FORBIDDEN" in codes
+    assert not res.is_valid
+
+
+def test_rejects_unsupported_trigger():
+    msh = _base_msh("A99")
+    pid = "PID|1|12345||DOE^JOHN||19700101||||||||+33123456789"
+    msg = "\r".join([msh, pid]) + "\r"
+
+    res = validate_pam(msg)
+    codes = {i.code for i in res.issues}
+    assert "TRIGGER_UNSUPPORTED" in codes
+    assert not res.is_valid

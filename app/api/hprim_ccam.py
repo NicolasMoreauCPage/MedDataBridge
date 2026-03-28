@@ -122,7 +122,7 @@ class ReceptionRequest(BaseModel):
 class ReceptionResponse(BaseModel):
     """Réponse de réception d'actes CCAM"""
     succes: bool
-    message_id: Optional[str]
+    message_id: Optional[str] = None
     actes_recus: List[ActeCCAMResponse] = Field(default_factory=list)
     erreurs_validation: List[Dict[str, Any]] = Field(default_factory=list)
     erreurs_traitement: List[str] = Field(default_factory=list)
@@ -412,9 +412,29 @@ async def emettre_actes_ccam(
 
         # Valider le message
         erreurs_validation = hprim_service.valider_message(message)
+        if erreurs_validation:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Le message HPRIM est invalide avant génération XML",
+                    "errors": [
+                        {"code": err.code, "message": err.message, "field": err.field}
+                        for err in erreurs_validation
+                    ],
+                },
+            )
 
         # Générer le XML
         xml_content = hprim_service.generer_xml(message, valider=False)
+        xsd_ok, xsd_errors = hprim_service.validate_generated_xml(xml_content, message.entete.message_type)
+        if not xsd_ok:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Le XML généré n'est pas conforme au schéma HPRIM 2.4",
+                    "errors": xsd_errors,
+                },
+            )
 
         _persist_message(
             db,
@@ -459,11 +479,7 @@ async def emettre_actes_ccam(
             type_message=message.entete.message_type.value,
             xml_content=xml_content,
             xml_size=len(xml_content),
-            validation_errors=[{
-                "code": err.code,
-                "message": err.message,
-                "field": err.field
-            } for err in erreurs_validation],
+            validation_errors=[],
             created_at=datetime.now()
         )
 
@@ -479,6 +495,8 @@ async def emettre_actes_ccam(
         logger.info(f"Message HPRIM généré: {message.entete.message_id} ({len(xml_content)} caractères)")
         return response
 
+    except HTTPException:
+        raise
     except HprimValidationError as e:
         logger.error(f"Erreur validation HPRIM: {e}")
         raise HTTPException(status_code=400, detail=f"Erreur de validation: {e}")

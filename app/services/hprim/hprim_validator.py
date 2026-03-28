@@ -243,10 +243,10 @@ class HprimValidator:
         errors = []
 
         # Lettre clé
-        if not re.match(r'^[A-Z]$', acte.lettre_cle):
+        if not re.match(r'^[A-Z]{1,10}$', acte.lettre_cle):
             errors.append(HprimValidationError(
                 "NGAP_CLE_001",
-                f"Lettre clé invalide: {acte.lettre_cle} (doit être A-Z)",
+                f"Lettre clé invalide: {acte.lettre_cle} (doit être 1 à 10 lettres majuscules)",
                 "lettre_cle"
             ))
 

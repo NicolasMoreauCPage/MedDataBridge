@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import select
 
 from app.models.hprim_models import HprimCCAMAct, HprimNGAPAct, HprimMessage
+from app.services.hprim.hprim_validator import HprimValidator
 
 
 def _ccam_act_payload(commentaire: str = "acte-test"):
@@ -29,6 +30,8 @@ def _emission_payload(patient_id: str = "PAT-ROUNDTRIP"):
             "identifiant_clef": "01",
             "nom": "DUPONT",
             "prenom": "ALICE",
+            "date_naissance": "1980-01-02",
+            "sexe": "F",
         },
         "acteur": {
             "nom": "MARTIN",
@@ -67,6 +70,8 @@ def _ngap_emission_payload(patient_id: str = "PAT-NGAP-EMIT"):
             "identifiant_clef": "01",
             "nom": "DUPONT",
             "prenom": "ALICE",
+            "date_naissance": "1980-01-02",
+            "sexe": "F",
         },
         "acteur": {
             "nom": "MARTIN",
@@ -76,6 +81,12 @@ def _ngap_emission_payload(patient_id: str = "PAT-NGAP-EMIT"):
         "actes": [_ngap_act_payload(commentaire="ngap-emission")],
         "dossier_id": "DOS-001",
     }
+
+
+def _assert_hprim_evenements_xml_valid(xml_content: str):
+    validator = HprimValidator()
+    ok, errors = validator.validate_xml_string(xml_content, "evenements_serveur_actes")
+    assert ok, errors
 
 
 def test_hprim_ccam_crud_is_persisted(client: TestClient, session):
@@ -115,6 +126,14 @@ def test_hprim_ccam_crud_is_persisted(client: TestClient, session):
     history_after_delete = client.get("/api/hprim/actes/ccam/patient/PAT-CRUD/historique")
     assert history_after_delete.status_code == 200
     assert history_after_delete.json()["total"] == 0
+
+
+def test_hprim_ccam_emission_xml_is_xsd_valid(client: TestClient):
+    response = client.post("/api/hprim/actes/ccam/emission", json=_emission_payload())
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["validation_errors"] == []
+    _assert_hprim_evenements_xml_valid(body["xml_content"])
 
 
 def test_roundtrip_hprim_generate_download_reintegrate(client: TestClient, session):
@@ -181,6 +200,14 @@ def test_hprim_ngap_crud_and_history(client: TestClient, session):
     delete_response = client.delete(f"/api/hprim/actes/ngap/{acte_id}")
     assert delete_response.status_code == 200
     assert delete_response.json()["status"] == "deleted"
+
+
+def test_hprim_ngap_emission_xml_is_xsd_valid(client: TestClient):
+    response = client.post("/api/hprim/actes/ngap/emission", json=_ngap_emission_payload())
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["validation_errors"] == []
+    _assert_hprim_evenements_xml_valid(body["xml_content"])
 
 
 def test_hprim_message_history_api_and_view(client: TestClient, session):

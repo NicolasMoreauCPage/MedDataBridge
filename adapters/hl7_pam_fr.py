@@ -53,57 +53,79 @@ def build_message_for_movement(
     )
 
     # MSH complet
+    # Extract trigger from movement.type if it contains ADT^ prefix
+    msg_type = movement.type or 'ADT^A02'
+    if '^' in msg_type:
+        trigger = msg_type.split('^')[1]
+    else:
+        trigger = msg_type or 'A02'
+    
     msh = (
         "MSH|^~\\&|POC|POC|DST|DST|"
-        f"{when}||ADT^{movement.type or 'A02'}|{control_id}|P|2.5^FRA^2.11.1||||||UNICODE UTF-8"
+        f"{when}||ADT^{trigger}|{control_id}|P|2.5^FRA^2.11.1||||||UNICODE UTF-8"
     )
 
     # EVN (event type, datetime)
-    evn = f"EVN|{movement.type or 'A02'}|{when}"
+    evn = f"EVN|{trigger}|{when}"
 
     # PID complet (exemple simplifié, à enrichir selon spec)
-    pid_3 = getattr(patient, 'identifier', None) or getattr(patient, 'external_id', None) or f"PID{getattr(patient, 'id', '')}"
+    # PID-3: Format CX (Composite ID) per HL7 v2.5 IHE PAM spec
+    # Format: ID^Check Digit^Check Digit Scheme^Assigning Authority^Identifier Type Code
+    patient_id = getattr(patient, 'identifier', None) or getattr(patient, 'external_id', None) or f"PID{getattr(patient, 'id', '')}"
+    pid_3 = f"{patient_id}^^^SRC-PAM&1.2.250.1.211.99.1&ISO^PI"
     pid_5 = f"{getattr(patient, 'family', '')}^{getattr(patient, 'given', '')}"
-    pid_6 = getattr(patient, 'mother_name', '')
-    pid_7 = getattr(patient, 'birth_date', '')
-    pid_8 = getattr(patient, 'gender', '')
-    pid_11 = getattr(patient, 'address', '')
-    pid_15 = getattr(patient, 'primary_language', '')
-    pid_16 = getattr(patient, 'marital_status', '')
-    pid_18 = getattr(patient, 'account_number', '')
-    pid_32 = getattr(patient, 'identity_reliability_code', '')
+    pid_6 = getattr(patient, 'mother_name', '') or ''
+    pid_7 = getattr(patient, 'birth_date', '') or ''
+    # Format birth_date if it's a date object
+    if pid_7:
+        if hasattr(pid_7, 'strftime'):
+            pid_7 = pid_7.strftime('%Y%m%d')
+        else:
+            pid_7 = str(pid_7).replace('-', '')
+    pid_8 = getattr(patient, 'gender', '') or ''
+    pid_11 = getattr(patient, 'address', '') or ''
+    pid_15 = getattr(patient, 'primary_language', '') or ''
+    pid_16 = getattr(patient, 'marital_status', '') or ''
+    pid_18 = getattr(patient, 'account_number', '') or ''
+    pid_32 = getattr(patient, 'identity_reliability_code', '') or ''
+    # Ensure all pid_fields are strings and convert None to empty string
+    def _safe_str(v):
+        if v is None:
+            return ""
+        return str(v)
+    
     pid_fields = [
-        "PID", "1", "", pid_3, "", pid_5, pid_6, pid_7, pid_8, "", "", pid_11
+        "PID", "1", "", _safe_str(pid_3), "", _safe_str(pid_5), _safe_str(pid_6), _safe_str(pid_7), _safe_str(pid_8), "", "", _safe_str(pid_11)
     ]
     # Remplir jusqu'à PID-15
     while len(pid_fields) < 15:
         pid_fields.append("")
-    pid_fields.append(pid_15)  # PID-15
-    pid_fields.append(pid_16)  # PID-16
+    pid_fields.append(_safe_str(pid_15))  # PID-15
+    pid_fields.append(_safe_str(pid_16))  # PID-16
     # Remplir jusqu'à PID-18
     while len(pid_fields) < 18:
         pid_fields.append("")
-    pid_fields.append(pid_18)  # PID-18
+    pid_fields.append(_safe_str(pid_18))  # PID-18
     # Remplir jusqu'à PID-32
     while len(pid_fields) < 32:
         pid_fields.append("")
-    pid_fields.append(pid_32)  # PID-32
+    pid_fields.append(_safe_str(pid_32))  # PID-32
     pid = "|".join(pid_fields)
 
     # PV1 (champs principaux)
-    pv1_2 = getattr(venue, 'patient_class', 'I')
-    pv1_3 = location
-    pv1_10 = getattr(venue, 'hospital_service', '')
-    pv1_19 = getattr(venue, 'visit_number', '')
+    pv1_2 = getattr(venue, 'patient_class', 'I') or 'I'
+    pv1_3 = location or ''
+    pv1_10 = getattr(venue, 'hospital_service', '') or ''
+    pv1_19 = getattr(venue, 'visit_number', '') or ''
     pv1_fields = [
-        "PV1", "", pv1_2, pv1_3
+        "PV1", "", _safe_str(pv1_2), _safe_str(pv1_3)
     ]
     while len(pv1_fields) < 10:
         pv1_fields.append("")
-    pv1_fields.append(pv1_10)  # PV1-10
+    pv1_fields.append(_safe_str(pv1_10))  # PV1-10
     while len(pv1_fields) < 19:
         pv1_fields.append("")
-    pv1_fields.append(pv1_19)  # PV1-19
+    pv1_fields.append(_safe_str(pv1_19))  # PV1-19
     pv1 = "|".join(pv1_fields)
 
     # ZBE (tous champs)
@@ -114,15 +136,17 @@ def build_message_for_movement(
         zbe_1 = f"{movement_id}^{authority}^{oid}^ISO"
     else:
         zbe_1 = str(movement_id)
-    zbe_2 = when
-    zbe_3 = getattr(movement, 'end_period', '')
-    zbe_4 = getattr(movement, 'action_code', 'INSERT')
-    zbe_5 = getattr(movement, 'historic_indicator', 'N')
-    zbe_6 = getattr(movement, 'origin_event_code', '')
-    zbe_7 = getattr(venue, 'uf_medicale', '')
-    zbe_8 = getattr(venue, 'uf_soins', '')
-    zbe_9 = getattr(movement, 'nature', 'HMS')
-    zbe = f"ZBE|{zbe_1}|{zbe_2}|{zbe_3}|{zbe_4}|{zbe_5}|{zbe_6}|{zbe_7}|{zbe_8}|{zbe_9}"
+    zbe_2 = when or ''
+    zbe_3 = getattr(movement, 'end_period', '') or ''
+    if zbe_3 and hasattr(zbe_3, 'strftime'):
+        zbe_3 = zbe_3.strftime('%Y%m%d%H%M%S')
+    zbe_4 = getattr(movement, 'action_code', 'INSERT') or 'INSERT'
+    zbe_5 = getattr(movement, 'historic_indicator', 'N') or 'N'
+    zbe_6 = getattr(movement, 'origin_event_code', '') or ''
+    zbe_7 = getattr(venue, 'uf_medicale', '') or ''
+    zbe_8 = getattr(venue, 'uf_soins', '') or ''
+    zbe_9 = getattr(movement, 'nature', 'HMS') or 'HMS'
+    zbe = f"ZBE|{_safe_str(zbe_1)}|{_safe_str(zbe_2)}|{_safe_str(zbe_3)}|{_safe_str(zbe_4)}|{_safe_str(zbe_5)}|{_safe_str(zbe_6)}|{_safe_str(zbe_7)}|{_safe_str(zbe_8)}|{_safe_str(zbe_9)}"
 
     # MRG (fusion, optionnel)
     mrg = None

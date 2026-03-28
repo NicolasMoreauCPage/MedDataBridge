@@ -398,9 +398,29 @@ async def emettre_actes_ngap(
 
         # Valider le message
         erreurs_validation = hprim_service.valider_message(message)
+        if erreurs_validation:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Le message HPRIM est invalide avant génération XML",
+                    "errors": [
+                        {"code": err.code, "message": err.message, "field": err.field}
+                        for err in erreurs_validation
+                    ],
+                },
+            )
 
         # Générer le XML
         xml_content = hprim_service.generer_xml(message, valider=False)
+        xsd_ok, xsd_errors = hprim_service.validate_generated_xml(xml_content, message.entete.message_type)
+        if not xsd_ok:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Le XML généré n'est pas conforme au schéma HPRIM 2.4",
+                    "errors": xsd_errors,
+                },
+            )
 
         _persist_message(
             db,
@@ -446,11 +466,7 @@ async def emettre_actes_ngap(
             xml_content=xml_content,
             xml_size=len(xml_content),
             actes_count=len(actes),
-            validation_errors=[{
-                "code": err.code,
-                "message": err.message,
-                "field": err.field
-            } for err in erreurs_validation],
+            validation_errors=[],
             created_at=datetime.now(),
             dossier_id=request.dossier_id
         )
@@ -467,6 +483,8 @@ async def emettre_actes_ngap(
         logger.info(f"Message NGAP généré: {message.entete.message_id} ({len(xml_content)} caractères)")
         return response
 
+    except HTTPException:
+        raise
     except HprimValidationError as e:
         logger.error(f"Erreur validation HPRIM NGAP: {e}")
         raise HTTPException(status_code=400, detail=f"Erreur de validation: {e}")

@@ -15,7 +15,8 @@ import logging
 from app.hprim_models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
     HprimActeCCAM, HprimActeNGAP, HprimVenue, HprimModificateur,
-    HprimMontant, HprimPriseCharge, HprimMessageType, HprimAction
+    HprimMontant, HprimPriseCharge, HprimMessageType, HprimAction,
+    HprimCivilite
 )
 
 logger = logging.getLogger(__name__)
@@ -344,6 +345,98 @@ class HprimXmlService:
         ET.SubElement(agent, "{%s}code" % self.NAMESPACE).text = entete.destinataire_id
         ET.SubElement(agent, "{%s}libelle" % self.NAMESPACE).text = entete.destinataire_nom
 
+    def _add_prenoms(self, parent: ET.Element, prenom: Optional[str]):
+        if not prenom:
+            return
+        prenoms = ET.SubElement(parent, "{%s}prenoms" % self.NAMESPACE)
+        ET.SubElement(prenoms, "{%s}prenom" % self.NAMESPACE).text = prenom
+
+    def _add_civilite(self, parent: ET.Element, civilite: Optional[HprimCivilite]):
+        if not civilite:
+            return
+        civilite_elem = ET.SubElement(parent, "{%s}civiliteHprim" % self.NAMESPACE, valeur=civilite.value)
+        ET.SubElement(civilite_elem, "{%s}code" % self.NAMESPACE).text = civilite.value
+
+    def _add_professionnel_sante(self, parent: ET.Element, prof: HprimProfessionnel):
+        if prof.numero_adeli:
+            ET.SubElement(parent, "{%s}numeroAdeli" % self.NAMESPACE).text = prof.numero_adeli
+        elif prof.numero_rpps:
+            ET.SubElement(parent, "{%s}noRPPS" % self.NAMESPACE).text = prof.numero_rpps
+
+        personne = ET.SubElement(parent, "{%s}personne" % self.NAMESPACE)
+        if prof.nom:
+            ET.SubElement(personne, "{%s}nomUsuel" % self.NAMESPACE).text = prof.nom
+        self._add_prenoms(personne, prof.prenom)
+        self._add_civilite(personne, prof.civilite)
+
+        if prof.specialite:
+            specialite = ET.SubElement(parent, "{%s}specialiteHprim" % self.NAMESPACE)
+            ET.SubElement(specialite, "{%s}libelle" % self.NAMESPACE).text = prof.specialite
+
+    def _add_identifiant_simple(self, parent: ET.Element, value: Optional[str], tag: str = "emetteur"):
+        if not value:
+            return
+        identifiant = ET.SubElement(parent, "{%s}identifiant" % self.NAMESPACE)
+        node = ET.SubElement(identifiant, "{%s}%s" % (self.NAMESPACE, tag), portee="local")
+        node.text = value
+
+    def _add_patient_identifiant(self, parent: ET.Element, patient: HprimPatient):
+        identifiant = ET.SubElement(parent, "{%s}identifiant" % self.NAMESPACE)
+        identifiant_admin = patient.identifiant_administration_patient
+
+        if identifiant_admin and identifiant_admin.emetteur and identifiant_admin.emetteur.valeur:
+            emetteur = ET.SubElement(identifiant, "{%s}emetteur" % self.NAMESPACE)
+            if identifiant_admin.emetteur.etat:
+                emetteur.set("etat", identifiant_admin.emetteur.etat.value)
+            if identifiant_admin.emetteur.portee:
+                emetteur.set("portee", identifiant_admin.emetteur.portee.value)
+            emetteur.set("referent", "oui" if identifiant_admin.emetteur.referent else "non")
+            ET.SubElement(emetteur, "{%s}valeur" % self.NAMESPACE).text = identifiant_admin.emetteur.valeur
+        elif patient.identifiant_id:
+            emetteur = ET.SubElement(identifiant, "{%s}emetteur" % self.NAMESPACE, portee="local", etat="permanent", referent="oui")
+            ET.SubElement(emetteur, "{%s}valeur" % self.NAMESPACE).text = patient.identifiant_id
+
+        if identifiant_admin and identifiant_admin.numero_identifiant_sante:
+            numero_identifiant_sante = ET.SubElement(identifiant, "{%s}numeroIdentifiantSante" % self.NAMESPACE)
+            ins = identifiant_admin.numero_identifiant_sante
+            if ins.identifiant:
+                ET.SubElement(numero_identifiant_sante, "{%s}identifiant" % self.NAMESPACE).text = ins.identifiant
+            for ins_c in ins.ins_c:
+                ins_c_elem = ET.SubElement(numero_identifiant_sante, "{%s}insC" % self.NAMESPACE)
+                ET.SubElement(ins_c_elem, "{%s}valeur" % self.NAMESPACE).text = ins_c.get("valeur")
+                ET.SubElement(ins_c_elem, "{%s}dateEffet" % self.NAMESPACE).text = ins_c.get("date_effet")
+            if ins.ins_a:
+                ET.SubElement(numero_identifiant_sante, "{%s}insA" % self.NAMESPACE).text = ins.ins_a
+
+        if identifiant_admin and identifiant_admin.numero_identifiant_patients:
+            numeros = ET.SubElement(identifiant, "{%s}numeroIdentifiantPatients" % self.NAMESPACE)
+            for numero in identifiant_admin.numero_identifiant_patients.numero_identifiant_patient:
+                numero_elem = ET.SubElement(numeros, "{%s}numeroIdentifiantPatient" % self.NAMESPACE)
+                ET.SubElement(numero_elem, "{%s}identifiant" % self.NAMESPACE).text = numero.identifiant
+                autorite = ET.SubElement(numero_elem, "{%s}autorite" % self.NAMESPACE, type=numero.autorite.type_autorite.value)
+                ET.SubElement(autorite, "{%s}nom" % self.NAMESPACE).text = numero.autorite.nom
+                if numero.autorite.oid:
+                    ET.SubElement(autorite, "{%s}OID" % self.NAMESPACE).text = numero.autorite.oid
+                if numero.date_debut_validite:
+                    ET.SubElement(numero_elem, "{%s}dateDebutValidite" % self.NAMESPACE).text = numero.date_debut_validite
+                if numero.date_fin_validite:
+                    ET.SubElement(numero_elem, "{%s}dateFinValidite" % self.NAMESPACE).text = numero.date_fin_validite
+
+    def _add_montant(self, parent: ET.Element, montant_obj: Optional[HprimMontant], quantite: Optional[int] = None):
+        if not montant_obj:
+            return
+        montant = ET.SubElement(parent, "{%s}montant" % self.NAMESPACE)
+        ET.SubElement(montant, "{%s}montantTotal" % self.NAMESPACE).text = str(montant_obj.valeur)
+        if quantite is not None:
+            ET.SubElement(montant, "{%s}quantite" % self.NAMESPACE).text = str(quantite)
+
+    def _format_xsd_time(self, raw_value: Optional[str]) -> Optional[str]:
+        if not raw_value:
+            return None
+        if len(raw_value) == 5:
+            return f"{raw_value}:00"
+        return raw_value
+
         # Date et message
         # ET.SubElement(parent, "{%s}dateEmission" % self.NAMESPACE).text = entete.date_emission.isoformat()
         # message_elem = ET.SubElement(parent, "{%s}message" % self.NAMESPACE)
@@ -359,7 +452,7 @@ class HprimXmlService:
 
         # Acteur
         acteur = ET.SubElement(evenement, "{%s}acteur" % self.NAMESPACE)
-        self._add_professionnel(acteur, "medecin", message.acteur)
+        self._add_professionnel_sante(acteur, message.acteur)
 
         # Patient
         patient = ET.SubElement(evenement, "{%s}patient" % self.NAMESPACE)
@@ -415,13 +508,10 @@ class HprimXmlService:
 
         # Acteur
         acteur = ET.SubElement(acte_elem, "{%s}acteur" % self.NAMESPACE)
-        self._add_professionnel(acteur, "medecin", acte.executant)
+        self._add_professionnel_sante(acteur, acte.executant)
 
         # Identifiant
-        identifiant = ET.SubElement(acte_elem, "{%s}identifiant" % self.NAMESPACE)
-        emetteur = ET.SubElement(identifiant, "{%s}emetteur" % self.NAMESPACE)
-        emetteur.text = acte.identifiant
-        emetteur.set("portee", "local")
+        self._add_identifiant_simple(acte_elem, acte.identifiant)
 
         # Codes acte
         ET.SubElement(acte_elem, "{%s}codeActe" % self.NAMESPACE).text = acte.code_acte
@@ -435,12 +525,14 @@ class HprimXmlService:
         execute = ET.SubElement(acte_elem, "{%s}execute" % self.NAMESPACE)
         ET.SubElement(execute, "{%s}date" % self.NAMESPACE).text = acte.execute_date.date().isoformat()
         if acte.execute_heure:
-            ET.SubElement(execute, "{%s}heure" % self.NAMESPACE).text = acte.execute_heure
+            ET.SubElement(execute, "{%s}heure" % self.NAMESPACE).text = self._format_xsd_time(acte.execute_heure)
 
         # Exécutant
         executant = ET.SubElement(acte_elem, "{%s}executant" % self.NAMESPACE)
         medecins = ET.SubElement(executant, "{%s}medecins" % self.NAMESPACE)
-        self._add_professionnel(medecins, "medecin", acte.executant)
+        medecin_executant = ET.SubElement(medecins, "{%s}medecinExecutant" % self.NAMESPACE, principal="oui")
+        medecin = ET.SubElement(medecin_executant, "{%s}medecin" % self.NAMESPACE)
+        self._add_professionnel_sante(medecin, acte.executant)
 
         # Modificateurs
         if acte.modificateurs:
@@ -467,10 +559,7 @@ class HprimXmlService:
                 prise_charge.set("indicateurParcoursSoins", pc.indicateur_parcours_soins)
 
         # Montant
-        if acte.montant:
-            montant = ET.SubElement(acte_elem, "{%s}montant" % self.NAMESPACE)
-            ET.SubElement(montant, "{%s}valeur" % self.NAMESPACE).text = str(acte.montant.valeur)
-            ET.SubElement(montant, "{%s}devise" % self.NAMESPACE).text = acte.montant.devise
+        self._add_montant(acte_elem, acte.montant, acte.quantite)
 
         # Commentaire
         if acte.commentaire:
@@ -500,20 +589,13 @@ class HprimXmlService:
             acte_elem.set("activiteRecherche", "oui")
 
         # Identifiant
-        ET.SubElement(acte_elem, "{%s}identifiant" % self.NAMESPACE).text = acte.identifiant
+        self._add_identifiant_simple(acte_elem, acte.identifiant)
 
         # Lettre clé
         ET.SubElement(acte_elem, "{%s}lettreCle" % self.NAMESPACE).text = acte.lettre_cle
 
         # Coefficient
         ET.SubElement(acte_elem, "{%s}coefficient" % self.NAMESPACE).text = str(acte.coefficient)
-
-        # Date exécution
-        ET.SubElement(acte_elem, "{%s}dateExecution" % self.NAMESPACE).text = acte.execute_date.isoformat()
-
-        # Prestataire
-        prestataire = ET.SubElement(acte_elem, "{%s}prestataire" % self.NAMESPACE)
-        self._add_professionnel(prestataire, "medecin", acte.prestataire)
 
         # Dénombrement
         if acte.denombrement:
@@ -523,9 +605,17 @@ class HprimXmlService:
         if acte.position_dentaire:
             ET.SubElement(acte_elem, "{%s}positionDentaire" % self.NAMESPACE).text = acte.position_dentaire
 
-        # Heure exécution
+        # Date exécution
+        execute = ET.SubElement(acte_elem, "{%s}execute" % self.NAMESPACE)
+        ET.SubElement(execute, "{%s}date" % self.NAMESPACE).text = acte.execute_date.date().isoformat()
         if acte.execute_heure:
-            ET.SubElement(acte_elem, "{%s}heureExecution" % self.NAMESPACE).text = acte.execute_heure
+            ET.SubElement(execute, "{%s}heure" % self.NAMESPACE).text = self._format_xsd_time(acte.execute_heure)
+
+        # Prestataire
+        prestataire = ET.SubElement(acte_elem, "{%s}prestataire" % self.NAMESPACE)
+        medecins = ET.SubElement(prestataire, "{%s}medecins" % self.NAMESPACE)
+        medecin = ET.SubElement(medecins, "{%s}medecin" % self.NAMESPACE)
+        self._add_professionnel_sante(medecin, acte.prestataire)
 
         # Numéro séance
         if acte.numero_seance:
@@ -533,19 +623,12 @@ class HprimXmlService:
 
         # NABMS
         if acte.nabms:
-            nabms = ET.SubElement(acte_elem, "{%s}nabms" % self.NAMESPACE)
+            nabms = ET.SubElement(acte_elem, "{%s}NABMs" % self.NAMESPACE)
             for nabm in acte.nabms:
-                ET.SubElement(nabms, "{%s}nabm" % self.NAMESPACE).text = str(nabm)
-
-        # Minor/Major
-        if acte.minor_major:
-            ET.SubElement(acte_elem, "{%s}minorMajor" % self.NAMESPACE).text = acte.minor_major
+                ET.SubElement(nabms, "{%s}code" % self.NAMESPACE).text = str(nabm)
 
         # Montant
-        if acte.montant:
-            montant = ET.SubElement(acte_elem, "{%s}montant" % self.NAMESPACE)
-            ET.SubElement(montant, "{%s}valeur" % self.NAMESPACE).text = str(acte.montant.valeur)
-            ET.SubElement(montant, "{%s}devise" % self.NAMESPACE).text = acte.montant.devise
+        self._add_montant(acte_elem, acte.montant)
 
         # Commentaire
         if acte.commentaire:
@@ -553,36 +636,25 @@ class HprimXmlService:
 
     def _add_patient(self, parent: ET.Element, patient: HprimPatient):
         """Ajoute les informations patient"""
-        identifiant = ET.SubElement(parent, "{%s}identifiant" % self.NAMESPACE)
-        ET.SubElement(identifiant, "{%s}id" % self.NAMESPACE).text = patient.identifiant_id
-        ET.SubElement(identifiant, "{%s}clef" % self.NAMESPACE).text = patient.identifiant_clef
+        self._add_patient_identifiant(parent, patient)
 
-        ET.SubElement(parent, "{%s}nom" % self.NAMESPACE).text = patient.nom
-        ET.SubElement(parent, "{%s}prenom" % self.NAMESPACE).text = patient.prenom
-
+        personne = ET.SubElement(parent, "{%s}personnePhysique" % self.NAMESPACE, sexe=patient.sexe or "I")
+        if patient.nom:
+            ET.SubElement(personne, "{%s}nomUsuel" % self.NAMESPACE).text = patient.nom
+        self._add_prenoms(personne, patient.prenom)
         if patient.date_naissance:
-            ET.SubElement(parent, "{%s}dateNaissance" % self.NAMESPACE).text = patient.date_naissance
-        if patient.sexe:
-            ET.SubElement(parent, "{%s}sexe" % self.NAMESPACE).text = patient.sexe
-
-    def _add_professionnel(self, parent: ET.Element, tag: str, prof: HprimProfessionnel):
-        """Ajoute les informations d'un professionnel"""
-        element = ET.SubElement(parent, "{%s}%s" % (self.NAMESPACE, tag))
-        ET.SubElement(element, "{%s}nom" % self.NAMESPACE).text = prof.nom
-        ET.SubElement(element, "{%s}prenom" % self.NAMESPACE).text = prof.prenom
-        if prof.numero_rpps:
-            ET.SubElement(element, "{%s}numeroRPPS" % self.NAMESPACE).text = prof.numero_rpps
-
-        if prof.numero_adeli:
-            ET.SubElement(element, "{%s}numeroAdeli" % self.NAMESPACE).text = prof.numero_adeli
-
-        if prof.specialite:
-            ET.SubElement(element, "{%s}specialite" % self.NAMESPACE).text = prof.specialite
+            date_naissance = ET.SubElement(personne, "{%s}dateNaissance" % self.NAMESPACE)
+            ET.SubElement(date_naissance, "{%s}date" % self.NAMESPACE).text = patient.date_naissance
 
     def _add_venue(self, parent: ET.Element, venue):
         """Ajoute les informations de venue"""
-        ET.SubElement(parent, "{%s}identifiant" % self.NAMESPACE).text = venue.identifiant
-        ET.SubElement(parent, "{%s}libelle" % self.NAMESPACE).text = venue.libelle
+        identifiant = ET.SubElement(parent, "{%s}identifiant" % self.NAMESPACE)
+        emetteur = ET.SubElement(identifiant, "{%s}emetteur" % self.NAMESPACE, portee="local", etat="permanent", referent="oui")
+        ET.SubElement(emetteur, "{%s}valeur" % self.NAMESPACE).text = venue.identifiant
+
+        entree = ET.SubElement(parent, "{%s}entree" % self.NAMESPACE)
+        date_heure = ET.SubElement(entree, "{%s}dateHeureOptionnelle" % self.NAMESPACE)
+        ET.SubElement(date_heure, "{%s}date" % self.NAMESPACE).text = datetime.now().date().isoformat()
 
     def _add_evenement_actes_ngap(self, root: ET.Element, message: HprimMessage):
         """Ajoute un événement avec actes NGAP"""
@@ -593,7 +665,7 @@ class HprimXmlService:
 
         # Acteur
         acteur = ET.SubElement(evenement, "{%s}acteur" % self.NAMESPACE)
-        self._add_professionnel(acteur, "medecin", message.acteur)
+        self._add_professionnel_sante(acteur, message.acteur)
 
         # Patient
         patient = ET.SubElement(evenement, "{%s}patient" % self.NAMESPACE)
@@ -747,6 +819,8 @@ class HprimXmlService:
                     medecin_elem = acteur_elem.find(".//{http://www.hprim.org/hprimXML}medecin")
                     if medecin_elem is not None:
                         acteur = self._parse_professionnel(medecin_elem)
+                    else:
+                        acteur = self._parse_professionnel(acteur_elem)
                     
             if venue is None:
                 venue_elem = evenement.find(".//{http://www.hprim.org/hprimXML}venue")
@@ -897,6 +971,9 @@ class HprimXmlService:
         # Identifiant
         identifiant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}emetteur")
         identifiant = identifiant_elem.text if identifiant_elem is not None and identifiant_elem.text else ""
+        valeur_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}emetteur/{http://www.hprim.org/hprimXML}valeur")
+        if valeur_elem is not None and valeur_elem.text:
+            identifiant = valeur_elem.text
 
         # Codes acte
         code_acte = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}codeActe", "")
@@ -925,7 +1002,9 @@ class HprimXmlService:
             execute_heure = execute_elem.findtext(".//{http://www.hprim.org/hprimXML}heure")
 
         # Exécutant
-        executant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}executant/{http://www.hprim.org/hprimXML}medecins/{http://www.hprim.org/hprimXML}medecin")
+        executant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}executant/{http://www.hprim.org/hprimXML}medecins/{http://www.hprim.org/hprimXML}medecinExecutant/{http://www.hprim.org/hprimXML}medecin")
+        if executant_elem is None:
+            executant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}executant/{http://www.hprim.org/hprimXML}medecins/{http://www.hprim.org/hprimXML}medecin")
         executant = None
         if executant_elem is not None:
             executant = self._parse_professionnel(executant_elem)
@@ -969,7 +1048,9 @@ class HprimXmlService:
         montant = None
         montant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}montant")
         if montant_elem is not None:
-            valeur_str = montant_elem.findtext(".//{http://www.hprim.org/hprimXML}valeur")
+            valeur_str = montant_elem.findtext(".//{http://www.hprim.org/hprimXML}montantTotal")
+            if not valeur_str:
+                valeur_str = montant_elem.findtext(".//{http://www.hprim.org/hprimXML}valeur")
             devise = montant_elem.findtext(".//{http://www.hprim.org/hprimXML}devise", "EUR")
             if valeur_str:
                 montant = HprimMontant(valeur=Decimal(valeur_str), devise=devise)
@@ -1037,14 +1118,21 @@ class HprimXmlService:
 
         # Éléments requis
         identifiant = acte_elem.findtext("identifiant", "")
+        if not identifiant:
+            identifiant = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}emetteur", "")
+        valeur_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}emetteur/{http://www.hprim.org/hprimXML}valeur")
+        if valeur_elem is not None and valeur_elem.text:
+            identifiant = valeur_elem.text
         lettre_cle = acte_elem.findtext("lettreCle", "")
         coefficient_str = acte_elem.findtext("coefficient", "1.0")
         coefficient = Decimal(coefficient_str) if coefficient_str else Decimal("1.0")
         execute_date_str = acte_elem.findtext("dateExecution")
+        if not execute_date_str:
+            execute_date_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}execute/{http://www.hprim.org/hprimXML}date")
         execute_date = datetime.fromisoformat(execute_date_str) if execute_date_str and not execute_date_str.startswith('$') else datetime.now()
 
         # Prestataire
-        prestataire_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}prestataire/{http://www.hprim.org/hprimXML}medecin")
+        prestataire_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}prestataire/{http://www.hprim.org/hprimXML}medecins/{http://www.hprim.org/hprimXML}medecin")
         if prestataire_elem is None:
             # Essayer sans namespace pour prestataire
             prestataire_elem = acte_elem.find(".//prestataire/{http://www.hprim.org/hprimXML}medecin")
@@ -1073,6 +1161,8 @@ class HprimXmlService:
 
         position_dentaire = acte_elem.findtext("positionDentaire", None)
         execute_heure = acte_elem.findtext("heureExecution", None)
+        if not execute_heure:
+            execute_heure = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}execute/{http://www.hprim.org/hprimXML}heure", None)
 
         numero_seance = None
         numero_seance_elem = acte_elem.find("numeroSeance")
@@ -1082,19 +1172,32 @@ class HprimXmlService:
         # NABMS
         nabms = []
         nabms_elem = acte_elem.find("nabms")
+        if nabms_elem is None:
+            nabms_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}NABMs")
         if nabms_elem is not None:
-            for nabm_elem in nabms_elem.findall("nabm"):
+            for nabm_elem in nabms_elem.findall("nabm") + nabms_elem.findall("{http://www.hprim.org/hprimXML}code"):
                 if nabm_elem.text:
                     nabms.append(int(nabm_elem.text))
 
         # Minor/Major
         minor_major = acte_elem.findtext("minorMajor", None)
+        if minor_major is None:
+            minor_major_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}minorMajor")
+            if minor_major_elem is not None:
+                if minor_major_elem.find(".//{http://www.hprim.org/hprimXML}majoration") is not None:
+                    minor_major = "majoration"
+                elif minor_major_elem.find(".//{http://www.hprim.org/hprimXML}minoration") is not None:
+                    minor_major = "minoration"
 
         # Montant
         montant = None
         montant_elem = acte_elem.find("montant")
+        if montant_elem is None:
+            montant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}montant")
         if montant_elem is not None:
-            valeur_str = montant_elem.findtext("valeur", None)
+            valeur_str = montant_elem.findtext("montantTotal", None)
+            if valeur_str is None:
+                valeur_str = montant_elem.findtext("valeur", None)
             devise = montant_elem.findtext("devise", "EUR")
             if valeur_str:
                 montant = HprimMontant(valeur=Decimal(valeur_str), devise=devise)
@@ -1338,6 +1441,10 @@ class HprimXmlService:
         identifiant_elem = patient_elem.find(".//{http://www.hprim.org/hprimXML}identifiant")
         if identifiant_elem is not None:
             identifiant_id = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}id")
+            if not identifiant_id:
+                identifiant_id = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}emetteur/{http://www.hprim.org/hprimXML}valeur")
+            if not identifiant_id:
+                identifiant_id = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroIdentifiantPatient/{http://www.hprim.org/hprimXML}identifiant")
             identifiant_clef = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}clef")
             # Gérer le cas où findtext retourne un dict
             identifiant_id = identifiant_id if isinstance(identifiant_id, str) else None
@@ -1348,9 +1455,20 @@ class HprimXmlService:
 
         # Informations de base
         nom = patient_elem.findtext(".//{http://www.hprim.org/hprimXML}nom")
+        if not nom:
+            nom = patient_elem.findtext(".//{http://www.hprim.org/hprimXML}personnePhysique/{http://www.hprim.org/hprimXML}nomUsuel")
         prenom = patient_elem.findtext(".//{http://www.hprim.org/hprimXML}prenom")
+        if not prenom:
+            prenom = patient_elem.findtext(".//{http://www.hprim.org/hprimXML}personnePhysique/{http://www.hprim.org/hprimXML}prenoms/{http://www.hprim.org/hprimXML}prenom")
         date_naissance = patient_elem.findtext(".//{http://www.hprim.org/hprimXML}dateNaissance")
+        if date_naissance:
+            date_naissance = date_naissance.strip()
+        if not date_naissance:
+            date_naissance = patient_elem.findtext(".//{http://www.hprim.org/hprimXML}dateNaissance/{http://www.hprim.org/hprimXML}date")
         sexe = patient_elem.findtext(".//{http://www.hprim.org/hprimXML}sexe")
+        personne_physique = patient_elem.find(".//{http://www.hprim.org/hprimXML}personnePhysique")
+        if personne_physique is not None:
+            sexe = personne_physique.get("sexe") or sexe
 
         # Gérer le cas où findtext retourne un dict
         nom = nom if isinstance(nom, str) else None
@@ -1370,9 +1488,17 @@ class HprimXmlService:
     def _parse_professionnel(self, prof_elem: ET.Element) -> HprimProfessionnel:
         """Parse un élément professionnel"""
         nom = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}nom")
+        if not nom:
+            nom = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}personne/{http://www.hprim.org/hprimXML}nomUsuel")
         prenom = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}prenom")
+        if not prenom:
+            prenom = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}personne/{http://www.hprim.org/hprimXML}prenoms/{http://www.hprim.org/hprimXML}prenom")
         numero_rpps = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroRPPS")
+        if not numero_rpps:
+            numero_rpps = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}noRPPS")
         specialite = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}specialite")
+        if not specialite:
+            specialite = prof_elem.findtext(".//{http://www.hprim.org/hprimXML}specialiteHprim/{http://www.hprim.org/hprimXML}libelle")
 
         # Gérer le cas où findtext retourne un dict au lieu d'une string (namespace issue)
         nom = nom if isinstance(nom, str) else None
@@ -1384,7 +1510,7 @@ class HprimXmlService:
             nom=nom,
             prenom=prenom,
             numero_rpps=numero_rpps,
-            numero_adeli=None,  # Pas toujours présent dans tous les contextes
+            numero_adeli=prof_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroAdeli"),
             specialite=specialite
         )
 
@@ -1392,6 +1518,10 @@ class HprimXmlService:
         """Parse un élément venue"""
         # Extraire l'identifiant et le libellé
         identifiant = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant", "")
+        if not identifiant:
+            identifiant = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}emetteur/{http://www.hprim.org/hprimXML}valeur", "")
+        if not identifiant:
+            identifiant = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroIdentifiantVenue/{http://www.hprim.org/hprimXML}identifiant", "")
         libelle = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}libelle", "")
         
         # Si pas d'identifiant, utiliser une valeur par défaut

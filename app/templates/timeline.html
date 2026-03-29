@@ -1,152 +1,228 @@
 {% extends "base.html" %}
-{% import "components.html" as components %}
+
+{# ---------- Macro: node color/icon by event type ---------- #}
+{% macro node_classes(event) %}
+  {%- if event.type == "admission" -%}bg-emerald-500 ring-emerald-200
+  {%- elif event.type == "venue" -%}bg-violet-500 ring-violet-200
+  {%- elif event.type == "mouvement" -%}bg-amber-500 ring-amber-200
+  {%- elif event.type == "discharge" -%}bg-red-500 ring-red-200
+  {%- elif event.type == "patient" -%}bg-sky-500 ring-sky-200
+  {%- else -%}bg-slate-500 ring-slate-200{%- endif -%}
+{% endmacro %}
+
+{% macro card_border(event) %}
+  {%- if event.type == "admission" -%}border-l-emerald-400 bg-emerald-50/60
+  {%- elif event.type == "venue" -%}border-l-violet-400 bg-violet-50/60
+  {%- elif event.type == "mouvement" -%}border-l-amber-400 bg-amber-50/40
+  {%- elif event.type == "discharge" -%}border-l-red-400 bg-red-50/60
+  {%- elif event.type == "patient" -%}border-l-sky-400 bg-sky-50/60
+  {%- else -%}border-l-slate-300 bg-slate-50{%- endif -%}
+{% endmacro %}
+
+{% macro type_badge(event) %}
+  {%- if event.type == "admission" -%}<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">Admission</span>
+  {%- elif event.type == "venue" -%}<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-violet-100 text-violet-700">Venue</span>
+  {%- elif event.type == "mouvement" -%}<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Mouvement</span>
+  {%- elif event.type == "discharge" -%}<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Sortie</span>
+  {%- elif event.type == "patient" -%}<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-700">Patient</span>
+  {%- else -%}<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">Événement</span>{%- endif -%}
+{% endmacro %}
+
+{% macro event_icon(event) %}
+  {%- if event.type == "patient" -%}
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+  {%- elif event.type == "admission" -%}
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+  {%- elif event.type == "venue" -%}
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+  {%- elif event.type == "mouvement" -%}
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+  {%- elif event.type == "discharge" -%}
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+  {%- else -%}
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  {%- endif -%}
+{% endmacro %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="max-w-4xl mx-auto px-4 py-8">
+
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-blue-600 transition-colors">{{ icon('home', 'w-4 h-4') }} Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Événements chronologiques</span>
+  <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+    <a href="/" class="hover:text-cyan-600 font-medium transition-colors">Accueil</a>
+    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    {% if entity_type == "patient" %}
+      <a href="/patients/{{ entity_id }}" class="hover:text-cyan-600 transition-colors">Patient</a>
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    {% elif entity_type == "dossier" %}
+      <a href="/dossiers/{{ entity_id }}" class="hover:text-cyan-600 transition-colors">Dossier</a>
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    {% elif entity_type == "venue" %}
+      <a href="/venues/{{ entity_id }}" class="hover:text-cyan-600 transition-colors">Venue</a>
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    {% endif %}
+    <span class="text-slate-900 font-bold">Timeline</span>
   </nav>
 
-  <!-- Header -->
-  <div class="mb-8">
-    <div class="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
-      <div class="flex items-center space-x-4">
-        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-          <div class="text-3xl">🔹</div>
+  <!-- Page Header -->
+  <div class="relative overflow-hidden rounded-2xl shadow-xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-600 mb-8">
+    <div class="absolute -right-16 -top-16 w-56 h-56 bg-cyan-400/10 rounded-full blur-3xl"></div>
+    <div class="absolute -left-16 -bottom-16 w-56 h-56 bg-blue-400/10 rounded-full blur-3xl"></div>
+    <div class="relative z-10 p-8 flex items-center justify-between">
+      <div class="flex items-center gap-5">
+        <div class="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
         </div>
         <div>
-          <h1 class="text-3xl font-bold">Événements chronologiques</h1>
+          <h1 class="text-3xl font-black text-white">Timeline du séjour</h1>
+          {% if dossier %}
+          <p class="text-white/70 text-sm mt-1 font-medium">
+            Dossier #{{ dossier.dossier_seq or dossier.id }}
+            {% if dossier.dossier_type %}
+            · {{ dossier.dossier_type.value }}
+            {% endif %}
+          </p>
+          {% endif %}
         </div>
+      </div>
+      <div>
+        {% if entity_type == "patient" %}
+          <a href="/patients/{{ entity_id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Patient
+          </a>
+        {% elif entity_type == "dossier" %}
+          <a href="/dossiers/{{ entity_id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Dossier
+          </a>
+        {% elif entity_type == "venue" %}
+          <a href="/venues/{{ entity_id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Venue
+          </a>
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Info dossier et actions -->
-  <div class="flex items-center justify-between mb-6">
-    <div>
-    {% if dossier %}
-      <div class="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
-        <span class="font-semibold">Dossier #{{ dossier.dossier_seq|default('-', true) }}</span>
-          <span class="ml-2 text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">
-            {% set current_type = dossier.dossier_type.value if dossier.dossier_type else '-' %}
-            {% set type_label = None %}
-            {% for opt in dossier_type_options %}
-              {% if opt.value == current_type %}{% set type_label = opt.label %}{% endif %}
-            {% endfor %}
-            {{ type_label or current_type or '-' }}
-          </span>
+  <!-- Stats Bar -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h7"/></svg>
       </div>
-    {% endif %}
+      <div>
+        <div class="text-2xl font-black text-slate-900">{{ events|length }}</div>
+        <div class="text-xs text-slate-500 font-medium">Total</div>
+      </div>
+    </div>
+    <div class="bg-emerald-50 rounded-xl border border-emerald-200 shadow-sm p-4 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1"/></svg>
+      </div>
+      <div>
+        <div class="text-2xl font-black text-emerald-700">{{ events|selectattr("type", "equalto", "admission")|list|length }}</div>
+        <div class="text-xs text-emerald-600 font-medium">Admissions</div>
+      </div>
+    </div>
+    <div class="bg-violet-50 rounded-xl border border-violet-200 shadow-sm p-4 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+      </div>
+      <div>
+        <div class="text-2xl font-black text-violet-700">{{ events|selectattr("type", "equalto", "venue")|list|length }}</div>
+        <div class="text-xs text-violet-600 font-medium">Venues</div>
+      </div>
+    </div>
+    <div class="bg-amber-50 rounded-xl border border-amber-200 shadow-sm p-4 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <div>
+        <div class="text-2xl font-black text-amber-700">{{ events|selectattr("type", "equalto", "mouvement")|list|length }}</div>
+        <div class="text-xs text-amber-600 font-medium">Mouvements</div>
+      </div>
+    </div>
   </div>
-  <div class="flex items-center gap-3">
-    {% if entity_type == "patient" %}
-      <a href="/patients/{{ entity_id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Retour au patient
-      </a>
-    {% elif entity_type == "dossier" %}
-      <a href="/dossiers/{{ entity_id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Retour au dossier
-      </a>
-    {% elif entity_type == "venue" %}
-      <a href="/venues/{{ entity_id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Retour à la venue
-      </a>
-    {% endif %}
-  </div>
-</div>
 
-{# Statistics Summary #}
-<div class="grid grid-cols-4 gap-4 mb-6">
-  <div class="bg-white p-4 rounded-xl border border-slate-200">
-    <div class="text-sm font-medium text-slate-600">Total événements</div>
-    <div class="mt-1 text-2xl font-semibold text-slate-900">{{ events|length }}</div>
-  </div>
-  
-  <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
-    <div class="text-sm font-medium text-blue-600">Admissions</div>
-    <div class="mt-1 text-2xl font-semibold text-blue-700">{{ events|selectattr("type", "equalto", "admission")|list|length }}</div>
-  </div>
-  
-  <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
-    <div class="text-sm font-medium text-purple-600">Venues</div>
-    <div class="mt-1 text-2xl font-semibold text-purple-700">{{ events|selectattr("type", "equalto", "venue")|list|length }}</div>
-  </div>
-  
-  <div class="bg-orange-50 p-4 rounded-xl border border-orange-200">
-    <div class="text-sm font-medium text-orange-600">Mouvements</div>
-    <div class="mt-1 text-2xl font-semibold text-orange-700">{{ events|selectattr("type", "equalto", "mouvement")|list|length }}</div>
-  </div>
-</div>
-
-
-{# Timeline hiérarchique #}
-<div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+  <!-- Timeline -->
   {% if events and events|length > 0 %}
-    <h2 class="text-lg font-semibold mb-4">Événements chronologiques</h2>
-    <div class="space-y-4">
+  <div class="relative">
+    <!-- Vertical connecting line -->
+    <div class="absolute left-[19px] top-5 bottom-5 w-0.5 bg-gradient-to-b from-slate-300 via-slate-200 to-transparent"></div>
+
+    <ol class="space-y-0">
       {% for event in events %}
-        <div class="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50">
-          <div class="flex-shrink-0">
-            {% if event.icon == "map-pin" %}
-              <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-              </div>
-            {% elif event.icon == "activity" %}
-              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-              </div>
-            {% else %}
-              <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
-                <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-            {% endif %}
+      {%- set is_mouvement = (event.type == "mouvement") -%}
+      <li class="relative flex gap-5 {% if is_mouvement %}pl-6{% endif %} group">
+
+        <!-- Node circle -->
+        <div class="relative flex-shrink-0 mt-1">
+          <div class="w-10 h-10 rounded-full {{ node_classes(event) }} ring-4 ring-offset-2 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform duration-200 z-10 relative">
+            {{ event_icon(event) }}
           </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-medium text-slate-900">{{ event.title or "Événement sans titre" }}</h3>
-              <time class="text-sm text-slate-500">{{ event.datetime_display }}</time>
+          <!-- connector stub for mouvements indented under venue -->
+          {% if is_mouvement %}
+          <div class="absolute -left-6 top-5 w-6 h-0.5 bg-slate-200"></div>
+          {% endif %}
+        </div>
+
+        <!-- Card -->
+        <div class="flex-1 mb-5 rounded-xl border-l-4 border border-slate-100 shadow-sm p-4 {{ card_border(event) }} group-hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap">
+              {{ type_badge(event) }}
+              <h3 class="text-sm font-bold text-slate-900">{{ event.title or "Événement sans titre" }}</h3>
             </div>
-            <p class="mt-1 text-sm text-slate-600">{{ event.description or "Aucune description" }}</p>
+            <time class="text-xs font-mono text-slate-500 whitespace-nowrap">{{ event.datetime_display }}</time>
+          </div>
+          {% if event.description %}
+          <p class="mt-1.5 text-sm text-slate-600">{{ event.description }}</p>
+          {% endif %}
+          <!-- Link to entity -->
+          <div class="mt-2 flex items-center gap-3">
             {% if event.entity_type == "mouvement" %}
-              <a href="/mouvements/{{ event.entity_id }}" class="mt-2 inline-flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                </svg>
-                Voir le mouvement
+              <a href="/mouvements/{{ event.entity_id }}" class="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                Voir mouvement
+              </a>
+            {% elif event.entity_type == "venue" %}
+              <a href="/venues/{{ event.entity_id }}" class="inline-flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-700">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                Voir venue
+              </a>
+            {% elif event.entity_type == "dossier" %}
+              <a href="/dossiers/{{ event.entity_id }}" class="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                Voir dossier
+              </a>
+            {% elif event.entity_type == "patient" %}
+              <a href="/patients/{{ event.entity_id }}" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                Voir patient
               </a>
             {% endif %}
           </div>
         </div>
+      </li>
       {% endfor %}
-    </div>
-  {% else %}
-    <div class="text-center py-12">
-      <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <h3 class="mt-2 text-sm font-medium text-slate-900">Aucun événement</h3>
-      <p class="mt-1 text-sm text-slate-500">Aucun événement n'a été enregistré pour cette venue.</p>
-    </div>
-  {% endif %}
-</div>
+    </ol>
+  </div>
 
+  {% else %}
+  <div class="text-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div class="w-20 h-20 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-4">
+      <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <h3 class="text-lg font-bold text-slate-700">Aucun événement</h3>
+    <p class="mt-1 text-sm text-slate-500">Aucun événement n'a été enregistré pour cet élément.</p>
+  </div>
+  {% endif %}
+
+</div>
 {% endblock %}

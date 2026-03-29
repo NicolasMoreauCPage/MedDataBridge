@@ -1,0 +1,213 @@
+{# Cartographic Location Picker Component #}
+{# Usage: {% include "components/location_cartography.html" with context %} #}
+
+<div id="location-cartography-widget" class="space-y-4">
+  <!-- Breadcrumb Navigation -->
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+    <div class="font-semibold text-blue-900 mb-2">Localisation sélectionnée:</div>
+    <div id="hierarchy-breadcrumb" class="text-blue-700 font-mono text-xs flex items-center gap-2">
+      <span class="inline-flex items-center gap-2 px-3 py-1 bg-white rounded border border-blue-200">Aucune sélection</span>
+    </div>
+  </div>
+
+  <!-- Service Selection -->
+  <div class="space-y-2">
+    <label class="block text-sm font-semibold text-slate-700">
+      Service <span class="text-red-500">*</span>
+    </label>
+    <select id="cart-service" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+      <option value="">-- Sélectionner un service --</option>
+    </select>
+  </div>
+
+  <!-- UF Selection -->
+  <div class="space-y-2">
+    <label class="block text-sm font-semibold text-slate-700">
+      Unité Fonctionnelle (UF) <span class="text-red-500">*</span>
+    </label>
+    <select id="cart-uf" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none" disabled>
+      <option value="">-- Sélectionner une UF --</option>
+    </select>
+  </div>
+
+  <!-- Unité d'Hébergement Selection (if needed) -->
+  <div class="space-y-2" id="uh-container" style="display: none;">
+    <label class="block text-sm font-semibold text-slate-700">
+      Unité d'Hébergement (UH)
+    </label>
+    <select id="cart-uh" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+      <option value="">Toutes les UH</option>
+    </select>
+  </div>
+
+  <!-- Chambre Selection -->
+  <div class="space-y-2" id="chambre-container" style="display: none;">
+    <label class="block text-sm font-semibold text-slate-700">
+      Chambre
+    </label>
+    <select id="cart-chambre" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+      <option value="">Toutes les chambres</option>
+    </select>
+  </div>
+
+  <!-- Lit Selection (Grid) -->
+  <div class="space-y-3" id="lit-container" style="display: none;">
+    <label class="block text-sm font-semibold text-slate-700">
+      Lit disponible <span class="text-red-500">*</span>
+    </label>
+    <div id="lit-grid" class="grid grid-cols-2 md:grid-cols-4 gap-2 min-h-24">
+      <div class="col-span-full text-center text-slate-500 text-sm py-8">Sélectionnez d'abord les niveaux</div>
+    </div>
+    <input type="hidden" id="selected-lit-id" name="lit_id">
+  </div>
+
+  <!-- State Validation Info -->
+  <div id="state-validation-alert" class="hidden rounded-lg border-2 border-amber-200 bg-amber-50 p-3">
+    <div class="text-sm text-amber-900">
+      <p class="font-semibold flex items-center gap-2">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        Validation d'état en cours
+      </p>
+      <p class="text-xs mt-1" id="state-message"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  const serviceSelect = document.getElementById('cart-service');
+  const ufSelect = document.getElementById('cart-uf');
+  const uhSelect = document.getElementById('cart-uh');
+  const chambreSelect = document.getElementById('cart-chambre');
+  const litGrid = document.getElementById('lit-grid');
+  const litInput = document.getElementById('selected-lit-id');
+  const breadcrumb = document.getElementById('hierarchy-breadcrumb');
+  const stateAlert = document.getElementById('state-validation-alert');
+  const stateMessage = document.getElementById('state-message');
+
+  function showLitsMessage(message, isError = false) {
+    litGrid.innerHTML = `<div class="col-span-full text-sm py-8 text-center ${isError ? 'text-red-600' : 'text-slate-500'}">${message}</div>`;
+  }
+
+  // Load services on page load
+  try {
+    serviceSelect.disabled = true;
+    const services = await fetch('/api/location/services').then(r => r.json());
+    services.forEach(s => {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = `${s.name}${s.service_type ? ' (' + s.service_type + ')' : ''}`;
+      serviceSelect.appendChild(option);
+    });
+    serviceSelect.disabled = false;
+  } catch (e) {
+    console.error('Error loading services:', e);
+    showLitsMessage('Impossible de charger les services', true);
+  }
+
+  // Service change → Load UFs
+  serviceSelect.addEventListener('change', async function() {
+    const serviceId = this.value;
+    ufSelect.disabled = true;
+    ufSelect.innerHTML = '<option value="">-- Sélectionner une UF --</option>';
+    showLitsMessage('Sélectionnez une UF');
+    
+    if (!serviceId) return;
+
+    try {
+      showLitsMessage('Chargement des UF...');
+      const ufs = await fetch(`/api/location/services/${serviceId}/ufs`).then(r => r.json());
+      ufs.forEach(uf => {
+        const option = document.createElement('option');
+        option.value = uf.id;
+        option.textContent = uf.name;
+        ufSelect.appendChild(option);
+      });
+      ufSelect.disabled = false;
+      showLitsMessage('Sélectionnez une UF');
+    } catch (e) {
+      console.error('Error loading UFs:', e);
+      showLitsMessage('Erreur lors du chargement des UF', true);
+    }
+  });
+
+  // UF change → Load Lits directly
+  ufSelect.addEventListener('change', async function() {
+    const ufId = this.value;
+    if (!ufId) {
+      showLitsMessage('Sélectionnez une UF');
+      document.getElementById('lit-container').style.display = 'none';
+      return;
+    }
+
+    try {
+      showLitsMessage('Chargement des lits disponibles...');
+      const allLits = await fetch(`/api/location/ufs/${ufId}/available-lits`).then(r => r.json());
+
+      // Render lits grid
+      if (allLits.length === 0) {
+        showLitsMessage('❌ Aucun lit disponible', true);
+        document.getElementById('lit-container').style.display = 'none';
+      } else {
+        litGrid.innerHTML = '';
+        allLits.forEach(lit => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'lit-button p-3 border-2 border-green-300 bg-green-50 rounded-lg hover:bg-green-100 hover:border-green-600 transition-all cursor-pointer text-center text-sm';
+          btn.dataset.litId = lit.id;
+          btn.innerHTML = `
+            <div class="font-bold text-green-700">${lit.name}</div>
+            <div class="text-xs text-green-600">Ch. ${lit.chambre.name}</div>
+          `;
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            selectLit(this, lit, ufId);
+          });
+          litGrid.appendChild(btn);
+        });
+        document.getElementById('lit-container').style.display = 'block';
+      }
+    } catch (e) {
+      console.error('Error loading lits:', e);
+      showLitsMessage('Erreur lors du chargement des lits', true);
+    }
+  });
+
+  function selectLit(element, lit, ufId) {
+    // Update selection UI
+    document.querySelectorAll('.lit-button').forEach(b => {
+      b.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-600');
+      b.classList.add('border-green-300', 'bg-green-50');
+    });
+    element.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-600');
+    element.classList.remove('border-green-300', 'bg-green-50');
+    
+    // Set hidden input
+    litInput.value = lit.id;
+    
+    // Update breadcrumb
+    const hierarchy = `${lit.chambre.name} / ${lit.name}`;
+    breadcrumb.innerHTML = `<span class="inline-flex items-center gap-2 px-3 py-1 bg-white rounded border border-blue-200">${hierarchy}</span>`;
+    
+    // Validate state (placeholder for real state validation logic)
+    validateLitState(lit, ufId);
+  }
+
+  function validateLitState(lit, ufId) {
+    // Placeholder: In production, this would check:
+    // - Can patient be moved to this lit given current venue status?
+    // - Are there any conflicting movements?
+    // - Is the lit currently occupied?
+    
+    stateAlert.classList.add('hidden');
+    
+    // Example: If lit is in ICU, show warning
+    if (lit.bed_type === 'ICU' || lit.name.includes('ICU')) {
+      stateMessage.textContent = 'Ce lit est en unité de soins intensifs. Assurez-vous que le patient nécessite ce niveau de soins.';
+      stateAlert.classList.remove('hidden');
+    }
+  }
+});
+</script>

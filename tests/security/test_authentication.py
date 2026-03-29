@@ -207,6 +207,21 @@ class TestAuthentication:
         assert response.status_code == 401
         assert "invalide" in response.json()["detail"].lower()
 
+    def test_refresh_rejects_access_token(self, client):
+        """Empêche l'utilisation d'un access token sur /auth/refresh."""
+        login_response = client.post("/auth/login", data={
+            "username": "admin",
+            "password": "admin"
+        })
+        access_token = login_response.json()["access_token"]
+
+        response = client.post("/auth/refresh", json={
+            "refresh_token": access_token
+        })
+
+        assert response.status_code == 401
+        assert "type de token invalide" in response.json()["detail"].lower()
+
     def test_role_based_access_admin_only(self, client):
         """Test contrôle d'accès basé sur les rôles - admin uniquement"""
         # Login avec compte user (pas admin)

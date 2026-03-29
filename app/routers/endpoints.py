@@ -286,10 +286,34 @@ def create_endpoint(
     linked_endpoint_id: str = Form(None),
     session=Depends(get_session),
 ):
-    # Debug: print all incoming form data
+    # Debug: log incoming form data without leaking credentials/secrets
     import logging
     logger = logging.getLogger("endpoints_debug")
-    logger.warning(f"Form data received: name={name}, kind={kind}, role={role}, is_enabled={is_enabled}, ght_context_id={ght_context_id}, entite_juridique_id={entite_juridique_id}, host={host}, port={port}, sending_app={sending_app}, sending_facility={sending_facility}, receiving_app={receiving_app}, receiving_facility={receiving_facility}, base_url={base_url}, auth_kind={auth_kind}, auth_token={auth_token}, inbox_path={inbox_path}, outbox_path={outbox_path}, archive_path={archive_path}, error_path={error_path}, file_extensions={file_extensions}")
+    logger.warning(
+        "Form data received: name=%s, kind=%s, role=%s, is_enabled=%s, ght_context_id=%s, "
+        "entite_juridique_id=%s, host=%s, port=%s, sending_app=%s, sending_facility=%s, "
+        "receiving_app=%s, receiving_facility=%s, base_url=%s, auth_kind=%s, auth_token=[REDACTED], "
+        "inbox_path=%s, outbox_path=%s, archive_path=%s, error_path=%s, file_extensions=%s",
+        name,
+        kind,
+        role,
+        is_enabled,
+        ght_context_id,
+        entite_juridique_id,
+        host,
+        port,
+        sending_app,
+        sending_facility,
+        receiving_app,
+        receiving_facility,
+        base_url,
+        auth_kind,
+        inbox_path,
+        outbox_path,
+        archive_path,
+        error_path,
+        file_extensions,
+    )
     ght_id = int(ght_context_id) if ght_context_id and str(ght_context_id).strip() else None
     ej_id = int(entite_juridique_id) if entite_juridique_id and str(entite_juridique_id).strip() else None
     # Fall back to active contexts if not provided by form (e.g., hidden by context)

@@ -4,7 +4,24 @@ from fastapi import Request as FastAPIRequest
 from sqlmodel import select
 from datetime import datetime, timedelta
 from app.db import get_session, peek_next_sequence
-from app.models import Venue, Dossier, Patient
+from app.models import Venue, Dossier, Patient, Mouvement
+from sqlmodel import select as sqlm_select
+
+
+def _compute_venue_status(mouvements) -> dict:
+    """Compute a display status badge from the venue's mouvements."""
+    events = {m.trigger_event for m in mouvements if m.trigger_event}
+    if 'A03' in events or 'A13' in events:
+        return {"label": "Sorti", "color": "red", "closed": True}
+    if 'A21' in events and 'A22' not in events:
+        return {"label": "En permission", "color": "amber", "closed": False}
+    if 'A01' in events or 'A02' in events:
+        return {"label": "Hospitalisé", "color": "emerald", "closed": False}
+    if 'A05' in events:
+        return {"label": "Pré-admission", "color": "blue", "closed": False}
+    if mouvements:
+        return {"label": "Actif", "color": "cyan", "closed": False}
+    return {"label": "Nouveau", "color": "slate", "closed": False}
 from app.dependencies.ght import require_ght_context
 from app.services import venues_service
 from app.services.venues_service import VenueCreateSchema
@@ -237,11 +254,15 @@ def venue_detail(venue_id: int, request: Request, session=Depends(get_session)):
     # Charger le dossier et le patient pour le contexte
     dossier = session.get(Dossier, v.dossier_id) if v.dossier_id else None
     patient = session.get(type(dossier.patient), dossier.patient_id) if dossier and dossier.patient_id else None
+    mouvements = session.exec(sqlm_select(Mouvement).where(Mouvement.venue_id == venue_id).order_by(Mouvement.when)).all()
+    venue_status = _compute_venue_status(mouvements)
     return get_templates_with_filters(request).TemplateResponse(request, "venue_detail.html", {
         "request": request,
         "venue": v,
         "dossier": dossier,
-        "patient": patient
+        "patient": patient,
+        "mouvements": mouvements,
+        "venue_status": venue_status,
     })
 
 

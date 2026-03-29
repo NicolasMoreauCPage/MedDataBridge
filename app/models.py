@@ -336,6 +336,7 @@ class NGAPAct(SQLModel, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
+    mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
 
     # Identifiant unique de l'acte
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
@@ -415,6 +416,7 @@ class UCDAct(SQLModel, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
+    mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
 
     # Identifiant unique de l'acte
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
@@ -502,6 +504,7 @@ class LPPAct(SQLModel, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
+    mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
 
     # Identifiant unique de l'acte
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
@@ -577,6 +580,7 @@ class CCAMAct(SQLModel, table=True):
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
+    mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
 
     # Identifiant unique de l'acte (typeIdentifiant HPRIM)
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")

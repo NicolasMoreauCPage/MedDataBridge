@@ -76,6 +76,35 @@
                 {{ venue.uf_responsabilite }}
               </span>
               {% endif %}
+              {# --- Status badge --- #}
+              {% if venue_status %}
+                {% if venue_status.color == "red" %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/30 border border-red-300/50 text-white text-sm font-black shadow-md">
+                    <span class="w-2 h-2 rounded-full bg-red-200 animate-pulse"></span>
+                    {{ venue_status.label }}
+                  </span>
+                {% elif venue_status.color == "emerald" %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/30 border border-emerald-300/50 text-white text-sm font-black shadow-md">
+                    <span class="w-2 h-2 rounded-full bg-emerald-200 animate-pulse"></span>
+                    {{ venue_status.label }}
+                  </span>
+                {% elif venue_status.color == "amber" %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/30 border border-amber-300/50 text-white text-sm font-black shadow-md">
+                    <span class="w-2 h-2 rounded-full bg-amber-200 animate-pulse"></span>
+                    {{ venue_status.label }}
+                  </span>
+                {% elif venue_status.color == "blue" %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/30 border border-blue-300/50 text-white text-sm font-black shadow-md">
+                    <span class="w-2 h-2 rounded-full bg-blue-200"></span>
+                    {{ venue_status.label }}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 border border-white/30 text-white text-sm font-semibold shadow-md">
+                    <span class="w-2 h-2 rounded-full bg-white/60"></span>
+                    {{ venue_status.label }}
+                  </span>
+                {% endif %}
+              {% endif %}
             </div>
           </div>
         </div>
@@ -148,7 +177,13 @@
         </svg>
         Workflow
       </a>
-      <a href="/mouvements/new?venue_id={{ venue.id }}" class="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-5 py-4 rounded-xl font-black hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border border-purple-500/50">
+      <a href="/mouvements/new?venue_id={{ venue.id }}" 
+        {% if venue_status and venue_status.closed %}
+          class="group inline-flex items-center justify-center gap-2 bg-slate-200 text-slate-400 px-5 py-4 rounded-xl font-black cursor-not-allowed border border-slate-300 shadow-sm" title="Venue fermée — aucun nouveau mouvement possible" onclick="return false;"
+        {% else %}
+          class="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-5 py-4 rounded-xl font-black hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border border-purple-500/50"
+        {% endif %}
+      >
         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
         </svg>

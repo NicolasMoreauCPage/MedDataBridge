@@ -14,6 +14,7 @@ Notes
 """
 
 from sqlmodel import SQLModel, create_engine, Session, select, text
+from sqlalchemy.engine.url import make_url
 from typing import Optional
 
 # Import ALL models to ensure tables are registered
@@ -102,9 +103,26 @@ def init_db() -> None:
     # Optimisations SQLite avancées pour la performance et la robustesse
     try:
         import sqlite3
-        # Créer le répertoire data s'il n'existe pas
-        os.makedirs("data", exist_ok=True)
-        conn = sqlite3.connect("data/medbridge.db")
+        db_url = make_url(settings.database_url)
+        if db_url.drivername != "sqlite":
+            # Les PRAGMA/index spécifiques SQLite ne s'appliquent pas aux autres SGBD.
+            if init_scenario_templates:
+                with Session(engine) as _s:
+                    init_scenario_templates(_s)
+            return
+
+        sqlite_db_path = db_url.database
+        # SQLite in-memory: aucun fichier à optimiser.
+        if not sqlite_db_path or sqlite_db_path == ":memory:":
+            if init_scenario_templates:
+                with Session(engine) as _s:
+                    init_scenario_templates(_s)
+            return
+
+        # Normaliser les chemins relatifs (ex: ./data/medbridge.db)
+        sqlite_db_path = os.path.abspath(sqlite_db_path)
+        os.makedirs(os.path.dirname(sqlite_db_path), exist_ok=True)
+        conn = sqlite3.connect(sqlite_db_path)
 
         # Optimisations de performance
         conn.execute("PRAGMA journal_mode=WAL;")  # Mode WAL pour accès concurrents
@@ -154,7 +172,7 @@ def init_db() -> None:
 
         conn.commit()
         conn.close()
-        print("[INFO] Optimisations SQLite appliquées avec succès")
+        print(f"[INFO] Optimisations SQLite appliquées avec succès sur {sqlite_db_path}")
     except Exception as e:
         print(f"[WARN] Erreur lors des optimisations SQLite: {e}")
     # Initialisation idempotente des templates de scénarios abstraits (IHE, démo...)

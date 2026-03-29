@@ -160,7 +160,7 @@ async def refresh_token_endpoint(request: RefreshTokenRequest):
     
     try:
         # Décoder le refresh token
-        token_data = decode_token(request.refresh_token)
+        token_data = decode_token(request.refresh_token, expected_type="refresh")
         
         # Extraire le jti pour révocation
         payload = jose_jwt.decode(request.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])

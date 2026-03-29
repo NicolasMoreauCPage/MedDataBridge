@@ -1531,9 +1531,26 @@ def emit_to_senders_async(
                     try:
                         if endpoint.host and endpoint.port:
                             # call the dynamically imported sender (may be monkeypatched)
-                            import time as _time
+                            import time as _time, asyncio as _asyncio, inspect as _inspect
                             _start = _time.time()
-                            ack_payload = _send_mllp(endpoint.host, endpoint.port, hl7_message)
+                            _raw = _send_mllp(endpoint.host, endpoint.port, hl7_message)
+                            # _send_mllp is async; handle both coroutine and pre-resolved string
+                            if _inspect.iscoroutine(_raw):
+                                try:
+                                    running = _asyncio.get_running_loop()
+                                except RuntimeError:
+                                    running = None
+                                if running:
+                                    # Already inside an event loop — run in a separate thread
+                                    import concurrent.futures as _cf
+                                    import asyncio as _asyncio2
+                                    with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
+                                        _fut = _pool.submit(_asyncio2.run, _raw)
+                                        ack_payload = _fut.result(timeout=12)
+                                else:
+                                    ack_payload = _asyncio.run(_raw)
+                            else:
+                                ack_payload = _raw
                             from app.services.mllp import parse_msh_fields
                             ack_lines = ack_payload.split("\r") if ack_payload else []
                             msa_line = next((l for l in ack_lines if l.startswith("MSA|")), None)
@@ -1640,7 +1657,9 @@ def emit_to_senders_async(
                         break
                     retry += 1
                     if retry < max_retry:
-                        time.sleep(60)
+                        import os as _os
+                        _sleep = float(_os.getenv("MLLP_RETRY_SLEEP", "5"))
+                        time.sleep(_sleep)
         # HL7 MFN (structure) - MLLP uniquement
         # Types d'entités compatibles : structure
         if endpoint.kind == "MLLP" and entity_type == "structure":

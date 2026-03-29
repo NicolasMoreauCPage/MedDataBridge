@@ -4,6 +4,7 @@ API de gestion du cache Redis.
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 from app.services.cache_service import get_cache_service, invalidate_cache
+from app.auth import require_role
 
 router = APIRouter(prefix="/cache", tags=["cache"])
 
@@ -24,7 +25,10 @@ async def get_cache_stats() -> Dict[str, Any]:
 
 
 @router.post("/invalidate")
-async def invalidate_cache_pattern(pattern: str = "*") -> Dict[str, Any]:
+async def invalidate_cache_pattern(
+    pattern: str = "*",
+    _admin=Depends(require_role("admin")),
+) -> Dict[str, Any]:
     """
     Invalide les clés de cache correspondant au motif.
     
@@ -52,7 +56,9 @@ async def invalidate_cache_pattern(pattern: str = "*") -> Dict[str, Any]:
 
 
 @router.post("/flush")
-async def flush_cache() -> Dict[str, Any]:
+async def flush_cache(
+    _admin=Depends(require_role("admin")),
+) -> Dict[str, Any]:
     """
     Vide complètement le cache (⚠️ opération destructive).
     

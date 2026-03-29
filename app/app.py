@@ -16,6 +16,7 @@ Points clés
 """
 
 import logging, os, secrets
+from datetime import datetime, timezone
 
 # Charger les variables d'environnement depuis .env
 from dotenv import load_dotenv
@@ -70,7 +71,8 @@ from app.routers import (
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
     interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks,
-    hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie
+    hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie,
+    admission_wizard, location_cartography
 )
 from app.routers import menu
 
@@ -263,7 +265,7 @@ def create_app() -> FastAPI:
                 "version": app.state.version,
                 "database": db_health,
                 "cache": cache_stats,
-                "timestamp": "2025-12-27T00:00:00Z"
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         except Exception as e:
             logger.error(f"Health check failed: {e}")
@@ -522,6 +524,8 @@ def create_app() -> FastAPI:
     
     # 6. Utilities and workflow
     app.include_router(workflow.router)
+    app.include_router(admission_wizard.router)  # Multi-step admission wizard
+    app.include_router(location_cartography.router)  # Location hierarchy API
     app.include_router(generate.router)
     app.include_router(interop.router)
     app.include_router(vocabularies.router)
@@ -651,16 +655,26 @@ if not testing:
     from sqladmin.authentication import AuthenticationBackend
     from starlette.requests import Request
     
-    class NoAuthBackend(AuthenticationBackend):
-        """Backend d'authentification désactivé pour usage interne."""
+    from app.auth import authenticate_user
+
+    class SqlAdminAuthBackend(AuthenticationBackend):
+        """Backend d'authentification SQLAdmin minimal basé sur les comptes applicatifs."""
         async def login(self, request: Request) -> bool:
+            form = await request.form()
+            username = str(form.get("username", "")).strip()
+            password = str(form.get("password", ""))
+            user = authenticate_user(username, password)
+            if not user or "admin" not in user.roles:
+                return False
+            request.session["sqladmin_user"] = user.username
             return True
         
         async def logout(self, request: Request) -> bool:
+            request.session.pop("sqladmin_user", None)
             return True
         
         async def authenticate(self, request: Request) -> bool:
-            return True
+            return bool(request.session.get("sqladmin_user"))
     
     templates_path = os.path.join(os.path.dirname(__file__), "templates")
     
@@ -670,7 +684,7 @@ if not testing:
         base_url="/sqladmin",
         title="IntegraSanté - Admin SQL",
         templates_dir=templates_path,
-        authentication_backend=NoAuthBackend(secret_key="not-used-for-internal-app")
+        authentication_backend=SqlAdminAuthBackend(secret_key=settings.secret_key)
     )
     
     # Register all admin views

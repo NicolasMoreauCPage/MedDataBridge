@@ -1,417 +1,361 @@
 {% extends "base.html" %}
+
+{% block title %}Nouvelle Admission - MedDataBridge{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="max-w-2xl mx-auto py-8 px-4">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
-    <a href="/" class="hover:text-cyan-600 transition-colors flex items-center gap-1 hover:scale-105 transition-transform duration-300">
-      {{ icon('home', 'w-4 h-4') }}
-      <span>Accueil</span>
-    </a>
-    <span class="text-slate-400">/</span>
-    <a href="/patients" class="hover:text-cyan-600 transition-colors hover:scale-105 transition-transform duration-300">Patients</a>
-    {% if patient %}
-      <span class="text-slate-400">/</span>
-      <a href="/patients/{{ patient.id }}" class="hover:text-cyan-600 transition-colors hover:scale-105 transition-transform duration-300">
-        {{ patient.family_name }} {{ patient.given_name }}
-      </a>
-    {% endif %}
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-bold">Admission guidée</span>
+  <nav class="flex items-center gap-2 text-sm text-slate-600 mb-8">
+    <a href="/" class="hover:text-blue-600">Accueil</a>
+    <span>/</span>
+    <span class="font-semibold text-slate-900">Nouvelle Admission</span>
   </nav>
 
-  <!-- Header wizard -->
-  <div class="mb-8">
-    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700 bg-[length:200%_200%] animate-gradient-x p-8 text-white shadow-2xl">
-      <!-- blobs décoratifs -->
-      <div class="pointer-events-none absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl animate-pulse-subtle"></div>
-      <div class="pointer-events-none absolute -left-16 -bottom-16 w-52 h-52 bg-white/5 rounded-full blur-3xl animate-pulse-subtle" style="animation-delay: 1.5s;"></div>
-
-      <div class="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div class="flex items-center gap-4">
-          <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md shadow-lg">
-            <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14M7 11v8m10-8v8" />
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-3xl md:text-4xl font-black tracking-tight">Admission guidée</h1>
-            <p class="mt-1 text-sm md:text-base text-cyan-50/90">
-              Créez un dossier et sa pré-admission en 3 étapes, avec un guidage adapté aux secrétariats.
-            </p>
-          </div>
-        </div>
-        <div class="flex flex-col items-start md:items-end gap-3 text-sm">
-          {% if patient %}
-          <div class="rounded-2xl bg-white/10 backdrop-blur-md px-4 py-3 shadow-lg flex flex-col gap-1 min-w-[220px]">
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-xs uppercase tracking-wide text-cyan-100">Patient sélectionné</span>
-              <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[11px] font-semibold shadow-md">
-                <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
-                Verrouillé
-              </span>
-            </div>
-            <div class="mt-1 text-sm font-semibold">
-              {{ patient.family_name }} {{ patient.given_name }}
-            </div>
-            <div class="text-xs text-cyan-50/80 flex flex-wrap gap-2 mt-1">
-              {% if patient.birth_date %}
-                <span>{{ patient.birth_date.strftime('%d/%m/%Y') }}</span>
-              {% endif %}
-              {% if patient.identifier %}
-                <span class="px-2 py-0.5 rounded-full bg-white/15 text-[11px]">IPP {{ patient.identifier }}</span>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
-          <a href="/dossiers" class="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-xs font-semibold hover:bg-white/20 transition-all duration-300 hover:shadow-lg">
-            <span>Retour aux dossiers</span>
-          </a>
-        </div>
-      </div>
-    </div>
+  <!-- Wizard Header with Progress -->
+  <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white mb-8">
+    <h1 class="text-3xl font-bold mb-2">Nouvelle Admission</h1>
+    <p class="text-blue-100">Créez un patient, son dossier et sa première venue en un seul flux</p>
   </div>
 
-  <!-- Barre d'étapes -->
-  <nav class="mb-6" aria-label="Étapes de l'admission guidée">
-    <ol class="flex flex-wrap items-center text-xs sm:text-sm text-slate-100/90" id="admissionSteps">
-      <li class="flex items-center mr-4 mb-2" data-step="1">
-        <span class="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold mr-2 shadow-md transition-colors">1</span>
-        <span>Identité patient</span>
-      </li>
-      <li class="flex items-center mr-4 mb-2 opacity-70" data-step="2">
-        <span class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-200 text-slate-700 text-xs font-bold mr-2 shadow-md transition-colors">2</span>
-        <span>Dossier administratif</span>
-      </li>
-      <li class="flex items-center mb-2 opacity-70" data-step="3">
-        <span class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-200 text-slate-700 text-xs font-bold mr-2 shadow-md transition-colors">3</span>
-        <span>Vérification & création</span>
-      </li>
-    </ol>
-  </nav>
-
-  <!-- Contenu wizard + formulaire global -->
-  <form id="admission-wizard-form" method="post" action="/dossiers/new" class="space-y-6">
-    <div id="admissionContent" class="bg-white/80 backdrop-blur-md shadow-xl rounded-2xl border border-slate-200/60 p-5 sm:p-6 lg:p-8 transition-shadow">
-      <!-- Étape 1 : Identité patient (lecture seule) -->
-      <section id="admission-step-1" data-step-content="1" aria-labelledby="admission-step-1-title">
-        <h2 id="admission-step-1-title" class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg">
-            {{ icon('user', 'w-5 h-5') }}
-          </span>
-          <span>Identité du patient</span>
-        </h2>
-        {% if patient %}
-        <div class="grid gap-4 md:grid-cols-2">
-          <div class="group rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 flex flex-col gap-2">
-            <div class="text-xs font-black uppercase tracking-wide text-emerald-700 flex items-center gap-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Identité principale
-            </div>
-            <div class="text-lg font-semibold text-slate-900">
-              {{ patient.family_name }} {{ patient.given_name }}
-            </div>
-            <div class="text-sm text-slate-700 flex flex-wrap gap-3">
-              {% if patient.birth_date %}
-                <span class="inline-flex items-center gap-1">
-                  {{ icon('calendar', 'w-4 h-4 text-emerald-600') }}
-                  {{ patient.birth_date.strftime('%d/%m/%Y') }}
-                </span>
-              {% endif %}
-              {% if patient.gender %}
-                <span class="inline-flex items-center gap-1">
-                  {{ icon('user-circle', 'w-4 h-4 text-emerald-600') }}
-                  {{ patient.gender|capitalize }}
-                </span>
-              {% endif %}
-            </div>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-2 text-sm text-slate-700">
-            <div class="text-xs font-black uppercase tracking-wide text-slate-500">Rappel pour l'admission</div>
-            <ul class="space-y-1 text-xs">
-              <li>• Les modifications d'identité se font dans l'écran « Patient ».</li>
-              <li>• L'admission guidée ne modifie pas les identifiants patients.</li>
-              <li>• Si l'identité est erronée, corrigez-la avant de poursuivre.</li>
-            </ul>
-          </div>
+  <!-- Progress Indicator -->
+  <div class="flex items-center justify-between mb-8">
+    {% for step_num in [1, 2, 3] %}
+    <div class="flex-1 flex items-center">
+      <div class="flex items-center mb-4">
+        <div class="w-12 h-12 rounded-full {% if current_step >= step_num %}bg-blue-600 text-white{% else %}bg-slate-200 text-slate-600{% endif %} flex items-center justify-center font-bold text-lg">
+          {% if current_step > step_num %}
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          {% else %}{{ step_num }}{% endif %}
         </div>
-        {% else %}
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 flex gap-3">
-          <div class="mt-0.5">⚠️</div>
-          <div>
-            <p class="font-semibold mb-1">Aucun patient sélectionné</p>
-            <p>Sélectionnez d'abord un patient dans la liste des patients, puis relancez l'admission guidée.</p>
-          </div>
-        </div>
-        {% endif %}
-      </section>
-
-      <!-- Étape 2 : Dossier administratif -->
-      <section id="admission-step-2" data-step-content="2" aria-labelledby="admission-step-2-title" class="hidden">
-        <h2 id="admission-step-2-title" class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg">
-            {{ icon('clipboard-document-list', 'w-5 h-5') }}
-          </span>
-          <span>Dossier administratif</span>
-        </h2>
-        <div id="admission-errors" class="hidden mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800" role="alert" aria-live="polite"></div>
-        <div class="grid gap-5 md:grid-cols-2">
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-black text-slate-700 mb-1">
-                UF de responsabilité <span class="text-red-600 text-lg" aria-hidden="true">*</span>
-              </label>
-              <select name="uf_responsabilite" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 hover:border-slate-400 transition-colors duration-200">
-                <option value="">Sélectionner une UF...</option>
-                {% for uf in uf_options %}
-                  <option value="{{ uf.value }}">{{ uf.label }}</option>
-                {% endfor %}
-              </select>
-              {% if uf_options|length == 0 %}
-              <p class="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex gap-2">
-                <span>⚠️</span>
-                <span>Aucune UF disponible. Vérifiez le contexte d'établissement (EJ) avant de poursuivre.</span>
-              </p>
-              {% endif %}
-            </div>
-            <div>
-              <label class="block text-sm font-black text-slate-700 mb-1">Source d'admission</label>
-              <input type="text" name="admission_source" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 hover:border-slate-400 transition-colors duration-200" placeholder="Ex : Urgences, consultation externe...">
-            </div>
-          </div>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-black text-slate-700 mb-1">Type de dossier</label>
-              <select name="dossier_type" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 hover:border-slate-400 transition-colors duration-200">
-                {% for opt in dossier_type_opts %}
-                  <option value="{{ opt.value }}">{{ opt.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-black text-slate-700 mb-1">Médecin responsable</label>
-              <input type="text" name="attending_provider" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 hover:border-slate-400 transition-colors duration-200" placeholder="Nom du praticien">
-            </div>
-            <div>
-              <label class="block text-sm font-black text-slate-700 mb-1">Date et heure d'admission</label>
-              <input type="datetime-local" name="admit_time" required value="{{ default_admit_time }}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 hover:border-slate-400 transition-colors duration-200">
-              <p class="mt-1 text-xs text-slate-500">Par défaut : maintenant. Ajustez si l'admission doit être future ou rétro-datée.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Étape 3 : Vérification & création -->
-      <section id="admission-step-3" data-step-content="3" aria-labelledby="admission-step-3-title" class="hidden">
-        <h2 id="admission-step-3-title" class="text-lg font-black text-slate-900 mb-4 flex items-center gap-3">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-lg">
-            {{ icon('check-badge', 'w-5 h-5') }}
-          </span>
-          <span>Vérification avant création</span>
-        </h2>
-        <div class="grid gap-5 md:grid-cols-2">
-          <div class="space-y-3">
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div class="text-xs font-black uppercase tracking-wide text-slate-500 mb-2">Récapitulatif patient</div>
-              {% if patient %}
-              <p class="text-sm font-semibold text-slate-900">{{ patient.family_name }} {{ patient.given_name }}</p>
-              <p class="text-xs text-slate-600 mt-1">
-                {% if patient.birth_date %}
-                  Né(e) le {{ patient.birth_date.strftime('%d/%m/%Y') }}
-                {% endif %}
-                {% if patient.identifier %}
-                  • IPP {{ patient.identifier }}
-                {% endif %}
-              </p>
-              {% else %}
-              <p class="text-sm text-slate-700">Aucun patient chargé (cette étape devrait être atteinte uniquement via le contexte patient).</p>
-              {% endif %}
-            </div>
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900 flex gap-2">
-              <span>💡</span>
-              <div>
-                <p class="font-semibold mb-1">Ce que fera la validation</p>
-                <ul class="space-y-1 list-disc list-inside">
-                  <li>Crée un <strong>dossier</strong> pour ce patient.</li>
-                  <li>Crée automatiquement une <strong>venue de pré-admission</strong> liée.</li>
-                  <li>Utilise l'UF responsabilité et le type de dossier choisis.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="space-y-3">
-            <div class="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-              <div class="text-xs font-black uppercase tracking-wide text-slate-500 mb-2">Contrôles rapides</div>
-              <ul class="space-y-1">
-                <li>• Vérifiez l'UF responsabilité (cohérente avec le service réel).</li>
-                <li>• Vérifiez la date/heure d'admission (pas d'erreur de jour).</li>
-                <li>• Assurez-vous que le médecin responsable est bien saisi.</li>
-              </ul>
-            </div>
-            <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs text-red-900 flex gap-2">
-              <span>⚠️</span>
-              <div>
-                <p class="font-semibold mb-1">Irreversibilité partielle</p>
-                <p>Une fois le dossier créé, sa suppression entraînera également la suppression des venues associées. Utilisez cette fonction uniquement pour des admissions réelles ou des tests identifiés.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        <span class="ml-3 text-sm font-medium {% if current_step >= step_num %}text-slate-900{% else %}text-slate-500{% endif %}">
+          {% if step_num == 1 %}Patient{% elif step_num == 2 %}Dossier{% else %}Venue{% endif %}
+        </span>
+      </div>
+      {% if step_num < 3 %}
+      <div class="flex-1 h-1 mx-2 {% if current_step > step_num %}bg-blue-600{% else %}bg-slate-200{% endif %}"></div>
+      {% endif %}
     </div>
+    {% endfor %}
+  </div>
 
-    <!-- Boutons de navigation wizard -->
-    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <button type="button" id="admissionPrev" aria-label="Revenir à l'étape précédente" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white transition-all">
+  <!-- Error Alert -->
+  {% if error %}
+  <div class="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-6 flex items-start gap-3">
+    <svg class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+    </svg>
+    <div>
+      <h3 class="font-semibold text-red-900">Erreur</h3>
+      <p class="text-sm text-red-700">{{ error }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/wizard/admission" class="space-y-6">
+    <!-- Hidden step indicator -->
+    <input type="hidden" name="step" value="{{ current_step }}">
+
+    <!-- STEP 1: PATIENT -->
+    {% if current_step == 1 %}
+    <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-8">
+      <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        <span>Identité du Patient</span>
+      </h2>
+
+      <div class="space-y-6">
+        <!-- Civilité -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Civilité</label>
+          <select name="prefix" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+            <option value="">-- Sélectionner --</option>
+            <option value="M." {% if patient.prefix == 'M.' %}selected{% endif %}>M. (Monsieur)</option>
+            <option value="Mme" {% if patient.prefix == 'Mme' %}selected{% endif %}>Mme (Madame)</option>
+            <option value="Mlle" {% if patient.prefix == 'Mlle' %}selected{% endif %}>Mlle (Mademoiselle)</option>
+          </select>
+        </div>
+
+        <!-- Nom et Prénom -->
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">
+              Nom <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="family" required placeholder="MARTIN" 
+                   value="{{ patient.family or '' }}"
+                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">
+              Prénom <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="given" required placeholder="Sophie"
+                   value="{{ patient.given or '' }}"
+                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Date de naissance -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">
+            Date de naissance <span class="text-red-500">*</span>
+          </label>
+          <input type="date" name="birth_date" required
+                 value="{{ patient.birth_date or '' }}"
+                 class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+        </div>
+
+        <!-- Sexe -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">
+            Sexe <span class="text-red-500">*</span>
+          </label>
+          <select name="gender" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+            <option value="">-- Sélectionner --</option>
+            <option value="M" {% if patient.gender == 'M' %}selected{% endif %}>Masculin</option>
+            <option value="F" {% if patient.gender == 'F' %}selected{% endif %}>Féminin</option>
+            <option value="O" {% if patient.gender == 'O' %}selected{% endif %}>Autre</option>
+            <option value="U" {% if patient.gender == 'U' %}selected{% endif %}>Non spécifié</option>
+          </select>
+        </div>
+
+        <!-- Téléphone (optionnel) -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Téléphone</label>
+          <input type="tel" name="phone" placeholder="01 23 45 67 89"
+                 value="{{ patient.phone or '' }}"
+                 class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- STEP 2: DOSSIER -->
+    {% if current_step == 2 %}
+    <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-8">
+      <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+        </svg>
+        <span>Dossier Administratif</span>
+      </h2>
+
+      <!-- Patient recap -->
+      <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+        <p class="text-sm text-blue-700">
+          <strong>Patient:</strong> {{ patient_recap.prefix or '' }} {{ patient_recap.family }} {{ patient_recap.given }}
+          ({{ patient_recap.birth_date }})
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Type d'admission -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">
+            Type d'admission <span class="text-red-500">*</span>
+          </label>
+          <select name="admission_type" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+            <option value="">-- Sélectionner --</option>
+            <option value="emergency" {% if dossier.admission_type == 'emergency' %}selected{% endif %}>Urgence</option>
+            <option value="elective" {% if dossier.admission_type == 'elective' %}selected{% endif %}>Programmée</option>
+            <option value="urgent" {% if dossier.admission_type == 'urgent' %}selected{% endif %}>Très Urgente</option>
+            <option value="other" {% if dossier.admission_type == 'other' %}selected{% endif %}>Autre</option>
+          </select>
+        </div>
+
+        <!-- Motif d'admission -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Motif d'admission</label>
+          <textarea name="admission_reason" rows="3" placeholder="Motif médical de l'admission"
+                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">{{ dossier.admission_reason or '' }}</textarea>
+        </div>
+
+        <!-- Médecin responsable -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Médecin responsable</label>
+          <input type="text" name="attending_provider" placeholder="Nom du médecin"
+                 value="{{ dossier.attending_provider or '' }}"
+                 class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- STEP 3: VENUE (Première admission) -->
+    {% if current_step == 3 %}
+    <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-8">
+      <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        <span>Première Venue (Localisation)</span>
+      </h2>
+
+      <!-- Patient + Dossier recap -->
+      <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6 space-y-2">
+        <p class="text-sm text-blue-700">
+          <strong>Patient:</strong> {{ patient_recap.prefix or '' }} {{ patient_recap.family }} {{ patient_recap.given }}
+        </p>
+        <p class="text-sm text-blue-700">
+          <strong>Admission:</strong> 
+          {% if dossier_recap.admission_type == 'emergency' %}Urgence
+          {% elif dossier_recap.admission_type == 'elective' %}Programmée
+          {% elif dossier_recap.admission_type == 'urgent' %}Très Urgente
+          {% else %}{{ dossier_recap.admission_type or 'Type non spécifié' }}{% endif %}
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Service -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">
+            Service <span class="text-red-500">*</span>
+          </label>
+          <select name="service_id" id="service_id" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+            <option value="">-- Sélectionner un service --</option>
+            {% for service in services %}
+            <option value="{{ service.id }}" {% if venue.service_id == service.id %}selected{% endif %}>{{ service.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Unité Fonctionnelle -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">
+            Unité Fonctionnelle (UF) <span class="text-red-500">*</span>
+          </label>
+          <select name="uf_id" id="uf_id" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+            <option value="">-- Sélectionner une UF --</option>
+          </select>
+        </div>
+
+        <!-- Lit selector -->
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-3">
+            Lit <span class="text-red-500">*</span>
+          </label>
+          <div id="lit_selector" class="grid grid-cols-3 gap-3 min-h-24 items-center">
+            <div class="col-span-3 text-center text-slate-500 text-sm py-8">Sélectionnez d'abord un service et une UF</div>
+          </div>
+          <input type="hidden" name="lit_id" id="lit_id" value="{{ venue.lit_id or '' }}">
+        </div>
+
+        <!-- Admission date/time -->
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">
+              Date d'admission <span class="text-red-500">*</span>
+            </label>
+            <input type="date" name="admission_date" required value="{{ venue.admission_date or '' }}"
+                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">
+              Heure d'admission <span class="text-red-500">*</span>
+            </label>
+            <input type="time" name="admission_time" required value="{{ venue.admission_time or '' }}"
+                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Navigation Buttons -->
+    <div class="flex items-center justify-between gap-4 pt-6 border-t-2 border-slate-200">
+      {% if current_step > 1 %}
+      <button type="submit" name="action" value="prev" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-semibold transition-colors">
         ← Précédent
       </button>
-      <div class="flex items-center gap-3">
-        <button type="button" id="admissionNext" aria-label="Passer à l'étape suivante" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-700 hover:shadow-lg transition-all">
-          <span>Suivant</span>
-          <span>→</span>
-        </button>
-        <button type="submit" id="admissionSubmit" aria-label="Créer le dossier et la pré-admission" class="hidden inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-emerald-700 hover:shadow-lg transition-all">
-          <span class="admission-submit-label">Créer dossier + pré-admission</span>
-        </button>
-      </div>
+      {% else %}
+      <a href="/" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-semibold transition-colors text-center">
+        ← Annuler
+      </a>
+      {% endif %}
+
+      {% if current_step < 3 %}
+      <button type="submit" name="action" value="next" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors">
+        Suivant →
+      </button>
+      {% else %}
+      <button type="submit" name="action" value="complete" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-colors flex items-center gap-2">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Créer l'admission
+      </button>
+      {% endif %}
     </div>
   </form>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const steps = Array.from(document.querySelectorAll('#admissionSteps [data-step]'));
-    const contents = Array.from(document.querySelectorAll('[data-step-content]'));
-    const prevBtn = document.getElementById('admissionPrev');
-    const nextBtn = document.getElementById('admissionNext');
-    const submitBtn = document.getElementById('admissionSubmit');
-    const form = document.getElementById('admission-wizard-form');
-    const errorBox = document.getElementById('admission-errors');
-    let currentStep = 1;
-    const maxStep = 3;
-    let isSubmitting = false;
-
-    function updateStepDisplay() {
-      steps.forEach(stepEl => {
-        const step = Number(stepEl.dataset.step);
-        const badge = stepEl.querySelector('span');
-        if (step === currentStep) {
-          stepEl.classList.remove('opacity-70');
-          badge.classList.remove('bg-slate-200', 'text-slate-700');
-          badge.classList.add('bg-emerald-500', 'text-white');
-          stepEl.setAttribute('aria-current', 'step');
-        } else {
-          stepEl.classList.add('opacity-70');
-          badge.classList.remove('bg-emerald-500', 'text-white');
-          badge.classList.add('bg-slate-200', 'text-slate-700');
-          stepEl.removeAttribute('aria-current');
-        }
-      });
-      contents.forEach(section => {
-        const step = Number(section.dataset.stepContent);
-        section.classList.toggle('hidden', step !== currentStep);
-      });
-      prevBtn.disabled = currentStep === 1;
-      if (currentStep === maxStep) {
-        nextBtn.classList.add('hidden');
-        submitBtn.classList.remove('hidden');
-      } else {
-        nextBtn.classList.remove('hidden');
-        submitBtn.classList.add('hidden');
-      }
-    }
-
-    prevBtn.addEventListener('click', () => {
-      if (currentStep > 1) {
-        currentStep -= 1;
-        updateStepDisplay();
-      }
+// Dynamically update UF and Lit selectors based on selection
+document.getElementById('service_id').addEventListener('change', async function() {
+  const serviceId = this.value;
+  if (!serviceId) {
+    document.getElementById('uf_id').innerHTML = '<option value="">-- Sélectionner une UF --</option>';
+    document.getElementById('lit_selector').innerHTML = '<div class="col-span-3 text-slate-500 text-sm py-8 text-center">Sélectionnez un service</div>';
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/wizard/api/services/${serviceId}/ufs`);
+    const ufs = await response.json();
+    
+    let ufHtml = '<option value="">-- Sélectionner une UF --</option>';
+    ufs.forEach(uf => {
+      ufHtml += `<option value="${uf.id}">${uf.name}</option>`;
     });
+    document.getElementById('uf_id').innerHTML = ufHtml;
+  } catch (e) {
+    console.error('Error fetching UFs:', e);
+  }
+});
 
-    nextBtn.addEventListener('click', () => {
-      if (currentStep < maxStep) {
-        // Validation simple de l'étape 2 avant de passer à 3
-        if (currentStep === 2) {
-          const uf = form.querySelector('select[name="uf_responsabilite"]');
-          const admitTime = form.querySelector('input[name="admit_time"]');
-
-          if (uf) {
-            uf.classList.remove('border-red-500');
-          }
-          if (admitTime) {
-            admitTime.classList.remove('border-red-500');
-          }
-          if (errorBox) {
-            errorBox.classList.add('hidden');
-            errorBox.textContent = '';
-          }
-
-          if (uf && !uf.value) {
-            uf.focus();
-            uf.classList.add('border-red-500');
-            if (errorBox) {
-              errorBox.textContent = "Merci de sélectionner une UF de responsabilité avant de continuer.";
-              errorBox.classList.remove('hidden');
-            }
-            return;
-          }
-          if (admitTime && !admitTime.value) {
-            admitTime.focus();
-            admitTime.classList.add('border-red-500');
-            if (errorBox) {
-              errorBox.textContent = "Merci de renseigner une date et heure d'admission valides avant de continuer.";
-              errorBox.classList.remove('hidden');
-            }
-            return;
-          }
-        }
-        currentStep += 1;
-        updateStepDisplay();
-      }
-    });
-
-    const ufField = form.querySelector('select[name="uf_responsabilite"]');
-    if (ufField) {
-      ufField.addEventListener('change', () => {
-        ufField.classList.remove('border-red-500');
-        if (errorBox) {
-          errorBox.classList.add('hidden');
-          errorBox.textContent = '';
-        }
-      });
+document.getElementById('uf_id').addEventListener('change', async function() {
+  const ufId = this.value;
+  if (!ufId) {
+    document.getElementById('lit_selector').innerHTML = '<div class="col-span-3 text-slate-500 text-sm py-8 text-center">Sélectionnez une UF</div>';
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/wizard/api/ufs/${ufId}/lits?status=free`);
+    const lits = await response.json();
+    
+    if (lits.length === 0) {
+      document.getElementById('lit_selector').innerHTML = '<div class="col-span-3 text-red-600 text-sm py-8 text-center">❌ Aucun lit disponible dans cette UF</div>';
+      return;
     }
-
-    const admitTimeField = form.querySelector('input[name="admit_time"]');
-    if (admitTimeField) {
-      admitTimeField.addEventListener('input', () => {
-        admitTimeField.classList.remove('border-red-500');
-        if (errorBox) {
-          errorBox.classList.add('hidden');
-          errorBox.textContent = '';
-        }
-      });
-    }
-
-    form.addEventListener('submit', (event) => {
-      if (isSubmitting) {
-        return;
-      }
-      isSubmitting = true;
-      if (errorBox) {
-        errorBox.classList.add('hidden');
-        errorBox.textContent = '';
-      }
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
-        const submitLabel = submitBtn.querySelector('.admission-submit-label');
-        if (submitLabel) {
-          submitLabel.textContent = 'Création en cours...';
-        }
-        submitBtn.insertAdjacentHTML('beforeend', '<span class="h-4 w-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin"></span>');
-      }
+    
+    let litHtml = '';
+    lits.forEach(lit => {
+      litHtml += `
+        <button type="button" class="lit-button p-4 border-2 border-green-300 bg-green-50 rounded-xl hover:bg-green-100 hover:border-green-600 transition-all cursor-pointer text-center" data-lit-id="${lit.id}">
+          <div class="font-bold text-lg text-green-700">${lit.name}</div>
+          <div class="text-xs text-green-600">Disponible</div>
+        </button>
+      `;
     });
-
-    updateStepDisplay();
-  });
+    document.getElementById('lit_selector').innerHTML = litHtml;
+    
+    // Add click handlers
+    document.querySelectorAll('.lit-button').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.lit-button').forEach(b => {
+          b.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-600');
+          b.classList.add('border-green-300', 'bg-green-50');
+        });
+        this.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-600');
+        this.classList.remove('border-green-300', 'bg-green-50');
+        document.getElementById('lit_id').value = this.dataset.litId;
+      });
+    });
+  } catch (e) {
+    console.error('Error fetching lits:', e);
+  }
+});
 </script>
 {% endblock %}

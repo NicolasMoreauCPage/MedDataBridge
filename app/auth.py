@@ -13,16 +13,49 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import os
 import uuid
 import logging
+import sys
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
 
 # Configuration JWT
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
+def _resolve_jwt_secret() -> str:
+    """Résout et valide la clé secrète JWT.
+
+    En production, une clé explicite est obligatoire.
+    En dev/tests, on autorise une valeur de secours pour ne pas bloquer les exécutions locales.
+    """
+    secret = os.getenv("JWT_SECRET_KEY") or settings.secret_key
+    insecure_defaults = {
+        "dev-secret-key-change-in-production",
+        "change-me-in-production",
+        "dev-secret-key",
+    }
+
+    if secret and secret not in insecure_defaults:
+        return secret
+
+    testing_env = os.getenv("TESTING", "false").lower() == "true"
+    debug_env = os.getenv("DEBUG", "false").lower() == "true"
+    running_under_pytest = "pytest" in sys.modules
+
+    if settings.testing or settings.debug or testing_env or debug_env or running_under_pytest:
+        logger.warning(
+            "JWT_SECRET_KEY non sécurisé détecté en mode dev/test, utilisation d'une clé de secours locale"
+        )
+        return "local-dev-jwt-secret-not-for-production"
+
+    raise RuntimeError(
+        "JWT_SECRET_KEY doit être défini avec une valeur forte en environnement non test"
+    )
+
+
+SECRET_KEY = _resolve_jwt_secret()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -38,7 +71,7 @@ class TokenData(BaseModel):
     """Données contenues dans le token."""
     username: Optional[str] = None
     user_id: Optional[int] = None
-    roles: list[str] = []
+    roles: list[str] = Field(default_factory=list)
 
 
 class Token(BaseModel):
@@ -46,7 +79,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     refresh_token: Optional[str] = None
-    roles: list[str] = []
+    roles: list[str] = Field(default_factory=list)
 
 
 class UserInDB(BaseModel):
@@ -55,7 +88,7 @@ class UserInDB(BaseModel):
     username: str
     email: str
     hashed_password: str
-    roles: list[str] = []
+    roles: list[str] = Field(default_factory=list)
     is_active: bool = True
 
 
@@ -175,7 +208,11 @@ def blacklist_token(jti: str, ttl_seconds: int) -> bool:
         return False
 
 
-def decode_token(token: str, check_blacklist: bool = True) -> TokenData:
+def decode_token(
+    token: str,
+    check_blacklist: bool = True,
+    expected_type: Optional[str] = None,
+) -> TokenData:
     """Décode et valide un token JWT.
     
     Args:
@@ -194,11 +231,19 @@ def decode_token(token: str, check_blacklist: bool = True) -> TokenData:
         user_id: int = payload.get("user_id")
         roles: list = payload.get("roles", [])
         jti: str = payload.get("jti")
+        token_type: str = payload.get("type")
         
         if username is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token invalide",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if expected_type and token_type != expected_type:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Type de token invalide: {expected_type} requis",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         

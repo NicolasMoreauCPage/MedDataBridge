@@ -37,7 +37,7 @@
 <div class="alert alert-{{ type }} {{ 'alert-dismissible' if dismissable else '' }} fade show" role="alert">
   {{ message }}
   {% if dismissable %}
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  <button type="button" class="ml-auto inline-flex items-center justify-center h-5 w-5 rounded-full hover:bg-black/10 transition-colors" aria-label="Fermer" onclick="this.closest('[role=alert]')?.remove()">&#x2715;</button>
   {% endif %}
 </div>
 {% endmacro %}

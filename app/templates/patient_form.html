@@ -81,10 +81,10 @@
 
         <div class="grid grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">
+            <label class="block text-sm font-medium text-slate-700 mb-1" for="prefix">
               Civilité
             </label>
-            <select name="prefix" class="input-field">
+            <select id="prefix" name="prefix" class="input-field">
               <option value="">-- Choisir --</option>
               <option value="M." {% if (patient and patient.prefix == 'M.') or (sample_data and sample_data.get('prefix') == 'M.') %}selected{% endif %}>M. (Monsieur)</option>
               <option value="Mme" {% if (patient and patient.prefix == 'Mme') or (sample_data and sample_data.get('prefix') == 'Mme') %}selected{% endif %}>Mme (Madame)</option>

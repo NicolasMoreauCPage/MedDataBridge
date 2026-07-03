@@ -78,10 +78,10 @@
         </div>
         <div class="p-6">
           <dl class="space-y-1">
-            {{ inheritance_field(service, 'opening_date', 'Date d\'ouverture') }}
-            {{ inheritance_field(service, 'activation_date', 'Date d\'activation') }}
-            {{ inheritance_field(service, 'closing_date', 'Date de fermeture') }}
-            {{ inheritance_field(service, 'deactivation_date', 'Date de désactivation') }}
+            {{ inheritance_field(service, 'opening_date', 'Date d\'ouverture', formatter=fr_date) }}
+            {{ inheritance_field(service, 'activation_date', 'Date d\'activation', formatter=fr_date) }}
+            {{ inheritance_field(service, 'closing_date', 'Date de fermeture', formatter=fr_date) }}
+            {{ inheritance_field(service, 'deactivation_date', 'Date de désactivation', formatter=fr_date) }}
           </dl>
         </div>
       </div>
@@ -129,6 +129,15 @@
           </h3>
         </div>
         <div class="p-6">
+          {% set stats = namespace(chambres=0, lits=0) %}
+          {% for uf in ufs %}
+            {% for uh in uf.unites_hebergement %}
+              {% set stats.chambres = stats.chambres + uh.chambres|length %}
+              {% for ch in uh.chambres %}
+                {% set stats.lits = stats.lits + ch.lits|length %}
+              {% endfor %}
+            {% endfor %}
+          {% endfor %}
           <div class="space-y-4">
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-600">Unités Fonctionnelles</span>
@@ -136,11 +145,11 @@
             </div>
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-600">Chambres totales</span>
-              <span class="font-semibold text-slate-900">{{ ufs|sum(attribute='chambres', default=0)|length if ufs else 0 }}</span>
+              <span class="font-semibold text-slate-900">{{ stats.chambres }}</span>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-sm text-slate-600">Lits totaux</span>
-              <span class="font-semibold text-slate-900">{{ ufs|sum(attribute='chambres', default=0)|sum(attribute='lits', default=0)|length if ufs else 0 }}</span>
+              <span class="font-semibold text-slate-900">{{ stats.lits }}</span>
             </div>
           </div>
         </div>

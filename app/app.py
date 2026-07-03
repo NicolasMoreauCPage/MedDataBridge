@@ -172,6 +172,42 @@ def create_app() -> FastAPI:
             return "—"
         return value
     
+    # Filtres Jinja2 pour un affichage de date/heure lisible (format français),
+    # au lieu du repr() brut Python (ex: "2026-01-28 15:03:05.118048").
+    def fr_date(value):
+        if value is None or value == "":
+            return "—"
+        if isinstance(value, str):
+            for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y%m%d"):
+                try:
+                    value = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                return value
+        try:
+            return value.strftime("%d/%m/%Y")
+        except (AttributeError, ValueError):
+            return value
+
+    def fr_datetime(value):
+        if value is None or value == "":
+            return "—"
+        if isinstance(value, str):
+            for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y%m%d%H%M%S", "%Y%m%d"):
+                try:
+                    value = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                return value
+        try:
+            return value.strftime("%d/%m/%Y %H:%M")
+        except (AttributeError, ValueError):
+            return value
+
     # Filtre Jinja2 pour convertir les caractères de retour à la ligne en sauts de ligne visibles
     def format_hl7_payload(value):
         """Convertit les caractères \r, \n et \r\n en véritables sauts de ligne HTML"""
@@ -190,6 +226,12 @@ def create_app() -> FastAPI:
     templates = Jinja2Templates(directory=templates_dir)
     templates.env.filters["none_to_dash"] = none_to_dash
     templates.env.filters["format_hl7_payload"] = format_hl7_payload
+    templates.env.filters["fr_date"] = fr_date
+    templates.env.filters["fr_datetime"] = fr_datetime
+    # Également exposés comme globals pour pouvoir être passés en callable
+    # (ex: macros/ui.html::inheritance_field(..., formatter=fr_date)).
+    templates.env.globals["fr_date"] = fr_date
+    templates.env.globals["fr_datetime"] = fr_datetime
     # Stocker dans app.state pour accès dans les routes si besoin
     app.state.templates = templates
     # Store version from settings

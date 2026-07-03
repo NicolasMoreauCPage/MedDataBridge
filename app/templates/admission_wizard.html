@@ -55,6 +55,24 @@
     <!-- Hidden step indicator -->
     <input type="hidden" name="step" value="{{ current_step }}">
 
+    <!-- Report des données des étapes précédentes : les blocs ci-dessous ne
+         sont affichés (visibles) que pour l'étape courante, donc sans ces
+         champs cachés les données saisies aux étapes précédentes seraient
+         perdues à chaque soumission. -->
+    {% if current_step >= 2 %}
+    <input type="hidden" name="prefix" value="{{ patient_recap.prefix or '' }}">
+    <input type="hidden" name="family" value="{{ patient_recap.family or '' }}">
+    <input type="hidden" name="given" value="{{ patient_recap.given or '' }}">
+    <input type="hidden" name="birth_date" value="{{ patient_recap.birth_date or '' }}">
+    <input type="hidden" name="gender" value="{{ patient_recap.gender or '' }}">
+    <input type="hidden" name="phone" value="{{ patient_recap.phone or '' }}">
+    {% endif %}
+    {% if current_step >= 3 %}
+    <input type="hidden" name="admission_type" value="{{ dossier_recap.admission_type or '' }}">
+    <input type="hidden" name="admission_reason" value="{{ dossier_recap.admission_reason or '' }}">
+    <input type="hidden" name="attending_provider" value="{{ dossier_recap.attending_provider or '' }}">
+    {% endif %}
+
     <!-- STEP 1: PATIENT -->
     {% if current_step == 1 %}
     <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-8">
@@ -146,7 +164,7 @@
       <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
         <p class="text-sm text-blue-700">
           <strong>Patient:</strong> {{ patient_recap.prefix or '' }} {{ patient_recap.family }} {{ patient_recap.given }}
-          ({{ patient_recap.birth_date }})
+          ({{ patient_recap.birth_date|fr_date }})
         </p>
       </div>
 

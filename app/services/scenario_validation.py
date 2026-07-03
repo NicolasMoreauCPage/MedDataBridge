@@ -63,9 +63,21 @@ class ScenarioValidationResult:
         return msg_issues + len(self.workflow_issues) + len(self.coherence_issues)
 
 
+def _split_hl7_lines(message: str) -> List[str]:
+    """Découpe un message HL7 v2 en segments.
+
+    Les messages réels (MLLP) séparent leurs segments par \\r (parfois \\r\\n),
+    pas par \\n seul. Un split naïf sur "\\n" laisse alors le message entier
+    comme une seule "ligne" commençant par MSH, et aucun segment PID/PV1/EVN
+    n'est jamais retrouvé par les extracteurs ci-dessous.
+    """
+    normalized = message.replace("\r\n", "\n").replace("\r", "\n")
+    return normalized.strip().split("\n")
+
+
 def _extract_event_code(message: str) -> Optional[str]:
     """Extrait le code d'événement (trigger) depuis MSH-9.2 ou EVN-1."""
-    lines = message.strip().split("\n")
+    lines = _split_hl7_lines(message)
     
     # Chercher MSH-9.2
     for line in lines:
@@ -89,7 +101,7 @@ def _extract_event_code(message: str) -> Optional[str]:
 
 def _extract_patient_id(message: str) -> Optional[str]:
     """Extrait l'identifiant patient depuis PID-3.1."""
-    lines = message.strip().split("\n")
+    lines = _split_hl7_lines(message)
     for line in lines:
         if line.startswith("PID"):
             fields = line.split("|")
@@ -105,7 +117,7 @@ def _extract_patient_id(message: str) -> Optional[str]:
 
 def _extract_visit_id(message: str) -> Optional[str]:
     """Extrait l'identifiant de dossier depuis PV1-19.1."""
-    lines = message.strip().split("\n")
+    lines = _split_hl7_lines(message)
     for line in lines:
         if line.startswith("PV1"):
             fields = line.split("|")
@@ -119,7 +131,7 @@ def _extract_visit_id(message: str) -> Optional[str]:
 
 def _extract_timestamp(message: str) -> Optional[str]:
     """Extrait le timestamp du message (MSH-7 ou EVN-2)."""
-    lines = message.strip().split("\n")
+    lines = _split_hl7_lines(message)
     
     # Préférer EVN-2 (datetime of event)
     for line in lines:

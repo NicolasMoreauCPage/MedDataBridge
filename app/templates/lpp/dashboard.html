@@ -84,7 +84,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-slate-600">Total actes LPP</p>
-          <p class="text-3xl font-bold text-slate-800">--</p>
+          <p class="text-3xl font-bold text-slate-800">{{ total_acts }}</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
           <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-slate-600">Actes ce mois</p>
-          <p class="text-3xl font-bold text-slate-800">--</p>
+          <p class="text-3xl font-bold text-slate-800">{{ acts_this_month }}</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
           <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +112,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-slate-600">Dossiers actifs</p>
-          <p class="text-3xl font-bold text-slate-800">--</p>
+          <p class="text-3xl font-bold text-slate-800">{{ active_dossiers }}</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
           <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-slate-600">Taux de conformité</p>
-          <p class="text-3xl font-bold text-slate-800">--%</p>
+          <p class="text-3xl font-bold text-slate-800">{{ conformity_rate }}%</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
           <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

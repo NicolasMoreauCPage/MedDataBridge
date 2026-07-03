@@ -109,7 +109,7 @@ class TestHprimRoundtrip:
                 destinataire_id="987654321",
                 destinataire_nom="Destinataire Test",
                 date_emission=datetime(2025, 12, 20, 10, 0),
-                message_id="MSG_NGAP_TEST_001",
+                message_id="MSG_NGAP_01",
                 message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
             ),
             patient=sample_patient,
@@ -148,7 +148,7 @@ class TestHprimRoundtrip:
                 destinataire_id="987654321",
                 destinataire_nom="Destinataire Test",
                 date_emission=datetime(2025, 12, 20, 10, 0),
-                message_id="MSG_CCAM_TEST_001",
+                message_id="MSG_CCAM_01",
                 message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
             ),
             patient=sample_patient,
@@ -188,7 +188,7 @@ class TestHprimRoundtrip:
                 destinataire_id="987654321",
                 destinataire_nom="Destinataire Test",
                 date_emission=datetime(2025, 12, 20, 10, 0),
-                message_id="MSG_ENCODING_TEST_001",
+                message_id="MSG_ENCOD_01",
                 message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
             ),
             patient=sample_patient,
@@ -225,7 +225,7 @@ class TestHprimRoundtrip:
                 destinataire_id="987654321",
                 destinataire_nom="Destinataire Test",
                 date_emission=datetime(2025, 12, 20, 10, 0),
-                message_id="MSG_INVALID_001",
+                message_id="MSG_INVAL_01",
                 message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
             ),
             patient=sample_patient,
@@ -267,7 +267,11 @@ class TestHprimRoundtrip:
         assert message_parse.patient.nom == sample_patient.nom
         assert message_parse.patient.prenom == sample_patient.prenom
         assert message_parse.acteur.nom == sample_professionnel.nom
-        assert message_parse.acteur.numero_rpps == sample_professionnel.numero_rpps
+        # Le schéma HPRIM XML v2.4 (sa_professionnelsSante.xsd) impose un <choice>
+        # entre numeroAdeli et noRPPS : un seul des deux est transmis (ADELI est
+        # prioritaire dans le générateur). numero_rpps redevient donc None après
+        # un roundtrip dès que numero_adeli est également renseigné.
+        assert message_parse.acteur.numero_adeli == sample_professionnel.numero_adeli
 
     def _compare_messages(self, original, parsed):
         """Compare deux messages pour vérifier l'intégrité des données"""
@@ -288,7 +292,9 @@ class TestHprimRoundtrip:
         # Acteur
         assert original.acteur.nom == parsed.acteur.nom
         assert original.acteur.prenom == parsed.acteur.prenom
-        assert original.acteur.numero_rpps == parsed.acteur.numero_rpps
+        # Choice XSD numeroAdeli/noRPPS (cf. commentaire plus haut) : on compare
+        # sur numero_adeli qui est le champ effectivement transmis.
+        assert original.acteur.numero_adeli == parsed.acteur.numero_adeli
 
         # Actes NGAP
         if original.actes_ngap and parsed.actes_ngap:
@@ -296,6 +302,9 @@ class TestHprimRoundtrip:
             for orig_acte, parsed_acte in zip(original.actes_ngap, parsed.actes_ngap):
                 assert orig_acte.lettre_cle == parsed_acte.lettre_cle
                 assert orig_acte.coefficient == parsed_acte.coefficient
-                assert orig_acte.execute_date == parsed_acte.execute_date
+                # Le XML HPRIM sépare date (execute_date) et heure (execute_heure) :
+                # seule la partie date de execute_date est transmise dans <execute><date>,
+                # l'heure voyage séparément dans <execute><heure> / execute_heure.
+                assert orig_acte.execute_date.date() == parsed_acte.execute_date.date()
                 assert orig_acte.montant == parsed_acte.montant
                 assert orig_acte.commentaire == parsed_acte.commentaire

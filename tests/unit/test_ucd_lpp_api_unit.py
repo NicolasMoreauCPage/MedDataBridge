@@ -35,19 +35,19 @@ class TestUCDAPI:
         # Créer des données de test
         from app.models import Patient, Dossier
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
@@ -55,13 +55,12 @@ class TestUCDAPI:
         # Données de test pour l'acte UCD
         act_data = {
             "dossier_id": dossier.id,
-            "code_cip": "1234567890123",  # Code CIP-13 valide (13 chiffres)
-            "designation": "Test UCD",
+            "code_ucd": "1234567890123",  # Code CIP-13 valide (13 chiffres)
+            "denomination_libelle": "Test UCD",
             "execute_date": "2025-12-21T10:00:00",
             "prestataire_id": 1,
             "quantite": 1,
-            "prix_unitaire": 100.0,
-            "montant_total": 100.0,
+            "montant_unitaire_facture_ttc": 100.0,
             "commentaire": "Test"
         }
 
@@ -72,7 +71,7 @@ class TestUCDAPI:
         assert response.status_code == 201
         data = response.json()
         assert "id" in data
-        assert data["code_cip"] == "1234567890123"
+        assert data["code_ucd"] == "1234567890123"
         assert data["dossier_id"] == dossier.id
 
     def test_get_ucd_acts_by_dossier(self, client, session):
@@ -80,33 +79,32 @@ class TestUCDAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, UCDAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte UCD
         ucd_act = UCDAct(
             dossier_id=dossier.id,
-            code_cip="1234567890123",
-            designation="Test UCD",
+            code_ucd="1234567890123",
+            denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(ucd_act)
@@ -120,7 +118,7 @@ class TestUCDAPI:
         data = response.json()
         assert len(data) == 1
         assert data[0]["id"] == ucd_act.id
-        assert data[0]["code_cip"] == "1234567890123"
+        assert data[0]["code_ucd"] == "1234567890123"
         assert data[0]["dossier_id"] == dossier.id
 
     def test_update_ucd_act(self, client, session):
@@ -128,33 +126,32 @@ class TestUCDAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, UCDAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte UCD
         ucd_act = UCDAct(
             dossier_id=dossier.id,
-            code_cip="1234567890123",
-            designation="Test UCD",
+            code_ucd="1234567890123",
+            denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(ucd_act)
@@ -162,7 +159,7 @@ class TestUCDAPI:
 
         # Données de mise à jour
         update_data = {
-            "designation": "Test UCD modifié",
+            "denomination_libelle": "Test UCD modifié",
             "commentaire": "Test modifié"
         }
 
@@ -172,7 +169,7 @@ class TestUCDAPI:
         # Vérifications
         assert response.status_code == 200
         data = response.json()
-        assert data["designation"] == "Test UCD modifié"
+        assert data["denomination_libelle"] == "Test UCD modifié"
         assert data["commentaire"] == "Test modifié"
         assert data["id"] == ucd_act.id
 
@@ -181,33 +178,32 @@ class TestUCDAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, UCDAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte UCD
         ucd_act = UCDAct(
             dossier_id=dossier.id,
-            code_cip="1234567890123",
-            designation="Test UCD",
+            code_ucd="1234567890123",
+            denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(ucd_act)
@@ -227,33 +223,32 @@ class TestUCDAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, UCDAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte UCD
         ucd_act = UCDAct(
             dossier_id=dossier.id,
-            code_cip="1234567890123",
-            designation="Test UCD",
+            code_ucd="1234567890123",
+            denomination_libelle="Test UCD",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(ucd_act)
@@ -276,19 +271,19 @@ class TestLPPAPI:
         # Créer des données de test
         from app.models import Patient, Dossier
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
@@ -297,12 +292,11 @@ class TestLPPAPI:
         act_data = {
             "dossier_id": dossier.id,
             "code_lpp": "1234567890123",  # Code LPP-13 valide (13 chiffres)
-            "libelle": "Test LPP",
+            "denomination_libelle": "Test LPP",
             "execute_date": "2025-12-21T10:00:00",
             "prestataire_id": 1,
             "quantite": 1,
-            "prix_unitaire": 100.0,
-            "montant_total": 100.0,
+            "montant_unitaire_facture_ttc": 100.0,
             "commentaire": "Test"
         }
 
@@ -321,33 +315,32 @@ class TestLPPAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, LPPAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte LPP
         lpp_act = LPPAct(
             dossier_id=dossier.id,
             code_lpp="1234567890123",
-            libelle="Test LPP",
+            denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(lpp_act)
@@ -368,33 +361,32 @@ class TestLPPAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, LPPAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte LPP
         lpp_act = LPPAct(
             dossier_id=dossier.id,
             code_lpp="1234567890123",
-            libelle="Test LPP",
+            denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(lpp_act)
@@ -402,7 +394,7 @@ class TestLPPAPI:
 
         # Données de mise à jour
         update_data = {
-            "libelle": "Test LPP modifié"
+            "denomination_libelle": "Test LPP modifié"
         }
 
         # Exécution
@@ -411,7 +403,7 @@ class TestLPPAPI:
         # Vérifications
         assert response.status_code == 200
         data = response.json()
-        assert data["libelle"] == "Test LPP modifié"
+        assert data["denomination_libelle"] == "Test LPP modifié"
         assert data["id"] == lpp_act.id
 
     def test_delete_lpp_act(self, client, session):
@@ -419,33 +411,32 @@ class TestLPPAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, LPPAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte LPP
         lpp_act = LPPAct(
             dossier_id=dossier.id,
             code_lpp="1234567890123",
-            libelle="Test LPP",
+            denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(lpp_act)
@@ -465,33 +456,32 @@ class TestLPPAPI:
         # Créer des données de test
         from app.models import Patient, Dossier, LPPAct
         from app.models_structure import GHTContext
-        
+
         # Créer un GHT context si nécessaire
         ght = session.exec(select(GHTContext)).first()
         if not ght:
             ght = GHTContext(name="TEST", code="TEST")
             session.add(ght)
             session.commit()
-        
+
         # Créer un patient et un dossier
         patient = Patient(family="Test", given="Patient")
         session.add(patient)
         session.commit()
-        
+
         dossier = Dossier(patient_id=patient.id, admit_time=datetime.utcnow())
         session.add(dossier)
         session.commit()
-        
+
         # Créer un acte LPP
         lpp_act = LPPAct(
             dossier_id=dossier.id,
             code_lpp="1234567890123",
-            libelle="Test LPP",
+            denomination_libelle="Test LPP",
             execute_date=datetime.utcnow(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
         session.add(lpp_act)

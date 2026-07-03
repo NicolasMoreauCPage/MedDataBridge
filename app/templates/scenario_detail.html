@@ -103,6 +103,12 @@
             <td class="px-4 py-3 text-sm font-mono text-slate-600">#{{ step.order_index if step.order_index is not none else '' }}</td>
             <td class="px-4 py-3 text-sm text-slate-600">
               {{ step.message_type if step.message_type is not none else (step.name if step.name is not none else step.message_format|upper) }}
+              {% set trigger_label = event_labels.get(trigger) if event_labels and trigger else None %}
+              {% if trigger_label %}
+                <div class="text-xs text-slate-500">{{ trigger_label }}</div>
+              {% elif step.description %}
+                <div class="text-xs text-slate-500">{{ step.description }}</div>
+              {% endif %}
               {% if step.delay_seconds %}
                 <div class="text-xs text-slate-400">Delay {{ step.delay_seconds }}s</div>
               {% endif %}

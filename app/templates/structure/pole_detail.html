@@ -43,10 +43,10 @@
       {{ inheritance_field(pole, 'mode', 'Mode') }}
       {{ inheritance_field(pole, 'etage', 'Étage') }}
       {{ inheritance_field(pole, 'aile', 'Aile') }}
-      {{ inheritance_field(pole, 'opening_date', 'Date d\'ouverture') }}
-      {{ inheritance_field(pole, 'activation_date', 'Date d\'activation') }}
-      {{ inheritance_field(pole, 'closing_date', 'Date de fermeture') }}
-      {{ inheritance_field(pole, 'deactivation_date', 'Date de désactivation') }}
+      {{ inheritance_field(pole, 'opening_date', 'Date d\'ouverture', formatter=fr_date) }}
+      {{ inheritance_field(pole, 'activation_date', 'Date d\'activation', formatter=fr_date) }}
+      {{ inheritance_field(pole, 'closing_date', 'Date de fermeture', formatter=fr_date) }}
+      {{ inheritance_field(pole, 'deactivation_date', 'Date de désactivation', formatter=fr_date) }}
     </dl>
   </div>
 

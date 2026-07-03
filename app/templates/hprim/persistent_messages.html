@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
@@ -54,7 +55,7 @@
           <td class="px-6 py-4 text-sm font-mono text-slate-900">{{ msg.message_id }}</td>
           <td class="px-6 py-4 text-sm text-slate-700">{{ msg.type_message }}</td>
           <td class="px-6 py-4 text-sm text-slate-700">{{ msg.direction }}</td>
-          <td class="px-6 py-4 text-sm text-slate-700">{{ msg.status }}</td>
+          <td class="px-6 py-4 text-sm text-slate-700">{{ ui.message_status_badge(msg.status) }}</td>
           <td class="px-6 py-4 text-sm text-slate-700">{{ msg.patient_id or 'N/A' }}</td>
           <td class="px-6 py-4 text-sm text-slate-700">{{ msg.created_at.strftime('%d/%m/%Y %H:%M') if msg.created_at else 'N/A' }}</td>
           <td class="px-6 py-4 text-right text-sm"><a href="/hprim/messages/{{ msg.message_id }}" class="font-medium text-sky-700 hover:text-sky-900">Voir</a></td>

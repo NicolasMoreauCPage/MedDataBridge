@@ -228,8 +228,8 @@ class HprimValidator:
                     "modificateurs"
                 ))
 
-        # Exécutant RPPS
-        if not self.PATTERNS['rpps'].match(acte.executant.numero_rpps):
+        # Exécutant RPPS (optionnel : peut n'avoir qu'un numéro ADELI)
+        if acte.executant.numero_rpps and not self.PATTERNS['rpps'].match(acte.executant.numero_rpps):
             errors.append(HprimValidationError(
                 "CCAM_RPPS_001",
                 f"RPPS exécutant invalide: {acte.executant.numero_rpps} (doit être 11 chiffres)",
@@ -266,8 +266,8 @@ class HprimValidator:
                 "denombrement"
             ))
 
-        # Prestataire RPPS
-        if not self.PATTERNS['rpps'].match(acte.prestataire.numero_rpps):
+        # Prestataire RPPS (optionnel : peut n'avoir qu'un numéro ADELI)
+        if acte.prestataire.numero_rpps and not self.PATTERNS['rpps'].match(acte.prestataire.numero_rpps):
             errors.append(HprimValidationError(
                 "NGAP_RPPS_001",
                 f"RPPS prestataire invalide: {acte.prestataire.numero_rpps} (doit être 11 chiffres)",
@@ -326,8 +326,8 @@ class HprimValidator:
         """Valide les données professionnel"""
         errors = []
 
-        # RPPS
-        if not self.PATTERNS['rpps'].match(prof.numero_rpps):
+        # RPPS (optionnel : un professionnel peut n'avoir qu'un numéro ADELI)
+        if prof.numero_rpps and not self.PATTERNS['rpps'].match(prof.numero_rpps):
             errors.append(HprimValidationError(
                 "PROF_RPPS_001",
                 f"RPPS invalide: {prof.numero_rpps} (doit être 11 chiffres)",

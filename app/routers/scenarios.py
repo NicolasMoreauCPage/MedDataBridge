@@ -25,6 +25,26 @@ from app.services.scenario_dashboard import (
     get_scenario_comparison
 )
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
+from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
+
+# Glose en langage clair pour les triggers ADT couramment rencontrés dans les
+# scénarios mais absents de SUPPORTED_WORKFLOW_EVENTS (pas des transitions de
+# workflow "venue", mais des événements d'identité/structure).
+_EXTRA_TRIGGER_LABELS = {
+    "A08": "Mise à jour informations patient",
+    "A28": "Ajout d'une personne (identité)",
+    "A31": "Mise à jour d'une personne (identité)",
+    "A05": "Pré-admission",
+    "A45": "Fusion de mouvement",
+    "A47": "Changement d'identifiant patient",
+}
+
+
+def _trigger_labels() -> dict:
+    labels = {code: meta["label"] for code, meta in SUPPORTED_WORKFLOW_EVENTS.items()}
+    for code, label in _EXTRA_TRIGGER_LABELS.items():
+        labels.setdefault(code, label)
+    return labels
 from app.services.scenario_status_service import (
     get_last_scenario_status,
     get_scenarios_status_for_ej,
@@ -516,6 +536,7 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
         "scenario": scenario,
         "steps": steps,
         "endpoints": endpoints,
+        "event_labels": _trigger_labels(),
         "breadcrumbs": [
             {"label": "Scénarios", "url": "/scenarios"},
             {"label": scenario.name, "url": f"/scenarios/{scenario.id}"},

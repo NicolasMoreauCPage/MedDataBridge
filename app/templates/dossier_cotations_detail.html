@@ -198,10 +198,15 @@
                             {% endif %}
                         </div>
                         <div class="flex flex-col items-end space-y-2">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                 {% if acte.valide %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
                                 {% if acte.valide %}✓ Validé{% else %}⏳ Provisoire{% endif %}
                             </span>
+                            {% if acte.facture == 'oui' %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                💰 Facturé
+                            </span>
+                            {% endif %}
                             {% if acte.execution_nuit %}
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                                 🌙 Nuit
@@ -255,10 +260,20 @@
                                     <span class="font-medium ml-2">{{ acte.prescripteur.prefix }} {{ acte.prescripteur.given_name }} {{ acte.prescripteur.family_name }}</span>
                                 </div>
                                 {% endif %}
+                                {% if acte.prestataire %}
+                                <div>
+                                    <span class="text-slate-600">Prestataire (dispensation):</span>
+                                    <span class="font-medium ml-2">{{ acte.prestataire.prefix }} {{ acte.prestataire.given_name }} {{ acte.prestataire.family_name }}</span>
+                                </div>
+                                {% endif %}
                                 {% if acte.montant_unitaire_facture_ttc %}
                                 <div>
                                     <span class="text-slate-600">Montant unitaire TTC:</span>
                                     <span class="font-semibold ml-2 text-amber-600">{{ "%.2f"|format(acte.montant_unitaire_facture_ttc) }} €</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-600">Montant total TTC:</span>
+                                    <span class="font-semibold ml-2 text-amber-700">{{ "%.2f"|format(acte.montant_unitaire_facture_ttc * acte.quantite) }} €</span>
                                 </div>
                                 {% endif %}
                             </div>
@@ -269,10 +284,15 @@
                             {% endif %}
                         </div>
                         <div class="flex flex-col items-end space-y-2">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                 {% if acte.valide %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
                                 {% if acte.valide %}✓ Validé{% else %}⏳ Provisoire{% endif %}
                             </span>
+                            {% if acte.facture == 'oui' %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                💰 Facturé
+                            </span>
+                            {% endif %}
                             {% if acte.retrocession %}
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                                 🔄 Rétrocession
@@ -327,6 +347,10 @@
                                     <span class="text-slate-600">Montant unitaire TTC:</span>
                                     <span class="font-semibold ml-2 text-purple-600">{{ "%.2f"|format(acte.montant_unitaire_facture_ttc) }} €</span>
                                 </div>
+                                <div>
+                                    <span class="text-slate-600">Montant total TTC:</span>
+                                    <span class="font-semibold ml-2 text-purple-700">{{ "%.2f"|format(acte.montant_unitaire_facture_ttc * acte.quantite) }} €</span>
+                                </div>
                                 {% endif %}
                             </div>
                             {% if acte.numero_serie or acte.iud_id %}
@@ -348,10 +372,15 @@
                             {% endif %}
                         </div>
                         <div class="flex flex-col items-end space-y-2">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                 {% if acte.valide %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
                                 {% if acte.valide %}✓ Validé{% else %}⏳ Provisoire{% endif %}
                             </span>
+                            {% if acte.facture == 'oui' %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                💰 Facturé
+                            </span>
+                            {% endif %}
                             {% if acte.signe %}
                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                 ✍️ Signé

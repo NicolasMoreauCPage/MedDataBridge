@@ -150,7 +150,7 @@ def init_db() -> None:
 
         # Mouvements
         conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_venue_id ON mouvement(venue_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_date ON mouvement(date);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_mouvement_date ON mouvement(\"when\");")
 
         # Messages et endpoints
         conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_created_at ON messagelog(created_at);")

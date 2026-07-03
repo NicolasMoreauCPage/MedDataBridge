@@ -49,6 +49,7 @@ def list_tasks(status: Optional[str] = Query(default=None, description="Filtre d
 	tasks = task_manager.list_tasks(status_filter=status_filter)
 	return {
 		"count": len(tasks),
+		"total": len(tasks),
 		"tasks": [task.to_dict() for task in tasks],
 	}
 

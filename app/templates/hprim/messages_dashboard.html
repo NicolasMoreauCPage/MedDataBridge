@@ -139,9 +139,10 @@
               </td>
               <td class="px-5 py-4">
                 <span class="status-chip inline-flex items-center px-2.5 py-1 rounded-full text-xs
-                  {% if msg.status == 'received' %}bg-emerald-100 text-emerald-800
+                  {% if msg.status in ['received', 'processed', 'validated'] %}bg-emerald-100 text-emerald-800
                   {% elif msg.status == 'error' %}bg-rose-100 text-rose-800
-                  {% elif msg.status in ['stored', 'stored_with_errors'] %}bg-cyan-100 text-cyan-800
+                  {% elif msg.status == 'stored_with_errors' %}bg-amber-100 text-amber-800
+                  {% elif msg.status == 'stored' %}bg-cyan-100 text-cyan-800
                   {% else %}bg-slate-100 text-slate-700{% endif %}">
                   {{ msg.status }}
                 </span>

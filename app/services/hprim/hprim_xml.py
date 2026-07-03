@@ -1123,8 +1123,8 @@ class HprimXmlService:
         valeur_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}emetteur/{http://www.hprim.org/hprimXML}valeur")
         if valeur_elem is not None and valeur_elem.text:
             identifiant = valeur_elem.text
-        lettre_cle = acte_elem.findtext("lettreCle", "")
-        coefficient_str = acte_elem.findtext("coefficient", "1.0")
+        lettre_cle = acte_elem.findtext("{%s}lettreCle" % self.NAMESPACE, "")
+        coefficient_str = acte_elem.findtext("{%s}coefficient" % self.NAMESPACE, "1.0")
         coefficient = Decimal(coefficient_str) if coefficient_str else Decimal("1.0")
         execute_date_str = acte_elem.findtext("dateExecution")
         if not execute_date_str:
@@ -1159,7 +1159,7 @@ class HprimXmlService:
         if denombrement_elem is not None and denombrement_elem.text:
             denombrement = int(denombrement_elem.text)
 
-        position_dentaire = acte_elem.findtext("positionDentaire", None)
+        position_dentaire = acte_elem.findtext("{%s}positionDentaire" % self.NAMESPACE, None)
         execute_heure = acte_elem.findtext("heureExecution", None)
         if not execute_heure:
             execute_heure = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}execute/{http://www.hprim.org/hprimXML}heure", None)
@@ -1195,15 +1195,15 @@ class HprimXmlService:
         if montant_elem is None:
             montant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}montant")
         if montant_elem is not None:
-            valeur_str = montant_elem.findtext("montantTotal", None)
+            valeur_str = montant_elem.findtext("{%s}montantTotal" % self.NAMESPACE, None)
             if valeur_str is None:
-                valeur_str = montant_elem.findtext("valeur", None)
-            devise = montant_elem.findtext("devise", "EUR")
+                valeur_str = montant_elem.findtext("{%s}valeur" % self.NAMESPACE, None)
+            devise = montant_elem.findtext("{%s}devise" % self.NAMESPACE, "EUR")
             if valeur_str:
                 montant = HprimMontant(valeur=Decimal(valeur_str), devise=devise)
 
         # Commentaire
-        commentaire = acte_elem.findtext("commentaire")
+        commentaire = acte_elem.findtext("{%s}commentaire" % self.NAMESPACE)
 
         return HprimActeNGAP(
             identifiant=identifiant,

@@ -1,5 +1,9 @@
 """
 Schémas Pydantic pour UCD (Unité Commune de Dispensation).
+
+Les noms de champs suivent ceux du modèle SQLModel `app.models.UCDAct`
+(conforme HPRIM XML v2.4) pour éviter toute dérive entre l'API et la
+persistance.
 """
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
@@ -8,10 +12,14 @@ from datetime import datetime
 
 class UCDActBase(BaseModel):
     """Schéma de base pour un acte UCD."""
-    code: str
-    libelle: Optional[str] = None
-    quantite: Optional[float] = 1.0
-    dossier_id: Optional[int] = None
+    dossier_id: int
+    code_ucd: str
+    denomination_libelle: Optional[str] = None
+    execute_date: datetime
+    quantite: float = 1.0
+    montant_unitaire_facture_ttc: Optional[float] = None
+    prestataire_id: Optional[int] = None
+    commentaire: Optional[str] = None
 
 
 class UCDActCreate(UCDActBase):
@@ -21,9 +29,13 @@ class UCDActCreate(UCDActBase):
 
 class UCDActUpdate(BaseModel):
     """Schéma pour la mise à jour d'un acte UCD."""
-    code: Optional[str] = None
-    libelle: Optional[str] = None
+    code_ucd: Optional[str] = None
+    denomination_libelle: Optional[str] = None
+    execute_date: Optional[datetime] = None
     quantite: Optional[float] = None
+    montant_unitaire_facture_ttc: Optional[float] = None
+    prestataire_id: Optional[int] = None
+    commentaire: Optional[str] = None
 
 
 class UCDActResponse(UCDActBase):
@@ -31,5 +43,5 @@ class UCDActResponse(UCDActBase):
     id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
+
     model_config = ConfigDict(from_attributes=True)

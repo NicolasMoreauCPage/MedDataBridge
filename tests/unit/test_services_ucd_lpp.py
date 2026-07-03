@@ -34,13 +34,12 @@ class TestUCDService:
         return UCDAct(
             id=1,
             dossier_id=1,
-            code_cip="UCD123",
-            designation="Acte UCD de test",
+            code_ucd="1234567890123",
+            denomination_libelle="Acte UCD de test",
             execute_date=datetime.now(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
 
@@ -54,24 +53,20 @@ class TestUCDService:
         # Mock des données d'entrée
         act_data = UCDActCreate(
             dossier_id=1,
-            code_cip="1234567890123",  # Code CIP-13 valide (13 chiffres)
-            designation="Acte UCD de test",
+            code_ucd="1234567890123",  # Code CIP-13 valide (13 chiffres)
+            denomination_libelle="Acte UCD de test",
             execute_date=datetime.now(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
 
         # Mock de l'ajout en DB
+        mock_db.get.return_value = Dossier(id=1)
         mock_db.add = Mock()
         mock_db.commit = Mock()
-        mock_db.refresh = Mock()
-
-        # Mock de la création de l'objet
-        mock_db.add.return_value = None
-        mock_db.refresh.side_effect = lambda obj: setattr(obj, 'id', 1)
+        mock_db.refresh = Mock(side_effect=lambda obj: setattr(obj, 'id', 1))
 
         # Exécution
         result = await ucd_service.create_act(act_data)
@@ -79,7 +74,7 @@ class TestUCDService:
         # Vérifications
         assert isinstance(result, UCDActResponse)
         assert result.dossier_id == 1
-        assert result.code_cip == "1234567890123"
+        assert result.code_ucd == "1234567890123"
         mock_db.add.assert_called_once()
         mock_db.commit.assert_called_once()
         mock_db.refresh.assert_called_once()
@@ -91,16 +86,15 @@ class TestUCDService:
         expected_response = UCDActResponse(
             id=1,
             dossier_id=1,
-            code_cip="UCD123",
-            designation="Acte UCD de test",
+            code_ucd="1234567890123",
+            denomination_libelle="Acte UCD de test",
             execute_date=datetime.now(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
-        
+
         # Mock du service
         ucd_service.get_acts_by_dossier = AsyncMock(return_value=[expected_response])
 
@@ -133,15 +127,9 @@ class TestUCDService:
         mock_db.get.return_value = sample_ucd_act
 
         # Données de mise à jour
-        update_data = UCDActCreate(
-            dossier_id=1,
-            code_cip="1234567890123",
-            designation="Acte modifié",
-            execute_date=datetime.now(),
-            prestataire_id=1,
-            quantite=1,
-            prix_unitaire=150.0,
-            montant_total=150.0,
+        update_data = UCDActUpdate(
+            denomination_libelle="Acte modifié",
+            montant_unitaire_facture_ttc=150.0,
             commentaire="Test modifié"
         )
 
@@ -154,8 +142,8 @@ class TestUCDService:
 
         # Vérifications
         assert isinstance(result, UCDActResponse)
-        assert result.designation == "Acte modifié"
-        assert result.montant_total == 150.0
+        assert result.denomination_libelle == "Acte modifié"
+        assert result.montant_unitaire_facture_ttc == 150.0
         mock_db.commit.assert_called_once()
         mock_db.refresh.assert_called_once()
 
@@ -196,13 +184,12 @@ class TestLPPService:
         return LPPAct(
             id=1,
             dossier_id=1,
-            code="LPP123",
-            libelle="Acte LPP de test",
+            code_lpp="1234567890123",
+            denomination_libelle="Acte LPP de test",
             execute_date=datetime.now(),
             prestataire_id=1,
             quantite=1,
-            montant_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
 
@@ -217,23 +204,19 @@ class TestLPPService:
         act_data = LPPActCreate(
             dossier_id=1,
             code_lpp="1234567890123",  # Code LPP valide (13 chiffres)
-            libelle="Acte LPP de test",
+            denomination_libelle="Acte LPP de test",
             execute_date=datetime.now(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
 
         # Mock de l'ajout en DB
+        mock_db.get.return_value = Dossier(id=1)
         mock_db.add = Mock()
         mock_db.commit = Mock()
-        mock_db.refresh = Mock()
-
-        # Mock de la création de l'objet
-        mock_db.add.return_value = None
-        mock_db.refresh.side_effect = lambda obj: setattr(obj, 'id', 1)
+        mock_db.refresh = Mock(side_effect=lambda obj: setattr(obj, 'id', 1))
 
         # Exécution
         result = await lpp_service.create_act(act_data)
@@ -253,16 +236,15 @@ class TestLPPService:
         expected_response = LPPActResponse(
             id=1,
             dossier_id=1,
-            code_lpp="LPP123",
-            libelle="Acte LPP de test",
+            code_lpp="1234567890123",
+            denomination_libelle="Acte LPP de test",
             execute_date=datetime.now(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
-        
+
         # Mock du service
         lpp_service.get_acts_by_dossier = AsyncMock(return_value=[expected_response])
 
@@ -281,16 +263,15 @@ class TestLPPService:
         expected_response = LPPActResponse(
             id=1,
             dossier_id=1,
-            code_lpp="LPP123",
-            libelle="Acte LPP de test",
+            code_lpp="1234567890123",
+            denomination_libelle="Acte LPP de test",
             execute_date=datetime.now(),
             prestataire_id=1,
             quantite=1,
-            prix_unitaire=100.0,
-            montant_total=100.0,
+            montant_unitaire_facture_ttc=100.0,
             commentaire="Test"
         )
-        
+
         # Mock du service
         lpp_service.get_act_by_id = AsyncMock(return_value=expected_response)
 
@@ -308,15 +289,9 @@ class TestLPPService:
         mock_db.get.return_value = sample_lpp_act
 
         # Données de mise à jour
-        update_data = LPPActCreate(
-            dossier_id=1,
-            code_lpp="1234567890123",
-            libelle="Acte modifié",
-            execute_date=datetime.now(),
-            prestataire_id=1,
-            quantite=1,
-            prix_unitaire=150.0,
-            montant_total=150.0,
+        update_data = LPPActUpdate(
+            denomination_libelle="Acte modifié",
+            montant_unitaire_facture_ttc=150.0,
             commentaire="Test modifié"
         )
 
@@ -329,8 +304,8 @@ class TestLPPService:
 
         # Vérifications
         assert isinstance(result, LPPActResponse)
-        assert result.libelle == "Acte modifié"
-        assert result.montant_total == 150.0
+        assert result.denomination_libelle == "Acte modifié"
+        assert result.montant_unitaire_facture_ttc == 150.0
         mock_db.commit.assert_called_once()
         mock_db.refresh.assert_called_once()
 

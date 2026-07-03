@@ -139,6 +139,23 @@
 </span>
 {% endmacro %}
 
+{# Mapping unique statut de message (HL7/FHIR/HPRIM) -> badge coloré.
+   Reprend la même classification que app/templates/messages.html pour que
+   le même statut ait toujours la même couleur, quelle que soit la page
+   (messages, tableau de bord HPRIM, messages persistants...). #}
+{% macro message_status_badge(status, size='sm') %}
+{%- set s = (status or '')|lower -%}
+{%- if s in ['ack_error', 'error', 'failed', 'rejected'] -%}
+  {{ badge(status or '—', 'danger', size) }}
+{%- elif s in ['ack_ok', 'sent', 'received', 'processed', 'validated', 'ok'] -%}
+  {{ badge(status or '—', 'success', size) }}
+{%- elif s in ['pending', 'stored_with_errors', 'warn', 'warning'] -%}
+  {{ badge(status or '—', 'warning', size) }}
+{%- else -%}
+  {{ badge(status or '—', 'default', size) }}
+{%- endif -%}
+{% endmacro %}
+
 {# ============================================
    FORMS - Composants de formulaires
    ============================================ #}

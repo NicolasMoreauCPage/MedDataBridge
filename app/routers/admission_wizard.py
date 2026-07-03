@@ -8,13 +8,25 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select
 
-from app.db import get_session
+from app.db import get_session, get_next_sequence
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType
 from app.models_structure import Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema
 from app.utils.dossier_helpers import sync_dossier_class
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
+
+# Sexe du formulaire wizard (M/F/O/U) -> valeur administrative Patient.gender
+_GENDER_MAP = {"M": "male", "F": "female", "O": "other", "U": "unknown"}
+
+# Type d'admission choisi à l'étape 2 -> DossierType réel (aucun contrôle dédié
+# dans le wizard pour hospitalisé/externe/urgence, donc dérivé du type d'admission)
+_ADMISSION_TYPE_TO_DOSSIER_TYPE = {
+    "emergency": DossierType.URGENCE,
+    "urgent": DossierType.URGENCE,
+    "elective": DossierType.HOSPITALISE,
+    "other": DossierType.HOSPITALISE,
+}
 
 router = APIRouter(prefix="/wizard", tags=["wizard"])
 
@@ -139,66 +151,74 @@ def wizard_admission_post(
                 family=wizard_data["patient"]["family"],
                 given=wizard_data["patient"]["given"],
                 birth_date=wizard_data["patient"]["birth_date"],
-                gender=wizard_data["patient"]["gender"],
+                gender=_GENDER_MAP.get(wizard_data["patient"]["gender"], wizard_data["patient"]["gender"]),
                 phone=wizard_data["patient"]["phone"]
             )
             ght_context = getattr(request.state, "ght_context", None)
             patient = patients_service.create_patient(
                 session=session,
                 patient_data=patient_data,
-                ght_context=ght_context
+                ght_context_id=getattr(ght_context, "id", None)
             )
-            session.add(patient)
             session.flush()
-            
-            # 2. Create dossier
+
+            # 2. Create venue's admission date/heure (nécessaire pour le dossier aussi)
+            lit = session.get(Lit, wizard_data["venue"]["lit_id"])
+            if not lit:
+                raise HTTPException(status_code=404, detail="Lit not found")
+
+            admission_datetime = datetime.strptime(
+                f"{wizard_data['venue']['admission_date']} {wizard_data['venue']['admission_time']}",
+                "%Y-%m-%d %H:%M"
+            )
+
+            # 3. Create dossier
             dossier = Dossier(
+                dossier_seq=get_next_sequence(session, "dossier"),
                 patient_id=patient.id,
-                dossier_type=DossierType.NORMAL,
+                admit_time=admission_datetime,
+                dossier_type=_ADMISSION_TYPE_TO_DOSSIER_TYPE.get(
+                    wizard_data["dossier"]["admission_type"], DossierType.HOSPITALISE
+                ),
                 admission_type=wizard_data["dossier"]["admission_type"],
-                admission_reason=wizard_data["dossier"]["admission_reason"],
+                reason=wizard_data["dossier"]["admission_reason"],
                 attending_provider=wizard_data["dossier"]["attending_provider"],
-                opened_at=datetime.now()
             )
             ej_context = getattr(request.state, "ej_context", None)
             if ej_context:
                 dossier.entite_juridique_id = ej_context.id
-            
+            sync_dossier_class(dossier)
+
             session.add(dossier)
             session.flush()
-            
-            # 3. Create venue
-            lit = session.get(Lit, wizard_data["venue"]["lit_id"])
-            if not lit:
-                raise HTTPException(status_code=404, detail="Lit not found")
-            
-            admission_datetime = datetime.strptime(
-                f"{wizard_data['venue']['admission_date']} {wizard_data['venue']['admission_time']}", 
-                "%Y-%m-%d %H:%M"
-            )
-            
+
+            # 4. Create venue
+            uf = session.get(UniteFonctionnelle, wizard_data["venue"]["uf_id"])
             venue = Venue(
+                venue_seq=get_next_sequence(session, "venue"),
                 dossier_id=dossier.id,
                 lit_id=lit.id,
-                admission_date=admission_datetime,
-                opened_at=datetime.now(),
-                status="open"
+                chambre_id=lit.chambre_id,
+                uf_responsabilite=(uf.identifier or uf.name) if uf else None,
+                assigned_location=lit.name,
+                start_time=admission_datetime,
             )
             session.add(venue)
             session.flush()
-            
-            # 4. Create initial mouvement (ADMISSION)
+
+            # 5. Create initial mouvement (admission, ADT^A01)
             mouvement = Mouvement(
+                mouvement_seq=get_next_sequence(session, "mouvement"),
                 venue_id=venue.id,
                 when=admission_datetime,
+                type="ADT^A01",
                 movement_type="admission",
-                lit_id=lit.id,
-                status="completed"
+                trigger_event="A01",
+                location=lit.name,
+                status="completed",
             )
             session.add(mouvement)
-            
-            # Sync dossier class and commit
-            sync_dossier_class(dossier, session)
+
             session.commit()
             
             # Redirect to newly created venue detail page
@@ -215,6 +235,7 @@ def wizard_admission_post(
                 "error": f"Erreur lors de la création de l'admission: {str(e)}",
                 "patient_recap": wizard_data["patient"],
                 "dossier_recap": wizard_data["dossier"],
+                "venue": wizard_data["venue"],
                 "services": session.exec(select(Service)).all()
             }, status_code=500)
     
@@ -262,7 +283,10 @@ async def get_uf_lits(
     )
     
     if status == "free":
-        query = query.where((Lit.operational_status == "active") | (Lit.operational_status == None))
+        query = query.where(
+            Lit.status == "active",
+            (Lit.operational_status == "available") | (Lit.operational_status == None)
+        )
     
     lits = session.exec(query).all()
     return [{"id": lit.id, "name": lit.name, "status": "available"} for lit in lits]

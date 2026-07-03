@@ -1,53 +1,13 @@
-
-# ...existing code...
-
-# ...existing code...
-
-# Affecter un patient à un lit (plan-lits)
-from fastapi import status
-
-# ...existing code...
-
-
-# ...existing code...
-
-# Affecter un patient à un lit (plan-lits)
-from fastapi import status
-
-# ...existing code...
-
-from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
-from sqlmodel import select
+from sqlmodel import select, or_
 from datetime import datetime
 from typing import Optional
 import logging
 from app.db import get_session, get_next_sequence, peek_next_sequence
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier, Patient
-from sqlmodel import or_
-
-
-
-# Correct FastAPI dependency for request object
-from fastapi import Request as FastAPIRequest
-def require_ght_context_dep(request: FastAPIRequest):
-    from app.dependencies.ght import require_ght_context as _require_ght_context
-    return _require_ght_context(request)
-
-router = APIRouter(
-    prefix="/mouvements",
-    tags=["mouvements"],
-    dependencies=[Depends(require_ght_context_dep)]
-)
-
-# --- Patient search endpoint for plan-lits assignment popup ---
-
-
-# --- Patient search endpoint for plan-lits assignment popup (AJAX, no GHT context required) ---
-# (Moved below ajax_router definition)
 from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
@@ -59,7 +19,7 @@ def get_templates_with_filters(request: FastAPIRequest):
     return request.app.state.templates
 
 router = APIRouter(
-    prefix="/mouvements", 
+    prefix="/mouvements",
     tags=["mouvements"],
     dependencies=[Depends(require_ght_context)]
 )

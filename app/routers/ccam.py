@@ -21,17 +21,20 @@ async def ccam_dashboard(request: Request):
             "endpoints": [
                 {
                     "method": "GET",
-                    "path": "/cotations/api/search/ccam?query=HBMD",
+                    "title": "Recherche de codes CCAM",
+                    "url": "/cotations/api/search/ccam?query=HBMD",
                     "description": "Recherche de codes CCAM (auto-complétion)",
                 },
                 {
                     "method": "POST",
-                    "path": "/api/hprim/actes/ccam/emission",
+                    "title": "Émission HPRIM d'actes CCAM",
+                    "url": "/api/hprim/actes/ccam/emission",
                     "description": "Émission HPRIM XML d'actes CCAM",
                 },
                 {
                     "method": "GET",
-                    "path": "/dossiers/{dossier_id}/cotations",
+                    "title": "Workspace de cotations",
+                    "url": "/dossiers/{dossier_id}/cotations",
                     "description": "Workspace de cotations du dossier",
                 },
             ],

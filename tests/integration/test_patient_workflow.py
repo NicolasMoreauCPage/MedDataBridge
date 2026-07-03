@@ -59,18 +59,17 @@ class TestPatientWorkflowIntegration:
         ucd_service = UCDService(session)
         ucd_act_data = UCDActCreate(
             dossier_id=dossier.id,
-            code_cip="3400935001325",
-            designation="PARACETAMOL 500MG CPR",
+            code_ucd="3400935001325",
+            denomination_libelle="PARACETAMOL 500MG CPR",
             quantite=10,
-            prix_unitaire=0.50,
-            montant_total=5.00,
+            montant_unitaire_facture_ttc=0.50,
             execute_date=datetime.now(),
             commentaire="Test UCD act"
         )
         ucd_act = await ucd_service.create_act(ucd_act_data)
         assert ucd_act.id is not None
         assert ucd_act.dossier_id == dossier.id
-        assert ucd_act.code_cip == "3400935001325"
+        assert ucd_act.code_ucd == "3400935001325"
         assert ucd_act.quantite == 10
 
         # Étape 4: Ajout d'actes LPP
@@ -78,10 +77,9 @@ class TestPatientWorkflowIntegration:
         lpp_act_data = LPPActCreate(
             dossier_id=dossier.id,
             code_lpp="1234567890123",
-            libelle="Consultation cardiologie",
+            denomination_libelle="Consultation cardiologie",
             quantite=1,
-            prix_unitaire=50.00,
-            montant_total=50.00,
+            montant_unitaire_facture_ttc=50.00,
             execute_date=datetime.now(),
             commentaire="Test LPP act"
         )
@@ -94,46 +92,45 @@ class TestPatientWorkflowIntegration:
         # Étape 5: Export FHIR des patients
         # Créer une structure hiérarchique pour l'export FHIR
         ej = EntiteJuridique(
-            id=1,
             name="Test EJ",
             finess_ej="123456789",
             ght_context_id=sample_ght.id
         )
         session.add(ej)
+        session.flush()
 
         # Créer EG liée à EJ
         from app.models_structure import EntiteGeographique
         eg = EntiteGeographique(
-            id=1,
             name="Test EG",
             entite_juridique_id=ej.id
         )
         session.add(eg)
+        session.flush()
 
         # Créer Pole liée à EG
         from app.models_structure import Pole
         pole = Pole(
-            id=1,
             identifier="POLE001",
             name="Pole Test",
             entite_geo_id=eg.id
         )
         session.add(pole)
+        session.flush()
 
         # Créer Service liée à Pole
         from app.models_structure import Service
         service = Service(
-            id=1,
             identifier="SERV001",
             name="Service Test",
             pole_id=pole.id
         )
         session.add(service)
+        session.flush()
 
         # Créer UF liée à Service
         from app.models_structure import UniteFonctionnelle
         uf = UniteFonctionnelle(
-            id=1,
             identifier="UF001",
             name="UF Test",
             service_id=service.id
@@ -209,22 +206,20 @@ class TestPatientWorkflowIntegration:
 
         ucd_act1 = UCDActCreate(
             dossier_id=dossier1.id,
-            code_cip="3400935001325",
-            designation="Médicament 1",
+            code_ucd="3400935001325",
+            denomination_libelle="Médicament 1",
             quantite=5,
-            prix_unitaire=1.00,
-            montant_total=5.00,
+            montant_unitaire_facture_ttc=1.00,
             execute_date=datetime.now()
         )
         await ucd_service.create_act(ucd_act1)
 
         ucd_act2 = UCDActCreate(
             dossier_id=dossier2.id,
-            code_cip="3400935001326",
-            designation="Médicament 2",
+            code_ucd="3400935001326",
+            denomination_libelle="Médicament 2",
             quantite=3,
-            prix_unitaire=2.00,
-            montant_total=6.00,
+            montant_unitaire_facture_ttc=2.00,
             execute_date=datetime.now()
         )
         await ucd_service.create_act(ucd_act2)
@@ -235,5 +230,5 @@ class TestPatientWorkflowIntegration:
 
         assert len(acts_dossier1) == 1
         assert len(acts_dossier2) == 1
-        assert acts_dossier1[0].code_cip == "3400935001325"
-        assert acts_dossier2[0].code_cip == "3400935001326"
+        assert acts_dossier1[0].code_ucd == "3400935001325"
+        assert acts_dossier2[0].code_ucd == "3400935001326"

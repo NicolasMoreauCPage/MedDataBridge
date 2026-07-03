@@ -74,8 +74,9 @@
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     <div class="flex -space-x-1">
                       {% for lit in chambre.lits %}
-                      <div class="relative inline-flex items-center justify-center w-8 h-8 {{ 'bg-green-100' if lit.status == 'active' and lit.operationalStatus == 'libre' else 'bg-red-100' if lit.status == 'active' else 'bg-gray-100' }} rounded-full border-2 border-white">
-                        <span class="text-xs {{ 'text-green-800' if lit.status == 'active' and lit.operationalStatus == 'libre' else 'text-red-800' if lit.status == 'active' else 'text-gray-800' }}">
+                      {% set lit_free = lit.status == 'active' and (lit.operational_status == 'available' or not lit.operational_status) %}
+                      <div class="relative inline-flex items-center justify-center w-8 h-8 {{ 'bg-green-100' if lit_free else 'bg-red-100' if lit.status == 'active' else 'bg-gray-100' }} rounded-full border-2 border-white">
+                        <span class="text-xs {{ 'text-green-800' if lit_free else 'text-red-800' if lit.status == 'active' else 'text-gray-800' }}">
                           {{ lit.name[-2:] }}
                         </span>
                       </div>

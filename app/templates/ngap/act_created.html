@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Acte NGAP créé{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 px-4 space-y-6">
+  <div class="bg-white rounded-2xl border-2 border-green-200 shadow-lg p-8 text-center space-y-4">
+    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+      <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <h1 class="text-2xl font-bold text-slate-800">Acte NGAP créé avec succès</h1>
+    <div class="text-left bg-slate-50 rounded-xl p-4 space-y-1 text-sm text-slate-700">
+      <p><span class="font-medium">Lettre-clé :</span> {{ act.lettre_cle }}</p>
+      <p><span class="font-medium">Coefficient :</span> {{ act.coefficient }}</p>
+      <p><span class="font-medium">Date d'exécution :</span> {{ act.execute_date|fr_datetime }}</p>
+      {% if act.montant is not none %}
+      <p><span class="font-medium">Montant :</span> {{ "%.2f"|format(act.montant) }} €</p>
+      {% endif %}
+    </div>
+    <div class="flex items-center justify-center gap-3 pt-2">
+      <a href="/ngap/dossier/{{ act.dossier_id }}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">
+        Retour au dossier
+      </a>
+      <a href="/ngap/create/{{ act.dossier_id }}" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-xl hover:bg-teal-700">
+        Ajouter un autre acte
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

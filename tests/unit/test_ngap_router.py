@@ -27,7 +27,11 @@ class TestNGAPRouter:
         assert response.status_code == 200
         mock_template.assert_called_once_with("ngap/dashboard.html", {
             "request": mock_template.call_args[0][1]["request"],
-            "title": "Gestion NGAP"
+            "title": "Gestion NGAP",
+            "total_acts": mock_template.call_args[0][1]["total_acts"],
+            "acts_this_month": mock_template.call_args[0][1]["acts_this_month"],
+            "active_dossiers": mock_template.call_args[0][1]["active_dossiers"],
+            "conformity_rate": mock_template.call_args[0][1]["conformity_rate"],
         })
 
     @patch('app.routers.ngap.templates.TemplateResponse')

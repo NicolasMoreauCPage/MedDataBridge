@@ -199,26 +199,6 @@
     </div>
   </div>
 
-  <!-- Export Section -->
-  <div class="mb-8">
-    <div class="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 p-6">
-      <h3 class="text-lg font-semibold text-slate-800 mb-4">💾 Exporter les données</h3>
-      <div class="flex items-center gap-3">
-        <button class="btn-export bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-format="excel">
-          📊 Export Excel
-        </button>
-        <button class="btn-export bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-format="pdf">
-          📄 Export PDF
-        </button>
-        <button class="btn-export bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors" data-format="csv">
-          📋 Export CSV
-        </button>
-        <span class="text-sm text-slate-500 ml-auto">
-          <em>Fonctionnalité en cours de développement (Sprint 3.1.4)</em>
-        </span>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -235,25 +215,19 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn('Chart.js failed to load dynamically; charts will show placeholders.');
     loadAllData();
   });
-  
+  updateExportLinks();
+
   // Event listeners
   document.getElementById('periodSelector').addEventListener('change', (e) => {
     currentPeriod = e.target.value;
+    updateExportLinks();
     loadAllData();
   });
-  
+
   document.getElementById('refreshBtn').addEventListener('click', loadAllData);
-  
+
   document.getElementById('severityFilter').addEventListener('change', (e) => {
     loadAlerts(e.target.value);
-  });
-  
-  // Export buttons (placeholder pour Sprint 3.1.4)
-  document.querySelectorAll('.btn-export').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const format = e.target.dataset.format;
-      alert(`Export ${format.toUpperCase()} sera disponible dans Sprint 3.1.4`);
-    });
   });
 });
 
@@ -298,33 +272,43 @@ function showLoadingState() {
 async function loadKPIs() {
   try {
     const response = await fetch(`/api/analytics/kpis?eg_id=${currentEgId}&period=${currentPeriod}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
     const data = await response.json();
-    
+
     // Taux d'occupation
     document.getElementById('occupation-value').textContent = `${data.occupation_rate}%`;
     updateTrend('occupation-trend', data.occupation_trend);
-    
+
     // DMS
     document.getElementById('dms-value').textContent = data.dms.toFixed(1);
     updateTrend('dms-trend', data.dms_trend);
-    
+
     // Rotation
     document.getElementById('rotation-value').textContent = data.rotation_rate.toFixed(2);
     updateTrend('rotation-trend', data.rotation_trend);
-    
+
     // Capacité
     document.getElementById('capacity-value').textContent = data.available_beds;
     document.getElementById('capacity-total').textContent = `sur ${data.total_beds}`;
-    
+
     // Taux d'ouverture
     document.getElementById('opening-value').textContent = `${data.beds_opening_rate}%`;
-    
-    // Retirer loading state
+  } catch (error) {
+    console.error('Erreur KPIs:', error);
+    ['occupation-value', 'dms-value', 'rotation-value', 'capacity-value', 'opening-value'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    const capacityTotal = document.getElementById('capacity-total');
+    if (capacityTotal) capacityTotal.textContent = 'Données indisponibles';
+  } finally {
+    // Toujours retirer le loading state, même en cas d'erreur, pour éviter que les cartes
+    // restent bloquées en animation de chargement indéfiniment.
     document.querySelectorAll('.kpi-card').forEach(card => {
       card.classList.remove('loading');
     });
-  } catch (error) {
-    console.error('Erreur KPIs:', error);
   }
 }
 
@@ -581,15 +565,5 @@ function updateExportLinks() {
   if (csvLink) csvLink.href = `/api/analytics/export/csv?eg_id=${egId}&period=${period}&export_type=capacity`;
 }
 
-// Event listener sur changement de période
-document.getElementById('periodSelector').addEventListener('change', () => {
-  updateExportLinks();
-  loadAllData();
-});
-
-// Initialiser les liens d'export au chargement
-document.addEventListener('DOMContentLoaded', () => {
-  updateExportLinks();
-});
 </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div id="toastStack" class="fixed top-4 right-4 z-[70] space-y-2" aria-live="polite" aria-atomic="true"></div>
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
@@ -195,6 +196,22 @@
 {% endblock %}
 
 <script>
+function showToast(message, kind = 'info') {
+  const tones = {
+    info: 'bg-slate-800',
+    success: 'bg-emerald-600',
+    warn: 'bg-amber-500',
+    error: 'bg-red-600'
+  };
+  const stack = document.getElementById('toastStack');
+  if (!stack) return;
+  const item = document.createElement('div');
+  item.className = `${tones[kind] || tones.info} text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-xl max-w-sm whitespace-pre-line`;
+  item.textContent = message;
+  stack.appendChild(item);
+  setTimeout(() => item.remove(), 4000);
+}
+
 async function configureRealisticTiming() {
   const scenarioId = {{ scenario.id }};
   
@@ -242,21 +259,16 @@ Cette action remplacera la configuration temporelle actuelle.`;
       }
       
       const result = await applyResponse.json();
-      
-      alert(`✅ ${result.message}
 
-Workflow: ${result.analysis.detected_workflow}
-Configuration appliquée avec succès !
+      showToast(`${result.message}\nWorkflow : ${result.analysis.detected_workflow}`, 'success');
 
-La page va se recharger pour afficher les nouvelles options de timing.`);
-      
-      // Recharger la page pour voir les changements
-      window.location.reload();
+      // Recharger la page pour voir les changements (laisser le temps de lire le toast)
+      setTimeout(() => window.location.reload(), 1200);
     }
-    
+
   } catch (error) {
     console.error('Erreur lors de la configuration du timing réaliste:', error);
-    alert(`❌ Erreur lors de la configuration du timing réaliste:\n${error.message}`);
+    showToast(`Erreur lors de la configuration du timing réaliste : ${error.message}`, 'error');
   }
 }
 
@@ -296,16 +308,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (response.ok) {
                     const data = await response.json();
                     // Afficher un message de succès et rediriger
-                    alert('✅ Scénario envoyé avec succès !');
-                    window.location.reload();
+                    showToast('Scénario envoyé avec succès !', 'success');
+                    setTimeout(() => window.location.reload(), 1200);
                 } else {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.detail || `Erreur HTTP ${response.status}`);
                 }
             } catch (error) {
                 console.error('Erreur lors de l\'envoi:', error);
-                alert(`❌ Erreur lors de l'envoi du scénario:\n${error.message}`);
-                
+                showToast(`Erreur lors de l'envoi du scénario : ${error.message}`, 'error');
+
                 // Restaurer le bouton
                 sendBtn.disabled = originalDisabled;
                 sendBtn.innerHTML = originalText;

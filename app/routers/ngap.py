@@ -3,11 +3,12 @@
 Routes web pour la gestion des actes NGAP
 """
 
+from datetime import datetime
+from typing import Optional
+
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-from typing import Optional
-from datetime import datetime
+from sqlmodel import Session, select, func
 
 from app.db import get_session
 from app.models import Dossier, NGAPAct
@@ -17,12 +18,56 @@ router = APIRouter(prefix="/ngap", tags=["NGAP Web"])
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _fr_datetime(value):
+    """Même format que le filtre `fr_datetime` global (app/app.py) — dupliqué ici car ce
+    routeur utilise sa propre instance Jinja2Templates plutôt que celle partagée de l'app."""
+    if value is None or value == "":
+        return "—"
+    if isinstance(value, str):
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y%m%d%H%M%S", "%Y%m%d"):
+            try:
+                value = datetime.strptime(value, fmt)
+                break
+            except ValueError:
+                continue
+        else:
+            return value
+    try:
+        return value.strftime("%d/%m/%Y %H:%M")
+    except (AttributeError, ValueError):
+        return value
+
+
+templates.env.filters["fr_datetime"] = _fr_datetime
+
+
 @router.get("/")
 async def ngap_dashboard(request: Request, db: Session = Depends(get_session)):
-    """Dashboard NGAP"""
+    """Dashboard NGAP avec statistiques réelles."""
+    total_acts = db.exec(select(func.count()).select_from(NGAPAct)).one()
+
+    month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    acts_this_month = db.exec(
+        select(func.count()).select_from(NGAPAct).where(NGAPAct.execute_date >= month_start)
+    ).one()
+
+    active_dossiers = db.exec(
+        select(func.count(func.distinct(NGAPAct.dossier_id)))
+        .select_from(NGAPAct)
+        .join(Dossier, Dossier.id == NGAPAct.dossier_id)
+        .where(Dossier.discharge_time.is_(None))
+    ).one()
+
+    valid_acts = db.exec(select(func.count()).select_from(NGAPAct).where(NGAPAct.valide == True)).one()  # noqa: E712
+    conformity_rate = round(100 * valid_acts / total_acts) if total_acts else 0
+
     return templates.TemplateResponse("ngap/dashboard.html", {
         "request": request,
-        "title": "Gestion NGAP"
+        "title": "Gestion NGAP",
+        "total_acts": total_acts,
+        "acts_this_month": acts_this_month,
+        "active_dossiers": active_dossiers,
+        "conformity_rate": conformity_rate,
     })
 
 

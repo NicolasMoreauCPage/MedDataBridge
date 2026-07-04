@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% import "components.html" as components %}
+{% block title %}Nouvel acte NGAP{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto py-8 px-4 space-y-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-slate-500">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ngap" class="hover:text-blue-600 transition-colors">Gestion NGAP</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/ngap/dossier/{{ dossier.id }}" class="hover:text-blue-600 transition-colors">Dossier #{{ dossier.dossier_seq }}</a>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-700 font-medium">Nouvel acte</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold text-slate-800">Nouvel acte NGAP</h1>
+
+  <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-6">
+    <form method="post" action="/ngap/create/{{ dossier.id }}" class="space-y-5">
+      <div class="grid grid-cols-2 gap-4">
+        {{ components.form_field("Lettre-clé", "lettre_cle", required=True, help="Ex : C, V, K, AMI") }}
+        {{ components.form_field("Coefficient", "coefficient", type="number", required=True) }}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        {{ components.form_field("Date et heure d'exécution", "execute_date", type="datetime-local", required=True) }}
+        {{ components.form_field("Dénombrement", "denombrement", type="number") }}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        {{ components.form_field("Position dentaire", "position_dentaire") }}
+        {{ components.form_field("N° de séance", "numero_seance", type="number") }}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        {{ components.form_field("Prestataire (ID)", "prestataire_id", type="number") }}
+        {{ components.form_field("Montant (€)", "montant", type="number") }}
+      </div>
+
+      {{ components.form_field("Commentaire", "commentaire", type="textarea", rows=3) }}
+
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+        <a href="/ngap/dossier/{{ dossier.id }}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">
+          Annuler
+        </a>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-xl hover:bg-teal-700">
+          Créer l'acte
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

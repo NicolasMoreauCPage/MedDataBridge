@@ -225,6 +225,7 @@ class Dossier(SQLModel, table=True):
     lpp_acts: List["LPPAct"] = Relationship(back_populates="dossier")
     ccam_acts: List["CCAMAct"] = Relationship(back_populates="dossier")
     contracts: List["Contract"] = Relationship(back_populates="dossier")
+    interventions: List["Intervention"] = Relationship(back_populates="dossier")
 
 # --- Venue (appartient à un Dossier) ---
 class Venue(SQLModel, table=True):
@@ -337,6 +338,7 @@ class NGAPAct(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
     mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
+    intervention_id: Optional[int] = Field(default=None, foreign_key="intervention.id", description="Optionnel: lien vers l'intervention HPRIM regroupant cet acte")
 
     # Identifiant unique de l'acte
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
@@ -417,6 +419,7 @@ class UCDAct(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
     mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
+    intervention_id: Optional[int] = Field(default=None, foreign_key="intervention.id", description="Optionnel: lien vers l'intervention HPRIM regroupant cet acte")
 
     # Identifiant unique de l'acte
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
@@ -505,6 +508,7 @@ class LPPAct(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
     mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
+    intervention_id: Optional[int] = Field(default=None, foreign_key="intervention.id", description="Optionnel: lien vers l'intervention HPRIM regroupant cet acte")
 
     # Identifiant unique de l'acte
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
@@ -581,6 +585,7 @@ class CCAMAct(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dossier_id: int = Field(foreign_key="dossier.id")
     mouvement_id: Optional[int] = Field(default=None, foreign_key="mouvement.id", description="Optionnel: lien vers mouvement spécifique")
+    intervention_id: Optional[int] = Field(default=None, foreign_key="intervention.id", description="Optionnel: lien vers l'intervention HPRIM regroupant cet acte")
 
     # Identifiant unique de l'acte (typeIdentifiant HPRIM)
     identifiant_acte: Optional[str] = Field(default=None, description="Identifiant unique de l'acte")
@@ -667,6 +672,62 @@ class CCAMAct(SQLModel, table=True):
     acteur_id: Optional[int] = Field(default=None, description="ID du professionnel ayant effectué l'action")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+
+# --- Intervention HPRIM (regroupe des actes CCAM/NGAP/UCD/LPP sous une même intervention) ---
+
+class Intervention(SQLModel, table=True):
+    """
+    Intervention médicale HPRIM, conforme à msgEvenementsServeurActes (dataclass HprimIntervention).
+    Regroupe les actes codifiés (CCAM/NGAP/UCD/LPP) réalisés au cours d'une même intervention.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    dossier_id: int = Field(foreign_key="dossier.id")
+
+    identifiant: str = Field(description="Identifiant unique de l'intervention (HPRIM)")
+    libelle: str = Field(description="Libellé de l'intervention")
+    date_intervention: datetime = Field(description="Date de réalisation de l'intervention")
+
+    venue_id: Optional[str] = Field(default=None, description="Identifiant du lieu d'exécution (venue)")
+    lieu_execution: Optional[str] = Field(default=None, description="Libellé du lieu d'exécution")
+    statut: str = Field(default="en_cours", description="en_cours, realisee, cancelle")
+
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    dossier: Dossier = Relationship(back_populates="interventions")
+
+
+# --- Acquittement HPRIM (réponse du serveur de cotation à un message d'actes) ---
+
+class Acquittement(SQLModel, table=True):
+    """
+    Acquittement HPRIM, conforme à msgAcquittementsServeurActes2_4.
+    Trace le statut global renvoyé par le serveur de cotation pour un message d'actes envoyé.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    message_id_original: str = Field(index=True, description="ID du message HPRIM acquitté")
+    statut: str = Field(description="Statut global: OK, ERREUR, AVERTISSEMENT")
+    date_acquittement: datetime = Field(default_factory=datetime.now)
+    erreurs: Optional[str] = Field(default=None, description="Erreurs globales (texte libre, une par ligne)")
+    avertissements: Optional[str] = Field(default=None, description="Avertissements globaux (texte libre, une par ligne)")
+
+    reponses: List["AcquittementReponse"] = Relationship(back_populates="acquittement")
+
+
+class AcquittementReponse(SQLModel, table=True):
+    """Réponse détaillée à un acte ou une intervention particulière au sein d'un acquittement."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    acquittement_id: int = Field(foreign_key="acquittement.id")
+
+    identifiant_acte: str = Field(description="Identifiant de l'acte ou de l'intervention concerné")
+    type_acte: str = Field(description="CCAM, NGAP, LPP, UCD ou INTERVENTION")
+    code: Optional[str] = Field(default=None, description="Code de l'acte")
+    statut: str = Field(description="OK, ERREUR, AVERTISSEMENT")
+    code_erreur: Optional[str] = Field(default=None)
+    message_erreur: Optional[str] = Field(default=None)
+
+    acquittement: Acquittement = Relationship(back_populates="reponses")
 
 
 # --- Contrat (lié aux dossiers) ---

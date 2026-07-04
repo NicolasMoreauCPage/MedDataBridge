@@ -523,17 +523,19 @@ def client_fixture(session: Session):
     app.base_url = "http://testserver"
 
     with TestClient(app, base_url="http://testserver") as c:
-        # Auto-select a GHT context for routes protected by require_ght_context
+        # Auto-select a GHT context for routes protected by require_ght_context.
+        # Always create a dedicated context rather than reusing `.first()` from the shared
+        # in-memory DB: reusing an arbitrary pre-existing GHTContext (created by an unrelated
+        # earlier test) can carry over its EJ/structure data and cause hard-to-diagnose
+        # cross-test pollution (e.g. session state pointing at foreign EJs/patients).
         try:
             from app.models_structure import GHTContext
-            from sqlmodel import select as _select
+            import time as _time
             with Session(_engine) as s:
-                ctx = s.exec(_select(GHTContext)).first()
-                if not ctx:
-                    ctx = GHTContext(name="Test GHT", code="TEST_GHT", is_active=True)
-                    s.add(ctx)
-                    s.commit()
-                    s.refresh(ctx)
+                ctx = GHTContext(name="Test GHT", code=f"TEST_GHT_{int(_time.time()*1000000)}", is_active=True)
+                s.add(ctx)
+                s.commit()
+                s.refresh(ctx)
             c.get(f"/admin/ght/{ctx.id}", follow_redirects=True)
         except Exception:
             pass
@@ -819,12 +821,16 @@ def sample_uf(session: Session, sample_ej):
     
     # `Pole.identifier` is globally unique in DB. Reuse by identifier first to avoid
     # collisions when fixtures run multiple times with different EG rows.
-    pole = session.exec(select(Pole).where(Pole.identifier == "POLE_TEST")).first()
+    # NOTE: uses "POLE_TEST_FIXTURE"/"SRV_TEST_FIXTURE" (not "POLE_TEST"/"SRV_TEST") to avoid
+    # colliding with the baseline "POLE_TEST"/"SRV_TEST" seeded without any entite_geo_id by
+    # the autouse fixture above — reusing that identifier would silently return an orphan
+    # Pole/Service with entite_geo_id=None, breaking `sample_uf.service.pole.entite_geo`.
+    pole = session.exec(select(Pole).where(Pole.identifier == "POLE_TEST_FIXTURE")).first()
     if pole and pole.entite_geo_id != eg.id:
         pole = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).first()
     if not pole:
         pole = Pole(
-            identifier="POLE_TEST",
+            identifier="POLE_TEST_FIXTURE",
             name="Pôle Test",
             entite_geo_id=eg.id
         )
@@ -833,12 +839,12 @@ def sample_uf(session: Session, sample_ej):
             session.commit()
         except IntegrityError:
             session.rollback()
-            pole = session.exec(select(Pole).where(Pole.identifier == "POLE_TEST")).first()
-    
+            pole = session.exec(select(Pole).where(Pole.identifier == "POLE_TEST_FIXTURE")).first()
+
     service = session.exec(select(Service).where(Service.pole_id == pole.id)).first()
     if not service:
         service = Service(
-            identifier="SRV_TEST",
+            identifier="SRV_TEST_FIXTURE",
             name="Service Test",
             pole_id=pole.id
         )
@@ -847,7 +853,7 @@ def sample_uf(session: Session, sample_ej):
             session.commit()
         except IntegrityError:
             session.rollback()
-            service = session.exec(select(Service).where(Service.identifier == "SRV_TEST")).first()
+            service = session.exec(select(Service).where(Service.identifier == "SRV_TEST_FIXTURE")).first()
     
     uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).first()
     if not uf:

@@ -52,8 +52,8 @@ class TestDossierWorkflowIntegration:
         # Simuler une admission (A01)
         mouvement_data = MouvementCreateSchema(
             venue_id=pre_admit_venue.id,
-            event_code="A01",
-            movement_datetime=datetime.now(),
+            trigger_event="A01",
+            when=datetime.now(),
             to_location="Chambre 101"
         )
         mouvement = create_mouvement(session=session, mouvement_data=mouvement_data)
@@ -66,8 +66,8 @@ class TestDossierWorkflowIntegration:
         # Simuler un transfert (A02)
         transfert_data = MouvementCreateSchema(
             venue_id=pre_admit_venue.id,
-            event_code="A02",
-            movement_datetime=datetime.now() + timedelta(hours=2),
+            trigger_event="A02",
+            when=datetime.now() + timedelta(hours=2),
             from_location="Chambre 101",
             to_location="Chambre 201"
         )
@@ -80,8 +80,8 @@ class TestDossierWorkflowIntegration:
         # Simuler une sortie (A03)
         sortie_data = MouvementCreateSchema(
             venue_id=pre_admit_venue.id,
-            event_code="A03",
-            movement_datetime=datetime.now() + timedelta(days=1),
+            trigger_event="A03",
+            when=datetime.now() + timedelta(days=1),
             from_location="Chambre 201"
         )
         sortie = create_mouvement(session=session, mouvement_data=sortie_data)
@@ -179,8 +179,8 @@ class TestDossierWorkflowIntegration:
         for i in range(len(venues) - 1):
             mouvement_data = MouvementCreateSchema(
                 venue_id=venues[i].id,
-                event_code="A02",
-                movement_datetime=datetime.now() + timedelta(days=i, hours=1),
+                trigger_event="A02",
+                when=datetime.now() + timedelta(days=i, hours=1),
                 from_location=f"Location {i}",
                 to_location=f"Location {i+1}"
             )

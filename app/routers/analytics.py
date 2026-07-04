@@ -7,9 +7,9 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, func
 from typing import Optional
 from datetime import date, datetime, timedelta
-import random
 
 from app.db import get_session
+from app.models import Dossier, Venue
 from app.models_structure import (
     Lit,
     UniteFonctionnelle,
@@ -29,6 +29,43 @@ from app.models_analytics import (
     OccupationSnapshot,
     AlertRule
 )
+from app.services.structure_validation import get_occupied_lit_ids
+
+_PERIOD_DAYS = {"7d": 7, "30d": 30, "1y": 365}
+
+
+def _lits_query_for_eg(eg_id: Optional[int]):
+    """Requête des lits, filtrée par EG via la hiérarchie de structure si `eg_id` est fourni."""
+    query = select(Lit)
+    if eg_id:
+        query = (
+            query
+            .join(Chambre, Chambre.id == Lit.chambre_id)
+            .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
+            .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
+            .join(Service, Service.id == UniteFonctionnelle.service_id)
+            .join(Pole, Pole.id == Service.pole_id)
+            .where(Pole.entite_geo_id == eg_id)
+        )
+    return query
+
+
+def _dossiers_in_scope(session: Session, lit_ids: Optional[set]):
+    """Dossiers dont au moins un Venue est rattaché à un lit du périmètre (ou tous si pas de périmètre)."""
+    query = select(Dossier)
+    if lit_ids is not None:
+        query = query.join(Venue, Venue.dossier_id == Dossier.id).where(Venue.lit_id.in_(lit_ids)).distinct()
+    return session.exec(query).all()
+
+
+def _compute_dms(dossiers: list) -> float:
+    """Durée Moyenne de Séjour (jours) sur les dossiers déjà sortis."""
+    durations = [
+        (d.discharge_time - d.admit_time).total_seconds() / 86400
+        for d in dossiers
+        if d.discharge_time and d.admit_time
+    ]
+    return sum(durations) / len(durations) if durations else 0.0
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -62,29 +99,12 @@ def get_kpis(
     session: Session = Depends(get_session)
 ):
     """
-    Calcule les KPIs principaux pour le mode gestionnaire.
-    
-    **Note** : Pour le MVP, les données d'occupation sont simulées aléatoirement.
-    L'intégration avec le module Mouvements se fera en Phase 3.2.
+    Calcule les KPIs principaux pour le mode gestionnaire, à partir des données réelles
+    d'admission/sortie (Dossier/Venue) plutôt que d'une simulation aléatoire.
     """
-    # Récupérer tous les lits (ou par EG si spécifié)
-    query = select(Lit)
-    if eg_id:
-        # Filtrer les lits appartenant à l'entité géographique via la hiérarchie
-        # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle -> Service -> Pole -> EntiteGeographique
-        query = (
-            query
-            .join(Chambre, Chambre.id == Lit.chambre_id)
-            .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
-            .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
-            .join(Service, Service.id == UniteFonctionnelle.service_id)
-            .join(Pole, Pole.id == Service.pole_id)
-            .where(Pole.entite_geo_id == eg_id)
-        )
-
-    lits = session.exec(query).all()
+    lits = session.exec(_lits_query_for_eg(eg_id)).all()
     total_beds = len(lits)
-    
+
     if total_beds == 0:
         return KpiResponse(
             occupation_rate=0.0,
@@ -95,33 +115,50 @@ def get_kpis(
             beds_opening_rate=100.0,
             period=period
         )
-    
-    # Simuler occupation (65-85% en moyenne)
-    occupied_beds = int(total_beds * random.uniform(0.65, 0.85))
+
+    lit_ids = {l.id for l in lits}
+    occupied_lit_ids = get_occupied_lit_ids(session)
+    occupied_beds = len(lit_ids & occupied_lit_ids)
     available_beds = total_beds - occupied_beds
     occupation_rate = (occupied_beds / total_beds) * 100
-    
-    # Simuler DMS (Durée Moyenne de Séjour) : 5-12 jours en moyenne
-    dms = random.uniform(5.0, 12.0)
-    
-    # Simuler taux de rotation (admissions / lits) : 0.8-1.5
-    rotation_rate = random.uniform(0.8, 1.5)
-    
-    # Simuler trend (évolution vs période précédente) : -5% à +5%
-    occupation_trend = random.uniform(-5.0, 5.0)
-    dms_trend = random.uniform(-3.0, 3.0)
-    rotation_trend = random.uniform(-2.0, 2.0)
-    
-    # Taux d'ouverture : 100% pour MVP (tous les lits installés sont ouverts)
+
+    days = _PERIOD_DAYS.get(period, 7)
+    now = datetime.now()
+    period_start = now - timedelta(days=days)
+    previous_period_start = now - timedelta(days=2 * days)
+
+    dossiers_in_scope = _dossiers_in_scope(session, lit_ids if eg_id else None)
+
+    current_discharged = [d for d in dossiers_in_scope if d.discharge_time and d.discharge_time >= period_start]
+    previous_discharged = [
+        d for d in dossiers_in_scope
+        if d.discharge_time and previous_period_start <= d.discharge_time < period_start
+    ]
+    dms = _compute_dms(current_discharged)
+    previous_dms = _compute_dms(previous_discharged)
+    dms_trend = round(dms - previous_dms, 1) if previous_discharged else None
+
+    current_admissions = len([d for d in dossiers_in_scope if d.admit_time and d.admit_time >= period_start])
+    previous_admissions = len([
+        d for d in dossiers_in_scope
+        if d.admit_time and previous_period_start <= d.admit_time < period_start
+    ])
+    rotation_rate = current_admissions / total_beds
+    previous_rotation_rate = previous_admissions / total_beds
+    rotation_trend = round(rotation_rate - previous_rotation_rate, 2) if previous_admissions else None
+
+    # Taux d'ouverture : 100% par approximation assumée (pas de suivi historique
+    # d'ouverture/fermeture de lit distinct du statut courant) — pas une valeur simulée
+    # aléatoirement, juste une hypothèse MVP documentée.
     beds_opening_rate = 100.0
-    
+
     return KpiResponse(
         occupation_rate=round(occupation_rate, 1),
-        occupation_trend=round(occupation_trend, 1),
+        occupation_trend=None,
         dms=round(dms, 1),
-        dms_trend=round(dms_trend, 1),
+        dms_trend=dms_trend,
         rotation_rate=round(rotation_rate, 2),
-        rotation_trend=round(rotation_trend, 2),
+        rotation_trend=rotation_trend,
         available_beds=available_beds,
         total_beds=total_beds,
         beds_opening_rate=beds_opening_rate,
@@ -146,25 +183,25 @@ def get_capacity_by_service(
         .where(Pole.entite_geo_id == eg_id)
     )
     services = session.exec(services_query).all()
-    
+    occupied_lit_ids = get_occupied_lit_ids(session)
+
     results = []
     for service in services:
-        # Compter les lits du service via la hiérarchie
-        # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle (filtrée par service)
+        # Lits du service via la hiérarchie Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle
         lits_query = (
-            select(func.count(Lit.id))
+            select(Lit.id)
             .join(Chambre, Chambre.id == Lit.chambre_id)
             .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
             .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
             .where(UniteFonctionnelle.service_id == service.id)
         )
-        total_beds = session.exec(lits_query).one()
-        
+        service_lit_ids = set(session.exec(lits_query).all())
+        total_beds = len(service_lit_ids)
+
         if total_beds == 0:
             continue
-        
-        # Simuler occupation (variance par service : 50-95%)
-        occupied_beds = int(total_beds * random.uniform(0.50, 0.95))
+
+        occupied_beds = len(service_lit_ids & occupied_lit_ids)
         occupation_rate = (occupied_beds / total_beds) * 100
         
         # Déterminer couleur status
@@ -217,31 +254,31 @@ def get_capacity_by_um(
         .where(Pole.entite_geo_id == eg_id)
     )
     ufs = session.exec(ufs_query).all()
-    
+    occupied_lit_ids = get_occupied_lit_ids(session)
+
     # Grouper par code_um
     um_stats = {}
     for uf in ufs:
         code_um = uf.um_code or "MCO"  # Default MCO si non défini
 
-        # Compter les lits de l'UF via la hiérarchie
-        # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle (filtrée par UF)
+        # Lits de l'UF via la hiérarchie Lit -> Chambre -> UniteHebergement (filtrée par UF)
         lits_query = (
-            select(func.count(Lit.id))
+            select(Lit.id)
             .join(Chambre, Chambre.id == Lit.chambre_id)
             .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
             .where(UniteHebergement.unite_fonctionnelle_id == uf.id)
         )
-        total_beds = session.exec(lits_query).one()
-        
+        uf_lit_ids = set(session.exec(lits_query).all())
+        total_beds = len(uf_lit_ids)
+
         if total_beds == 0:
             continue
-        
+
         if code_um not in um_stats:
             um_stats[code_um] = {"total": 0, "occupied": 0}
-        
+
         um_stats[code_um]["total"] += total_beds
-        # Simuler occupation
-        um_stats[code_um]["occupied"] += int(total_beds * random.uniform(0.60, 0.85))
+        um_stats[code_um]["occupied"] += len(uf_lit_ids & occupied_lit_ids)
     
     results = []
     for um_code, stats in um_stats.items():
@@ -275,7 +312,7 @@ def get_alerts(
     - Sous-utilisation < 50%
     """
     alerts = []
-    
+
     # Récupérer les services avec leur occupation
     services_data = []
     services_query = (
@@ -284,24 +321,26 @@ def get_alerts(
         .where(Pole.entite_geo_id == eg_id)
     )
     services = session.exec(services_query).all()
-    
+    occupied_lit_ids = get_occupied_lit_ids(session)
+
     for service in services:
-        # Compter les lits du service via la hiérarchie
+        # Lits du service via la hiérarchie
         lits_query = (
-            select(func.count(Lit.id))
+            select(Lit.id)
             .join(Chambre, Chambre.id == Lit.chambre_id)
             .join(UniteHebergement, UniteHebergement.id == Chambre.unite_hebergement_id)
             .join(UniteFonctionnelle, UniteFonctionnelle.id == UniteHebergement.unite_fonctionnelle_id)
             .where(UniteFonctionnelle.service_id == service.id)
         )
-        total_beds = session.exec(lits_query).one()
-        
+        service_lit_ids = set(session.exec(lits_query).all())
+        total_beds = len(service_lit_ids)
+
         if total_beds == 0:
             continue
-        
-        occupied_beds = int(total_beds * random.uniform(0.50, 1.05))  # Peut dépasser 100% (suroccupation)
+
+        occupied_beds = len(service_lit_ids & occupied_lit_ids)
         occupation_rate = (occupied_beds / total_beds) * 100
-        
+
         services_data.append({
             "service": service,
             "total_beds": total_beds,

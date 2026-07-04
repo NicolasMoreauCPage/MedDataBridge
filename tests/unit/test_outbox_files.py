@@ -7,10 +7,12 @@ def test_roundtrip_writes_outbox_files(tmp_path):
     env = os.environ.copy()
     env["TESTING"] = "1"
     env["RESET_DB"] = "1"
+    env["MEDBRIDGE_OUT_DIR"] = str(tmp_path)
+    env["PAM_LIMIT"] = "5"
     cmd = [".venv/bin/python3", "scripts/mfn_roundtrip.py"]
     subprocess.check_call(cmd, env=env)
 
-    base = "/tmp/medbridge_generated"
+    base = str(tmp_path)
     assert os.path.isdir(base), f"Outbox base dir not found: {base}"
 
     pam_dir = os.path.join(base, "pam")

@@ -32,10 +32,16 @@ def plan_lits(
     uf_filter: Optional[str] = Query(None, description="Filtrer par UF"),
     service_filter: Optional[str] = Query(None, description="Filtrer par Service"),
     status_filter: Optional[str] = Query(None, description="Filtrer par statut: free, occupied, closed"),
+    entity_type: Optional[str] = Query(None, description="Restreindre à une entité de structure: eg, pole, service, uf, uh, chambre, lit"),
+    entity_id: Optional[int] = Query(None, description="ID de l'entité désignée par entity_type"),
 ):
     """
     Vue plan de lits : affiche tous les lits organisés par service/UF/UH/chambre
     avec statut en temps réel et actions rapides pour affecter des patients.
+
+    `entity_type`/`entity_id` permettent de restreindre l'affichage à une entité précise de la
+    hiérarchie de structure (utilisé par les pages de détail eg/pole/service/uf/uh pour afficher
+    leur propre plan de lits plutôt qu'une page "bientôt disponible").
     """
     from app.models_structure import Service, Pole, EntiteGeographique
 
@@ -72,10 +78,29 @@ def plan_lits(
         if service_filter:
             q = q.where(Service.name.ilike(f"%{service_filter}%"))
 
+        # Restriction à une entité précise de la hiérarchie (pages de détail eg/pole/.../uh)
+        if entity_type and entity_id:
+            entity_filters = {
+                "eg": Pole.entite_geo_id == entity_id,
+                "pole": Service.pole_id == entity_id,
+                "service": UniteFonctionnelle.service_id == entity_id,
+                "uf": UniteHebergement.unite_fonctionnelle_id == entity_id,
+                "uh": Chambre.unite_hebergement_id == entity_id,
+                "chambre": Lit.chambre_id == entity_id,
+                "lit": Lit.id == entity_id,
+            }
+            condition = entity_filters.get(entity_type)
+            if condition is not None:
+                q = q.where(condition)
+
         return q
 
     # Requête principale en fonction du contexte
-    if eg_id:
+    if entity_type and entity_id:
+        # Une entité précise est demandée explicitement (page de détail structure) : elle
+        # prime sur le contexte GHT/EG/EJ ambiant, qui pourrait ne pas correspondre.
+        query = build_query()
+    elif eg_id:
         # EG explicite : filtrer sur ce site
         query = build_query(filter_eg_ids=[eg_id])
     elif ej_id:

@@ -15,6 +15,10 @@ class NGAPActCreate(BaseModel):
     denombrement: Optional[int] = 1
     execute_date: Optional[datetime] = None
     identifiant_acte: Optional[str] = None
+    prestataire_id: Optional[int] = None
+    position_dentaire: Optional[str] = None
+    execute_heure: Optional[str] = None
+    numero_seance: Optional[int] = None
     montant: Optional[float] = None
     commentaire: Optional[str] = None
 
@@ -27,6 +31,9 @@ class NGAPActResponse(BaseModel):
     denombrement: Optional[int] = 1
     execute_date: Optional[datetime] = None
     identifiant_acte: Optional[str] = None
+    prestataire_id: Optional[int] = None
+    position_dentaire: Optional[str] = None
+    numero_seance: Optional[int] = None
     montant: Optional[float] = None
     commentaire: Optional[str] = None
     valide: bool = False
@@ -73,6 +80,9 @@ class NGAPService:
             denombrement=act.denombrement,
             execute_date=act.execute_date or datetime.now(),
             identifiant_acte=act.identifiant_acte,
+            prestataire_id=getattr(act, "prestataire_id", None),
+            position_dentaire=getattr(act, "position_dentaire", None),
+            numero_seance=getattr(act, "numero_seance", None),
             montant_total=getattr(act, "montant", None),
             commentaire=getattr(act, "commentaire", None),
             valide=False,
@@ -90,6 +100,9 @@ class NGAPService:
             denombrement=ngap.denombrement,
             execute_date=ngap.execute_date,
             identifiant_acte=ngap.identifiant_acte,
+            prestataire_id=ngap.prestataire_id,
+            position_dentaire=ngap.position_dentaire,
+            numero_seance=ngap.numero_seance,
             montant=ngap.montant_total,
             commentaire=ngap.commentaire,
             valide=ngap.valide,

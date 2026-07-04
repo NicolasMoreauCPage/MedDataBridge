@@ -5,10 +5,10 @@ Validation des contraintes de structure hospitalière
 Gestion des chambres et lits génériques (ZGEN) pour environnements de test
 """
 
-from typing import Optional, List
-from sqlmodel import Session, select
+from typing import Optional, List, Set
+from sqlmodel import Session, select, func
 from app.models_structure import Chambre, Lit
-from app.models import Venue
+from app.models import Venue, Dossier
 
 
 def is_generic_resource(identifier: str) -> bool:
@@ -43,6 +43,34 @@ def get_bed_occupancy(session: Session, lit_id: int) -> int:
         )
     ).all()
     return len(count)
+
+
+def get_occupied_lit_ids(session: Session) -> Set[int]:
+    """
+    Détermine les lits actuellement occupés : pour chaque dossier non sorti
+    (discharge_time IS NULL), on prend son Venue le plus récent (par start_time) — c'est
+    la localisation courante du patient, indépendamment des transferts précédents — et on
+    retient son lit_id.
+
+    Utilisé pour un calcul d'occupation réel (module Analytics), en remplacement d'une
+    simulation aléatoire.
+    """
+    latest_start = (
+        select(Venue.dossier_id, func.max(Venue.start_time).label("max_start"))
+        .group_by(Venue.dossier_id)
+        .subquery()
+    )
+    rows = session.exec(
+        select(Venue.lit_id)
+        .join(
+            latest_start,
+            (Venue.dossier_id == latest_start.c.dossier_id) & (Venue.start_time == latest_start.c.max_start),
+        )
+        .join(Dossier, Dossier.id == Venue.dossier_id)
+        .where(Dossier.discharge_time.is_(None))
+        .where(Venue.lit_id.is_not(None))
+    ).all()
+    return {lit_id for lit_id in rows if lit_id is not None}
 
 
 def validate_room_occupancy(session: Session, chambre_id: int, patient_id: int) -> bool:

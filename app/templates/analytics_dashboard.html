@@ -73,17 +73,17 @@
         <div class="flex items-center gap-3">
           <!-- Boutons Export -->
           <div class="flex gap-2">
-            <a href="/api/analytics/export/excel?eg_id=1&period=30d" 
+            <a href="/api/analytics/export/excel?eg_id={{ eg_id if eg_id else 1 }}&period=30d"
                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                title="Exporter en Excel">
               📊 Excel
             </a>
-            <a href="/api/analytics/export/pdf?eg_id=1&period=30d"
+            <a href="/api/analytics/export/pdf?eg_id={{ eg_id if eg_id else 1 }}&period=30d"
                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                title="Exporter en PDF">
               📄 PDF
             </a>
-            <a href="/api/analytics/export/csv?eg_id=1&period=30d&export_type=capacity"
+            <a href="/api/analytics/export/csv?eg_id={{ eg_id if eg_id else 1 }}&period=30d&export_type=capacity"
                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                title="Exporter en CSV">
               📝 CSV
@@ -570,7 +570,7 @@ function showError(message) {
 // Mettre à jour les liens d'export selon la période sélectionnée
 function updateExportLinks() {
   const period = document.getElementById('periodSelector').value;
-  const egId = 1; // TODO: récupérer dynamiquement l'EG sélectionnée
+  const egId = currentEgId;
   
   const excelLink = document.querySelector('a[href*="/export/excel"]');
   const pdfLink = document.querySelector('a[href*="/export/pdf"]');

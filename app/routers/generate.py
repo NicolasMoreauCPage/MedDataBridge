@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 from app.db import get_session
 from app.models import Dossier
@@ -29,6 +30,6 @@ def gen_fhir(dossier_id: int, session=Depends(get_session)):
     bundle = generate_fhir_bundle_for_dossier(d)
     filename = f"fhir_dossier_{d.dossier_seq}.json"
     return JSONResponse(
-        bundle,
+        jsonable_encoder(bundle),
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )

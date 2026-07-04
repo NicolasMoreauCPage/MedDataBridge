@@ -8,7 +8,6 @@ from datetime import datetime, date, timedelta
 from typing import Optional, Literal
 import io
 import csv
-import random
 
 # Excel
 from openpyxl import Workbook
@@ -25,53 +24,52 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 from app.dependencies.db_deps import get_session
 from app.models_structure import Lit, Service, UniteFonctionnelle, Chambre, UniteHebergement, Pole
+from app.services.structure_validation import get_occupied_lit_ids
+from app.routers.analytics import _lits_query_for_eg, _dossiers_in_scope, _compute_dms, _PERIOD_DAYS
 
 
 router = APIRouter(prefix="/api/analytics/export", tags=["Analytics Export"])
 
 
 def get_kpi_data(session: Session, eg_id: int, period: str):
-    """Récupère les données KPIs pour export (simulations MVP)"""
-    # Simulation des KPIs (même logique que dans analytics.py)
-    # Récupérer les lits appartenant à l'entité géographique en descendant la hiérarchie
-    # Lit -> Chambre -> UniteHebergement -> UniteFonctionnelle -> Service -> Pole -> EntiteGeographique
-    sub_ufs = select(UniteFonctionnelle.id).where(
-        UniteFonctionnelle.service_id.in_(
-            select(Service.id).where(Service.pole_id.in_(
-                select(Pole.id).where(Pole.entite_geo_id == eg_id)
-            ))
-        )
-    )
+    """Récupère les données KPIs pour export, à partir des données réelles (même logique que analytics.py)."""
+    lits = session.exec(_lits_query_for_eg(eg_id)).all()
+    lit_ids = {l.id for l in lits}
+    nb_lits_total = len(lit_ids)
 
-    sub_uh = select(UniteHebergement.id).where(UniteHebergement.unite_fonctionnelle_id.in_(sub_ufs))
-    sub_ch = select(Chambre.id).where(Chambre.unite_hebergement_id.in_(sub_uh))
-
-    total_lits = session.exec(
-        select(Lit).where(Lit.chambre_id.in_(sub_ch))
-    ).all()
-    
-    nb_lits_total = len(total_lits)
-    nb_lits_occupes = int(nb_lits_total * random.uniform(0.65, 0.85))
+    occupied_lit_ids = get_occupied_lit_ids(session)
+    nb_lits_occupes = len(lit_ids & occupied_lit_ids)
     taux_occupation = (nb_lits_occupes / nb_lits_total * 100) if nb_lits_total > 0 else 0
-    
+
+    days = _PERIOD_DAYS.get(period, 30)
+    period_start = datetime.now() - timedelta(days=days)
+    dossiers_in_scope = _dossiers_in_scope(session, lit_ids)
+    discharged = [d for d in dossiers_in_scope if d.discharge_time and d.discharge_time >= period_start]
+    dms = _compute_dms(discharged)
+    admissions = len([d for d in dossiers_in_scope if d.admit_time and d.admit_time >= period_start])
+    taux_rotation = (admissions / nb_lits_total * 100) if nb_lits_total > 0 else 0
+
     return {
         "taux_occupation": round(taux_occupation, 1),
-        "dms": round(random.uniform(4.5, 7.2), 1),
-        "taux_rotation": round(random.uniform(35, 55), 1),
+        "dms": round(dms, 1),
+        "taux_rotation": round(taux_rotation, 1),
         "lits_disponibles": nb_lits_total - nb_lits_occupes,
-        "taux_ouverture": round(random.uniform(85, 98), 1),
+        # Pas de suivi historique d'ouverture/fermeture de lit distinct : approximation MVP
+        # assumée (100%), pas une valeur simulée aléatoirement.
+        "taux_ouverture": 100.0,
         "nb_lits_total": nb_lits_total,
         "nb_lits_occupes": nb_lits_occupes,
     }
 
 
 def get_capacity_data(session: Session, eg_id: int):
-    """Récupère les données de capacité par service"""
+    """Récupère les données de capacité par service, à partir de l'occupation réelle des lits."""
     # Récupérer les services attachés aux pôles de l'entité géographique
     services = session.exec(
         select(Service).where(Service.pole_id.in_(select(Pole.id).where(Pole.entite_geo_id == eg_id)))
     ).all()
-    
+    occupied_lit_ids = get_occupied_lit_ids(session)
+
     data = []
     for service in services:
         # Récupérer lits via chambres -> UH -> UF -> service
@@ -79,11 +77,12 @@ def get_capacity_data(session: Session, eg_id: int):
         sub_uh = select(UniteHebergement.id).where(UniteHebergement.unite_fonctionnelle_id.in_(sub_ufs))
         sub_ch = select(Chambre.id).where(Chambre.unite_hebergement_id.in_(sub_uh))
 
-        lits = session.exec(select(Lit).where(Lit.chambre_id.in_(sub_ch))).all()
-        
-        nb_lits = len(lits)
+        service_lit_ids = set(session.exec(select(Lit.id).where(Lit.chambre_id.in_(sub_ch))).all())
+
+        nb_lits = len(service_lit_ids)
         if nb_lits > 0:
-            occupation = random.uniform(65, 95)
+            lits_occupes = len(service_lit_ids & occupied_lit_ids)
+            occupation = (lits_occupes / nb_lits) * 100
             svc_name = getattr(service, 'name', None) or getattr(service, 'short_name', None) or f"Service {service.id}"
             svc_code = getattr(service, 'identifier', None) or getattr(service, 'short_name', None)
             data.append({
@@ -91,10 +90,10 @@ def get_capacity_data(session: Session, eg_id: int):
                 "service_code": svc_code,
                 "nb_lits": nb_lits,
                 "taux_occupation": round(occupation, 1),
-                "lits_occupes": int(nb_lits * occupation / 100),
-                "lits_disponibles": nb_lits - int(nb_lits * occupation / 100),
+                "lits_occupes": lits_occupes,
+                "lits_disponibles": nb_lits - lits_occupes,
             })
-    
+
     return data
 
 

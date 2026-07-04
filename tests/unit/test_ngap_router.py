@@ -7,7 +7,7 @@ y compris le dashboard, la consultation par dossier, et la création d'actes.
 import pytest
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
@@ -54,7 +54,7 @@ class TestNGAPRouter:
         with patch('app.routers.ngap.NGAPService') as mock_service_class:
             mock_service = Mock()
             mock_service_class.return_value = mock_service
-            mock_service.get_acts_by_dossier = AsyncMock(return_value=[
+            mock_service.get_acts_by_dossier = Mock(return_value=[
                 {"id": 1, "lettre_cle": "C", "coefficient": 1.0}
             ])
 
@@ -141,7 +141,7 @@ class TestNGAPRouter:
         with patch('app.routers.ngap.NGAPService') as mock_service_class:
             mock_service = Mock()
             mock_service_class.return_value = mock_service
-            mock_service.create_act = AsyncMock(return_value=Mock(
+            mock_service.create_act = Mock(return_value=Mock(
                 id=1,
                 lettre_cle="C",
                 coefficient=1.5,

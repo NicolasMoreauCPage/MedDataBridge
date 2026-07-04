@@ -1,5 +1,67 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from app.models import Patient
+
+
+def generate_practitioner_resource(medecin) -> dict:
+    """Génère une ressource FHIR Practitioner à partir d'un MedecinResponsable.
+
+    Args:
+        medecin: Instance de MedecinResponsable (RPPS/ADELI + identité XCN).
+    Returns:
+        dict: Ressource FHIR Practitioner.
+    """
+    identifiers = []
+    if getattr(medecin, "rpps", None):
+        identifiers.append({
+            "system": "urn:oid:1.2.250.1.71.4.2.1",  # RPPS
+            "value": medecin.rpps,
+        })
+    if getattr(medecin, "adeli", None):
+        identifiers.append({
+            "system": "urn:oid:1.2.250.1.71.4.2.1.1",  # ADELI (OID conventionnel FR)
+            "value": medecin.adeli,
+        })
+
+    return {
+        "resourceType": "Practitioner",
+        "id": f"prac-{medecin.id}",
+        "identifier": identifiers,
+        "active": getattr(medecin, "active", True),
+        "name": [{
+            "family": medecin.family_name,
+            "given": [g for g in [medecin.given_name, medecin.middle_name] if g],
+            "prefix": [medecin.prefix] if getattr(medecin, "prefix", None) else [],
+            "suffix": [medecin.suffix] if getattr(medecin, "suffix", None) else [],
+        }],
+        "telecom": (
+            ([{"system": "phone", "value": medecin.phone}] if getattr(medecin, "phone", None) else [])
+            + ([{"system": "email", "value": medecin.email}] if getattr(medecin, "email", None) else [])
+        ),
+    }
+
+
+def generate_organization_resource(code: str, name: Optional[str] = None) -> dict:
+    """Génère une ressource FHIR Organization minimale à partir d'un code d'UF/structure.
+
+    Utilisée pour représenter les références `Organization/{code}` déjà émises par
+    `serviceProvider`/`managingOrganization` (auparavant des références non résolues, sans
+    ressource correspondante dans le bundle).
+
+    Args:
+        code: Code de l'UF/structure (utilisé tel quel comme id de ressource pour rester
+            compatible avec les références déjà émises ailleurs dans le bundle).
+        name: Libellé lisible, si disponible (à défaut, le code est réutilisé).
+    Returns:
+        dict: Ressource FHIR Organization.
+    """
+    return {
+        "resourceType": "Organization",
+        "id": code,
+        "identifier": [{"value": code}],
+        "name": name or code,
+        "active": True,
+    }
+
 
 def generate_patient_resource(patient: Patient, forced_identifier_system=None, forced_identifier_oid=None) -> dict:
     """Génère une ressource FHIR Patient.

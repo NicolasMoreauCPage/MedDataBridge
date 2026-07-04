@@ -60,7 +60,7 @@ async def send_hl7_message(message: str, host='localhost', port=2575):
         return f"ERROR: {e}"
 
 
-async def test_roundtrip_scenario(scenario_name: str):
+async def run_roundtrip_scenario(scenario_name: str):
     """Test roundtrip complet pour un scénario"""
     print(f"\n🧪 Test roundtrip pour: {scenario_name}")
 
@@ -139,7 +139,7 @@ async def main():
     results = []
 
     for scenario_name in test_scenarios:
-        success = await test_roundtrip_scenario(scenario_name)
+        success = await run_roundtrip_scenario(scenario_name)
         results.append((scenario_name, success))
 
     # Résumé

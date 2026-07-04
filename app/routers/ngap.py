@@ -38,7 +38,7 @@ async def ngap_by_dossier(
         raise HTTPException(status_code=404, detail="Dossier non trouvé")
 
     service = NGAPService(db)
-    acts = await service.get_acts_by_dossier(dossier_id)
+    acts = service.get_acts_by_dossier(dossier_id)
 
     return templates.TemplateResponse("ngap/dossier_acts.html", {
         "request": request,
@@ -83,6 +83,10 @@ async def create_ngap_act(
     db: Session = Depends(get_session)
 ):
     """Créer un acte NGAP"""
+    dossier = db.get(Dossier, dossier_id)
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier non trouvé")
+
     try:
         execute_datetime = datetime.fromisoformat(execute_date)
     except ValueError:
@@ -103,7 +107,7 @@ async def create_ngap_act(
     )
 
     service = NGAPService(db)
-    act = await service.create_act(act_data)
+    act = service.create_act(act_data)
 
     return templates.TemplateResponse("ngap/act_created.html", {
         "request": request,

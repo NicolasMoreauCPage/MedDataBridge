@@ -3,15 +3,59 @@ API routers for HPRIM interventions and cotations management
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session
 from typing import List, Optional
 from datetime import datetime
 
 from app.db_session_factory import get_session
 from app.services.hprim_intervention_service import HprimInterventionService
-from app.hprim_models import HprimIntervention
 
 router = APIRouter(prefix="/api/hprim/interventions", tags=["HPRIM Interventions"])
+
+
+class InterventionCreate(BaseModel):
+    identifiant: str
+    libelle: str
+    date_intervention: datetime
+    venue_id: Optional[str] = None
+    lieu_execution: Optional[str] = None
+    statut: str = "en_cours"
+
+
+def _intervention_to_dict(intervention) -> dict:
+    return {
+        "id": intervention.id,
+        "dossier_id": intervention.dossier_id,
+        "identifiant": intervention.identifiant,
+        "libelle": intervention.libelle,
+        "date_intervention": intervention.date_intervention.isoformat(),
+        "venue_id": intervention.venue_id,
+        "lieu_execution": intervention.lieu_execution,
+        "statut": intervention.statut,
+        "created_at": intervention.created_at.isoformat(),
+        "updated_at": intervention.updated_at.isoformat(),
+    }
+
+
+@router.post("/{dossier_id}")
+async def create_intervention(
+    dossier_id: int,
+    payload: InterventionCreate,
+    session: Session = Depends(get_session)
+) -> dict:
+    """
+    Crée une intervention rattachée à un dossier.
+    """
+    try:
+        service = HprimInterventionService(session)
+        intervention = await service.create_intervention(dossier_id=dossier_id, **payload.model_dump())
+        return _intervention_to_dict(intervention)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @router.get("/{dossier_id}/cotations-count")
@@ -51,10 +95,10 @@ async def list_interventions(
     try:
         service = HprimInterventionService(session)
         interventions = await service.get_interventions_for_dossier(dossier_id)
-        
+
         return {
             "dossier_id": dossier_id,
-            "interventions": interventions,
+            "interventions": [_intervention_to_dict(i) for i in interventions],
             "count": len(interventions)
         }
     except Exception as e:
@@ -66,7 +110,7 @@ async def list_interventions(
 
 @router.get("/{intervention_id}/cotations")
 async def get_intervention_cotations(
-    intervention_id: str,
+    intervention_id: int,
     session: Session = Depends(get_session)
 ) -> dict:
     """

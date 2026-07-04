@@ -337,7 +337,7 @@ class MFNValidator(HL7Validator):
         self.required_segments = ["MSH", "MFI"]
         self.valid_loc_types = {
             "M", "N", "R", "B",  # Types CPAGE: M=EJ, N=?, R=?, B=?
-            "ETBL_GRPQ", "PL", "D", "UF", "UH", "CH", "LIT",
+            "ETBL_GRPQ", "PL", "P", "D", "UF", "UH", "CH", "LIT",
             "UNT_MDCL"  # Type d'UF médicale
         }
     

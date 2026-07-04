@@ -27,6 +27,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from sqlmodel import Session
 from app.services.vocabulary_translate import safe_map
+from app.services.fhir_resources import generate_practitioner_resource, generate_organization_resource
 
 def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session] = None) -> dict:
     """Génère un Bundle FHIR contenant Patient + Encounter + EpisodeOfCare (+ locations).
@@ -185,10 +186,12 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
             }]
         }]
     
-    # UF responsabilité comme serviceProvider
+    # UF responsabilité comme serviceProvider (ressource Organization ajoutée au bundle plus bas)
+    organization_res = None
     if getattr(dossier, "uf_responsabilite", None):
+        organization_res = generate_organization_resource(dossier.uf_responsabilite)
         encounter_res["serviceProvider"] = {
-            "reference": f"Organization/{dossier.uf_responsabilite}",
+            "reference": f"Organization/{organization_res['id']}",
             "display": dossier.uf_responsabilite
         }
     
@@ -216,8 +219,22 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
     if hospitalization:
         encounter_res["hospitalization"] = hospitalization
     
-    # Participant (médecin responsable)
-    if getattr(dossier, "attending_provider", None):
+    # Participant (médecin responsable) : ressource Practitioner à part entière si le dossier
+    # est lié à un MedecinResponsable réel (RPPS/ADELI), sinon simple display de secours.
+    practitioner_res = None
+    medecin = getattr(dossier, "medecin_responsable", None)
+    if medecin is not None:
+        practitioner_res = generate_practitioner_resource(medecin)
+        individual = {
+            "reference": f"Practitioner/{practitioner_res['id']}",
+            "display": medecin.get_full_name() if hasattr(medecin, "get_full_name") else None,
+        }
+    elif getattr(dossier, "attending_provider", None):
+        individual = {"display": dossier.attending_provider}
+    else:
+        individual = None
+
+    if individual:
         encounter_res["participant"] = [{
             "type": [{
                 "coding": [{
@@ -226,9 +243,7 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
                     "display": "attender"
                 }]
             }],
-            "individual": {
-                "display": dossier.attending_provider
-            }
+            "individual": individual
         }]
     
     # Diagnostic principal
@@ -298,26 +313,32 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
             }]
         }]
 
-    # managingOrganization depuis UF responsabilité si disponible
-    if getattr(dossier, "uf_responsabilite", None):
+    # managingOrganization depuis UF responsabilité si disponible (même Organization que serviceProvider)
+    if organization_res is not None:
         episode_res["managingOrganization"] = {
-            "reference": f"Organization/{dossier.uf_responsabilite}",
+            "reference": f"Organization/{organization_res['id']}",
             "display": dossier.uf_responsabilite,
         }
 
     # Bundle avec identifiant unique
     # Use stable fullUrl values (ResourceType/id) to ensure uniqueness and
     # better interoperability (avoids duplicate urn:uuid collisions).
+    entries = [
+        {"resource": patient_res, "fullUrl": f"Patient/{patient_res['id']}"},
+        {"resource": encounter_res, "fullUrl": f"Encounter/{encounter_res['id']}"},
+        {"resource": episode_res, "fullUrl": f"EpisodeOfCare/{episode_res['id']}"},
+    ]
+    if practitioner_res is not None:
+        entries.append({"resource": practitioner_res, "fullUrl": f"Practitioner/{practitioner_res['id']}"})
+    if organization_res is not None:
+        entries.append({"resource": organization_res, "fullUrl": f"Organization/{organization_res['id']}"})
+
     bundle = {
         "resourceType": "Bundle",
         "id": f"bundle-{dossier.id}-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}",
         "type": "collection",
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "entry": [
-            {"resource": patient_res, "fullUrl": f"Patient/{patient_res['id']}"},
-            {"resource": encounter_res, "fullUrl": f"Encounter/{encounter_res['id']}"},
-            {"resource": episode_res, "fullUrl": f"EpisodeOfCare/{episode_res['id']}"},
-        ]
+        "entry": entries
     }
-    
+
     return bundle

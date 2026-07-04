@@ -36,7 +36,13 @@ class TestCoverageReports:
 
     def test_minimum_coverage_threshold(self, coverage_data):
         """Test que la couverture globale dépasse le seuil minimum"""
-        total_coverage = coverage_data.report(show_missing=False)
+        try:
+            total_coverage = coverage_data.report(show_missing=False)
+        except coverage.exceptions.NoDataError:
+            pytest.skip(
+                "Aucune donnée de couverture disponible (nécessite `pytest --cov=app`, "
+                "pas `pytest -q` seul)"
+            )
 
         # Seuil minimum pour développement (très bas pour permettre les tests)
         min_coverage = 10.0  # Ajusté temporairement pour développement

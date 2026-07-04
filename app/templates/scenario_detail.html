@@ -119,7 +119,7 @@
             <td class="px-4 py-3 text-xs font-mono text-slate-700">
               <pre class="whitespace-pre-wrap max-h-64 overflow-y-auto bg-slate-50 p-3 rounded">{{ step.payload if step.payload is not none else '' }}</pre>
             </td>
-            <td class="px-4 py-3 text-sm">
+            <td class="px-4 py-3 text-sm space-y-1">
               {% if deprecated %}
                 <span class="text-amber-700">Non émis</span>
               {% elif endpoints %}
@@ -131,6 +131,10 @@
               {% else %}
                 <span class="text-slate-400">Configurer un endpoint expéditeur</span>
               {% endif %}
+              <form method="post" action="/scenarios/{{ scenario.id }}/steps/{{ step.id }}/delete"
+                    onsubmit="return confirm('Supprimer cette étape ?');">
+                <button type="submit" class="text-red-600 hover:text-red-700">Supprimer</button>
+              </form>
             </td>
           </tr>
         {% else %}
@@ -141,6 +145,51 @@
       </tbody>
     </table>
   </div>
+</div>
+
+<div class="bg-white border border-slate-200 rounded-xl p-6 mt-6">
+  <h2 class="text-lg font-semibold text-slate-800 mb-4">Ajouter une étape</h2>
+  <form method="post" action="/scenarios/{{ scenario.id }}/steps" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700" for="step_name">Nom</label>
+      <input id="step_name" name="name" type="text" placeholder="Admission"
+             class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700" for="step_message_type">Type de message</label>
+      <input id="step_message_type" name="message_type" type="text" placeholder="ADT^A01"
+             class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700" for="step_message_format">Format</label>
+      <select id="step_message_format" name="message_format" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <option value="hl7">HL7</option>
+        <option value="fhir">FHIR</option>
+        <option value="json">JSON</option>
+        <option value="xml">XML</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700" for="step_delay_seconds">Délai avant envoi (secondes)</label>
+      <input id="step_delay_seconds" name="delay_seconds" type="number" min="0"
+             class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    <div class="md:col-span-2">
+      <label class="block text-sm font-medium text-slate-700" for="step_description">Description</label>
+      <input id="step_description" name="description" type="text"
+             class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    <div class="md:col-span-2">
+      <label class="block text-sm font-medium text-slate-700" for="step_payload">Payload (message HL7/FHIR/JSON brut)</label>
+      <textarea id="step_payload" name="payload" rows="6"
+                class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"></textarea>
+    </div>
+    <div class="md:col-span-2 flex justify-end">
+      <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-xl hover:bg-violet-700">
+        Ajouter l'étape
+      </button>
+    </div>
+  </form>
 </div>
 
 {% endblock %}

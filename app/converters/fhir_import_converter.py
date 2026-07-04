@@ -787,6 +787,54 @@ class FHIRToEncounterConverter:
         return status_map.get(fhir_status.lower(), "EN_COURS")
 
 
+class FHIRToPractitionerConverter:
+    """Convertit des ressources FHIR Practitioner vers le modèle MedecinResponsable."""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def convert_practitioner(self, fhir_practitioner: Dict[str, Any]) -> Optional[MedecinResponsable]:
+        """
+        Convertit une ressource FHIR Practitioner vers MedecinResponsable, en réutilisant
+        `get_or_create_medecin` (upsert par RPPS puis ADELI puis nom complet) partagé avec
+        l'extraction depuis PV1-7 côté HL7v2.
+        """
+        rpps = None
+        adeli = None
+        for identifier in fhir_practitioner.get("identifier", []):
+            system = identifier.get("system", "")
+            value = identifier.get("value")
+            if not value:
+                continue
+            if "1.2.250.1.71.4.2.1.1" in system:
+                adeli = value
+            elif "1.2.250.1.71.4.2.1" in system:
+                rpps = value
+
+        names = fhir_practitioner.get("name", [])
+        name = names[0] if names else {}
+        given = name.get("given", [])
+        telecoms = fhir_practitioner.get("telecom", [])
+        phone = next((t.get("value") for t in telecoms if t.get("system") == "phone"), None)
+        email = next((t.get("value") for t in telecoms if t.get("system") == "email"), None)
+
+        medecin_data = {
+            "rpps": rpps,
+            "adeli": adeli,
+            "family_name": name.get("family"),
+            "given_name": given[0] if given else None,
+            "middle_name": given[1] if len(given) > 1 else None,
+            "prefix": (name.get("prefix") or [None])[0],
+            "suffix": (name.get("suffix") or [None])[0],
+            "phone": phone,
+            "email": email,
+            "active": fhir_practitioner.get("active", True),
+        }
+        medecin_data = {k: v for k, v in medecin_data.items() if v not in (None, "")}
+
+        return get_or_create_medecin(self.session, medecin_data)
+
+
 class FHIRBundleImporter:
     """Importe un bundle FHIR complet."""
 
@@ -798,6 +846,7 @@ class FHIRBundleImporter:
         self.location_converter = FHIRToLocationConverter(session, ej)
         self.patient_converter = FHIRToPatientConverter(session, ej)
         self.encounter_converter = FHIRToEncounterConverter(session, resource_map=self.resource_map)
+        self.practitioner_converter = FHIRToPractitionerConverter(session)
 
     def import_bundle(self, bundle: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -817,10 +866,12 @@ class FHIRBundleImporter:
             "errors": [],
             "locations": 0,
             "patients": 0,
-            "encounters": 0
+            "encounters": 0,
+            "practitioners": 0,
+            "organizations": 0
         }
         
-        # Import des ressources dans l'ordre : Location → Patient → Encounter
+        # Import des ressources dans l'ordre : Location → Patient → Encounter → Practitioner → Organization
         for entry in entries:
             resource = entry.get("resource", {})
             resource_type = resource.get("resourceType")
@@ -856,7 +907,27 @@ class FHIRBundleImporter:
                         self.resource_map[f"Encounter/{res_id}"] = mouvement.id
                     results["encounters"] += 1
                     results["imported"] += 1
-                    
+
+                elif resource_type == "Practitioner":
+                    medecin = self.practitioner_converter.convert_practitioner(resource)
+                    res_id = resource.get('id')
+                    if res_id and medecin is not None:
+                        self.resource_map[res_id] = medecin.id
+                        self.resource_map[f"Practitioner/{res_id}"] = medecin.id
+                    results["practitioners"] += 1
+                    results["imported"] += 1
+
+                elif resource_type == "Organization":
+                    # Une Organization du bundle représente ici une UF/structure déjà gérée
+                    # par la hiérarchie de structure (import Location) ; elle n'est pas
+                    # persistée comme entité séparée, seulement acquittée et rendue
+                    # résolvable pour les références qui la pointent (serviceProvider, etc).
+                    res_id = resource.get('id')
+                    if res_id:
+                        self.resource_map[f"Organization/{res_id}"] = res_id
+                    results["organizations"] += 1
+                    results["imported"] += 1
+
             except Exception as e:
                 results["errors"].append({
                     "resourceType": resource_type,

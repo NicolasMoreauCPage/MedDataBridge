@@ -15,6 +15,8 @@ class MouvementCreateSchema(BaseModel):
     when: datetime
     trigger_event: Optional[str] = None
     location: Optional[str] = None
+    from_location: Optional[str] = None
+    to_location: Optional[str] = None
     status: Optional[str] = None
     uf_id: Optional[int] = None
     uh_id: Optional[int] = None
@@ -30,6 +32,8 @@ def create_mouvement(session: Session, mouvement_data: MouvementCreateSchema) ->
         when=mouvement_data.when,
         trigger_event=mouvement_data.trigger_event,
         location=mouvement_data.location,
+        from_location=mouvement_data.from_location,
+        to_location=mouvement_data.to_location,
         status=mouvement_data.status,
         uf_id=mouvement_data.uf_id,
         uh_id=mouvement_data.uh_id,

@@ -1,4 +1,5 @@
 import json
+import os
 from sqlmodel import Session, select, SQLModel
 from app.db import engine
 from app.models_structure import EntiteJuridique
@@ -37,8 +38,8 @@ def test_import_debug_bundle_roundtrip(tmp_path):
     # ensure DB tables
     SQLModel.metadata.create_all(engine)
 
-    # load debug bundle from tmp in repo
-    bundle_path = 'tmp/fhir_bundle_for_import_debug.json'
+    # load debug bundle fixture
+    bundle_path = os.path.join(os.path.dirname(__file__), '..', 'fixtures', 'fhir_bundle_for_import_debug.json')
     with open(bundle_path, 'r', encoding='utf-8') as f:
         bundle = json.load(f)
 

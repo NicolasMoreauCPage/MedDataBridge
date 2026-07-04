@@ -100,8 +100,8 @@ class TestDatabaseModule(unittest.TestCase):
             # Vérifier que les tables ont été créées
             mock_create_all.assert_called_once()
 
-            # Vérifier que le mode WAL a été activé
-            mock_sqlite_connect.assert_called_once_with("data/medbridge.db")
+            # Vérifier que le mode WAL a été activé (le chemin est normalisé en absolu par init_db)
+            mock_sqlite_connect.assert_called_once_with(os.path.abspath("data/medbridge.db"))
             mock_conn.execute.assert_any_call("PRAGMA journal_mode=WAL;")
             mock_conn.close.assert_called_once()
 

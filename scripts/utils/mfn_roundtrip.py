@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -30,7 +30,7 @@ from app.services.emit_on_create import generate_pam_hl7
 from app.models import Patient, Dossier, Venue, Mouvement
 
 MFN_DIR = ROOT / "tests" / "exemples" / "mfn"
-PAM_DIR = ROOT / "tests" / "exemples" / "Fichier_test_pam"
+PAM_DIR = ROOT / "tests" / "exemples" / "pam_archive"
 
 
 def import_mfn_files(session):

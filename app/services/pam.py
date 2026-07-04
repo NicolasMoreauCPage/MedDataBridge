@@ -1636,6 +1636,151 @@ async def handle_transfer_message(
 
 
 # -------------------------------------------------------------
+# HANDLER POUR LES CORRECTIONS DE MOUVEMENT (A44, A45)
+# -------------------------------------------------------------
+async def handle_move_account_message(
+    session: Session,
+    trigger: str,
+    pid_data: Dict,
+    pv1_data: Dict,
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None
+) -> Tuple[bool, Optional[str]]:
+    """
+    Traitement de A44 (Déplacement compte) : IHE PAM France utilise A44 pour corriger les
+    métadonnées (UF médicale/de soins, nature) d'un mouvement déjà enregistré, sans changer
+    la localisation physique du patient ni créer de nouveau mouvement — c'est une correction
+    en place, cohérente avec le fait que la machine à états (state_transitions.py) autorise A44
+    depuis quasiment n'importe quel état sans changer l'état courant.
+
+    ZBE-1 identifie le mouvement à corriger (même identifiant que le mouvement original,
+    contrairement à A02 qui crée un nouveau mouvement).
+
+    Args:
+        session: Session DB
+        trigger: Code trigger (A44)
+        pid_data: Données PID parsées
+        pv1_data: Données PV1 parsées
+        message: Message HL7 complet (requis pour parser ZBE)
+        ej_id: ID de l'entité juridique
+
+    Returns:
+        Tuple[bool, Optional[str]]: (succès, message d'erreur)
+    """
+    try:
+        logger.info(f"[pam][move_account] Processing {trigger} message")
+
+        zbe_data = _parse_zbe_segment(message) if message else {}
+        if not zbe_data:
+            return False, f"Segment ZBE obligatoire manquant pour {trigger}"
+
+        movement_id = zbe_data.get("movement_id")
+        if not movement_id:
+            return False, "ZBE-1 (movement_id) requis pour correction A44"
+
+        try:
+            mouvement_seq = int(movement_id)
+        except ValueError:
+            return False, f"Format movement_id invalide: {movement_id}"
+
+        mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == mouvement_seq)).first()
+        if not mouvement:
+            return False, f"Mouvement {movement_id} introuvable pour correction A44"
+
+        # Correction des métadonnées UF/nature portées par ZBE, sans changer la localisation
+        if zbe_data.get("uf_medicale"):
+            mouvement.uf_responsabilite = zbe_data["uf_medicale"]
+        if zbe_data.get("uf_soins"):
+            mouvement.uf_soins_code = zbe_data["uf_soins"]
+        if zbe_data.get("nature"):
+            mouvement.nature = zbe_data["nature"]
+
+        session.add(mouvement)
+        session.flush()
+        logger.info(f"[pam][move_account] Corrected movement {movement_id} (mouvement_seq)")
+        return True, None
+
+    except Exception as e:
+        logger.error(f"[pam][move_account] Error: {e}", exc_info=True)
+        return False, str(e)
+
+
+async def handle_merge_movement_message(
+    session: Session,
+    trigger: str,
+    pid_data: Dict,
+    pv1_data: Dict,
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None
+) -> Tuple[bool, Optional[str]]:
+    """
+    Traitement de A45 (Fusion de mouvement) : fusionne deux enregistrements de mouvement —
+    le mouvement identifié via PV1-19 (visit_number, l'ancien enregistrement) voit son
+    identifiant métier (mouvement_seq) et ses identifiants (table Identifier) rattachés au
+    nouveau movement_id porté par ZBE-1. L'ancien mouvement est marqué "merged" plutôt que
+    supprimé, pour conserver la traçabilité (même logique que `handle_merge_patient` au
+    niveau Patient, appliquée ici au niveau Mouvement).
+
+    Args:
+        session: Session DB
+        trigger: Code trigger (A45)
+        pid_data: Données PID parsées
+        pv1_data: Données PV1 parsées
+        message: Message HL7 complet (requis pour parser ZBE)
+        ej_id: ID de l'entité juridique
+
+    Returns:
+        Tuple[bool, Optional[str]]: (succès, message d'erreur)
+    """
+    try:
+        logger.info(f"[pam][merge_movement] Processing {trigger} message")
+
+        zbe_data = _parse_zbe_segment(message) if message else {}
+        if not zbe_data:
+            return False, f"Segment ZBE obligatoire manquant pour {trigger}"
+
+        new_movement_id = zbe_data.get("movement_id")
+        if not new_movement_id:
+            return False, "ZBE-1 (nouvel identifiant de mouvement) requis pour fusion A45"
+
+        visit_number = pv1_data.get("visit_number")
+        if not visit_number:
+            return False, "PV1-19 (visit_number) requis pour identifier le mouvement à fusionner"
+
+        venue_id_str = visit_number.split("^")[0] if "^" in visit_number else visit_number
+        try:
+            venue_seq = int(venue_id_str)
+        except ValueError:
+            return False, f"Format visit_number invalide: {visit_number}"
+
+        venue = session.exec(select(Venue).where(Venue.venue_seq == venue_seq)).first()
+        if not venue:
+            return False, f"Venue {venue_seq} introuvable pour fusion de mouvement"
+
+        mouvement = session.exec(
+            select(Mouvement).where(Mouvement.venue_id == venue.id).order_by(Mouvement.when.desc())
+        ).first()
+        if not mouvement:
+            return False, f"Aucun mouvement à fusionner sur la venue {venue_seq}"
+
+        try:
+            new_seq = int(new_movement_id)
+        except ValueError:
+            return False, f"Format movement_id invalide: {new_movement_id}"
+
+        mouvement.mouvement_seq = new_seq
+        mouvement.status = "merged"
+        session.add(mouvement)
+        session.flush()
+        logger.info(f"[pam][merge_movement] Merged movement on venue {venue_seq} into mouvement_seq {new_seq}")
+        return True, None
+
+    except Exception as e:
+        logger.error(f"[pam][merge_movement] Error: {e}", exc_info=True)
+        return False, str(e)
+
+
+# -------------------------------------------------------------
 # HANDLER POUR LES SORTIES (A03, A13)
 # -------------------------------------------------------------
 async def handle_discharge_message(

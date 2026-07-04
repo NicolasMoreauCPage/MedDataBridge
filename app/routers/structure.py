@@ -2334,43 +2334,37 @@ async def view_structure_map(
     session: Session = Depends(get_session)
 ):
     """
-    Affiche une carte/plan de l'entité de structure.
-    Cette fonctionnalité est en cours de développement.
+    Affiche le plan de lits de l'entité de structure, restreint à son périmètre
+    (redirige vers la vue plan-lits déjà fonctionnelle, filtrée par entité).
     """
-    # Mapping des types vers les modèles
+    # Mapping des types vers les modèles. Inclut les formes plurielles utilisées par les
+    # entités dont l'URL singulière est redirigée par ailleurs (/pole/* -> /poles/*,
+    # /service/* -> /services/*), qui atteignent donc cette route sous forme plurielle.
     model_map = {
-        "eg": EntiteGeographique,
-        "pole": Pole,
-        "service": Service,
-        "uf": UniteFonctionnelle,
-        "uh": UniteHebergement,
-        "chambre": Chambre,
-        "lit": Lit
+        "eg": (EntiteGeographique, "eg"),
+        "pole": (Pole, "pole"),
+        "poles": (Pole, "pole"),
+        "service": (Service, "service"),
+        "services": (Service, "service"),
+        "uf": (UniteFonctionnelle, "uf"),
+        "uh": (UniteHebergement, "uh"),
+        "chambre": (Chambre, "chambre"),
+        "chambres": (Chambre, "chambre"),
+        "lit": (Lit, "lit"),
+        "lits": (Lit, "lit"),
     }
-    
-    model = model_map.get(type)
-    if not model:
+
+    mapping = model_map.get(type)
+    if not mapping:
         raise HTTPException(status_code=404, detail=f"Type de structure '{type}' non reconnu")
-    
+    model, canonical_type = mapping
+
     # Récupérer l'entité
     entity = session.get(model, id)
     if not entity:
         raise HTTPException(status_code=404, detail=f"{type.upper()} #{id} non trouvé")
-    
-    # Pour l'instant, retourner une page simple indiquant que cette fonctionnalité arrive bientôt
-    return get_templates_with_filters(request).TemplateResponse(request, "structure_map_placeholder.html", {
-        "entity": entity,
-        "type": type,
-        "type_label": {
-            "eg": "Entité Géographique",
-            "pole": "Pôle",
-            "service": "Service",
-            "uf": "Unité Fonctionnelle",
-            "uh": "Unité d'Hébergement",
-            "chambre": "Chambre",
-            "lit": "Lit"
-        }.get(type, type.upper())
-    })
+
+    return RedirectResponse(url=f"/mouvements/plan-lits?entity_type={canonical_type}&entity_id={id}", status_code=302)
 
 
 # ============================================================================

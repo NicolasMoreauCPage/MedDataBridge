@@ -32,14 +32,17 @@ async def process_acquittement(
                 detail="Failed to process acquittement"
             )
         
+        reponses_actes = acquittement_data.get('reponses_actes', [])
+        reponses_interventions = acquittement_data.get('reponses_interventions', [])
         return {
             "status": "success",
+            "id": acquittement.id,
             "message_id_original": acquittement.message_id_original,
             "statut": acquittement.statut,
             "date_acquittement": acquittement.date_acquittement.isoformat(),
             "reponses_count": {
-                "actes": len(acquittement.reponses_actes),
-                "interventions": len(acquittement.reponses_interventions),
+                "actes": len(reponses_actes),
+                "interventions": len(reponses_interventions),
             }
         }
     except Exception as e:
@@ -84,11 +87,19 @@ async def list_recent_acquittements(
 ) -> dict:
     """
     Liste les acquittements récents
-    
-    TODO: Implémenter quand la table sera créée
     """
+    service = HprimAcquittementService(session)
+    acquittements = await service.list_recent_acquittements(limit=limit)
+
     return {
-        "message": "Not implemented yet - waiting for hprim_acquittement table",
-        "acquittements": [],
-        "count": 0
+        "acquittements": [
+            {
+                "id": a.id,
+                "message_id_original": a.message_id_original,
+                "statut": a.statut,
+                "date_acquittement": a.date_acquittement.isoformat(),
+            }
+            for a in acquittements
+        ],
+        "count": len(acquittements)
     }

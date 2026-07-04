@@ -230,18 +230,18 @@ class TestScenarioStatusService:
 
     def test_get_scenarios_with_status_success_only(self, session: Session):
         """Test récupération scénarios avec statut spécifique - succès uniquement."""
-        # Créer les données de test
-        ej = EntiteJuridique(id=1, nom="Test EJ", finess="123456789")
+        # Créer les données de test (IDs auto-générés, cf. autres tests de ce fichier — un
+        # id=1 codé en dur entre en collision avec les scénarios déjà créés par les tests
+        # précédents dans la même base en mémoire partagée).
+        ej = EntiteJuridique(name="Test EJ", finess="123456789")
         endpoint = SystemEndpoint(
-            id=1,
             name="Test Endpoint",
             kind="MLLP",
             host="localhost",
             port=2575,
-            entite_juridique_id=1
+            entite_juridique_id=None
         )
         scenario = InteropScenario(
-            id=1,
             key="success_scenario",
             name="Success Scenario",
             description="Scenario that succeeds",
@@ -251,26 +251,29 @@ class TestScenarioStatusService:
         session.add(ej)
         session.add(endpoint)
         session.add(scenario)
+        session.flush()
+
+        endpoint.entite_juridique_id = ej.id
 
         # Créer une exécution réussie
         run = ScenarioExecutionRun(
-            id=1,
-            scenario_id=1,
-            endpoint_id=1,
+            scenario_id=scenario.id,
+            endpoint_id=endpoint.id,
             start_time=datetime(2024, 1, 1, 10, 0, tzinfo=timezone.utc),
             end_time=datetime(2024, 1, 1, 10, 5, tzinfo=timezone.utc),
             status="completed"
         )
+        session.add(run)
+        session.flush()
+
         step_log = ScenarioExecutionStepLog(
-            id=1,
-            run_id=1,
+            run_id=run.id,
             step_name="Send Message",
             ack_code="AA",
             ack_message="Accepted",
             timestamp=datetime(2024, 1, 1, 10, 2, tzinfo=timezone.utc)
         )
 
-        session.add(run)
         session.add(step_log)
         session.commit()
 
@@ -278,9 +281,9 @@ class TestScenarioStatusService:
         success_scenarios = get_scenarios_with_status(session, "all_aa")
 
         assert len(success_scenarios) == 1
-        scenario, status = success_scenarios[0]
-        assert scenario.id == 1
-        assert scenario.name == "Success Scenario"
+        result_scenario, status = success_scenarios[0]
+        assert result_scenario.id == scenario.id
+        assert result_scenario.name == "Success Scenario"
         assert status.is_success is True
 
     def test_get_scenarios_with_status_no_results(self, session: Session):

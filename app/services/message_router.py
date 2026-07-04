@@ -11,7 +11,9 @@ from app.services.pam import (
     handle_transfer_message,
     handle_discharge_message,
     handle_leave_message,
-    handle_doctor_message
+    handle_doctor_message,
+    handle_move_account_message,
+    handle_merge_movement_message
 )
 from app.services.patient_merge import handle_merge_patient
 
@@ -55,6 +57,10 @@ class IHEMessageRouter:
         # Changement médecin
         "A54": ("doctor", handle_doctor_message),
         "A55": ("doctor", handle_doctor_message),
+
+        # Corrections de mouvement
+        "A44": ("move_account", handle_move_account_message),
+        "A45": ("merge_movement", handle_merge_movement_message),
         
         # Fusion et modification d'identifiants patients
         "A40": ("merge", None),  # Fusion patients (nécessite le message complet)

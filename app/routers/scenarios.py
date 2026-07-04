@@ -100,6 +100,7 @@ def list_scenarios(
         "rows": rows,
         "show_actions": True,
         "actions": [
+            {"label": "Nouveau scénario", "url": "/scenarios/new", "type": "link", "icon": "plus"},
             {"label": "Exécuter en masse", "url": "/scenarios/bulk-execute", "type": "link", "icon": "play"},
             {"label": "Importer", "url": "/scenarios/import", "type": "link", "icon": "upload"}
         ],
@@ -514,6 +515,104 @@ def run_detail(run_id: int, request: Request, session: Session = Depends(get_ses
 def dashboard_redirect(request: Request):
     """Redirect /scenarios/dashboard to /scenarios/runs (the actual dashboard)."""
     return RedirectResponse(url="/scenarios/runs", status_code=302)
+
+
+# Route de création "from scratch" (doit être avant /{scenario_id} pour éviter les conflits) :
+# jusqu'ici le seul moyen de créer un scénario était de capturer un dossier existant
+# (capture_from_dossier) ou d'importer un export JSON déjà complet (import_scenario).
+@router.get("/new", response_class=HTMLResponse)
+def new_scenario_form(request: Request):
+    """Formulaire de création d'un scénario vide, à compléter étape par étape."""
+    ctx = {
+        "request": request,
+        "breadcrumbs": [
+            {"label": "Scénarios", "url": "/scenarios"},
+            {"label": "Nouveau scénario", "url": "/scenarios/new"},
+        ],
+    }
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_new.html", ctx)
+
+
+@router.post("/new")
+def create_scenario(
+    request: Request,
+    key: str = Form(...),
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    protocol: str = Form("HL7"),
+    session: Session = Depends(get_session),
+):
+    """Crée un scénario vide (sans étape), prêt à être complété via /scenarios/{id}/steps."""
+    existing = session.exec(select(InteropScenario).where(InteropScenario.key == key)).first()
+    if existing:
+        flash(request, f"La clé '{key}' est déjà utilisée par le scénario '{existing.name}'", level="error")
+        return RedirectResponse(url="/scenarios/new", status_code=303)
+
+    scenario = InteropScenario(
+        key=key,
+        name=name,
+        description=description or None,
+        category=category or None,
+        protocol=protocol,
+    )
+    session.add(scenario)
+    session.commit()
+    session.refresh(scenario)
+    flash(request, f"Scénario '{scenario.name}' créé — ajoutez ses étapes ci-dessous", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
+
+
+@router.post("/{scenario_id}/steps")
+def add_scenario_step(
+    scenario_id: int,
+    request: Request,
+    name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    message_format: str = Form("hl7"),
+    message_type: Optional[str] = Form(None),
+    payload: str = Form(""),
+    delay_seconds: Optional[int] = Form(None),
+    session: Session = Depends(get_session),
+):
+    """Ajoute une étape à la fin d'un scénario existant (création manuelle pas-à-pas)."""
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+
+    next_order = max([s.order_index for s in scenario.steps], default=-1) + 1
+    step = InteropScenarioStep(
+        scenario_id=scenario_id,
+        order_index=next_order,
+        name=name or None,
+        description=description or None,
+        message_format=message_format,
+        message_type=message_type or None,
+        payload=payload,
+        delay_seconds=delay_seconds,
+    )
+    session.add(step)
+    session.commit()
+    flash(request, f"Étape #{next_order} ajoutée au scénario", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+
+
+@router.post("/{scenario_id}/steps/{step_id}/delete")
+def delete_scenario_step(
+    scenario_id: int,
+    step_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    """Supprime une étape d'un scénario (édition manuelle pas-à-pas)."""
+    step = session.get(InteropScenarioStep, step_id)
+    if not step or step.scenario_id != scenario_id:
+        raise HTTPException(status_code=404, detail="Étape introuvable")
+
+    session.delete(step)
+    session.commit()
+    flash(request, "Étape supprimée", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
 
 
 @router.get("/{scenario_id}", response_class=HTMLResponse)

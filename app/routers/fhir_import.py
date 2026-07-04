@@ -1,5 +1,5 @@
 """API REST pour l'import FHIR."""
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from sqlmodel import Session
 from typing import Dict, Any
 from app.db import get_session
@@ -16,6 +16,35 @@ from app.services.fhir_profile_validator import FHIRProfileValidator
 
 
 router = APIRouter(prefix="/api/fhir", tags=["FHIR Import"])
+
+
+def _verify_ej_access(request: Request, session: Session, ej_id: int) -> None:
+    """
+    Empêche un import FHIR vers une entité juridique en dehors du contexte GHT/EJ actif
+    de l'appelant. Un import est une opération destructive (création de données patient),
+    contrairement aux vues en lecture où un contexte absent affiche simplement tout.
+
+    Si aucun contexte GHT/EJ n'est actif en session, l'import est autorisé tel quel
+    (comportement historique conservé pour les intégrations serveur-à-serveur/tests qui
+    n'établissent pas de contexte de session).
+    """
+    ej_context = getattr(request.state, "ej_context", None)
+    if ej_context is not None and getattr(ej_context, "id", None) is not None:
+        if ej_context.id != ej_id:
+            raise HTTPException(
+                status_code=403,
+                detail=f"L'entité juridique {ej_id} est en dehors du contexte actif (EJ {ej_context.id})",
+            )
+        return
+
+    ght_context = getattr(request.state, "ght_context", None)
+    if ght_context is not None and getattr(ght_context, "id", None) is not None:
+        ej = session.get(EntiteJuridique, ej_id)
+        if ej is not None and getattr(ej, "ght_context_id", None) not in (None, ght_context.id):
+            raise HTTPException(
+                status_code=403,
+                detail=f"L'entité juridique {ej_id} n'appartient pas au GHT actif ({ght_context.id})",
+            )
 
 
 class FHIRBundleRequest(BaseModel):
@@ -35,29 +64,32 @@ class ImportResult(BaseModel):
 
 @router.post("/import/bundle", response_model=ImportResult)
 async def import_bundle(
+    http_request: Request,
     request: FHIRBundleRequest,
     session: Session = Depends(get_session)
 ):
     """
     Importe un bundle FHIR complet.
-    
+
     Le bundle peut contenir des ressources Patient, Location, Encounter, etc.
     Les ressources sont créées ou mises à jour dans la base de données.
-    
+
     Args:
         request: Requête contenant le bundle FHIR et l'ID de l'EJ
-        
+
     Returns:
         Résultat de l'import avec statistiques
-        
+
     Raises:
         400: Bundle invalide
+        403: Entité juridique en dehors du contexte GHT/EJ actif
         404: Entité juridique non trouvée
     """
     # Vérifier que l'EJ existe
     ej = session.get(EntiteJuridique, request.ej_id)
     if not ej:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    _verify_ej_access(http_request, session, request.ej_id)
     
     # Vérifier que c'est bien un bundle
     bundle = request.bundle
@@ -99,7 +131,7 @@ async def import_bundle(
 
         return ImportResult(
             status="success" if not result["errors"] else "partial",
-            message=f"Import terminé: {result['imported']} ressources importées ({result['locations']} locations, {result['patients']} patients, {result['encounters']} encounters)",
+            message=f"Import terminé: {result['imported']} ressources importées ({result['locations']} locations, {result['patients']} patients, {result['encounters']} encounters, {result['practitioners']} practitioners, {result['organizations']} organizations)",
             resources_created=result["imported"],
             resources_updated=0,
             errors=[f"{e['resourceType']}: {e['error']}" for e in result["errors"]]
@@ -122,28 +154,31 @@ async def import_bundle(
 
 @router.post("/import/patient", response_model=ImportResult)
 async def import_patient(
+    http_request: Request,
     patient: Dict[str, Any] = Body(...),
     ej_id: int = Body(...),
     session: Session = Depends(get_session)
 ):
     """
     Importe une ressource Patient FHIR.
-    
+
     Args:
         patient: Ressource Patient FHIR
         ej_id: ID de l'entité juridique
-        
+
     Returns:
         Résultat de l'import
-        
+
     Raises:
         400: Ressource Patient invalide
+        403: Entité juridique en dehors du contexte GHT/EJ actif
         404: Entité juridique non trouvée
     """
     # Vérifier que l'EJ existe
     ej = session.get(EntiteJuridique, ej_id)
     if not ej:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    _verify_ej_access(http_request, session, ej_id)
     
     # Vérifier que c'est bien un Patient
     if patient.get("resourceType") != "Patient":
@@ -189,28 +224,31 @@ async def import_patient(
 
 @router.post("/import/location", response_model=ImportResult)
 async def import_location(
+    http_request: Request,
     location: Dict[str, Any] = Body(...),
     ej_id: int = Body(...),
     session: Session = Depends(get_session)
 ):
     """
     Importe une ressource Location FHIR.
-    
+
     Args:
         location: Ressource Location FHIR
         ej_id: ID de l'entité juridique
-        
+
     Returns:
         Résultat de l'import
-        
+
     Raises:
         400: Ressource Location invalide
+        403: Entité juridique en dehors du contexte GHT/EJ actif
         404: Entité juridique non trouvée
     """
     # Vérifier que l'EJ existe
     ej = session.get(EntiteJuridique, ej_id)
     if not ej:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    _verify_ej_access(http_request, session, ej_id)
     
     # Vérifier que c'est bien une Location
     if location.get("resourceType") != "Location":
@@ -256,28 +294,31 @@ async def import_location(
 
 @router.post("/import/encounter", response_model=ImportResult)
 async def import_encounter(
+    http_request: Request,
     encounter: Dict[str, Any] = Body(...),
     ej_id: int = Body(...),
     session: Session = Depends(get_session)
 ):
     """
     Importe une ressource Encounter FHIR.
-    
+
     Args:
         encounter: Ressource Encounter FHIR
         ej_id: ID de l'entité juridique
-        
+
     Returns:
         Résultat de l'import
-        
+
     Raises:
         400: Ressource Encounter invalide
+        403: Entité juridique en dehors du contexte GHT/EJ actif
         404: Entité juridique non trouvée
     """
     # Vérifier que l'EJ existe
     ej = session.get(EntiteJuridique, ej_id)
     if not ej:
         raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    _verify_ej_access(http_request, session, ej_id)
     
     # Vérifier que c'est bien un Encounter
     if encounter.get("resourceType") != "Encounter":

@@ -529,22 +529,38 @@ class FilePollerService:
         except Exception as e:
             self.stats['errors'].append(f"HPRIM processing error: {str(e)}")
             logger.error(f"HPRIM processing error: {e}", exc_info=True)
-            
-            # Rollback any pending transaction first
+
+            # Rollback any pending transaction first (does NOT undo the initial "received"
+            # MessageLog row committed above if we got past that point — reuse it below
+            # instead of unconditionally inserting a new row, which duplicated messages
+            # whenever traiter_message_xml() raised after the initial log was committed).
             session.rollback()
-            
+
             try:
-                msg_log = MessageLog(
-                    direction="in",
-                    kind="HPRIM",
-                    message_type="HPRIM-XML",
-                    endpoint_id=endpoint.id,
-                    correlation_id=correlation_id or f"HPRIM_ERROR_{datetime.utcnow().isoformat()}",
-                    status="error",
-                    payload=content,
-                    ack_payload=f"HPRIM processing failed: {str(e)}"
-                )
-                session.add(msg_log)
+                existing_log = session.exec(
+                    select(MessageLog)
+                    .where(MessageLog.correlation_id == correlation_id)
+                    .where(MessageLog.direction == "in")
+                    .where(MessageLog.endpoint_id == endpoint.id)
+                ).first() if correlation_id else None
+
+                if existing_log:
+                    existing_log.status = "error"
+                    existing_log.payload = content
+                    existing_log.ack_payload = f"HPRIM processing failed: {str(e)}"
+                    session.add(existing_log)
+                else:
+                    msg_log = MessageLog(
+                        direction="in",
+                        kind="HPRIM",
+                        message_type="HPRIM-XML",
+                        endpoint_id=endpoint.id,
+                        correlation_id=correlation_id or f"HPRIM_ERROR_{datetime.utcnow().isoformat()}",
+                        status="error",
+                        payload=content,
+                        ack_payload=f"HPRIM processing failed: {str(e)}"
+                    )
+                    session.add(msg_log)
                 session.commit()
             except Exception as e2:
                 logger.error(f"Failed to save error MessageLog for HPRIM: {e2}")

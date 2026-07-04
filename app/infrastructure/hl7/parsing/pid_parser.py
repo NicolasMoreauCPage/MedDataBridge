@@ -247,9 +247,12 @@ def parse_pid(message: str) -> dict:
                 out["birth_city"] = parts[23]
         
         # Identity Reliability Code (PID-32) - HL7 Table 0445
-        # Note: PID-32 corresponds to index 31 (0-based array indexing)
-        if len(parts) > 31 and parts[31]:
-            out["identity_reliability_code"] = parts[31]
+        # parts[0] is the segment id "PID", so parts[N] == PID-N for all fields (same
+        # convention used throughout this parser, e.g. parts[7]=PID-7, parts[23]=PID-23) —
+        # PID-32 is therefore parts[32], not parts[31] (that was an off-by-one bug that
+        # actually read PID-31 "Identity Unknown Indicator" instead).
+        if len(parts) > 32 and parts[32]:
+            out["identity_reliability_code"] = parts[32]
             
     except Exception as e:
         logger.error(f"Error parsing PID segment: {str(e)}")

@@ -409,12 +409,13 @@ def generate_pam_hl7(
         birth_date_raw = _c_local(_get("birth_date", ""))
         birth_date = birth_date_raw.replace("-", "").replace("/", "")[:8] if birth_date_raw else ""
 
-        # Gender mapping
+        # Gender mapping — PID-8 (Sexe) : l'extension nationale IHE FR restreint les valeurs
+        # permises à F/M/U (table HL7 0001), pas de code "O" ; "other" est donc mappé sur "U".
         raw_gender = _c_local(_get("gender", ""))
         gender_map_hl7 = {
             "m": "M", "male": "M",
             "f": "F", "female": "F",
-            "o": "O", "other": "O",
+            "o": "U", "other": "U",
             "u": "U", "unknown": "U", "undifferentiated": "U", "n": "U"
         }
         gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
@@ -540,7 +541,7 @@ def generate_pam_hl7(
         pid_fields[23] = _c_local(birth_place)  # PID-23 Birth Place
         pid_fields[24] = ""  # PID-24 Mother's Maiden Name (repeating semantics)
         # PID-25..PID-31 reserved
-        pid_fields[32 - 1] = _c_local(identity_code)  # PID-32 Identity Reliability Code (placed at index 32)
+        pid_fields[32] = _c_local(identity_code)  # PID-32 Identity Reliability Code
 
         pid = "|".join(pid_fields)
 
@@ -602,10 +603,12 @@ def generate_pam_hl7(
             else:
                 birth_date = ""
             raw_gender = (patient.gender or "").strip()
+            # PID-8 : l'extension nationale IHE FR restreint les valeurs permises à F/M/U
+            # (table HL7 0001) ; pas de code "O", "other" est donc mappé sur "U".
             gender_map_hl7 = {
                 "m": "M", "male": "M",
                 "f": "F", "female": "F",
-                "o": "O", "other": "O",
+                "o": "U", "other": "U",
                 "u": "U", "unknown": "U", "undifferentiated": "U", "n": "U"
             }
             gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
@@ -944,6 +947,8 @@ def generate_pam_hl7(
                     pid_fields[13] = "~".join(xtn_parts)
 
             pid_fields[18] = account_number
+            if patient:
+                pid_fields[32] = _c_local(getattr(patient, "identity_reliability_code", None) or "")
             pid = "|".join(pid_fields)
         else:
             # If only OID is provided without system, Solution de repli to HOSP system

@@ -927,7 +927,7 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
     # Messages de mouvement : ZBE obligatoire (sauf A28, A31, A40, A47 qui sont des messages d'identité)
     movement_triggers = {"A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08",
                          "A11", "A12", "A13", "A21", "A22", "A23", "A38",
-                         "A52", "A53", "A54", "A55"}
+                         "A44", "A45", "A52", "A53", "A54", "A55"}
     if strict_ej:
         movement_triggers.discard("A08")
     

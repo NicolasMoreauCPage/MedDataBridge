@@ -35,6 +35,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A11",  # Annulation admission
         "A21",  # Permission
         "A44",  # Déplacement compte
+        "A45",  # Fusion de mouvement
         "A52",  # Annulation de permission
         "A53",  # Annulation de retour de permission
         "A54",  # Changement date prévue sortie
@@ -61,6 +62,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A12",  # Annulation transfert
         "A21",  # Permission
         "A44",  # Déplacement compte
+        "A45",  # Fusion de mouvement
         "A52",  # Annulation de permission
         "A53",  # Annulation de retour de permission
         "A54",  # Changement date prévue sortie
@@ -96,6 +98,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -115,6 +118,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -143,6 +147,27 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
+        "A52",
+        "A53",
+        "A54",
+        "A55",
+        "Z80",
+        "Z81",
+        "Z84",
+        "Z85",
+        "Z99",
+    },
+    # A45 (Fusion de mouvement) est, comme A44, un événement de correction qui ne change pas
+    # l'état courant du séjour : mêmes transitions autorisées que A44.
+    "A45": {
+        "A02",
+        "A03",
+        "A11",
+        "A21",
+        "A22",
+        "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -161,6 +186,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -180,6 +206,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -198,6 +225,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -216,6 +244,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -234,6 +263,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -252,6 +282,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -270,6 +301,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",
@@ -293,6 +325,7 @@ ALLOWED_TRANSITIONS: Dict[str, Set[str]] = {
         "A21",
         "A22",
         "A44",
+        "A45",
         "A52",
         "A53",
         "A54",

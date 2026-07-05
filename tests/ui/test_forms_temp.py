@@ -1,6 +1,7 @@
 import pytest, time, httpx
 from urllib.parse import urljoin
 from playwright.sync_api import expect
+from .ui_helpers import capture_console_errors
 
 pytest.skip('Temporary local-only test; skip in CI', allow_module_level=True)
 
@@ -44,6 +45,7 @@ def test_server():
 def test_required_fields(page, test_server):
     """Test validation of required fields in the patient form."""
     from urllib.parse import urljoin
+    errors = capture_console_errors(page)
     test_url = urljoin('http://localhost:8000', '/')
 
     # Ensure server is ready
@@ -66,3 +68,4 @@ def test_required_fields(page, test_server):
     given_classes = page.locator("input[name=given]").get_attribute("class") or ""
     assert "border-red-500" in family_classes
     assert "border-red-500" in given_classes
+    assert not errors, f"Console errors detected: {errors}"

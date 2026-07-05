@@ -18,7 +18,7 @@
   </div>
 
   <!-- Instructions -->
-  <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+  <div class="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 p-4 mb-6">
     <div class="flex">
       <div class="flex-shrink-0">
         <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -26,8 +26,8 @@
         </svg>
       </div>
       <div class="ml-3">
-        <h3 class="text-sm font-medium text-blue-800">Comment utiliser :</h3>
-        <div class="mt-2 text-sm text-blue-700 space-y-1">
+        <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">Comment utiliser :</h3>
+        <div class="mt-2 text-sm text-blue-700 dark:text-blue-300 space-y-1">
           <div><strong>Double-clic</strong> sur un nom ou code pour l'éditer directement</div>
           <div><strong>Entrée</strong> pour sauvegarder, <strong>Échap</strong> pour annuler</div>
           <div><strong>Glissez ⋮⋮</strong> pour déplacer un élément (Services, UF, Lits)</div>
@@ -40,7 +40,7 @@
   <!-- Structure Tree avec édition inline -->
   <div id="structure-tree" class="space-y-6">
     {% for eg in egs %}
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-700">
       <!-- Entité Géographique Header -->
       <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
         <div class="flex items-center justify-between">
@@ -79,10 +79,10 @@
       {% if eg.poles %}
       <div class="p-6 space-y-4">
         {% for pole in eg.poles %}
-        <div class="border-l-4 border-indigo-400 bg-indigo-50 rounded-r-lg p-4">
+        <div class="border-l-4 border-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 rounded-r-lg p-4">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-3">
-              <span class="drag-handle text-gray-400 cursor-grab hover:text-gray-600 text-xl" title="Glisser pour réorganiser">⋮⋮</span>
+              <span class="drag-handle text-gray-400 dark:text-slate-500 cursor-grab hover:text-gray-600 text-xl" title="Glisser pour réorganiser">⋮⋮</span>
               <div>
                 <h3 
                   data-editable 
@@ -91,12 +91,12 @@
                   data-field="nom"
                   data-parent-id="{{ eg.id }}"
                   data-parent-type="entitegeographique"
-                  class="text-xl font-semibold text-indigo-900 cursor-text hover:bg-white/50 px-2 py-1 rounded"
+                  class="text-xl font-semibold text-indigo-900 dark:text-indigo-200 cursor-text hover:bg-white/50 px-2 py-1 rounded"
                   title="Double-clic pour éditer"
                 >
                   🏢 {{ pole.name }}
                 </h3>
-                <p class="text-sm text-indigo-600">
+                <p class="text-sm text-indigo-600 dark:text-indigo-400">
                   Code: <span 
                     data-editable 
                     data-item-id="{{ pole.id }}" 
@@ -121,7 +121,7 @@
             <div 
               data-item-id="{{ service.id }}" 
               data-item-type="service"
-              class="bg-white border border-emerald-200 rounded-lg p-3 hover:shadow-md transition"
+              class="bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 hover:shadow-md transition"
             >
               <div class="flex items-center gap-3">
                 <span class="drag-handle text-gray-300 cursor-grab hover:text-gray-500">⋮⋮</span>
@@ -131,11 +131,11 @@
                     data-item-id="{{ service.id }}" 
                     data-item-type="service" 
                     data-field="nom"
-                    class="font-semibold text-emerald-800 cursor-text hover:bg-emerald-50 px-2 py-1 rounded"
+                    class="font-semibold text-emerald-800 dark:text-emerald-200 cursor-text hover:bg-emerald-50 px-2 py-1 rounded"
                   >
                     🏛️ {{ service.name }}
                   </h4>
-                  <p class="text-xs text-emerald-600">
+                  <p class="text-xs text-emerald-600 dark:text-emerald-400">
                     Code: <span 
                       data-editable 
                       data-item-id="{{ service.id }}" 
@@ -159,7 +159,7 @@
                 <div 
                   data-item-id="{{ uf.id }}" 
                   data-item-type="unitefonctionnelle"
-                  class="bg-teal-50 border border-teal-200 rounded p-2 flex items-center gap-2 hover:bg-teal-100 transition"
+                  class="bg-teal-50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800 rounded p-2 flex items-center gap-2 hover:bg-teal-100 dark:hover:bg-teal-900/40 transition"
                 >
                   <span class="drag-handle text-gray-300 cursor-grab hover:text-gray-500 text-sm">⋮⋮</span>
                   <div class="flex-1">
@@ -168,11 +168,11 @@
                       data-item-id="{{ uf.id }}" 
                       data-item-type="unitefonctionnelle" 
                       data-field="nom"
-                      class="text-sm font-medium text-teal-800 cursor-text hover:bg-white px-1 rounded"
+                      class="text-sm font-medium text-teal-800 dark:text-teal-200 cursor-text hover:bg-white px-1 rounded"
                     >
                       🔹 {{ uf.name }}
                     </span>
-                    <span class="text-xs text-teal-600 ml-2">
+                    <span class="text-xs text-teal-600 dark:text-teal-400 ml-2">
                       (<span 
                         data-editable 
                         data-item-id="{{ uf.id }}" 
@@ -186,13 +186,13 @@
                   {% if uf.unites_hebergement %}
                   <div class="ml-4 w-full mt-3 space-y-3">
                     {% for uh in uf.unites_hebergement %}
-                    <div class="bg-white border border-gray-200 rounded-lg p-3">
+                    <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-3">
                       <div class="flex items-center justify-between">
                         <div>
                           <div class="font-medium text-sm">🏠 {{ uh.name or uh.short_name or '' }}</div>
-                          <div class="text-xs text-gray-500">Code: {{ uh.identifier or '' }}</div>
+                          <div class="text-xs text-gray-500 dark:text-slate-400">Code: {{ uh.identifier or '' }}</div>
                         </div>
-                        <div class="text-xs text-gray-400">UH</div>
+                        <div class="text-xs text-gray-400 dark:text-slate-500">UH</div>
                       </div>
 
                       {% if uh.chambres %}
@@ -201,7 +201,7 @@
                         <div class="border rounded p-2">
                           <div class="font-semibold">🚪 {{ chambre.name or chambre.identifier or '' }}</div>
                           {% if chambre.lits %}
-                          <div class="text-sm text-gray-600 mt-1">
+                          <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">
                             {% for lit in chambre.lits %}
                               <span class="inline-block mr-2">🛏️ {{ lit.name or lit.identifier or '' }}</span>
                             {% endfor %}
@@ -224,24 +224,24 @@
             {% endfor %}
           </div>
           {% else %}
-          <div class="ml-8 text-sm text-gray-500 italic">Aucun service dans ce pôle</div>
+          <div class="ml-8 text-sm text-gray-500 dark:text-slate-400 italic">Aucun service dans ce pôle</div>
           {% endif %}
 
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div class="p-6 text-center text-gray-500 italic">Aucun pôle défini</div>
+      <div class="p-6 text-center text-gray-500 dark:text-slate-400 italic">Aucun pôle défini</div>
       {% endif %}
 
     </div>
     {% endfor %}
 
     {% if not egs %}
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+    <div class="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-8 text-center">
       <div class="text-4xl mb-4">📋</div>
-      <h3 class="text-lg font-semibold text-yellow-900 mb-2">Aucune structure disponible</h3>
-      <p class="text-yellow-700">Créez d'abord une Entité Géographique depuis le wizard</p>
+      <h3 class="text-lg font-semibold text-yellow-900 dark:text-yellow-200 mb-2">Aucune structure disponible</h3>
+      <p class="text-yellow-700 dark:text-yellow-300">Créez d'abord une Entité Géographique depuis le wizard</p>
       <a href="/structure/wizard" class="inline-block mt-4 px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition">
         Démarrer le wizard
       </a>
@@ -251,24 +251,24 @@
 
   <!-- Stats -->
   {% if egs %}
-  <div class="mt-8 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Statistiques de la structure</h3>
+  <div class="mt-8 bg-gradient-to-r from-gray-50 dark:from-slate-700 to-gray-100 dark:to-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">📊 Statistiques de la structure</h3>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="text-center">
-        <div class="text-3xl font-bold text-blue-600">{{ egs|length }}</div>
-        <div class="text-sm text-gray-600">Entités Géo.</div>
+        <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ egs|length }}</div>
+        <div class="text-sm text-gray-600 dark:text-slate-300">Entités Géo.</div>
       </div>
       <div class="text-center">
-        <div class="text-3xl font-bold text-indigo-600">{{ total_poles }}</div>
-        <div class="text-sm text-gray-600">Pôles</div>
+        <div class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{{ total_poles }}</div>
+        <div class="text-sm text-gray-600 dark:text-slate-300">Pôles</div>
       </div>
       <div class="text-center">
-        <div class="text-3xl font-bold text-emerald-600">{{ total_services }}</div>
-        <div class="text-sm text-gray-600">Services</div>
+        <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{{ total_services }}</div>
+        <div class="text-sm text-gray-600 dark:text-slate-300">Services</div>
       </div>
       <div class="text-center">
-        <div class="text-3xl font-bold text-teal-600">{{ total_ufs }}</div>
-        <div class="text-sm text-gray-600">UFs</div>
+        <div class="text-3xl font-bold text-teal-600 dark:text-teal-400">{{ total_ufs }}</div>
+        <div class="text-sm text-gray-600 dark:text-slate-300">UFs</div>
       </div>
     </div>
   </div>

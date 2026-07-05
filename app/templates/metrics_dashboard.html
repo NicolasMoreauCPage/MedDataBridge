@@ -3,10 +3,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
     <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
         <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-        <span class="text-slate-400">/</span>
-        <span class="text-slate-800 font-medium">Métriques</span>
+        <span class="text-slate-400 dark:text-slate-500">/</span>
+        <span class="text-slate-800 dark:text-slate-100 font-medium">Métriques</span>
     </nav>
 
     <!-- Header -->
@@ -28,12 +28,12 @@
 
     <!-- Health Status -->
     <div class="mb-8">
-        <div id="health-card" class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <div id="health-card" class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-semibold mb-2">État du Système</h2>
                     <p id="health-status" class="text-2xl font-bold">Chargement...</p>
-                    <p id="health-message" class="text-sm text-slate-600 mt-1"></p>
+                    <p id="health-message" class="text-sm text-slate-600 dark:text-slate-300 mt-1"></p>
                 </div>
                 <div id="health-icon" class="text-5xl">🔄</div>
             </div>
@@ -42,17 +42,17 @@
 
     <!-- Summary Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-            <div class="text-sm text-slate-600 mb-1">Total Opérations</div>
-            <div id="total-ops" class="text-3xl font-bold text-blue-600">0</div>
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div class="text-sm text-slate-600 dark:text-slate-300 mb-1">Total Opérations</div>
+            <div id="total-ops" class="text-3xl font-bold text-blue-600 dark:text-blue-400">0</div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-            <div class="text-sm text-slate-600 mb-1">Taux de Succès</div>
-            <div id="success-rate" class="text-3xl font-bold text-green-600">0%</div>
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div class="text-sm text-slate-600 dark:text-slate-300 mb-1">Taux de Succès</div>
+            <div id="success-rate" class="text-3xl font-bold text-green-600 dark:text-green-400">0%</div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-            <div class="text-sm text-slate-600 mb-1">Taux d'Erreur</div>
-            <div id="error-rate" class="text-3xl font-bold text-red-600">0%</div>
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div class="text-sm text-slate-600 dark:text-slate-300 mb-1">Taux d'Erreur</div>
+            <div id="error-rate" class="text-3xl font-bold text-red-600 dark:text-red-400">0%</div>
         </div>
     </div>
 
@@ -61,88 +61,88 @@
         <h2 class="text-xl font-semibold mb-4">📊 Métriques par Protocole</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- HPRIM Card -->
-            <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-sm border border-orange-200 p-6">
+            <div class="bg-gradient-to-br from-orange-50 dark:from-orange-950/30 to-orange-100 dark:to-orange-900/40 rounded-lg shadow-sm border border-orange-200 dark:border-orange-800 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h3 class="text-lg font-semibold text-orange-900">HPRIM</h3>
-                        <p class="text-xs text-orange-700">Validation XSD</p>
+                        <h3 class="text-lg font-semibold text-orange-900 dark:text-orange-200">HPRIM</h3>
+                        <p class="text-xs text-orange-700 dark:text-orange-300">Validation XSD</p>
                     </div>
                     <span class="text-3xl">📋</span>
                 </div>
                 <div class="space-y-2">
                     <div class="flex justify-between">
-                        <span class="text-sm text-orange-800">Inbound</span>
-                        <span id="hprim-inbound-count" class="font-semibold text-orange-900">0</span>
+                        <span class="text-sm text-orange-800 dark:text-orange-200">Inbound</span>
+                        <span id="hprim-inbound-count" class="font-semibold text-orange-900 dark:text-orange-200">0</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-sm text-orange-800">Outbound</span>
-                        <span id="hprim-outbound-count" class="font-semibold text-orange-900">0</span>
+                        <span class="text-sm text-orange-800 dark:text-orange-200">Outbound</span>
+                        <span id="hprim-outbound-count" class="font-semibold text-orange-900 dark:text-orange-200">0</span>
                     </div>
-                    <div class="flex justify-between pt-2 border-t border-orange-200">
-                        <span class="text-sm text-orange-800">Durée Moy.</span>
-                        <span id="hprim-avg-duration" class="font-semibold text-orange-900">0ms</span>
+                    <div class="flex justify-between pt-2 border-t border-orange-200 dark:border-orange-800">
+                        <span class="text-sm text-orange-800 dark:text-orange-200">Durée Moy.</span>
+                        <span id="hprim-avg-duration" class="font-semibold text-orange-900 dark:text-orange-200">0ms</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-sm text-orange-800">Erreurs XSD</span>
-                        <span id="hprim-xsd-errors" class="font-semibold text-red-600">0</span>
+                        <span class="text-sm text-orange-800 dark:text-orange-200">Erreurs XSD</span>
+                        <span id="hprim-xsd-errors" class="font-semibold text-red-600 dark:text-red-400">0</span>
                     </div>
                 </div>
             </div>
 
             <!-- PAM Card -->
-            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm border border-blue-200 p-6">
+            <div class="bg-gradient-to-br from-blue-50 dark:from-blue-950/30 to-blue-100 dark:to-blue-900/40 rounded-lg shadow-sm border border-blue-200 dark:border-blue-800 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h3 class="text-lg font-semibold text-blue-900">IHE PAM</h3>
-                        <p class="text-xs text-blue-700">HL7 ADT</p>
+                        <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200">IHE PAM</h3>
+                        <p class="text-xs text-blue-700 dark:text-blue-300">HL7 ADT</p>
                     </div>
                     <span class="text-3xl">📤</span>
                 </div>
                 <div class="space-y-2">
                     <div class="flex justify-between">
-                        <span class="text-sm text-blue-800">Inbound (ADT)</span>
-                        <span id="pam-inbound-count" class="font-semibold text-blue-900">0</span>
+                        <span class="text-sm text-blue-800 dark:text-blue-200">Inbound (ADT)</span>
+                        <span id="pam-inbound-count" class="font-semibold text-blue-900 dark:text-blue-200">0</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-sm text-blue-800">Outbound (ACK)</span>
-                        <span id="pam-outbound-count" class="font-semibold text-blue-900">0</span>
+                        <span class="text-sm text-blue-800 dark:text-blue-200">Outbound (ACK)</span>
+                        <span id="pam-outbound-count" class="font-semibold text-blue-900 dark:text-blue-200">0</span>
                     </div>
-                    <div class="flex justify-between pt-2 border-t border-blue-200">
-                        <span class="text-sm text-blue-800">Durée Moy.</span>
-                        <span id="pam-avg-duration" class="font-semibold text-blue-900">0ms</span>
+                    <div class="flex justify-between pt-2 border-t border-blue-200 dark:border-blue-800">
+                        <span class="text-sm text-blue-800 dark:text-blue-200">Durée Moy.</span>
+                        <span id="pam-avg-duration" class="font-semibold text-blue-900 dark:text-blue-200">0ms</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-sm text-blue-800">Succès (AA/CA)</span>
-                        <span id="pam-success-rate" class="font-semibold text-green-600">0%</span>
+                        <span class="text-sm text-blue-800 dark:text-blue-200">Succès (AA/CA)</span>
+                        <span id="pam-success-rate" class="font-semibold text-green-600 dark:text-green-400">0%</span>
                     </div>
                 </div>
             </div>
 
             <!-- FHIR Card -->
-            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-sm border border-green-200 p-6">
+            <div class="bg-gradient-to-br from-green-50 dark:from-green-950/30 to-green-100 dark:to-green-900/40 rounded-lg shadow-sm border border-green-200 dark:border-green-800 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h3 class="text-lg font-semibold text-green-900">FHIR</h3>
-                        <p class="text-xs text-green-700">Import/Export</p>
+                        <h3 class="text-lg font-semibold text-green-900 dark:text-green-200">FHIR</h3>
+                        <p class="text-xs text-green-700 dark:text-green-300">Import/Export</p>
                     </div>
                     <span class="text-3xl">🔄</span>
                 </div>
                 <div class="space-y-2">
                     <div class="flex justify-between">
-                        <span class="text-sm text-green-800">Import</span>
-                        <span id="fhir-import-count" class="font-semibold text-green-900">0</span>
+                        <span class="text-sm text-green-800 dark:text-green-200">Import</span>
+                        <span id="fhir-import-count" class="font-semibold text-green-900 dark:text-green-200">0</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-sm text-green-800">Export</span>
-                        <span id="fhir-export-count" class="font-semibold text-green-900">0</span>
+                        <span class="text-sm text-green-800 dark:text-green-200">Export</span>
+                        <span id="fhir-export-count" class="font-semibold text-green-900 dark:text-green-200">0</span>
                     </div>
-                    <div class="flex justify-between pt-2 border-t border-green-200">
-                        <span class="text-sm text-green-800">Durée Moy.</span>
-                        <span id="fhir-avg-duration" class="font-semibold text-green-900">0ms</span>
+                    <div class="flex justify-between pt-2 border-t border-green-200 dark:border-green-800">
+                        <span class="text-sm text-green-800 dark:text-green-200">Durée Moy.</span>
+                        <span id="fhir-avg-duration" class="font-semibold text-green-900 dark:text-green-200">0ms</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-sm text-green-800">Taux Succès</span>
-                        <span id="fhir-success-rate" class="font-semibold text-green-600">0%</span>
+                        <span class="text-sm text-green-800 dark:text-green-200">Taux Succès</span>
+                        <span id="fhir-success-rate" class="font-semibold text-green-600 dark:text-green-400">0%</span>
                     </div>
                 </div>
             </div>
@@ -150,7 +150,7 @@
     </div>
 
     <!-- Operations Table -->
-    <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-6">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold">Métriques par Opération</h2>
             <button onclick="refreshMetrics()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
@@ -162,7 +162,7 @@
         </div>
         
         <div id="operations-table" class="overflow-x-auto">
-            <p class="text-center text-slate-600 py-8">Chargement des métriques...</p>
+            <p class="text-center text-slate-600 dark:text-slate-300 py-8">Chargement des métriques...</p>
         </div>
     </div>
 </div>

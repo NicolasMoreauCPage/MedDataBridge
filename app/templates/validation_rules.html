@@ -2,7 +2,7 @@
 {% block content %}
   <div class="max-w-4xl mx-auto p-6">
     <h1 class="text-2xl font-bold mb-4">Règles de validation IHE PAM / HPRIM (JSON)</h1>
-    <p class="text-sm text-gray-600 mb-4">Editez des règles de validation au format JSON. Sauvegarder écrira dans <strong>app/data/pam_custom_rules.json</strong> et tentera de recharger le validateur en mémoire.</p>
+    <p class="text-sm text-gray-600 dark:text-slate-300 mb-4">Editez des règles de validation au format JSON. Sauvegarder écrira dans <strong>app/data/pam_custom_rules.json</strong> et tentera de recharger le validateur en mémoire.</p>
 
     <div class="mb-4">
       <textarea id="rulesArea" rows="24" class="w-full border rounded p-3 font-mono">{{ rules_json }}</textarea>
@@ -10,7 +10,7 @@
 
     <div class="flex gap-3">
       <button id="saveBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Sauvegarder</button>
-      <button id="reloadBtn" class="px-4 py-2 bg-gray-200 rounded">Recharger</button>
+      <button id="reloadBtn" class="px-4 py-2 bg-gray-200 dark:bg-slate-600 rounded">Recharger</button>
     </div>
 
     <div id="msg" class="mt-4"></div>

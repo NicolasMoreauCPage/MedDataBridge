@@ -49,12 +49,12 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
     <a href="/structure" class="hover:text-blue-600 transition-colors">Structure</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Analytics</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Analytics</span>
   </nav>
 
   <!-- Header -->
@@ -108,51 +108,51 @@
     <!-- KPI 1: Taux d'occupation -->
     <div class="kpi-card" id="kpi-occupation">
       <div class="kpi-header">
-        <span class="text-sm font-medium text-slate-600">Taux d'occupation</span>
+        <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Taux d'occupation</span>
         <span class="kpi-icon">🔵</span>
       </div>
-      <div class="kpi-value text-blue-600" id="occupation-value">—</div>
+      <div class="kpi-value text-blue-600 dark:text-blue-400" id="occupation-value">—</div>
       <div class="kpi-trend" id="occupation-trend"></div>
     </div>
 
     <!-- KPI 2: DMS -->
     <div class="kpi-card" id="kpi-dms">
       <div class="kpi-header">
-        <span class="text-sm font-medium text-slate-600">DMS (jours)</span>
+        <span class="text-sm font-medium text-slate-600 dark:text-slate-300">DMS (jours)</span>
         <span class="kpi-icon">🟢</span>
       </div>
-      <div class="kpi-value text-green-600" id="dms-value">—</div>
+      <div class="kpi-value text-green-600 dark:text-green-400" id="dms-value">—</div>
       <div class="kpi-trend" id="dms-trend"></div>
     </div>
 
     <!-- KPI 3: Taux de rotation -->
     <div class="kpi-card" id="kpi-rotation">
       <div class="kpi-header">
-        <span class="text-sm font-medium text-slate-600">Rotation</span>
+        <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Rotation</span>
         <span class="kpi-icon">🟣</span>
       </div>
-      <div class="kpi-value text-purple-600" id="rotation-value">—</div>
+      <div class="kpi-value text-purple-600 dark:text-purple-400" id="rotation-value">—</div>
       <div class="kpi-trend" id="rotation-trend"></div>
     </div>
 
     <!-- KPI 4: Capacité disponible -->
     <div class="kpi-card" id="kpi-capacity">
       <div class="kpi-header">
-        <span class="text-sm font-medium text-slate-600">Lits disponibles</span>
+        <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Lits disponibles</span>
         <span class="kpi-icon">🟡</span>
       </div>
-      <div class="kpi-value text-yellow-600" id="capacity-value">—</div>
-      <div class="text-sm text-slate-500" id="capacity-total">sur —</div>
+      <div class="kpi-value text-yellow-600 dark:text-yellow-400" id="capacity-value">—</div>
+      <div class="text-sm text-slate-500 dark:text-slate-400" id="capacity-total">sur —</div>
     </div>
 
     <!-- KPI 5: Taux d'ouverture -->
     <div class="kpi-card" id="kpi-opening">
       <div class="kpi-header">
-        <span class="text-sm font-medium text-slate-600">Taux d'ouverture</span>
+        <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Taux d'ouverture</span>
         <span class="kpi-icon">🔶</span>
       </div>
-      <div class="kpi-value text-orange-600" id="opening-value">—</div>
-      <div class="text-sm text-slate-500">lits ouverts</div>
+      <div class="kpi-value text-orange-600 dark:text-orange-400" id="opening-value">—</div>
+      <div class="text-sm text-slate-500 dark:text-slate-400">lits ouverts</div>
     </div>
   </div>
 
@@ -160,7 +160,7 @@
   <div class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Chart 1: Capacité par service -->
     <div class="chart-container">
-      <h3 class="text-lg font-semibold text-slate-800 mb-4">📊 Capacité par service</h3>
+      <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">📊 Capacité par service</h3>
       <div class="relative" style="height: 400px;">
         <canvas id="capacityByServiceChart"></canvas>
       </div>
@@ -168,7 +168,7 @@
 
     <!-- Chart 2: Répartition par type UM -->
     <div class="chart-container">
-      <h3 class="text-lg font-semibold text-slate-800 mb-4">🥧 Répartition par type UM</h3>
+      <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">🥧 Répartition par type UM</h3>
       <div class="relative" style="height: 400px;">
         <canvas id="umDistributionChart"></canvas>
       </div>
@@ -177,12 +177,12 @@
 
   <!-- Alertes Section -->
   <div class="mb-8">
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-slate-800">🚨 Alertes actives</h3>
+        <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100">🚨 Alertes actives</h3>
         <div class="flex items-center gap-2">
-          <span class="text-sm text-slate-600">Filtrer :</span>
-          <select id="severityFilter" class="text-sm border-slate-200 rounded-lg px-3 py-1">
+          <span class="text-sm text-slate-600 dark:text-slate-300">Filtrer :</span>
+          <select id="severityFilter" class="text-sm border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1">
             <option value="">Toutes</option>
             <option value="high">🔴 Critiques</option>
             <option value="medium">🟡 Moyennes</option>
@@ -192,7 +192,7 @@
       </div>
       <div id="alertsList" class="space-y-3">
         <!-- Les alertes seront insérées ici -->
-        <div class="text-center text-slate-400 py-8">
+        <div class="text-center text-slate-400 dark:text-slate-500 py-8">
           Chargement des alertes...
         </div>
       </div>

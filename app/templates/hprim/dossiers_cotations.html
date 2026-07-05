@@ -28,7 +28,7 @@
   <section class="glass-hero rounded-3xl p-6 text-white mb-6">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
-        <p class="uppercase text-xs tracking-[0.2em] text-cyan-100 mb-2">Regroupement HPRIM</p>
+        <p class="uppercase text-xs tracking-[0.2em] text-cyan-100 mb-2">Regroupement des cotations</p>
         <h1 class="text-3xl font-bold">Dossiers avec cotations</h1>
         <p class="mt-2 text-cyan-100">{{ dossiers|length }} regroupement(s) détecté(s) depuis les messages persistés.</p>
       </div>
@@ -41,7 +41,7 @@
   {% if dossiers %}
   <section class="pane rounded-2xl overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
         <thead class="bg-slate-900 text-slate-100">
           <tr>
             <th class="px-6 py-3 text-left text-xs uppercase tracking-wider">NDA / Clé</th>
@@ -51,23 +51,23 @@
             <th class="px-6 py-3 text-right text-xs uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200">
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
           {% for dossier in dossiers %}
           <tr class="table-row transition-colors">
             <td class="px-6 py-4 text-sm">
-              <span class="font-mono font-semibold text-slate-900">{{ dossier.nda }}</span>
+              <span class="font-mono font-semibold text-slate-900 dark:text-slate-100">{{ dossier.nda }}</span>
             </td>
-            <td class="px-6 py-4 text-sm text-slate-800">
+            <td class="px-6 py-4 text-sm text-slate-800 dark:text-slate-100">
               {% if dossier.patient_nom %}
                 {{ dossier.patient_nom }} {{ dossier.patient_prenom }}
               {% else %}
-                <span class="text-slate-500">Patient non rapproché</span>
+                <span class="text-slate-500 dark:text-slate-400">Patient non rapproché</span>
               {% endif %}
             </td>
             <td class="px-6 py-4 text-sm">
-              <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold">{{ dossier.message_count }}</span>
+              <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 font-semibold">{{ dossier.message_count }}</span>
             </td>
-            <td class="px-6 py-4 text-sm text-slate-700">
+            <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">
               {{ dossier.last_message_date.strftime('%d/%m/%Y %H:%M') if dossier.last_message_date else 'N/A' }}
             </td>
             <td class="px-6 py-4 text-sm">
@@ -86,8 +86,8 @@
   </section>
   {% else %}
   <section class="pane rounded-2xl p-10 text-center">
-    <h2 class="text-2xl font-bold text-slate-900 mb-2">Aucun dossier regroupé</h2>
-    <p class="text-slate-600">La vue se remplira dès réception de messages HPRIM cotation exploitables.</p>
+    <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Aucun dossier regroupé</h2>
+    <p class="text-slate-600 dark:text-slate-300">La vue se remplira dès réception de messages de cotation exploitables.</p>
   </section>
   {% endif %}
 </div>

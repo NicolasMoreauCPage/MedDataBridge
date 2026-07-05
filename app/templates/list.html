@@ -11,27 +11,27 @@
 {% endif %}
 
 {% if active_context %}
-  <div class="mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800 flex items-center justify-between">
+  <div class="mb-6 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 text-sm text-yellow-800 dark:text-yellow-200 flex items-center justify-between">
     <div>
       Affichage filtré par le contexte <strong>{{ active_context.name }}</strong> ({{ active_context.kind }}).
       {% if context_filtered_empty %}
-        <span class="ml-2 text-red-700 font-semibold">Aucun patient trouvé pour ce contexte.</span>
+        <span class="ml-2 text-red-700 dark:text-red-300 font-semibold">Aucun patient trouvé pour ce contexte.</span>
       {% endif %}
     </div>
     <div class="flex items-center gap-3">
-      <a href="{{ active_context.clear_url }}" class="text-yellow-800 underline">Effacer le contexte</a>
-      <a href="/patients?all=1" class="text-yellow-800 underline">Afficher tous</a>
+      <a href="{{ active_context.clear_url }}" class="text-yellow-800 dark:text-yellow-200 underline">Effacer le contexte</a>
+      <a href="/patients?all=1" class="text-yellow-800 dark:text-yellow-200 underline">Afficher tous</a>
     </div>
   </div>
 {% endif %}
 
 {# Header avec titre et actions #}
-<div class="bg-gradient-to-r from-white to-gray-50 rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm">
+<div class="bg-gradient-to-r from-white dark:from-slate-700 to-gray-50 dark:to-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6 mb-6 shadow-sm">
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">{{ title|default('Liste', true) }}</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100">{{ title|default('Liste', true) }}</h1>
       {% if subtitle %}
-      <p class="text-gray-600 mt-1">{{ subtitle }}</p>
+      <p class="text-gray-600 dark:text-slate-300 mt-1">{{ subtitle }}</p>
       {% endif %}
     </div>
     
@@ -39,7 +39,7 @@
       {# Filtre de statut (si fourni) #}
       {% if filter_options %}
         <form method="get" class="inline-block">
-          <select name="filter_status" onchange="this.form.submit()" class="rounded-lg border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm transition-colors">
+          <select name="filter_status" onchange="this.form.submit()" class="rounded-lg border-gray-200 dark:border-slate-700 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm transition-colors">
             {% for opt in filter_options %}
               <option value="{{ opt.value or '' }}" {% if filter_status == opt.value %}selected{% endif %}>
                 {{ opt.label }}
@@ -55,7 +55,7 @@
           id="toggle-filters-btn"
           aria-expanded="false"
           aria-controls="list-filters-panel"
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -77,11 +77,11 @@
 
 {# Onglets contextuels (facultatif) #}
 {% if tabs %}
-  <div class="mb-4 border-b border-gray-200">
+  <div class="mb-4 border-b border-gray-200 dark:border-slate-700">
     <nav class="-mb-px flex gap-6" aria-label="Tabs">
       {% for t in tabs %}
         <a href="{{ t.url }}"
-           class="whitespace-nowrap py-3 px-1 border-b-2 text-sm font-medium {{ 'border-blue-500 text-blue-600' if t.active else 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+           class="whitespace-nowrap py-3 px-1 border-b-2 text-sm font-medium {{ 'border-blue-500 text-blue-600' if t.active else 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:border-gray-300' }}">
           {{ t.label }}
         </a>
       {% endfor %}
@@ -97,16 +97,16 @@
 {% endif %}
 
 {# Tableau principal #}
-<div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+<div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
   {# Info bar #}
   {% if rows %}
-  <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+  <div class="px-6 py-3 bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
     <div class="flex items-center gap-4">
-      <p class="text-sm text-gray-600">
-        <span class="font-semibold text-gray-900">{{ rows|length }}</span> élément(s)
+      <p class="text-sm text-gray-600 dark:text-slate-300">
+        <span class="font-semibold text-gray-900 dark:text-slate-100">{{ rows|length }}</span> élément(s)
       </p>
       {% if rows and rows[0].detail_url %}
-        <div class="flex items-center gap-2 text-xs text-slate-500">
+        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
@@ -115,7 +115,7 @@
       {% endif %}
       {# Legend for status icons - only show on scenario pages #}
       {% if '/scenarios' in request.url.path %}
-      <div class="ml-6 text-xs text-slate-600 flex items-center gap-3">
+      <div class="ml-6 text-xs text-slate-600 dark:text-slate-300 flex items-center gap-3">
         <div class="flex items-center gap-1">
           <span title="Jamais exécuté">{{ icon('x', 'w-3 h-3') }}</span>
           <span class="ml-1">Jamais exécuté</span>
@@ -194,11 +194,11 @@
 
   {# Compact bulk-execute toolbar (only if endpoints are available) #}
   {% if all_endpoints %}
-  <div class="px-6 py-3 bg-white border-b border-slate-100 flex items-center gap-4">
-    <div class="text-sm text-slate-700">Sélectionnés: <strong id="bulkSelectedCount">0</strong></div>
+  <div class="px-6 py-3 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex items-center gap-4">
+    <div class="text-sm text-slate-700 dark:text-slate-200">Sélectionnés: <strong id="bulkSelectedCount">0</strong></div>
 
-    <label class="text-sm text-slate-600">Endpoint destinataire:</label>
-    <select id="bulkEndpoint" class="rounded-lg border-slate-300 px-3 py-1 text-sm">
+    <label class="text-sm text-slate-600 dark:text-slate-300">Endpoint destinataire:</label>
+    <select id="bulkEndpoint" class="rounded-lg border-slate-300 dark:border-slate-600 px-3 py-1 text-sm">
       <option value="" selected>— Choisir un endpoint destinataire —</option>
       {% for ep in all_endpoints %}
         <option value="{{ ep.id }}">{{ ep.name }} ({{ ep.kind }})</option>
@@ -210,15 +210,15 @@
   {% endif %}
 
   <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
       <caption class="sr-only">{{ title|default('Liste') }} avec {{ rows|length }} élément(s)</caption>
-      <thead class="bg-slate-50">
+      <thead class="bg-slate-50 dark:bg-slate-700">
         <tr>
           {% if all_endpoints %}
             <th scope="col" class="px-6 py-3.5 sticky-col"><span class="sr-only">Sélection</span></th>
           {% endif %}
           {% for header in headers %}
-            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
               {{ header }}
             </th>
           {% endfor %}
@@ -229,20 +229,20 @@
           {% endif %}
         </tr>
       </thead>
-      <tbody class="bg-white divide-y divide-slate-100">
+      <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-100">
         {% for row in rows %}
           <tr class="hover:bg-blue-50/50 transition-colors list-item-enter {% if row.css_class %}{{ row.css_class }}{% endif %} {% if row.detail_url %}cursor-pointer hover:shadow-sm{% endif %}" 
               style="animation-delay: {{ loop.index * 50 }}ms" 
               {% if row.detail_url %}role="link" tabindex="0" aria-label="Ouvrir le détail de la ligne {{ loop.index }}"{% endif %}
               {% if row.detail_url %}onclick="window.location.href='{{ row.detail_url }}'"{% endif %}>
             {# Checkbox column for bulk actions if endpoints available #}
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 sticky-col">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-200 sticky-col">
               {% if all_endpoints %}
                 <input type="checkbox" name="selected_row" value="{{ row.id }}" class="row-select w-4 h-4">
               {% endif %}
             </td>
             {% for cell in row.cells %}
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-200">
                 {% if row.detail_url and loop.first %}
                   <div class="flex items-center gap-3">
                     {# Indicateur visuel stylisé with tooltip #}
@@ -253,14 +253,14 @@
                           cell
                         ) }}
                       {% else %}
-                        <div class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
-                          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                          <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                           </svg>
                         </div>
                       {% endif %}
                     </div>
-                    <div class="font-medium text-slate-900 hover:text-primary transition-colors">
+                    <div class="font-medium text-slate-900 dark:text-slate-100 hover:text-primary transition-colors">
                       {% if cell not in ('✅', '⚠️', '❌', '⏹️') %}
                         {{ cell if cell is not none else '' }}
                       {% endif %}
@@ -293,30 +293,30 @@
                     </a>
                   {% endif %}
                   {% if row.cotation_url %}
-                    <a href="{{ row.cotation_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors">
+                    <a href="{{ row.cotation_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-50 transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
                       Coter
                     </a>
                   {% endif %}
                   {% if row.context_url %}
-                    <a href="{{ row.context_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors">
+                    <a href="{{ row.context_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-50 transition-colors">
                       Contexte
                     </a>
                   {% endif %}
                   {% if row.timeline_url %}
-                    <a href="{{ row.timeline_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors">
+                    <a href="{{ row.timeline_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 transition-colors">
                       Timeline
                     </a>
                   {% endif %}
                   {% if row.edit_url %}
-                    <a href="{{ row.edit_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+                    <a href="{{ row.edit_url }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       Modifier
                     </a>
                   {% endif %}
                   {% if row.delete_url %}
                     <form id="delete-form-{{ row.id }}" method="post" action="{{ row.delete_url }}" class="inline-block" data-item-name="{{ row.name|default(row.title|default('cet élément', true), true) }}">
-                      <button type="submit" class="delete-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
+                      <button type="submit" class="delete-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         Supprimer
                       </button>
@@ -345,7 +345,7 @@
 
   {# Pagination #}
   {% if pagination %}
-    <div class="px-6 py-3 bg-slate-50 border-t border-slate-200">
+    <div class="px-6 py-3 bg-slate-50 dark:bg-slate-700 border-t border-slate-200 dark:border-slate-700">
       {{ components.pagination(pagination.page, pagination.total_pages, pagination.base_url) }}
     </div>
   {% endif %}

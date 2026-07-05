@@ -43,57 +43,57 @@
   </section>
 
   <section class="panel rounded-2xl p-5 mb-5">
-    <h2 class="text-xl font-bold text-slate-900 mb-3">Contexte message</h2>
+    <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Contexte message</h2>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
       <div>
-        <p class="text-slate-500">Statut</p>
-        <p class="font-semibold text-slate-900">{{ message.status }}</p>
+        <p class="text-slate-500 dark:text-slate-400">Statut</p>
+        <p class="font-semibold text-slate-900 dark:text-slate-100">{{ message.status }}</p>
       </div>
       <div>
-        <p class="text-slate-500">Direction</p>
-        <p class="font-semibold text-slate-900">{{ message.direction or 'N/A' }}</p>
+        <p class="text-slate-500 dark:text-slate-400">Direction</p>
+        <p class="font-semibold text-slate-900 dark:text-slate-100">{{ message.direction or 'N/A' }}</p>
       </div>
       <div>
-        <p class="text-slate-500">Patient archivé</p>
-        <p class="font-mono text-slate-900">{{ message.patient_id or 'N/A' }}</p>
+        <p class="text-slate-500 dark:text-slate-400">Patient archivé</p>
+        <p class="font-mono text-slate-900 dark:text-slate-100">{{ message.patient_id or 'N/A' }}</p>
       </div>
       <div>
-        <p class="text-slate-500">Source</p>
-        <p class="text-slate-900">{{ message.source or message.filename or 'N/A' }}</p>
+        <p class="text-slate-500 dark:text-slate-400">Source</p>
+        <p class="text-slate-900 dark:text-slate-100">{{ message.source or message.filename or 'N/A' }}</p>
       </div>
     </div>
   </section>
 
   {% if success_message %}
-  <div class="panel rounded-2xl p-4 mb-4 border-emerald-300 text-emerald-800">{{ success_message }}</div>
+  <div class="panel rounded-2xl p-4 mb-4 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200">{{ success_message }}</div>
   {% endif %}
 
   {% if error %}
-  <div class="panel rounded-2xl p-5 mb-5 border-rose-300 bg-rose-50">
-    <h2 class="text-lg font-bold text-rose-800 mb-2">Erreur de parsing</h2>
-    <p class="text-rose-700">{{ error }}</p>
+  <div class="panel rounded-2xl p-5 mb-5 border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30">
+    <h2 class="text-lg font-bold text-rose-800 dark:text-rose-200 mb-2">Erreur de parsing</h2>
+    <p class="text-rose-700 dark:text-rose-300">{{ error }}</p>
   </div>
   {% else %}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
       {% if patient_info %}
       <section class="panel rounded-2xl p-5">
-        <h2 class="text-lg font-bold text-slate-900 mb-3">Patient</h2>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3">Patient</h2>
         <div class="space-y-2 text-sm">
-          <p><span class="text-slate-500">Identifiant:</span> <span class="font-mono">{{ patient_info.identifiant or 'N/A' }}</span></p>
-          <p><span class="text-slate-500">Nom:</span> {{ patient_info.nom or 'N/A' }}</p>
-          <p><span class="text-slate-500">Prénom:</span> {{ patient_info.prenom or 'N/A' }}</p>
-          <p><span class="text-slate-500">Date de naissance:</span> {{ patient_info.date_naissance or 'N/A' }}</p>
+          <p><span class="text-slate-500 dark:text-slate-400">Identifiant:</span> <span class="font-mono">{{ patient_info.identifiant or 'N/A' }}</span></p>
+          <p><span class="text-slate-500 dark:text-slate-400">Nom:</span> {{ patient_info.nom or 'N/A' }}</p>
+          <p><span class="text-slate-500 dark:text-slate-400">Prénom:</span> {{ patient_info.prenom or 'N/A' }}</p>
+          <p><span class="text-slate-500 dark:text-slate-400">Date de naissance:</span> {{ patient_info.date_naissance or 'N/A' }}</p>
         </div>
       </section>
       {% endif %}
 
       {% if venue_info or dossier %}
       <section class="panel rounded-2xl p-5">
-        <h2 class="text-lg font-bold text-slate-900 mb-3">Séjour</h2>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3">Séjour</h2>
         <div class="space-y-2 text-sm">
-          <p><span class="text-slate-500">NDA:</span> <span class="font-mono">{{ venue_info.identifiant if venue_info else (dossier.dossier_seq if dossier else 'N/A') }}</span></p>
-          <p><span class="text-slate-500">Libellé:</span> {{ venue_info.libelle if venue_info else 'N/A' }}</p>
-          <p><span class="text-slate-500">Dossier applicatif:</span> {{ dossier.id if dossier else 'Non rapproché' }}</p>
+          <p><span class="text-slate-500 dark:text-slate-400">NDA:</span> <span class="font-mono">{{ venue_info.identifiant if venue_info else (dossier.dossier_seq if dossier else 'N/A') }}</span></p>
+          <p><span class="text-slate-500 dark:text-slate-400">Libellé:</span> {{ venue_info.libelle if venue_info else 'N/A' }}</p>
+          <p><span class="text-slate-500 dark:text-slate-400">Dossier applicatif:</span> {{ dossier.id if dossier else 'Non rapproché' }}</p>
         </div>
         {% if dossier %}
         <a href="/dossiers/{{ dossier.id }}" class="inline-flex mt-3 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700">Ouvrir le dossier</a>
@@ -106,13 +106,13 @@
     {% if rows %}
     <section class="panel rounded-2xl p-5 mb-5">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
-        <h2 class="text-lg font-bold text-slate-900">{{ icon }} {{ title }} ({{ rows|length }})</h2>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ icon }} {{ title }} ({{ rows|length }})</h2>
         <form method="POST" action="{{ import_url }}">
           <button type="submit" class="px-4 py-2 rounded-xl bg-teal-700 text-white font-semibold hover:bg-teal-800">Importer</button>
         </form>
       </div>
       <div class="overflow-x-auto">
-        <table class="act-table min-w-full divide-y divide-slate-200 text-sm">
+        <table class="act-table min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
           <thead>
             <tr>
               {% for h in headers %}
@@ -124,7 +124,7 @@
             {% for row in rows %}
             <tr>
               {% for key in key_map %}
-              <td class="px-4 py-3 text-slate-800">
+              <td class="px-4 py-3 text-slate-800 dark:text-slate-100">
                 {% set v = row[key] %}
                 {% if v and v.strftime is defined %}
                   {{ v.strftime('%d/%m/%Y %H:%M') }}
@@ -152,13 +152,13 @@
 
     {% if not ccam_actes and not ngap_actes and not ucd_actes and not lpp_actes %}
     <section class="panel rounded-2xl p-8 text-center mb-5">
-      <h2 class="text-xl font-bold text-slate-900 mb-2">Aucun acte détecté</h2>
-      <p class="text-slate-600">Le message ne contient pas de lignes importables CCAM/NGAP/UCD/LPP.</p>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Aucun acte détecté</h2>
+      <p class="text-slate-600 dark:text-slate-300">Le message ne contient pas de lignes importables CCAM/NGAP/UCD/LPP.</p>
     </section>
     {% endif %}
 
     <section class="panel rounded-2xl p-5">
-      <h2 class="text-lg font-bold text-slate-900 mb-3">Archive XML</h2>
+      <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3">Archive XML</h2>
       <pre class="bg-slate-950 text-slate-100 rounded-xl p-4 overflow-x-auto text-xs whitespace-pre-wrap">{{ message.xml_content }}</pre>
     </section>
   {% endif %}

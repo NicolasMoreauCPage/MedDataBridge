@@ -4,56 +4,56 @@
 {% block content %}
 <div class="max-w-5xl mx-auto py-8 px-4 space-y-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center gap-2 text-sm text-slate-500">
+  <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
     <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     <a href="/ngap" class="hover:text-blue-600 transition-colors">Gestion NGAP</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-700 font-medium">Dossier #{{ dossier.dossier_seq }}</span>
+    <span class="text-slate-700 dark:text-slate-200 font-medium">Dossier #{{ dossier.dossier_seq }}</span>
   </nav>
 
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-slate-800">Actes NGAP</h1>
-      <p class="text-sm text-slate-500 mt-1">Dossier #{{ dossier.dossier_seq }} — {{ dossier.patient.family }} {{ dossier.patient.given }}</p>
+      <h1 class="text-2xl font-bold text-slate-800 dark:text-slate-100">Actes NGAP</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Dossier #{{ dossier.dossier_seq }} — {{ dossier.patient.family }} {{ dossier.patient.given }}</p>
     </div>
     <a href="/ngap/create/{{ dossier.id }}" class="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors font-medium">
       + Nouvel acte NGAP
     </a>
   </div>
 
-  <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
+  <div class="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200">
-        <thead class="bg-slate-50">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+        <thead class="bg-slate-50 dark:bg-slate-700">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Lettre-clé</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Coefficient</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Montant</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Statut</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lettre-clé</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Coefficient</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Montant</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Statut</th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-slate-200">
+        <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
           {% for acte in acts %}
           <tr>
-            <td class="px-4 py-3 text-sm font-mono font-semibold text-slate-800">{{ acte.lettre_cle }}</td>
-            <td class="px-4 py-3 text-sm text-slate-600">{{ acte.coefficient }}</td>
-            <td class="px-4 py-3 text-sm text-slate-600">{{ acte.execute_date|fr_datetime }}</td>
-            <td class="px-4 py-3 text-sm text-slate-600">{{ "%.2f"|format(acte.montant) ~ " €" if acte.montant is not none else "—" }}</td>
+            <td class="px-4 py-3 text-sm font-mono font-semibold text-slate-800 dark:text-slate-100">{{ acte.lettre_cle }}</td>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ acte.coefficient }}</td>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ acte.execute_date|fr_datetime }}</td>
+            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ "%.2f"|format(acte.montant) ~ " €" if acte.montant is not none else "—" }}</td>
             <td class="px-4 py-3 text-sm">
               {% if acte.valide %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Validé</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200">Validé</span>
               {% else %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">En attente</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">En attente</span>
               {% endif %}
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="5" class="px-4 py-8 text-center text-sm text-slate-500">
+            <td colspan="5" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
               Aucun acte NGAP pour ce dossier.
-              <a href="/ngap/create/{{ dossier.id }}" class="text-teal-600 hover:text-teal-700 font-medium">Créer le premier acte</a>.
+              <a href="/ngap/create/{{ dossier.id }}" class="text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium">Créer le premier acte</a>.
             </td>
           </tr>
           {% endfor %}

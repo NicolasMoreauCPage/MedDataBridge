@@ -1,7 +1,43 @@
 import pytest
 import json
 from playwright.sync_api import expect
-from .ui_helpers import wait_for_ready, safe_navigate
+from .ui_helpers import wait_for_ready, safe_navigate, capture_console_errors
+
+
+def test_get_filter_form_submits_without_console_error(page, test_server, ght_context):
+    """Regression test: GET-method filter forms (e.g. /messages) must not crash
+    FormManager's fetch()-based submit handler.
+
+    FormManager auto-attaches to every <form> on the page and used to always pass
+    `body: formData` to fetch() regardless of method — the Fetch API forbids a body
+    on GET/HEAD requests, so submitting any GET form (search/filter forms, of which
+    there are over a dozen across the app) threw 'Failed to execute fetch on Window:
+    Request with GET/HEAD method cannot have body', silently swallowed by the
+    handler's try/catch (only a toast was shown, so DOM-only assertions never
+    caught it). handleSubmit() now lets GET forms submit natively instead.
+    """
+    errors = capture_console_errors(page)
+    assert safe_navigate(page, f"{test_server}/messages"), "Failed to load messages page"
+
+    # The filter form lives inside a <details open> disclosure (open by default) —
+    # only click <summary> to expand it if it's actually collapsed, else this toggles
+    # it shut and hides the form.
+    details = page.locator("details").first
+    if details.count() > 0 and details.get_attribute("open") is None:
+        try:
+            details.locator("summary").first.click()
+        except Exception:
+            pass
+
+    form = page.locator("form[method='get'][action='/messages']")
+    expect(form).to_have_count(1)
+
+    submit_btn = form.locator("button[type='submit']")
+    submit_btn.click()
+    page.wait_for_load_state("networkidle")
+
+    assert "/messages" in page.url
+    assert not errors, f"Unexpected browser console error(s) on GET form submit: {errors}"
 
 
 def test_navigation_menus(page, test_server, ght_context):

@@ -91,24 +91,24 @@
         <!-- Statistiques rapides globales -->
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div class="metric-pane rounded-xl p-4">
-                <div class="text-2xl font-bold text-slate-900">{{ total_actes }}</div>
-                <div class="text-sm text-slate-600">Actes total</div>
+                <div class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ total_actes }}</div>
+                <div class="text-sm text-slate-600 dark:text-slate-300">Actes total</div>
             </div>
-            <div class="metric-pane bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4">
-                <div class="text-2xl font-bold text-emerald-900">{{ ccam_count }}</div>
-                <div class="text-sm text-emerald-700">CCAM</div>
+            <div class="metric-pane bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
+                <div class="text-2xl font-bold text-emerald-900 dark:text-emerald-200">{{ ccam_count }}</div>
+                <div class="text-sm text-emerald-700 dark:text-emerald-300">CCAM</div>
             </div>
-            <div class="metric-pane bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-                <div class="text-2xl font-bold text-blue-900">{{ ngap_count }}</div>
-                <div class="text-sm text-blue-700">NGAP</div>
+            <div class="metric-pane bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                <div class="text-2xl font-bold text-blue-900 dark:text-blue-200">{{ ngap_count }}</div>
+                <div class="text-sm text-blue-700 dark:text-blue-300">NGAP</div>
             </div>
-            <div class="metric-pane bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
-                <div class="text-2xl font-bold text-amber-900">{{ ucd_count }}</div>
-                <div class="text-sm text-amber-700">UCD</div>
+            <div class="metric-pane bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                <div class="text-2xl font-bold text-amber-900 dark:text-amber-200">{{ ucd_count }}</div>
+                <div class="text-sm text-amber-700 dark:text-amber-300">UCD</div>
             </div>
-            <div class="metric-pane bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
-                <div class="text-2xl font-bold text-purple-900">{{ lpp_count }}</div>
-                <div class="text-sm text-purple-700">LPP</div>
+            <div class="metric-pane bg-purple-50 dark:bg-purple-950/30 border-2 border-purple-200 dark:border-purple-800 rounded-xl p-4">
+                <div class="text-2xl font-bold text-purple-900 dark:text-purple-200">{{ lpp_count }}</div>
+                <div class="text-sm text-purple-700 dark:text-purple-300">LPP</div>
             </div>
         </div>
 
@@ -117,24 +117,24 @@
             <div class="lg:col-span-2">
                 <!-- Sélecteur de type d'acte -->
                 <div class="workspace-pane rounded-xl p-6 mb-6">
-                    <h2 class="text-lg font-bold text-slate-900 mb-4">Type d'acte</h2>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">Type d'acte</h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <button onclick="selectActeType('ccam')" id="btn-type-ccam" class="acte-type-btn p-4 border-2 border-emerald-200 bg-emerald-50 text-emerald-900 rounded-lg hover:border-emerald-500 hover:shadow-md transition-all">
+                        <button onclick="selectActeType('ccam')" id="btn-type-ccam" class="acte-type-btn p-4 border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 rounded-lg hover:border-emerald-500 hover:shadow-md transition-all">
                             <div class="text-3xl mb-2">🏥</div>
                             <div class="font-bold">CCAM</div>
                             <div class="text-xs opacity-75">Actes techniques</div>
                         </button>
-                        <button onclick="selectActeType('ngap')" id="btn-type-ngap" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-blue-500 rounded-lg hover:shadow-md transition-all">
+                        <button onclick="selectActeType('ngap')" id="btn-type-ngap" class="acte-type-btn p-4 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 rounded-lg hover:shadow-md transition-all">
                             <div class="text-3xl mb-2">👨‍⚕️</div>
                             <div class="font-bold">NGAP</div>
                             <div class="text-xs opacity-75">Consultations</div>
                         </button>
-                        <button onclick="selectActeType('ucd')" id="btn-type-ucd" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-amber-500 rounded-lg hover:shadow-md transition-all">
+                        <button onclick="selectActeType('ucd')" id="btn-type-ucd" class="acte-type-btn p-4 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 rounded-lg hover:shadow-md transition-all">
                             <div class="text-3xl mb-2">💊</div>
                             <div class="font-bold">UCD</div>
                             <div class="text-xs opacity-75">Médicaments</div>
                         </button>
-                        <button onclick="selectActeType('lpp')" id="btn-type-lpp" class="acte-type-btn p-4 border-2 border-slate-200 hover:border-purple-500 rounded-lg hover:shadow-md transition-all">
+                        <button onclick="selectActeType('lpp')" id="btn-type-lpp" class="acte-type-btn p-4 border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 rounded-lg hover:shadow-md transition-all">
                             <div class="text-3xl mb-2">🩹</div>
                             <div class="font-bold">LPP</div>
                             <div class="text-xs opacity-75">Dispositifs</div>
@@ -143,42 +143,42 @@
                 </div>
 
                 <!-- Formulaire CCAM -->
-                <div id="form-ccam" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                <div id="form-ccam" class="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hidden">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-emerald-900">Acte CCAM</h2>
-                        <button onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                        <h2 class="text-xl font-bold text-emerald-900 dark:text-emerald-200">Acte CCAM</h2>
+                        <button onclick="resetForm()" class="text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">Réinitialiser</button>
                     </div>
                     
                     <form id="ccam-form" class="space-y-4">
                         <!-- Code acte avec auto-complétion -->
                         <div class="relative">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                 Code acte CCAM <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="ccam-code" 
-                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all font-mono text-lg uppercase"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all font-mono text-lg uppercase"
                                    placeholder="Ex: HBMD001"
                                    maxlength="7"
                                    autocomplete="off"
                                    required>
-                            <div id="ccam-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto">
+                            <div id="ccam-suggestions" class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg shadow-xl hidden max-h-60 overflow-auto">
                                 <!-- Auto-complétion dynamique -->
                             </div>
-                            <p class="mt-1 text-xs text-slate-500">Format: 4 lettres + 3 chiffres (ex: HBMD001)</p>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Format: 4 lettres + 3 chiffres (ex: HBMD001)</p>
                         </div>
 
                         <!-- Libellé auto-rempli -->
-                        <div id="ccam-libelle" class="hidden p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded-lg">
-                            <p class="text-sm font-medium text-emerald-900" id="ccam-libelle-text"></p>
+                        <div id="ccam-libelle" class="hidden p-4 bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-emerald-500 rounded-lg">
+                            <p class="text-sm font-medium text-emerald-900 dark:text-emerald-200" id="ccam-libelle-text"></p>
                         </div>
 
                         <!-- Codes activité et phase en ligne -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                     Activité <span class="text-red-500">*</span>
                                 </label>
-                                <select id="ccam-activite" class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
+                                <select id="ccam-activite" class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
                                     <option value="">Sélectionner...</option>
                                     <option value="01">01 - Diagnostic et/ou thérapeutique</option>
                                     <option value="04">04 - Activité de prélèvement</option>
@@ -187,10 +187,10 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                     Phase <span class="text-red-500">*</span>
                                 </label>
-                                <select id="ccam-phase" class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
+                                <select id="ccam-phase" class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" required>
                                     <option value="0">0 - Phase unique</option>
                                     <option value="1">1 - Temps principaux</option>
                                     <option value="2">2 - Temps complémentaires</option>
@@ -201,39 +201,39 @@
                         <!-- Date et heure -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                     Date <span class="text-red-500">*</span>
                                 </label>
                                 <input type="date" id="ccam-date" 
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                                        required>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                     Heure <span class="text-red-500">*</span>
                                 </label>
                                 <input type="time" id="ccam-heure" 
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                                        required>
                             </div>
                         </div>
 
                         <!-- Modificateurs -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                 Modificateurs
                             </label>
                             <div class="grid grid-cols-4 gap-2">
-                                <button type="button" onclick="toggleModificateur('Z1')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                <button type="button" onclick="toggleModificateur('Z1')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
                                     Z1
                                 </button>
-                                <button type="button" onclick="toggleModificateur('K50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                <button type="button" onclick="toggleModificateur('K50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
                                     K50
                                 </button>
-                                <button type="button" onclick="toggleModificateur('U50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                <button type="button" onclick="toggleModificateur('U50')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
                                     U50
                                 </button>
-                                <button type="button" onclick="toggleModificateur('P')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                                <button type="button" onclick="toggleModificateur('P')" class="modificateur-btn px-3 py-2 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all">
                                     P
                                 </button>
                             </div>
@@ -243,25 +243,25 @@
                         <!-- Quantité et montant -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                     Quantité
                                 </label>
                                 <input type="number" id="ccam-quantite" value="1" min="1"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200">
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                     Montant (€)
                                 </label>
                                 <input type="number" id="ccam-montant" step="0.01" 
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                                        placeholder="Auto-calculé">
                             </div>
                         </div>
 
                         <!-- Commentaire -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                 Commentaire
                             </label>
                             <textarea id="ccam-commentaire" rows="2"
@@ -282,74 +282,74 @@
                 </div>
 
                 <!-- Formulaire NGAP -->
-                <div id="form-ngap" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                <div id="form-ngap" class="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hidden">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-blue-900">Acte NGAP</h2>
-                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                        <h2 class="text-xl font-bold text-blue-900 dark:text-blue-200">Acte NGAP</h2>
+                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">Réinitialiser</button>
                     </div>
 
                     <form id="ngap-form" class="space-y-4">
                         <!-- Code NGAP avec auto-complétion -->
                         <div class="relative">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                                 Lettre-clé NGAP <span class="text-red-500">*</span>
                             </label>
                             <input type="text" id="ngap-code"
-                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all font-mono text-lg uppercase"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all font-mono text-lg uppercase"
                                    placeholder="Ex: C, CS, AMI"
                                    autocomplete="off"
                                    required>
-                            <div id="ngap-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
-                            <p class="mt-1 text-xs text-slate-500">Tapez une lettre-clé ou un libellé pour chercher</p>
+                            <div id="ngap-suggestions" class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tapez une lettre-clé ou un libellé pour chercher</p>
                         </div>
 
                         <!-- Libellé auto-rempli -->
-                        <div id="ngap-libelle" class="hidden p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
-                            <p class="text-sm font-medium text-blue-900" id="ngap-libelle-text"></p>
+                        <div id="ngap-libelle" class="hidden p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded-lg">
+                            <p class="text-sm font-medium text-blue-900 dark:text-blue-200" id="ngap-libelle-text"></p>
                         </div>
 
                         <!-- Coefficient / Dénombrement -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Coefficient</label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Coefficient</label>
                                 <input type="number" step="0.1" id="ngap-coefficient" value="1.0"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Dénombrement</label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Dénombrement</label>
                                 <input type="number" id="ngap-denombrement" value="1" min="1"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                             </div>
                         </div>
 
                         <!-- Date et heure -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Date <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Date <span class="text-red-500">*</span></label>
                                 <input type="date" id="ngap-date"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                                        required>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Heure <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Heure <span class="text-red-500">*</span></label>
                                 <input type="time" id="ngap-heure"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                                        required>
                             </div>
                         </div>
 
                         <!-- Montant -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Montant (€)</label>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Montant (€)</label>
                             <input type="number" id="ngap-montant" step="0.01"
-                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                                    placeholder="Auto-calculé si le tarif de base est connu">
                             <input type="hidden" id="ngap-tarif-base" value="">
                         </div>
 
                         <!-- Commentaire -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Commentaire</label>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Commentaire</label>
                             <textarea id="ngap-commentaire" rows="2"
                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                                       placeholder="Informations complémentaires..."></textarea>
@@ -365,45 +365,45 @@
                 </div>
 
                 <!-- Formulaire UCD -->
-                <div id="form-ucd" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                <div id="form-ucd" class="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hidden">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-amber-900">Médicament UCD</h2>
-                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                        <h2 class="text-xl font-bold text-amber-900 dark:text-amber-200">Médicament UCD</h2>
+                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">Réinitialiser</button>
                     </div>
 
                     <form id="ucd-form" class="space-y-4">
                         <!-- Code UCD avec auto-complétion -->
                         <div class="relative">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Code UCD / CIP-13 <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Code UCD / CIP-13 <span class="text-red-500">*</span></label>
                             <input type="text" id="ucd-code"
-                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all font-mono text-sm"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all font-mono text-sm"
                                    placeholder="Ex: 3400892169407"
                                    autocomplete="off"
                                    required>
-                            <div id="ucd-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
-                            <p class="mt-1 text-xs text-slate-500">Tapez un code ou un libellé de médicament</p>
+                            <div id="ucd-suggestions" class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Tapez un code ou un libellé de médicament</p>
                         </div>
 
                         <!-- Libellé / dosage / forme -->
                         <div class="space-y-2">
-                            <div id="ucd-libelle" class="hidden p-3 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
-                                <p class="text-sm font-medium text-amber-900" id="ucd-libelle-text"></p>
-                                <p class="text-xs text-amber-800" id="ucd-libelle-extra"></p>
+                            <div id="ucd-libelle" class="hidden p-3 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 rounded-lg">
+                                <p class="text-sm font-medium text-amber-900 dark:text-amber-200" id="ucd-libelle-text"></p>
+                                <p class="text-xs text-amber-800 dark:text-amber-200" id="ucd-libelle-extra"></p>
                             </div>
                         </div>
 
                         <!-- Date / heure -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Date <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Date <span class="text-red-500">*</span></label>
                                 <input type="date" id="ucd-date"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                                        required>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Heure <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Heure <span class="text-red-500">*</span></label>
                                 <input type="time" id="ucd-heure"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                                        required>
                             </div>
                         </div>
@@ -411,21 +411,21 @@
                         <!-- Quantité / prix -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Quantité</label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Quantité</label>
                                 <input type="number" id="ucd-quantite" value="1" min="0.1" step="0.1"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200">
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200">
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Prix unitaire TTC (€)</label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Prix unitaire TTC (€)</label>
                                 <input type="number" id="ucd-prix-unitaire" step="0.01"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                                        placeholder="Pré-rempli par la recherche si disponible">
                             </div>
                         </div>
 
                         <!-- Commentaire -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Commentaire</label>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Commentaire</label>
                             <textarea id="ucd-commentaire" rows="2"
                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                                       placeholder="Informations complémentaires..."></textarea>
@@ -440,44 +440,44 @@
                 </div>
 
                 <!-- Formulaire LPP -->
-                <div id="form-lpp" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                <div id="form-lpp" class="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hidden">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-purple-900">Dispositif LPP</h2>
-                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</button>
+                        <h2 class="text-xl font-bold text-purple-900 dark:text-purple-200">Dispositif LPP</h2>
+                        <button type="button" onclick="resetForm()" class="text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">Réinitialiser</button>
                     </div>
 
                     <form id="lpp-form" class="space-y-4">
                         <!-- Code LPP avec auto-complétion -->
                         <div class="relative">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Code LPP</label>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Code LPP</label>
                             <input type="text" id="lpp-code"
-                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-mono text-sm"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all font-mono text-sm"
                                    placeholder="Ex: 1162915"
                                    autocomplete="off">
-                            <div id="lpp-suggestions" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
-                            <p class="mt-1 text-xs text-slate-500">Vous pouvez chercher par code ou par libellé</p>
+                            <div id="lpp-suggestions" class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg shadow-xl hidden max-h-60 overflow-auto"></div>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Vous pouvez chercher par code ou par libellé</p>
                         </div>
 
                         <!-- Libellé dispositif -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Libellé dispositif <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Libellé dispositif <span class="text-red-500">*</span></label>
                             <input type="text" id="lpp-libelle"
-                                   class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                   class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                                    required>
                         </div>
 
                         <!-- Date / heure -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Date <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Date <span class="text-red-500">*</span></label>
                                 <input type="date" id="lpp-date"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                                        required>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Heure <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Heure <span class="text-red-500">*</span></label>
                                 <input type="time" id="lpp-heure"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                                        required>
                             </div>
                         </div>
@@ -485,22 +485,22 @@
                         <!-- Quantité / montant -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Quantité <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Quantité <span class="text-red-500">*</span></label>
                                 <input type="number" id="lpp-quantite" value="1" min="1"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                                        required>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-2">Montant unitaire TTC (€) <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Montant unitaire TTC (€) <span class="text-red-500">*</span></label>
                                 <input type="number" id="lpp-prix-unitaire" step="0.01"
-                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                                       class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                                        required>
                             </div>
                         </div>
 
                         <!-- Commentaire -->
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Commentaire</label>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Commentaire</label>
                             <textarea id="lpp-commentaire" rows="2"
                                       class="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
                                       placeholder="Informations complémentaires..."></textarea>
@@ -518,25 +518,25 @@
             <!-- Panneau latéral -->
             <div class="lg:col-span-1 space-y-6">
                 <!-- Récapitulatif de la saisie (placeholder pour futures optimisations de session locale) -->
-                <div class="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-                    <h3 class="text-lg font-bold text-slate-900 mb-4">Raccourcis & session</h3>
-                    <div class="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4 mb-4">
-                        <h4 class="text-sm font-bold text-indigo-900 mb-3">⌨️ Raccourcis clavier</h4>
-                        <div class="space-y-2 text-xs text-indigo-800">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 sticky top-24">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">Raccourcis & session</h3>
+                    <div class="bg-indigo-50 dark:bg-indigo-950/30 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl p-4 mb-4">
+                        <h4 class="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-3">⌨️ Raccourcis clavier</h4>
+                        <div class="space-y-2 text-xs text-indigo-800 dark:text-indigo-200">
                             <div class="flex justify-between">
-                                <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+S</span>
+                                <span class="font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded">Ctrl+S</span>
                                 <span>Enregistrer l'acte</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+Enter</span>
+                                <span class="font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded">Ctrl+Enter</span>
                                 <span>Enregistrer + rester en saisie</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="font-mono bg-white px-2 py-1 rounded">Ctrl+T</span>
+                                <span class="font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded">Ctrl+T</span>
                                 <span>Templates</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="font-mono bg-white px-2 py-1 rounded">Esc</span>
+                                <span class="font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded">Esc</span>
                                 <span>Fermer les modales</span>
                             </div>
                         </div>
@@ -545,17 +545,17 @@
                     <!-- Historique intégré : filtres + liste -->
                     <div id="cotations-history" class="space-y-3">
                         <div class="flex items-center justify-between mb-1">
-                            <h4 class="text-sm font-bold text-slate-900">Actes du dossier</h4>
-                            <button type="button" onclick="toggleFilters()" class="px-2 py-1 text-xs bg-white border border-slate-300 text-slate-700 rounded-lg hover:border-slate-400">
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Actes du dossier</h4>
+                            <button type="button" onclick="toggleFilters()" class="px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:border-slate-400 dark:hover:border-slate-500">
                                 Filtres
                             </button>
                         </div>
 
-                        <div id="filters-panel" class="hidden bg-slate-50 rounded-lg p-3 mb-2">
+                        <div id="filters-panel" class="hidden bg-slate-50 dark:bg-slate-700 rounded-lg p-3 mb-2">
                             <div class="grid grid-cols-2 gap-2 mb-2">
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Type</label>
-                                    <select id="filter-type" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Type</label>
+                                    <select id="filter-type" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                         <option value="">Tous</option>
                                         <option value="ccam">CCAM</option>
                                         <option value="ngap">NGAP</option>
@@ -564,8 +564,8 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Statut</label>
-                                    <select id="filter-statut" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Statut</label>
+                                    <select id="filter-statut" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                         <option value="">Tous</option>
                                         <option value="valide">Validé</option>
                                         <option value="provisoire">Provisoire</option>
@@ -575,31 +575,31 @@
                             </div>
                             <div class="grid grid-cols-2 gap-2 mb-2">
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Date début</label>
+                                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Date début</label>
                                     <input type="date" id="filter-date-debut" onchange="applyFilters()"
-                                           class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                           class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Date fin</label>
+                                    <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Date fin</label>
                                     <input type="date" id="filter-date-fin" onchange="applyFilters()"
-                                           class="w-full px-2 py-1.5 border-2 border-slate-200 rounded-lg text-xs focus:border-blue-500">
+                                           class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                 </div>
                             </div>
                             <div class="flex justify-end space-x-1">
-                                <button type="button" onclick="resetFilters()" class="px-2 py-1 text-[11px] text-slate-600 hover:text-slate-900">
+                                <button type="button" onclick="resetFilters()" class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">
                                     Réinitialiser
                                 </button>
                             </div>
                         </div>
 
-                        <div class="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                        <div class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                             <div class="max-h-96 overflow-y-auto">
                                 <table class="w-full text-xs">
                                     <thead class="bg-slate-700 text-white">
                                         <tr>
                                             <th class="px-2 py-2 text-left">
                                                 <input type="checkbox" id="select-all" onchange="selectAll()"
-                                                       class="rounded border-slate-400 text-emerald-600 focus:ring-emerald-500">
+                                                       class="rounded border-slate-400 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400">
                                             </th>
                                             <th class="px-2 py-2 text-left">Type</th>
                                             <th class="px-2 py-2 text-left">Code</th>
@@ -611,40 +611,40 @@
                                             <th class="px-2 py-2 text-center">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-200" id="actes-tbody">
+                                    <tbody class="divide-y divide-slate-200 dark:divide-slate-700" id="actes-tbody">
                                         {% for acte in ccam_acts %}
                                         <tr class="hover:bg-emerald-50 transition-colors acte-row" data-type="ccam" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400" value="{{ acte.id }}">
                                             </td>
                                             <td class="px-2 py-1.5">
-                                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">CCAM</span>
+                                                <span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 text-[10px] font-bold rounded-full">CCAM</span>
                                             </td>
-                                            <td class="px-2 py-1.5 font-mono font-bold text-emerald-900 text-xs">{{ acte.code_acte }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.quantite or 1 }}</td>
-                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                            <td class="px-2 py-1.5 font-mono font-bold text-emerald-900 dark:text-emerald-200 text-xs">{{ acte.code_acte }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600 dark:text-slate-300">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.quantite or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 dark:text-slate-100 text-[11px]">
                                                 {{ "%.2f €"|format(acte.montant_total) if acte.montant_total else '—' }}
                                             </td>
                                             <td class="px-2 py-1.5 text-center">
                                                 <div class="flex flex-col space-y-0.5">
                                                     {% if acte.valide %}
-                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    <span class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 text-[10px] font-bold rounded">✓ Validé</span>
                                                     {% else %}
-                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
                                                     {% if acte.facture == 'oui' %}
-                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('ccam', {{ acte.id }})" class="text-blue-600 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" onclick="editActe('ccam', {{ acte.id }})" class="text-blue-600 dark:text-blue-400 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('ccam', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" onclick="deleteActe('ccam', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -655,36 +655,36 @@
                                         {% for acte in ngap_acts %}
                                         <tr class="hover:bg-blue-50 transition-colors acte-row" data-type="ngap" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400" value="{{ acte.id }}">
                                             </td>
                                             <td class="px-2 py-1.5">
-                                                <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded-full">NGAP</span>
+                                                <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded-full">NGAP</span>
                                             </td>
-                                            <td class="px-2 py-1.5 font-mono font-bold text-blue-900 text-xs">{{ acte.lettre_cle }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.denombrement or 1 }}</td>
-                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                            <td class="px-2 py-1.5 font-mono font-bold text-blue-900 dark:text-blue-200 text-xs">{{ acte.lettre_cle }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600 dark:text-slate-300">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.denombrement or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 dark:text-slate-100 text-[11px]">
                                                 {{ "%.2f €"|format(acte.montant_total) if acte.montant_total else '—' }}
                                             </td>
                                             <td class="px-2 py-1.5 text-center">
                                                 <div class="flex flex-col space-y-0.5">
                                                     {% if acte.valide %}
-                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    <span class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 text-[10px] font-bold rounded">✓ Validé</span>
                                                     {% else %}
-                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
                                                     {% if acte.facture == 'oui' %}
-                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('ngap', {{ acte.id }})" class="text-blue-600 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" onclick="editActe('ngap', {{ acte.id }})" class="text-blue-600 dark:text-blue-400 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('ngap', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" onclick="deleteActe('ngap', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -695,16 +695,16 @@
                                         {% for acte in ucd_acts %}
                                         <tr class="hover:bg-amber-50 transition-colors acte-row" data-type="ucd" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-amber-600 focus:ring-amber-500" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400" value="{{ acte.id }}">
                                             </td>
                                             <td class="px-2 py-1.5">
-                                                <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">UCD</span>
+                                                <span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-[10px] font-bold rounded-full">UCD</span>
                                             </td>
-                                            <td class="px-2 py-1.5 font-mono font-bold text-amber-900 text-xs">{{ acte.code_ucd }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.quantite or 1 }}</td>
-                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                            <td class="px-2 py-1.5 font-mono font-bold text-amber-900 dark:text-amber-200 text-xs">{{ acte.code_ucd }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600 dark:text-slate-300">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.quantite or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 dark:text-slate-100 text-[11px]">
                                                 {% if acte.montant_unitaire_facture_ttc and acte.quantite %}
                                                     {{ "%.2f €"|format(acte.montant_unitaire_facture_ttc * acte.quantite) }}
                                                 {% else %}
@@ -714,21 +714,21 @@
                                             <td class="px-2 py-1.5 text-center">
                                                 <div class="flex flex-col space-y-0.5">
                                                     {% if acte.valide %}
-                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    <span class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 text-[10px] font-bold rounded">✓ Validé</span>
                                                     {% else %}
-                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
                                                     {% if acte.facture == 'oui' %}
-                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('ucd', {{ acte.id }})" class="text-amber-600 hover:text-amber-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" onclick="editActe('ucd', {{ acte.id }})" class="text-amber-600 dark:text-amber-400 hover:text-amber-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('ucd', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" onclick="deleteActe('ucd', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -739,16 +739,16 @@
                                         {% for acte in lpp_acts %}
                                         <tr class="hover:bg-purple-50 transition-colors acte-row" data-type="lpp" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 text-purple-600 focus:ring-purple-500" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-purple-600 dark:text-purple-400 focus:ring-purple-500 dark:focus:ring-purple-400" value="{{ acte.id }}">
                                             </td>
                                             <td class="px-2 py-1.5">
-                                                <span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">LPP</span>
+                                                <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 text-[10px] font-bold rounded-full">LPP</span>
                                             </td>
-                                            <td class="px-2 py-1.5 font-mono font-bold text-purple-900 text-xs">{{ acte.code_lpp }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.commentaire or '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-600">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
-                                            <td class="px-2 py-1.5 text-[11px] text-slate-700">{{ acte.quantite or 1 }}</td>
-                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 text-[11px]">
+                                            <td class="px-2 py-1.5 font-mono font-bold text-purple-900 dark:text-purple-200 text-xs">{{ acte.code_lpp }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.commentaire or '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-600 dark:text-slate-300">{{ acte.execute_date.strftime('%d/%m/%Y %H:%M') if acte.execute_date else '—' }}</td>
+                                            <td class="px-2 py-1.5 text-[11px] text-slate-700 dark:text-slate-200">{{ acte.quantite or 1 }}</td>
+                                            <td class="px-2 py-1.5 text-right font-bold text-slate-900 dark:text-slate-100 text-[11px]">
                                                 {% if acte.montant_unitaire_facture_ttc and acte.quantite %}
                                                     {{ "%.2f €"|format(acte.montant_unitaire_facture_ttc * acte.quantite) }}
                                                 {% else %}
@@ -758,21 +758,21 @@
                                             <td class="px-2 py-1.5 text-center">
                                                 <div class="flex flex-col space-y-0.5">
                                                     {% if acte.valide %}
-                                                    <span class="px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold rounded">✓ Validé</span>
+                                                    <span class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 text-[10px] font-bold rounded">✓ Validé</span>
                                                     {% else %}
-                                                    <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-bold rounded">⏳ Provisoire</span>
+                                                    <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
                                                     {% if acte.facture == 'oui' %}
-                                                    <span class="px-1.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">📄 Facturé</span>
+                                                    <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('lpp', {{ acte.id }})" class="text-purple-600 hover:text-purple-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" onclick="editActe('lpp', {{ acte.id }})" class="text-purple-600 dark:text-purple-400 hover:text-purple-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('lpp', {{ acte.id }})" class="text-red-600 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" onclick="deleteActe('lpp', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -782,7 +782,7 @@
 
                                         {% if not ccam_acts and not ngap_acts and not ucd_acts and not lpp_acts %}
                                         <tr>
-                                            <td colspan="9" class="px-3 py-6 text-center text-slate-400 text-xs">
+                                            <td colspan="9" class="px-3 py-6 text-center text-slate-400 dark:text-slate-500 text-xs">
                                                 <div>
                                                     <p class="font-semibold mb-1">Aucune cotation</p>
                                                     <p>Commencez par ajouter des actes avec le panneau de gauche</p>
@@ -798,14 +798,14 @@
                         <!-- Actions groupées compactes -->
                         <div id="bulk-actions" class="hidden mt-2">
                             <div class="flex items-center justify-between text-[11px]">
-                                <span class="text-slate-700">
+                                <span class="text-slate-700 dark:text-slate-200">
                                     <span id="selected-count">0</span> acte(s) sélectionné(s)
                                 </span>
                                 <div class="flex space-x-1">
                                     <button type="button" onclick="validateSelected()" class="px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">✓</button>
                                     <button type="button" onclick="factureSelected()" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">📄</button>
                                     <button type="button" onclick="deleteSelected()" class="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">🗑️</button>
-                                    <button type="button" onclick="deselectAll()" class="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium">Annuler</button>
+                                    <button type="button" onclick="deselectAll()" class="px-2 py-1 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 font-medium">Annuler</button>
                                 </div>
                             </div>
                         </div>
@@ -820,29 +820,29 @@
 <div id="modal-templates" class="hidden fixed inset-0 z-50 overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
         <div class="fixed inset-0 bg-black opacity-50" onclick="closeModal('modal-templates')"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8">
-            <button onclick="closeModal('modal-templates')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full p-8">
+            <button onclick="closeModal('modal-templates')" class="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
-            <h2 class="text-2xl font-bold text-slate-900 mb-6">Templates d'actes fréquents</h2>
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">Templates d'actes fréquents</h2>
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="useTemplate('consultation-generale')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
-                    <div class="font-bold text-slate-900">Consultation générale</div>
-                    <div class="text-sm text-slate-600">NGAP: C (coef 1)</div>
+                <button onclick="useTemplate('consultation-generale')" class="p-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div class="font-bold text-slate-900 dark:text-slate-100">Consultation générale</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-300">NGAP: C (coef 1)</div>
                 </button>
-                <button onclick="useTemplate('ecg')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
-                    <div class="font-bold text-slate-900">Électrocardiogramme</div>
-                    <div class="text-sm text-slate-600">CCAM: DEQP003</div>
+                <button onclick="useTemplate('ecg')" class="p-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
+                    <div class="font-bold text-slate-900 dark:text-slate-100">Électrocardiogramme</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-300">CCAM: DEQP003</div>
                 </button>
-                <button onclick="useTemplate('radio-thorax')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
-                    <div class="font-bold text-slate-900">Radio thorax</div>
-                    <div class="text-sm text-slate-600">CCAM: LBQH001</div>
+                <button onclick="useTemplate('radio-thorax')" class="p-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left">
+                    <div class="font-bold text-slate-900 dark:text-slate-100">Radio thorax</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-300">CCAM: LBQH001</div>
                 </button>
-                <button onclick="useTemplate('pansement')" class="p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
-                    <div class="font-bold text-slate-900">Pansement</div>
-                    <div class="text-sm text-slate-600">NGAP: AMI (coef 2)</div>
+                <button onclick="useTemplate('pansement')" class="p-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                    <div class="font-bold text-slate-900 dark:text-slate-100">Pansement</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-300">NGAP: AMI (coef 2)</div>
                 </button>
             </div>
         </div>

@@ -4,11 +4,11 @@
 <div class="max-w-5xl mx-auto py-8 px-4 space-y-6">
   <!-- Breadcrumb - Style Moderne -->
   <nav class="flex items-center gap-2 text-sm">
-    <a href="/" class="text-slate-600 hover:text-cyan-600 font-medium transition-all duration-300 hover:scale-105">Accueil</a>
-    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    <a href="/venues?dossier_id={{ venue.dossier_id }}" class="text-slate-600 hover:text-cyan-600 font-medium transition-all duration-300 hover:scale-105">Venues</a>
-    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-900 font-bold">Venue #{{ venue.venue_seq }}</span>
+    <a href="/" class="text-slate-600 dark:text-slate-300 hover:text-cyan-600 font-medium transition-all duration-300 hover:scale-105">Accueil</a>
+    <svg class="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <a href="/venues?dossier_id={{ venue.dossier_id }}" class="text-slate-600 dark:text-slate-300 hover:text-cyan-600 font-medium transition-all duration-300 hover:scale-105">Venues</a>
+    <svg class="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-900 dark:text-slate-100 font-bold">Venue #{{ venue.venue_seq }}</span>
   </nav>
 
   <!-- Context Cards - Glassmorphism Style -->
@@ -125,25 +125,25 @@
     <div class="p-8 space-y-6">
       <dl class="grid md:grid-cols-2 gap-6">
         <div class="group">
-          <dt class="text-xs font-black text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm">📁</span>
+          <dt class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm">📁</span>
             Dossier ID
           </dt>
-          <dd class="font-mono font-bold text-slate-900 text-lg px-4 py-2 rounded-lg bg-slate-50 group-hover:bg-slate-100 transition-colors duration-200">{{ venue.dossier_id }}</dd>
+          <dd class="font-mono font-bold text-slate-900 dark:text-slate-100 text-lg px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 group-hover:bg-slate-100 transition-colors duration-200">{{ venue.dossier_id }}</dd>
         </div>
         <div class="group">
-          <dt class="text-xs font-black text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm">🏥</span>
+          <dt class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm">🏥</span>
             UF Responsabilité
           </dt>
-          <dd class="font-bold text-slate-900 text-lg px-4 py-2 rounded-lg bg-slate-50 group-hover:bg-slate-100 transition-colors duration-200">{{ venue.uf_responsabilite or '–' }}</dd>
+          <dd class="font-bold text-slate-900 dark:text-slate-100 text-lg px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 group-hover:bg-slate-100 transition-colors duration-200">{{ venue.uf_responsabilite or '–' }}</dd>
         </div>
         <div class="group">
-          <dt class="text-xs font-black text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-green-100 text-green-600 flex items-center justify-center text-sm">⏰</span>
+          <dt class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center text-sm">⏰</span>
             Début
           </dt>
-          <dd class="font-mono font-bold text-slate-900 text-lg px-4 py-2 rounded-lg bg-slate-50 group-hover:bg-slate-100 transition-colors duration-200">{{ venue.start_time or '–' }}</dd>
+          <dd class="font-mono font-bold text-slate-900 dark:text-slate-100 text-lg px-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 group-hover:bg-slate-100 transition-colors duration-200">{{ venue.start_time or '–' }}</dd>
         </div>
       </dl>
     </div>
@@ -156,7 +156,7 @@
   {% include 'components/identifier_table.html' with context %}
 
   <!-- Actions Grid - Style Moderne -->\n  <div class="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-2xl p-8">
-    <h3 class="text-xl font-black text-slate-900 mb-6 flex items-center gap-3">
+    <h3 class="text-xl font-black text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
       <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-lg">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
@@ -179,7 +179,7 @@
       </a>
       <a href="/mouvements/new?venue_id={{ venue.id }}" 
         {% if venue_status and venue_status.closed %}
-          class="group inline-flex items-center justify-center gap-2 bg-slate-200 text-slate-400 px-5 py-4 rounded-xl font-black cursor-not-allowed border border-slate-300 shadow-sm" title="Venue fermée — aucun nouveau mouvement possible" onclick="return false;"
+          class="group inline-flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-600 text-slate-400 dark:text-slate-500 px-5 py-4 rounded-xl font-black cursor-not-allowed border border-slate-300 dark:border-slate-600 shadow-sm" title="Venue fermée — aucun nouveau mouvement possible" onclick="return false;"
         {% else %}
           class="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-5 py-4 rounded-xl font-black hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border border-purple-500/50"
         {% endif %}
@@ -196,14 +196,14 @@
         Liste mouvements
       </a>
       <form method="post" action="/venues/{{ venue.id }}/delete" onsubmit="return confirm('⚠️ Supprimer cette venue ?');" class="contents">
-        <button type="submit" class="group inline-flex items-center justify-center gap-2 bg-red-50 text-red-700 border-2 border-red-300 px-5 py-4 rounded-xl font-black hover:bg-red-100 hover:border-red-400 shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300">
+        <button type="submit" class="group inline-flex items-center justify-center gap-2 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-2 border-red-300 dark:border-red-700 px-5 py-4 rounded-xl font-black hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300">
           <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
           </svg>
           Supprimer
         </button>
       </form>
-      <a href="/venues?dossier_id={{ venue.dossier_id }}" class="group inline-flex items-center justify-center gap-2 bg-slate-50 text-slate-700 border-2 border-slate-300 px-5 py-4 rounded-xl font-black hover:bg-slate-100 hover:border-slate-400 shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300">
+      <a href="/venues?dossier_id={{ venue.dossier_id }}" class="group inline-flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-2 border-slate-300 dark:border-slate-600 px-5 py-4 rounded-xl font-black hover:bg-slate-100 dark:hover:bg-slate-600 hover:border-slate-400 dark:hover:border-slate-500 shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300">
         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
         </svg>

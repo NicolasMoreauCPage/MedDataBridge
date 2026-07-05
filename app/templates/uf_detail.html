@@ -3,16 +3,16 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
     <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
         <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-        <span class="text-slate-400">/</span>
+        <span class="text-slate-400 dark:text-slate-500">/</span>
         <a href="/admin/ght/{{ context.id }}" class="hover:text-blue-600 transition-colors">GHT</a>
-        <span class="text-slate-400">/</span>
+        <span class="text-slate-400 dark:text-slate-500">/</span>
         <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}" class="hover:text-blue-600 transition-colors">EJ</a>
-        <span class="text-slate-400">/</span>
+        <span class="text-slate-400 dark:text-slate-500">/</span>
         <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}" class="hover:text-blue-600 transition-colors">{{ geo.name if geo.name is not none else 'EG' }}</a>
-        <span class="text-slate-400">/</span>
-        <span class="text-slate-800 font-medium">{{ uf.name }}</span>
+        <span class="text-slate-400 dark:text-slate-500">/</span>
+        <span class="text-slate-800 dark:text-slate-100 font-medium">{{ uf.name }}</span>
     </nav>
 
     <!-- Header -->
@@ -36,7 +36,7 @@
                         Modifier
                     </a>
                     <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/new"
-                       class="bg-white text-cyan-700 px-6 py-3 rounded-xl font-bold hover:bg-cyan-50 transition-all duration-200 shadow-lg flex items-center gap-2">
+                       class="bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 px-6 py-3 rounded-xl font-bold hover:bg-cyan-50 transition-all duration-200 shadow-lg flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
@@ -51,40 +51,40 @@
 
         <!-- Stats -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+            <div class="rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 dark:from-emerald-950/30 to-teal-50 dark:to-teal-950/30 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wide text-emerald-700 font-bold mb-1">Unités d'hébergement</p>
-                        <p class="text-4xl font-bold text-emerald-800">{{ counts.uhs }}</p>
+                        <p class="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-300 font-bold mb-1">Unités d'hébergement</p>
+                        <p class="text-4xl font-bold text-emerald-800 dark:text-emerald-200">{{ counts.uhs }}</p>
                     </div>
                     <div class="text-4xl">🏥</div>
                 </div>
             </div>
-            <div class="rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-fuchsia-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+            <div class="rounded-2xl border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 dark:from-purple-950/30 to-fuchsia-50 dark:to-fuchsia-950/30 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wide text-purple-700 font-bold mb-1">Chambres</p>
-                        <p class="text-4xl font-bold text-purple-800">{{ counts.chambres if counts.chambres is not none else '0' }}</p>
+                        <p class="text-xs uppercase tracking-wide text-purple-700 dark:text-purple-300 font-bold mb-1">Chambres</p>
+                        <p class="text-4xl font-bold text-purple-800 dark:text-purple-200">{{ counts.chambres if counts.chambres is not none else '0' }}</p>
                     </div>
                     <div class="text-4xl">🚪</div>
                 </div>
             </div>
-            <div class="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+            <div class="rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 dark:from-amber-950/30 to-orange-50 dark:to-orange-950/30 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wide text-amber-700 font-bold mb-1">Lits</p>
-                        <p class="text-4xl font-bold text-amber-800">{{ counts.lits if counts.lits is not none else '0' }}</p>
+                        <p class="text-xs uppercase tracking-wide text-amber-700 dark:text-amber-300 font-bold mb-1">Lits</p>
+                        <p class="text-4xl font-bold text-amber-800 dark:text-amber-200">{{ counts.lits if counts.lits is not none else '0' }}</p>
                     </div>
                     <div class="text-4xl">🛏️</div>
                 </div>
             </div>
             {% if top_operational %}
-            <div class="rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-gray-50 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
+            <div class="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 dark:from-slate-700 to-gray-50 dark:to-slate-800 px-6 py-5 shadow-md hover:shadow-lg transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wide text-slate-700 font-bold mb-1">Statut principal</p>
-                        <p class="text-3xl font-bold text-slate-800">{{ top_operational[1] }}</p>
-                        <p class="text-xs text-slate-600 mt-1">{{ top_operational[0]|replace('_',' ')|title if top_operational[0] is not none else '' }}</p>
+                        <p class="text-xs uppercase tracking-wide text-slate-700 dark:text-slate-200 font-bold mb-1">Statut principal</p>
+                        <p class="text-3xl font-bold text-slate-800 dark:text-slate-100">{{ top_operational[1] }}</p>
+                        <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">{{ top_operational[0]|replace('_',' ')|title if top_operational[0] is not none else '' }}</p>
                     </div>
                     <div class="text-4xl">📊</div>
                 </div>
@@ -93,16 +93,16 @@
         </div>
 
         {% if lit_operational %}
-        <div class="bg-white border-2 border-slate-200 rounded-2xl p-8 shadow-lg">
+        <div class="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl p-8 shadow-lg">
             <div class="flex items-center gap-3 mb-6">
                 <div class="text-2xl">📊</div>
-                <h2 class="text-xl font-bold text-slate-900">Répartition opérationnelle des lits</h2>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Répartition opérationnelle des lits</h2>
             </div>
             <div class="flex flex-wrap gap-4">
                 {% for status, value in lit_operational.items() %}
-                <div class="inline-flex items-center gap-3 rounded-xl border-2 border-slate-200 px-5 py-3 text-sm bg-gradient-to-br from-slate-50 to-gray-50 hover:shadow-md transition-shadow">
-                    <span class="font-medium text-slate-700">{{ status|replace('_', ' ')|title }}</span>
-                    <span class="text-xl font-bold text-slate-900">{{ value }}</span>
+                <div class="inline-flex items-center gap-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 px-5 py-3 text-sm bg-gradient-to-br from-slate-50 dark:from-slate-700 to-gray-50 dark:to-slate-800 hover:shadow-md transition-shadow">
+                    <span class="font-medium text-slate-700 dark:text-slate-200">{{ status|replace('_', ' ')|title }}</span>
+                    <span class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ value }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -114,8 +114,8 @@
             <div class="flex items-center gap-4">
                 <div class="text-3xl">🏥</div>
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Unités d'hébergement</h2>
-                    <p class="text-sm text-slate-600">Gérez les UH, chambres et lits rattachés à cette UF</p>
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Unités d'hébergement</h2>
+                    <p class="text-sm text-slate-600 dark:text-slate-300">Gérez les UH, chambres et lits rattachés à cette UF</p>
                 </div>
             </div>
 
@@ -123,17 +123,17 @@
             <div class="space-y-4">
                 {% for uh_node in structure %}
                 {% set uh = uh_node.entity %}
-                <div class="rounded-2xl border-2 border-slate-200 bg-white shadow-lg overflow-hidden">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-8 py-5 border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-gray-50">
+                <div class="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg overflow-hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-8 py-5 border-b-2 border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 dark:from-slate-700 to-gray-50 dark:to-slate-800">
                         <div>
-                            <h3 class="text-lg font-semibold text-slate-900">{{ uh.name }}</h3>
-                            <p class="text-xs text-slate-500 font-mono">{{ uh.identifier if uh.identifier is not none else '' }}</p>
+                            <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ uh.name }}</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ uh.identifier if uh.identifier is not none else '' }}</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
                             <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/edit"
-                               class="text-sm text-blue-600 hover:text-blue-800">Modifier</a>
+                               class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800">Modifier</a>
                             <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/chambres/new"
-                               class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-100">
+                               class="inline-flex items-center gap-1 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-3 py-1.5 text-sm text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40">
                                 Ajouter une chambre
                             </a>
                         </div>
@@ -145,14 +145,14 @@
                             <div class="border-l-2 border-amber-100 pl-4">
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                                     <div>
-                                        <p class="font-semibold text-amber-700">{{ chambre.name }}</p>
+                                        <p class="font-semibold text-amber-700 dark:text-amber-300">{{ chambre.name }}</p>
                                         <p class="text-xs text-amber-500 font-mono">{{ chambre.identifier if chambre.identifier is not none else '' }}</p>
                                     </div>
                                     <div class="flex flex-wrap items-center gap-3">
                                         <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/chambres/{{ chambre.id }}/edit"
-                                           class="text-xs text-amber-700 hover:text-amber-900">Modifier</a>
+                                           class="text-xs text-amber-700 dark:text-amber-300 hover:text-amber-900">Modifier</a>
                                         <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/chambres/{{ chambre.id }}/lits/new"
-                                           class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs text-amber-700 hover:bg-amber-100">
+                                           class="inline-flex items-center gap-1 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40">
                                             Ajouter un lit
                                         </a>
                                     </div>
@@ -160,33 +160,33 @@
                                 {% if chambre_node.lits %}
                                 <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {% for lit in chambre_node.lits %}
-                                    <div class="border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between text-sm">
+                                    <div class="border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 flex items-center justify-between text-sm">
                                         <div>
-                                            <p class="font-medium text-slate-700">{{ lit.name }}</p>
-                                            <p class="text-xs text-slate-500 font-mono">{{ lit.identifier if lit.identifier is not none else '' }}</p>
+                                            <p class="font-medium text-slate-700 dark:text-slate-200">{{ lit.name }}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ lit.identifier if lit.identifier is not none else '' }}</p>
                                         </div>
                                         <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/{{ uh.id }}/chambres/{{ chambre.id }}/lits/{{ lit.id }}/edit"
-                                           class="text-xs text-blue-600 hover:text-blue-800">
+                                           class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800">
                                             Modifier
                                         </a>
                                     </div>
                                     {% endfor %}
                                 </div>
                                 {% else %}
-                                <p class="ml-1 text-xs text-slate-400 mt-2">Aucun lit configuré pour cette chambre.</p>
+                                <p class="ml-1 text-xs text-slate-400 dark:text-slate-500 mt-2">Aucun lit configuré pour cette chambre.</p>
                                 {% endif %}
                             </div>
                             {% endfor %}
                         {% else %}
-                        <p class="text-sm text-slate-500">Aucune chambre définie pour cette unité d'hébergement.</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Aucune chambre définie pour cette unité d'hébergement.</p>
                         {% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div class="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-600">
-                Aucune unité d'hébergement n'est rattachée à cette UF. Commencez par <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/new" class="text-blue-600 hover:text-blue-800 underline">créer une première unité d'hébergement</a>.
+            <div class="bg-slate-50 dark:bg-slate-700 border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center text-slate-600 dark:text-slate-300">
+                Aucune unité d'hébergement n'est rattachée à cette UF. Commencez par <a href="/admin/ght/{{ context.id }}/ej/{{ entite.id }}/eg/{{ geo.id }}/poles/{{ pole.id }}/services/{{ service.id }}/ufs/{{ uf.id }}/uh/new" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 underline">créer une première unité d'hébergement</a>.
             </div>
             {% endif %}
         </div>

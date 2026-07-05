@@ -137,8 +137,8 @@ def test_dossier_detail_page_content():
         assert "Patient" in content
         assert "Actions" in content
 
-        # Bouton Cotation HPRIM
-        assert "Cotation HPRIM" in content
+        # Bouton de codage des prestations (nom fonctionnel, pas le protocole HPRIM sous-jacent)
+        assert "Coder les prestations" in content
         assert f"/cotation-modern?dossier_id={dossier_id}" in content
 
         # Autres actions

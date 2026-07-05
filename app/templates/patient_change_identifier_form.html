@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-6">
+  <!-- Breadcrumb -->
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400 mb-6" aria-label="Fil d'Ariane">
+    <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
+    <span class="text-slate-400">/</span>
+    <a href="/patients" class="hover:text-blue-600 transition-colors">Patients</a>
+    <span class="text-slate-400">/</span>
+    <a href="/patients/{{ patient.id }}" class="hover:text-blue-600 transition-colors">{{ patient.family }} {{ patient.given }}</a>
+    <span class="text-slate-400">/</span>
+    <span class="text-slate-800 dark:text-slate-200 font-medium">Modifier l'identifiant</span>
+  </nav>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-lg">
+      <div class="flex items-center space-x-4">
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold">Modifier l'identifiant patient</h1>
+          <p class="text-blue-100 mt-1">Émission d'un message ADT^A47 vers les systèmes abonnés</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-6">
+    <p class="text-sm text-slate-600 dark:text-slate-400">Identifiant actuel</p>
+    <p class="text-lg font-mono font-bold text-slate-800 dark:text-slate-100">{{ patient.identifier }}</p>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ patient.family }} {{ patient.given }}</p>
+  </div>
+
+  <form method="post" action="/patients/{{ patient.id }}/change-identifier" class="space-y-6 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+    <div>
+      <label for="new_value" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+        Nouvel identifiant <span class="text-red-500">*</span>
+      </label>
+      <input type="text" id="new_value" name="new_value" required
+             class="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-slate-100" />
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="new_system" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+          Système / autorité d'affectation
+        </label>
+        <input type="text" id="new_system" name="new_system" placeholder="ex: HOSP, ASIP-SANTE-INS-NIR"
+               class="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-slate-100" />
+      </div>
+      <div>
+        <label for="new_oid" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+          OID (optionnel)
+        </label>
+        <input type="text" id="new_oid" name="new_oid" placeholder="ex: 1.2.250.1.213.1.4.8"
+               class="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-slate-100" />
+      </div>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit"
+              onclick="return confirm('Confirmer le changement d\'identifiant ?');"
+              class="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-cyan-600 to-indigo-600 text-white hover:from-cyan-700 hover:to-indigo-700 shadow-md transition-all">
+        Modifier et émettre A47
+      </button>
+      <a href="/patients/{{ patient.id }}" class="px-6 py-3 rounded-xl font-semibold bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 transition-all">
+        Annuler
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

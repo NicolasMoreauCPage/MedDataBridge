@@ -10,7 +10,7 @@
         {{ doc_link(request.url.path) }}
     </div>
     
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg overflow-hidden">
         <!-- Header -->
         <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-4">
             <h1 class="text-2xl font-bold">Validation Messages HL7 v2.5 / HPRIM XML</h1>
@@ -18,13 +18,13 @@
         </div>
 
         <!-- Onglets de mode -->
-        <div class="border-b border-gray-200 bg-gray-50">
+        <div class="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700">
             <nav class="flex -mb-px px-6" aria-label="Tabs">
                 <button 
                     type="button"
                     onclick="switchMode('single')"
                     id="tab-single"
-                    class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-blue-500 text-blue-600"
+                    class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-blue-500 text-blue-600 dark:text-blue-400"
                 >
                     <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -35,7 +35,7 @@
                     type="button"
                     onclick="switchMode('scenario')"
                     id="tab-scenario"
-                    class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:border-gray-300"
                 >
                     <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
@@ -49,7 +49,7 @@
         <div class="p-6">
             <!-- Mode: Message unique -->
             <form method="post" action="/validation/validate" class="space-y-4" data-no-ajax="1" id="form-single">
-                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                <div class="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -57,7 +57,7 @@
                             </svg>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-blue-700">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">
                                 <strong>Mode message unique :</strong> Validez un seul message HL7 v2.5 (structure + règles IHE PAM) ou un message HPRIM XML (validation XSD + contenu). Détection automatique du format.
                             </p>
                         </div>
@@ -66,9 +66,9 @@
 
                 <!-- Textarea pour le message -->
                 <div>
-                    <label for="hl7_message" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="hl7_message" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                         Message HL7 v2.5 ou HPRIM XML
-                        <span class="text-gray-500 text-xs ml-2">(Collez votre message ici)</span>
+                        <span class="text-gray-500 dark:text-slate-400 text-xs ml-2">(Collez votre message ici)</span>
                     </label>
                     <textarea 
                         id="hl7_message" 
@@ -86,13 +86,13 @@ PV1|1|I|WARD^101^A|||DOC123^SMITH^JANE"
                 <!-- Options de validation -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="direction" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="direction" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                             Direction
                         </label>
                         <select 
                             id="direction" 
                             name="direction"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500"
                         >
                             <option value="inbound" {% if direction == "inbound" %}selected{% endif %}>Inbound (réception)</option>
                             <option value="outbound" {% if direction == "outbound" %}selected{% endif %}>Outbound (émission)</option>
@@ -100,13 +100,13 @@ PV1|1|I|WARD^101^A|||DOC123^SMITH^JANE"
                     </div>
 
                     <div>
-                        <label for="profile" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="profile" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                             Profil de validation
                         </label>
                         <select 
                             id="profile" 
                             name="profile"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500"
                         >
                             <option value="IHE_PAM_FR" {% if profile == "IHE_PAM_FR" %}selected{% endif %}>IHE PAM France</option>
                             <option value="IHE_PAM" {% if profile == "IHE_PAM" %}selected{% endif %}>IHE PAM International</option>
@@ -118,7 +118,7 @@ PV1|1|I|WARD^101^A|||DOC123^SMITH^JANE"
                 <div class="flex justify-end">
                     <button 
                         type="submit"
-                        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 transition-colors"
                     >
                         <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -130,7 +130,7 @@ PV1|1|I|WARD^101^A|||DOC123^SMITH^JANE"
 
             <!-- Mode: Scénario (workflow) -->
             <form method="post" action="/validation/validate-scenario" class="space-y-4 hidden" data-no-ajax="1" id="form-scenario">
-                <div class="bg-purple-50 border-l-4 border-purple-400 p-4 mb-4">
+                <div class="bg-purple-50 dark:bg-purple-950/30 border-l-4 border-purple-400 p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
@@ -138,7 +138,7 @@ PV1|1|I|WARD^101^A|||DOC123^SMITH^JANE"
                             </svg>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-purple-700">
+                            <p class="text-sm text-purple-700 dark:text-purple-300">
                                 <strong>Mode scénario :</strong> Validez plusieurs messages HL7 séparés par un saut de ligne vide.
                                 Le système vérifiera la cohérence du workflow (transitions d'état), l'identité patient/dossier et la chronologie.
                             </p>
@@ -148,9 +148,9 @@ PV1|1|I|WARD^101^A|||DOC123^SMITH^JANE"
 
                 <!-- Textarea pour le scénario -->
                 <div>
-                    <label for="scenario_messages" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="scenario_messages" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                         Messages du scénario
-                        <span class="text-gray-500 text-xs ml-2">(Séparez chaque message par un saut de ligne vide)</span>
+                        <span class="text-gray-500 dark:text-slate-400 text-xs ml-2">(Séparez chaque message par un saut de ligne vide)</span>
                     </label>
                     <textarea 
                         id="scenario_messages" 
@@ -178,13 +178,13 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                 <!-- Options de validation -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="scenario_direction" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="scenario_direction" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                             Direction
                         </label>
                         <select 
                             id="scenario_direction" 
                             name="direction"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-purple-500"
                         >
                             <option value="inbound" selected>Inbound (réception)</option>
                             <option value="outbound">Outbound (émission)</option>
@@ -192,13 +192,13 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                     </div>
 
                     <div>
-                        <label for="scenario_profile" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="scenario_profile" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                             Profil de validation
                         </label>
                         <select 
                             id="scenario_profile" 
                             name="profile"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-purple-500"
                         >
                             <option value="IHE_PAM_FR" selected>IHE PAM France</option>
                             <option value="IHE_PAM">IHE PAM International</option>
@@ -210,7 +210,7 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                 <div class="flex justify-end">
                     <button 
                         type="submit"
-                        class="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+                        class="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:ring-offset-2 transition-colors"
                     >
                         <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
@@ -223,91 +223,91 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
 
         {% if validation_done and not scenario_result %}
         <!-- Résultats de validation (message unique) -->
-        <div class="border-t border-gray-200 px-6 py-6 bg-gray-50">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Résultats de la validation</h2>
+        <div class="border-t border-gray-200 dark:border-slate-700 px-6 py-6 bg-gray-50 dark:bg-slate-700">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-slate-200 mb-4">Résultats de la validation</h2>
 
             {% if format_detected == 'HPRIM_XML' %}
             <!-- Résultats HPRIM XML -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <!-- Statut global -->
-                <div class="bg-white rounded-lg shadow p-4 border-l-4 {% if hprim_result.succes %}border-green-500{% else %}border-red-500{% endif %}">
-                    <div class="text-sm font-medium text-gray-600">Statut</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 {% if hprim_result.succes %}border-green-500{% else %}border-red-500{% endif %}">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Statut</div>
                     <div class="text-2xl font-bold {% if hprim_result.succes %}text-green-600{% else %}text-red-600{% endif %}">
                         {% if hprim_result.succes %}✓ OK{% else %}✗ Fail{% endif %}
                     </div>
-                    <div class="text-xs text-gray-500 mt-1">
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">
                         {% if hprim_result.succes %}Message HPRIM valide{% else %}Message invalide{% endif %}
                     </div>
                     {% if hprim_result.schema_utilise %}
-                    <div class="text-xs text-gray-500 mt-1">Schéma sélectionné: <span class="font-mono font-semibold">{{ hprim_result.schema_utilise }}</span></div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Schéma sélectionné: <span class="font-mono font-semibold">{{ hprim_result.schema_utilise }}</span></div>
                     {% endif %}
                 </div>
 
                 <!-- Erreurs XSD -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Erreurs XSD</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Erreurs XSD</div>
                     <div class="text-2xl font-bold {% if xsd_errors %}text-red-600{% else %}text-green-600{% endif %}">{{ xsd_errors|length if xsd_errors else 0 }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Validation schéma XML</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Validation schéma XML</div>
                 </div>
 
                 <!-- Erreurs contenu -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Erreurs contenu</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Erreurs contenu</div>
                     <div class="text-2xl font-bold {% if hprim_result.type_erreur == 'VALIDATION' %}text-red-600{% else %}text-green-600{% endif %}">{{ hprim_result.erreurs|length if hprim_result.type_erreur == 'VALIDATION' else 0 }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Règles métier HPRIM</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Règles métier HPRIM</div>
                 </div>
 
                 <!-- Encodage -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Encodage</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Encodage</div>
                     <div class="text-2xl font-bold {% if hprim_result.type_erreur == 'ENCODING' %}text-red-600{% else %}text-green-600{% endif %}">{% if hprim_result.type_erreur == 'ENCODING' %}✗ ISO-8859-1{% else %}✓ ISO-8859-1{% endif %}</div>
-                    <div class="text-xs text-gray-500 mt-1">Vérification du charset</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Vérification du charset</div>
                 </div>
             </div>
 
             <!-- Détails -->
             <div class="space-y-4">
                 {% if xsd_errors %}
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-indigo-100 px-4 py-3 border-b border-indigo-200">
-                        <h3 class="text-lg font-semibold text-indigo-800">Validation XSD ({{ xsd_errors|length }})</h3>
-                        <p class="text-sm text-indigo-600">Erreurs de conformité au schéma</p>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                    <div class="bg-indigo-100 dark:bg-indigo-900/40 px-4 py-3 border-b border-indigo-200 dark:border-indigo-800">
+                        <h3 class="text-lg font-semibold text-indigo-800 dark:text-indigo-200">Validation XSD ({{ xsd_errors|length }})</h3>
+                        <p class="text-sm text-indigo-600 dark:text-indigo-400">Erreurs de conformité au schéma</p>
                     </div>
                     <div class="p-4">
                         {% for err in xsd_errors %}
                         <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                             <div class="flex items-start">
-                                <span class="px-2 py-1 rounded text-xs font-semibold mr-3 bg-red-100 text-red-800">ERROR</span>
-                                <div class="flex-1 text-sm text-gray-700">{{ err }}</div>
+                                <span class="px-2 py-1 rounded text-xs font-semibold mr-3 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200">ERROR</span>
+                                <div class="flex-1 text-sm text-gray-700 dark:text-slate-300">{{ err }}</div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
                 {% elif hprim_result.type_erreur == 'ENCODING' %}
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-yellow-100 px-4 py-3 border-b border-yellow-200">
-                        <h3 class="text-lg font-semibold text-yellow-800">Problème d'encodage</h3>
-                        <p class="text-sm text-yellow-600">Le message doit être en ISO-8859-1</p>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                    <div class="bg-yellow-100 dark:bg-yellow-900/40 px-4 py-3 border-b border-yellow-200 dark:border-yellow-800">
+                        <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200">Problème d'encodage</h3>
+                        <p class="text-sm text-yellow-600 dark:text-yellow-400">Le message doit être en ISO-8859-1</p>
                     </div>
-                    <div class="p-4 text-sm text-gray-700">{{ hprim_result.erreur }}</div>
+                    <div class="p-4 text-sm text-gray-700 dark:text-slate-300">{{ hprim_result.erreur }}</div>
                 </div>
                 {% elif hprim_result.type_erreur == 'VALIDATION' %}
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-purple-100 px-4 py-3 border-b border-purple-200">
-                        <h3 class="text-lg font-semibold text-purple-800">Règles métier HPRIM ({{ hprim_result.erreurs|length }})</h3>
-                        <p class="text-sm text-purple-600">Erreurs détectées lors de la validation du contenu</p>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                    <div class="bg-purple-100 dark:bg-purple-900/40 px-4 py-3 border-b border-purple-200 dark:border-purple-800">
+                        <h3 class="text-lg font-semibold text-purple-800 dark:text-purple-200">Règles métier HPRIM ({{ hprim_result.erreurs|length }})</h3>
+                        <p class="text-sm text-purple-600 dark:text-purple-400">Erreurs détectées lors de la validation du contenu</p>
                     </div>
                     <div class="p-4">
                         {% for issue in hprim_result.erreurs %}
                         <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                             <div class="flex items-start">
-                                <span class="px-2 py-1 rounded text-xs font-semibold mr-3 bg-red-100 text-red-800">ERROR</span>
+                                <span class="px-2 py-1 rounded text-xs font-semibold mr-3 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200">ERROR</span>
                                 <div class="flex-1">
-                                    <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                                    <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                                    <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                                     {% if issue.location %}
-                                    <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -316,17 +316,17 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                     </div>
                 </div>
                 {% elif hprim_result.succes %}
-                <div class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                <div class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-6 text-center">
                     <svg class="w-16 h-16 mx-auto text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <h3 class="text-xl font-bold text-green-800 mb-2">Message HPRIM parfaitement valide !</h3>
-                    <p class="text-green-600">Type: <span class="font-mono font-semibold">{{ hprim_result.type_message }}</span></p>
+                    <h3 class="text-xl font-bold text-green-800 dark:text-green-200 mb-2">Message HPRIM parfaitement valide !</h3>
+                    <p class="text-green-600 dark:text-green-400">Type: <span class="font-mono font-semibold">{{ hprim_result.type_message }}</span></p>
                 </div>
                 {% else %}
-                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <h3 class="text-lg font-semibold text-red-800">Erreur de traitement</h3>
-                    <p class="text-sm text-red-700 mt-1">{{ hprim_result.erreur }}</p>
+                <div class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-red-800 dark:text-red-200">Erreur de traitement</h3>
+                    <p class="text-sm text-red-700 dark:text-red-300 mt-1">{{ hprim_result.erreur }}</p>
                 </div>
                 {% endif %}
             </div>
@@ -342,56 +342,56 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
             <!-- Résumé global -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <!-- Statut global -->
-                <div class="bg-white rounded-lg shadow p-4 border-l-4 {% if result.level == 'ok' %}border-green-500{% elif result.level == 'warn' %}border-yellow-500{% else %}border-red-500{% endif %}">
-                    <div class="text-sm font-medium text-gray-600">Statut</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 {% if result.level == 'ok' %}border-green-500{% elif result.level == 'warn' %}border-yellow-500{% else %}border-red-500{% endif %}">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Statut</div>
                     <div class="text-2xl font-bold {% if result.level == 'ok' %}text-green-600{% elif result.level == 'warn' %}text-yellow-600{% else %}text-red-600{% endif %}">
                         {% if result.level == 'ok' %}✓ OK{% elif result.level == 'warn' %}⚠ Warning{% else %}✗ Fail{% endif %}
                     </div>
-                    <div class="text-xs text-gray-500 mt-1">
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">
                         {% if result.is_valid %}Message valide{% else %}Message invalide{% endif %}
                     </div>
                 </div>
 
                 <!-- Erreurs -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Erreurs</div>
-                    <div class="text-2xl font-bold text-red-600">{{ errors|length }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Violations critiques</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Erreurs</div>
+                    <div class="text-2xl font-bold text-red-600 dark:text-red-400">{{ errors|length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Violations critiques</div>
                 </div>
 
                 <!-- Warnings -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Warnings</div>
-                    <div class="text-2xl font-bold text-yellow-600">{{ warnings|length }}</div>
-                    <div class="text-xs text-gray-500 mt-1">À corriger</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Warnings</div>
+                    <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ warnings|length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">À corriger</div>
                 </div>
 
                 <!-- Infos -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Infos</div>
-                    <div class="text-2xl font-bold text-blue-600">{{ infos|length }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Informations</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Infos</div>
+                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ infos|length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Informations</div>
                 </div>
             </div>
 
             <!-- Métadonnées du message -->
-            <div class="bg-white rounded-lg shadow p-4 mb-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Message analysé</h3>
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-200 mb-3">Message analysé</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                        <span class="text-gray-600">Type:</span>
+                        <span class="text-gray-600 dark:text-slate-300">Type:</span>
                         <span class="ml-2 font-mono font-semibold">{{ result.message_type }}</span>
                     </div>
                     <div>
-                        <span class="text-gray-600">Event:</span>
+                        <span class="text-gray-600 dark:text-slate-300">Event:</span>
                         <span class="ml-2 font-mono font-semibold">{{ result.event }}</span>
                     </div>
                     <div>
-                        <span class="text-gray-600">Direction:</span>
+                        <span class="text-gray-600 dark:text-slate-300">Direction:</span>
                         <span class="ml-2 font-semibold">{{ direction }}</span>
                     </div>
                     <div>
-                        <span class="text-gray-600">Profil:</span>
+                        <span class="text-gray-600 dark:text-slate-300">Profil:</span>
                         <span class="ml-2 font-semibold">{{ profile }}</span>
                     </div>
                 </div>
@@ -402,26 +402,26 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
             <div class="space-y-4">
                 <!-- Couche 1: IHE PAM -->
                 {% if ihe_pam %}
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-purple-100 px-4 py-3 border-b border-purple-200">
-                        <h3 class="text-lg font-semibold text-purple-800">
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                    <div class="bg-purple-100 dark:bg-purple-900/40 px-4 py-3 border-b border-purple-200 dark:border-purple-800">
+                        <h3 class="text-lg font-semibold text-purple-800 dark:text-purple-200">
                             Couche 1: IHE PAM ({{ ihe_pam|length }})
                         </h3>
-                        <p class="text-sm text-purple-600">Règles métier IHE Patient Administration Management</p>
+                        <p class="text-sm text-purple-600 dark:text-purple-400">Règles métier IHE Patient Administration Management</p>
                     </div>
                     <div class="p-4">
                         {% for issue in ihe_pam %}
                         <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                             <div class="flex items-start">
                                 <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                                     {% else %}bg-blue-100 text-blue-800{% endif %}">
                                     {{ issue.severity|upper }}
                                 </span>
                                 <div class="flex-1">
-                                    <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                                    <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                                    <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                                 </div>
                             </div>
                         </div>
@@ -432,26 +432,26 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
 
                 <!-- Couche 2: HAPI Structures -->
                 {% if hapi or segment_order %}
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-indigo-100 px-4 py-3 border-b border-indigo-200">
-                        <h3 class="text-lg font-semibold text-indigo-800">
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                    <div class="bg-indigo-100 dark:bg-indigo-900/40 px-4 py-3 border-b border-indigo-200 dark:border-indigo-800">
+                        <h3 class="text-lg font-semibold text-indigo-800 dark:text-indigo-200">
                             Couche 2: HAPI Structures ({{ (hapi|length) + (segment_order|length) }})
                         </h3>
-                        <p class="text-sm text-indigo-600">Structure et ordre des segments selon HAPI</p>
+                        <p class="text-sm text-indigo-600 dark:text-indigo-400">Structure et ordre des segments selon HAPI</p>
                     </div>
                     <div class="p-4">
                         {% for issue in hapi + segment_order %}
                         <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                             <div class="flex items-start">
                                 <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                                     {% else %}bg-blue-100 text-blue-800{% endif %}">
                                     {{ issue.severity|upper }}
                                 </span>
                                 <div class="flex-1">
-                                    <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                                    <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                                    <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                                 </div>
                             </div>
                         </div>
@@ -462,26 +462,26 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
 
                 <!-- Couche 3: HL7 v2.5 Base -->
                 {% if hl7_base %}
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-green-100 px-4 py-3 border-b border-green-200">
-                        <h3 class="text-lg font-semibold text-green-800">
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                    <div class="bg-green-100 dark:bg-green-900/40 px-4 py-3 border-b border-green-200 dark:border-green-800">
+                        <h3 class="text-lg font-semibold text-green-800 dark:text-green-200">
                             Couche 3: HL7 v2.5 Base ({{ hl7_base|length }})
                         </h3>
-                        <p class="text-sm text-green-600">Validation segments MSH, EVN, PID obligatoires</p>
+                        <p class="text-sm text-green-600 dark:text-green-400">Validation segments MSH, EVN, PID obligatoires</p>
                     </div>
                     <div class="p-4">
                         {% for issue in hl7_base %}
                         <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                             <div class="flex items-start">
                                 <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                                     {% else %}bg-blue-100 text-blue-800{% endif %}">
                                     {{ issue.severity|upper }}
                                 </span>
                                 <div class="flex-1">
-                                    <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                                    <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                                    <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                                 </div>
                             </div>
                         </div>
@@ -492,26 +492,26 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
 
                 <!-- Couche 4: Types de Données Complexes -->
                 {% if datatypes %}
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-orange-100 px-4 py-3 border-b border-orange-200">
-                        <h3 class="text-lg font-semibold text-orange-800">
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                    <div class="bg-orange-100 dark:bg-orange-900/40 px-4 py-3 border-b border-orange-200 dark:border-orange-800">
+                        <h3 class="text-lg font-semibold text-orange-800 dark:text-orange-200">
                             Couche 4: Types de Données Complexes ({{ datatypes|length }})
                         </h3>
-                        <p class="text-sm text-orange-600">Validation CX, XPN, XAD, XTN, TS, PL, XCN</p>
+                        <p class="text-sm text-orange-600 dark:text-orange-400">Validation CX, XPN, XAD, XTN, TS, PL, XCN</p>
                     </div>
                     <div class="p-4">
                         {% for issue in datatypes %}
                         <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                             <div class="flex items-start">
                                 <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                                     {% else %}bg-blue-100 text-blue-800{% endif %}">
                                     {{ issue.severity|upper }}
                                 </span>
                                 <div class="flex-1">
-                                    <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                                    <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                                    <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                                 </div>
                             </div>
                         </div>
@@ -522,12 +522,12 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
             </div>
             {% else %}
             <!-- Aucune issue -->
-            <div class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+            <div class="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-6 text-center">
                 <svg class="w-16 h-16 mx-auto text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <h3 class="text-xl font-bold text-green-800 mb-2">Message parfaitement valide !</h3>
-                <p class="text-green-600">Aucun problème détecté sur aucune des 4 couches de validation.</p>
+                <h3 class="text-xl font-bold text-green-800 dark:text-green-200 mb-2">Message parfaitement valide !</h3>
+                <p class="text-green-600 dark:text-green-400">Aucun problème détecté sur aucune des 4 couches de validation.</p>
             </div>
             {% endif %}
 
@@ -544,8 +544,8 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
 
         {% if scenario_result %}
         <!-- Résultats de validation (scénario) -->
-        <div class="border-t border-gray-200 px-6 py-6 bg-gray-50">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">
+        <div class="border-t border-gray-200 dark:border-slate-700 px-6 py-6 bg-gray-50 dark:bg-slate-700">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-slate-200 mb-4">
                 <svg class="inline-block w-6 h-6 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                 </svg>
@@ -555,62 +555,62 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
             <!-- Résumé global du scénario -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <!-- Statut global -->
-                <div class="bg-white rounded-lg shadow p-4 border-l-4 {% if scenario_result.level == 'ok' %}border-green-500{% elif scenario_result.level == 'warn' %}border-yellow-500{% else %}border-red-500{% endif %}">
-                    <div class="text-sm font-medium text-gray-600">Statut Scénario</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 {% if scenario_result.level == 'ok' %}border-green-500{% elif scenario_result.level == 'warn' %}border-yellow-500{% else %}border-red-500{% endif %}">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Statut Scénario</div>
                     <div class="text-2xl font-bold {% if scenario_result.level == 'ok' %}text-green-600{% elif scenario_result.level == 'warn' %}text-yellow-600{% else %}text-red-600{% endif %}">
                         {% if scenario_result.level == 'ok' %}✓ OK{% elif scenario_result.level == 'warn' %}⚠ Warning{% else %}✗ Fail{% endif %}
                     </div>
-                    <div class="text-xs text-gray-500 mt-1">
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">
                         {% if scenario_result.is_valid %}Workflow valide{% else %}Workflow invalide{% endif %}
                     </div>
                 </div>
 
                 <!-- Messages -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Messages</div>
-                    <div class="text-2xl font-bold text-blue-600">{{ scenario_result.total_messages }}</div>
-                    <div class="text-xs text-gray-500 mt-1">{{ scenario_result.valid_messages }} valide(s)</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Messages</div>
+                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ scenario_result.total_messages }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ scenario_result.valid_messages }} valide(s)</div>
                 </div>
 
                 <!-- Issues workflow -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Workflow</div>
-                    <div class="text-2xl font-bold text-purple-600">{{ scenario_result.workflow_issues|length }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Problème(s) transitions</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Workflow</div>
+                    <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ scenario_result.workflow_issues|length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Problème(s) transitions</div>
                 </div>
 
                 <!-- Issues cohérence -->
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="text-sm font-medium text-gray-600">Cohérence</div>
-                    <div class="text-2xl font-bold text-orange-600">{{ scenario_result.coherence_issues|length }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Problème(s) cohérence</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                    <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Cohérence</div>
+                    <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ scenario_result.coherence_issues|length }}</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Problème(s) cohérence</div>
                 </div>
             </div>
 
             <!-- Issues workflow -->
             {% if scenario_result.workflow_issues %}
-            <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
-                <div class="bg-purple-100 px-4 py-3 border-b border-purple-200">
-                    <h3 class="text-lg font-semibold text-purple-800">
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden mb-6">
+                <div class="bg-purple-100 dark:bg-purple-900/40 px-4 py-3 border-b border-purple-200 dark:border-purple-800">
+                    <h3 class="text-lg font-semibold text-purple-800 dark:text-purple-200">
                         <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                         Workflow ({{ scenario_result.workflow_issues|length }})
                     </h3>
-                    <p class="text-sm text-purple-600">Transitions d'état entre messages</p>
+                    <p class="text-sm text-purple-600 dark:text-purple-400">Transitions d'état entre messages</p>
                 </div>
                 <div class="p-4">
                     {% for issue in scenario_result.workflow_issues %}
                     <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                         <div class="flex items-start">
-                            <span class="px-2 py-1 rounded text-xs font-semibold mr-3 bg-red-100 text-red-800">
+                            <span class="px-2 py-1 rounded text-xs font-semibold mr-3 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200">
                                 {{ issue.severity|upper }}
                             </span>
                             <div class="flex-1">
-                                <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                                <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                                <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                                <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                                 {% if issue.location %}
-                                <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -622,30 +622,30 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
 
             <!-- Issues cohérence -->
             {% if scenario_result.coherence_issues %}
-            <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
-                <div class="bg-orange-100 px-4 py-3 border-b border-orange-200">
-                    <h3 class="text-lg font-semibold text-orange-800">
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden mb-6">
+                <div class="bg-orange-100 dark:bg-orange-900/40 px-4 py-3 border-b border-orange-200 dark:border-orange-800">
+                    <h3 class="text-lg font-semibold text-orange-800 dark:text-orange-200">
                         <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         Cohérence ({{ scenario_result.coherence_issues|length }})
                     </h3>
-                    <p class="text-sm text-orange-600">Identifiants patient/dossier, chronologie</p>
+                    <p class="text-sm text-orange-600 dark:text-orange-400">Identifiants patient/dossier, chronologie</p>
                 </div>
                 <div class="p-4">
                     {% for issue in scenario_result.coherence_issues %}
                     <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                         <div class="flex items-start">
                             <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                                {% if issue.severity == 'error' %}bg-red-100 text-red-800
+                                {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
                                 {% else %}bg-yellow-100 text-yellow-800{% endif %}">
                                 {{ issue.severity|upper }}
                             </span>
                             <div class="flex-1">
-                                <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                                <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                                <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                                <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                                 {% if issue.location %}
-                                <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -656,40 +656,40 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
             {% endif %}
 
             <!-- Messages individuels -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <div class="bg-blue-100 px-4 py-3 border-b border-blue-200">
-                    <h3 class="text-lg font-semibold text-blue-800">
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                <div class="bg-blue-100 dark:bg-blue-900/40 px-4 py-3 border-b border-blue-200 dark:border-blue-800">
+                    <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200">
                         Messages du scénario ({{ scenario_result.total_messages }})
                     </h3>
-                    <p class="text-sm text-blue-600">Validation individuelle de chaque message</p>
+                    <p class="text-sm text-blue-600 dark:text-blue-400">Validation individuelle de chaque message</p>
                 </div>
-                <div class="divide-y divide-gray-200">
+                <div class="divide-y divide-gray-200 dark:divide-slate-700">
                     {% for msg in scenario_result.messages %}
                     <div class="p-4 {% if not msg.validation.is_valid %}bg-red-50{% endif %}">
                         <div class="flex items-start justify-between mb-2">
                             <div class="flex items-center space-x-3">
                                 <span class="px-3 py-1 rounded-full text-sm font-bold
-                                    {% if msg.validation.is_valid %}bg-green-100 text-green-800
+                                    {% if msg.validation.is_valid %}bg-green-100 text-green-800 dark:text-green-200
                                     {% else %}bg-red-100 text-red-800{% endif %}">
                                     Message #{{ msg.message_number }}
                                 </span>
-                                <span class="font-mono text-sm font-semibold text-gray-800">
+                                <span class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">
                                     {{ msg.event_code }} ({{ msg.message_type }})
                                 </span>
                                 {% if msg.timestamp %}
-                                <span class="text-xs text-gray-500">
+                                <span class="text-xs text-gray-500 dark:text-slate-400">
                                     🕐 {{ msg.timestamp }}
                                 </span>
                                 {% endif %}
                             </div>
                             <div class="flex items-center space-x-2 text-xs">
                                 {% if msg.patient_id %}
-                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
                                     Patient: {{ msg.patient_id }}
                                 </span>
                                 {% endif %}
                                 {% if msg.visit_id %}
-                                <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                <span class="bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">
                                     Dossier: {{ msg.visit_id }}
                                 </span>
                                 {% endif %}
@@ -701,20 +701,20 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                             {% for issue in msg.validation.issues %}
                             <div class="flex items-start text-sm">
                                 <span class="px-2 py-0.5 rounded text-xs font-semibold mr-2
-                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                                    {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                                    {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                                     {% else %}bg-blue-100 text-blue-800{% endif %}">
                                     {{ issue.severity|upper }}
                                 </span>
                                 <div class="flex-1">
-                                    <span class="font-mono text-xs font-semibold text-gray-700">{{ issue.code }}:</span>
-                                    <span class="text-gray-600">{{ issue.message }}</span>
+                                    <span class="font-mono text-xs font-semibold text-gray-700 dark:text-slate-300">{{ issue.code }}:</span>
+                                    <span class="text-gray-600 dark:text-slate-300">{{ issue.message }}</span>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
                         {% else %}
-                        <div class="mt-2 ml-4 text-sm text-green-600">
+                        <div class="mt-2 ml-4 text-sm text-green-600 dark:text-green-400">
                             ✓ Message valide (aucune issue)
                         </div>
                         {% endif %}
@@ -734,9 +734,9 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
     </div>
 
     <!-- Aide -->
-    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 class="text-lg font-semibold text-blue-800 mb-2">💡 Aide</h3>
-        <div class="text-sm text-blue-700 space-y-2">
+    <div class="mt-6 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">💡 Aide</h3>
+        <div class="text-sm text-blue-700 dark:text-blue-300 space-y-2">
             <p><strong>4 couches de validation :</strong></p>
             <ul class="list-disc list-inside ml-4 space-y-1">
                 <li><strong>Couche 1 (IHE PAM)</strong> : Règles métier IHE Patient Administration Management</li>
@@ -744,7 +744,7 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                 <li><strong>Couche 3 (HL7 v2.5)</strong> : Validation segments MSH, EVN, PID obligatoires</li>
                 <li><strong>Couche 4 (Datatypes)</strong> : Types de données complexes (CX, XPN, XAD, XTN, TS, PL, XCN)</li>
             </ul>
-            <p class="mt-3"><strong>Sévérités :</strong> <span class="font-mono text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">ERROR</span> = critique, <span class="font-mono text-xs bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded">WARN</span> = recommandé, <span class="font-mono text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded">INFO</span> = information</p>
+            <p class="mt-3"><strong>Sévérités :</strong> <span class="font-mono text-xs bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 px-1 py-0.5 rounded">ERROR</span> = critique, <span class="font-mono text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 px-1 py-0.5 rounded">WARN</span> = recommandé, <span class="font-mono text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-1 py-0.5 rounded">INFO</span> = information</p>
         </div>
     </div>
 </div>

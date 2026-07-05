@@ -7,15 +7,15 @@
     - current_entity: L'entité actuelle (EG, Pole, Service, UF, UH, Chambre, Lit)
     - entity_type: Type de l'entité ('eg', 'pole', 'service', 'uf', 'uh', 'chambre', 'lit')
 #}
-<nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6 flex-wrap">
+<nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6 flex-wrap">
   <a href="/" class="hover:text-blue-600 transition-colors flex items-center gap-1">
     {{ icon('home', 'w-4 h-4') }}
     <span>Accueil</span>
   </a>
-  <span class="text-slate-400">/</span>
+  <span class="text-slate-400 dark:text-slate-500">/</span>
   
   <a href="/structure" class="hover:text-blue-600 transition-colors">Structure</a>
-  <span class="text-slate-400">/</span>
+  <span class="text-slate-400 dark:text-slate-500">/</span>
 
   {% if entity_type in ['eg', 'pole', 'service', 'uf', 'uh', 'chambre', 'lit'] %}
     {# Entité Géographique #}
@@ -34,7 +34,7 @@
     
     {% if eg %}
       {% if entity_type == 'eg' %}
-        <span class="text-slate-800 font-medium flex items-center gap-1">
+        <span class="text-slate-800 dark:text-slate-100 font-medium flex items-center gap-1">
           {{ icon('building-office-2', 'w-4 h-4') }}
           {{ eg.name }}
         </span>
@@ -43,7 +43,7 @@
           {{ icon('building-office-2', 'w-4 h-4') }}
           {{ eg.name }}
         </a>
-        <span class="text-slate-400">/</span>
+        <span class="text-slate-400 dark:text-slate-500">/</span>
       {% endif %}
     {% endif %}
 
@@ -62,7 +62,7 @@
       
       {% if pole %}
         {% if entity_type == 'pole' %}
-          <span class="text-slate-800 font-medium flex items-center gap-1">
+          <span class="text-slate-800 dark:text-slate-100 font-medium flex items-center gap-1">
             {{ icon('squares-2x2', 'w-4 h-4') }}
             {{ pole.name }}
           </span>
@@ -71,7 +71,7 @@
             {{ icon('squares-2x2', 'w-4 h-4') }}
             {{ pole.name }}
           </a>
-          <span class="text-slate-400">/</span>
+          <span class="text-slate-400 dark:text-slate-500">/</span>
         {% endif %}
       {% endif %}
     {% endif %}
@@ -89,7 +89,7 @@
       
       {% if service %}
         {% if entity_type == 'service' %}
-          <span class="text-slate-800 font-medium flex items-center gap-1">
+          <span class="text-slate-800 dark:text-slate-100 font-medium flex items-center gap-1">
             {{ icon('building-office', 'w-4 h-4') }}
             {{ service.name }}
           </span>
@@ -98,7 +98,7 @@
             {{ icon('building-office', 'w-4 h-4') }}
             {{ service.name }}
           </a>
-          <span class="text-slate-400">/</span>
+          <span class="text-slate-400 dark:text-slate-500">/</span>
         {% endif %}
       {% endif %}
     {% endif %}
@@ -114,7 +114,7 @@
       
       {% if uf %}
         {% if entity_type == 'uf' %}
-          <span class="text-slate-800 font-medium flex items-center gap-1">
+          <span class="text-slate-800 dark:text-slate-100 font-medium flex items-center gap-1">
             {{ icon('rectangle-group', 'w-4 h-4') }}
             {{ uf.name }}
           </span>
@@ -123,7 +123,7 @@
             {{ icon('rectangle-group', 'w-4 h-4') }}
             {{ uf.name }}
           </a>
-          <span class="text-slate-400">/</span>
+          <span class="text-slate-400 dark:text-slate-500">/</span>
         {% endif %}
       {% endif %}
     {% endif %}
@@ -137,7 +137,7 @@
       
       {% if uh %}
         {% if entity_type == 'uh' %}
-          <span class="text-slate-800 font-medium flex items-center gap-1">
+          <span class="text-slate-800 dark:text-slate-100 font-medium flex items-center gap-1">
             {{ icon('building-library', 'w-4 h-4') }}
             {{ uh.name }}
           </span>
@@ -146,7 +146,7 @@
             {{ icon('building-library', 'w-4 h-4') }}
             {{ uh.name }}
           </a>
-          <span class="text-slate-400">/</span>
+          <span class="text-slate-400 dark:text-slate-500">/</span>
         {% endif %}
       {% endif %}
     {% endif %}
@@ -157,7 +157,7 @@
       
       {% if chambre %}
         {% if entity_type == 'chambre' %}
-          <span class="text-slate-800 font-medium flex items-center gap-1">
+          <span class="text-slate-800 dark:text-slate-100 font-medium flex items-center gap-1">
             {{ icon('home-modern', 'w-4 h-4') }}
             {{ chambre.name }}
           </span>
@@ -166,14 +166,14 @@
             {{ icon('home-modern', 'w-4 h-4') }}
             {{ chambre.name }}
           </a>
-          <span class="text-slate-400">/</span>
+          <span class="text-slate-400 dark:text-slate-500">/</span>
         {% endif %}
       {% endif %}
     {% endif %}
 
     {# Lit #}
     {% if entity_type == 'lit' %}
-      <span class="text-slate-800 font-medium flex items-center gap-1">
+      <span class="text-slate-800 dark:text-slate-100 font-medium flex items-center gap-1">
         {{ icon('inbox-stack', 'w-4 h-4') }}
         {{ current_entity.name }}
       </span>
@@ -189,9 +189,9 @@
     - entity: L'entité actuelle
     - entity_type: Type de l'entité ('eg', 'pole', 'service', 'uf', 'uh', 'chambre', 'lit')
 #}
-<div class="bg-white rounded-xl border-2 border-slate-200 p-6 shadow-sm">
-  <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-    {{ icon('bolt', 'w-5 h-5 text-blue-600') }}
+<div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+  <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+    {{ icon('bolt', 'w-5 h-5 text-blue-600 dark:text-blue-400') }}
     <span>Actions rapides</span>
   </h3>
   
@@ -199,69 +199,69 @@
     {% if entity_type == 'eg' %}
       {# Actions pour Entité Géographique #}
       <a href="/structure/poles/new?eg_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors group">
-        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-          {{ icon('plus', 'w-5 h-5 text-blue-600') }}
+        <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+          {{ icon('plus', 'w-5 h-5 text-blue-600 dark:text-blue-400') }}
         </div>
         <div>
-          <div class="font-medium text-slate-900">Créer un pôle</div>
-          <div class="text-xs text-slate-500">Ajouter un nouveau pôle d'activité</div>
+          <div class="font-medium text-slate-900 dark:text-slate-100">Créer un pôle</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Ajouter un nouveau pôle d'activité</div>
         </div>
       </a>
       
       <a href="/mouvements/plan-lits" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-emerald-50 transition-colors group">
-        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-          {{ icon('table-cells', 'w-5 h-5 text-emerald-600') }}
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+          {{ icon('table-cells', 'w-5 h-5 text-emerald-600 dark:text-emerald-400') }}
         </div>
         <div>
-          <div class="font-medium text-slate-900">Plan des lits</div>
-          <div class="text-xs text-slate-500">Vue d'ensemble des lits disponibles</div>
+          <div class="font-medium text-slate-900 dark:text-slate-100">Plan des lits</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Vue d'ensemble des lits disponibles</div>
         </div>
       </a>
       
       <a href="/patients?eg_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-purple-50 transition-colors group">
-        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-          {{ icon('users', 'w-5 h-5 text-purple-600') }}
+        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+          {{ icon('users', 'w-5 h-5 text-purple-600 dark:text-purple-400') }}
         </div>
         <div>
-          <div class="font-medium text-slate-900">Patients du site</div>
-          <div class="text-xs text-slate-500">Liste des patients hospitalisés</div>
+          <div class="font-medium text-slate-900 dark:text-slate-100">Patients du site</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Liste des patients hospitalisés</div>
         </div>
       </a>
       
     {% elif entity_type == 'uh' %}
       {# Actions pour Unité Hébergement #}
       <a href="/structure/chambres/new?uh_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors group">
-        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-          {{ icon('plus', 'w-5 h-5 text-blue-600') }}
+        <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+          {{ icon('plus', 'w-5 h-5 text-blue-600 dark:text-blue-400') }}
         </div>
         <div>
-          <div class="font-medium text-slate-900">Créer une chambre</div>
-          <div class="text-xs text-slate-500">Ajouter une nouvelle chambre</div>
+          <div class="font-medium text-slate-900 dark:text-slate-100">Créer une chambre</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Ajouter une nouvelle chambre</div>
         </div>
       </a>
       
     {% elif entity_type == 'chambre' %}
       {# Actions pour Chambre #}
       <a href="/structure/lits/new?chambre_id={{ entity.id }}" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors group">
-        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-          {{ icon('plus', 'w-5 h-5 text-blue-600') }}
+        <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+          {{ icon('plus', 'w-5 h-5 text-blue-600 dark:text-blue-400') }}
         </div>
         <div>
-          <div class="font-medium text-slate-900">Ajouter un lit</div>
-          <div class="text-xs text-slate-500">Créer un nouveau lit dans cette chambre</div>
+          <div class="font-medium text-slate-900 dark:text-slate-100">Ajouter un lit</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Créer un nouveau lit dans cette chambre</div>
         </div>
       </a>
     {% endif %}
     
     {# Action commune : Modifier #}
     {% set edit_segment = {'eg': 'eg', 'uh': 'uh'}.get(entity_type, entity_type ~ 's') %}
-    <a href="/structure/{{ edit_segment }}/{{ entity.id }}/edit" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-50 transition-colors group border-t pt-3 mt-3">
-      <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors">
-        {{ icon('pencil-square', 'w-5 h-5 text-slate-600') }}
+    <a href="/structure/{{ edit_segment }}/{{ entity.id }}/edit" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors group border-t pt-3 mt-3">
+      <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+        {{ icon('pencil-square', 'w-5 h-5 text-slate-600 dark:text-slate-300') }}
       </div>
       <div>
-        <div class="font-medium text-slate-900">Modifier</div>
-        <div class="text-xs text-slate-500">Éditer les informations</div>
+        <div class="font-medium text-slate-900 dark:text-slate-100">Modifier</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Éditer les informations</div>
       </div>
     </a>
   </div>

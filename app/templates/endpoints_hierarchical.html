@@ -5,10 +5,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Endpoints</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Endpoints</span>
   </nav>
 
   <!-- Header -->
@@ -38,24 +38,24 @@
   </div>
 
   <!-- Légende des statuts -->
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-    <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Légende des statuts</h3>
+  <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
+    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wide mb-4">Légende des statuts</h3>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">✓ ON</span>
-        <span class="text-sm text-slate-600">Endpoint activé</span>
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">✓ ON</span>
+        <span class="text-sm text-slate-600 dark:text-slate-300">Endpoint activé</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">✗ OFF</span>
-        <span class="text-sm text-slate-600">Endpoint désactivé</span>
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">✗ OFF</span>
+        <span class="text-sm text-slate-600 dark:text-slate-300">Endpoint désactivé</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">▶ Running</span>
-        <span class="text-sm text-slate-600">Service en cours</span>
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">▶ Running</span>
+        <span class="text-sm text-slate-600 dark:text-slate-300">Service en cours</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">⏸ Stopped</span>
-        <span class="text-sm text-slate-600">Service arrêté</span>
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">⏸ Stopped</span>
+        <span class="text-sm text-slate-600 dark:text-slate-300">Service arrêté</span>
       </div>
     </div>
   </div>
@@ -64,38 +64,38 @@
   <div class="space-y-6">
         
         {% if is_filtered %}
-        <div class="bg-amber-50 border border-amber-300 rounded-lg p-4">
+        <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4">
             <div class="flex items-start gap-3">
               <span class="text-2xl">ℹ️</span>
               <div>
-                <strong class="text-amber-900">Mode filtré</strong>
-                <p class="text-amber-700 text-sm mt-1">Vous ne voyez que les endpoints du contexte actif.</p>
-                <a href="/endpoints/admin" class="text-amber-800 hover:text-amber-900 underline text-sm font-medium mt-2 inline-block">Voir tous les endpoints (mode administration)</a>
+                <strong class="text-amber-900 dark:text-amber-200">Mode filtré</strong>
+                <p class="text-amber-700 dark:text-amber-300 text-sm mt-1">Vous ne voyez que les endpoints du contexte actif.</p>
+                <a href="/endpoints/admin" class="text-amber-800 dark:text-amber-200 hover:text-amber-900 underline text-sm font-medium mt-2 inline-block">Voir tous les endpoints (mode administration)</a>
               </div>
             </div>
         </div>
         {% elif is_admin %}
-        <div class="bg-cyan-50 border border-cyan-300 rounded-lg p-4">
+        <div class="bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-300 dark:border-cyan-700 rounded-lg p-4">
             <div class="flex items-start gap-3">
               <span class="text-2xl">🔧</span>
               <div>
-                <strong class="text-cyan-900">Mode administration</strong>
-                <p class="text-cyan-700 text-sm mt-1">Vous voyez tous les endpoints du système, sans filtrage.</p>
+                <strong class="text-cyan-900 dark:text-cyan-200">Mode administration</strong>
+                <p class="text-cyan-700 dark:text-cyan-300 text-sm mt-1">Vous voyez tous les endpoints du système, sans filtrage.</p>
               </div>
             </div>
         </div>
         {% endif %}
         
         {% if not hierarchy %}
-        <div class="bg-slate-50 rounded-xl border border-slate-200 p-12 text-center">
-            <p class="text-slate-600 text-lg">Aucun système configuré. Créez votre premier système ci-dessus.</p>
+        <div class="bg-slate-50 dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+            <p class="text-slate-600 dark:text-slate-300 text-lg">Aucun système configuré. Créez votre premier système ci-dessus.</p>
         </div>
         {% endif %}
         
         {% for item in hierarchy %}
             {% if item.type == "ght" %}
             <!-- GHT Group -->
-            <div class="bg-white rounded-xl border-2 border-blue-200 shadow-sm overflow-hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-sm overflow-hidden">
                 <div class="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-3 flex justify-between items-center">
                     <div class="flex items-center gap-2">
                         <strong class="font-semibold">GHT:</strong>
@@ -110,13 +110,13 @@
                 </div>
                 <div class="p-4">
                     {% if not item.children %}
-                    <div class="py-8 text-center text-slate-500 italic">Aucun système dans ce GHT</div>
+                    <div class="py-8 text-center text-slate-500 dark:text-slate-400 italic">Aucun système dans ce GHT</div>
                     {% else %}
                         <div class="space-y-4">
                         {% for child in item.children %}
                             {% if child.type == "ej" %}
                             <!-- EJ Group -->
-                            <div class="bg-white rounded-lg border border-emerald-200 overflow-hidden">
+                            <div class="bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-emerald-800 overflow-hidden">
                                 <div class="bg-gradient-to-r from-emerald-600 to-green-600 text-white px-4 py-2 flex justify-between items-center text-sm">
                                     <div class="flex items-center gap-2">
                                         <strong class="font-semibold">Établissement Juridique:</strong>
@@ -129,45 +129,45 @@
                                 </div>
                                 <div class="p-3 overflow-x-auto">
                                     <table class="w-full text-left text-sm">
-                                        <thead class="bg-slate-50 border-b border-slate-200">
+                                        <thead class="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-700">
                                             <tr>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">ID</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">Nom</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">Type</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">Rôle</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">Host</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">Port</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">FHIR URL</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">Actif</th>
-                                                <th class="px-3 py-2 font-semibold text-slate-700">Runtime</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">ID</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Nom</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Type</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Rôle</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Host</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Port</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">FHIR URL</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Actif</th>
+                                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Runtime</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-slate-200">
+                                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                                             {% for endpoint in child.endpoints %}
-                                            <tr class="hover:bg-slate-50 transition-colors">
+                                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
                                                 {% for cell in endpoint.cells %}
                                                     {% if loop.index == 1 %}
                                                     <td class="px-3 py-2">
-                                                      <a href="{{ endpoint.detail_url }}" class="text-blue-600 hover:text-blue-800 font-medium hover:underline">{{ cell }}</a>
+                                                      <a href="{{ endpoint.detail_url }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium hover:underline">{{ cell }}</a>
                                                     </td>
                                                     {% elif loop.index == 8 %}
                                                     <td class="px-3 py-2">
                                                       {% if cell == 'ON' %}
-                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">✓ ON</span>
+                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">✓ ON</span>
                                                       {% else %}
-                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">✗ OFF</span>
+                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">✗ OFF</span>
                                                       {% endif %}
                                                     </td>
                                                     {% elif loop.index == 9 %}
                                                     <td class="px-3 py-2">
                                                       {% if cell == 'RUNNING' %}
-                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">▶ Running</span>
+                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">▶ Running</span>
                                                       {% else %}
-                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">⏸ Stopped</span>
+                                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">⏸ Stopped</span>
                                                       {% endif %}
                                                     </td>
                                                     {% else %}
-                                                    <td class="px-3 py-2 text-slate-600">{{ cell }}</td>
+                                                    <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ cell }}</td>
                                                     {% endif %}
                                                 {% endfor %}
                                             </tr>
@@ -180,44 +180,44 @@
                             <!-- Direct endpoint under GHT -->
                             <div class="overflow-x-auto">
                             <table class="w-full text-left text-sm">
-                                <thead class="bg-slate-50 border-b border-slate-200">
+                                <thead class="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-700">
                                     <tr>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">ID</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">Nom</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">Type</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">Rôle</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">Host</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">Port</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">FHIR URL</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">Actif</th>
-                                        <th class="px-3 py-2 font-semibold text-slate-700">Runtime</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">ID</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Nom</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Type</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Rôle</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Host</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Port</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">FHIR URL</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Actif</th>
+                                        <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Runtime</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-200">
-                                    <tr class="hover:bg-slate-50 transition-colors">
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
                                         {% for cell in child.endpoint.cells %}
                                             {% if loop.index == 1 %}
                                             <td class="px-3 py-2">
-                                              <a href="{{ child.endpoint.detail_url }}" class="text-blue-600 hover:text-blue-800 font-medium hover:underline">{{ cell }}</a>
+                                              <a href="{{ child.endpoint.detail_url }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium hover:underline">{{ cell }}</a>
                                             </td>
                                             {% elif loop.index == 8 %}
                                             <td class="px-3 py-2">
                                               {% if cell == 'ON' %}
-                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">✓ ON</span>
+                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">✓ ON</span>
                                               {% else %}
-                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">✗ OFF</span>
+                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">✗ OFF</span>
                                               {% endif %}
                                             </td>
                                             {% elif loop.index == 9 %}
                                             <td class="px-3 py-2">
                                               {% if cell == 'RUNNING' %}
-                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">▶ Running</span>
+                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">▶ Running</span>
                                               {% else %}
-                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">⏸ Stopped</span>
+                                              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">⏸ Stopped</span>
                                               {% endif %}
                                             </td>
                                             {% else %}
-                                            <td class="px-3 py-2 text-slate-600">{{ cell }}</td>
+                                            <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ cell }}</td>
                                             {% endif %}
                                         {% endfor %}
                                     </tr>
@@ -233,51 +233,51 @@
             
             {% elif item.type == "no_ght" %}
             <!-- No GHT Group -->
-            <div class="bg-white rounded-xl border-2 border-slate-300 shadow-sm overflow-hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-300 dark:border-slate-600 shadow-sm overflow-hidden">
                 <div class="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-3 font-semibold">
                     Systèmes sans GHT
                 </div>
                 <div class="p-4 overflow-x-auto">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200">
+                        <thead class="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-700">
                             <tr>
-                                <th class="px-3 py-2 font-semibold text-slate-700">ID</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">Nom</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">Type</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">Rôle</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">Host</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">Port</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">FHIR URL</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">Actif</th>
-                                <th class="px-3 py-2 font-semibold text-slate-700">Runtime</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">ID</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Nom</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Type</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Rôle</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Host</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Port</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">FHIR URL</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Actif</th>
+                                <th class="px-3 py-2 font-semibold text-slate-700 dark:text-slate-200">Runtime</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200">
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                             {% for endpoint in item.endpoints %}
-                            <tr class="hover:bg-slate-50 transition-colors">
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
                                 {% for cell in endpoint.cells %}
                                     {% if loop.index == 1 %}
                                     <td class="px-3 py-2">
-                                      <a href="{{ endpoint.detail_url }}" class="text-blue-600 hover:text-blue-800 font-medium hover:underline">{{ cell }}</a>
+                                      <a href="{{ endpoint.detail_url }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 font-medium hover:underline">{{ cell }}</a>
                                     </td>
                                     {% elif loop.index == 8 %}
                                     <td class="px-3 py-2">
                                       {% if cell == 'ON' %}
-                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">✓ ON</span>
+                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">✓ ON</span>
                                       {% else %}
-                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">✗ OFF</span>
+                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">✗ OFF</span>
                                       {% endif %}
                                     </td>
                                     {% elif loop.index == 9 %}
                                     <td class="px-3 py-2">
                                       {% if cell == 'RUNNING' %}
-                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">▶ Running</span>
+                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">▶ Running</span>
                                       {% else %}
-                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">⏸ Stopped</span>
+                                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">⏸ Stopped</span>
                                       {% endif %}
                                     </td>
                                     {% else %}
-                                    <td class="px-3 py-2 text-slate-600">{{ cell }}</td>
+                                    <td class="px-3 py-2 text-slate-600 dark:text-slate-300">{{ cell }}</td>
                                     {% endif %}
                                 {% endfor %}
                             </tr>

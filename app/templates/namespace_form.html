@@ -4,12 +4,12 @@
 {% block content %}
 <div class="max-w-5xl mx-auto py-8 px-4 space-y-6">
     <!-- Breadcrumb -->
-    <nav class="flex items-center gap-2 text-sm text-slate-500">
+    <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
         <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <a href="/context/ght/{{ context.id }}" class="hover:text-blue-600 transition-colors">GHT</a>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        <span class="text-slate-700 font-medium">{% if namespace %}Modifier{% else %}Nouvel{% endif %} espace de noms</span>
+        <span class="text-slate-700 dark:text-slate-200 font-medium">{% if namespace %}Modifier{% else %}Nouvel{% endif %} espace de noms</span>
     </nav>
 
     <!-- Header -->
@@ -33,51 +33,51 @@
     </div>
 
     <!-- Formulaire -->
-    <form method="POST" action="{% if entite %}{% if namespace %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/namespaces/new{% endif %}{% else %}{% if namespace %}/admin/ght/{{ context.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/namespaces/new{% endif %}{% endif %}" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
+    <form method="POST" action="{% if entite %}{% if namespace %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/ej/{{ entite.id }}/namespaces/new{% endif %}{% else %}{% if namespace %}/admin/ght/{{ context.id }}/namespaces/{{ namespace.id }}/edit{% else %}/admin/ght/{{ context.id }}/namespaces/new{% endif %}{% endif %}" class="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
         <!-- Aide contextuelle -->
-        <div class="bg-blue-50 border-l-4 border-blue-400 px-8 py-6 border-b-2 border-slate-200">
-            <h3 class="text-lg font-bold text-blue-900 mb-3">📘 Comprendre les namespaces</h3>
-            <div class="text-sm text-blue-800 space-y-3">
+        <div class="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 px-8 py-6 border-b-2 border-slate-200 dark:border-slate-700">
+            <h3 class="text-lg font-bold text-blue-900 dark:text-blue-200 mb-3">📘 Comprendre les namespaces</h3>
+            <div class="text-sm text-blue-800 dark:text-blue-200 space-y-3">
                 <div class="border-l-4 border-blue-400 pl-3">
                     <p><strong>En HL7v2 (messages reçus/envoyés)</strong> : Le namespace est composé de <strong>NOM + OID</strong></p>
-                    <p class="ml-4 text-blue-700">→ Format reçu : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON&1.2.250.1.71.1.2.2&ISO</code></p>
-                    <p class="ml-4 text-blue-700">⚠️ <strong>On ne reçoit jamais d'URI en HL7v2</strong></p>
+                    <p class="ml-4 text-blue-700 dark:text-blue-300">→ Format reçu : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON&1.2.250.1.71.1.2.2&ISO</code></p>
+                    <p class="ml-4 text-blue-700 dark:text-blue-300">⚠️ <strong>On ne reçoit jamais d'URI en HL7v2</strong></p>
                 </div>
                 
                 <div class="border-l-4 border-green-400 pl-3">
                     <p><strong>En FHIR (ressources reçues/envoyées)</strong> : Le namespace est une <strong>URI uniquement</strong></p>
-                    <p class="ml-4 text-green-700">→ Format envoyé : <code class="bg-green-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
-                    <p class="ml-4 text-green-700">⚠️ <strong>On n'envoie pas le nom ni l'OID séparément en FHIR</strong></p>
+                    <p class="ml-4 text-green-700 dark:text-green-300">→ Format envoyé : <code class="bg-green-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
+                    <p class="ml-4 text-green-700 dark:text-green-300">⚠️ <strong>On n'envoie pas le nom ni l'OID séparément en FHIR</strong></p>
                 </div>
             </div>
         </div>
 
         <!-- Type -->
-        <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-8 py-6 border-b-2 border-slate-200">
-            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-gradient-to-r from-slate-50 dark:from-slate-700 to-slate-100 dark:to-slate-800 px-8 py-6 border-b-2 border-slate-200 dark:border-slate-700">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                 </svg>
                 Type d'identifiant
             </h3>
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Type <span class="text-red-600">*</span></label>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Type <span class="text-red-600 dark:text-red-400">*</span></label>
                 <select name="type" required
-                        class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500">
                     <option value="IPP" {% if not namespace or namespace.type == 'IPP' %}selected{% endif %}>🆔 Identifiant Patient Permanent (IPP)</option>
                     <option value="NDA" {% if namespace and namespace.type == 'NDA' %}selected{% endif %}>📂 Numéro de Dossier Administratif (NDA)</option>
                     <option value="VN" {% if namespace and namespace.type == 'VN' %}selected{% endif %}>🏥 Numéro de Venue (VN)</option>
                     <option value="MVT" {% if namespace and namespace.type == 'MVT' %}selected{% endif %}>🔄 Identifiant de Mouvement (MVT)</option>
                     <option value="PC" {% if namespace and namespace.type == 'PC' %}selected{% endif %}>👤 Personne à Contacter (PC)</option>
                 </select>
-                <p class="mt-2 text-sm text-slate-500">Type d'identifiant selon la norme IHE PAM</p>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Type d'identifiant selon la norme IHE PAM</p>
             </div>
         </div>
 
         <!-- URIs et OID -->
-        <div class="px-8 py-6 border-b-2 border-slate-200">
-            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="px-8 py-6 border-b-2 border-slate-200 dark:border-slate-700">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                 </svg>
                 Identifiants système
@@ -85,69 +85,69 @@
             <div class="space-y-4">
                 <!-- URI FHIR (pour export FHIR) -->
                 <div>
-                    <label class="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Pour export FHIR</span>
-                        URI FHIR (system) <span class="text-red-600">*</span>
+                    <label class="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">
+                        <span class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-2 py-1 rounded text-xs">Pour export FHIR</span>
+                        URI FHIR (system) <span class="text-red-600 dark:text-red-400">*</span>
                     </label>
                     <input type="text" name="system" id="system" value="{{ namespace.system if namespace else '' }}" required
                            placeholder="urn:oid:1.2.250.1.71.1.2.2"
-                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-2 text-sm text-slate-500">📤 Identifiant envoyé dans les ressources FHIR (Identifier.system). Format: <code>urn:oid:X.Y.Z</code></p>
+                           class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 font-mono text-sm focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500">
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">📤 Identifiant envoyé dans les ressources FHIR (Identifier.system). Format: <code>urn:oid:X.Y.Z</code></p>
                 </div>
                 <!-- OID HL7v2 (de/vers HL7v2) -->
                 <div>
-                    <label class="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Reçu/Envoyé en HL7v2</span>
+                    <label class="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">
+                        <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs">Reçu/Envoyé en HL7v2</span>
                         OID HL7v2 (optionnel)
                     </label>
                     <input type="text" name="oid" id="oid" value="{{ namespace.oid if namespace else '' }}"
                            placeholder="1.2.250.1.71.1.2.2 (extrait automatiquement)"
-                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 font-mono text-sm bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500"
                            readonly>
-                    <p class="mt-2 text-sm text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie OID) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>) - <strong>extrait automatiquement</strong> de l'URI FHIR</p>
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">📥 Reçu en import HL7v2 (CX-4 partie OID) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>) - <strong>extrait automatiquement</strong> de l'URI FHIR</p>
                 </div>
                 <!-- Nom HL7v2 (de/vers HL7v2) -->
                 <div>
-                    <label class="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Reçu/Envoyé en HL7v2</span>
+                    <label class="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">
+                        <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs">Reçu/Envoyé en HL7v2</span>
                         Nom HL7v2 (optionnel)
                     </label>
                     <input type="text" name="name" value="{{ namespace.name if namespace else '' }}"
                            placeholder="Ex: CHPAULON (généré automatiquement si vide)"
                            maxlength="20"
-                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-2 text-sm text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie NOM) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>). Généré automatiquement si non fourni.</p>
+                           class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500">
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">📥 Reçu en import HL7v2 (CX-4 partie NOM) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>). Généré automatiquement si non fourni.</p>
                 </div>
             </div>
         </div>
 
         <!-- Description -->
-        <div class="px-8 py-6 border-b-2 border-slate-200">
-            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="px-8 py-6 border-b-2 border-slate-200 dark:border-slate-700">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                 </svg>
                 Documentation
             </h3>
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Description</label>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Description</label>
                 <textarea name="description" rows="3" placeholder="Décrivez l'usage de cet espace de noms..."
                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">{{ namespace.description if namespace else '' }}</textarea>
             </div>
         </div>
 
         <!-- État -->
-        <div class="px-8 py-6 border-b-2 border-slate-200">
-            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="px-8 py-6 border-b-2 border-slate-200 dark:border-slate-700">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 Statut
             </h3>
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">État du namespace</label>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">État du namespace</label>
                 <select name="is_active"
-                        class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500">
                     <option value="true" {% if not namespace or namespace.is_active %}selected{% endif %}>{{ icon('check', 'w-4 h-4') }} Actif</option>
                     <option value="false" {% if namespace and not namespace.is_active %}selected{% endif %}>{{ icon('x', 'w-4 h-4') }} Inactif</option>
                 </select>
@@ -155,37 +155,37 @@
         </div>
 
         <!-- Configuration préfixes tests -->
-        <div class="px-8 py-6 border-b-2 border-slate-200">
-            <h3 class="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="px-8 py-6 border-b-2 border-slate-200 dark:border-slate-700">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
                 Configuration des préfixes (scénarios de test)
             </h3>
-            <p class="text-sm text-slate-600 mb-4">
+            <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">
                 Configurez des préfixes pour éviter les collisions avec les données du système récepteur lors des tests.
             </p>
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">Mode de génération</label>
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Mode de génération</label>
                     <select name="prefix_mode" id="prefix_mode"
                             onchange="togglePrefixMode()"
-                            class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 focus:border-amber-500">
                         <option value="fixed" {% if not namespace or namespace.prefix_mode == 'fixed' %}selected{% endif %}>🔢 Préfixe fixe + séquence</option>
                         <option value="range" {% if namespace and namespace.prefix_mode == 'range' %}selected{% endif %}>{{ icon('chart-bar', 'w-4 h-4') }} Plage numérique (min-max)</option>
                     </select>
                 </div>
 
                 <div id="pattern_field">
-                    <label class="block text-sm font-bold text-slate-700 mb-2">Pattern de préfixe</label>
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Pattern de préfixe</label>
                     <input type="text" name="prefix_pattern" id="prefix_pattern"
                            value="{{ namespace.prefix_pattern if namespace else '' }}"
                            placeholder="ex: 9..., 91...., 501..."
                            pattern="[0-9]*\.+"
-                           class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
-                    <p class="mt-2 text-sm text-slate-500">
+                           class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 focus:border-amber-500">
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
                         Les '.' représentent des chiffres générés aléatoirement.<br>
                         <strong>Exemples:</strong> "9..." → 9001-9999 | "91...." → 91000-91999 | "501..." → 501000-501999
                     </p>
@@ -194,33 +194,33 @@
                 <div id="range_fields" style="display: none;">
                     <div class="grid md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Valeur minimale</label>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Valeur minimale</label>
                             <input type="number" name="prefix_min" id="prefix_min"
                                    value="{{ namespace.prefix_min if namespace else '' }}"
                                    placeholder="ex: 9000000"
-                                   class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                   class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Valeur maximale</label>
+                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Valeur maximale</label>
                             <input type="number" name="prefix_max" id="prefix_max"
                                    value="{{ namespace.prefix_max if namespace else '' }}"
                                    placeholder="ex: 9999999"
-                                   class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                                   class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 font-mono focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 focus:border-amber-500">
                         </div>
                     </div>
-                    <p class="mt-2 text-sm text-slate-500">
+                    <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
                         Plage numérique complète (ex: 9000000 - 9999999)
                     </p>
                 </div>
 
-                <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
-                    <h4 class="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                <div class="bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-5">
+                    <h4 class="text-sm font-bold text-blue-900 dark:text-blue-200 mb-3 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Conseils
                     </h4>
-                    <ul class="text-sm text-blue-900 space-y-2">
+                    <ul class="text-sm text-blue-900 dark:text-blue-200 space-y-2">
                         <li class="flex items-start gap-2">
                             <span>✓</span>
                             <span>Utilisez des préfixes réservés pour tests (ex: plage 9xxxxx)</span>
@@ -239,8 +239,8 @@
         </div>
 
         <!-- Actions -->
-        <div class="bg-slate-50 px-8 py-6 flex items-center justify-between">
-            <a href="/context/ght/{{ context.id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
+        <div class="bg-slate-50 dark:bg-slate-700 px-8 py-6 flex items-center justify-between">
+            <a href="/context/ght/{{ context.id }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>

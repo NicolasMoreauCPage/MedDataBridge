@@ -4,10 +4,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">{{ icon('home', 'w-4 h-4') }} Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Identifiants dans cet espace de noms</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Identifiants dans cet espace de noms</span>
   </nav>
 
   <!-- Header -->
@@ -42,9 +42,9 @@
         </div>
 
         <!-- Section d'information principale -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-6">
             <!-- Header avec type -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-200 px-6 py-4">
+            <div class="bg-gradient-to-r from-blue-50 dark:from-blue-950/30 to-indigo-50 dark:to-indigo-950/30 border-b border-slate-200 dark:border-slate-700 px-6 py-4">
                 <div class="flex items-center gap-3">
                     <div class="text-2xl">
                         {% if namespace.type == 'IPP' %}🆔
@@ -55,7 +55,7 @@
                         {% else %}📋{% endif %}
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold text-slate-900">
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
                             {% if namespace.type == 'IPP' %}Identifiant Patient Permanent (IPP)
                             {% elif namespace.type == 'NDA' %}Numéro de Dossier Administratif (NDA)
                             {% elif namespace.type == 'VN' %}Numéro de Venue (VN)
@@ -63,7 +63,7 @@
                             {% elif namespace.type == 'PC' %}Personne à Contacter (PC)
                             {% else %}{{ namespace.type }}{% endif %}
                         </h3>
-                        <p class="text-sm text-slate-600">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
                             {% if namespace.type == 'IPP' %}Identité du patient
                             {% elif namespace.type == 'NDA' %}Dossier médical
                             {% elif namespace.type == 'VN' %}Séjour/Visite
@@ -79,51 +79,51 @@
                 <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- URI FHIR -->
                     <div class="md:col-span-2">
-                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">FHIR</span>
+                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                            <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-bold">FHIR</span>
                             URI FHIR (system)
                         </dt>
                         <dd class="mt-1">
                             <code class="block bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-mono text-slate-900 break-all">
                                 {{ namespace.system|default('-', true) }}
                             </code>
-                            <p class="mt-2 text-xs text-slate-500">📘 Utilisé dans les ressources FHIR (Patient.identifier.system, Encounter.identifier.system, etc.)</p>
+                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">📘 Utilisé dans les ressources FHIR (Patient.identifier.system, Encounter.identifier.system, etc.)</p>
                         </dd>
                     </div>
 
                     <!-- OID HL7v2 -->
                     <div>
-                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">HL7v2</span>
+                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                            <span class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-2 py-1 rounded text-xs font-bold">HL7v2</span>
                             OID HL7v2
                         </dt>
                         <dd class="mt-1">
                             <code class="block bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-mono text-slate-900">
                                 {{ namespace.oid or '—' }}
                             </code>
-                            <p class="mt-2 text-xs text-slate-500">📘 Utilisé dans les messages HL7v2 (PID-3, PV1-19, ZBE-1 - CX-4 Assigning Authority OID)</p>
+                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">📘 Utilisé dans les messages HL7v2 (PID-3, PV1-19, ZBE-1 - CX-4 Assigning Authority OID)</p>
                         </dd>
                     </div>
 
                     <!-- Nom HL7v2 -->
                     <div>
-                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">HL7v2</span>
+                        <dt class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                            <span class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-2 py-1 rounded text-xs font-bold">HL7v2</span>
                             Nom HL7v2/IHE PAM
                         </dt>
                         <dd class="mt-1">
                             <code class="block bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm font-mono text-slate-900">
                                 {{ namespace.name|default('—', true) }}
                             </code>
-                            <p class="mt-2 text-xs text-slate-500">📘 Utilisé dans les messages HL7v2 (CX-4 Assigning Authority Name)</p>
+                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">📘 Utilisé dans les messages HL7v2 (CX-4 Assigning Authority Name)</p>
                         </dd>
                     </div>
 
                     <!-- Description -->
                     {% if namespace.description %}
-                    <div class="md:col-span-2 pt-4 border-t border-slate-200">
-                        <dt class="text-sm font-semibold text-slate-700 mb-2">Description</dt>
-                        <dd class="text-slate-900">{{ namespace.description }}</dd>
+                    <div class="md:col-span-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <dt class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Description</dt>
+                        <dd class="text-slate-900 dark:text-slate-100">{{ namespace.description }}</dd>
                     </div>
                     {% endif %}
                 </dl>
@@ -131,12 +131,12 @@
         </div>
 
         <!-- Exemples d'usage -->
-        <div class="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-6 mb-6">
-            <h3 class="text-lg font-semibold text-blue-900 mb-3">📝 Exemples d'utilisation</h3>
+        <div class="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-3">📝 Exemples d'utilisation</h3>
             <div class="space-y-4">
                 <!-- Exemple FHIR -->
                 <div>
-                    <p class="text-sm font-medium text-blue-900 mb-2">Dans une ressource FHIR :</p>
+                    <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">Dans une ressource FHIR :</p>
                     <pre class="bg-white border border-blue-200 rounded-lg p-3 text-xs overflow-x-auto"><code>{
   "resourceType": "Patient",
   "identifier": [{
@@ -148,7 +148,7 @@
                 <!-- Exemple HL7v2 -->
                 {% if namespace.oid %}
                 <div>
-                    <p class="text-sm font-medium text-blue-900 mb-2">Dans un message HL7v2 :</p>
+                    <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">Dans un message HL7v2 :</p>
                     <pre class="bg-white border border-blue-200 rounded-lg p-3 text-xs overflow-x-auto"><code>{% if namespace.type == 'IPP' %}PID|1||123456^^^{{ namespace.name }}&{{ namespace.oid }}&ISO^PI{% elif namespace.type == 'NDA' %}PV1|1|...|...||||||||||||||123456^^^{{ namespace.name }}&{{ namespace.oid }}&ISO^VN{% elif namespace.type == 'MVT' %}ZBE|123456^{{ namespace.name }}^{{ namespace.oid }}^ISO{% endif %}</code></pre>
                 </div>
                 {% endif %}
@@ -159,36 +159,36 @@
         <div class="mt-8">
             <h2 class="text-xl font-semibold mb-4">Identifiants dans cet espace de noms</h2>
             
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-slate-50">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                    <thead class="bg-slate-50 dark:bg-slate-700">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Entité</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">État</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Entité</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">État</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-slate-200">
+                    <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                         {% for id in identifiers %}
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">
                                 {{ id.value|default('-', true) }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                                 {{ id.type.name|default('-', true) }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                                 {% if id.patient_id %}
-                                <a href="/admin/patients/{{ id.patient_id }}" class="text-blue-600 hover:text-blue-800">
+                                <a href="/admin/patients/{{ id.patient_id }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800">
                                     Patient #{{ id.patient_id }}
                                 </a>
                                 {% elif id.venue_id %}
-                                <a href="/admin/venues/{{ id.venue_id }}" class="text-blue-600 hover:text-blue-800">
+                                <a href="/admin/venues/{{ id.venue_id }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800">
                                     Venue #{{ id.venue_id }}
                                 </a>
                                 {% elif id.entity_id %}
-                                <a href="/admin/entities/{{ id.entity_id }}" class="text-blue-600 hover:text-blue-800">
+                                <a href="/admin/entities/{{ id.entity_id }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800">
                                     Entité #{{ id.entity_id }}
                                 </a>
                                 {% else %}

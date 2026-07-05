@@ -2,7 +2,7 @@ import pytest
 import json
 from fastapi.testclient import TestClient
 from playwright.sync_api import expect
-from .ui_helpers import wait_for_ready, safe_navigate
+from .ui_helpers import wait_for_ready, safe_navigate, capture_console_errors
 
 
 class TestDynamicRoutes:
@@ -10,6 +10,7 @@ class TestDynamicRoutes:
 
     def test_patient_detail_page(self, page, test_server, ght_context, patient_context):
         """Test patient detail page with dynamic ID"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         # Ensure we have a patient context
@@ -51,9 +52,11 @@ class TestDynamicRoutes:
                 continue
 
         assert name_found, "Patient name should be displayed on detail page"
+        assert not errors, f"Console errors detected: {errors}"
 
     def test_patient_edit_page(self, page, test_server, ght_context, patient_context):
         """Test patient edit form with dynamic ID"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         # Ensure we have a patient context
@@ -81,9 +84,11 @@ class TestDynamicRoutes:
         family_field = page.locator("input[name=family]")
         expect(family_field).to_be_visible()
         expect(family_field).to_have_value("Test")
+        assert not errors, f"Console errors detected: {errors}"
 
     def test_dossier_detail_page(self, page, test_server, ght_context):
         """Test dossier detail page with dynamic ID"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         # First create a patient and dossier via API
@@ -134,9 +139,11 @@ class TestDynamicRoutes:
                 continue
 
         assert info_found, "Dossier information should be displayed on detail page"
+        assert not errors, f"Console errors detected: {errors}"
 
     def test_dossier_edit_page(self, page, test_server, ght_context):
         """Test dossier edit form with dynamic ID"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         # Create patient and dossier first
@@ -186,6 +193,7 @@ class TestDynamicRoutes:
                 continue
 
         assert form_found, "Dossier edit form should be displayed"
+        assert not errors, f"Console errors detected: {errors}"
 
 
 class TestContextRoutes:
@@ -193,6 +201,7 @@ class TestContextRoutes:
 
     def test_context_select_page(self, page, test_server):
         """Test context selection page"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         assert safe_navigate(page, f"{test_server}/context/select"), "Failed to load context select page"
@@ -219,9 +228,11 @@ class TestContextRoutes:
                 continue
 
         assert context_found, "GHT context list should be displayed"
+        assert not errors, f"Console errors detected: {errors}"
 
     def test_context_clear_routes(self, page, test_server, ght_context):
         """Test context clearing routes"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         # Test clearing different context types
@@ -240,12 +251,15 @@ class TestContextRoutes:
                 current_url = page.url
                 assert "context/clear" not in current_url, f"Should have redirected after clearing {context_type} context"
 
+        assert not errors, f"Console errors detected: {errors}"
+
 
 class TestAdminRoutes:
     """Tests for admin routes requiring GHT context"""
 
     def test_admin_ght_detail_page(self, page, test_server, ght_context):
         """Test GHT context detail page"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         # Get GHT context ID
@@ -278,9 +292,11 @@ class TestAdminRoutes:
                 continue
 
         assert info_found, "GHT information should be displayed on detail page"
+        assert not errors, f"Console errors detected: {errors}"
 
     def test_admin_ght_edit_page(self, page, test_server, ght_context):
         """Test GHT context edit page"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         ght_id = ght_context
@@ -310,6 +326,7 @@ class TestAdminRoutes:
                 continue
 
         assert form_found, "GHT edit form should be displayed"
+        assert not errors, f"Console errors detected: {errors}"
 
 
 class TestAPIRoutes:

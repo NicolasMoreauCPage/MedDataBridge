@@ -23,22 +23,22 @@
     {# Statistiques globales #}
     {% if show_summary %}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-        <div class="text-sm font-medium text-gray-600">Erreurs</div>
-        <div class="text-2xl font-bold text-red-600">{{ errors | length }}</div>
-        <div class="text-xs text-gray-500 mt-1">Violations critiques</div>
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-red-500">
+        <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Erreurs</div>
+        <div class="text-2xl font-bold text-red-600 dark:text-red-400">{{ errors | length }}</div>
+        <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Violations critiques</div>
       </div>
       
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-        <div class="text-sm font-medium text-gray-600">Warnings</div>
-        <div class="text-2xl font-bold text-yellow-600">{{ warnings | length }}</div>
-        <div class="text-xs text-gray-500 mt-1">À corriger</div>
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-yellow-500">
+        <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Warnings</div>
+        <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ warnings | length }}</div>
+        <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">À corriger</div>
       </div>
       
-      <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-        <div class="text-sm font-medium text-gray-600">Infos</div>
-        <div class="text-2xl font-bold text-blue-600">{{ infos | length }}</div>
-        <div class="text-xs text-gray-500 mt-1">Informations</div>
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-blue-500">
+        <div class="text-sm font-medium text-gray-600 dark:text-slate-300">Infos</div>
+        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ infos | length }}</div>
+        <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">Informations</div>
       </div>
     </div>
     {% endif %}
@@ -47,28 +47,28 @@
     <div class="space-y-4">
       {# Couche 1: IHE PAM #}
       {% if ihe_pam %}
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-purple-100 px-4 py-3 border-b border-purple-200">
-          <h3 class="text-lg font-semibold text-purple-800">
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+        <div class="bg-purple-100 dark:bg-purple-900/40 px-4 py-3 border-b border-purple-200 dark:border-purple-800">
+          <h3 class="text-lg font-semibold text-purple-800 dark:text-purple-200">
             Couche 1: IHE PAM ({{ ihe_pam | length }})
           </h3>
-          <p class="text-sm text-purple-600">Règles métier IHE Patient Administration Management</p>
+          <p class="text-sm text-purple-600 dark:text-purple-400">Règles métier IHE Patient Administration Management</p>
         </div>
         <div class="p-4">
           {% for issue in ihe_pam %}
           <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
             <div class="flex items-start">
               <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                 {% else %}bg-blue-100 text-blue-800{% endif %}">
                 {{ issue.severity | upper }}
               </span>
               <div class="flex-1">
-                <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                 {% if issue.location %}
-                <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                 {% endif %}
               </div>
             </div>
@@ -80,28 +80,28 @@
       
       {# Couche 2: HAPI Structures #}
       {% if hapi or segment_order %}
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-indigo-100 px-4 py-3 border-b border-indigo-200">
-          <h3 class="text-lg font-semibold text-indigo-800">
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+        <div class="bg-indigo-100 dark:bg-indigo-900/40 px-4 py-3 border-b border-indigo-200 dark:border-indigo-800">
+          <h3 class="text-lg font-semibold text-indigo-800 dark:text-indigo-200">
             Couche 2: HAPI Structures ({{ (hapi | length) + (segment_order | length) }})
           </h3>
-          <p class="text-sm text-indigo-600">Structure et ordre des segments selon HAPI</p>
+          <p class="text-sm text-indigo-600 dark:text-indigo-400">Structure et ordre des segments selon HAPI</p>
         </div>
         <div class="p-4">
           {% for issue in hapi + segment_order %}
           <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
             <div class="flex items-start">
               <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                 {% else %}bg-blue-100 text-blue-800{% endif %}">
                 {{ issue.severity | upper }}
               </span>
               <div class="flex-1">
-                <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                 {% if issue.location %}
-                <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                 {% endif %}
               </div>
             </div>
@@ -113,28 +113,28 @@
       
       {# Couche 3: HL7 v2.5 Base #}
       {% if hl7_base %}
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-green-100 px-4 py-3 border-b border-green-200">
-          <h3 class="text-lg font-semibold text-green-800">
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+        <div class="bg-green-100 dark:bg-green-900/40 px-4 py-3 border-b border-green-200 dark:border-green-800">
+          <h3 class="text-lg font-semibold text-green-800 dark:text-green-200">
             Couche 3: HL7 v2.5 Base ({{ hl7_base | length }})
           </h3>
-          <p class="text-sm text-green-600">Validation segments MSH, EVN, PID obligatoires</p>
+          <p class="text-sm text-green-600 dark:text-green-400">Validation segments MSH, EVN, PID obligatoires</p>
         </div>
         <div class="p-4">
           {% for issue in hl7_base %}
           <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
             <div class="flex items-start">
               <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                 {% else %}bg-blue-100 text-blue-800{% endif %}">
                 {{ issue.severity | upper }}
               </span>
               <div class="flex-1">
-                <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                 {% if issue.location %}
-                <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                 {% endif %}
               </div>
             </div>
@@ -146,28 +146,28 @@
       
       {# Couche 4: Datatypes #}
       {% if datatypes %}
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-amber-100 px-4 py-3 border-b border-amber-200">
-          <h3 class="text-lg font-semibold text-amber-800">
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+        <div class="bg-amber-100 dark:bg-amber-900/40 px-4 py-3 border-b border-amber-200 dark:border-amber-800">
+          <h3 class="text-lg font-semibold text-amber-800 dark:text-amber-200">
             Couche 4: Datatypes ({{ datatypes | length }})
           </h3>
-          <p class="text-sm text-amber-600">Validation des types de données HL7</p>
+          <p class="text-sm text-amber-600 dark:text-amber-400">Validation des types de données HL7</p>
         </div>
         <div class="p-4">
           {% for issue in datatypes %}
           <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
             <div class="flex items-start">
               <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                 {% else %}bg-blue-100 text-blue-800{% endif %}">
                 {{ issue.severity | upper }}
               </span>
               <div class="flex-1">
-                <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code }}</div>
-                <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
+                <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                 {% if issue.location %}
-                <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                 {% endif %}
               </div>
             </div>
@@ -180,9 +180,9 @@
       {# Issues non classées #}
       {% set uncategorized = issues | rejectattr('layer', 'in', ['ihe_pam', 'hapi_structure', 'segment_order', 'hl7_base', 'datatypes']) | list %}
       {% if uncategorized %}
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-gray-100 px-4 py-3 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-800">
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+        <div class="bg-gray-100 dark:bg-slate-700 px-4 py-3 border-b border-gray-200 dark:border-slate-700">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-200">
             Autres issues ({{ uncategorized | length }})
           </h3>
         </div>
@@ -191,16 +191,16 @@
           <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
             <div class="flex items-start">
               <span class="px-2 py-1 rounded text-xs font-semibold mr-3
-                {% if issue.severity == 'error' %}bg-red-100 text-red-800
-                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800
+                {% if issue.severity == 'error' %}bg-red-100 text-red-800 dark:text-red-200
+                {% elif issue.severity == 'warn' %}bg-yellow-100 text-yellow-800 dark:text-yellow-200
                 {% else %}bg-blue-100 text-blue-800{% endif %}">
                 {{ issue.severity | upper }}
               </span>
               <div class="flex-1">
-                <div class="font-mono text-sm font-semibold text-gray-800">{{ issue.code if issue.code else 'UNKNOWN' }}</div>
-                <div class="text-sm text-gray-600 mt-1">{{ issue.message }}</div>
+                <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code if issue.code else 'UNKNOWN' }}</div>
+                <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
                 {% if issue.location %}
-                <div class="text-xs text-gray-500 mt-1">📍 {{ issue.location }}</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400 mt-1">📍 {{ issue.location }}</div>
                 {% endif %}
               </div>
             </div>
@@ -211,7 +211,7 @@
       {% endif %}
     </div>
 {% else %}
-  <div class="bg-green-50 border-l-4 border-green-400 p-4">
+  <div class="bg-green-50 dark:bg-green-950/30 border-l-4 border-green-400 p-4">
     <div class="flex">
       <div class="flex-shrink-0">
         <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -219,7 +219,7 @@
         </svg>
       </div>
       <div class="ml-3">
-        <p class="text-sm text-green-700">
+        <p class="text-sm text-green-700 dark:text-green-300">
           ✓ Aucune erreur ou warning détecté lors de la validation IHE PAM.
         </p>
       </div>

@@ -134,6 +134,15 @@ def server():
     try:
         from sqlmodel import SQLModel
         from sqlalchemy import create_engine
+        # Several model modules reference each other via forward-reference strings
+        # (e.g. Dossier.medecin_responsable -> "MedecinResponsable", SystemEndpoint.mllp_configs
+        # -> "MLLPConfig") to avoid circular imports at module load time. Every side of every
+        # such pair must actually be imported somewhere before SQLAlchemy configures mappers
+        # (triggered by create_all() below), or resolution fails with e.g. "expression 'Dossier'
+        # failed to locate a name". app.db already imports the full set for exactly this reason
+        # ("Import for FK resolution"); reuse it here instead of this fixture only importing a
+        # narrow subset (the live app avoids this because app.app imports every router first).
+        import app.db  # noqa: F401
         # Create a file-based SQLite engine and ensure tables exist on disk
         file_engine = create_engine("sqlite:///./medbridge.db")
         SQLModel.metadata.create_all(file_engine)

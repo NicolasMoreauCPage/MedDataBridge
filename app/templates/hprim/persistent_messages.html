@@ -9,59 +9,59 @@
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <div class="rounded-xl border border-slate-200 bg-white p-5"><div class="text-sm text-slate-500">Total</div><div class="text-3xl font-bold text-slate-900">{{ stats.total }}</div></div>
-    <div class="rounded-xl border border-slate-200 bg-white p-5"><div class="text-sm text-slate-500">Outbound</div><div class="text-3xl font-bold text-blue-700">{{ stats.outbound }}</div></div>
-    <div class="rounded-xl border border-slate-200 bg-white p-5"><div class="text-sm text-slate-500">Inbound</div><div class="text-3xl font-bold text-emerald-700">{{ stats.inbound }}</div></div>
-    <div class="rounded-xl border border-slate-200 bg-white p-5"><div class="text-sm text-slate-500">Roundtrip</div><div class="text-3xl font-bold text-cyan-700">{{ stats.roundtrip }}</div></div>
+    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"><div class="text-sm text-slate-500 dark:text-slate-400">Total</div><div class="text-3xl font-bold text-slate-900 dark:text-slate-100">{{ stats.total }}</div></div>
+    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"><div class="text-sm text-slate-500 dark:text-slate-400">Outbound</div><div class="text-3xl font-bold text-blue-700 dark:text-blue-300">{{ stats.outbound }}</div></div>
+    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"><div class="text-sm text-slate-500 dark:text-slate-400">Inbound</div><div class="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{{ stats.inbound }}</div></div>
+    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"><div class="text-sm text-slate-500 dark:text-slate-400">Roundtrip</div><div class="text-3xl font-bold text-cyan-700 dark:text-cyan-300">{{ stats.roundtrip }}</div></div>
   </div>
 
-  <div class="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div class="mb-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
     <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-2">Statut</label>
-        <input type="text" name="status" value="{{ current_status or '' }}" class="w-full rounded-lg border border-slate-300 px-4 py-2">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Statut</label>
+        <input type="text" name="status" value="{{ current_status or '' }}" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2">
       </div>
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-2">Direction</label>
-        <input type="text" name="direction" value="{{ current_direction or '' }}" class="w-full rounded-lg border border-slate-300 px-4 py-2">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Direction</label>
+        <input type="text" name="direction" value="{{ current_direction or '' }}" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2">
       </div>
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-2">Patient ID</label>
-        <input type="text" name="patient_id" value="{{ current_patient_id or '' }}" class="w-full rounded-lg border border-slate-300 px-4 py-2">
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Patient ID</label>
+        <input type="text" name="patient_id" value="{{ current_patient_id or '' }}" class="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2">
       </div>
       <div class="flex gap-3">
         <button type="submit" class="rounded-lg bg-sky-600 px-5 py-2 text-white hover:bg-sky-700">Filtrer</button>
-        <a href="/hprim/messages" class="rounded-lg bg-slate-100 px-5 py-2 text-slate-700 hover:bg-slate-200">Réinitialiser</a>
+        <a href="/hprim/messages" class="rounded-lg bg-slate-100 dark:bg-slate-700 px-5 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-200">Réinitialiser</a>
       </div>
     </form>
   </div>
 
-  <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-    <table class="min-w-full divide-y divide-slate-200">
-      <thead class="bg-slate-50">
+  <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-700">
         <tr>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Message</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Direction</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Statut</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Patient</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Créé le</th>
-          <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Message</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Type</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Direction</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Statut</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Patient</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Créé le</th>
+          <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Action</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-slate-200 bg-white">
+      <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
         {% for msg in messages %}
-        <tr class="hover:bg-slate-50">
-          <td class="px-6 py-4 text-sm font-mono text-slate-900">{{ msg.message_id }}</td>
-          <td class="px-6 py-4 text-sm text-slate-700">{{ msg.type_message }}</td>
-          <td class="px-6 py-4 text-sm text-slate-700">{{ msg.direction }}</td>
-          <td class="px-6 py-4 text-sm text-slate-700">{{ ui.message_status_badge(msg.status) }}</td>
-          <td class="px-6 py-4 text-sm text-slate-700">{{ msg.patient_id or 'N/A' }}</td>
-          <td class="px-6 py-4 text-sm text-slate-700">{{ msg.created_at.strftime('%d/%m/%Y %H:%M') if msg.created_at else 'N/A' }}</td>
-          <td class="px-6 py-4 text-right text-sm"><a href="/hprim/messages/{{ msg.message_id }}" class="font-medium text-sky-700 hover:text-sky-900">Voir</a></td>
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-600">
+          <td class="px-6 py-4 text-sm font-mono text-slate-900 dark:text-slate-100">{{ msg.message_id }}</td>
+          <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{{ msg.type_message }}</td>
+          <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{{ msg.direction }}</td>
+          <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{{ ui.message_status_badge(msg.status) }}</td>
+          <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{{ msg.patient_id or 'N/A' }}</td>
+          <td class="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{{ msg.created_at.strftime('%d/%m/%Y %H:%M') if msg.created_at else 'N/A' }}</td>
+          <td class="px-6 py-4 text-right text-sm"><a href="/hprim/messages/{{ msg.message_id }}" class="font-medium text-sky-700 dark:text-sky-300 hover:text-sky-900">Voir</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="px-6 py-10 text-center text-slate-500">Aucun message HPRIM persistant trouvé.</td></tr>
+        <tr><td colspan="7">{{ ui.empty_state('Aucun message HPRIM persistant trouvé') }}</td></tr>
         {% endfor %}
       </tbody>
     </table>

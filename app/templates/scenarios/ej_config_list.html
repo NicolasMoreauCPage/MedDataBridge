@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/ui.html" import empty_state %}
 
 {% block title %}Configuration des scénarios par EJ{% endblock %}
 
@@ -156,13 +157,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-building text-4xl mb-4 block"></i>
-                        Aucune entité juridique trouvée.<br>
-                        <a href="/structure" class="text-blue-600 hover:underline mt-2 inline-block">
-                            Créer une structure
-                        </a>
-                    </td>
+                    <td colspan="7">{{ empty_state('Aucune entité juridique trouvée', action_label='Créer une structure', action_href='/structure') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

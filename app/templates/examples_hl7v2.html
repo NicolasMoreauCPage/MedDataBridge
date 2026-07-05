@@ -2,10 +2,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-gray-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">{{ icon('home', 'w-4 h-4') }} Accueil</a>
-    <span class="text-gray-400">/</span>
-    <span class="text-gray-900 font-medium">Exemples HL7 v2</span>
+    <span class="text-gray-400 dark:text-slate-500">/</span>
+    <span class="text-gray-900 dark:text-slate-100 font-medium">Exemples HL7 v2</span>
   </nav>
 
   <!-- Header -->
@@ -22,8 +22,8 @@
     </div>
   </div>
 <main id="main-content" class="mx-auto max-w-content px-4 py-8">
-  <h1 class="text-2xl font-semibold text-gray-900">Exemples HL7 v2</h1>
-  <p class="text-gray-600 mt-2">Exemples courants pour les tests d'interopérabilité (A01, A04, A06, A08, A31).</p>
+  <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100">Exemples HL7 v2</h1>
+  <p class="text-gray-600 dark:text-slate-300 mt-2">Exemples courants pour les tests d'interopérabilité (A01, A04, A06, A08, A31).</p>
   <section class="mt-6">
     <h2 class="text-xl font-medium">A01 - Admission</h2>
     <pre class="bg-gray-50 border border-gray-200 p-3 rounded mt-2"><code>MSH|^~\&|SENDER|HOSPITAL|RECEIVER|HOSPITAL|202501011200||ADT^A01|MSG00001|P|2.5

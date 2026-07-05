@@ -2,10 +2,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">{% if namespace %}Modifier{% else %}Nouveau{% endif %} espace de noms pour l'EJ</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">{% if namespace %}Modifier{% else %}Nouveau{% endif %} espace de noms pour l'EJ</span>
   </nav>
 
   <!-- Header -->
@@ -23,30 +23,30 @@
   </div>
 
     <!-- Section d'aide contextuelle -->
-    <div class="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-6 mb-8">
+    <div class="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 rounded-lg p-6 mb-8">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <div class="ml-4">
-          <h3 class="text-lg font-semibold text-blue-900 mb-3">📘 Comprendre les namespaces d'identifiants</h3>
-          <div class="text-sm text-blue-800 space-y-3">
+          <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-3">📘 Comprendre les namespaces d'identifiants</h3>
+          <div class="text-sm text-blue-800 dark:text-blue-200 space-y-3">
             <div class="border-l-4 border-blue-400 pl-3">
               <p><strong>En HL7v2 (messages reçus/envoyés)</strong> : Le namespace est composé de <strong>NOM + OID</strong></p>
-              <p class="ml-4 text-blue-700">→ Format reçu : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON&1.2.250.1.71.1.2.2&ISO</code></p>
-              <p class="ml-4 text-blue-700">→ Peut être aussi : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON</code> (nom seul) ou <code class="bg-blue-100 px-2 py-1 rounded">1.2.250.1.71.1.2.2</code> (OID seul)</p>
-              <p class="ml-4 text-blue-700">⚠️ <strong>On ne reçoit jamais d'URI en HL7v2</strong></p>
+              <p class="ml-4 text-blue-700 dark:text-blue-300">→ Format reçu : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON&1.2.250.1.71.1.2.2&ISO</code></p>
+              <p class="ml-4 text-blue-700 dark:text-blue-300">→ Peut être aussi : <code class="bg-blue-100 px-2 py-1 rounded">CHPAULON</code> (nom seul) ou <code class="bg-blue-100 px-2 py-1 rounded">1.2.250.1.71.1.2.2</code> (OID seul)</p>
+              <p class="ml-4 text-blue-700 dark:text-blue-300">⚠️ <strong>On ne reçoit jamais d'URI en HL7v2</strong></p>
             </div>
             
             <div class="border-l-4 border-green-400 pl-3">
               <p><strong>En FHIR (ressources reçues/envoyées)</strong> : Le namespace est une <strong>URI uniquement</strong></p>
-              <p class="ml-4 text-green-700">→ Format envoyé : <code class="bg-green-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
-              <p class="ml-4 text-green-700">⚠️ <strong>On n'envoie pas le nom ni l'OID séparément en FHIR</strong></p>
+              <p class="ml-4 text-green-700 dark:text-green-300">→ Format envoyé : <code class="bg-green-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code></p>
+              <p class="ml-4 text-green-700 dark:text-green-300">⚠️ <strong>On n'envoie pas le nom ni l'OID séparément en FHIR</strong></p>
             </div>
             
-            <p class="mt-3 font-medium text-blue-900">💡 Astuce : Vous pouvez réutiliser la même URI pour plusieurs types d'identifiants (ex: IPP, NDA, MVT avec <code class="bg-blue-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code>)</p>
+            <p class="mt-3 font-medium text-blue-900 dark:text-blue-200">💡 Astuce : Vous pouvez réutiliser la même URI pour plusieurs types d'identifiants (ex: IPP, NDA, MVT avec <code class="bg-blue-100 px-2 py-1 rounded">urn:oid:1.2.250.1.71.1.2.2</code>)</p>
           </div>
         </div>
       </div>
@@ -60,10 +60,10 @@
             <div class="space-y-6">
                 <!-- Type d'identifiant -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                         Type d'identifiant <span class="text-red-500">*</span>
                     </label>
-                    <select name="type" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <select name="type" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400">
                         <option value="" disabled {% if not namespace or not namespace.type %}selected{% endif %}>-- Sélectionner un type --</option>
                         {% set identifier_types = [
                             ('IPP', 'Identifiant Patient Permanent (identité patient)'),
@@ -76,15 +76,15 @@
                             <option value="{{ code }}" {% if namespace and namespace.type == code %}selected{% endif %}>{{ code }} - {{ label }}</option>
                         {% endfor %}
                     </select>
-                    <p class="mt-1 text-xs text-slate-500">Type d'identifiant selon la norme IHE PAM</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Type d'identifiant selon la norme IHE PAM</p>
                 </div>
 
                 <!-- URI FHIR (pour export FHIR) -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                         <span class="inline-flex items-center gap-2">
                             URI FHIR (system) <span class="text-red-500">*</span>
-                            <span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full">Pour export FHIR</span>
+                            <span class="inline-block px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 text-xs rounded-full">Pour export FHIR</span>
                         </span>
                     </label>
                     <input 
@@ -94,17 +94,17 @@
                         value="{{ namespace.system if namespace else '' }}" 
                         required 
                         placeholder="urn:oid:1.2.250.1.71.1.2.2"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"
+                        class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
                     >
-                    <p class="mt-1 text-xs text-slate-500">📤 Identifiant envoyé dans les ressources FHIR (Identifier.system). Format: <code>urn:oid:X.Y.Z</code></p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">📤 Identifiant envoyé dans les ressources FHIR (Identifier.system). Format: <code>urn:oid:X.Y.Z</code></p>
                 </div>
 
                 <!-- OID HL7v2 (de/vers HL7v2) -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                         <span class="inline-flex items-center gap-2">
                             OID HL7v2 (optionnel)
-                            <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Reçu/Envoyé en HL7v2</span>
+                            <span class="inline-block px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-xs rounded-full">Reçu/Envoyé en HL7v2</span>
                         </span>
                     </label>
                     <input 
@@ -113,18 +113,18 @@
                         id="oidInput"
                         value="{{ namespace.oid if namespace else '' }}" 
                         placeholder="1.2.250.1.71.1.2.2 (extrait automatiquement de l'URI)"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm bg-slate-50"
+                        class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm bg-slate-50 dark:bg-slate-700"
                         readonly
                     >
-                    <p class="mt-1 text-xs text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie OID) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>) - <strong>extrait automatiquement</strong> de l'URI FHIR</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">📥 Reçu en import HL7v2 (CX-4 partie OID) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>) - <strong>extrait automatiquement</strong> de l'URI FHIR</p>
                 </div>
 
                 <!-- Nom HL7v2 (de/vers HL7v2) -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                         <span class="inline-flex items-center gap-2">
                             Nom HL7v2 (optionnel)
-                            <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">Reçu/Envoyé en HL7v2</span>
+                            <span class="inline-block px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-xs rounded-full">Reçu/Envoyé en HL7v2</span>
                         </span>
                     </label>
                     <input 
@@ -133,21 +133,21 @@
                         value="{{ namespace.name if namespace else '' }}" 
                         placeholder="Ex: CHPAULON (généré automatiquement si vide)"
                         maxlength="20"
-                        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400"
                     >
-                    <p class="mt-1 text-xs text-slate-500">📥 Reçu en import HL7v2 (CX-4 partie NOM) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>). Généré automatiquement à partir du type et de l'OID si non fourni.</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">📥 Reçu en import HL7v2 (CX-4 partie NOM) | 📤 Envoyé en export HL7v2 (format <code>NOM&OID&ISO</code>). Généré automatiquement à partir du type et de l'OID si non fourni.</p>
                 </div>
 
                 <!-- Description -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Description</label>
                     <textarea 
                         name="description" 
                         rows="3" 
                         placeholder="Description de l'usage de ce namespace..."
                         class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >{{ namespace.description if namespace else '' }}</textarea>
-                    <p class="mt-1 text-xs text-slate-500">Description libre pour documenter l'usage de ce namespace</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Description libre pour documenter l'usage de ce namespace</p>
                 </div>
 
                 <!-- Statut actif -->
@@ -157,12 +157,12 @@
                         name="is_active" 
                         value="true" 
                         {% if not namespace or namespace.is_active %}checked{% endif %} 
-                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                        class="h-4 w-4 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 border-slate-300 dark:border-slate-600 rounded"
                     >
-                    <label class="ml-2 text-sm font-medium text-slate-700">
+                    <label class="ml-2 text-sm font-medium text-slate-700 dark:text-slate-200">
                         Actif
                     </label>
-                    <span class="ml-2 text-xs text-slate-500">(Les namespaces inactifs ne sont pas utilisés pour générer de nouveaux identifiants)</span>
+                    <span class="ml-2 text-xs text-slate-500 dark:text-slate-400">(Les namespaces inactifs ne sont pas utilisés pour générer de nouveaux identifiants)</span>
                 </div>
             </div>
 
@@ -170,7 +170,7 @@
                 <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                     💾 Enregistrer le namespace
                 </button>
-                <a href="{{ back_url }}" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium">
+                <a href="{{ back_url }}" class="px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition-colors font-medium">
                     ← Annuler
                 </a>
             </div>

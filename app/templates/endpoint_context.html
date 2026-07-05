@@ -3,10 +3,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Contexte de l'endpoint</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Contexte de l'endpoint</span>
   </nav>
 
   <!-- Header -->
@@ -32,25 +32,25 @@
             Cloner cette structure
         </a>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
         <h4 class="text-lg font-semibold mb-2">Informations du contexte</h4>
     <p><strong>Dernière séquence :</strong> {{ context.last_sequence_value|default('-', true) }}</p>
     <p><strong>Créé le :</strong> {{ context.created_at|default('-', true) }}</p>
     <p><strong>Mis à jour le :</strong> {{ context.updated_at|default('-', true) }}</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
         <h4 class="text-lg font-semibold mb-2">Mappings Patients</h4>
-        <table class="min-w-full divide-y divide-slate-200">
-            <thead class="bg-slate-50">
+        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+            <thead class="bg-slate-50 dark:bg-slate-700">
                 <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">ID Externe</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">ID Patient</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Patient</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">ID Externe</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">ID Patient</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Patient</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-slate-200">
+            <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                 {% for mapping in patient_mappings %}
-                <tr class="hover:bg-slate-50">
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-600">
                     <td class="px-4 py-2">{{ mapping.external_id|default('-', true) }}</td>
                     <td class="px-4 py-2">{{ mapping.patient.id|default('-', true) }}</td>
                     <td class="px-4 py-2">{{ mapping.patient.family|default('', true) }}, {{ mapping.patient.given|default('', true) }}</td>

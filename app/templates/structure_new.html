@@ -3,10 +3,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Vue structurelle</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Vue structurelle</span>
   </nav>
 
   <!-- Header -->
@@ -25,33 +25,33 @@
 
         <!-- KPIs principaux -->
         <div class="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-1">
                         <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-slate-600">Pôles</span>
-                                <span class="text-slate-400 text-lg">🏢</span>
+                                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Pôles</span>
+                                <span class="text-slate-400 dark:text-slate-500 text-lg">🏢</span>
                         </div>
-                        <div class="text-2xl font-semibold text-slate-900" id="kpi-poles">—</div>
+                        <div class="text-2xl font-semibold text-slate-900 dark:text-slate-100" id="kpi-poles">—</div>
                 </div>
-                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-1">
                         <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-slate-600">Services</span>
-                                <span class="text-slate-400 text-lg">🏛️</span>
+                                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Services</span>
+                                <span class="text-slate-400 dark:text-slate-500 text-lg">🏛️</span>
                         </div>
-                        <div class="text-2xl font-semibold text-slate-900" id="kpi-services">—</div>
+                        <div class="text-2xl font-semibold text-slate-900 dark:text-slate-100" id="kpi-services">—</div>
                 </div>
-                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-1">
                         <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-slate-600">Unités Fonctionnelles</span>
-                                <span class="text-slate-400 text-lg">🔹</span>
+                                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Unités Fonctionnelles</span>
+                                <span class="text-slate-400 dark:text-slate-500 text-lg">🔹</span>
                         </div>
-                        <div class="text-2xl font-semibold text-slate-900" id="kpi-ufs">—</div>
+                        <div class="text-2xl font-semibold text-slate-900 dark:text-slate-100" id="kpi-ufs">—</div>
                 </div>
-                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-1">
+                <div class="bg-white/80 backdrop-blur rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-1">
                         <div class="flex items-center justify-between">
-                                <span class="text-sm font-medium text-slate-600">Lits</span>
-                                <span class="text-slate-400 text-lg">🛏️</span>
+                                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Lits</span>
+                                <span class="text-slate-400 dark:text-slate-500 text-lg">🛏️</span>
                         </div>
-                        <div class="text-2xl font-semibold text-slate-900" id="kpi-lits">—</div>
+                        <div class="text-2xl font-semibold text-slate-900 dark:text-slate-100" id="kpi-lits">—</div>
                 </div>
         </div>
 
@@ -61,19 +61,19 @@
             <div class="flex items-center gap-4">
                 <h1 class="text-3xl font-bold">Vue structurelle</h1>
                 {% if filtered_ej_id %}
-                <span class="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+                <span class="text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full">
                     Vue filtrée par établissement
-                    <a href="/structure" class="text-blue-600 hover:text-blue-800 ml-2">
+                    <a href="/structure" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 ml-2">
                         Voir tout &rarr;
                     </a>
                 </span>
                 {% elif no_ej_context %}
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                     <div class="flex items-center gap-3">
-                        <div class="text-amber-600">⚠️</div>
-                        <div class="text-sm text-amber-800">
+                        <div class="text-amber-600 dark:text-amber-400">⚠️</div>
+                        <div class="text-sm text-amber-800 dark:text-amber-200">
                             <strong>Aucun établissement sélectionné</strong> - Affichage de toutes les structures.
-                            <a href="/admin/ght" class="text-amber-700 underline hover:text-amber-900 ml-2">
+                            <a href="/admin/ght" class="text-amber-700 dark:text-amber-300 underline hover:text-amber-900 ml-2">
                                 Sélectionner un établissement →
                             </a>
                         </div>
@@ -82,10 +82,10 @@
                 {% endif %}
             </div>
             <div class="flex items-center gap-4">
-                <button id="expandAllBtn" class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800">
+                <button id="expandAllBtn" class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800">
                     Tout déplier
                 </button>
-                <button id="collapseAllBtn" class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800">
+                <button id="collapseAllBtn" class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800">
                     Tout replier
                 </button>
             </div>
@@ -94,8 +94,8 @@
         <!-- Filtres -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Type de structure</label>
-                <select id="structureTypeFilter" class="w-full rounded-lg border-slate-200">
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Type de structure</label>
+                <select id="structureTypeFilter" class="w-full rounded-lg border-slate-200 dark:border-slate-700">
                     <option value="">Tous les types</option>
                     {% for option in structure_type_options %}
                     <option value="{{ option.value }}">{{ option.label }}</option>
@@ -103,14 +103,14 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Rechercher</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Rechercher</label>
                 <input type="text" id="searchInput" 
-                       class="w-full rounded-lg border-slate-200"
+                       class="w-full rounded-lg border-slate-200 dark:border-slate-700"
                        placeholder="Rechercher par nom ou identifiant...">
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Statut</label>
-                <select id="statusFilter" class="w-full rounded-lg border-slate-200">
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Statut</label>
+                <select id="statusFilter" class="w-full rounded-lg border-slate-200 dark:border-slate-700">
                     <option value="">Tous les statuts</option>
                     {% for option in structure_status_options %}
                     <option value="{{ option.value }}">{{ option.label }}</option>
@@ -125,13 +125,13 @@
         <!-- Navigation arborescente / vues -->
         <div class="lg:col-span-1">
             <div class="sticky top-4">
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
-                        <h2 class="font-semibold text-slate-900">Navigation</h2>
-                        <div class="inline-flex rounded-lg border border-slate-200 bg-white overflow-hidden text-xs">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div class="p-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+                        <h2 class="font-semibold text-slate-900 dark:text-slate-100">Navigation</h2>
+                        <div class="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden text-xs">
                             <button id="modeTreeBtn" type="button" class="px-2.5 py-1 bg-slate-900 text-white">Arbre</button>
-                            <button id="modeListBtn" type="button" class="px-2.5 py-1 text-slate-600 hover:bg-slate-50">Liste</button>
-                            <button id="modeCardsBtn" type="button" class="px-2.5 py-1 text-slate-600 hover:bg-slate-50">Cards</button>
+                            <button id="modeListBtn" type="button" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Liste</button>
+                            <button id="modeCardsBtn" type="button" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Cards</button>
                         </div>
                     </div>
                     <!-- Vue arbre -->
@@ -139,34 +139,34 @@
                         <!-- Chargé dynamiquement -->
                     </div>
                     <!-- Vue liste -->
-                    <div id="listView" class="hidden p-4 text-xs border-t border-slate-100">
-                        <table class="min-w-full divide-y divide-slate-200">
-                            <thead class="bg-slate-50">
+                    <div id="listView" class="hidden p-4 text-xs border-t border-slate-100 dark:border-slate-700">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                            <thead class="bg-slate-50 dark:bg-slate-700">
                                 <tr>
                                     <th class="px-2 py-1 w-6">
-                                        <input type="checkbox" id="listSelectAll" class="rounded border-slate-300">
+                                        <input type="checkbox" id="listSelectAll" class="rounded border-slate-300 dark:border-slate-600">
                                     </th>
-                                    <th class="px-2 py-1 text-left font-medium text-slate-500">Type</th>
-                                    <th class="px-2 py-1 text-left font-medium text-slate-500">Nom</th>
-                                    <th class="px-2 py-1 text-left font-medium text-slate-500">Chemin</th>
+                                    <th class="px-2 py-1 text-left font-medium text-slate-500 dark:text-slate-400">Type</th>
+                                    <th class="px-2 py-1 text-left font-medium text-slate-500 dark:text-slate-400">Nom</th>
+                                    <th class="px-2 py-1 text-left font-medium text-slate-500 dark:text-slate-400">Chemin</th>
                                 </tr>
                             </thead>
-                            <tbody id="listViewBody" class="divide-y divide-slate-100 bg-white"></tbody>
+                            <tbody id="listViewBody" class="divide-y divide-slate-100 bg-white dark:bg-slate-800"></tbody>
                         </table>
-                        <div id="bulkActionsBar" class="hidden mt-3 p-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+                        <div id="bulkActionsBar" class="hidden mt-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 flex items-center justify-between text-xs">
                             <div>
-                                <span id="bulkSelectionCount" class="font-medium text-slate-900">0</span>
-                                <span class="text-slate-600 ml-1">élément(s) sélectionné(s)</span>
+                                <span id="bulkSelectionCount" class="font-medium text-slate-900 dark:text-slate-100">0</span>
+                                <span class="text-slate-600 dark:text-slate-300 ml-1">élément(s) sélectionné(s)</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button type="button" class="px-2 py-1 rounded border border-slate-300 text-slate-600 hover:bg-white" onclick="clearBulkSelection()">Annuler</button>
+                                <button type="button" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-white" onclick="clearBulkSelection()">Annuler</button>
                                 <button type="button" class="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700" onclick="applyBulkAction('activate')">Activer</button>
                                 <button type="button" class="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800" onclick="applyBulkAction('deactivate')">Désactiver</button>
                             </div>
                         </div>
                     </div>
                     <!-- Vue cards -->
-                    <div id="cardsView" class="hidden p-4 text-xs border-t border-slate-100">
+                    <div id="cardsView" class="hidden p-4 text-xs border-t border-slate-100 dark:border-slate-700">
                         <div id="cardsViewBody" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     </div>
                 </div>
@@ -175,16 +175,16 @@
 
         <!-- Détails de la structure -->
         <div class="lg:col-span-3">
-            <div id="structureDetail" class="bg-white rounded-xl shadow-sm border border-slate-200">
-                <div class="border-b border-slate-200">
+            <div id="structureDetail" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                <div class="border-b border-slate-200 dark:border-slate-700">
                     <div class="px-6 py-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h3 class="text-xl font-semibold text-slate-900" id="detailTitle">
+                                <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100" id="detailTitle">
                                     Sélectionnez un élément
                                 </h3>
-                                <p class="text-sm text-slate-500" id="detailType"></p>
-                                <p class="mt-1 text-xs text-slate-400 hidden" id="detailPath"></p>
+                                <p class="text-sm text-slate-500 dark:text-slate-400" id="detailType"></p>
+                                <p class="mt-1 text-xs text-slate-400 dark:text-slate-500 hidden" id="detailPath"></p>
                             </div>
                             <div class="flex items-center gap-3" id="detailActions"></div>
                         </div>
@@ -192,10 +192,10 @@
                 </div>
                 
                 <!-- Informations détaillées -->
-                <div class="divide-y divide-slate-200">
+                <div class="divide-y divide-slate-200 dark:divide-slate-700">
                     <div class="px-6 py-4">
                         <!-- Message initial -->
-                        <div id="selectMessage" class="text-center text-slate-500 py-8">
+                        <div id="selectMessage" class="text-center text-slate-500 dark:text-slate-400 py-8">
                             Sélectionnez un élément dans l'arborescence pour voir ses détails
                         </div>
                         

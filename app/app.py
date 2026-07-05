@@ -72,7 +72,7 @@ from app.routers import (
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
     interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks,
     hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie,
-    admission_wizard, location_cartography
+    admission_wizard, location_cartography, contacts
 )
 from app.routers import menu
 
@@ -374,6 +374,7 @@ def create_app() -> FastAPI:
     app.include_router(dossiers.api_router)
     app.include_router(venues.router)
     app.include_router(mouvements.router)
+    app.include_router(contacts.router)
     print(" - Core entity routers mounted with their prefixes")
 
     # Register AJAX endpoints for mouvements (no GHT dependency)

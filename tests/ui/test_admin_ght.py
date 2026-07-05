@@ -1,7 +1,7 @@
 import pytest
 import json
 from playwright.sync_api import expect
-from .ui_helpers import wait_for_ready, safe_navigate
+from .ui_helpers import wait_for_ready, safe_navigate, capture_console_errors
 
 
 class TestGHTRoutes:
@@ -9,6 +9,7 @@ class TestGHTRoutes:
 
     def test_ght_ej_new_page(self, page, test_server, ght_context):
         """Test creating a new EJ within a GHT context"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         ght_id = ght_context
@@ -38,9 +39,11 @@ class TestGHTRoutes:
                 continue
 
         assert form_found, "EJ creation form should be displayed"
+        assert not errors, f"Console errors detected: {errors}"
 
     def test_ght_structure_routes(self, page, test_server, ght_context):
         """Test various structure management routes within GHT context"""
+        errors = capture_console_errors(page)
         assert wait_for_ready(test_server), "Server not ready"
 
         ght_id = ght_context
@@ -99,6 +102,8 @@ class TestGHTRoutes:
                 # Log but don't fail - some routes might not be implemented yet
                 print(f"Warning: Structure route {route} failed: {e}")
                 continue
+
+        assert not errors, f"Console errors detected: {errors}"
 
 
 class TestStructureManagement:

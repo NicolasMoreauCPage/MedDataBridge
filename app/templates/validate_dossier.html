@@ -10,7 +10,7 @@
         {{ doc_link(request.url.path) }}
     </div>
     
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg overflow-hidden">
         <!-- Header -->
         <div class="bg-gradient-to-r from-purple-600 to-purple-800 text-white px-6 py-4">
             <h1 class="text-2xl font-bold">Validation de dossier</h1>
@@ -20,7 +20,7 @@
         <!-- Formulaire -->
         <div class="p-6">
             <form method="post" action="/messages/validate-dossier" class="space-y-4" data-no-ajax="1">
-                <div class="bg-purple-50 border-l-4 border-purple-400 p-4 mb-4">
+                <div class="bg-purple-50 dark:bg-purple-950/30 border-l-4 border-purple-400 p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
@@ -28,7 +28,7 @@
                             </svg>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-purple-700">
+                            <p class="text-sm text-purple-700 dark:text-purple-300">
                                 <strong>Validation par dossier :</strong> Entrez un numéro de dossier (ID interne ou numéro de visite externe) 
                                 pour récupérer tous les messages associés et valider leur cohérence de workflow.
                             </p>
@@ -37,7 +37,7 @@
                 </div>
 
                 {% if error %}
-                <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                <div class="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-400 p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
@@ -45,7 +45,7 @@
                             </svg>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-red-700">{{ error }}</p>
+                            <p class="text-sm text-red-700 dark:text-red-300">{{ error }}</p>
                         </div>
                     </div>
                 </div>
@@ -53,9 +53,9 @@
 
                 <!-- Champ numéro de dossier -->
                 <div>
-                    <label for="dossier_number" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="dossier_number" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                         Numéro de dossier
-                        <span class="text-gray-500 text-xs ml-2">(ID interne ou numéro de visite externe PV1-19)</span>
+                        <span class="text-gray-500 dark:text-slate-400 text-xs ml-2">(ID interne ou numéro de visite externe PV1-19)</span>
                     </label>
                     <input 
                         type="text" 
@@ -64,20 +64,20 @@
                         required
                         value="{{ dossier_number }}"
                         placeholder="Ex: 12345 ou V2024-001"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-purple-500"
                     />
                 </div>
 
                 <!-- Endpoint optionnel -->
                 <div>
-                    <label for="endpoint_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="endpoint_id" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                         Endpoint (optionnel)
-                        <span class="text-gray-500 text-xs ml-2">(Filtrer par source)</span>
+                        <span class="text-gray-500 dark:text-slate-400 text-xs ml-2">(Filtrer par source)</span>
                     </label>
                     <select 
                         id="endpoint_id" 
                         name="endpoint_id"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-purple-500"
                     >
                         <option value="">Tous les endpoints</option>
                         {% for ep in endpoints %}
@@ -90,7 +90,7 @@
                 <div class="flex justify-end">
                     <button 
                         type="submit"
-                        class="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+                        class="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:ring-offset-2 transition-colors"
                     >
                         <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
@@ -103,11 +103,11 @@
 
         {% if scenario_result %}
         <!-- Résultats de validation -->
-        <div class="border-t border-gray-200 px-6 py-6 bg-gray-50">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+        <div class="border-t border-gray-200 dark:border-slate-700 px-6 py-6 bg-gray-50 dark:bg-slate-700">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-slate-200 mb-4">
                 Résultats de la validation
                 {% if messages_count %}
-                    <span class="text-sm font-normal text-gray-600">({{ messages_count }} message{% if messages_count > 1 %}s{% endif %})</span>
+                    <span class="text-sm font-normal text-gray-600 dark:text-slate-300">({{ messages_count }} message{% if messages_count > 1 %}s{% endif %})</span>
                 {% endif %}
             </h2>
 
@@ -116,11 +116,11 @@
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
                         {% if scenario_result.is_valid %}
-                            <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         {% else %}
-                            <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         {% endif %}
@@ -140,7 +140,7 @@
             <!-- Erreurs de workflow -->
             {% if scenario_result.workflow_issues %}
             <div class="mb-6">
-                <h3 class="text-lg font-semibold text-red-800 mb-3 flex items-center">
+                <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-3 flex items-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
@@ -148,9 +148,9 @@
                 </h3>
                 <div class="space-y-2">
                     {% for error in scenario_result.workflow_issues %}
-                    <div class="bg-red-50 border-l-4 border-red-400 p-3 text-sm">
-                        <p class="text-red-800 font-medium">{{ error.code }}</p>
-                        <p class="text-red-700">{{ error.message }}</p>
+                    <div class="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-400 p-3 text-sm">
+                        <p class="text-red-800 dark:text-red-200 font-medium">{{ error.code }}</p>
+                        <p class="text-red-700 dark:text-red-300">{{ error.message }}</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -160,7 +160,7 @@
             <!-- Erreurs de cohérence -->
             {% if scenario_result.coherence_issues %}
             <div class="mb-6">
-                <h3 class="text-lg font-semibold text-orange-800 mb-3 flex items-center">
+                <h3 class="text-lg font-semibold text-orange-800 dark:text-orange-200 mb-3 flex items-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
@@ -168,9 +168,9 @@
                 </h3>
                 <div class="space-y-2">
                     {% for error in scenario_result.coherence_issues %}
-                    <div class="bg-orange-50 border-l-4 border-orange-400 p-3 text-sm">
-                        <p class="text-orange-800 font-medium">{{ error.code }}</p>
-                        <p class="text-orange-700">{{ error.message }}</p>
+                    <div class="bg-orange-50 dark:bg-orange-950/30 border-l-4 border-orange-400 p-3 text-sm">
+                        <p class="text-orange-800 dark:text-orange-200 font-medium">{{ error.code }}</p>
+                        <p class="text-orange-700 dark:text-orange-300">{{ error.message }}</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -179,41 +179,41 @@
 
             <!-- Détails des messages validés -->
             <div class="mt-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-200 mb-3 flex items-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                     </svg>
                     Détails des messages ({{ scenario_result.messages|length }})
                 </h3>
-                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                        <thead class="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Événement</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visite</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Validation</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">#</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Événement</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Patient</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Visite</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Timestamp</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-slate-400 uppercase">Validation</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                             {% for msg in scenario_result.messages %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-sm text-gray-900">{{ msg.message_number }}</td>
-                                <td class="px-4 py-3 text-sm font-mono text-gray-900">{{ msg.message_type }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-700">{{ msg.event_code }}</td>
-                                <td class="px-4 py-3 text-sm font-mono text-gray-700">{{ msg.patient_id if msg.patient_id else '-' }}</td>
-                                <td class="px-4 py-3 text-sm font-mono text-gray-700">{{ msg.visit_id if msg.visit_id else '-' }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-700">{{ msg.timestamp|fr_datetime if msg.timestamp else '-' }}</td>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-slate-600">
+                                <td class="px-4 py-3 text-sm text-gray-900 dark:text-slate-100">{{ msg.message_number }}</td>
+                                <td class="px-4 py-3 text-sm font-mono text-gray-900 dark:text-slate-100">{{ msg.message_type }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{{ msg.event_code }}</td>
+                                <td class="px-4 py-3 text-sm font-mono text-gray-700 dark:text-slate-300">{{ msg.patient_id if msg.patient_id else '-' }}</td>
+                                <td class="px-4 py-3 text-sm font-mono text-gray-700 dark:text-slate-300">{{ msg.visit_id if msg.visit_id else '-' }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">{{ msg.timestamp|fr_datetime if msg.timestamp else '-' }}</td>
                                 <td class="px-4 py-3 text-sm">
                                     {% if msg.validation.issues %}
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200">
                                             {{ msg.validation.issues|length }} erreur{% if msg.validation.issues|length > 1 %}s{% endif %}
                                         </span>
                                     {% else %}
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200">
                                             OK
                                         </span>
                                     {% endif %}
@@ -221,10 +221,10 @@
                             </tr>
                             {% if msg.validation.issues %}
                             <tr>
-                                <td colspan="7" class="px-4 py-2 bg-red-50">
+                                <td colspan="7" class="px-4 py-2 bg-red-50 dark:bg-red-950/30">
                                     <div class="space-y-1">
                                         {% for issue in msg.validation.issues %}
-                                        <p class="text-xs text-red-700">
+                                        <p class="text-xs text-red-700 dark:text-red-300">
                                             <span class="font-semibold">{{ issue.severity|upper }}:</span> {{ issue.message }}
                                         </p>
                                         {% endfor %}

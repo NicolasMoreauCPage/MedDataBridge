@@ -4,12 +4,12 @@
 {% block content %}
 <div class="max-w-5xl mx-auto py-8 px-4 space-y-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center gap-2 text-sm text-slate-500">
+  <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
     <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     <a href="/messages" class="hover:text-blue-600 transition-colors">Messages</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-700 font-medium">Injecter un message</span>
+    <span class="text-slate-700 dark:text-slate-200 font-medium">Injecter un message</span>
   </nav>
 
   <!-- Header avec gradient -->
@@ -33,20 +33,20 @@
   </div>
 
   {% if error %}
-  <div class="p-5 bg-red-50 border-2 border-red-300 rounded-xl flex items-center gap-3 animate-fadeIn shadow-lg">
+  <div class="p-5 bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-700 rounded-xl flex items-center gap-3 animate-fadeIn shadow-lg">
     <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
-    <span class="text-red-700 font-medium">{{ error }}</span>
+    <span class="text-red-700 dark:text-red-300 font-medium">{{ error }}</span>
   </div>
   {% endif %}
 
   <!-- Formulaire -->
-  <form method="post" class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg overflow-hidden">
+  <form method="post" class="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
     <!-- Configuration -->
-    <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-8 py-6 border-b-2 border-slate-200">
-      <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
-        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-gradient-to-r from-slate-50 dark:from-slate-700 to-slate-100 dark:to-slate-800 px-8 py-6 border-b-2 border-slate-200 dark:border-slate-700">
+      <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-4">
+        <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
         </svg>
@@ -54,16 +54,16 @@
       </h3>
       <div class="grid gap-6 md:grid-cols-2">
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-2">Type de message</label>
-          <select name="kind" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Type de message</label>
+          <select name="kind" class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 transition-all">
             {% for option in transport_options %}
             <option value="{{ option.value }}">{{ option.label }}</option>
             {% endfor %}
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-2">Endpoint cible (optionnel)</label>
-          <select name="endpoint_id" class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Endpoint cible (optionnel)</label>
+          <select name="endpoint_id" class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 transition-all">
             <option value="">🌐 Aucun endpoint (test uniquement)</option>
             {% for e in endpoints %}
             <option value="{{ e.id }}">{{ e.name }} ({{ e.kind }})</option>
@@ -75,8 +75,8 @@
 
     <!-- Payload -->
     <div class="p-8">
-      <label class="block text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
         </svg>
         Payload du message
@@ -86,22 +86,22 @@
         placeholder="MSH|^~\&|SENDING_APP|SENDING_FAC|RECEIVING_APP|RECEIVING_FAC|20231205120000||ADT^A01|MSG123|P|2.5|||||FRA&#10;PID|1||123456^^^HOSPITAL^PI||MARTIN^SOPHIE||19800515|F|||15 RUE VICTOR HUGO^^PARIS^^75001^FRA"></textarea>
       
       <!-- Info helper -->
-      <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+      <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-sm">
         <div class="flex items-start gap-3">
-          <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <div>
-            <p class="font-semibold text-blue-900 mb-1">💡 Astuce</p>
-            <p class="text-blue-800">Pour simuler un MLLP entrant, choisissez un endpoint de type MLLP. Le message sera traité par le pipeline d'entrée (validation, parsing PID/PV1, etc.).</p>
+            <p class="font-semibold text-blue-900 dark:text-blue-200 mb-1">💡 Astuce</p>
+            <p class="text-blue-800 dark:text-blue-200">Pour simuler un MLLP entrant, choisissez un endpoint de type MLLP. Le message sera traité par le pipeline d'entrée (validation, parsing PID/PV1, etc.).</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Actions -->
-    <div class="bg-slate-50 px-8 py-6 border-t-2 border-slate-200 flex items-center justify-between">
-      <a href="/messages" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
+    <div class="bg-slate-50 dark:bg-slate-700 px-8 py-6 border-t-2 border-slate-200 dark:border-slate-700 flex items-center justify-between">
+      <a href="/messages" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
         </svg>

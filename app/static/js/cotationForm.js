@@ -66,18 +66,23 @@ function detectActeType(code) {
 }
 
 // Fonction pour afficher des notifications toast
-function showToast(message, type = 'info') {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
+// Délègue au système de toasts global défini dans base.html (window.toastSystem).
+// `type` accepte un booléen (truthy = erreur), ou une chaîne parmi
+// 'success' | 'error' | 'warning' | 'info'; toute autre valeur est traitée
+// comme 'success' par défaut.
+function showToast(message, type = 'success') {
+  let normalizedType;
+  if (typeof type === 'boolean') {
+    normalizedType = type ? 'error' : 'success';
+  } else if (['success', 'error', 'warning', 'info'].includes(type)) {
+    normalizedType = type;
+  } else {
+    normalizedType = 'success';
+  }
 
-  toast.textContent = message;
-  toast.className = `toast ${type}`;
-  toast.classList.remove('hidden');
-
-  // Masquer automatiquement après 3 secondes
-  setTimeout(() => {
-    toast.classList.add('hidden');
-  }, 3000);
+  if (window.toastSystem) {
+    window.toastSystem.show(message, normalizedType);
+  }
 }
 
 // Initialisation au chargement de la page
@@ -758,14 +763,6 @@ function saveActe(e) {
 
 function editActe(i) { showModal(i); }
 function deleteActe(i) { actes.splice(i,1); renderActes(); }
-
-function showToast(msg, error=false) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = 'toast' + (error ? ' border-red-400 text-red-700' : ' border-green-400 text-green-700');
-  toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 2500);
-}
 
 // Gestion des événements de recherche de dossiers
 document.getElementById('dossierSearch').addEventListener('input', (e) => {

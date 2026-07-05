@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% from "macros/ui.html" import empty_state %}
 
 {% block title %}Entités Géographiques{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Entités Géographiques</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Entités Géographiques</span>
   </nav>
 
   <!-- Header -->
@@ -28,10 +29,10 @@
   <!-- Filtres -->
   <div class="mb-6 grid gap-4 sm:grid-cols-1">
     <div>
-      <label for="text_filter" class="block text-sm font-medium text-slate-700">Recherche</label>
+      <label for="text_filter" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Recherche</label>
       <input type="search" id="text_filter" name="text_filter" value="{{ search_term or '' }}"
         placeholder="Nom, identifiant ou FINESS"
-        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm"
         onkeydown="if(event.key==='Enter'){event.preventDefault();applyFilters();}">
     </div>
   </div>
@@ -39,27 +40,27 @@
   <div class="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
     <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
       <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-        <table class="min-w-full divide-y divide-slate-200">
-          <thead class="bg-slate-50">
+        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <thead class="bg-slate-50 dark:bg-slate-700">
             <tr>
-              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-slate-900 sm:pl-6">Établissement</th>
-              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">FINESS</th>
-              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Statut</th>
+              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-slate-900 dark:text-slate-100 sm:pl-6">Établissement</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900 dark:text-slate-100">FINESS</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900 dark:text-slate-100">Statut</th>
               <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                 <span class="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-200 bg-white">
+          <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
             {% for eg in entites_geographiques %}
             <tr>
-              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 dark:text-slate-100 sm:pl-6">
                 <div class="flex flex-col">
                   <span>{{ eg.name }}</span>
-                  <span class="text-xs text-slate-500">{{ eg.identifier }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ eg.identifier }}</span>
                 </div>
               </td>
-              <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
                 {{ eg.finess or "—" }}
               </td>
               <td class="whitespace-nowrap px-3 py-4 text-sm">
@@ -68,13 +69,13 @@
                 </span>
               </td>
               <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                <a href="/structure?ej={{ eg.entite_juridique_id }}" class="text-indigo-600 hover:text-indigo-900">Voir structure</a>
+                <a href="/structure?ej={{ eg.entite_juridique_id }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900">Voir structure</a>
               </td>
             </tr>
             {% else %}
             <tr>
-              <td colspan="4" class="py-10 text-center text-sm text-slate-500">
-                Aucune entité géographique trouvée.
+              <td colspan="4">
+                {{ empty_state("Aucune entité géographique trouvée", "Créez votre structure pas à pas avec l'assistant de structure.", action_label="Lancer l'assistant de structure", action_href="/structure/wizard") }}
               </td>
             </tr>
             {% endfor %}

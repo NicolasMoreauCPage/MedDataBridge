@@ -3,10 +3,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Page</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Page</span>
   </nav>
 
   <!-- Header -->
@@ -23,7 +23,7 @@
     </div>
   </div>
 
-  <div class="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 animate-scale-in">
+  <div class="max-w-2xl w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 animate-scale-in">
     <!-- Illustration d'erreur animée -->
     <div class="flex justify-center mb-6">
       <div class="relative">
@@ -39,8 +39,8 @@
           <path d="M30 30 L40 40 M40 30 L30 40" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
         </svg>
         <div class="absolute inset-0 flex items-center justify-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center animate-pulse">
-            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-12 h-12 bg-gradient-to-br from-red-100 dark:from-red-900/40 to-pink-100 dark:to-pink-900/40 rounded-full flex items-center justify-center animate-pulse">
+            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
@@ -49,19 +49,19 @@
     </div>
 
     <!-- Titre -->
-    <h1 class="text-3xl font-bold text-center text-slate-800 mb-4">
+    <h1 class="text-3xl font-bold text-center text-slate-800 dark:text-slate-100 mb-4">
       {{ title|default('Erreur') }}
     </h1>
 
     <!-- Message -->
-    <p class="text-center text-slate-600 mb-8">
+    <p class="text-center text-slate-600 dark:text-slate-300 mb-8">
       {{ message|default('Une erreur est survenue. Veuillez réessayer.') }}
     </p>
 
     <!-- Actions -->
     <div class="flex justify-center gap-4">
       {% if back_url %}
-      <a href="{{ back_url }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium transition">
+      <a href="{{ back_url }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
         </svg>

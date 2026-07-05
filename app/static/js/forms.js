@@ -255,7 +255,6 @@ class FormManager {
         };
 
         this.setupEventListeners();
-        this.setupToastContainer();
     }
 
     setupEventListeners() {
@@ -324,24 +323,6 @@ class FormManager {
         
         // Listen for changes
         mediaQuery.addListener(updateColumns);
-    }
-
-    setupToastContainer() {
-        if (this.options.showToasts) {
-            // Always use the container from base.html
-            let container = document.getElementById('toast-container');
-            if (!container) {
-                console.warn('Toast container not found in DOM, creating one');
-                container = document.createElement('div');
-                container.id = 'toast-container';
-                container.className = 'fixed top-4 right-4 z-50 flex flex-col gap-2';
-                document.body.appendChild(container);
-            }
-            // Make sure container is visible
-            container.style.opacity = '1';
-            container.style.visibility = 'visible';
-            this.toastContainer = container;
-        }
     }
 
     // Write a small DOM-visible debug marker so tests can assert on it even
@@ -491,7 +472,15 @@ class FormManager {
             console.debug('Form has data-no-ajax, allowing normal submission');
             return; // Don't prevent default, let browser submit normally
         }
-        
+
+        // GET forms (typically filters/search) can't carry a fetch() body — the Fetch
+        // API throws on GET/HEAD requests with a body. Let the browser submit these
+        // normally instead of intercepting them for the AJAX/toast/JSON flow below.
+        if (this.form.method && this.form.method.toLowerCase() === 'get') {
+            console.debug('Form uses GET, allowing normal submission');
+            return; // Don't prevent default, let browser submit normally
+        }
+
         event.preventDefault();
         console.debug('FormManager.handleSubmit called for', this.form.action, this.form.method);
         
@@ -653,67 +642,8 @@ class FormManager {
     }
 
     showToast(type, message) {
-        if (!this.options.showToasts || !this.toastContainer) return;
-
-        // Create the toast element
-        let classNames = [
-            `toast-${type}`,
-            'flex', 'items-center', 'gap-3', 'p-4', 'rounded-xl', 'shadow-lg',
-            type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : '',
-            type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : '',
-            'animate-slideIn'
-        ].filter(Boolean).join(' ');
-
-        const toast = document.createElement('div');
-        toast.className = classNames;
-        // Ensure toast is visible for tests
-        toast.style.opacity = '1';
-        toast.style.visibility = 'visible';
-        toast.setAttribute('role', 'alert');
-        toast.setAttribute('aria-live', 'polite');
-        
-        toast.innerHTML = `
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                ${this.getToastIcon(type)}
-            </svg>
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()" class="ml-auto" aria-label="Fermer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>`;
-        
-        // Add to container and ensure visibility
-        this.toastContainer.appendChild(toast);
-        
-        // Handle auto-removal
-        const removeToast = () => {
-            if (toast.parentElement) {
-                // Add fade out animation
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100%)';
-                toast.style.transition = 'opacity 150ms ease-out, transform 150ms ease-out';
-                
-                // Remove after animation
-                setTimeout(() => toast.remove(), 150);
-            }
-        };
-
-        // Auto-remove after delay, but keep long enough for tests
-        setTimeout(removeToast, 5000);
-    }
-
-    getToastIcon(type) {
-        switch (type) {
-            case 'success':
-                return '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>';
-            case 'error':
-                return '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>';
-            case 'warning':
-                return '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>';
-            default:
-                return '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
-        }
+        if (!this.options.showToasts || !window.toastSystem) return;
+        window.toastSystem.show(message, type);
     }
 
     getLoadingButtonContent() {

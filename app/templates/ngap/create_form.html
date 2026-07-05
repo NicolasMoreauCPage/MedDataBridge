@@ -4,19 +4,19 @@
 {% block content %}
 <div class="max-w-2xl mx-auto py-8 px-4 space-y-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center gap-2 text-sm text-slate-500">
+  <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
     <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     <a href="/ngap" class="hover:text-blue-600 transition-colors">Gestion NGAP</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
     <a href="/ngap/dossier/{{ dossier.id }}" class="hover:text-blue-600 transition-colors">Dossier #{{ dossier.dossier_seq }}</a>
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-700 font-medium">Nouvel acte</span>
+    <span class="text-slate-700 dark:text-slate-200 font-medium">Nouvel acte</span>
   </nav>
 
-  <h1 class="text-2xl font-bold text-slate-800">Nouvel acte NGAP</h1>
+  <h1 class="text-2xl font-bold text-slate-800 dark:text-slate-100">Nouvel acte NGAP</h1>
 
-  <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-lg p-6">
+  <div class="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-lg p-6">
     <form method="post" action="/ngap/create/{{ dossier.id }}" class="space-y-5">
       <div class="grid grid-cols-2 gap-4">
         {{ components.form_field("Lettre-clé", "lettre_cle", required=True, help="Ex : C, V, K, AMI") }}
@@ -40,8 +40,8 @@
 
       {{ components.form_field("Commentaire", "commentaire", type="textarea", rows=3) }}
 
-      <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
-        <a href="/ngap/dossier/{{ dossier.id }}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50">
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+        <a href="/ngap/dossier/{{ dossier.id }}" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600">
           Annuler
         </a>
         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-xl hover:bg-teal-700">

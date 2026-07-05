@@ -3,10 +3,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
     <!-- Breadcrumb -->
-    <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+    <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
         <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-        <span class="text-slate-400">/</span>
-        <span class="text-slate-800 font-medium">Cache Metrics</span>
+        <span class="text-slate-400 dark:text-slate-500">/</span>
+        <span class="text-slate-800 dark:text-slate-100 font-medium">Cache Metrics</span>
     </nav>
 
     <!-- Header -->
@@ -41,84 +41,84 @@
     <!-- Metrics Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
             <!-- Cache Status -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div class="text-3xl">💚</div>
-                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Cache Status</span>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cache Status</span>
                 </div>
                 <div id="cache-status">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">Chargement...</span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">Chargement...</span>
                 </div>
             </div>
 
             <!-- Hit Rate -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div class="text-3xl">🎯</div>
-                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Hit Rate</span>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Hit Rate</span>
                 </div>
-                <div class="text-3xl font-bold text-indigo-600" id="hit-rate">--</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Percentage</div>
+                <div class="text-3xl font-bold text-indigo-600 dark:text-indigo-400" id="hit-rate">--</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Percentage</div>
             </div>
 
             <!-- Total Hits -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div class="text-3xl">✅</div>
-                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Hits</span>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Hits</span>
                 </div>
-                <div class="text-3xl font-bold text-emerald-600" id="total-hits">--</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Successful Cache Reads</div>
+                <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400" id="total-hits">--</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Successful Cache Reads</div>
             </div>
 
             <!-- Total Misses -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div class="text-3xl">❌</div>
-                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Misses</span>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Misses</span>
                 </div>
-                <div class="text-3xl font-bold text-red-600" id="total-misses">--</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Cache Misses</div>
+                <div class="text-3xl font-bold text-red-600 dark:text-red-400" id="total-misses">--</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cache Misses</div>
             </div>
 
             <!-- Memory Used -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div class="text-3xl">💾</div>
-                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Memory Used</span>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Memory Used</span>
                 </div>
-                <div class="text-3xl font-bold text-purple-600" id="memory-used">--</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Redis Memory</div>
+                <div class="text-3xl font-bold text-purple-600 dark:text-purple-400" id="memory-used">--</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Redis Memory</div>
             </div>
 
             <!-- Total Operations -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div class="text-3xl">⚡</div>
-                    <span class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Operations</span>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total Operations</span>
                 </div>
-                <div class="text-3xl font-bold text-blue-600" id="total-ops">--</div>
-                <div class="text-xs text-slate-500 uppercase tracking-wide">Cache Operations</div>
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400" id="total-ops">--</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cache Operations</div>
             </div>
         </div>
 
         <!-- Chart Container -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-            <h2 class="text-xl font-semibold text-slate-800 mb-4">Hit vs Miss Distribution</h2>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">Hit vs Miss Distribution</h2>
             <canvas id="hitMissChart"></canvas>
         </div>
 
         <!-- Additional Information -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 class="text-xl font-semibold text-slate-800 mb-4">Informations complémentaires</h2>
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">Informations complémentaires</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-slate-50 rounded-lg p-4 border-l-4 border-indigo-500">
-                    <div class="text-xs text-slate-600 mb-1 uppercase tracking-wide">Total Connections</div>
-                    <div class="text-lg font-semibold text-slate-800" id="total-connections">--</div>
+                <div class="bg-slate-50 dark:bg-slate-700 rounded-lg p-4 border-l-4 border-indigo-500">
+                    <div class="text-xs text-slate-600 dark:text-slate-300 mb-1 uppercase tracking-wide">Total Connections</div>
+                    <div class="text-lg font-semibold text-slate-800 dark:text-slate-100" id="total-connections">--</div>
                 </div>
-                <div class="bg-slate-50 rounded-lg p-4 border-l-4 border-indigo-500">
-                    <div class="text-xs text-slate-600 mb-1 uppercase tracking-wide">Total Commands</div>
-                    <div class="text-lg font-semibold text-slate-800" id="total-commands">--</div>
+                <div class="bg-slate-50 dark:bg-slate-700 rounded-lg p-4 border-l-4 border-indigo-500">
+                    <div class="text-xs text-slate-600 dark:text-slate-300 mb-1 uppercase tracking-wide">Total Commands</div>
+                    <div class="text-lg font-semibold text-slate-800 dark:text-slate-100" id="total-commands">--</div>
                 </div>
             </div>
         </div>

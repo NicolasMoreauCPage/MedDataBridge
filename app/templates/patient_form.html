@@ -367,7 +367,7 @@
               <option value="CACH" {% if (patient and patient.identity_reliability_code == 'CACH') or (sample_data and sample_data.get('identity_reliability_code') == 'CACH') %}selected{% endif %}>CACH - Identité cachée</option>
               <option value="ANOM" {% if (patient and patient.identity_reliability_code == 'ANOM') or (sample_data and sample_data.get('identity_reliability_code') == 'ANOM') %}selected{% endif %}>ANOM - Identité anonyme</option>
             </select>
-            <p class="text-xs text-slate-500 mt-1">HL7 Table 0445 - Obligatoire IHE PAM France si INS présent</p>
+            <p class="text-xs text-slate-500 mt-1">Obligatoire (réglementation identité nationale) si un INS est présent</p>
           </div>
         </div>
 

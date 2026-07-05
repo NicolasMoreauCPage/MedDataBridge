@@ -3,14 +3,14 @@
 {% block content %}
 <div class="space-y-6">
   {% if request.query_params.get('success') %}
-  <div id="movement-success-banner" class="rounded-xl bg-green-50 border-2 border-green-200 p-4" role="status" aria-live="polite">
+  <div id="movement-success-banner" class="rounded-xl bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 p-4" role="status" aria-live="polite">
     <div class="flex gap-3">
-      <svg class="h-5 w-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <svg class="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
       </svg>
       <div>
-        <p class="text-sm font-semibold text-green-900">Mouvement enregistré avec succès</p>
-        <p class="text-xs text-green-700 mt-1">Le mouvement a été créé et les conversions IHE PAM/FHIR ont été effectuées.</p>
+        <p class="text-sm font-semibold text-green-900 dark:text-green-200">Mouvement enregistré avec succès</p>
+        <p class="text-xs text-green-700 dark:text-green-300 mt-1">Le mouvement a été créé et enregistré.</p>
       </div>
     </div>
   </div>
@@ -30,29 +30,29 @@
   <div id="movement-form-feedback" class="sr-only" role="status" aria-live="polite"></div>
   
   <!-- Contexte patient compact -->
-  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
+  <div class="bg-gradient-to-r from-blue-50 dark:from-blue-950/30 to-indigo-50 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 shadow-sm">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-6">
         <div>
-          <p class="text-xs font-medium text-blue-600 uppercase tracking-wide">Patient</p>
-          <p class="text-xl font-bold text-slate-900">{{ dossier.patient.family }} {{ dossier.patient.given }}</p>
+          <p class="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">Patient</p>
+          <p class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ dossier.patient.family }} {{ dossier.patient.given }}</p>
         </div>
         <div class="h-12 w-px bg-blue-200"></div>
         <div>
-          <p class="text-xs font-medium text-blue-600">Dossier #{{ dossier.dossier_seq }}</p>
-          <p class="text-sm text-slate-700">Venue #{{ venue.venue_seq }} • UF {{ venue.uf_responsabilite }}</p>
+          <p class="text-xs font-medium text-blue-600 dark:text-blue-400">Dossier #{{ dossier.dossier_seq }}</p>
+          <p class="text-sm text-slate-700 dark:text-slate-200">Venue #{{ venue.venue_seq }} • UF {{ venue.uf_responsabilite }}</p>
         </div>
       </div>
       <div>
         {% if mouvements %}
           {% set last_event = mouvements[-1].type.split('^')[-1] if mouvements[-1].type else mouvements[-1].type %}
-          <p class="text-xs text-blue-600 mb-1">Statut actuel</p>
-          <p class="inline-flex items-center gap-2 rounded-full bg-white border border-blue-300 px-4 py-2 text-base font-semibold text-blue-700 shadow-sm" role="status" aria-live="polite">
+          <p class="text-xs text-blue-600 dark:text-blue-400 mb-1">Statut actuel</p>
+          <p class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 px-4 py-2 text-base font-semibold text-blue-700 dark:text-blue-300 shadow-sm" role="status" aria-live="polite">
             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3"/></svg>
             {{ last_event }}
           </p>
         {% else %}
-          <p class="inline-flex items-center gap-2 rounded-full bg-white border border-slate-300 px-4 py-2 text-sm text-slate-600">
+          <p class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm text-slate-600 dark:text-slate-300">
             Pas de venue courante
           </p>
         {% endif %}
@@ -61,10 +61,10 @@
   </div>
 
   <!-- Formulaire principal en pleine largeur -->
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-lg">
-    <div class="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 rounded-t-2xl">
-      <h2 class="text-xl font-bold text-slate-900">Nouveau mouvement</h2>
-  <p class="text-sm text-slate-600 mt-1">Sélectionnez l'événement IHM (converti ensuite en IHE PAM ou FHIR) et complétez les informations requises</p>
+  <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg">
+    <div class="border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 dark:from-slate-700 to-slate-100 dark:to-slate-800 px-6 py-4 rounded-t-2xl">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Nouveau mouvement</h2>
+  <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">Sélectionnez le type de mouvement et complétez les informations requises</p>
     </div>
     
     <form id="movement-form" method="POST" action="/workflow/{{ venue.id }}/mouvement" class="p-6">
@@ -74,10 +74,10 @@
         <div class="space-y-6">
           <div class="space-y-4">
             <div class="space-y-2">
-              <label class="block text-sm font-semibold text-slate-700">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Type d'événement <span class="text-red-500">*</span>
               </label>
-              <p class="text-xs text-slate-500">Choisissez visuellement le mouvement le plus adapté, ou utilisez la liste détaillée.
+              <p class="text-xs text-slate-500 dark:text-slate-400">Choisissez visuellement le mouvement le plus adapté, ou utilisez la liste détaillée.
               </p>
             </div>
 
@@ -85,30 +85,30 @@
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="event-card-grid" role="group" aria-label="Sélection rapide du type d'événement">
               {% for event_code, metadata in event_catalog.items() %}
               <button type="button"
-                      class="event-card flex items-start gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-left shadow-sm hover:border-blue-400 hover:bg-blue-50/80 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      class="event-card flex items-start gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 px-4 py-3 text-left shadow-sm hover:border-blue-400 hover:bg-blue-50/80 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-300"
                       data-event-code="{{ event_code }}"
                       data-requires-location="{{ 'true' if metadata.requires_location else 'false' }}"
                       aria-pressed="false"
                       aria-label="Sélectionner {{ metadata.label }}{% if metadata.requires_location %}, avec localisation obligatoire{% endif %}">
                 <div class="mt-1">
-                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
+                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40 text-xs font-semibold text-blue-700 dark:text-blue-300">
                     {{ loop.index }}
                   </span>
                 </div>
                 <div class="space-y-1">
                   <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950/30 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
                       {{ event_code }}
                     </span>
                     {% if metadata.requires_location %}
-                      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                         🛏️ avec lit
                       </span>
                     {% endif %}
                   </div>
-                  <p class="text-sm font-semibold text-slate-900">{{ metadata.label }}</p>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ metadata.label }}</p>
                   {% if metadata.description %}
-                    <p class="text-xs text-slate-600 line-clamp-2">{{ metadata.description }}</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">{{ metadata.description }}</p>
                   {% endif %}
                 </div>
               </button>
@@ -117,37 +117,37 @@
 
             <!-- Mode expert / fallback : liste déroulante -->
             <div class="space-y-2">
-              <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Mode expert — liste complète
               </label>
               <select name="event_code" id="event_code_field" required 
-                      class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+                      class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
                 <option value="">— Choisir un événement —</option>
                 {% for event_code, metadata in event_catalog.items() %}
                 <option value="{{ event_code }}">{{ metadata.label }}</option>
                 {% endfor %}
               </select>
-              <p class="text-xs text-slate-500">Seuls les événements autorisés depuis l'état actuel sont affichés.</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Seuls les événements autorisés depuis l'état actuel sont affichés.</p>
             </div>
           </div>
 
-          <div id="event-description" class="hidden rounded-xl bg-blue-50 border-2 border-blue-200 p-4">
-            <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Description</p>
-            <p id="event-description-text" class="text-sm text-slate-700"></p>
+          <div id="event-description" class="hidden rounded-xl bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 p-4">
+            <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-2">Description</p>
+            <p id="event-description-text" class="text-sm text-slate-700 dark:text-slate-200"></p>
           </div>
 
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700">
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
               Date et heure du mouvement <span class="text-red-500">*</span>
             </label>
             <input type="datetime-local" name="movement_datetime" id="movement_datetime" 
                    value="{{ default_datetime }}" required
-                   class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
-            <p class="text-xs text-slate-500">La date doit être postérieure au dernier mouvement</p>
+                   class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors">
+            <p class="text-xs text-slate-500 dark:text-slate-400">La date doit être postérieure au dernier mouvement</p>
           </div>
 
           <div id="location-field" class="space-y-2 hidden">
-            <label class="block text-sm font-semibold text-slate-700">
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
               Nouvelle localisation <span class="text-red-500">*</span>
             </label>
             
@@ -156,15 +156,15 @@
             <input type="hidden" name="lit_id" id="lit-id-input" value="">
             
             <!-- Visual bed selector -->
-            <div class="rounded-xl border-2 border-slate-300 bg-white overflow-hidden">
+            <div class="rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden">
               <!-- Search bar -->
-              <div class="p-3 border-b border-slate-200 bg-slate-50">
+              <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700">
                 <div class="relative">
                       <input type="text" id="bed-search" placeholder="Rechercher un service, UF, chambre ou lit..."
                         autocomplete="off"
-                        class="block w-full rounded-lg border border-slate-300 pl-10 pr-4 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors">
-                      <div id="bed-suggestions" class="absolute left-0 right-0 mt-10 z-50 hidden bg-white border border-slate-200 rounded-lg shadow-lg max-h-56 overflow-y-auto text-sm"></div>
-                  <svg class="absolute left-3 top-2.5 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="block w-full rounded-lg border border-slate-300 dark:border-slate-600 pl-10 pr-4 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition-colors">
+                      <div id="bed-suggestions" class="absolute left-0 right-0 mt-10 z-50 hidden bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-56 overflow-y-auto text-sm"></div>
+                  <svg class="absolute left-3 top-2.5 h-5 w-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
                 </div>
@@ -174,14 +174,14 @@
               <div class="max-h-80 overflow-y-auto p-3" id="bed-hierarchy">
                 {% for service in structure.values() %}
                 <div class="mb-4 last:mb-0 service-group" data-service-name="{{ service.name }}">
-                  <button type="button" class="service-toggle flex w-full items-center justify-between rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 text-left hover:from-blue-100 hover:to-indigo-100 transition-colors">
-                    <span class="flex items-center gap-2 text-sm font-semibold text-blue-900">
+                  <button type="button" class="service-toggle flex w-full items-center justify-between rounded-lg bg-gradient-to-r from-blue-50 dark:from-blue-950/30 to-indigo-50 dark:to-indigo-950/30 px-3 py-2 text-left hover:from-blue-100 hover:to-indigo-100 transition-colors">
+                    <span class="flex items-center gap-2 text-sm font-semibold text-blue-900 dark:text-blue-200">
                       <svg class="h-4 w-4 transition-transform service-chevron" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                       </svg>
                       🏥 {{ service.name }}
                     </span>
-                    <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    <span class="rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
                       {% set bed_count = namespace(value=0) %}
                       {% for uf in service.ufs.values() %}
                         {% for uh in uf.unites_hebergement.values() %}
@@ -197,8 +197,8 @@
                   <div class="service-content hidden mt-2 ml-4 space-y-2">
                     {% for uf in service.ufs.values() %}
                     <div class="uf-group" data-uf-name="{{ uf.name }}">
-                      <div class="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-slate-600">
-                        <span class="inline-flex h-5 w-5 items-center justify-center rounded bg-emerald-100 text-emerald-700">UF</span>
+                      <div class="flex items-center gap-2 px-2 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">UF</span>
                         {{ uf.name }}
                       </div>
                       
@@ -206,16 +206,16 @@
                         {% for uh in uf.unites_hebergement.values() %}
                         <div class="uh-group" data-uh-name="{{ uh.name }}">
                           {% for chambre in uh.chambres.values() %}
-                          <div class="chambre-group rounded-lg border border-slate-200 bg-white p-2" data-chambre-name="{{ chambre.name }}">
+                          <div class="chambre-group rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2" data-chambre-name="{{ chambre.name }}">
                             <div class="mb-1.5 flex items-center justify-between">
-                              <span class="text-xs font-medium text-slate-700">🚪 {{ chambre.name }}</span>
-                              <span class="text-xs text-slate-500">{{ chambre.lits|length }} lit{% if chambre.lits|length > 1 %}s{% endif %}</span>
+                              <span class="text-xs font-medium text-slate-700 dark:text-slate-200">🚪 {{ chambre.name }}</span>
+                              <span class="text-xs text-slate-500 dark:text-slate-400">{{ chambre.lits|length }} lit{% if chambre.lits|length > 1 %}s{% endif %}</span>
                             </div>
                             <div class="grid gap-1.5 sm:grid-cols-2">
                               {% for lit in chambre.lits %}
                               <button type="button" 
                                       class="bed-option flex items-center justify-between rounded-lg border-2 px-3 py-2 text-left transition-all
-                                             {% if lit.status == 'free' %}border-emerald-200 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100{% elif lit.status == 'occupied' %}border-slate-200 bg-slate-50 hover:border-slate-300{% else %}border-amber-200 bg-amber-50 hover:border-amber-300{% endif %}"
+                                             {% if lit.status == 'free' %}border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 hover:border-emerald-400 hover:bg-emerald-100{% elif lit.status == 'occupied' %}border-slate-200 bg-slate-50 dark:bg-slate-700 hover:border-slate-300{% else %}border-amber-200 bg-amber-50 dark:bg-amber-950/30 hover:border-amber-300{% endif %}"
                                       data-bed-name="{{ lit.name }}"
                                       data-bed-status="{{ lit.status }}"
                                       data-full-path="{{ service.name }} > {{ uf.name }} > {{ uh.name }} > {{ chambre.name }}"
@@ -248,16 +248,16 @@
               </div>
               
               <!-- Selected location display -->
-              <div id="location-display" class="{% if not prefilled_location %}hidden{% endif %} border-t border-slate-200 bg-blue-50 px-3 py-2">
+              <div id="location-display" class="{% if not prefilled_location %}hidden{% endif %} border-t border-slate-200 dark:border-slate-700 bg-blue-50 dark:bg-blue-950/30 px-3 py-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2 text-xs">
-                    <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="h-4 w-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                     </svg>
-                    <span class="font-semibold text-blue-900">Sélection :</span>
-                    <span id="location-path" class="text-blue-700">{% if prefilled_location %}{{ prefilled_location }}{% endif %}</span>
+                    <span class="font-semibold text-blue-900 dark:text-blue-200">Sélection :</span>
+                    <span id="location-path" class="text-blue-700 dark:text-blue-300">{% if prefilled_location %}{{ prefilled_location }}{% endif %}</span>
                   </div>
-                  <button type="button" id="clear-location" class="text-xs font-medium text-blue-600 hover:text-blue-800">
+                  <button type="button" id="clear-location" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800">
                     ✕ Effacer
                   </button>
                 </div>
@@ -269,27 +269,27 @@
         <!-- Colonne droite : Détails -->
         <div class="space-y-6">
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700">Commentaire / Motif</label>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">Commentaire / Motif</label>
             <textarea name="reason" id="reason-field" rows="3"
                       class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors resize-none" 
                       placeholder="Décrivez le motif ou ajoutez des informations complémentaires..."></textarea>
           </div>
 
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700">Intervenant</label>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">Intervenant</label>
             <input type="text" name="performer" 
-                   class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" 
+                   class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors" 
                    placeholder="Nom de l'intervenant (IDE, médecin...)">
           </div>
 
-          <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
+          <div class="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4">
             <div class="flex gap-3">
-              <svg class="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
               </svg>
               <div>
-                <p class="text-sm font-semibold text-amber-900">Transitions validées</p>
-                <p class="text-xs text-amber-700 mt-1">Seuls les événements autorisés depuis l'état actuel sont proposés. La conversion IHE PAM/FHIR se fait automatiquement.</p>
+                <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">Transitions validées</p>
+                <p class="text-xs text-amber-700 dark:text-amber-300 mt-1">Seuls les mouvements autorisés depuis l'état actuel sont proposés.</p>
               </div>
             </div>
           </div>
@@ -297,16 +297,16 @@
       </div>
 
       <!-- Actions -->
-      <div class="mt-6 pt-6 border-t border-slate-200 flex items-center justify-between">
-        <a href="/venues/{{ venue.id }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+      <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <a href="/venues/{{ venue.id }}" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
           ← Retour à la venue
         </a>
         <div class="flex gap-3">
-          <button type="reset" class="px-6 py-3 rounded-xl border-2 border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+          <button type="reset" class="px-6 py-3 rounded-xl border-2 border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
             Réinitialiser
           </button>
           <button type="submit" id="submit-button" disabled
-                  class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors shadow-sm">
+                  class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed transition-colors shadow-sm">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
             </svg>
@@ -318,11 +318,11 @@
   </div>
 
   <!-- Historique des mouvements -->
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm">
-    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 rounded-t-2xl">
+  <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 rounded-t-2xl">
       <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold text-slate-900">Historique des mouvements</h3>
-        <span class="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Historique des mouvements</h3>
+        <span class="inline-flex items-center gap-2 rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
           {{ mouvements|length }} mouvement{% if mouvements|length > 1 %}s{% endif %}
         </span>
       </div>
@@ -330,32 +330,32 @@
     
     {% if mouvements %}
     <div class="px-6 py-6">
-      <ol class="relative border-s border-slate-200">
+      <ol class="relative border-s border-slate-200 dark:border-slate-700">
         {% for mouvement in mouvements|sort(attribute='when', reverse=True) %}
         <li class="mb-6 ms-6">
           <span class="absolute -start-1.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-white bg-blue-500 shadow-sm"></span>
           <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div class="text-sm font-semibold text-slate-900">
+              <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 {{ mouvement.when.strftime('%d/%m/%Y') if mouvement.when else '-' }}
-                <span class="text-xs font-normal text-slate-500">
+                <span class="text-xs font-normal text-slate-500 dark:text-slate-400">
                   {{ mouvement.when.strftime('%H:%M') if mouvement.when else '' }}
                 </span>
               </div>
-              <div class="mt-1 inline-flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-700">
+              <div class="mt-1 inline-flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
                 {{ mouvement.type }}
               </div>
             </div>
-            <div class="mt-1 text-sm text-slate-700 sm:text-right">
+            <div class="mt-1 text-sm text-slate-700 dark:text-slate-200 sm:text-right">
               <p class="font-medium">
                 {{ mouvement.location or mouvement.to_location or '-' }}
               </p>
             </div>
           </div>
-          <div class="mt-2 space-y-1 text-xs text-slate-600">
+          <div class="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
             {% if mouvement.reason or (mouvement.reason and reason_options) %}
               <p>
-                <span class="font-semibold text-slate-700">Motif :</span>
+                <span class="font-semibold text-slate-700 dark:text-slate-200">Motif :</span>
                 {{ mouvement.reason or '-' }}
                 {% if mouvement.reason and reason_options %}
                   {% set reason_label = None %}
@@ -363,21 +363,21 @@
                     {% if opt.value == mouvement.reason %}{% set reason_label = opt.label %}{% endif %}
                   {% endfor %}
                   {% if reason_label %}
-                    <span class="ml-1 text-slate-500">({{ reason_label }})</span>
+                    <span class="ml-1 text-slate-500 dark:text-slate-400">({{ reason_label }})</span>
                   {% endif %}
                 {% endif %}
               </p>
             {% endif %}
             {% if mouvement.reason and 'plan de lits' in mouvement.reason|lower %}
               <p>
-                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                   🔄 Créé depuis le plan de lits (drag & drop)
                 </span>
               </p>
             {% endif %}
             {% if mouvement.performer %}
               <p>
-                <span class="font-semibold text-slate-700">Intervenant :</span>
+                <span class="font-semibold text-slate-700 dark:text-slate-200">Intervenant :</span>
                 {{ mouvement.performer }}
               </p>
             {% endif %}
@@ -391,8 +391,8 @@
       <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
       </svg>
-      <p class="mt-4 text-base font-medium text-slate-600">Aucun mouvement enregistré</p>
-      <p class="mt-1 text-sm text-slate-500">Créez le premier mouvement pour ce dossier ci-dessus</p>
+      <p class="mt-4 text-base font-medium text-slate-600 dark:text-slate-300">Aucun mouvement enregistré</p>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Créez le premier mouvement pour ce dossier ci-dessus</p>
     </div>
     {% endif %}
   </div>

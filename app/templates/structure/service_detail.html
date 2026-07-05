@@ -34,7 +34,7 @@
         </div>
         <div class="flex gap-3">
           <a href="/structure/services/{{ service.id }}/edit" class="bg-white/20 hover:bg-white/30 backdrop-blur px-6 py-3 rounded-xl font-semibold transition-all">Modifier</a>
-          <a href="/structure/services" class="bg-white text-emerald-700 px-6 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-all shadow-lg">Retour</a>
+          <a href="/structure/services" class="bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 px-6 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-all shadow-lg">Retour</a>
         </div>
       </div>
     </div>
@@ -44,15 +44,15 @@
     <!-- Informations générales -->
     <div class="lg:col-span-2 space-y-6">
       <!-- Propriétés avec héritage -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
             Propriétés du service
           </h3>
-          <p class="text-sm text-slate-600 mt-1">Configuration et statuts avec indicateurs d'héritage</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">Configuration et statuts avec indicateurs d'héritage</p>
         </div>
         <div class="p-6">
           <dl class="space-y-1">
@@ -66,15 +66,15 @@
       </div>
 
       <!-- Dates avec héritage -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
             Dates importantes
           </h3>
-          <p class="text-sm text-slate-600 mt-1">Périodes d'activité avec héritage</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">Périodes d'activité avec héritage</p>
         </div>
         <div class="p-6">
           <dl class="space-y-1">
@@ -90,10 +90,10 @@
     <!-- Informations liées -->
     <div class="space-y-6">
       <!-- Pôle parent -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
             Pôle parent
@@ -102,27 +102,27 @@
         <div class="p-6">
           {% if service.pole %}
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
               </svg>
             </div>
             <div>
-              <a href="/structure/poles/{{ service.pole.id }}" class="font-medium text-blue-600 hover:text-blue-800">{{ service.pole.name }}</a>
-              <p class="text-sm text-slate-500">{{ service.pole.identifier }}</p>
+              <a href="/structure/poles/{{ service.pole.id }}" class="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800">{{ service.pole.name }}</a>
+              <p class="text-sm text-slate-500 dark:text-slate-400">{{ service.pole.identifier }}</p>
             </div>
           </div>
           {% else %}
-          <p class="text-slate-500 text-sm">Aucun pôle parent défini</p>
+          <p class="text-slate-500 dark:text-slate-400 text-sm">Aucun pôle parent défini</p>
           {% endif %}
         </div>
       </div>
 
       <!-- Statistiques -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-          <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             Statistiques
@@ -140,16 +140,16 @@
           {% endfor %}
           <div class="space-y-4">
             <div class="flex justify-between items-center">
-              <span class="text-sm text-slate-600">Unités Fonctionnelles</span>
-              <span class="font-semibold text-slate-900">{{ ufs|length }}</span>
+              <span class="text-sm text-slate-600 dark:text-slate-300">Unités Fonctionnelles</span>
+              <span class="font-semibold text-slate-900 dark:text-slate-100">{{ ufs|length }}</span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-sm text-slate-600">Chambres totales</span>
-              <span class="font-semibold text-slate-900">{{ stats.chambres }}</span>
+              <span class="text-sm text-slate-600 dark:text-slate-300">Chambres totales</span>
+              <span class="font-semibold text-slate-900 dark:text-slate-100">{{ stats.chambres }}</span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-sm text-slate-600">Lits totaux</span>
-              <span class="font-semibold text-slate-900">{{ stats.lits }}</span>
+              <span class="text-sm text-slate-600 dark:text-slate-300">Lits totaux</span>
+              <span class="font-semibold text-slate-900 dark:text-slate-100">{{ stats.lits }}</span>
             </div>
           </div>
         </div>
@@ -159,34 +159,34 @@
 
   <!-- Unités Fonctionnelles -->
   <div class="mt-8">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-        <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
           </svg>
           Unités Fonctionnelles ({{ ufs|length }})
         </h3>
-        <p class="text-sm text-slate-600 mt-1">Unités fonctionnelles rattachées à ce service</p>
+        <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">Unités fonctionnelles rattachées à ce service</p>
       </div>
-      <div class="divide-y divide-slate-200">
+      <div class="divide-y divide-slate-200 dark:divide-slate-700">
         {% for uf in ufs %}
-        <div class="px-6 py-4 hover:bg-slate-50 transition-colors">
+        <div class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
-              <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
               </div>
               <div>
-                <a href="/structure/ufs/{{ uf.id }}" class="font-medium text-indigo-600 hover:text-indigo-800">{{ uf.name }}</a>
-                <p class="text-sm text-slate-500">{{ uf.identifier }} • {{ uf.typology or 'Type non défini' }}</p>
+                <a href="/structure/ufs/{{ uf.id }}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">{{ uf.name }}</a>
+                <p class="text-sm text-slate-500 dark:text-slate-400">{{ uf.identifier }} • {{ uf.typology or 'Type non défini' }}</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
               {{ status_badge(uf.get_effective_operational_status()) }}
-              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
               </svg>
             </div>
@@ -194,10 +194,10 @@
         </div>
         {% else %}
         <div class="px-6 py-8 text-center">
-          <svg class="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m8-5v2m0 0v2m0-2h2m-2 0h-2"/>
           </svg>
-          <p class="text-slate-500">Aucune unité fonctionnelle rattachée</p>
+          <p class="text-slate-500 dark:text-slate-400">Aucune unité fonctionnelle rattachée</p>
         </div>
         {% endfor %}
       </div>

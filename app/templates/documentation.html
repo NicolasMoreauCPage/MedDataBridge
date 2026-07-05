@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/ui.html" import empty_state %}
 
 {% block title %}Documentation - IntegraSanté{% endblock %}
 
@@ -127,10 +128,10 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Résultats de recherche</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Résultats de recherche</span>
   </nav>
 
   <!-- Header -->
@@ -173,7 +174,7 @@
                     </form>
                 </div>
                 <nav class="doc-card p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Catégories</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Catégories</p>
                     <div class="mt-3">
                     {% for category_id, category_info in structure.items() %}
                         <details class="doc-category mb-2" data-category="{{ category_id }}" id="{{ category_id }}" {% if current_doc and current_doc.category == category_id %}open{% endif %}>
@@ -196,7 +197,7 @@
                 </nav>
                 {% if doc_content %}
                 <nav class="doc-card p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Sommaire</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Sommaire</p>
                     <div class="prose prose-sm max-w-none mt-2">{{ doc_toc|safe }}</div>
                 </nav>
                 {% endif %}
@@ -210,7 +211,7 @@
         </div>
         {% elif search_results is defined %}
         {% if search_results %}
-                <p class="mb-4 text-slate-600"><strong>{{ search_results|length }}</strong> résultat(s) trouvé(s)</p>
+                <p class="mb-4 text-slate-600 dark:text-slate-300"><strong>{{ search_results|length }}</strong> résultat(s) trouvé(s)</p>
         <div class="search-results">
             {% for result in search_results %}
             <div class="search-result-item">
@@ -220,7 +221,7 @@
                     </a>
                     <span class="badge-matches">{{ result.matches }} match(es)</span>
                 </div>
-                <div class="text-gray-500 mb-2" style="font-size: 0.75rem;">
+                <div class="text-gray-500 dark:text-slate-400 mb-2" style="font-size: 0.75rem;">
                     {{ result.category }} › {{ result.filename }}
                 </div>
                 {% if result.snippet %}
@@ -230,28 +231,25 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="no-results">
-            <p>Aucun résultat trouvé pour "{{ search_query }}"</p>
-            <p class="text-gray-500">Essayez avec d'autres mots-clés</p>
-        </div>
+          {{ empty_state('Aucun résultat trouvé pour "' + search_query + '"', "Essayez avec d'autres mots-clés") }}
         {% endif %}
         
         {% elif doc_content %}
         <div class="markdown-content">
-            <div class="text-sm text-slate-500 mb-3">
-              <a href="/documentation" class="text-indigo-600 hover:underline">Documentation</a> › 
-              <a href="/documentation#{{ current_doc.category }}" class="text-indigo-600 hover:underline">{{ structure[current_doc.category].title }}</a> ›
+            <div class="text-sm text-slate-500 dark:text-slate-400 mb-3">
+              <a href="/documentation" class="text-indigo-600 dark:text-indigo-400 hover:underline">Documentation</a> › 
+              <a href="/documentation#{{ current_doc.category }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">{{ structure[current_doc.category].title }}</a> ›
               {{ doc_title }}
             </div>
             {{ doc_content|safe }}
             <div class="flex justify-between gap-3 mt-8">
               {% if prev_doc %}
-              <a href="{{ prev_doc.url }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">← {{ prev_doc.title }}</a>
+              <a href="{{ prev_doc.url }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600">← {{ prev_doc.title }}</a>
               {% else %}
               <span></span>
               {% endif %}
               {% if next_doc %}
-              <a href="{{ next_doc.url }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">{{ next_doc.title }} →</a>
+              <a href="{{ next_doc.url }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600">{{ next_doc.title }} →</a>
               {% endif %}
             </div>
         </div>

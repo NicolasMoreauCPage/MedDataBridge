@@ -3,67 +3,67 @@
 
 <div id="location-cartography-widget" class="space-y-4">
   <!-- Breadcrumb Navigation -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-    <div class="font-semibold text-blue-900 mb-2">Localisation sélectionnée:</div>
-    <div id="hierarchy-breadcrumb" class="text-blue-700 font-mono text-xs flex items-center gap-2">
-      <span class="inline-flex items-center gap-2 px-3 py-1 bg-white rounded border border-blue-200">Aucune sélection</span>
+  <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm">
+    <div class="font-semibold text-blue-900 dark:text-blue-200 mb-2">Localisation sélectionnée:</div>
+    <div id="hierarchy-breadcrumb" class="text-blue-700 dark:text-blue-300 font-mono text-xs flex items-center gap-2">
+      <span class="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-800 rounded border border-blue-200 dark:border-blue-800">Aucune sélection</span>
     </div>
   </div>
 
   <!-- Service Selection -->
   <div class="space-y-2">
-    <label class="block text-sm font-semibold text-slate-700">
+    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
       Service <span class="text-red-500">*</span>
     </label>
-    <select id="cart-service" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+    <select id="cart-service" class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:outline-none">
       <option value="">-- Sélectionner un service --</option>
     </select>
   </div>
 
   <!-- UF Selection -->
   <div class="space-y-2">
-    <label class="block text-sm font-semibold text-slate-700">
+    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
       Unité Fonctionnelle (UF) <span class="text-red-500">*</span>
     </label>
-    <select id="cart-uf" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none" disabled>
+    <select id="cart-uf" class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:outline-none" disabled>
       <option value="">-- Sélectionner une UF --</option>
     </select>
   </div>
 
   <!-- Unité d'Hébergement Selection (if needed) -->
   <div class="space-y-2" id="uh-container" style="display: none;">
-    <label class="block text-sm font-semibold text-slate-700">
+    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
       Unité d'Hébergement (UH)
     </label>
-    <select id="cart-uh" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+    <select id="cart-uh" class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:outline-none">
       <option value="">Toutes les UH</option>
     </select>
   </div>
 
   <!-- Chambre Selection -->
   <div class="space-y-2" id="chambre-container" style="display: none;">
-    <label class="block text-sm font-semibold text-slate-700">
+    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
       Chambre
     </label>
-    <select id="cart-chambre" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none">
+    <select id="cart-chambre" class="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:outline-none">
       <option value="">Toutes les chambres</option>
     </select>
   </div>
 
   <!-- Lit Selection (Grid) -->
   <div class="space-y-3" id="lit-container" style="display: none;">
-    <label class="block text-sm font-semibold text-slate-700">
+    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">
       Lit disponible <span class="text-red-500">*</span>
     </label>
     <div id="lit-grid" class="grid grid-cols-2 md:grid-cols-4 gap-2 min-h-24">
-      <div class="col-span-full text-center text-slate-500 text-sm py-8">Sélectionnez d'abord les niveaux</div>
+      <div class="col-span-full text-center text-slate-500 dark:text-slate-400 text-sm py-8">Sélectionnez d'abord les niveaux</div>
     </div>
     <input type="hidden" id="selected-lit-id" name="lit_id">
   </div>
 
   <!-- State Validation Info -->
-  <div id="state-validation-alert" class="hidden rounded-lg border-2 border-amber-200 bg-amber-50 p-3">
-    <div class="text-sm text-amber-900">
+  <div id="state-validation-alert" class="hidden rounded-lg border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
+    <div class="text-sm text-amber-900 dark:text-amber-200">
       <p class="font-semibold flex items-center gap-2">
         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>

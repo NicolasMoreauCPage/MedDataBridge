@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% from "macros/ui.html" import empty_state %}
 
 {% block title %}Services{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
+  <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
-    <span class="text-slate-400">/</span>
-    <span class="text-slate-800 font-medium">Services</span>
+    <span class="text-slate-400 dark:text-slate-500">/</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">Services</span>
   </nav>
 
   <!-- Header -->
@@ -28,9 +29,9 @@
   <!-- Filtres -->
   <div class="mb-6 grid gap-4 sm:grid-cols-3">
     <div>
-      <label for="pole_filter" class="block text-sm font-medium text-slate-700">Pôle</label>
+      <label for="pole_filter" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Pôle</label>
       <select id="pole_filter" name="pole_filter" onchange="applyFilters()"
-        class="mt-1 block w-full rounded-md border-slate-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
+        class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm">
         <option value="">Tous les pôles</option>
         {% for pole in poles %}
         <option value="{{ pole.id }}" {% if selected_pole_id == pole.id %}selected{% endif %}>
@@ -40,9 +41,9 @@
       </select>
     </div>
     <div>
-      <label for="service_type_filter" class="block text-sm font-medium text-slate-700">Type de service</label>
+      <label for="service_type_filter" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Type de service</label>
       <select id="service_type_filter" name="service_type_filter" onchange="applyFilters()"
-        class="mt-1 block w-full rounded-md border-slate-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
+        class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm">
         <option value="">Tous les types</option>
         {% for st in service_types %}
         <option value="{{ st.value }}" {% if selected_service_type == st.value %}selected{% endif %}>
@@ -52,10 +53,10 @@
       </select>
     </div>
     <div>
-      <label for="text_filter" class="block text-sm font-medium text-slate-700">Recherche</label>
+      <label for="text_filter" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Recherche</label>
       <input type="search" id="text_filter" name="text_filter" value="{{ search_term or '' }}"
         placeholder="Nom ou identifiant"
-        class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+        class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm"
         onkeydown="if(event.key==='Enter'){event.preventDefault();applyFilters();}">
     </div>
   </div>
@@ -63,31 +64,31 @@
   <div class="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
     <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
       <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-        <table class="min-w-full divide-y divide-slate-200">
-          <thead class="bg-slate-50">
+        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <thead class="bg-slate-50 dark:bg-slate-700">
             <tr>
-              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-slate-900 sm:pl-6">Service</th>
-              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Pôle</th>
-              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Type</th>
-              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900">Statut</th>
+              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-slate-900 dark:text-slate-100 sm:pl-6">Service</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900 dark:text-slate-100">Pôle</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900 dark:text-slate-100">Type</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-slate-900 dark:text-slate-100">Statut</th>
               <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                 <span class="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-200 bg-white">
+          <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
             {% for service in services %}
             <tr>
-              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 dark:text-slate-100 sm:pl-6">
                 <div class="flex flex-col">
                   <span>{{ service.name }}</span>
-                  <span class="text-xs text-slate-500">{{ service.identifier }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ service.identifier }}</span>
                 </div>
               </td>
-              <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
                 {{ pole_map.get(service.pole_id, "—") }}
               </td>
-              <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
                 {{ service.service_type.name if service.service_type else "—" }}
               </td>
               <td class="whitespace-nowrap px-3 py-4 text-sm">
@@ -96,15 +97,15 @@
                 </span>
               </td>
               <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6 space-x-3">
-                <a href="/structure/services/{{ service.id }}" class="text-indigo-600 hover:text-indigo-900">Détails</a>
-                <a href="/structure/services/{{ service.id }}/edit" class="text-indigo-600 hover:text-indigo-900">Modifier</a>
-                <a href="/structure/ufs?service_id={{ service.id }}" class="text-indigo-600 hover:text-indigo-900">Voir UF</a>
+                <a href="/structure/services/{{ service.id }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900">Détails</a>
+                <a href="/structure/services/{{ service.id }}/edit" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900">Modifier</a>
+                <a href="/structure/ufs?service_id={{ service.id }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900">Voir UF</a>
               </td>
             </tr>
             {% else %}
             <tr>
-              <td colspan="5" class="py-10 text-center text-sm text-slate-500">
-                Aucun service trouvé.
+              <td colspan="5">
+                {{ empty_state("Aucun service trouvé", "Créez votre structure pas à pas avec l'assistant de structure.", action_label="Lancer l'assistant de structure", action_href="/structure/wizard") }}
               </td>
             </tr>
             {% endfor %}

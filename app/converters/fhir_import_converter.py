@@ -10,9 +10,10 @@ from sqlmodel import Session, select
 
 from app.models_structure import EntiteJuridique
 from app.models_structure import (
-    EntiteGeographique, Pole, Service, UniteFonctionnelle,
+    EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteActivite,
     UniteHebergement, Chambre, Lit, LocationPhysicalType
 )
+from app.converters.fhir_converter import FRCORE_PROFILES
 from app.models import Patient, Dossier, Mouvement, Venue
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_practitioners import MedecinResponsable
@@ -34,105 +35,49 @@ class FHIRToLocationConverter:
     def convert_location(self, fhir_location: Dict[str, Any]) -> Any:
         """
         Convertit une ressource FHIR Location vers le modèle de structure approprié.
-        
-        Détermine automatiquement le type (EG, Pole, Service, UF, UH, Chambre, Lit)
-        basé sur physicalType.
+
+        Depuis FRCore 2.2.0, seuls les lieux physiques (UH, Chambre, Lit) sont des
+        ressources Location — EG/Pole/Service/UF/UAC sont désormais des Organization
+        (voir FHIRToOrganizationConverter). Le type est déterminé en priorité par
+        `Location.type` (code UH/CHAMB/LIT, conforme au profil), avec un solution de
+        repli sur l'ancien mapping physicalType (bu/wi/wa/lv/ro/bd) pour la lecture de
+        ressources produites par une version antérieure de cet export.
         """
-        physical_type = self._extract_physical_type(fhir_location)
         name = fhir_location.get("name", "")
         identifiers = self._extract_identifiers(fhir_location)
         description = fhir_location.get("description")
-        
+
         # Extraire le parent si présent
         part_of = fhir_location.get("partOf")
         parent_ref = part_of.get("reference") if part_of else None
-        
+
         # Extraire identifier pour entité (NOT NULL required)
         identifier = identifiers[0]["value"] if identifiers else name.replace(" ", "_").upper()
-        
-        # Mapper vers le modèle approprié selon physicalType
-        if physical_type == LocationPhysicalType.SI:
-            # Site = Entité Géographique
-            eg = EntiteGeographique(
-                name=name,
-                identifier=identifier,
-                finess="999999999",  # FINESS par défaut si non fourni
-                entite_juridique_id=self.ej.id,
-                description=description
-            )
-            self.session.add(eg)
-            self.session.commit()
-            self.session.refresh(eg)
-            return eg
-            
-        elif physical_type == LocationPhysicalType.BU:
-            # Building = Pole
-            parent_id = self._resolve_parent_id(parent_ref, EntiteGeographique)
-            pole = Pole(
-                name=name,
-                identifier=identifier,
-                physical_type=physical_type,
-                entite_geo_id=parent_id,
-                description=description
-            )
-            self.session.add(pole)
-            self.session.commit()
-            self.session.refresh(pole)
-            return pole
-            
-        elif physical_type == LocationPhysicalType.WI:
-            # Wing = Service
-            parent_id = self._resolve_parent_id(parent_ref, Pole)
-            service = Service(
-                name=name,
-                identifier=identifier,
-                physical_type=physical_type,
-                service_type="MCO",  # Par défaut
-                pole_id=parent_id,
-                description=description
-            )
-            self.session.add(service)
-            self.session.commit()
-            self.session.refresh(service)
-            return service
-            
-        elif physical_type == LocationPhysicalType.WA:
-            # Ward = Unité Fonctionnelle
-            parent_id = self._resolve_parent_id(parent_ref, Service)
-            uf = UniteFonctionnelle(
-                name=name,
-                identifier=identifier,
-                physical_type=physical_type,
-                service_id=parent_id,
-                description=description
-            )
-            self.session.add(uf)
-            self.session.commit()
-            self.session.refresh(uf)
-            return uf
-            
-        elif physical_type == LocationPhysicalType.LV:
-            # Level = Unité d'Hébergement
-            parent_id = self._resolve_parent_id(parent_ref, UniteFonctionnelle)
+
+        location_kind = self._extract_location_kind(fhir_location)
+
+        if location_kind == "UH":
+            # UH est désormais partOf une Organization UF (pas une autre Location)
             uh = UniteHebergement(
                 name=name,
                 identifier=identifier,
-                physical_type=physical_type,
-                unite_fonctionnelle_id=parent_id,
+                unite_fonctionnelle_id=self._resolve_parent_id(parent_ref, UniteFonctionnelle),
                 description=description
             )
             self.session.add(uh)
             self.session.commit()
             self.session.refresh(uh)
             return uh
-            
-        elif physical_type == LocationPhysicalType.RO:
-            # Room = Chambre
+
+        elif location_kind == "CHAMB":
             parent_id = self._resolve_parent_id(parent_ref, UniteHebergement)
             chambre = Chambre(
                 name=name,
                 identifier=identifier,
-                physical_type=physical_type,
+                physical_type=LocationPhysicalType.RO,
+                type_chambre=self._extract_extension_code(
+                    fhir_location, f"{FRCORE_PROFILES['location'].rsplit('/StructureDefinition', 1)[0]}/StructureDefinition/fr-core-location-type-chambre"
+                ),
                 unite_hebergement_id=parent_id,
                 description=description
             )
@@ -140,14 +85,13 @@ class FHIRToLocationConverter:
             self.session.commit()
             self.session.refresh(chambre)
             return chambre
-            
-        elif physical_type == LocationPhysicalType.BD:
-            # Bed = Lit
+
+        elif location_kind == "LIT":
             parent_id = self._resolve_parent_id(parent_ref, Chambre)
             lit = Lit(
                 name=name,
                 identifier=identifier,
-                physical_type=physical_type,
+                physical_type=LocationPhysicalType.BD,
                 chambre_id=parent_id,
                 description=description
             )
@@ -155,9 +99,35 @@ class FHIRToLocationConverter:
             self.session.commit()
             self.session.refresh(lit)
             return lit
-            
+
         else:
-            raise FHIRImportError(f"Type physique non supporté: {physical_type}")
+            raise FHIRImportError(f"Type de Location non supporté (attendu UH/CHAMB/LIT): {location_kind}")
+
+    def _extract_location_kind(self, fhir_location: Dict[str, Any]) -> Optional[str]:
+        """Détermine UH/CHAMB/LIT depuis Location.type (conforme FRCore 2.2.0), avec
+        solution de repli sur l'ancien physicalType (bu/wi/wa/lv/ro/bd) pour la lecture
+        de ressources produites avant cette mise en conformité."""
+        for type_cc in fhir_location.get("type", []) or []:
+            for coding in type_cc.get("coding", []):
+                code = (coding.get("code") or "").upper()
+                if code in ("UH", "CHAMB", "LIT"):
+                    return code
+        # Solution de repli : ancien mapping physicalType
+        physical_type = self._extract_physical_type(fhir_location)
+        legacy_map = {
+            LocationPhysicalType.LV: "UH",
+            LocationPhysicalType.RO: "CHAMB",
+            LocationPhysicalType.BD: "LIT",
+        }
+        return legacy_map.get(physical_type)
+
+    def _extract_extension_code(self, resource: Dict[str, Any], extension_url: str) -> Optional[str]:
+        """Extrait le `code` d'une extension valueCoding par son URL."""
+        for ext in resource.get("extension", []) or []:
+            if ext.get("url") == extension_url:
+                coding = ext.get("valueCoding") or {}
+                return coding.get("code")
+        return None
 
     def _extract_physical_type(self, fhir_location: Dict[str, Any]) -> Optional[LocationPhysicalType]:
         """Extrait le type physique depuis physicalType et retourne un membre de LocationPhysicalType.
@@ -263,6 +233,120 @@ class FHIRToLocationConverter:
         else:
             # Par défaut, considérer comme IPP (patient)
             return IdentifierType.IPP.value
+
+
+class FHIRToOrganizationConverter:
+    """Convertit des ressources FHIR Organization vers les modèles de structure
+    administrative (EG, Pôle, Service, UF, UAC) — depuis FRCore 2.2.0, ces niveaux
+    sont des Organization, seuls UH/Chambre/Lit restent des Location (voir
+    FHIRToLocationConverter). La création d'EntiteJuridique elle-même n'est pas
+    gérée ici : l'EJ est le contexte racine déjà résolu par l'appelant.
+    """
+
+    def __init__(self, session: Session, ej: EntiteJuridique):
+        self.session = session
+        self.ej = ej
+
+    def convert_organization(self, fhir_organization: Dict[str, Any]) -> Any:
+        """Dispatch par `meta.profile` (FRCoreOrganizationEtablissementProfile /
+        FRCoreOrganizationUFProfile / FRCoreOrganizationUACProfile), avec une
+        heuristique de profondeur pour Pôle/Service qui n'ont plus de profil dédié
+        (le type du parent réel en base détermine s'il s'agit d'un Pôle — enfant
+        d'EG — ou d'un Service — enfant de Pôle)."""
+        profiles = (fhir_organization.get("meta") or {}).get("profile", [])
+        name = fhir_organization.get("name", "")
+        identifiers = fhir_organization.get("identifier", []) or []
+        identifier = identifiers[0].get("value") if identifiers else name.replace(" ", "_").upper()
+        part_of = fhir_organization.get("partOf")
+        parent_ref = part_of.get("reference") if part_of else None
+
+        if FRCORE_PROFILES["organization_etablissement"] in profiles:
+            type_code = None
+            for type_cc in fhir_organization.get("type", []) or []:
+                for coding in type_cc.get("coding", []):
+                    type_code = coding.get("code")
+            if type_code == "EG":
+                eg = EntiteGeographique(
+                    name=name,
+                    identifier=identifier,
+                    finess=self._extract_identifier_value(fhir_organization, "FINEG") or "999999999",
+                    entite_juridique_id=self.ej.id,
+                )
+                self.session.add(eg)
+                self.session.commit()
+                self.session.refresh(eg)
+                return eg
+            raise FHIRImportError(f"Type d'établissement non supporté à l'import: {type_code}")
+
+        if FRCORE_PROFILES["organization_uf"] in profiles:
+            parent_id = self._resolve_parent_id(parent_ref, Service)
+            uf = UniteFonctionnelle(
+                name=name,
+                identifier=identifier,
+                service_id=parent_id,
+            )
+            self.session.add(uf)
+            self.session.commit()
+            self.session.refresh(uf)
+            return uf
+
+        if FRCORE_PROFILES["organization_uac"] in profiles:
+            parent_id = self._resolve_parent_id(parent_ref, UniteFonctionnelle)
+            uac = UniteActivite(
+                name=name,
+                identifier=identifier,
+                unite_fonctionnelle_id=parent_id,
+            )
+            self.session.add(uac)
+            self.session.commit()
+            self.session.refresh(uac)
+            return uac
+
+        if FRCORE_PROFILES["organization"] in profiles:
+            # Pôle ou Service : plus de profil dédié depuis FRCore 2.2.0, distingués
+            # par le type du parent réel en base (EG -> Pôle, Pôle -> Service).
+            parent_id = self._extract_parent_numeric_id(parent_ref)
+            parent_eg = self.session.get(EntiteGeographique, parent_id) if parent_id else None
+            if parent_eg:
+                pole = Pole(name=name, identifier=identifier, entite_geo_id=parent_eg.id)
+                self.session.add(pole)
+                self.session.commit()
+                self.session.refresh(pole)
+                return pole
+            parent_pole = self.session.get(Pole, parent_id) if parent_id else None
+            if parent_pole:
+                service = Service(name=name, identifier=identifier, service_type="MCO", pole_id=parent_pole.id)
+                self.session.add(service)
+                self.session.commit()
+                self.session.refresh(service)
+                return service
+            raise FHIRImportError("Organization générique (Pôle/Service) sans parent EG/Pôle résoluble")
+
+        raise FHIRImportError(f"Profil Organization non reconnu à l'import: {profiles}")
+
+    def _extract_identifier_value(self, fhir_organization: Dict[str, Any], type_code: str) -> Optional[str]:
+        for ident in fhir_organization.get("identifier", []) or []:
+            coding = (ident.get("type") or {}).get("coding", [])
+            if any(c.get("code") == type_code for c in coding):
+                return ident.get("value")
+        return None
+
+    def _extract_parent_numeric_id(self, parent_ref: Optional[str]) -> Optional[int]:
+        if not parent_ref:
+            return None
+        parts = parent_ref.split("/")
+        if len(parts) != 2:
+            return None
+        try:
+            return int(parts[1])
+        except ValueError:
+            return None
+
+    def _resolve_parent_id(self, parent_ref: Optional[str], parent_model) -> Optional[int]:
+        """Résout une référence parent vers un ID (même limitation que
+        FHIRToLocationConverter._resolve_parent_id : l'ID FHIR est traité comme l'ID
+        numérique local, sans validation d'existence — À FAIRE : vraie résolution)."""
+        return self._extract_parent_numeric_id(parent_ref)
 
 
 class FHIRToPatientConverter:

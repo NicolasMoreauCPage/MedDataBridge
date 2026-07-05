@@ -10,7 +10,7 @@ import os
 from app.models_structure import EntiteJuridique, EntiteGeographique
 from app.utils.structured_logging import StructuredLogger, log_operation, metrics
 from app.models_structure import (
-    Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
+    Pole, Service, UniteFonctionnelle, UniteActivite, UniteHebergement, Chambre, Lit
 )
 from app.models import Mouvement, Patient, Dossier, Venue
 from app.models_contacts import PatientContact, VenueContact
@@ -39,6 +39,7 @@ class FHIRExportService:
         
         # Cache des références
         self._location_refs: Dict[str, FHIRReference] = {}
+        self._organization_refs: Dict[str, FHIRReference] = {}
         self._patient_refs: Dict[str, FHIRReference] = {}
         
         # Service de cache Redis
@@ -72,159 +73,160 @@ class FHIRExportService:
         )
         
         entries = []
-        
-        # Organisation (EJ)
-        org_ref = self.converter.create_reference(
-            "Organization", ej.finess_ej, ej.name
+
+        # Organisation (EJ) — FRCoreOrganizationEtablissementProfile (identifier FINEJ)
+        ej_organization = self.structure_converter.create_organization_etablissement(
+            identifier=ej.identifier or ej.finess_ej or f"EJ-{ej.id}",
+            name=ej.name,
+            entity_type="EJ",
+            finess=ej.finess_ej,
+            finess_type_code="FINEJ",
+            siren=getattr(ej, "siren", None),
+            siret=getattr(ej, "siret", None),
+            active=bool(getattr(ej, "is_active", True)),
         )
-        
-        # Entités géographiques
+        entries.append(self.converter.create_bundle_entry(ej_organization))
+        ej_ref = self.converter.create_reference("Organization", ej.finess_ej or ej.identifier or f"EJ-{ej.id}", ej.name)
+        org_ref = ej_ref  # conservé pour compat avec export_patients/export_venues
+        self._organization_refs[ej.identifier or f"EJ-{ej.id}"] = ej_ref
+
+        # Entités géographiques — FRCoreOrganizationEtablissementProfile (identifier FINEG)
         for eg in self.session.exec(
             select(EntiteGeographique)
             .where(EntiteGeographique.entite_juridique_id == ej.id)
         ).all():
-            location = self.structure_converter.create_location(
-                eg.identifier,
-                eg.name,
-                "ETBL_GRPQ",
-                "SI"
+            eg_organization = self.structure_converter.create_organization_etablissement(
+                identifier=eg.identifier,
+                name=eg.name,
+                entity_type="EG",
+                finess=eg.finess,
+                finess_type_code="FINEG",
+                active=(getattr(eg, "status", "active") != "inactive"),
+                parent_ref=ej_ref,
             )
-            entries.append(self.converter.create_bundle_entry(location))
-            self._location_refs[eg.identifier] = self.converter.create_reference(
-                "Location", eg.identifier, eg.name
-            )
-            
-            # Pôles
+            entries.append(self.converter.create_bundle_entry(eg_organization))
+            eg_ref = self.converter.create_reference("Organization", eg.identifier, eg.name)
+            self._organization_refs[eg.identifier] = eg_ref
+
+            # Pôles — Organization générique (FRCore 2.2.0 n'a plus de profil Pôle dédié)
             for pole in self.session.exec(
                 select(Pole)
                 .where(Pole.entite_geo_id == eg.id)
             ).all():
-                # Some older models (Pole) may not have physical_type attribute; default to None
-                pole_physical = None
-                try:
-                    pole_physical = pole.physical_type.value if hasattr(pole, 'physical_type') and getattr(pole.physical_type, 'value', None) else (pole.physical_type if hasattr(pole, 'physical_type') else None)
-                except Exception:
-                    pole_physical = None
-
-                location = self.structure_converter.create_location(
-                    pole.identifier,
-                    pole.name,
-                    "PL",
-                    pole_physical or "SI",
-                    self._location_refs[eg.identifier]
+                pole_organization = self.structure_converter.create_organization_generic(
+                    identifier=pole.identifier,
+                    name=pole.name,
+                    active=(getattr(pole, "status", "active") != "inactive"),
+                    parent_ref=eg_ref,
                 )
-                entries.append(self.converter.create_bundle_entry(location))
-                self._location_refs[pole.identifier] = self.converter.create_reference(
-                    "Location", pole.identifier, pole.name
-                )
+                entries.append(self.converter.create_bundle_entry(pole_organization))
+                pole_ref = self.converter.create_reference("Organization", pole.identifier, pole.name)
+                self._organization_refs[pole.identifier] = pole_ref
 
-                # Services
+                # Services — Organization générique
                 for service in self.session.exec(
                     select(Service)
                     .where(Service.pole_id == pole.id)
                 ).all():
-                    svc_physical = None
-                    try:
-                        svc_physical = service.physical_type.value if hasattr(service, 'physical_type') and getattr(service.physical_type, 'value', None) else (service.physical_type if hasattr(service, 'physical_type') else None)
-                    except Exception:
-                        svc_physical = None
-
-                    location = self.structure_converter.create_location(
-                        service.identifier,
-                        service.name,
-                        "D",
-                        svc_physical or "SI",
-                        self._location_refs[pole.identifier]
+                    service_organization = self.structure_converter.create_organization_generic(
+                        identifier=service.identifier,
+                        name=service.name,
+                        active=(getattr(service, "status", "active") != "inactive"),
+                        type_code=service.service_type,
+                        parent_ref=pole_ref,
                     )
-                    entries.append(self.converter.create_bundle_entry(location))
-                    self._location_refs[service.identifier] = self.converter.create_reference(
-                        "Location", service.identifier, service.name
-                    )
+                    entries.append(self.converter.create_bundle_entry(service_organization))
+                    service_ref = self.converter.create_reference("Organization", service.identifier, service.name)
+                    self._organization_refs[service.identifier] = service_ref
 
-                    # UFs
+                    # UFs — FRCoreOrganizationUFProfile
                     for uf in self.session.exec(
                         select(UniteFonctionnelle)
                         .where(UniteFonctionnelle.service_id == service.id)
                     ).all():
-                        uf_physical = None
+                        type_activite_code = None
                         try:
-                            uf_physical = uf.physical_type.value if hasattr(uf, 'physical_type') and getattr(uf.physical_type, 'value', None) else (uf.physical_type if hasattr(uf, 'physical_type') else None)
+                            if uf.activities:
+                                type_activite_code = uf.activities[0].code
                         except Exception:
-                            uf_physical = None
-                        location = self.structure_converter.create_location(
-                            uf.identifier,
-                            uf.name,
-                            "UF",
-                            uf_physical or "SI",
-                            self._location_refs[service.identifier]
-                        )
-                        entries.append(self.converter.create_bundle_entry(location))
-                        self._location_refs[uf.identifier] = self.converter.create_reference(
-                            "Location", uf.identifier, uf.name
-                        )
+                            type_activite_code = None
+                        type_activite_code = type_activite_code or getattr(uf, "uf_type", None)
 
-                        # UHs
+                        uf_organization = self.structure_converter.create_organization_uf(
+                            identifier=uf.identifier,
+                            name=uf.name,
+                            active=(getattr(uf, "status", "active") != "inactive"),
+                            type_activite_code=type_activite_code,
+                            parent_ref=service_ref,
+                        )
+                        entries.append(self.converter.create_bundle_entry(uf_organization))
+                        uf_ref = self.converter.create_reference("Organization", uf.identifier, uf.name)
+                        self._organization_refs[uf.identifier] = uf_ref
+
+                        # UACs — FRCoreOrganizationUACProfile (nouveau en 2.2.0, partOf UF)
+                        for uac in self.session.exec(
+                            select(UniteActivite)
+                            .where(UniteActivite.unite_fonctionnelle_id == uf.id)
+                        ).all():
+                            uac_organization = self.structure_converter.create_organization_uac(
+                                identifier=uac.identifier,
+                                name=uac.name,
+                                active=(getattr(uac, "status", "active") != "inactive"),
+                                discipline_prestation_code=uac.discipline_prestation_code,
+                                tarif_code=uac.tarif_code,
+                                parent_ref=uf_ref,
+                            )
+                            entries.append(self.converter.create_bundle_entry(uac_organization))
+                            self._organization_refs[uac.identifier] = self.converter.create_reference(
+                                "Organization", uac.identifier, uac.name
+                            )
+
+                        # UHs — bascule vers Location (lieu physique), partOf l'Organization UF
                         for uh in self.session.exec(
                             select(UniteHebergement)
                             .where(UniteHebergement.unite_fonctionnelle_id == uf.id)
                         ).all():
-                            uh_physical = None
-                            try:
-                                uh_physical = uh.physical_type.value if hasattr(uh, 'physical_type') and getattr(uh.physical_type, 'value', None) else (uh.physical_type if hasattr(uh, 'physical_type') else None)
-                            except Exception:
-                                uh_physical = None
-                            location = self.structure_converter.create_location(
-                                uh.identifier,
-                                uh.name,
-                                    "UH",
-                                    uh_physical or "SI",
-                                self._location_refs[uf.identifier]
+                            uh_location = self.structure_converter.create_location(
+                                identifier=uh.identifier,
+                                name=uh.name,
+                                location_kind="UH",
+                                status=getattr(uh, "status", "active"),
+                                parent_ref=uf_ref,
                             )
-                            entries.append(self.converter.create_bundle_entry(location))
-                            self._location_refs[uh.identifier] = self.converter.create_reference(
-                                "Location", uh.identifier, uh.name
-                            )
+                            entries.append(self.converter.create_bundle_entry(uh_location))
+                            uh_ref = self.converter.create_reference("Location", uh.identifier, uh.name)
+                            self._location_refs[uh.identifier] = uh_ref
 
-                            # Chambres
+                            # Chambres — Location, type=CHAMB + extension typeChambre
                             for chambre in self.session.exec(
                                 select(Chambre)
                                 .where(Chambre.unite_hebergement_id == uh.id)
                             ).all():
-                                chambre_physical = None
-                                try:
-                                    chambre_physical = chambre.physical_type.value if hasattr(chambre, 'physical_type') and getattr(chambre.physical_type, 'value', None) else (chambre.physical_type if hasattr(chambre, 'physical_type') else None)
-                                except Exception:
-                                    chambre_physical = None
-                                location = self.structure_converter.create_location(
-                                    chambre.identifier,
-                                    chambre.name,
-                                        "CH",
-                                        chambre_physical or "SI",
-                                    self._location_refs[uh.identifier]
+                                chambre_location = self.structure_converter.create_location(
+                                    identifier=chambre.identifier,
+                                    name=chambre.name,
+                                    location_kind="CHAMB",
+                                    status=getattr(chambre, "status", "active"),
+                                    type_chambre_code=getattr(chambre, "type_chambre", None),
+                                    parent_ref=uh_ref,
                                 )
-                                entries.append(self.converter.create_bundle_entry(location))
-                                self._location_refs[chambre.identifier] = self.converter.create_reference(
-                                    "Location", chambre.identifier, chambre.name
-                                )
+                                entries.append(self.converter.create_bundle_entry(chambre_location))
+                                chambre_ref = self.converter.create_reference("Location", chambre.identifier, chambre.name)
+                                self._location_refs[chambre.identifier] = chambre_ref
 
-                                # Lits
+                                # Lits — Location, type=LIT + extension positionLit
                                 for lit in self.session.exec(
                                     select(Lit)
                                     .where(Lit.chambre_id == chambre.id)
                                 ).all():
-                                    lit_physical = None
-                                    try:
-                                        lit_physical = lit.physical_type.value if hasattr(lit, 'physical_type') and getattr(lit.physical_type, 'value', None) else (lit.physical_type if hasattr(lit, 'physical_type') else None)
-                                    except Exception:
-                                        lit_physical = None
-                                    location = self.structure_converter.create_location(
-                                        lit.identifier,
-                                        lit.name,
-                                            "LIT",
-                                            lit_physical or "SI",
-                                        self._location_refs[chambre.identifier]
+                                    lit_location = self.structure_converter.create_location(
+                                        identifier=lit.identifier,
+                                        name=lit.name,
+                                        location_kind="LIT",
+                                        status=getattr(lit, "status", "active"),
+                                        parent_ref=chambre_ref,
                                     )
-                                    entries.append(self.converter.create_bundle_entry(location))
+                                    entries.append(self.converter.create_bundle_entry(lit_location))
                                     self._location_refs[lit.identifier] = self.converter.create_reference(
                                         "Location", lit.identifier, lit.name
                                     )
@@ -449,12 +451,23 @@ class FHIRExportService:
                 else:
                     end_date = mouvements[-1].when
             
-            # UF responsable
+            # UF responsable → Encounter.serviceProvider (Organization depuis FRCore 2.2.0,
+            # l'UF n'est plus une Location, donc ne peut plus être posée sur Encounter.location)
+            service_provider_ref = None
+            if venue.uf_responsabilite and venue.uf_responsabilite in self._organization_refs:
+                service_provider_ref = self._organization_refs[venue.uf_responsabilite]
+
+            # Lieu physique le plus précis disponible → Encounter.location (Lit > Chambre)
             location_ref = None
-            if venue.uf_responsabilite:
-                if venue.uf_responsabilite in self._location_refs:
-                    location_ref = self._location_refs[venue.uf_responsabilite]
-            
+            if getattr(venue, "lit_id", None):
+                lit_obj = self.session.get(Lit, venue.lit_id)
+                if lit_obj:
+                    location_ref = self.converter.create_reference("Location", lit_obj.identifier, lit_obj.name)
+            if not location_ref and getattr(venue, "chambre_id", None):
+                chambre_obj = self.session.get(Chambre, venue.chambre_id)
+                if chambre_obj:
+                    location_ref = self.converter.create_reference("Location", chambre_obj.identifier, chambre_obj.name)
+
             # Find any venue identifiers
             venue_id = None
             for identifier in venue.identifiers:
@@ -530,7 +543,8 @@ class FHIRExportService:
                 start_date,
                 end_date,
                 location_ref,
-                participants=participants or None
+                participants=participants or None,
+                service_provider_ref=service_provider_ref
             )
             entries.append(self.converter.create_bundle_entry(encounter))
             # Append related persons to bundle after encounter

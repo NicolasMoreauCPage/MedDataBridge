@@ -1,10 +1,21 @@
 """Conversion EntiteJuridique vers FHIR Organization.
 
-Ce module convertit les entités juridiques en ressources FHIR Organization
-conformes au profil fr-organization de l'ANS.
+⚠ NON CONFORME FRCore 2.2.0 (https://hl7.fr/ig/fhir/core/2.2.0/) : ce module utilise
+encore l'ancien domaine `interop-sante.fr` (abandonné par FRCore dès la version 2.0.1
+au profit de `hl7.fr`) et un profil "fr-organization" non officiel. Le mapping
+conforme (FRCoreOrganizationEtablissementProfile, identifiants FINESS/SIREN/SIRET
+typés) a été implémenté pour le pipeline d'export principal dans
+`app/converters/fhir_converter.py::StructureToFHIRConverter.create_organization_etablissement`
+et `app/services/fhir_export_service.py` (endpoint `/api/fhir/export/structure/{ej_id}`).
+
+Ce fichier reste utilisé par `app/services/structure_emit.py` (émission FHIR temps
+réel vers les endpoints "sender" à la création/modification d'une EJ) — non remplacé
+lors de cette mise en conformité pour éviter de modifier un chemin d'émission
+production sans couverture de test dédiée. Le faire converger vers
+`StructureToFHIRConverter` est un chantier de suivi.
 
 Références:
-- http://interop-sante.fr/fhir/StructureDefinition/fr-organization
+- http://interop-sante.fr/fhir/StructureDefinition/fr-organization (ancien, non FRCore 2.2.0)
 - https://www.hl7.org/fhir/organization.html
 """
 

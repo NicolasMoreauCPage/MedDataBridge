@@ -13,6 +13,21 @@ Fonctionnalités principales :
 - Mapping des identifiants FINESS pour les entités géographiques
 
 Point d'entrée pour l'API : via routers/fhir_structure.py (POST /fhir/Location, GET /fhir/Location/{id})
+
+⚠ NON CONFORME FRCore 2.2.0 (https://hl7.fr/ig/fhir/core/2.2.0/) : exporte EG/Pole/
+Service/UF comme des Location (URL `interop-sante.fr`), alors que FRCore 2.2.0 en
+fait des Organization (FRCoreOrganizationEtablissementProfile/UFProfile) — seuls
+UH/Chambre/Lit restent des Location dans le référentiel actuel. Le mapping conforme
+est implémenté dans `app/converters/fhir_converter.py::StructureToFHIRConverter` et
+`app/services/fhir_export_service.py` (endpoint `/api/fhir/export/structure/{ej_id}`,
+le chemin d'export réellement actif).
+
+Ce module reste utilisé par le routeur REST bas niveau `app/routers/fhir_structure.py`
+(CRUD complet `/fhir/Location` avec recherche/pagination) et par l'émission FHIR temps
+réel (`app/services/structure_emit.py`) — non réécrits lors de cette mise en
+conformité (chantier de plusieurs centaines de lignes distinct, avec risque de
+régression sur un chemin d'émission production non couvert par des tests dédiés).
+Le faire converger vers `StructureToFHIRConverter` est un chantier de suivi.
 """
 import logging
 from typing import Optional, Dict, Any, List, Tuple

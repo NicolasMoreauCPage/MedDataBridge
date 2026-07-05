@@ -298,6 +298,7 @@ class UniteFonctionnelle(SQLModel, table=True):
     medecin_responsable: Optional["MedecinResponsable"] = Relationship(back_populates="uf_responsabilite")
     
     unites_hebergement: List["UniteHebergement"] = Relationship(back_populates="unite_fonctionnelle")
+    unites_activite: List["UniteActivite"] = Relationship(back_populates="unite_fonctionnelle")
     activities: List[UFActivity] = Relationship(
         back_populates="unites_fonctionnelles",
         link_model=UniteFonctionnelleActivityLink,
@@ -356,6 +357,35 @@ class UniteFonctionnelle(SQLModel, table=True):
     def get_effective_deactivation_date(self) -> Optional[datetime]:
         """Date de désactivation effective (propre ou héritée du service/pôle)"""
         return self.deactivation_date or (self.service.get_effective_deactivation_date() if self.service else None)
+
+
+class UniteActivite(SQLModel, table=True):
+    """Unité d'Activité (UAC, aussi appelée PAC) — niveau élémentaire de recueil des
+    activités en vue de la facturation, introduit par le référentiel FRCore 2.2.0
+    (FRCoreOrganizationUACProfile). Rattachée à une UF (`partOf` en FHIR), porte une
+    discipline de prestation et un tarif de soin — n'existait pas comme niveau
+    structurel autonome avant cette version.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    identifier: Optional[str] = Field(default=None, index=True, unique=True)
+    global_identifier: Optional[str] = Field(default=None, index=True)
+    name: Optional[str] = None
+    short_name: Optional[str] = None
+    description: Optional[str] = None
+    opening_date: Optional[datetime] = None
+    activation_date: Optional[datetime] = None
+    closing_date: Optional[datetime] = None
+    deactivation_date: Optional[datetime] = None
+    unite_fonctionnelle_id: Optional[int] = Field(default=None, foreign_key="unitefonctionnelle.id")
+    unite_fonctionnelle: Optional["UniteFonctionnelle"] = Relationship(back_populates="unites_activite")
+    status: Optional[str] = Field(default="active", description="Statut FHIR Organization (active, suspended, inactive)")
+    discipline_prestation_code: Optional[str] = Field(default=None, description="Discipline de prestation (FRCoreValueSetDisciplinePrestation)")
+    tarif_code: Optional[str] = Field(default=None, description="Tarif de soin associé (FRCoreValueSetOrganizationCodeTarifTNJP)")
+    namespaces: List["IdentifierNamespace"] = Relationship(back_populates="unite_activite")
+
+    def get_effective_status(self) -> Optional[str]:
+        """Statut effectif (propre ou hérité de l'UF)"""
+        return self.status or (self.unite_fonctionnelle.get_effective_status() if self.unite_fonctionnelle else None)
 
 
 class UniteHebergement(SQLModel, table=True):
@@ -761,6 +791,8 @@ class IdentifierNamespace(SQLModel, table=True):
     service: Optional["Service"] = Relationship(back_populates="namespaces")
     unite_fonctionnelle_id: Optional[int] = Field(default=None, foreign_key="unitefonctionnelle.id")
     unite_fonctionnelle: Optional["UniteFonctionnelle"] = Relationship(back_populates="namespaces")
+    unite_activite_id: Optional[int] = Field(default=None, foreign_key="uniteactivite.id")
+    unite_activite: Optional["UniteActivite"] = Relationship(back_populates="namespaces")
     unite_hebergement_id: Optional[int] = Field(default=None, foreign_key="unitehebergement.id")
     unite_hebergement: Optional["UniteHebergement"] = Relationship(back_populates="namespaces")
     chambre_id: Optional[int] = Field(default=None, foreign_key="chambre.id")

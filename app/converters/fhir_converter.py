@@ -30,6 +30,7 @@ class FHIRLocation(BaseModel):
     """Ressource Location FHIR."""
     resourceType: str = "Location"
     id: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
     identifier: List[FHIRIdentifier]
     status: str = "active"
     name: str
@@ -37,6 +38,20 @@ class FHIRLocation(BaseModel):
     type: Optional[List[FHIRCodeableConcept]] = None
     physicalType: Optional[FHIRCodeableConcept] = None
     partOf: Optional[FHIRReference] = None
+    extension: Optional[List[Dict[str, Any]]] = None
+
+class FHIROrganization(BaseModel):
+    """Ressource Organization FHIR."""
+    resourceType: str = "Organization"
+    id: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
+    identifier: Optional[List[Dict[str, Any]]] = None
+    active: bool = True
+    type: Optional[List[Dict[str, Any]]] = None
+    name: Optional[str] = None
+    alias: Optional[List[str]] = None
+    partOf: Optional[FHIRReference] = None
+    extension: Optional[List[Dict[str, Any]]] = None
 
 class FHIRPatient(BaseModel):
     """Ressource Patient FHIR."""
@@ -59,6 +74,7 @@ class FHIREncounter(BaseModel):
     period: Optional[FHIRPeriod] = None
     location: Optional[List[Dict[str, Any]]] = None
     participant: Optional[List[Dict[str, Any]]] = None  # Encounter.participant[]
+    serviceProvider: Optional[FHIRReference] = None
 
 class FHIRRelatedPerson(BaseModel):
     """Ressource RelatedPerson FHIR pour VenueContact."""
@@ -75,7 +91,7 @@ class FHIRRelatedPerson(BaseModel):
 
 class FHIRBundleEntry(BaseModel):
     """Entrée de bundle FHIR."""
-    resource: Union[FHIRLocation, FHIRPatient, FHIREncounter, Dict[str, Any]]
+    resource: Union[FHIRLocation, FHIROrganization, FHIRPatient, FHIREncounter, Dict[str, Any]]
     request: Optional[Dict[str, str]] = None
 
 class FHIRBundle(BaseModel):
@@ -125,7 +141,7 @@ class HL7ToFHIRConverter:
         )
 
     @staticmethod
-    def create_bundle_entry(resource: Union[FHIRLocation, FHIRPatient, FHIREncounter],
+    def create_bundle_entry(resource: Union[FHIRLocation, FHIROrganization, FHIRPatient, FHIREncounter],
                           method: str = "POST") -> FHIRBundleEntry:
         """Crée une entrée de bundle FHIR."""
         return FHIRBundleEntry(
@@ -136,109 +152,258 @@ class HL7ToFHIRConverter:
             }
         )
 
+
+# ---------------------------------------------------------------------------
+# Convertisseur de structure hospitalière vers FHIR, conforme au guide FRCore
+# v2.2.0 (https://hl7.fr/ig/fhir/core/2.2.0/) — vérifié contre le FSH source
+# publié (github.com/Interop-Sante/hl7.fhir.fr.core, tag 2.2.0), pas contre les
+# anciens domaines interop-sante.fr/interopsante.org abandonnés depuis la 2.0.1.
+#
+# Depuis la 2.2.0, FRCore n'a plus de profil dédié "Pôle" (FRCoreOrganizationPoleProfile
+# a été supprimé) : seuls Etablissement (EJ/EG) et UF ont un profil Organization
+# spécifique. Pôle et Service sont donc exportés comme Organization générique
+# (FRCoreOrganizationProfile de base). UH/Chambre/Lit restent des Location (lieux
+# physiques), la bascule Organization → Location se faisant au niveau UH.
+# ---------------------------------------------------------------------------
+
+FRCORE_BASE = "https://hl7.fr/ig/fhir/core"
+
+FRCORE_PROFILES = {
+    "organization": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization",
+    "organization_etablissement": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization-etablissement",
+    "organization_uf": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization-uf",
+    "organization_uac": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization-uac",
+    "location": f"{FRCORE_BASE}/StructureDefinition/fr-core-location",
+}
+
+FRCORE_CS_V2_0203 = f"{FRCORE_BASE}/CodeSystem/fr-core-cs-v2-0203"
+FRCORE_CS_V2_3307 = f"{FRCORE_BASE}/CodeSystem/fr-core-cs-v2-3307"
+
+
 class StructureToFHIRConverter:
-    """Convertisseur de structure vers FHIR."""
-    
-    PHYSICAL_TYPES = {
-        "SI": ("si", "Site"),
-        "BU": ("bu", "Building"),
-        "FL": ("fl", "Floor"),
-        "WI": ("wi", "Wing"),
-        "WA": ("wa", "Ward"),
-        "RO": ("ro", "Room"),
-        "BD": ("bd", "Bed")
-    }
-    
-    LOCATION_TYPES = {
-        "ETBL_GRPQ": ("ETBL", "Établissement Géographique"),
-        "PL": ("POLE", "Pôle"),
-        "D": ("SERV", "Service"),
-        "UF": ("UF", "Unité Fonctionnelle"),
-        "UH": ("UH", "Unité d'Hébergement"),
-        "CH": ("ROOM", "Chambre"),
-        "LIT": ("BED", "Lit")
-    }
-    
+    """Convertisseur de la hiérarchie structurelle (EJ/EG/Pôle/Service/UF/UAC/UH/
+    Chambre/Lit) vers des ressources FHIR Organization/Location conformes FRCore 2.2.0.
+    """
+
     def __init__(self, base_url: str = "http://localhost/fhir"):
-        # base_url par défaut pour compatibilité avec tests appelant sans argument
         self.base_url = base_url
         self.converter = HL7ToFHIRConverter()
 
-    def create_location(self,
-                       identifier_or_obj,
-                       name: Optional[str] = None,
-                       location_type: Optional[str] = None,
-                       physical_type: Optional[str] = None,
-                       parent_ref: Optional[FHIRReference] = None) -> FHIRLocation:
-        """Crée une ressource Location FHIR.
-        Peut être appelée de deux façons:
-        - create_location(<model_obj>) où <model_obj> est une instance d'un modèle structure (EG, Pole, Service, UF, UH, Chambre, Lit)
-        - create_location(identifier, name, location_type, physical_type, parent_ref)
+    # ------------------------------------------------------------------
+    # Organization : Etablissement (EJ/EG)
+    # ------------------------------------------------------------------
+    def create_organization_etablissement(
+        self,
+        identifier: str,
+        name: str,
+        entity_type: str,
+        finess: Optional[str] = None,
+        finess_type_code: str = "FINEG",
+        siren: Optional[str] = None,
+        siret: Optional[str] = None,
+        rpps_rang: Optional[str] = None,
+        active: bool = True,
+        parent_ref: Optional[FHIRReference] = None,
+    ) -> FHIROrganization:
+        """Crée une Organization FRCoreOrganizationEtablissementProfile pour une
+        EntiteJuridique (finess_type_code="FINEJ") ou une EntiteGeographique
+        (finess_type_code="FINEG").
         """
-        # Détection appel simplifié avec objet
-        if name is None and location_type is None and physical_type is None and hasattr(identifier_or_obj, "__class__"):
-            obj = identifier_or_obj
-            identifier = getattr(obj, "identifier", None) or getattr(obj, "finess_ej", "")
-            name = getattr(obj, "name", getattr(obj, "label", "Inconnu"))
-            class_map = {
-                "EntiteGeographique": "ETBL_GRPQ",
-                "Pole": "PL",
-                "Service": "D",
-                "UniteFonctionnelle": "UF",
-                "UniteHebergement": "UH",
-                "Chambre": "CH",
-                "Lit": "LIT"
-            }
-            location_type = class_map.get(obj.__class__.__name__, "ETBL_GRPQ")
-            physical_type = getattr(obj, "physical_type", "SI")
-        else:
-            identifier = identifier_or_obj
-            # Tous les paramètres doivent être fournis dans l'appel explicite
-            if None in (name, location_type, physical_type):
-                raise TypeError("create_location requires name, location_type and physical_type when called with an identifier")
-        
-        # Identifiant
-        identifiers = [
-            self.converter.create_identifier(
-                f"{self.base_url}/location/identifier",
-                identifier
-            )
-        ]
-        
-        # Type de localisation
-        type_code, type_display = self.LOCATION_TYPES.get(location_type, ("UNK", "Inconnu"))
-        location_type_cc = self.converter.create_codeable_concept(
-            type_code,
-            f"{self.base_url}/location/type",
-            type_display
-        )
-        
-        # Type physique - handle both lowercase and uppercase physical types
-        phys_code, phys_display = self.PHYSICAL_TYPES.get(
-            (physical_type or "BU").upper(), 
-            self.PHYSICAL_TYPES.get(physical_type or "BU", ("bu", "Building"))
-        )
-        physical_type_cc = self.converter.create_codeable_concept(
-            phys_code,
-            "http://terminology.hl7.org/CodeSystem/location-physical-type",
-            phys_display
-        )
-        
-        return FHIRLocation(
+        identifiers = []
+        if finess:
+            identifiers.append({
+                "use": "official",
+                "type": {"coding": [{"system": FRCORE_CS_V2_0203, "code": finess_type_code}]},
+                "system": "https://finess.esante.gouv.fr",
+                "value": finess,
+            })
+        if siren:
+            identifiers.append({
+                "type": {"coding": [{"system": FRCORE_CS_V2_0203, "code": "SIREN"}]},
+                "system": "https://sirene.fr",
+                "value": siren,
+            })
+        if siret:
+            identifiers.append({
+                "type": {"coding": [{"system": FRCORE_CS_V2_0203, "code": "SIRET"}]},
+                "system": "https://sirene.fr",
+                "value": siret,
+            })
+        if rpps_rang:
+            identifiers.append({
+                "type": {"coding": [{"system": FRCORE_CS_V2_0203, "code": "RPPSRG"}]},
+                "system": "https://rppsrang.esante.gouv.fr",
+                "value": rpps_rang,
+            })
+        if not identifiers and identifier:
+            # Solution de repli si aucun identifiant national n'est renseigné :
+            # au moins un identifier ou un name est requis par le profil (org-1).
+            identifiers.append({"value": identifier})
+
+        return FHIROrganization(
+            meta={"profile": [FRCORE_PROFILES["organization_etablissement"]]},
             identifier=identifiers,
+            active=active,
+            type=[{"coding": [{"system": FRCORE_CS_V2_0203, "code": entity_type}]}] if entity_type else None,
             name=name,
-            type=[location_type_cc],
-            physicalType=physical_type_cc,
-            partOf=parent_ref
+            partOf=parent_ref,
         )
+
+    # ------------------------------------------------------------------
+    # Organization générique (Pôle / Service — pas de profil FRCore dédié en 2.2.0)
+    # ------------------------------------------------------------------
+    def create_organization_generic(
+        self,
+        identifier: str,
+        name: str,
+        active: bool = True,
+        type_code: Optional[str] = None,
+        type_display: Optional[str] = None,
+        parent_ref: Optional[FHIRReference] = None,
+    ) -> FHIROrganization:
+        """Crée une Organization FRCoreOrganizationProfile de base, pour les niveaux
+        Pôle et Service qui n'ont plus de profil dédié depuis FRCore 2.2.0."""
+        type_field = None
+        if type_code:
+            coding = {"system": FRCORE_CS_V2_3307, "code": type_code}
+            if type_display:
+                coding["display"] = type_display
+            type_field = [{"coding": [coding]}]
+        return FHIROrganization(
+            meta={"profile": [FRCORE_PROFILES["organization"]]},
+            identifier=[{"value": identifier}] if identifier else None,
+            active=active,
+            type=type_field,
+            name=name,
+            partOf=parent_ref,
+        )
+
+    # ------------------------------------------------------------------
+    # Organization : Unité Fonctionnelle (UF)
+    # ------------------------------------------------------------------
+    def create_organization_uf(
+        self,
+        identifier: str,
+        name: str,
+        active: bool = True,
+        type_activite_code: Optional[str] = None,
+        parent_ref: Optional[FHIRReference] = None,
+    ) -> FHIROrganization:
+        """Crée une Organization FRCoreOrganizationUFProfile. `type` est fixé à UF
+        (CodeSystem v2-3307) conformément au profil ; `type_activite_code` alimente
+        l'extension fr-core-organization-type-activite quand une donnée existe
+        (issue de UFActivity ou du champ uf_type de secours)."""
+        extensions = []
+        if type_activite_code:
+            extensions.append({
+                "url": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization-type-activite",
+                "valueCodeableConcept": {"coding": [{"code": type_activite_code}]},
+            })
+        return FHIROrganization(
+            meta={"profile": [FRCORE_PROFILES["organization_uf"]]},
+            identifier=[{"value": identifier}] if identifier else None,
+            active=active,
+            type=[{"coding": [{"system": FRCORE_CS_V2_3307, "code": "UF"}]}],
+            name=name,
+            partOf=parent_ref,
+            extension=extensions or None,
+        )
+
+    # ------------------------------------------------------------------
+    # Organization : Unité d'Activité (UAC / PAC) — nouveau profil FRCore 2.2.0
+    # ------------------------------------------------------------------
+    def create_organization_uac(
+        self,
+        identifier: str,
+        name: str,
+        active: bool = True,
+        discipline_prestation_code: Optional[str] = None,
+        tarif_code: Optional[str] = None,
+        parent_ref: Optional[FHIRReference] = None,
+    ) -> FHIROrganization:
+        """Crée une Organization FRCoreOrganizationUACProfile. `partOf` doit
+        obligatoirement référencer une FRCoreOrganizationUFProfile (contrainte du
+        profil)."""
+        extensions = []
+        if discipline_prestation_code:
+            extensions.append({
+                "url": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization-discipline-prestation",
+                "valueCoding": {"code": discipline_prestation_code},
+            })
+        if tarif_code:
+            extensions.append({
+                "url": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization-tarif",
+                "valueCoding": {"code": tarif_code},
+            })
+        return FHIROrganization(
+            meta={"profile": [FRCORE_PROFILES["organization_uac"]]},
+            identifier=[{"value": identifier}] if identifier else None,
+            active=active,
+            type=[{"coding": [{"system": FRCORE_CS_V2_3307, "code": "UAC"}]}],
+            name=name,
+            partOf=parent_ref,
+            extension=extensions or None,
+        )
+
+    # ------------------------------------------------------------------
+    # Location : UH / Chambre / Lit (lieux physiques)
+    # ------------------------------------------------------------------
+    def create_location(
+        self,
+        identifier: str,
+        name: str,
+        location_kind: str,
+        status: str = "active",
+        type_chambre_code: Optional[str] = None,
+        position_lit_code: Optional[str] = None,
+        parent_ref: Optional[FHIRReference] = None,
+    ) -> FHIRLocation:
+        """Crée une Location FRCoreLocationProfile.
+
+        `location_kind` : "UH" | "CHAMB" | "LIT" — détermine `type` et les
+        extensions applicables (typeChambre pour une chambre, positionLit pour un
+        lit ; obligatoires par les invariants du profil quand ces extensions sont
+        posées : `type` doit alors valoir respectivement CHAMB/LIT).
+        """
+        extensions = []
+        type_coding = None
+        if location_kind == "CHAMB":
+            type_coding = {"code": "CHAMB", "display": "Chambre"}
+            if type_chambre_code:
+                extensions.append({
+                    "url": f"{FRCORE_BASE}/StructureDefinition/fr-core-location-type-chambre",
+                    "valueCoding": {"code": type_chambre_code},
+                })
+        elif location_kind == "LIT":
+            type_coding = {"code": "LIT", "display": "Lit"}
+            if position_lit_code:
+                extensions.append({
+                    "url": f"{FRCORE_BASE}/StructureDefinition/fr-core-location-position-lit",
+                    "valueCoding": {"code": position_lit_code},
+                })
+        elif location_kind == "UH":
+            type_coding = {"code": "UH", "display": "Unité d'hébergement"}
+
+        return FHIRLocation(
+            meta={"profile": [FRCORE_PROFILES["location"]]},
+            identifier=[self.converter.create_identifier(f"{self.base_url}/location/identifier", identifier)],
+            status=status or "active",
+            name=name,
+            type=[self.converter.create_codeable_concept(
+                type_coding["code"], FRCORE_BASE + "/CodeSystem/fr-core-cs-location-type", type_coding["display"]
+            )] if type_coding else None,
+            partOf=parent_ref,
+            extension=extensions or None,
+        )
+
 
 class PatientToFHIRConverter:
     """Convertisseur de patient vers FHIR."""
-    
+
     def __init__(self, base_url: str):
         self.base_url = base_url
         self.converter = HL7ToFHIRConverter()
-    
+
     def create_patient(self,
                       identifier: str,
                       name: str,
@@ -246,7 +411,7 @@ class PatientToFHIRConverter:
                       organization_ref: Optional[FHIRReference] = None,
                       contacts: Optional[List[Dict[str, Any]]] = None) -> FHIRPatient:
         """Crée une ressource Patient FHIR."""
-        
+
         # Identifiant
         identifiers = [
             self.converter.create_identifier(
@@ -254,14 +419,14 @@ class PatientToFHIRConverter:
                 identifier
             )
         ]
-        
+
         # Nom
         names = [{
             "family": surname,
             "given": [name],
             "use": "official"
         }]
-        
+
         return FHIRPatient(
             identifier=identifiers,
             name=names,
@@ -271,11 +436,11 @@ class PatientToFHIRConverter:
 
 class EncounterToFHIRConverter:
     """Convertisseur de venue vers FHIR."""
-    
+
     def __init__(self, base_url: str):
         self.base_url = base_url
         self.converter = HL7ToFHIRConverter()
-    
+
     def create_encounter(self,
                         identifier: str,
                         patient_ref: FHIRReference,
@@ -283,9 +448,16 @@ class EncounterToFHIRConverter:
                         start_date: Optional[datetime] = None,
                         end_date: Optional[datetime] = None,
                         location_ref: Optional[FHIRReference] = None,
-                        participants: Optional[List[Dict[str, Any]]] = None) -> FHIREncounter:
-        """Crée une ressource Encounter FHIR."""
-        
+                        participants: Optional[List[Dict[str, Any]]] = None,
+                        service_provider_ref: Optional[FHIRReference] = None) -> FHIREncounter:
+        """Crée une ressource Encounter FHIR.
+
+        `location_ref` doit référencer un lieu physique (Location — UH/Chambre/Lit) ;
+        `service_provider_ref` référence l'Organization responsable (UF), séparément,
+        via Encounter.serviceProvider — depuis que l'UF est une Organization (FRCore
+        2.2.0) et non plus une Location, elle ne peut plus être posée sur `location`.
+        """
+
         # Identifiant
         identifiers = [
             self.converter.create_identifier(
@@ -293,10 +465,10 @@ class EncounterToFHIRConverter:
                 identifier
             )
         ]
-        
+
         # Période
         period = self.converter.create_period(start_date, end_date)
-        
+
         # Localisation
         locations = []
         if location_ref:
@@ -304,7 +476,7 @@ class EncounterToFHIRConverter:
                 "location": location_ref.model_dump(),
                 "status": "active"
             })
-        
+
         return FHIREncounter(
             identifier=identifiers,
             status=status,
@@ -316,7 +488,8 @@ class EncounterToFHIRConverter:
             subject=patient_ref,
             period=period,
             location=locations,
-            participant=participants
+            participant=participants,
+            serviceProvider=service_provider_ref,
         )
 
     def create_related_person(self,

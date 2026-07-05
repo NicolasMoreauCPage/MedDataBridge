@@ -14,6 +14,11 @@ Paramètres de recherche supportés :
 - partof : recherche des enfants d'une Location parente (navigation hiérarchique)
 
 Conversion assurée par app.services.fhir_structure (process_fhir_location, entity_to_fhir_location).
+
+⚠ NON CONFORME FRCore 2.2.0 : ce routeur expose EG/Pole/Service/UF comme des Location,
+alors qu'ils sont désormais des Organization dans le référentiel FRCore 2.2.0 (voir
+app/converters/fhir_converter.py). Voir la docstring de app.services.fhir_structure
+pour le détail du périmètre non couvert par cette mise en conformité.
 """
 import logging
 from typing import Dict, Any, List, Optional

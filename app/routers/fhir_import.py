@@ -8,6 +8,7 @@ from app.converters.fhir_import_converter import (
     FHIRBundleImporter,
     FHIRToPatientConverter,
     FHIRToLocationConverter,
+    FHIRToOrganizationConverter,
     FHIRToEncounterConverter,
     FHIRImportError
 )
@@ -272,7 +273,7 @@ async def import_location(
 
         return ImportResult(
             status="success",
-            message=f"Location {location_obj.nom} importée avec succès (type: {location_obj.__class__.__name__})",
+            message=f"Location {location_obj.name} importée avec succès (type: {location_obj.__class__.__name__})",
             resources_created=1,
             resources_updated=0
         )
@@ -287,6 +288,74 @@ async def import_location(
         try:
             from app.metrics import record_fhir_event
             record_fhir_event("inbound", "location", "import", False, 500)
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'import: {str(e)}")
+
+
+@router.post("/import/organization", response_model=ImportResult)
+async def import_organization(
+    http_request: Request,
+    organization: Dict[str, Any] = Body(...),
+    ej_id: int = Body(...),
+    session: Session = Depends(get_session)
+):
+    """
+    Importe une ressource Organization FHIR (EG, Pôle, Service, UF ou UAC — depuis
+    FRCore 2.2.0 ces niveaux ne sont plus des Location, voir /import/location pour
+    UH/Chambre/Lit qui restent des lieux physiques).
+
+    Args:
+        organization: Ressource Organization FHIR
+        ej_id: ID de l'entité juridique
+
+    Returns:
+        Résultat de l'import
+
+    Raises:
+        400: Ressource Organization invalide
+        403: Entité juridique en dehors du contexte GHT/EJ actif
+        404: Entité juridique non trouvée
+    """
+    ej = session.get(EntiteJuridique, ej_id)
+    if not ej:
+        raise HTTPException(status_code=404, detail="Entité juridique non trouvée")
+    _verify_ej_access(http_request, session, ej_id)
+
+    if organization.get("resourceType") != "Organization":
+        raise HTTPException(
+            status_code=400,
+            detail="La ressource doit être de type Organization"
+        )
+
+    try:
+        import time as _time
+        _start = _time.time()
+        converter = FHIRToOrganizationConverter(session, ej)
+        organization_obj = converter.convert_organization(organization)
+        try:
+            from app.metrics import record_fhir_event
+            record_fhir_event("inbound", "organization", "import", True, 200, _time.time() - _start)
+        except Exception:
+            pass
+
+        return ImportResult(
+            status="success",
+            message=f"Organization {organization_obj.name} importée avec succès (type: {organization_obj.__class__.__name__})",
+            resources_created=1,
+            resources_updated=0
+        )
+    except FHIRImportError as e:
+        try:
+            from app.metrics import record_fhir_event
+            record_fhir_event("inbound", "organization", "import", False, 400)
+        except Exception:
+            pass
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        try:
+            from app.metrics import record_fhir_event
+            record_fhir_event("inbound", "organization", "import", False, 500)
         except Exception:
             pass
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'import: {str(e)}")

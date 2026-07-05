@@ -80,60 +80,68 @@ def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session
         "maritalStatus": {"text": p.marital_status} if getattr(p, "marital_status", None) else None,
     }
 
-    # Extensions FRCore pour conformité FHIR France
+    # Extensions FRCore 2.2.0 pour conformité FHIR France
+    # Réf: https://hl7.fr/ig/fhir/core/2.2.0/ (StructureDefinition/CodeSystem/ValueSet ci-dessous
+    # vérifiés contre le FSH source publié, pas contre l'ancien domaine interopsante.org/interop-sante.fr
+    # qui a été abandonné dès la version 2.0.1 du guide)
     extensions = []
-    
-    # Extension FRCore pour fiabilité d'identité
+
+    # Extension fr-core-identity-reliability (sous-extensions composites)
     if getattr(p, "identity_reliability_code", None):
-        identity_extension = {
-            "url": "http://interopsante.org/fhir/StructureDefinition/fr-core-patient-identity-reliability",
-            "extension": []
-        }
-        
-        # Code de fiabilité d'identité
-        identity_extension["extension"].append({
-            "url": "identityReliability",
+        identity_sub_extensions = [{
+            "url": "identityStatus",
             "valueCoding": {
-                "system": "http://interopsante.org/fhir/CodeSystem/fr-core-cs-patient-identity-reliability",
-                "code": p.identity_reliability_code,
-                "display": p.identity_reliability_code  # À FAIRE: mapping vers display approprié
+                "system": "https://hl7.fr/ig/fhir/core/ValueSet/fr-core-vs-identity-reliability-status",
+                "code": p.identity_reliability_code
             }
-        })
-        
-        # Date de validation si disponible
+        }]
         if getattr(p, "identity_reliability_date", None):
-            identity_extension["extension"].append({
-                "url": "identityReliabilityDate",
-                "valueDate": p.identity_reliability_date
+            identity_sub_extensions.append({
+                "url": "validationDate",
+                "valueDate": p.identity_reliability_date.isoformat() if hasattr(p.identity_reliability_date, "isoformat") else p.identity_reliability_date
             })
-        
-        # Source de validation si disponible
         if getattr(p, "identity_reliability_source", None):
-            identity_extension["extension"].append({
-                "url": "identityReliabilitySource",
-                "valueString": p.identity_reliability_source
+            identity_sub_extensions.append({
+                "url": "validationMode",
+                "valueCoding": {
+                    "system": "https://hl7.fr/ig/fhir/core/ValueSet/fr-core-vs-mode-validation-identity",
+                    "code": p.identity_reliability_source
+                }
             })
-        
-    # Extension FRCore pour lieu de naissance
-    if getattr(p, "birth_city", None) or getattr(p, "birth_country", None):
-        birth_place_extension = {
-            "url": "http://interopsante.org/fhir/StructureDefinition/fr-core-patient-birth-place",
-            "valueAddress": {}
-        }
-        
+        extensions.append({
+            "url": "https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-identity-reliability",
+            "extension": identity_sub_extensions
+        })
+
+    # Lieu de naissance : extension standard HL7 patient-birthPlace (Address), pas une extension
+    # FRCore custom — seul le code INSEE de la commune de naissance est porté par une extension
+    # FRCore imbriquée sur l'Address (fr-core-address-insee-code).
+    if getattr(p, "birth_city", None) or getattr(p, "birth_country", None) or getattr(p, "birth_insee_code", None):
+        birth_place_address = {}
         if getattr(p, "birth_city", None):
-            birth_place_extension["valueAddress"]["city"] = p.birth_city
+            birth_place_address["city"] = p.birth_city
         if getattr(p, "birth_state", None):
-            birth_place_extension["valueAddress"]["state"] = p.birth_state
+            birth_place_address["state"] = p.birth_state
         if getattr(p, "birth_postal_code", None):
-            birth_place_extension["valueAddress"]["postalCode"] = p.birth_postal_code
+            birth_place_address["postalCode"] = p.birth_postal_code
         if getattr(p, "birth_country", None):
-            birth_place_extension["valueAddress"]["country"] = p.birth_country
-        
-        extensions.append(birth_place_extension)
+            birth_place_address["country"] = p.birth_country
+        if getattr(p, "birth_insee_code", None):
+            birth_place_address["extension"] = [{
+                "url": "https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-address-insee-code",
+                "valueCoding": {
+                    "system": "https://hl7.fr/ig/fhir/core/CodeSystem/fr-core-cs-v2-0399",
+                    "code": p.birth_insee_code
+                }
+            }]
+
+        extensions.append({
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-birthPlace",
+            "valueAddress": birth_place_address
+        })
     if getattr(p, "primary_care_provider", None):
         extensions.append({
-            "url": "http://example.org/fhir/StructureDefinition/primary-care-provider", 
+            "url": "http://example.org/fhir/StructureDefinition/primary-care-provider",
             "valueString": p.primary_care_provider
         })
 

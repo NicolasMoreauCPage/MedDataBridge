@@ -145,6 +145,7 @@ PID|1||123456^^^MPI||DOE^JOHN||19900101|M"""
         result = _parse_zbe_segment(zbe_line)
         expected = {
             'movement_id': '1',
+            'movement_ids': ['1'],
             'movement_datetime': '20240101120000',
             'action_type': 'INSERT',
             'cancel_flag': 'N',

@@ -9,6 +9,15 @@ Avantages:
 - Cohérence Patient HL7 = Patient en base
 - Support complet des namespaces et identifiants
 - Génération dynamique avec ZBE segments
+
+NON UTILISÉ PAR L'APPLICATION LIVE : ce générateur n'est appelé par aucun routeur ni
+service de app/ — l'émission réelle passe par app.services.emit_on_create.generate_pam_hl7
+(entity_events, chemin live) ou adapters.hl7_pam_fr.build_message_for_movement (via
+app.services.pam.generate_pam_messages_for_dossier, utilisé par scripts/tools/export_pam_outbound.py).
+Conservé uniquement parce que scripts/manual/roundtrip_interop.py,
+scripts/manual/identity_movement_roundtrip.py et docs/benchmark_zbe_performance.py
+(outils manuels, hors suite de tests) en dépendent encore. Un correctif fait ici ne se
+répercute PAS sur les messages réellement émis par l'application.
 """
 
 from datetime import datetime

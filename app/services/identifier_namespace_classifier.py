@@ -337,22 +337,28 @@ class IdentifierNamespaceClassifier:
         for value, system, id_type in identifiers_data:
             is_main, external_ns = self.classify_identifier(value, system, id_type, ej_id, location_hierarchy)
 
-            if is_main:
+            if is_main and result['main_identifier'] is None:
                 # Utiliser comme identifiant principal
-                if result['main_identifier'] is None:
-                    result['main_identifier'] = value
-            else:
-                # Traiter comme identifiant externe
-                result['external_identifiers'].append({
-                    'value': value,
-                    'system': system,
-                    'type': id_type,
-                    'external_namespace': external_ns
-                })
+                result['main_identifier'] = value
+                continue
 
-                # Si pas d'identifiant principal, utiliser le premier externe comme external_id
-                if result['external_id'] is None:
-                    result['external_id'] = value
+            if is_main:
+                # Un identifiant principal a déjà été retenu (ex: PID-3 porte à la fois un IPP
+                # et un INS, tous deux classifiés "principal" faute de contexte de namespace
+                # résolu) : on ne le supprime pas silencieusement, on le conserve comme externe.
+                external_ns = system
+
+            # Traiter comme identifiant externe
+            result['external_identifiers'].append({
+                'value': value,
+                'system': system,
+                'type': id_type,
+                'external_namespace': external_ns
+            })
+
+            # Si pas d'identifiant principal, utiliser le premier externe comme external_id
+            if result['external_id'] is None:
+                result['external_id'] = value
 
         return result
 
@@ -373,9 +379,18 @@ class IdentifierNamespaceClassifier:
         for value, system, id_type in identifiers_data:
             is_main, external_ns = self.classify_identifier(value, system, id_type, ej_id, location_hierarchy)
 
-            if is_main:
-                if result['main_identifier'] is None:
-                    result['main_identifier'] = value
+            if is_main and result['main_identifier'] is None:
+                result['main_identifier'] = value
+            elif is_main:
+                # Un identifiant principal a déjà été retenu (ex: plusieurs répétitions ZBE-1
+                # toutes classifiées "principal" faute de contexte de namespace résolu) : on ne
+                # le supprime pas silencieusement, on le conserve comme identifiant externe.
+                result['external_identifiers'].append({
+                    'value': value,
+                    'system': system,
+                    'type': id_type,
+                    'external_namespace': system
+                })
             else:
                 result['external_identifiers'].append({
                     'value': value,

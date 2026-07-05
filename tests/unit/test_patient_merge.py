@@ -9,7 +9,12 @@ from sqlmodel import Session, select
 from app.db import engine, get_next_sequence
 from app.models import Patient, Dossier, Venue
 from app.models_identifiers import Identifier, IdentifierType
-from app.services.patient_merge import handle_merge_patient, _parse_mrg_segment, _find_patient_by_identifiers
+from app.services.patient_merge import (
+    handle_merge_patient,
+    handle_change_patient_identifier,
+    _parse_mrg_segment,
+    _find_patient_by_identifiers,
+)
 from app.services.mllp import build_ack
 
 
@@ -328,3 +333,54 @@ async def test_merge_patient_source_not_found(session: Session):
     
     assert success is False
     assert "introuvable" in error.lower()
+
+
+@pytest.mark.asyncio
+async def test_handle_change_patient_identifier_a47(session: Session):
+    """A47: l'ancien identifiant (MRG-1) est marqué 'old', le nouveau (PID-3) est actif.
+
+    Régression : handle_change_patient_identifier() importait
+    app.services.pam._create_or_update_identifiers, une fonction qui n'existe pas,
+    ce qui faisait échouer TOUT message A47 reçu avec une ImportError.
+    """
+    patient = Patient(
+        patient_seq=get_next_sequence(session, "patient"),
+        identifier="OLD-IPP-001",
+        external_id="OLD-IPP-001",
+        family="MOREAU",
+        given="LUCIE",
+        gender="F",
+        birth_date="19700101",
+    )
+    session.add(patient)
+    session.flush()
+    session.add(Identifier(
+        value="OLD-IPP-001",
+        system="HOSP",
+        type=IdentifierType.PI,
+        status="active",
+        patient_id=patient.id,
+    ))
+    session.flush()
+
+    message = (
+        "MSH|^~\\&|SENDER|SENDFAC|RECV|RECVFAC|20250103120000||ADT^A47^ADT_A30|1|P|2.5\r"
+        "PID|||NEW-IPP-002^^^HOSP^PI||MOREAU^LUCIE||19700101|F\r"
+        "MRG|OLD-IPP-001^^^HOSP^PI\r"
+    )
+    pid_data = {"identifiers": [("NEW-IPP-002^^^HOSP^PI", "PI")], "family": "MOREAU", "given": "LUCIE"}
+    pv1_data = {}
+
+    success, error = await handle_change_patient_identifier(session, "A47", pid_data, pv1_data, message)
+    assert success, error
+
+    old_ident = session.exec(
+        select(Identifier).where(Identifier.patient_id == patient.id).where(Identifier.value == "OLD-IPP-001")
+    ).first()
+    assert old_ident.status == "old"
+
+    new_ident = session.exec(
+        select(Identifier).where(Identifier.patient_id == patient.id).where(Identifier.value == "NEW-IPP-002")
+    ).first()
+    assert new_ident is not None
+    assert new_ident.status == "active"

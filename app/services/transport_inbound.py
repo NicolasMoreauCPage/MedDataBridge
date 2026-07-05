@@ -504,9 +504,11 @@ def _parse_zbe(message: str) -> dict:
         if not zbe:
             return out
         parts = zbe.split("|")
-        # ZBE-1: Identifiant du mouvement
+        # ZBE-1: Identifiant du mouvement (EI, format ID^NAMESPACE^OID^ISO ; on ne garde
+        # que le composant ID, comme dans app.services.pam._parse_zbe_segment).
         if len(parts) > 1 and parts[1]:
-            out["movement_id"] = parts[1]
+            first_rep = parts[1].split("~")[0]
+            out["movement_id"] = first_rep.split("^")[0] if "^" in first_rep else first_rep
         # ZBE-2: Date/heure du mouvement
         if len(parts) > 2 and parts[2]:
             out["movement_datetime"] = _parse_hl7_datetime(parts[2])
@@ -556,7 +558,17 @@ def _has_segment(message: str, segment_name: str) -> bool:
 
 def _validate_z99_original_message(message: str, session: Session) -> Optional[str]:
     """Validate that Z99 message references an accepted original message.
-    
+
+    ZBE-1 on a Z99 carries the SENDER's own identifier for the movement being
+    corrected — it does not correlate with MessageLog.correlation_id (populated from
+    MSH-10 elsewhere in this module), nor is it in general our own Mouvement.mouvement_seq
+    (our internal ID stays internal; the sender's external ID is tracked separately as an
+    Identifier(type=MVT) linked to the Mouvement — see ZBE-1 handling in app.services.pam).
+    We therefore resolve it via that Identifier first. Movements we originated ourselves
+    (no external MVT identifier recorded) fall back to a direct mouvement_seq match, since
+    in that case the value a correspondent echoes back in a later Z99 is the mouvement_seq
+    we ourselves emitted in ZBE-1.
+
     Returns:
         None if validation passes
         Error message string if validation fails
@@ -564,41 +576,38 @@ def _validate_z99_original_message(message: str, session: Session) -> Optional[s
     # Extract ZBE-1 (original movement_id)
     zbe_data = _parse_zbe(message)
     movement_id = zbe_data.get("movement_id")
-    
+
     if not movement_id:
         return "Z99 message missing ZBE-1 (original movement identifier)"
-    
-    # Find the original message by correlation_id (MSH-10 / movement_id)
-    original_msg = session.exec(
-        select(MessageLog)
-        .where(MessageLog.correlation_id == movement_id)
-        .order_by(MessageLog.created_at.desc())
+
+    original_mouvement = None
+
+    ident = session.exec(
+        select(Identifier)
+        .where(Identifier.type == IdentifierType.MVT)
+        .where(Identifier.value == movement_id)
+        .where(Identifier.status == "active")
+        .where(Identifier.mouvement_id.isnot(None))
     ).first()
-    
-    if not original_msg:
+    if ident:
+        original_mouvement = session.get(Mouvement, ident.mouvement_id)
+
+    if not original_mouvement:
+        try:
+            mouvement_seq = int(movement_id)
+        except ValueError:
+            mouvement_seq = None
+        if mouvement_seq is not None:
+            original_mouvement = session.exec(
+                select(Mouvement).where(Mouvement.mouvement_seq == mouvement_seq)
+            ).first()
+
+    if not original_mouvement:
         return f"Original message with identifier '{movement_id}' not found"
-    
-    # Check if original message has an ACK
-    if not original_msg.ack_payload:
-        return f"Original message '{movement_id}' has no acknowledgment"
-    
-    # Extract ACK status from MSA-1 segment
-    ack_lines = re.split(r"\r|\n", original_msg.ack_payload)
-    msa_line = next((l for l in ack_lines if l.startswith("MSA")), None)
-    
-    if not msa_line:
-        return f"Original message '{movement_id}' ACK missing MSA segment"
-    
-    msa_parts = msa_line.split("|")
-    if len(msa_parts) < 2:
-        return f"Original message '{movement_id}' ACK has invalid MSA segment"
-    
-    ack_code = msa_parts[1].strip()
-    
-    # Only allow Z99 if original was accepted (AA = Application Accept, CA = Commit Accept)
-    if ack_code not in ["AA", "CA"]:
-        return f"Cannot modify message '{movement_id}': original was rejected with ACK code {ack_code}"
-    
+
+    if original_mouvement.status == "cancelled":
+        return f"Cannot modify message '{movement_id}': original movement was cancelled"
+
     return None
 
 

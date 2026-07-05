@@ -35,6 +35,27 @@ def map_hl7_type_to_identifier_type(type_code: Optional[str]) -> Optional[Identi
         return None
 
 
+def map_identifier_type_to_hl7_code(id_type: Optional[IdentifierType]) -> Optional[str]:
+    """
+    Mappe l'enum interne IdentifierType vers le code HL7 (v2) CX-4/CX-5 correspondant.
+    Inverse de map_hl7_type_to_identifier_type() pour les besoins de ré-émission
+    (round-trip fidelity du type code sur PID-3/ZBE-1/etc.).
+
+    - IdentifierType.IPP -> 'PI' (Patient Internal Identifier)
+    - IdentifierType.NDA -> 'AN' (Accession Number)
+    - Autres types: le nom de l'enum est déjà un code CX valide (ex. 'MVT', 'VN'),
+      on le renvoie tel quel.
+    """
+    if id_type is None:
+        return None
+    if id_type == IdentifierType.IPP:
+        return "PI"
+    if id_type == IdentifierType.NDA:
+        return "AN"
+    # Accept plain strings too (e.g. values coming from snapshot dicts), not just the enum.
+    return getattr(id_type, 'value', id_type)
+
+
 def parse_hl7_cx_identifier(cx_value: str) -> Tuple[str, str, Optional[str], Optional[str]]:
     """
     Parse un identifiant au format HL7 CX (Component/Subcomponent Separator: ^)
@@ -176,6 +197,7 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
     value_to_cx_map = {}  # Maps clean value -> original CX for OID extraction
     
     for item in identifiers_data:
+        value = None
         try:
             if isinstance(item, (list, tuple)) and len(item) == 3:
                 cx_value, system, id_type_str = item
@@ -201,8 +223,14 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
             if cx_value not in value_to_cx_map:
                 value_to_cx_map[cx_value] = cx_value
 
+        # `value` n'est déjà extrait (composant CX propre) que pour le format 4-tuple ; pour les
+        # autres formats, dériver la valeur nue depuis cx_value (sinon le classifieur recevrait le
+        # CX complet avec ses composants "^" comme si c'était l'identifiant lui-même).
+        if value is None:
+            value = cx_value.split("^")[0] if cx_value and "^" in cx_value else cx_value
+
         id_type = map_hl7_type_to_identifier_type(id_type_str) or IdentifierType.IPP
-        classifier_data.append((cx_value, system, id_type))
+        classifier_data.append((value, system, id_type))
 
     classification = classify_incoming_identifiers(
         session, classifier_data, entity_type, ej_id
@@ -213,19 +241,25 @@ def create_identifiers_from_hl7_with_namespace_check(*args, **kwargs) -> Tuple[L
         main_value = classification['main_identifier']
         main_system = ""
         main_oid = ""
-        
+
         # Extract system and OID from original CX
         cx_for_main = value_to_cx_map.get(main_value, main_value)
         if cx_for_main and "^" in cx_for_main:
             _, parsed_system, parsed_oid, _ = parse_hl7_cx_identifier(cx_for_main)
             main_system = parsed_system or ""
             main_oid = parsed_oid or ""
-        
+
+        # Préserver le type classifié pour cet identifiant (IPP n'est correct que pour
+        # l'identité patient ; un identifiant "principal" côté dossier/venue/mouvement
+        # doit garder son propre type, ex. MVT, sous peine de devenir invisible pour
+        # tout code qui filtre par type — ex. la ré-émission ZBE-1).
+        main_type = next((t for v, _s, t in classifier_data if v == main_value), None) or IdentifierType.IPP
+
         main_id = Identifier(
             value=main_value,
             system=main_system,
             oid=main_oid,
-            type=IdentifierType.IPP,
+            type=main_type,
             status="active"
         )
         identifiers.append(main_id)
@@ -410,19 +444,6 @@ def create_fhir_identifier(identifier: Identifier) -> Dict:
         "value": identifier.value
     }
     
-    def map_identifier_type_to_hl7_code(id_type: IdentifierType) -> str:
-        """Retourne le code HL7 (v2) correspondant à l'enum interne.
-
-        - IdentifierType.IPP -> 'PI'
-        - IdentifierType.NDA -> 'AN'
-        - For other types, return the enum value as-is.
-        """
-        if id_type == IdentifierType.IPP:
-            return "PI"
-        if id_type == IdentifierType.NDA:
-            return "AN"
-        return id_type.value
-
     if identifier.type:
         hl7_code = map_identifier_type_to_hl7_code(identifier.type)
         fhir_id["type"] = {

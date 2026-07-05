@@ -14,7 +14,12 @@ from app.services.mllp import (
     start_mllp_server,
     stop_mllp_server,
 )
-from app.services.transport_inbound import _validate_message_structure, on_message_inbound
+from app.services.transport_inbound import (
+    _parse_zbe,
+    _validate_message_structure,
+    _validate_z99_original_message,
+    on_message_inbound,
+)
 
 
 def _base_msh(msg_type: str, control_id: str = "CTRL1") -> str:
@@ -984,3 +989,49 @@ def test_on_message_inbound_callable_await_dunder_raises_typeerror():
         assert "on_message_inbound_async" in str(exc)
 
     assert raised is True
+
+
+def test_parse_zbe_extracts_bare_movement_id_from_full_cx():
+    msg = "MSH|^~\\&|A|A|B|B|20260328090000||ADT^Z99|1|P|2.5\r" \
+          "ZBE|12565061^CPAGE^1.2.250.1.211.12.1.2^ISO|20251020150100||UPDATE|Y|A04\r"
+    result = _parse_zbe(msg)
+    assert result["movement_id"] == "12565061"
+
+
+def test_validate_z99_original_message_finds_existing_mouvement(session):
+    _seed_patient_graph_with_mouvement(session, identifier="Z99PAT", trigger_event="A04")
+    from app.models import Mouvement
+    mouvement = session.exec(select(Mouvement)).first()
+
+    msg = (
+        "MSH|^~\\&|A|A|B|B|20260328090000||ADT^Z99|1|P|2.5\r"
+        f"ZBE|{mouvement.mouvement_seq}^CPAGE^1.2.250.1.211.12.1.2^ISO|20251020150100||UPDATE|Y|A04\r"
+    )
+    error = _validate_z99_original_message(msg, session)
+    assert error is None
+
+
+def test_validate_z99_original_message_rejects_unknown_movement(session):
+    msg = (
+        "MSH|^~\\&|A|A|B|B|20260328090000||ADT^Z99|1|P|2.5\r"
+        "ZBE|999999999^CPAGE^1.2.250.1.211.12.1.2^ISO|20251020150100||UPDATE|Y|A04\r"
+    )
+    error = _validate_z99_original_message(msg, session)
+    assert error is not None
+    assert "999999999" in error
+
+
+def test_infra_parse_zbe_handles_repeated_movement_id():
+    from app.infrastructure.hl7.parsing.zbe_parser import parse_zbe
+
+    msg = (
+        "MSH|^~\\&|A|A|B|B|20260704120000||ADT^A02|1|P|2.5\r"
+        "ZBE|12345^SYS_A^1.2.3^ISO~67890^SYS_B^4.5.6^ISO|20260704120000||UPDATE|N|A01"
+    )
+    result = parse_zbe(msg)
+    assert result["movement_id"] == "12345^SYS_A^1.2.3^ISO"
+    assert result["movement_ids"] == ["12345^SYS_A^1.2.3^ISO", "67890^SYS_B^4.5.6^ISO"]
+    # The transport_inbound.py caller does its own defensive split("^")[0] before int();
+    # a repeated ZBE-1 must not break that (it used to: int("A~B") raised ValueError).
+    target_seq = int(result["movement_id"].split("^")[0])
+    assert target_seq == 12345

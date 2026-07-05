@@ -51,7 +51,11 @@ def parse_zbe(message: str) -> dict:
     """Parse ZBE segment (IHE PAM France compliant extended parsing).
 
     Extracts:
-    - ZBE-1: Movement identifier (principal; TODO: handle repetitions)
+    - ZBE-1: Movement identifier(s) — repeatable (EI~EI~...) for cooperative Movement
+      Management (several systems each carrying their own identifier for the same
+      physical movement). `movement_id` is the first/primary repetition's bare ID
+      component (used as-is by all existing call sites, unchanged); `movement_ids`
+      is the full list of bare ID components, in message order.
     - ZBE-2: Movement date/time (datetime)
     - ZBE-4: Action (INSERT|UPDATE|CANCEL)
     - ZBE-5: Historic flag (Y|N)
@@ -62,6 +66,7 @@ def parse_zbe(message: str) -> dict:
     """
     out = {
         "movement_id": None,
+        "movement_ids": [],
         "movement_datetime": None,
         "action": None,
         "is_historic": False,
@@ -80,9 +85,15 @@ def parse_zbe(message: str) -> dict:
             return out
         parts = zbe.split("|")
 
-        # ZBE-1
+        # ZBE-1: répétable (EI~EI~...). Chaque répétition est conservée telle quelle
+        # (composants CX/EI inclus, ex "ID^NAMESPACE^OID^ISO") — les appelants existants
+        # (ex: transport_inbound.py) font déjà eux-mêmes un split("^")[0] défensif sur
+        # movement_id. Avant ce correctif, une valeur répétée (ex "A~B") était renvoyée
+        # telle quelle dans movement_id, ce qui cassait cet appelant (int("A~B") lève
+        # ValueError, donc la corrélation UPDATE/CANCEL échouait silencieusement).
         if len(parts) > 1 and parts[1]:
-            out["movement_id"] = parts[1]
+            out["movement_ids"] = [r for r in parts[1].split("~") if r]
+            out["movement_id"] = out["movement_ids"][0] if out["movement_ids"] else None
         # ZBE-2
         if len(parts) > 2 and parts[2]:
             out["movement_datetime"] = parse_hl7_datetime(parts[2])

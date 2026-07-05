@@ -5,7 +5,7 @@ import json
 import time
 from decimal import Decimal
 from pathlib import Path
-from typing import Literal, Sequence, Tuple
+from typing import Literal, Optional, Sequence, Tuple
 
 from sqlmodel import Session, select
 from sqlalchemy.exc import InterfaceError, OperationalError
@@ -20,6 +20,7 @@ from app.services.fhir_resources import generate_fhir_bundle_for_entity
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_validation import validate_pam
+from app.services.identifier_manager import map_identifier_type_to_hl7_code
 import json
 
 
@@ -152,7 +153,7 @@ def build_pid3_identifiers(
             .where(Identifier.status == "active")
         )
         if ext_ident:
-            ident_type = getattr(ext_ident.type, 'value', ext_ident.type)
+            ident_type = map_identifier_type_to_hl7_code(ext_ident.type)
             identifiers.append(
                 f"{_c(ext_ident.value)}^^^{_auth(ext_ident.system, ext_ident.oid)}^{ident_type}"
             )
@@ -203,7 +204,7 @@ def build_pid3_identifiers(
             oid = getattr(ident, 'oid', None)
             typ = getattr(ident, 'type', None)
         if status == 'active' and value not in already_added_values:
-            identifiers.append(f"{_c(value)}^^^{_auth(system, oid)}^{getattr(typ, 'value', typ)}")
+            identifiers.append(f"{_c(value)}^^^{_auth(system, oid)}^{map_identifier_type_to_hl7_code(typ)}")
             already_added_values.add(_c(value))
 
     # As a last resort, ensure PID-3 is populated with an internal identifier so PAM validators accept the payload.
@@ -328,6 +329,8 @@ def generate_pam_hl7(
     msh_sending_facility: str | None = None,
     msh_receiving_app: str | None = None,
     msh_receiving_facility: str | None = None,
+    mrg_prior_identifiers: Optional[list] = None,
+    mrg_prior_name: str | None = None,
 ) -> str:
     logger.info(f"generate_pam_hl7 called with args: {locals()}")
     """Build a minimal HL7 PAM message for the given entity type.
@@ -369,7 +372,12 @@ def generate_pam_hl7(
     # Patient HL7 PAM branch
     if entity_type == "patient":
         # Determine event type
-        event_type = "A31" if operation == "update" else "A28"
+        if operation == "merge":
+            event_type = "A40"
+        elif operation == "change_id":
+            event_type = "A47"
+        else:
+            event_type = "A31" if operation == "update" else "A28"
 
         # Build timestamp and control id
         from datetime import datetime
@@ -377,7 +385,12 @@ def generate_pam_hl7(
         control_id = str(_get("patient_seq", _get("id", "UNKNOWN")))
 
         # MSH header
-        msg_structure = "ADT_A05"
+        if event_type == "A40":
+            msg_structure = "ADT_A39"
+        elif event_type == "A47":
+            msg_structure = "ADT_A30"
+        else:
+            msg_structure = "ADT_A05"
         sending_app = msh_sending_app or "POC"
         sending_fac = msh_sending_facility or "HOSP"
         receiving_app = msh_receiving_app or "EXT"
@@ -563,6 +576,18 @@ def generate_pam_hl7(
         pv1_fields[3] = ""   # Location unknown at this stage
         pv1_fields[19] = f"{visit_number_value}^^^{vn_auth}^{vn_type}"
         pv1 = "|".join(pv1_fields)
+
+        if event_type in ("A40", "A47"):
+            # A40 (fusion) / A47 (modification d'identifiant) : MRG-1 porte le/les identifiant(s)
+            # obsolète(s) (répétable via ~), PID-3 porte déjà le/les identifiant(s) retenu(s).
+            # Conforme à l'exemple de la spec IHE PAM France (§4.4.2) : MSH, EVN, PID, MRG (pas de PV1).
+            mrg_fields = [""] * 8
+            mrg_fields[0] = "MRG"
+            mrg_fields[1] = "~".join(_c_local(p) for p in (mrg_prior_identifiers or []) if p)
+            if mrg_prior_name:
+                mrg_fields[7] = _c_local(mrg_prior_name)
+            mrg = "|".join(mrg_fields)
+            return "\r".join([msh, evn, pid, mrg])
 
         return "\r".join([msh, evn, pid, pv1])
         
@@ -867,7 +892,13 @@ def generate_pam_hl7(
             pid3 = f"{patient_id}^^^{authority}^PI"
             family = patient.family or ""
             given = patient.given or ""
-            birth_date = patient.birth_date or ""
+            if patient.birth_date:
+                if hasattr(patient.birth_date, 'strftime'):
+                    birth_date = patient.birth_date.strftime("%Y%m%d")
+                else:
+                    birth_date = str(patient.birth_date).replace("-", "")
+            else:
+                birth_date = ""
             gender = patient.gender or ""
             
             # PID-18: Patient Account Number (numéro de dossier pour IHE PAM France)
@@ -1005,18 +1036,37 @@ def generate_pam_hl7(
         pv1 = f"PV1|1|{patient_class}|{location}||||||||||||||||{pv1_19}|||||||||||||||||||||||||||||||||{uf_resp}||||||{timestamp}"
 
         # ZBE segment generation for mouvement (same format as venue)
-        # Prefer a movement identifier (Identifier.type == MVT) with namespace when available
+        # ZBE-1 is repeatable (EI~EI~...) for cooperative Movement Management : several
+        # systems can each carry their own identifier for the same physical movement.
+        # Our own internal identifier (mouvement_seq) always leads the repetition list —
+        # it's what lets us resolve a future Z99 correction via a direct mouvement_seq
+        # match when the correspondent simply echoes back the first ZBE-1 repetition —
+        # followed by any external MVT identifiers we've recorded for this movement
+        # (e.g. one this Mouvement was originally created from, on the receive side).
         zbe_id = control_id
         try:
-            mv_ident = None
+            mvt_auth, mvt_type = _resolve_namespace_authority(
+                session, getattr(dossier, 'entite_juridique_id', None), "MVT",
+                forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
+            )
+            if mvt_auth:
+                own_authority = mvt_auth
+            elif forced_identifier_system and forced_identifier_oid:
+                own_authority = f"{forced_identifier_system}&{forced_identifier_oid}&ISO"
+            else:
+                own_authority = forced_identifier_system or "HOSP"
+            own_type = mvt_type or "MVT"
+            zbe_id_reps = [f"{entity.mouvement_seq}^^^{own_authority}^{own_type}"]
+
+            mv_idents = []
             if session:
-                mv_ident = session.exec(
+                mv_idents = session.exec(
                     select(Identifier)
                     .where(Identifier.mouvement_id == entity.id)
                     .where(Identifier.type == IdentifierType.MVT)
                     .where(Identifier.status == "active")
-                ).first()
-            if mv_ident:
+                ).all()
+            for mv_ident in mv_idents:
                 # Prefer namespace lookup by entite_juridique and type MVT
                 ns_auth, ns_type = _resolve_namespace_authority(
                     session, getattr(dossier, 'entite_juridique_id', None), "MVT",
@@ -1036,23 +1086,9 @@ def generate_pam_hl7(
                         authority = "HOSP"
                 type_code = ns_type or "MVT"
                 # ZBE-1 movement identifier as CX: value^^^assigningAuthority^type
-                zbe_id = f"{mv_ident.value}^^^{authority}^{type_code}"
-            else:
-                # No MVT identifier found, use mouvement_seq with MVT namespace if available
-                mvt_auth, mvt_type = _resolve_namespace_authority(
-                    session, getattr(dossier, 'entite_juridique_id', None), "MVT",
-                    forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
-                )
-                # mvt_auth may be 'system&oid&ISO' or system; normalize assigning authority
-                if mvt_auth:
-                    authority = mvt_auth
-                else:
-                    if forced_identifier_system and forced_identifier_oid:
-                        authority = f"{forced_identifier_system}&{forced_identifier_oid}&ISO"
-                    else:
-                        authority = forced_identifier_system or "HOSP"
-                type_code = mvt_type or "MVT"
-                zbe_id = f"{entity.mouvement_seq}^^^{authority}^{type_code}"
+                zbe_id_reps.append(f"{mv_ident.value}^^^{authority}^{type_code}")
+
+            zbe_id = "~".join(zbe_id_reps)
         except Exception:
             # Keep control_id as Solution de repli on any error
             zbe_id = control_id
@@ -1198,6 +1234,8 @@ def emit_to_senders_async(
     entity_type: Literal["patient", "dossier", "venue", "mouvement", "ccam_act", "ngap_act", "ucd_act", "lpp_act"],
     session: Session,
     operation: str = "insert",
+    mrg_prior_identifiers: Optional[list] = None,
+    mrg_prior_name: str | None = None,
 ) -> None:
     """Emit HL7/FHIR/HPRIM notifications for newly created or updated entities and acts."""
 
@@ -1289,6 +1327,8 @@ def emit_to_senders_async(
                     msh_sending_facility=getattr(endpoint, 'sending_facility', None),
                     msh_receiving_app=getattr(endpoint, 'receiving_app', None),
                     msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
+                    mrg_prior_identifiers=mrg_prior_identifiers,
+                    mrg_prior_name=mrg_prior_name,
                 )
                 if hl7_message is None or (isinstance(hl7_message, str) and hl7_message.strip() == ""):
                     hl7_message = "[Emission error: HL7 message not generated]"

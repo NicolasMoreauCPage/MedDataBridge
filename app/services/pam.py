@@ -12,8 +12,142 @@ from app.models_identifiers import Identifier, IdentifierType
 from app.services.vocabulary_translate import map_code
 from app.services.vocabulary_translate import map_code
 from app.services.medecin_extractor import extract_and_store_medecin_from_pv1
+from app.infrastructure.hl7.parsing.french_extension_parser import (
+    parse_zfd, parse_zfa, parse_zfp, parse_zfv, parse_rol_segments,
+    ROL_ROLE_ODRP, ROL_ROLE_SUBSTITUTE,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _identifier_tuple_for_classifier(cx_value: str) -> Tuple[str, str, Optional[str], str]:
+    """
+    Convertit une chaîne HL7 CX/EI brute en tuple (value, system, type_code, cx_value)
+    attendu par la branche 4-tuple de create_identifiers_from_hl7_with_namespace_check().
+
+    parse_hl7_cx_identifier() renvoie (value, system, authority_oid, type_code) — un ordre
+    différent, incompatible si passé tel quel à ce wrapper (l'OID se retrouverait interprété
+    comme type_code, et le type_code comme cx_value complet).
+    """
+    value, system, _oid, type_code = parse_hl7_cx_identifier(cx_value)
+    return (value, system, type_code, cx_value)
+
+
+def _find_mouvement_by_movement_id(session: Session, movement_id: Optional[str]) -> Optional["Mouvement"]:
+    """
+    Résout une valeur ZBE-1 vers le Mouvement qu'elle désigne, pour les corrélations
+    UPDATE/CANCEL/annulation (A12/A13/A21/A22/A44/A52/A53/A11/A23/A38...).
+
+    ZBE-1 peut être soit :
+    - un identifiant externe (fourni par l'émetteur, au format CX/EI complet, ex.
+      "12345^SYS_A^1.2.3^ISO") — tracé dans la table Identifier (type=MVT) plutôt que
+      copié dans notre mouvement_seq interne ;
+    - directement notre propre mouvement_seq (ex. quand l'émetteur nous renvoie tel
+      quel l'identifiant que NOUS avions émis dans ZBE-1 pour ce mouvement).
+
+    Avant ce correctif, ces call sites faisaient `int(movement_id)` directement, ce qui
+    levait ValueError pour tout ZBE-1 réellement porteur de composants CX (le cas normal
+    conforme au spec) — la corrélation échouait silencieusement pour ~tous les messages
+    IHE PAM France réels.
+    """
+    if not movement_id:
+        return None
+
+    bare_id = movement_id.split("^")[0] if "^" in movement_id else movement_id
+
+    ident = session.exec(
+        select(Identifier)
+        .where(Identifier.type == IdentifierType.MVT)
+        .where(Identifier.value == bare_id)
+        .where(Identifier.status == "active")
+        .where(Identifier.mouvement_id.isnot(None))
+    ).first()
+    if ident:
+        mouvement = session.get(Mouvement, ident.mouvement_id)
+        if mouvement:
+            return mouvement
+
+    try:
+        mouvement_seq = int(bare_id)
+    except (ValueError, TypeError):
+        return None
+    return session.exec(select(Mouvement).where(Mouvement.mouvement_seq == mouvement_seq)).first()
+
+
+def _apply_french_extension_segments_to_patient(patient: "Patient", message: Optional[str]) -> None:
+    """Applique sur un Patient les champs extraits des segments ZFD/ZFA/ZFP/ROL (ODRP/SUBS)
+    d'un message IHE PAM France, quand ce message en contient. No-op si `message` est None
+    ou ne contient aucun de ces segments (retour de parse_* à None/liste vide, champs None).
+    """
+    if not message:
+        return
+    zfd = parse_zfd(message)
+    if zfd:
+        if zfd.get("sms_consent") is not None:
+            patient.sms_consent = zfd["sms_consent"]
+        if zfd.get("birth_date_modified_indicator") is not None:
+            patient.birth_date_modified_indicator = zfd["birth_date_modified_indicator"]
+        if zfd.get("identity_capture_mode") is not None:
+            patient.identity_capture_mode = zfd["identity_capture_mode"]
+        if zfd.get("ins_last_query_date") is not None:
+            patient.ins_last_query_date = zfd["ins_last_query_date"]
+        if zfd.get("identity_proof_type") is not None:
+            patient.identity_proof_type = zfd["identity_proof_type"]
+        if zfd.get("identity_proof_expiry_date") is not None:
+            patient.identity_proof_expiry_date = zfd["identity_proof_expiry_date"]
+
+    zfa = parse_zfa(message)
+    if zfa:
+        if zfa.get("dmp_status") is not None:
+            patient.dmp_status = zfa["dmp_status"]
+        if zfa.get("dmp_status_date") is not None:
+            patient.dmp_status_date = zfa["dmp_status_date"]
+        if zfa.get("dmp_closure_date") is not None:
+            patient.dmp_closure_date = zfa["dmp_closure_date"]
+        if zfa.get("dmp_feed_opposition") is not None:
+            patient.dmp_feed_opposition = zfa["dmp_feed_opposition"]
+        if zfa.get("dmp_consultation_consent") is not None:
+            patient.dmp_consultation_consent = zfa["dmp_consultation_consent"]
+
+    zfp = parse_zfp(message)
+    if zfp:
+        if zfp.get("socio_professional_activity") is not None:
+            patient.socio_professional_activity = zfp["socio_professional_activity"]
+        if zfp.get("socio_professional_category") is not None:
+            patient.socio_professional_category = zfp["socio_professional_category"]
+
+    for rol in parse_rol_segments(message):
+        if rol.get("role_code") not in (ROL_ROLE_ODRP, ROL_ROLE_SUBSTITUTE):
+            continue
+        name_parts = [p for p in (rol.get("family_name"), rol.get("given_name")) if p]
+        if not name_parts:
+            continue
+        label = " ".join(name_parts)
+        if rol.get("role_code") == ROL_ROLE_SUBSTITUTE:
+            label = f"{label} (remplaçant)"
+        patient.primary_care_provider = label
+
+
+def _apply_zfv_to_mouvement(mouvement: "Mouvement", message: Optional[str]) -> None:
+    """Applique sur un Mouvement les champs extraits du segment ZFV d'un message IHE
+    PAM France, quand ce message en contient un. No-op sinon.
+    """
+    if not message:
+        return
+    zfv = parse_zfv(message)
+    if not zfv:
+        return
+    if zfv.get("origin_facility_finess") is not None:
+        mouvement.origin_facility_finess = zfv["origin_facility_finess"]
+    if zfv.get("origin_stay_date") is not None:
+        mouvement.origin_stay_date = zfv["origin_stay_date"]
+    if zfv.get("discharge_transport_mode") is not None:
+        mouvement.discharge_transport_mode = zfv["discharge_transport_mode"]
+    if zfv.get("legal_care_mode_code") is not None:
+        mouvement.legal_care_mode_code = zfv["legal_care_mode_code"]
+    if zfv.get("transport_care_level") is not None:
+        mouvement.transport_care_level = zfv["transport_care_level"]
+
 
 _adapter_module = None
 
@@ -242,10 +376,18 @@ def _parse_zbe_segment(message: str) -> Optional[Dict]:
     - ZBE-9: Nature du mouvement (M=Médical, H=Hébergement, S=Soins, L=Localisation, D=Date)
     
     Returns:
-        Dict with movement_id, movement_datetime, action_type, cancel_flag, origin_event, uf_medicale, uf_soins, nature
+        Dict with movement_id, movement_ids, movement_datetime, action_type, cancel_flag,
+        origin_event, uf_medicale, uf_soins, nature.
+
+        ZBE-1 is repeatable (EI~EI~...) for cooperative Movement Management (several systems
+        each carrying their own identifier for the same physical movement) : `movement_id` is
+        the first/primary repetition (used as-is by all existing call sites, unchanged), and
+        `movement_ids` is the full list in message order for callers that need to record every
+        identifier.
     """
     out = {
         "movement_id": None,
+        "movement_ids": [],
         "movement_datetime": None,
         "action_type": None,
         "cancel_flag": None,
@@ -253,20 +395,24 @@ def _parse_zbe_segment(message: str) -> Optional[Dict]:
         "uf_responsable": None,
         "mode_traitement": None,
     }
-    
+
     try:
         lines = re.split(r"\r|\n", message)
         zbe = next((l for l in lines if l.startswith("ZBE")), None)
         if not zbe:
             return None
-            
+
         parts = zbe.split("|")
-        
-        # ZBE-1: Identifiant du mouvement (format: ID^NAMESPACE^OID^ISO)
+
+        # ZBE-1: Identifiant(s) du mouvement, répétable (EI~EI~...), format par répétition :
+        # ID^NAMESPACE^OID^ISO. Chaque répétition est conservée telle quelle (composants CX
+        # inclus) car les appelants (ex: parse_hl7_cx_identifier) attendent le CX complet pour
+        # en extraire le système/OID, pas seulement l'identifiant nu.
         if len(parts) > 1 and parts[1]:
             movement_id_field = parts[1].strip()
-            # Extraire juste l'ID (composant 1)
-            out["movement_id"] = movement_id_field.split("^")[0] if "^" in movement_id_field else movement_id_field
+            out["movement_ids"] = [r for r in movement_id_field.split("~") if r]
+            # Rétrocompatibilité : movement_id reste le premier identifiant (comportement inchangé)
+            out["movement_id"] = out["movement_ids"][0] if out["movement_ids"] else None
         
         # ZBE-2: Date/heure du mouvement
         if len(parts) > 2 and parts[2]:
@@ -390,13 +536,9 @@ async def _handle_cancel_admission(
             # Utiliser ZBE-1 pour trouver le mouvement spécifique
             movement_id_str = zbe_data["movement_id"]
             logger.info(f"[pam][cancel] {trigger}: Looking for movement with seq={movement_id_str}")
-            
-            # use global select
-            original_mouvement = session.exec(
-                select(Mouvement)
-                .where(Mouvement.mouvement_seq == int(movement_id_str))
-            ).first()
-            
+
+            original_mouvement = _find_mouvement_by_movement_id(session, movement_id_str)
+
             if not original_mouvement:
                 logger.warning(f"[pam][cancel] {trigger}: Movement seq={movement_id_str} not found, trying fallback by patient")
                 # Solution de repli: chercher le dernier mouvement du patient
@@ -528,13 +670,9 @@ async def _handle_cancel_discharge(
             # Utiliser ZBE-1
             movement_id_str = zbe_data["movement_id"]
             logger.info(f"[pam][cancel-discharge] Looking for movement seq={movement_id_str}")
-            
-            # use global select
-            original_mouvement = session.exec(
-                select(Mouvement)
-                .where(Mouvement.mouvement_seq == int(movement_id_str))
-            ).first()
-            
+
+            original_mouvement = _find_mouvement_by_movement_id(session, movement_id_str)
+
             if not original_mouvement:
                 logger.warning(f"[pam][cancel-discharge]: Movement seq={movement_id_str} not found, trying fallback")
                 # Solution de repli: chercher la dernière sortie
@@ -678,13 +816,9 @@ async def _handle_cancel_transfer(
             # Utiliser ZBE-1
             movement_id_str = zbe_data["movement_id"]
             logger.info(f"[pam][cancel-transfer] Looking for movement seq={movement_id_str}")
-            
-            # use global select
-            original_mouvement = session.exec(
-                select(Mouvement)
-                .where(Mouvement.mouvement_seq == int(movement_id_str))
-            ).first()
-            
+
+            original_mouvement = _find_mouvement_by_movement_id(session, movement_id_str)
+
             if not original_mouvement:
                 logger.warning(f"[pam][cancel-transfer]: Movement seq={movement_id_str} not found, trying fallback")
                 # Solution de repli: chercher le dernier transfert
@@ -907,6 +1041,8 @@ async def handle_admission_message(
                         except Exception:
                             continue
                 reused_patient = existing
+                _apply_french_extension_segments_to_patient(existing, message)
+                session.add(existing)
                 if trigger in ("A28", "A31"):
                     # Identity-only update: no new dossier/venue/mouvement. Renvoie early.
                     logger.info(f"[pam][admission] Identity-only update detected for existing patient, trigger={trigger}")
@@ -962,6 +1098,9 @@ async def handle_admission_message(
                     except Exception:
                         continue
 
+            _apply_french_extension_segments_to_patient(patient, message)
+            session.add(patient)
+
             # For identity-only messages, do not create dossier/venue/mouvement
             if trigger in ("A28", "A31"):
                 logger.debug(f"[pam][admission] Early return for identity-only trigger after create/update, trigger={trigger}, patient_id={getattr(patient,'id', None)}")
@@ -1003,11 +1142,15 @@ async def handle_admission_message(
         # Vérifier si le dossier_seq existe déjà
         existing_dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == d_seq)).first()
         if existing_dossier:
-            # IHE PAM France: workflow A05 → A01
-            # A05 crée le dossier en état "planned", A01 confirme l'admission
-            if trigger == "A01" and existing_dossier.patient_id == patient.id:
+            # IHE PAM France: workflow A05 → A01 (hospitalisation) ou A05 → A04
+            # (urgences/consultation externe) — spec IHE PAM France (CP-2013-078,
+            # §8.5.7.3) : la confirmation d'une pré-admission (A05) se fait par A01
+            # pour une hospitalisation, par A04 pour un passage aux urgences ou une
+            # consultation externe. A05 crée le dossier en état "planned" ; le trigger
+            # de confirmation réutilise le même numéro de dossier (PID-18).
+            if trigger in ("A01", "A04") and existing_dossier.patient_id == patient.id:
                 # Workflow normal: confirmation d'admission après pré-admission (A05)
-                logger.info(f"[pam][admission] A01 confirming pre-admission for dossier_seq={d_seq}")
+                logger.info(f"[pam][admission] {trigger} confirming pre-admission for dossier_seq={d_seq}")
                 dossier = existing_dossier
                 # Mettre à jour la date d'admission si nécessaire
                 if admit_time:
@@ -1088,14 +1231,14 @@ async def handle_admission_message(
         movement_kind = MOVEMENT_KIND_BY_TRIGGER.get(trigger, "admission")
         movement_status = MOVEMENT_STATUS_BY_TRIGGER.get(trigger, "completed")
 
-        if existing_venue and trigger == "A01":
-            # IHE PAM: A01 confirme une pré-admission (A05)
+        if existing_venue and trigger in ("A01", "A04"):
+            # IHE PAM: A01/A04 confirme une pré-admission (A05)
             # Mettre à jour la localisation de la venue existante si fournie
-            logger.info(f"[pam][admission] A01 confirming pre-admission for existing venue {existing_venue.id}")
+            logger.info(f"[pam][admission] {trigger} confirming pre-admission for existing venue {existing_venue.id}")
             if location_value:
                 existing_venue.assigned_location = location_value
             venue = existing_venue
-            print(f"[pam] Updated venue id={venue.id} venue_seq={venue.venue_seq} for A01 confirmation")
+            print(f"[pam] Updated venue id={venue.id} venue_seq={venue.venue_seq} for {trigger} confirmation")
         else:
             venue = Venue(
                 venue_seq=v_seq,
@@ -1261,8 +1404,20 @@ async def handle_admission_message(
         session.add(venue)
         
         m_seq = get_next_sequence(session, "mouvement")
-        
+
         # Utiliser l'identifiant mouvement fourni dans ZBE-1 si disponible
+        #
+        # NOTE (architecture, confirmée intentionnelle) : comme pour dossier_seq (PID-18,
+        # voir d_seq plus haut) et venue_seq (PV1-19, voir v_seq plus haut), quand l'émetteur
+        # fournit son propre identifiant métier pour l'entité (ici le mouvement via ZBE-1),
+        # on l'adopte directement comme notre mouvement_seq interne plutôt que de garder deux
+        # numérotations totalement indépendantes. Ce choix reste sûr car ZBE-1 est de toute
+        # façon aussi persisté séparément dans la table Identifier (type=MVT, voir plus bas
+        # "Mouvement identifiers (ZBE-1...)") : la corrélation pour les messages UPDATE/CANCEL
+        # ultérieurs (_find_mouvement_by_movement_id) consulte d'abord cette table Identifier
+        # avant de retomber sur un parse direct de mouvement_seq, donc une éventuelle collision
+        # entre la numérotation ZBE-1 d'un émetteur externe et notre propre séquence auto-générée
+        # (get_next_sequence) resterait résolvable sans ambiguïté via l'Identifier associé.
         if movement_id:
             try:
                 # Extraire le numéro de mouvement du format HL7 CX (peut contenir namespace)
@@ -1309,6 +1464,7 @@ async def handle_admission_message(
             medecin_responsable_id=medecin.id if medecin else None,
             entite_juridique_id=ej_id,
         )
+        _apply_zfv_to_mouvement(mouvement, message)
         session.add(mouvement)
         session.flush()
         logger.info(
@@ -1317,30 +1473,53 @@ async def handle_admission_message(
             f"location={mouvement.location} uf_responsable={uf_resp}"
         )
 
-        # Traiter les identifiants supplémentaires avec classification EJ
+        # Traiter les identifiants supplémentaires avec classification EJ.
+        # create_identifiers_from_hl7_with_namespace_check() ne fait que classifier/construire
+        # les objets Identifier : c'est à l'appelant de leur assigner l'entité (FK) et de les
+        # ajouter à la session (même contrat que pour les identifiants patient plus haut).
         # Dossier identifiers (PID-18)
         if account_number:
-            dossier_identifiers = parse_hl7_cx_identifier(account_number)
+            dossier_identifiers = _identifier_tuple_for_classifier(account_number)
             if dossier_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
+                _res = await create_identifiers_from_hl7_with_namespace_check(
                     session, [dossier_identifiers], dossier, "dossier"
                 )
+                for ident in (_res[0] if _res else []):
+                    ident.dossier_id = dossier.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
 
         # Venue identifiers (PV1-19)
         if visit_number:
-            venue_identifiers = parse_hl7_cx_identifier(visit_number)
+            venue_identifiers = _identifier_tuple_for_classifier(visit_number)
             if venue_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
+                _res = await create_identifiers_from_hl7_with_namespace_check(
                     session, [venue_identifiers], venue, "venue"
                 )
+                for ident in (_res[0] if _res else []):
+                    ident.venue_id = venue.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
 
-        # Mouvement identifiers (ZBE-1)
-        if movement_id:
-            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
-            if mouvement_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
-                    session, [mouvement_identifiers], mouvement, "mouvement"
+        # Mouvement identifiers (ZBE-1, répétable : plusieurs systèmes peuvent porter chacun
+        # leur propre identifiant pour le même mouvement physique - "cooperative Movement
+        # Management" - on les enregistre tous, pas seulement le premier).
+        movement_ids = (zbe_data.get("movement_ids") or ([movement_id] if movement_id else [])) if zbe_data else []
+        if movement_ids:
+            all_mouvement_identifiers = [
+                _identifier_tuple_for_classifier(mid) for mid in movement_ids if mid
+            ]
+            if all_mouvement_identifiers:
+                _res = await create_identifiers_from_hl7_with_namespace_check(
+                    session, all_mouvement_identifiers, mouvement, "mouvement"
                 )
+                for ident in (_res[0] if _res else []):
+                    ident.mouvement_id = mouvement.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
 
         # REMARQUE: Message emission is now automatic via entity_events.py listeners
         logger.debug(f"[pam][admission] handler returning: success=True, err=None")
@@ -1467,30 +1646,45 @@ async def handle_doctor_message(
         # Traiter les identifiants supplémentaires avec classification EJ
         # Dossier identifiers (PID-18)
         if account_number:
-            dossier_identifiers = parse_hl7_cx_identifier(account_number)
+            dossier_identifiers = _identifier_tuple_for_classifier(account_number)
             if dossier_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
+                _res = await create_identifiers_from_hl7_with_namespace_check(
                     session, [dossier_identifiers], dossier, "dossier"
                 )
+                for ident in (_res[0] if _res else []):
+                    ident.dossier_id = dossier.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
 
         # Venue identifiers (PV1-19)
         if visit_number:
-            venue_identifiers = parse_hl7_cx_identifier(visit_number)
+            venue_identifiers = _identifier_tuple_for_classifier(visit_number)
             if venue_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
+                _res = await create_identifiers_from_hl7_with_namespace_check(
                     session, [venue_identifiers], venue, "venue"
                 )
+                for ident in (_res[0] if _res else []):
+                    ident.venue_id = venue.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
 
         # Mouvement identifiers (ZBE-1)
         if movement_id:
-            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            mouvement_identifiers = _identifier_tuple_for_classifier(movement_id)
             if mouvement_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
+                _res = await create_identifiers_from_hl7_with_namespace_check(
                     session, [mouvement_identifiers], mouvement, "mouvement"
                 )
-        
+                for ident in (_res[0] if _res else []):
+                    ident.mouvement_id = mouvement.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
+
         # REMARQUE: Message emission is now automatic via entity_events.py listeners
-        
+
         return True, None
     except Exception as e:
         logger.error(f"[pam][doctor] Error: {e}", exc_info=True)
@@ -1538,12 +1732,12 @@ async def handle_transfer_message(
             movement_id = zbe_data.get("movement_id")
             if not movement_id:
                 return False, "ZBE-1 (movement_id) requis pour annulation A12"
-            
+
             # Trouver et annuler le mouvement
-            mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == int(movement_id))).first()
+            mouvement = _find_mouvement_by_movement_id(session, movement_id)
             if not mouvement:
                 return False, f"Mouvement {movement_id} introuvable pour annulation"
-            
+
             mouvement.status = "cancelled"
             session.add(mouvement)
             session.flush()
@@ -1571,7 +1765,7 @@ async def handle_transfer_message(
         
         # Créer le mouvement de transfert
         m_seq = get_next_sequence(session, "mouvement")
-        
+
         # Déterminer la date du mouvement
         movement_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
@@ -1614,17 +1808,25 @@ async def handle_transfer_message(
             is_historic=bool(zbe_data.get("is_historic")),
             original_trigger=zbe_data.get("original_trigger")
         )
-        
+        _apply_zfv_to_mouvement(mouvement, message)
+
         session.add(mouvement)
         session.flush()
         logger.info(f"[pam][transfer] Created transfer movement id={mouvement.id} mouvement_seq={mouvement.mouvement_seq} on venue {venue.venue_seq}")
+
+        # Segments ZFD/ZFA/ZFP/ROL portent sur le patient, pas sur le mouvement — s'ils sont
+        # présents dans ce message de transfert, on met aussi à jour le patient de la venue.
+        dossier = session.get(Dossier, venue.dossier_id)
+        if dossier:
+            patient = session.get(Patient, dossier.patient_id)
+            if patient:
+                _apply_french_extension_segments_to_patient(patient, message)
+                session.add(patient)
         
-        # Créer les identifiants pour le mouvement (ZBE-1)
-        movement_id = zbe_data.get("movement_id")
-        if movement_id:
-            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
-            if mouvement_identifiers:
-                # Créer l'identifiant directement depuis la valeur CX
+        # Créer les identifiants pour le mouvement (ZBE-1, répétable : on enregistre chaque
+        # identifiant porté par la répétition, pas seulement le premier)
+        for movement_id in zbe_data.get("movement_ids") or []:
+            if parse_hl7_cx_identifier(movement_id):
                 identifier = create_identifier_from_hl7(movement_id, "mouvement", mouvement.id)
                 session.add(identifier)
         
@@ -1678,12 +1880,7 @@ async def handle_move_account_message(
         if not movement_id:
             return False, "ZBE-1 (movement_id) requis pour correction A44"
 
-        try:
-            mouvement_seq = int(movement_id)
-        except ValueError:
-            return False, f"Format movement_id invalide: {movement_id}"
-
-        mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == mouvement_seq)).first()
+        mouvement = _find_mouvement_by_movement_id(session, movement_id)
         if not mouvement:
             return False, f"Mouvement {movement_id} introuvable pour correction A44"
 
@@ -1821,12 +2018,12 @@ async def handle_discharge_message(
             movement_id = zbe_data.get("movement_id")
             if not movement_id:
                 return False, "ZBE-1 (movement_id) requis pour annulation A13"
-            
+
             # Trouver et annuler le mouvement
-            mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == int(movement_id))).first()
+            mouvement = _find_mouvement_by_movement_id(session, movement_id)
             if not mouvement:
                 return False, f"Mouvement {movement_id} introuvable pour annulation"
-            
+
             mouvement.status = "cancelled"
             session.add(mouvement)
             session.flush()
@@ -1890,20 +2087,33 @@ async def handle_discharge_message(
             is_historic=bool(zbe_data.get("is_historic")),
             original_trigger=zbe_data.get("original_trigger")
         )
-        
+        _apply_zfv_to_mouvement(mouvement, message)
+
         session.add(mouvement)
         session.flush()
         logger.info(f"[pam][discharge] Created discharge movement id={mouvement.id} mouvement_seq={mouvement.mouvement_seq} on venue {venue.venue_seq}")
+
+        dossier = session.get(Dossier, venue.dossier_id)
+        if dossier:
+            patient = session.get(Patient, dossier.patient_id)
+            if patient:
+                _apply_french_extension_segments_to_patient(patient, message)
+                session.add(patient)
         
         # Créer les identifiants pour le mouvement (ZBE-1)
         movement_id = zbe_data.get("movement_id")
         if movement_id:
-            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            mouvement_identifiers = _identifier_tuple_for_classifier(movement_id)
             if mouvement_identifiers:
-                create_identifiers_from_hl7_with_namespace_check(
+                _res = await create_identifiers_from_hl7_with_namespace_check(
                     [mouvement_identifiers], "mouvement", session, ej_id
                 )
-        
+                for ident in (_res[0] if _res else []):
+                    ident.mouvement_id = mouvement.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
+
         return True, None
         
     except Exception as e:
@@ -1954,12 +2164,12 @@ async def handle_leave_message(
             movement_id = zbe_data.get("movement_id")
             if not movement_id:
                 return False, f"ZBE-1 (movement_id) requis pour annulation {trigger}"
-            
+
             # Trouver et annuler le mouvement
-            mouvement = session.exec(select(Mouvement).where(Mouvement.mouvement_seq == int(movement_id))).first()
+            mouvement = _find_mouvement_by_movement_id(session, movement_id)
             if not mouvement:
                 return False, f"Mouvement {movement_id} introuvable pour annulation"
-            
+
             mouvement.status = "cancelled"
             session.add(mouvement)
             session.flush()
@@ -2042,12 +2252,17 @@ async def handle_leave_message(
         # Créer les identifiants pour le mouvement (ZBE-1)
         movement_id = zbe_data.get("movement_id")
         if movement_id:
-            mouvement_identifiers = parse_hl7_cx_identifier(movement_id)
+            mouvement_identifiers = _identifier_tuple_for_classifier(movement_id)
             if mouvement_identifiers:
-                await create_identifiers_from_hl7_with_namespace_check(
-                    session, mouvement_identifiers, mouvement, "mouvement"
+                _res = await create_identifiers_from_hl7_with_namespace_check(
+                    session, [mouvement_identifiers], mouvement, "mouvement"
                 )
-        
+                for ident in (_res[0] if _res else []):
+                    ident.mouvement_id = mouvement.id
+                    exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
+                    if not exists_dup:
+                        session.add(ident)
+
         return True, None
         
     except Exception as e:

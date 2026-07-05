@@ -130,7 +130,25 @@ class Patient(SQLModel, table=True):
     birth_given_names: Optional[str] = None  # Liste complète prénoms état civil (ordre officiel, séparés par espace) - RNIV
     used_given_name: Optional[str] = None  # Prénom d'usage/usuel (peut différer du 1er prénom) - RNIV
     birth_insee_code: Optional[str] = None  # Code INSEE lieu naissance (5 chars: 75056=Paris, 2A004=Ajaccio) - RNIV Trait Strict
-    
+
+    # Segment ZFD (complément démographique) - extension nationale IHE PAM France
+    sms_consent: Optional[str] = Field(default=None, description="ZFD-3 Consentement SMS: Y/N")
+    birth_date_modified_indicator: Optional[str] = Field(default=None, description="ZFD-4 Indicateur date de naissance modifiée: Y/N")
+    identity_capture_mode: Optional[str] = Field(default=None, description="ZFD-5 Mode d'obtention de l'identité: SM/CV/INSI/CB/RFID")
+    identity_proof_type: Optional[str] = Field(default=None, description="ZFD-7 Justificatif d'identité: AN/CC/CE/CM/CN/CS/LE/PA/PC/TC")
+    identity_proof_expiry_date: Optional[date] = Field(default=None, sa_column=Column(_FlexibleDate(), nullable=True))  # ZFD-8
+
+    # Segment ZFA (statut DMP / Espace Santé) - extension nationale IHE PAM France
+    dmp_status: Optional[str] = Field(default=None, description="ZFA-1 Statut du DMP: ACTIF/FERME/INEXISTANT")
+    dmp_status_date: Optional[date] = Field(default=None, sa_column=Column(_FlexibleDate(), nullable=True))  # ZFA-2
+    dmp_closure_date: Optional[date] = Field(default=None, sa_column=Column(_FlexibleDate(), nullable=True))  # ZFA-3
+    dmp_feed_opposition: Optional[str] = Field(default=None, description="ZFA-9 Opposition alimentation DMP: NA/IO/INO")
+    dmp_consultation_consent: Optional[str] = Field(default=None, description="ZFA-11 Consentement consultation DMP: NA/INC/IC")
+
+    # Segment ZFP (situation professionnelle, nomenclature INSEE) - extension nationale IHE PAM France
+    socio_professional_activity: Optional[str] = Field(default=None, description="ZFP-1 Activité socio-professionnelle (table INSEE 3300)")
+    socio_professional_category: Optional[str] = Field(default=None, description="ZFP-2 Catégorie socio-professionnelle (PCS-2003, table INSEE 3301)")
+
     # Informations administratives
     marital_status: Optional[str] = None  # Statut marital (codes HL7: S/M/D/W/P/A/U)
     mothers_maiden_name: Optional[str] = None  # Nom de jeune fille de la mère (vérification identité)
@@ -294,6 +312,12 @@ class Mouvement(SQLModel, table=True):
     uf_responsabilite: Optional[str] = Field(default=None, description="ZBE-7 UF médicale (= UF de responsabilité)")
     uf_soins_code: Optional[str] = Field(default=None, description="ZBE-8 XON component 10 UF soins code")
     uf_soins_label: Optional[str] = Field(default=None, description="ZBE-8 XON component 1 UF soins label")
+    # ZFV compliance additions (segment ZFV - compléments sur la rencontre, extension France)
+    origin_facility_finess: Optional[str] = Field(default=None, description="ZFV-1 FINESS établissement de provenance (DLD)")
+    origin_stay_date: Optional[str] = Field(default=None, description="ZFV-1 Date du séjour dans l'établissement de provenance (DLD)")
+    discharge_transport_mode: Optional[str] = Field(default=None, description="ZFV-2 Mode de transport à la sortie")
+    legal_care_mode_code: Optional[str] = Field(default=None, description="ZFV-10 Mode légal de soins (RIM-P psychiatrie)")
+    transport_care_level: Optional[str] = Field(default=None, description="ZFV-11 Niveau de prise en charge transport")
     venue: Venue = Relationship(back_populates="mouvements")
     identifiers: List["Identifier"] = Relationship(back_populates="mouvement")
 

@@ -32,7 +32,7 @@ from sqlmodel import Session, select
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_identifiers import Identifier
-from app.services.identifier_manager import merge_identifiers, parse_hl7_cx_identifier
+from app.services.identifier_manager import merge_identifiers, parse_hl7_cx_identifier, create_identifier_from_hl7
 
 logger = logging.getLogger("patient_merge")
 
@@ -329,15 +329,27 @@ async def handle_change_patient_identifier(
             
             for old_id in old_ids:
                 # Marquer comme "old" plutôt que supprimer (traçabilité)
-                old_id.use = "old"
+                old_id.status = "old"
+                session.add(old_id)
                 old_identifiers_processed += 1
         
         # 4. Ajouter les nouveaux identifiants (depuis PID-3)
         new_identifiers_added = 0
-        if pid_data.get("identifiers"):
-            from app.services.pam import _create_or_update_identifiers
-            _create_or_update_identifiers(session, patient.id, pid_data["identifiers"])
-            new_identifiers_added = len(pid_data["identifiers"])
+        for cx_value, _id_type in pid_data.get("identifiers") or []:
+            value = cx_value.split("^")[0] if cx_value else ""
+            if not value:
+                continue
+            exists = session.exec(
+                select(Identifier)
+                .where(Identifier.patient_id == patient.id)
+                .where(Identifier.value == value)
+                .where(Identifier.status == "active")
+            ).first()
+            if exists:
+                continue
+            new_identifier = create_identifier_from_hl7(cx_value, "patient", patient.id)
+            session.add(new_identifier)
+            new_identifiers_added += 1
         
         # 5. Mettre à jour les données démographiques si changées
         if pid_data.get("family"):
@@ -359,7 +371,173 @@ async def handle_change_patient_identifier(
         )
         
         return True, None
-        
+
     except Exception as e:
         logger.exception("Error processing A47 change identifier")
+        return False, f"Change identifier failed: {str(e)}"
+
+
+# -----------------------------------------------------------------------------
+# Émission locale (UI) : déclencher A40/A47 depuis une action utilisateur plutôt
+# que depuis un message HL7 entrant. Réutilise les mêmes règles métier que les
+# handlers de réception ci-dessus, puis notifie les endpoints abonnés via
+# emit_to_senders_async (mêmes segments MSH/EVN/PID/MRG que ceux attendus en
+# réception, cf. IHE PAM France §4.4.2).
+# -----------------------------------------------------------------------------
+
+def _identifier_to_cx(identifier: Identifier) -> str:
+    """Construit une chaîne HL7 CX brute (ID^^^system^type) depuis un Identifier."""
+    system = identifier.system or ""
+    type_code = identifier.type.value if identifier.type else ""
+    return f"{identifier.value}^^^{system}^{type_code}"
+
+
+def merge_patients(
+    session: Session,
+    source_patient_id: int,
+    surviving_patient_id: int,
+) -> Tuple[bool, Optional[str]]:
+    """
+    Fusionne un patient source dans un patient survivant, à l'initiative locale (UI),
+    et émet le message A40 correspondant vers les endpoints abonnés.
+
+    Applique les mêmes règles que la réception A40 (handle_merge_patient) : réattribution
+    des dossiers, archivage des identifiants source (statut "old", rattachés au survivant),
+    puis archivage du patient source.
+    """
+    if source_patient_id == surviving_patient_id:
+        return False, "Le patient source et le patient survivant doivent être différents"
+
+    surviving_patient = session.get(Patient, surviving_patient_id)
+    source_patient = session.get(Patient, source_patient_id)
+    if not surviving_patient:
+        return False, "Patient survivant introuvable"
+    if not source_patient:
+        return False, "Patient source introuvable"
+
+    try:
+        # Capturer les identifiants du patient source AVANT la fusion pour construire MRG-1
+        source_identifiers = session.exec(
+            select(Identifier).where(Identifier.patient_id == source_patient.id)
+        ).all()
+        mrg_prior_identifiers = [_identifier_to_cx(i) for i in source_identifiers if i.value]
+        if not mrg_prior_identifiers and source_patient.identifier:
+            mrg_prior_identifiers = [source_patient.identifier]
+        mrg_prior_name = (
+            f"{source_patient.family}^{source_patient.given}" if source_patient.family else None
+        )
+
+        # Réattribuer tous les dossiers du patient source vers le survivant
+        dossiers = session.exec(
+            select(Dossier).where(Dossier.patient_id == source_patient.id)
+        ).all()
+        for dossier in dossiers:
+            dossier.patient_id = surviving_patient.id
+            session.add(dossier)
+
+        # Marquer les identifiants du patient source comme "old" et les rattacher au survivant
+        for ident in source_identifiers:
+            ident.status = "old"
+            ident.patient_id = surviving_patient.id
+            session.add(ident)
+
+        # Archiver le patient source
+        source_patient.family = f"[MERGED] {source_patient.family}"
+        source_patient.identifier = f"ARCHIVED-{source_patient.identifier}"
+        session.add(source_patient)
+
+        session.flush()
+        session.commit()
+
+        logger.info(
+            f"Local A40 merge: patient {source_patient_id} -> {surviving_patient_id}, "
+            f"{len(dossiers)} dossier(s) reassigned"
+        )
+
+        from app.services.emit_on_create import emit_to_senders_async
+        emit_to_senders_async(
+            surviving_patient, "patient", session,
+            operation="merge",
+            mrg_prior_identifiers=mrg_prior_identifiers,
+            mrg_prior_name=mrg_prior_name,
+        )
+
+        return True, None
+
+    except Exception as e:
+        logger.exception("Error processing local A40 merge")
+        session.rollback()
+        return False, f"Merge failed: {str(e)}"
+
+
+def change_patient_identifier(
+    session: Session,
+    patient_id: int,
+    new_value: str,
+    new_system: Optional[str] = None,
+    new_oid: Optional[str] = None,
+    new_type: str = "PI",
+) -> Tuple[bool, Optional[str]]:
+    """
+    Modifie l'identifiant principal d'un patient, à l'initiative locale (UI), et émet le
+    message A47 correspondant vers les endpoints abonnés (MRG-1 = ancien identifiant,
+    PID-3 = nouvel identifiant).
+    """
+    patient = session.get(Patient, patient_id)
+    if not patient:
+        return False, "Patient introuvable"
+    if not new_value:
+        return False, "Le nouvel identifiant est requis"
+
+    try:
+        # Capturer l'ancien identifiant principal AVANT modification, pour MRG-1
+        old_value = patient.identifier
+        old_identifier_row = session.exec(
+            select(Identifier)
+            .where(Identifier.patient_id == patient.id)
+            .where(Identifier.value == old_value)
+        ).first()
+        old_system = old_identifier_row.system if old_identifier_row else ""
+        mrg_prior_identifiers = [f"{old_value}^^^{old_system}^PI"] if old_value else []
+
+        # Marquer l'ancien identifiant comme "old" (traçabilité, pas de suppression)
+        if old_identifier_row:
+            old_identifier_row.status = "old"
+            session.add(old_identifier_row)
+
+        # Créer le nouvel identifiant actif et en faire l'identifiant principal du patient
+        from app.models_identifiers import IdentifierType
+        try:
+            id_type = IdentifierType(new_type)
+        except ValueError:
+            id_type = IdentifierType.IPP
+        new_identifier_row = Identifier(
+            value=new_value,
+            system=new_system or "",
+            oid=new_oid,
+            type=id_type,
+            status="active",
+            patient_id=patient.id,
+        )
+        session.add(new_identifier_row)
+        patient.identifier = new_value
+        session.add(patient)
+
+        session.flush()
+        session.commit()
+
+        logger.info(f"Local A47 change identifier: patient {patient_id}: {old_value} -> {new_value}")
+
+        from app.services.emit_on_create import emit_to_senders_async
+        emit_to_senders_async(
+            patient, "patient", session,
+            operation="change_id",
+            mrg_prior_identifiers=mrg_prior_identifiers,
+        )
+
+        return True, None
+
+    except Exception as e:
+        logger.exception("Error processing local A47 change identifier")
+        session.rollback()
         return False, f"Change identifier failed: {str(e)}"

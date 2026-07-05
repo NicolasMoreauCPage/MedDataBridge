@@ -93,7 +93,8 @@ def list_patients(request: Request, session=Depends(get_session)):
     ]
     actions = [
         {"type": "link", "label": "Export FHIR", "url": "/patients/export/fhir"},
-        {"type": "link", "label": "Import FHIR", "url": "/patients/import/fhir"}
+        {"type": "link", "label": "Import FHIR", "url": "/patients/import/fhir"},
+        {"type": "link", "label": "Fusionner deux patients (A40)", "url": "/patients/merge"},
     ]
 
     ctx = {
@@ -209,6 +210,69 @@ def delete_patient(patient_id: int, request: Request, session=Depends(get_sessio
     session.commit()
     flash(request, f"Patient {p.family} {p.given} supprimé.", "success")
     return RedirectResponse(url="/patients", status_code=303)
+
+
+@router.get("/merge", response_class=HTMLResponse)
+def merge_patients_form(request: Request, session=Depends(get_session)):
+    """Affiche le formulaire de fusion de deux patients (émission A40)."""
+    patients = session.exec(select(Patient).order_by(Patient.family, Patient.given)).all()
+    templates = get_templates(request)
+    return templates.TemplateResponse(request, "patient_merge_form.html", {
+        "title": "Fusionner deux patients",
+        "patients": patients,
+    })
+
+
+@router.post("/merge")
+def merge_patients_submit(
+    request: Request,
+    source_patient_id: int = Form(...),
+    surviving_patient_id: int = Form(...),
+    session: Session = Depends(get_session),
+):
+    """Traite la fusion de deux patients et déclenche l'émission A40."""
+    from app.services.patient_merge import merge_patients
+
+    ok, err = merge_patients(session, source_patient_id, surviving_patient_id)
+    if ok:
+        flash(request, "Patients fusionnés avec succès (message A40 émis)", "success")
+        return RedirectResponse(url=f"/patients/{surviving_patient_id}", status_code=303)
+    flash(request, f"Erreur lors de la fusion : {err}", "error")
+    return RedirectResponse(url="/patients/merge", status_code=303)
+
+
+@router.get("/{patient_id:int}/change-identifier", response_class=HTMLResponse)
+def change_identifier_form(patient_id: int, request: Request, session=Depends(get_session)):
+    """Affiche le formulaire de modification d'identifiant patient (émission A47)."""
+    patient = session.get(Patient, patient_id)
+    templates = get_templates(request)
+    if not patient:
+        return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
+    return templates.TemplateResponse(request, "patient_change_identifier_form.html", {
+        "title": "Modifier l'identifiant patient",
+        "patient": patient,
+    })
+
+
+@router.post("/{patient_id:int}/change-identifier")
+def change_identifier_submit(
+    patient_id: int,
+    request: Request,
+    new_value: str = Form(...),
+    new_system: str = Form(None),
+    new_oid: str = Form(None),
+    new_type: str = Form("PI"),
+    session: Session = Depends(get_session),
+):
+    """Traite la modification de l'identifiant principal d'un patient et déclenche l'émission A47."""
+    from app.services.patient_merge import change_patient_identifier
+
+    ok, err = change_patient_identifier(session, patient_id, new_value, new_system, new_oid, new_type)
+    if ok:
+        flash(request, "Identifiant patient modifié avec succès (message A47 émis)", "success")
+        return RedirectResponse(url=f"/patients/{patient_id}", status_code=303)
+    flash(request, f"Erreur lors de la modification : {err}", "error")
+    return RedirectResponse(url=f"/patients/{patient_id}/change-identifier", status_code=303)
 
 
 @router.get("/sample-identity", response_class=JSONResponse)

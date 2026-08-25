@@ -9,7 +9,10 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# SCRIPT_DIR pointe vers deployment/general. La racine source est donc deux
+# niveaux plus haut, pas le dossier deployment (sinon on ré-archive un ancien
+# paquet au lieu de l'application courante).
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DEPLOY_DIR="${SCRIPT_DIR}"
 APP_DIR="${DEPLOY_DIR}/app"
 
@@ -29,6 +32,7 @@ echo "📁 Copie des fichiers de l'application..."
 
 # Copier le code source (exclure les fichiers de dev/test)
 rsync -av \
+    --delete \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     --exclude='*.pyo' \
@@ -53,6 +57,7 @@ rsync -av \
 echo "📦 Copie des migrations Alembic..."
 mkdir -p "${DEPLOY_DIR}/alembic"
 rsync -av \
+    --delete \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     "${PROJECT_ROOT}/alembic/" \
@@ -65,14 +70,21 @@ cp "${PROJECT_ROOT}/alembic.ini" "${DEPLOY_DIR}/"
 echo "📊 Copie du script d'initialisation de la base..."
 cp "${PROJECT_ROOT}/init_db.py" "${DEPLOY_DIR}/"
 
-# Copier le dossier tools/ (scripts d'initialisation)
-echo "🛠️  Copie des outils d'initialisation..."
-mkdir -p "${DEPLOY_DIR}/tools"
+# Copier les scripts réellement appelés par init_db.py. Les scripts
+# d'installation du package restent dans deployment/.../scripts ; seuls les
+# sous-répertoires applicatifs sont synchronisés.
+echo "🛠️  Copie des outils et seeds d'initialisation..."
+mkdir -p "${DEPLOY_DIR}/scripts/tools" "${DEPLOY_DIR}/scripts/maintenance" "${DEPLOY_DIR}/scripts/manual"
 rsync -av \
+    --delete \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
-    "${PROJECT_ROOT}/tools/" \
-    "${DEPLOY_DIR}/tools/"
+    "${PROJECT_ROOT}/scripts/tools/" \
+    "${DEPLOY_DIR}/scripts/tools/"
+rsync -av --delete --exclude='__pycache__' --exclude='*.pyc' \
+    "${PROJECT_ROOT}/scripts/maintenance/" "${DEPLOY_DIR}/scripts/maintenance/"
+rsync -av --delete --exclude='__pycache__' --exclude='*.pyc' \
+    "${PROJECT_ROOT}/scripts/manual/" "${DEPLOY_DIR}/scripts/manual/"
 
 # Copier les fichiers de configuration
 echo "⚙️  Copie des fichiers de configuration..."

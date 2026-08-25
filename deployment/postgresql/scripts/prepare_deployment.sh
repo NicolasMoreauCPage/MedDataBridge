@@ -9,7 +9,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# SCRIPT_DIR pointe vers deployment/postgresql. Construire depuis la racine
+# source, pas depuis le dossier deployment qui contient un instantané.
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DEPLOY_DIR="${SCRIPT_DIR}"
 APP_DIR="${DEPLOY_DIR}/app"
 
@@ -29,6 +31,7 @@ echo "📁 Copie des fichiers de l'application..."
 
 # Copier le code source (exclure les fichiers de dev/test)
 rsync -av \
+    --delete \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     --exclude='*.pyo' \
@@ -53,6 +56,7 @@ rsync -av \
 echo "📦 Copie des migrations Alembic..."
 mkdir -p "${DEPLOY_DIR}/alembic"
 rsync -av \
+    --delete \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     "${PROJECT_ROOT}/alembic/" \
@@ -60,6 +64,17 @@ rsync -av \
 
 # Copier alembic.ini
 cp "${PROJECT_ROOT}/alembic.ini" "${DEPLOY_DIR}/"
+
+# init_db.py et ses scripts d'initialisation font partie de l'application
+# livrée ; les omettre rendait une installation PostgreSQL non reproductible.
+cp "${PROJECT_ROOT}/init_db.py" "${DEPLOY_DIR}/"
+mkdir -p "${DEPLOY_DIR}/scripts/tools" "${DEPLOY_DIR}/scripts/maintenance" "${DEPLOY_DIR}/scripts/manual"
+rsync -av --delete --exclude='__pycache__' --exclude='*.pyc' \
+    "${PROJECT_ROOT}/scripts/tools/" "${DEPLOY_DIR}/scripts/tools/"
+rsync -av --delete --exclude='__pycache__' --exclude='*.pyc' \
+    "${PROJECT_ROOT}/scripts/maintenance/" "${DEPLOY_DIR}/scripts/maintenance/"
+rsync -av --delete --exclude='__pycache__' --exclude='*.pyc' \
+    "${PROJECT_ROOT}/scripts/manual/" "${DEPLOY_DIR}/scripts/manual/"
 
 # Copier les fichiers de configuration
 echo "⚙️  Copie des fichiers de configuration..."

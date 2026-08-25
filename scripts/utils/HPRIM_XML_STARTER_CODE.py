@@ -1,4 +1,4 @@
-# Exemple d'Implémentation HPRIM XML - Point de Départ
+STARTER_DOCUMENTATION = r'''# Exemple d'Implémentation HPRIM XML - Point de Départ
 
 ## Structure de Base
 
@@ -333,5 +333,5 @@ if __name__ == "__main__":
     test_generation_xml_ccam()
 ```
 
-Ce code constitue un point de départ solide pour l'implémentation HPRIM XML. Il peut être étendu avec la validation XSD, la gestion des acquittements, et les autres types d'actes.</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/HPRIM_XML_STARTER_CODE.py
+Ce code constitue un point de départ historique. L'implémentation active se trouve dans `app/services/hprim/`.
+'''

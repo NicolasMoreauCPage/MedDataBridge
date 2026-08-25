@@ -27,6 +27,7 @@ from app.models_identifiers import Identifier
 from app.models_practitioners import MedecinResponsable  # Import for FK resolution
 from app import models_scenarios  # ensure scenario models are registered
 from app import models_scenario_runs  # ensure scenario execution run models are registered
+from app import models_qualification  # ensure qualification campaign models are registered
 try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)
     from app.services.scenario_template_init import init_scenario_templates  # noqa: E402
 except Exception:  # pragma: no cover
@@ -103,7 +104,11 @@ def init_db() -> None:
     # Optimisations SQLite avancées pour la performance et la robustesse
     try:
         import sqlite3
-        db_url = make_url(settings.database_url)
+        # Always inspect the URL of the engine actually in use.  In tests the
+        # engine is deliberately in-memory while ``settings.database_url`` may
+        # still point at the local development file; using the setting here
+        # made test setup mutate that file.
+        db_url = make_url(str(engine.url))
         if db_url.drivername != "sqlite":
             # Les PRAGMA/index spécifiques SQLite ne s'appliquent pas aux autres SGBD.
             if init_scenario_templates:
@@ -157,7 +162,10 @@ def init_db() -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_endpoint_id ON messagelog(endpoint_id);")
 
         # Vocabulaires
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_vocabulary_system ON vocabularyvalue(system);")
+        # ``VocabularyValue`` references its system through ``system_id``;
+        # ``system`` was an obsolete column name and aborted the remaining
+        # SQLite initialization (including FTS setup) on every fresh start.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_vocabulary_system ON vocabularyvalue(system_id);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_vocabulary_code ON vocabularyvalue(code);")
 
         # Try to create an FTS5 table for patient text search (optional, best-effort)
@@ -373,29 +381,20 @@ def get_db_health() -> dict:
             # Récupérer des métriques SQLite si applicable
             metrics = {"status": "healthy", "connection": "ok"}
 
-            if "sqlite" in str(engine.url):
+            if engine.dialect.name == "sqlite":
                 try:
-                    import sqlite3
-                    conn = sqlite3.connect("data/medbridge.db")
-                    cursor = conn.cursor()
-
-                    # Métriques SQLite
-                    cursor.execute("PRAGMA journal_mode;")
-                    metrics["journal_mode"] = cursor.fetchone()[0]
-
-                    cursor.execute("PRAGMA synchronous;")
-                    metrics["synchronous"] = cursor.fetchone()[0]
-
-                    cursor.execute("PRAGMA cache_size;")
-                    metrics["cache_size_kb"] = cursor.fetchone()[0]
-
-                    cursor.execute("PRAGMA page_count;")
-                    metrics["page_count"] = cursor.fetchone()[0]
-
-                    cursor.execute("PRAGMA page_size;")
-                    metrics["page_size"] = cursor.fetchone()[0]
-
-                    conn.close()
+                    # Interroger la connexion SQLAlchemy réellement configurée. Ouvrir
+                    # un fichier SQLite codé en dur faussait l'état en test et avec une
+                    # URL de base différente.
+                    pragmas = {
+                        "journal_mode": "journal_mode",
+                        "synchronous": "synchronous",
+                        "cache_size_kb": "cache_size",
+                        "page_count": "page_count",
+                        "page_size": "page_size",
+                    }
+                    for metric, pragma in pragmas.items():
+                        metrics[metric] = session.execute(text(f"PRAGMA {pragma}")).scalar()
                 except Exception as e:
                     metrics["sqlite_metrics_error"] = str(e)
 

@@ -132,10 +132,10 @@
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Type</label>
             <select class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" name="kind" required>
-              {% set kinds = ['MLLP','FHIR','FILE','FTP','SFTP'] %}
+              {% set kinds = ['MLLP','FHIR','HPRIM','FILE','FTP','SFTP'] %}
               {% for k in kinds %}
               <option value="{{ k }}" {% if e.kind==k %}selected{% endif %}>
-                {{ '🔌' if k == 'MLLP' else ('🔥' if k == 'FHIR' else ('📁' if k == 'FILE' else ('📤' if k == 'FTP' else '🔐'))) }} {{ k }}
+                {{ '🔌' if k == 'MLLP' else ('🔥' if k == 'FHIR' else ('🧾' if k == 'HPRIM' else ('📁' if k == 'FILE' else ('📤' if k == 'FTP' else '🔐')))) }} {{ k }}
               </option>
               {% endfor %}
             </select>
@@ -279,7 +279,7 @@
             {% for other_e in all_endpoints %}
             {% if other_e.id != e.id %}
             <option value="{{ other_e.id }}" {% if e.linked_endpoint_id == other_e.id %}selected{% endif %}>
-              {{ '🔌' if other_e.kind == 'MLLP' else ('🔥' if other_e.kind == 'FHIR' else ('📁' if other_e.kind == 'FILE' else ('📤' if other_e.kind == 'FTP' else '🔐'))) }}
+              {{ '🔌' if other_e.kind == 'MLLP' else ('🔥' if other_e.kind == 'FHIR' else ('🧾' if other_e.kind == 'HPRIM' else ('📁' if other_e.kind == 'FILE' else ('📤' if other_e.kind == 'FTP' else '🔐')))) }}
               {{ other_e.name }} ({{ other_e.kind }})
             </option>
             {% endif %}

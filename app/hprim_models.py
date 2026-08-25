@@ -424,9 +424,9 @@ class HprimLPP:
 
     def __post_init__(self):
         """Validation post-initialisation"""
-        if self.prix_unitaire <= 0:
+        if self.prix_unitaire < 0:
             raise ValueError(f"Prix unitaire LPP invalide: {self.prix_unitaire}")
-        if self.montant_total <= 0:
+        if self.montant_total < 0:
             raise ValueError(f"Montant total LPP invalide: {self.montant_total}")
         if self.quantite <= 0:
             raise ValueError(f"Quantité LPP invalide: {self.quantite}")
@@ -455,7 +455,7 @@ class HprimUCD:
     """UCD (Unité Commune de Dispensation)"""
     code: str  # Code CIP-13
     designation: str
-    quantite: int
+    quantite: Decimal
     prix_unitaire: Decimal
     montant_total: Decimal
 
@@ -465,9 +465,9 @@ class HprimUCD:
             raise ValueError(f"Code CIP-13 invalide: {self.code} (doit faire 13 chiffres)")
         if self.quantite <= 0:
             raise ValueError(f"Quantité UCD invalide: {self.quantite}")
-        if self.prix_unitaire <= 0:
+        if self.prix_unitaire < 0:
             raise ValueError(f"Prix unitaire UCD invalide: {self.prix_unitaire}")
-        if self.montant_total <= 0:
+        if self.montant_total < 0:
             raise ValueError(f"Montant total UCD invalide: {self.montant_total}")
         # Vérification cohérence calcul
         expected_total = self.prix_unitaire * self.quantite

@@ -9,9 +9,12 @@ from typing import Optional, Literal
 import io
 from datetime import datetime
 
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
-from openpyxl.worksheet.datavalidation import DataValidation
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.worksheet.datavalidation import DataValidation
+except ModuleNotFoundError:
+    Workbook = None
 
 from app.dependencies.db_deps import get_session
 from app.models_structure import (
@@ -25,12 +28,18 @@ ui_router = APIRouter(prefix="/structure", tags=["Structure Import/Export UI"])
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _require_openpyxl() -> None:
+    if Workbook is None:
+        raise HTTPException(status_code=503, detail="Import/export Excel indisponible : installez openpyxl.")
+
+
 @router.get("/export/excel")
 async def export_structure_excel(
     eg_id: Optional[int] = None,
     session: Session = Depends(get_session)
 ):
     """Export de la structure complète en Excel avec 7 feuilles"""
+    _require_openpyxl()
     
     wb = Workbook()
     
@@ -281,6 +290,7 @@ async def export_structure_excel(
 @router.get("/export/template")
 async def export_template():
     """Télécharge un template Excel vierge avec exemples"""
+    _require_openpyxl()
     
     wb = Workbook()
     
@@ -339,6 +349,7 @@ async def import_excel_preview(
     """
     Parse et valide un fichier Excel, retourne un aperçu avant import
     """
+    _require_openpyxl()
     from openpyxl import load_workbook
     from app.schemas.import_schemas import (
         ImportMode, ImportPreview, ImportEntityPreview, ImportAction,
@@ -529,6 +540,7 @@ async def import_excel_confirm(
     """
     Exécute l'import après validation (transactionnel avec rollback)
     """
+    _require_openpyxl()
     from openpyxl import load_workbook
     from app.schemas.import_schemas import (
         ImportMode, ImportResult, ImportMessage, ImportSeverity,

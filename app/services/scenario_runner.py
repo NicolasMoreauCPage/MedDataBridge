@@ -610,164 +610,29 @@ async def execute_scenario_on_endpoint(
     steps: List[InteropScenarioStep],
     session: Session
 ) -> dict:
+    """Compatibilité historique autour de l'unique runner instrumenté.
+
+    L'ancienne implémentation référençait des colonnes qui n'existent plus dans
+    les modèles de traces. Déléguer à :func:`send_scenario` garantit une seule
+    sémantique pour l'exécution, les compteurs et les journaux d'étapes.
     """
-    Exécute un scénario complet sur un endpoint spécifique.
-    
-    Args:
-        endpoint: L'endpoint cible
-        scenario: Le scénario à exécuter
-        steps: Les étapes du scénario (déjà triées par order_index)
-        session: Session de base de données
-        
-    Returns:
-        dict avec success_count, error_count, total_count
-    """
-    from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
-    
-    # Créer un run d'exécution
-    run = ScenarioExecutionRun(
-        scenario_id=scenario.id,
-        triggered_by="manual_endpoint",
-        endpoint_id=endpoint.id,
-        status="running",
-        started_at=datetime.utcnow(),
-        total_steps=len(steps),
-        success_steps=0,
-        error_steps=0,
-        skipped_steps=0
+    await send_scenario(
+        session,
+        scenario,
+        endpoint,
+        step_ids=[step.id for step in steps if step.id is not None],
     )
-    session.add(run)
-    session.commit()
-    session.refresh(run)
-    
-    success_count = 0
-    error_count = 0
-    identity_profile: Optional[PatientIdentity] = None
-    if any(step.message_format.lower() == "hl7" for step in steps):
-        identity_profile = generate_patient_identity()
-    
-    try:
-        for step in steps:
-            step_log = ScenarioExecutionStepLog(
-                run_id=run.id,
-                step_id=step.id,
-                step_order=step.order_index,
-                status="running",
-                started_at=datetime.utcnow()
-            )
-            session.add(step_log)
-            session.commit()
-            
-            try:
-                # Envoyer selon le protocole de l'endpoint
-                if endpoint.kind == "MLLP":
-                    message_log = await _send_hl7_step(
-                        session=session,
-                        step=step,
-                        endpoint=endpoint,
-                        update_dates=True,
-                        identity_profile=identity_profile,
-                    )
-                    
-                    step_log.message_log_id = message_log.id
-                    step_log.ack_code = message_log.ack_code
-                    step_log.response = message_log.response_payload
-                    
-                    if message_log.ack_code in ("AA", "CA"):
-                        step_log.status = "success"
-                        success_count += 1
-                    else:
-                        step_log.status = "error"
-                        error_count += 1
-                        
-                elif endpoint.kind == "FHIR":
-                    # Pour FHIR, on suppose que le payload est déjà un Bundle JSON
-                    targets = _build_fhir_targets(endpoint)
-                    if not targets:
-                        raise ScenarioExecutionError("Aucun serveur FHIR configuré")
-                    
-                    base_url, auth_kind, auth_token = targets[0]
-                    response = await post_fhir_bundle(
-                        base_url=base_url,
-                        bundle_json=step.payload,
-                        auth_kind=auth_kind,
-                        auth_token=auth_token
-                    )
-                    
-                    step_log.response = json.dumps(response)
-                    step_log.status = "success"
-                    success_count += 1
-                    
-                elif endpoint.kind == "FILE":
-                    # Écrire le message dans l'outbox_path de l'endpoint
-                    if not endpoint.outbox_path:
-                        raise ScenarioExecutionError("Aucun outbox_path configuré pour l'endpoint FILE")
-                    
-                    import os
-                    from datetime import datetime as dt
-                    
-                    # Créer le répertoire s'il n'existe pas
-                    os.makedirs(endpoint.outbox_path, exist_ok=True)
-                    
-                    # Générer un nom de fichier avec timestamp
-                    timestamp = dt.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-                    file_ext = ".hl7" if scenario.protocol == "HL7" else ".json"
-                    filename = f"{scenario.name.replace(' ', '_')}_{step.order_index}_{timestamp}{file_ext}"
-                    filepath = os.path.join(endpoint.outbox_path, filename)
-                    
-                    # Écrire le payload
-                    with open(filepath, "w", encoding="utf-8") as f:
-                        f.write(step.payload)
-                    
-                    step_log.response = f"Écrit dans {filepath}"
-                    step_log.status = "success"
-                    success_count += 1
-                    
-                else:
-                    step_log.status = "skipped"
-                    step_log.error_message = f"Type d'endpoint non supporté: {endpoint.kind}"
-                    
-            except Exception as e:
-                step_log.status = "error"
-                step_log.error_message = str(e)
-                error_count += 1
-                
-            # Calculer la durée en millisecondes
-            now = datetime.utcnow()
-            duration_ms = int((now - step_log.created_at).total_seconds() * 1000)
-            step_log.duration_ms = duration_ms
-            session.add(step_log)
-            session.commit()
-            
-            # Délai entre messages si configuré
-            if step.delay_seconds and step.delay_seconds > 0:
-                await asyncio.sleep(step.delay_seconds)
-        
-        # Mettre à jour le run
-        run.success_steps = success_count
-        run.error_steps = error_count
-        run.finished_at = datetime.utcnow()
-        
-        if error_count == 0:
-            run.status = "success"
-        elif success_count > 0:
-            run.status = "partial"
-        else:
-            run.status = "error"
-            
-        session.add(run)
-        session.commit()
-        
-    except Exception as e:
-        run.status = "error"
-        run.finished_at = datetime.utcnow()
-        session.add(run)
-        session.commit()
-        raise
-    
+    run = session.exec(
+        select(ScenarioExecutionRun)
+        .where(ScenarioExecutionRun.scenario_id == scenario.id)
+        .where(ScenarioExecutionRun.endpoint_id == endpoint.id)
+        .order_by(ScenarioExecutionRun.id.desc())
+    ).first()
+    if run is None:
+        raise ScenarioExecutionError("Le runner n'a pas créé de trace d'exécution")
     return {
-        "success_count": success_count,
-        "error_count": error_count,
-        "total_count": len(steps),
-        "run_id": run.id
+        "success_count": run.success_steps,
+        "error_count": run.error_steps,
+        "total_count": run.total_steps,
+        "run_id": run.id,
     }

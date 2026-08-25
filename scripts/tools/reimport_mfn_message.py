@@ -1,40 +1,38 @@
-"""Script pour réimporter un message MFN spécifique."""
+"""Réimporte le dernier message MFN correspondant à la corrélation configurée."""
+
+from sqlmodel import select
+
 from app.db import session_factory
 from app.models_shared import MessageLog
 from app.models_structure import GHTContext
 from app.services.mfn_importer import import_mfn
-from sqlmodel import select
 
-# Récupérer le message
-with session_factory() as session:
-    msg = session.exec(
-    select(MessageLog)
-    .where(MessageLog.correlation_id.like('%20250206141011%'))
-    .order_by(MessageLog.id.desc())
-    ).first()
 
-if not msg:
-    print("Message non trouvé!")
-    exit(1)
+CORRELATION_PATTERN = "%20250206141011%"
+GHT_CONTEXT_ID = 2
 
-print(f"Message trouvé: ID={msg.id}, Type={msg.message_type}")
-print(f"Endpoint: {msg.endpoint_id}")
 
-# Récupérer le GHT "TEST Nico" (id=2)
-    ght = session.exec(select(GHTContext).where(GHTContext.id == 2)).first()
-if not ght:
-    print("GHT TEST Nico (id=2) non trouvé!")
-    exit(1)
+def main() -> None:
+    with session_factory() as session:
+        message = session.exec(
+            select(MessageLog)
+            .where(MessageLog.correlation_id.like(CORRELATION_PATTERN))
+            .order_by(MessageLog.id.desc())
+        ).first()
+        if not message:
+            raise SystemExit("Message non trouvé.")
 
-print(f"GHT: {ght.name} (id={ght.id})")
+        ght = session.get(GHTContext, GHT_CONTEXT_ID)
+        if not ght:
+            raise SystemExit(f"GHT id={GHT_CONTEXT_ID} non trouvé.")
 
-# Réimporter
-print("\nRéimportation...")
-    result = import_mfn(msg.payload, session, ght)
+        print(f"Message trouvé: ID={message.id}, Type={message.message_type}, endpoint={message.endpoint_id}")
+        result = import_mfn(message.payload, session, ght)
+        session.commit()
+        print("Résultat:")
+        for entity_type, count in result.items():
+            print(f"  {entity_type}: {count}")
 
-print(f"\nRésultat:")
-print(f"  EJ créées: {result['ej']}")
-print(f"  EG créées: {result['eg']}")
-print(f"  Services créés: {result['service']}")
 
-print("\n✅ Import terminé!")
+if __name__ == "__main__":
+    main()

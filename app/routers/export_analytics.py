@@ -9,18 +9,25 @@ from typing import Optional, Literal
 import io
 import csv
 
-# Excel
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.chart import BarChart, PieChart, Reference
+# Excel and PDF exports are optional runtime capabilities.  Importing the
+# application must not fail when a minimal deployment intentionally omits one
+# of their heavy dependencies.
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.chart import BarChart, PieChart, Reference
+except ModuleNotFoundError:
+    Workbook = None
 
-# PDF
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+try:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+except ModuleNotFoundError:
+    SimpleDocTemplate = None
 
 from app.dependencies.db_deps import get_session
 from app.models_structure import Lit, Service, UniteFonctionnelle, Chambre, UniteHebergement, Pole
@@ -104,6 +111,8 @@ async def export_excel(
     session: Session = Depends(get_session)
 ):
     """Export Excel avec tableaux et graphiques"""
+    if Workbook is None:
+        raise HTTPException(status_code=503, detail="Export Excel indisponible : installez openpyxl.")
     
     # Créer le workbook
     wb = Workbook()
@@ -235,6 +244,8 @@ async def export_pdf(
     session: Session = Depends(get_session)
 ):
     """Export PDF formaté avec tableaux"""
+    if SimpleDocTemplate is None:
+        raise HTTPException(status_code=503, detail="Export PDF indisponible : installez reportlab.")
     
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)

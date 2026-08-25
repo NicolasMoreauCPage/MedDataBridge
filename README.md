@@ -30,7 +30,7 @@ Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base S
 ## Contenu clé
 - `app/` : code de l'application (routers, templates, modèles SQLModel, services).
 - `docs/` : documentation détaillée (IHE PAM, HPRIM, API, guides d'intégration).
-- `medbridge.db` : base SQLite utilisée localement (fichier généré après `init_db`).
+- `data/medbridge.db` : base SQLite locale par défaut, générée après `init_db`.
 - `tests/` : suite complète de tests (575+ tests : API, intégration, UI, sécurité, performance).
 
 Architecture (schéma rapide)
@@ -44,13 +44,13 @@ Architecture (schéma rapide)
               search / import   |    | DB queries / FTS
                           v    |
                      +------------------+
-                     |  SQLite (medbridge.db) |
+                     |  SQLite (data/medbridge.db) |
                      |  (tables: patient, dossier, ...)
                      +------------------+
 
  - Import endpoints: `/hprim/import`, `/api/fhir/import/bundle`
  - Selector / search: `/cotation-modern/select` and `/cotation-modern/search`
- - OpenAPI docs: `/docs`
+ - OpenAPI docs: `/api/docs`
 ```
 
 PUBLIC_SEARCH switch
@@ -106,7 +106,7 @@ uvicorn app.app:app --reload --port 8000
 - **Admin** : http://localhost:8000/admin/ght/1/ej/1
 - **Import HPRIM** : http://localhost:8000/hprim/import
 - **Cotation moderne** : http://localhost:8000/cotation-modern/select
-- **API docs** : http://localhost:8000/docs
+- **API docs** : http://localhost:8000/api/docs
 
 ## 🚀 Initialisation des scénarios HL7/HPRIM (NOUVEAU)
 
@@ -138,7 +138,7 @@ Ce script importe tous les scénarios (IHE PAM, HPRIM, etc.) dans la base, en é
 - Interface d'administration SQL :
   - SQLAdmin : `GET /sqladmin` — interface d'administration de la base de données
 
-- API & documentation interactive : `GET /docs` (FastAPI OpenAPI) — utile pour voir les routes techniques.
+- API & documentation interactive : `GET /api/docs` (FastAPI OpenAPI) — utile pour voir les routes techniques.
 
 ## Notes sur sécurité et usage
 - Ce dépôt contient des fonctionnalités destinées aux tests d'interopérabilité. Par défaut la recherche de dossiers a été rendue publique pour faciliter les scénarios de qualification et les tests automatisés. En production, il est recommandé d'activer un contrôle d'accès.

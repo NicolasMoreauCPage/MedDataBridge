@@ -56,22 +56,28 @@ def main():
         # Ajout endpoint de lecture MFN pour le GHT de démo
         from app.models_shared import SystemEndpoint, EndpointKind, EndpointRole
         mfn_inbox_path = "/home/nico/Travail/Fhir_MedBridgeData/Interfaces/Entrant/MFN/In/"
-        endpoint_mfn = SystemEndpoint(
-            name="MFN File Reader Demo GHT",
-            kind=EndpointKind.FILE,
-            role=EndpointRole.RECEIVER,
-            is_enabled=True,
-            ght_context_id=context.id,
-            inbox_path=mfn_inbox_path,
-            file_extensions=".hl7,.txt",
-            emit_hl7_pam=False,
-            emit_hl7_mfn=True,
-            emit_fhir_structure=False,
-            emit_fhir_identity=False,
-        )
-        session.add(endpoint_mfn)
-        session.commit()
-        print(f"[ENDPOINT] MFN file reader created for demo GHT: {mfn_inbox_path}")
+        endpoint_mfn = session.exec(
+            select(SystemEndpoint).where(SystemEndpoint.name == "MFN File Reader Demo GHT")
+        ).first()
+        if endpoint_mfn is None:
+            endpoint_mfn = SystemEndpoint(
+                name="MFN File Reader Demo GHT",
+                kind=EndpointKind.FILE,
+                role=EndpointRole.RECEIVER,
+                is_enabled=True,
+                ght_context_id=context.id,
+                inbox_path=mfn_inbox_path,
+                file_extensions=".hl7,.txt",
+                emit_hl7_pam=False,
+                emit_hl7_mfn=True,
+                emit_fhir_structure=False,
+                emit_fhir_identity=False,
+            )
+            session.add(endpoint_mfn)
+            session.commit()
+            print(f"[ENDPOINT] MFN file reader created for demo GHT: {mfn_inbox_path}")
+        else:
+            print(f"[ENDPOINT] MFN file reader already configured for demo GHT: {mfn_inbox_path}")
 
         print("[NAMESPACES] Ensuring identifier namespaces for each EJ...")
         stats_ns = ensure_namespaces_for_context(session, context, finess_list)

@@ -488,7 +488,8 @@ async def _handle_cancel_admission(
     trigger: str,
     pid_data: dict,
     pv1_data: dict,
-    message: Optional[str]
+    message: Optional[str],
+    ej_id: Optional[int] = None,
 ) -> Tuple[bool, Optional[str]]:
     """
     Gère les annulations d'admission (A11, A23, A38).
@@ -623,7 +624,8 @@ async def _handle_cancel_discharge(
     trigger: str,
     pid_data: dict,
     pv1_data: dict,
-    message: Optional[str]
+    message: Optional[str],
+    ej_id: Optional[int] = None,
 ) -> Tuple[bool, Optional[str]]:
     """
     Gère l'annulation de sortie (A13).
@@ -769,7 +771,8 @@ async def _handle_cancel_transfer(
     trigger: str,
     pid_data: dict,
     pv1_data: dict,
-    message: Optional[str]
+    message: Optional[str],
+    ej_id: Optional[int] = None,
 ) -> Tuple[bool, Optional[str]]:
     """
     Gère l'annulation de transfert (A12).
@@ -859,7 +862,7 @@ async def _handle_cancel_transfer(
             return False, "No transfer movement found to cancel"
         
         # Déterminer la date du mouvement d'annulation : priorité ZBE-2 puis now
-        cancel_datetime = datetime.utcnow()
+        cancel_datetime = datetime.now(timezone.utc)
         if zbe_data and zbe_data.get("movement_datetime"):
             try:
                 dt_str = zbe_data["movement_datetime"]
@@ -949,7 +952,7 @@ async def handle_admission_message(
         logger.info(f"[pam][admission] Variables: account_number={account_number}, visit_number={visit_number}, movement_id={movement_id}, trigger={trigger}")
         logger.debug(f"[pam][admission] PID data keys: {list(pid_data.keys())}")
         if trigger in ["A11", "A23", "A38"]:
-            return await _handle_cancel_admission(session, trigger, pid_data, pv1_data, message)
+            return await _handle_cancel_admission(session, trigger, pid_data, pv1_data, message, ej_id)
         
         # Gestion normale des admissions
         # Identifier patient (prendre le premier identifiant PID-3)
@@ -1535,7 +1538,8 @@ async def handle_doctor_message(
     trigger: str, 
     pid_data: dict, 
     pv1_data: dict,
-    message: Optional[str] = None
+    message: Optional[str] = None,
+    ej_id: Optional[int] = None,
 ) -> Tuple[bool, Optional[str]]:
     """
     Gère les messages de changement de médecin (A54/A55).
@@ -1729,20 +1733,7 @@ async def handle_transfer_message(
         
         # Pour A12 (annulation), vérifier qu'on a un mouvement à annuler
         if trigger == "A12":
-            movement_id = zbe_data.get("movement_id")
-            if not movement_id:
-                return False, "ZBE-1 (movement_id) requis pour annulation A12"
-
-            # Trouver et annuler le mouvement
-            mouvement = _find_mouvement_by_movement_id(session, movement_id)
-            if not mouvement:
-                return False, f"Mouvement {movement_id} introuvable pour annulation"
-
-            mouvement.status = "cancelled"
-            session.add(mouvement)
-            session.flush()
-            logger.info(f"[pam][transfer] Cancelled movement {movement_id}")
-            return True, None
+            return await _handle_cancel_transfer(session, trigger, pid_data, pv1_data, message, ej_id)
         
         # Pour A02 (transfert), créer un nouveau mouvement sur venue existante
         
@@ -2015,20 +2006,7 @@ async def handle_discharge_message(
         
         # Pour A13 (annulation), vérifier qu'on a un mouvement à annuler
         if trigger == "A13":
-            movement_id = zbe_data.get("movement_id")
-            if not movement_id:
-                return False, "ZBE-1 (movement_id) requis pour annulation A13"
-
-            # Trouver et annuler le mouvement
-            mouvement = _find_mouvement_by_movement_id(session, movement_id)
-            if not mouvement:
-                return False, f"Mouvement {movement_id} introuvable pour annulation"
-
-            mouvement.status = "cancelled"
-            session.add(mouvement)
-            session.flush()
-            logger.info(f"[pam][discharge] Cancelled movement {movement_id}")
-            return True, None
+            return await _handle_cancel_discharge(session, trigger, pid_data, pv1_data, message, ej_id)
         
         # Pour A03 (sortie), créer un mouvement de sortie sur venue existante
         

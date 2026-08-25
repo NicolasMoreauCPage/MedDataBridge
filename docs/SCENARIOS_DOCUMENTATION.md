@@ -1,5 +1,41 @@
 # Documentation des Scénarios d'Interopérabilité
 
+## Qualification reproductible
+
+Un scénario peut désormais porter une version, des préconditions et des
+assertions déclaratives. Une exécution de qualification en conserve le verdict
+(`passed` ou `failed`) ainsi que toutes les preuves dans le journal de run ;
+les assertions propres à une étape sont également historisées dans son journal.
+
+Exemple de propriétés JSON sur un scénario HL7 :
+
+```json
+{
+  "version": 1,
+  "preconditions_json": "[{\"type\":\"endpoint_kind\",\"equals\":\"MLLP\"}]",
+  "assertions_json": "[{\"type\":\"run_status\",\"equals\":\"success\"},{\"type\":\"ack_code\",\"order_index\":1,\"equals\":\"AA\"}]"
+}
+```
+
+Les types actuellement disponibles sont `run_status`, `minimum_success_steps`,
+`maximum_error_steps`, `step_status`, `ack_code` et `payload_contains`. Les
+préconditions intégrées vérifient que le scénario est actif et que l'endpoint
+est activé ; `endpoint_kind` et `minimum_steps` peuvent être ajoutés au JSON.
+
+L'API de qualification est regroupée sous `/interface-testing/qualification` :
+
+```text
+POST /runs                         # exécute un scénario (dry_run=true par défaut)
+GET  /runs/{run_id}                # verdict et preuves
+POST /campaigns                    # crée une campagne ordonnée
+POST /campaigns/{id}/runs          # exécute une campagne
+GET  /campaign-runs/{run_id}       # synthèse de campagne
+```
+
+Une campagne référence explicitement un scénario et son endpoint, afin de
+rejouer toujours la même matrice de qualification. Le mode `dry_run` doit être
+utilisé pour valider la cohérence du jeu de tests avant toute émission réelle.
+
 ## Vue d'ensemble
 
 Le module de scénarios permet de créer, gérer et exécuter des séquences de messages HL7v2 et FHIR pour tester l'interopérabilité avec des systèmes tiers. Il offre :

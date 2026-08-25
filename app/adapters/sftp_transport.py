@@ -1,4 +1,7 @@
-import paramiko
+try:
+    import paramiko
+except ModuleNotFoundError:  # Optional dependency: only needed for SFTP endpoints.
+    paramiko = None
 import stat
 from pathlib import Path
 from typing import List, Optional
@@ -33,6 +36,8 @@ class SFTPReader:
         self.sftp = None
 
     def connect(self):
+        if paramiko is None:
+            raise RuntimeError("Le support SFTP requiert la dépendance optionnelle 'paramiko'.")
         logger.info(f"Connecting to SFTP {self.host}:{self.port} as {self.username}")
         self.transport = paramiko.Transport((self.host, self.port))
         self.transport.connect(username=self.username, password=self.password)

@@ -53,7 +53,7 @@ L'application MedData Bridge est structurée autour de **200+ endpoints** répar
   - Endpoints (gestion): `/endpoints`
   - Génération de messages test: `/generate`
   - Tests d'interopérabilité: `/interop`
-  - Interface testing (GAM/GAP): `/interface-testing` et `/ui/interface-testing`
+  - Outils de qualification : `/interface-testing`, `/interface-testing/metrics` et `/ui/interface-testing`
   - Profils IHE: `/ihe`
   - Workflows d'interopérabilité: `/workflow`
   - Boîte de réception FHIR: `/inbox/fhir`
@@ -85,7 +85,7 @@ L'application MedData Bridge est structurée autour de **200+ endpoints** répar
   - Dashboard des exécutions: `/scenarios/runs`
   - Configuration UF / Médecins par EJ: `/config/scenario-ej`
   - Documentation scénarios: `/docs/SCENARIOS_DOCUMENTATION.md`
-  - Générateur de scénarios de test: `/test-scenario-generator`
+  - Générateur de scénarios de test: `POST /test-scenario-generator/generate` et `GET /test-scenario-generator/catalog`
   - UI scénarios de test: `/ui/test-scenarios`
 
 - Administration:

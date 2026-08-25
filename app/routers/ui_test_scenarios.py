@@ -1,8 +1,14 @@
-"""
-Module UI pour les scénarios de test (stub).
-"""
-from fastapi import APIRouter
+"""Interface web minimale pour générer des scénarios de qualification."""
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
 
 router = APIRouter(prefix="/ui/test-scenarios", tags=["Test Scenarios UI"])
 
-# TODO: Implémenter l'interface utilisateur des scénarios de test
+
+@router.get("", response_class=HTMLResponse)
+async def test_scenarios_ui(request: Request):
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "test_scenario_generator.html",
+        {"page_title": "Générateur de scénarios de test"},
+    )

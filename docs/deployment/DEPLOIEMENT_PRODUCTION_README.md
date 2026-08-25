@@ -1,5 +1,18 @@
 # MedDataBridge - Instructions de Déploiement Production
 
+## Initialisation d'une base vide
+
+Pour une installation neuve, la commande suivante crée le schéma applicatif
+complet puis l'enregistre à la révision Alembic courante :
+
+```bash
+alembic upgrade head
+```
+
+La baseline automatique ne s'active que si la base ne contient aucune table.
+Sur une base existante, Alembic conserve son comportement incrémental habituel.
+Vérifiez ensuite la version installée avec `alembic current`.
+
 ## 🚨 Dépannage - Base de Données Corrompue
 
 ### Erreur: `database disk image is malformed` (persistante)
@@ -41,7 +54,7 @@ python recover_database.py meddatabridge.db
 
 # 3. Si la récupération échoue, recréer la base
 rm meddatabridge.db
-alembic upgrade head  # Recréera la base et appliquera toutes les migrations
+alembic upgrade head  # Recréera le schéma courant et inscrira la révision head
 ```
 
 ### Erreur: `NOT NULL constraint failed: interopscenario.preserve_intervals`

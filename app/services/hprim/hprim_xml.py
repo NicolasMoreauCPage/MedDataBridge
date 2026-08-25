@@ -16,7 +16,8 @@ from app.hprim_models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
     HprimActeCCAM, HprimActeNGAP, HprimVenue, HprimModificateur,
     HprimMontant, HprimPriseCharge, HprimMessageType, HprimAction,
-    HprimCivilite
+    HprimCivilite, HprimActeLPP, HprimActeUCD, HprimLPP, HprimUCD,
+    HprimIntervention
 )
 
 logger = logging.getLogger(__name__)
@@ -683,18 +684,62 @@ class HprimXmlService:
 
     def _add_evenement_actes_lpp(self, root: ET.Element, message: HprimMessage):
         """Ajoute un événement avec actes LPP"""
-        # TODO: Implémenter
-        pass
+        evenement = self._add_evenement_context(root, message, "evenementServeurLPP")
+        actes = message.actes_lpp.lpps if isinstance(message.actes_lpp, HprimActeLPP) else message.actes_lpp
+        lpps = ET.SubElement(evenement, "{%s}LPPs" % self.NAMESPACE)
+        for acte in actes or []:
+            self._add_lpp(lpps, acte)
 
     def _add_evenement_actes_ucd(self, root: ET.Element, message: HprimMessage):
         """Ajoute un événement avec actes UCD"""
-        # TODO: Implémenter
-        pass
+        evenement = self._add_evenement_context(root, message, "evenementServeurUCD")
+        actes = message.actes_ucd.ucds if isinstance(message.actes_ucd, HprimActeUCD) else message.actes_ucd
+        ucds = ET.SubElement(evenement, "{%s}UCDs" % self.NAMESPACE)
+        for acte in actes or []:
+            self._add_ucd(ucds, acte)
 
     def _add_evenement_interventions(self, root: ET.Element, message: HprimMessage):
         """Ajoute un événement avec interventions"""
-        # TODO: Implémenter
-        pass
+        for intervention in message.interventions:
+            evenement = self._add_evenement_context(root, message, "evenementServeurIntervention")
+            evenement.set("action", "creation")
+            intervention_elem = ET.SubElement(evenement, "{%s}intervention" % self.NAMESPACE)
+            self._add_identifiant_simple(intervention_elem, intervention.identifiant)
+            debut = ET.SubElement(intervention_elem, "{%s}debut" % self.NAMESPACE)
+            ET.SubElement(debut, "{%s}date" % self.NAMESPACE).text = intervention.date_intervention.date().isoformat()
+            if intervention.libelle:
+                ET.SubElement(intervention_elem, "{%s}libelle" % self.NAMESPACE).text = intervention.libelle
+
+    def _add_evenement_context(self, root: ET.Element, message: HprimMessage, event_tag: str) -> ET.Element:
+        """Ajoute la partie commune des événements de cotation."""
+        evenement = ET.SubElement(root, "{%s}%s" % (self.NAMESPACE, event_tag))
+        ET.SubElement(evenement, "{%s}dateAction" % self.NAMESPACE).text = datetime.now().isoformat()
+        acteur = ET.SubElement(evenement, "{%s}acteur" % self.NAMESPACE)
+        self._add_professionnel_sante(acteur, message.acteur)
+        patient = ET.SubElement(evenement, "{%s}patient" % self.NAMESPACE)
+        self._add_patient(patient, message.patient)
+        if message.venue:
+            venue = ET.SubElement(evenement, "{%s}venue" % self.NAMESPACE)
+            self._add_venue(venue, message.venue)
+        return evenement
+
+    def _add_lpp(self, parent: ET.Element, acte: HprimLPP) -> None:
+        lpp = ET.SubElement(parent, "{%s}LPP" % self.NAMESPACE)
+        code = ET.SubElement(lpp, "{%s}codeLPP" % self.NAMESPACE, portee=acte.code.portee)
+        code.text = acte.code.code
+        if acte.libelle:
+            ET.SubElement(lpp, "{%s}denomination" % self.NAMESPACE).text = acte.libelle
+        ET.SubElement(lpp, "{%s}prixUnitaire" % self.NAMESPACE).text = str(acte.prix_unitaire)
+        ET.SubElement(lpp, "{%s}quantite" % self.NAMESPACE).text = str(acte.quantite)
+        ET.SubElement(lpp, "{%s}montantTotal" % self.NAMESPACE).text = str(acte.montant_total)
+
+    def _add_ucd(self, parent: ET.Element, acte: HprimUCD) -> None:
+        ucd = ET.SubElement(parent, "{%s}UCD" % self.NAMESPACE)
+        ET.SubElement(ucd, "{%s}codeUCD" % self.NAMESPACE).text = acte.code
+        ET.SubElement(ucd, "{%s}denomination" % self.NAMESPACE).text = acte.designation
+        ET.SubElement(ucd, "{%s}quantite" % self.NAMESPACE).text = str(acte.quantite)
+        ET.SubElement(ucd, "{%s}prixUnitaire" % self.NAMESPACE).text = str(acte.prix_unitaire)
+        ET.SubElement(ucd, "{%s}montantTotal" % self.NAMESPACE).text = str(acte.montant_total)
 
     def _generate_acquittements_serveur_actes(self, message: HprimMessage) -> str:
         """Génère un message acquittementsServeurActes"""

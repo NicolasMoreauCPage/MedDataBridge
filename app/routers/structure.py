@@ -1877,7 +1877,7 @@ async def delete_chambre(
     session.commit()
     return RedirectResponse(url=f"/structure/uh/{uh_id}", status_code=303)
 
-@router.get("/chambres", response_model=List[Chambre])
+@api_router.get("/chambres", response_model=List[Chambre])
 async def list_chambres(
     session: Session = Depends(get_session),
     uh_id: Optional[int] = None,
@@ -2205,8 +2205,8 @@ async def update_lit(
     return RedirectResponse(url=f"/structure/chambres/{lit.chambre_id}", status_code=303)
 
 
-@router.get("/search", response_class=HTMLResponse)
-async def structure_search(
+@router.get("/availability", response_class=HTMLResponse)
+async def structure_availability_search(
     request: Request,
     session: Session = Depends(get_session),
     service_type: Optional[LocationServiceType] = Query(None),

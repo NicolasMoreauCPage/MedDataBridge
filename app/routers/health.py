@@ -2,9 +2,9 @@ from fastapi import APIRouter, Request
 
 router = APIRouter()
 
-@router.get("/health")
-def health_check():
-    """Health check endpoint for tests"""
+@router.get("/health/live")
+def health_live():
+    """Liveness probe independent from database and cache availability."""
     return {"status": "ok"}
 
 @router.get("/api/version")

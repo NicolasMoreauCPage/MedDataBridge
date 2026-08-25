@@ -17,7 +17,10 @@ class AdmissionType(str, Enum):
 class EndpointKind(str, Enum):
     MLLP = "MLLP"
     FHIR = "FHIR"
+    HPRIM = "HPRIM"
     FILE = "FILE"
+    FTP = "FTP"
+    SFTP = "SFTP"
 
     @classmethod
     def choices(cls) -> List[Dict[str, str]]:

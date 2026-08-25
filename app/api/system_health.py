@@ -90,7 +90,7 @@ async def get_messages_summary(
         return {"total": 0, "error": str(e)}
 
 
-@router.get("/cache/stats")
+@router.get("/system/cache/stats")
 async def get_cache_stats_api() -> Dict[str, Any]:
     """
     Retourne les statistiques du cache Redis

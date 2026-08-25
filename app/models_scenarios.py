@@ -17,6 +17,15 @@ class InteropScenario(SQLModel, table=True):
     description: Optional[str] = None
     category: Optional[str] = Field(default=None, index=True)
     protocol: str = Field(default="HL7")  # HL7 | FHIR | MIXED
+    version: int = Field(default=1, description="Version métier du scénario de qualification")
+    preconditions_json: Optional[str] = Field(
+        default=None,
+        description="Préconditions JSON (endpoint, nombre minimal d'étapes, etc.)",
+    )
+    assertions_json: Optional[str] = Field(
+        default=None,
+        description="Assertions JSON évaluées à la fin d'une exécution",
+    )
     source_path: Optional[str] = None  # emplacement d'origine (documentation/debug)
     tags: Optional[str] = None  # liste séparée par virgules
     is_active: bool = Field(default=True, index=True)
@@ -77,6 +86,10 @@ class InteropScenarioStep(SQLModel, table=True):
     message_type: Optional[str] = None  # ex: ADT^A28, Bundle
     payload: str = Field(default="", sa_column_kwargs={"nullable": False})
     delay_seconds: Optional[int] = None  # délai suggéré avant envoi suivant
+    assertions_json: Optional[str] = Field(
+        default=None,
+        description="Assertions JSON évaluées sur le résultat de cette étape",
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

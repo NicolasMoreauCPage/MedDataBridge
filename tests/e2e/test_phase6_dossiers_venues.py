@@ -370,20 +370,3 @@ async def test_form_keyboard_shortcut_ctrl_s(page: Page):
             
             # Note : Le comportement exact dépend de l'implémentation
             # Peut être une redirection, un message de succès, etc.
-
-
-# Configuration pytest pour les fixtures
-@pytest.fixture
-async def page(playwright):
-    """Fixture pour créer une page Playwright."""
-    browser = await playwright.chromium.launch(headless=True)
-    context = await browser.new_context()
-    page = await context.new_page()
-    
-    # Configurer la base URL
-    page.set_default_navigation_timeout(30000)
-    
-    yield page
-    
-    await context.close()
-    await browser.close()

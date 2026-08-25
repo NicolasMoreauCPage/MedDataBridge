@@ -10,7 +10,7 @@ router = APIRouter(
     tags=["structure"]
 )
 
-@router.post("/import/hl7", response_model=dict)
+@router.post("/mfn/import", response_model=dict)
 async def import_hl7_structure(
     message: str = Body(..., media_type="text/plain"),
     session: Session = Depends(get_session)

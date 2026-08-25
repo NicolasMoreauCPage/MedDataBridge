@@ -68,5 +68,4 @@ def init_generic_resources():
 
 
 if __name__ == "__main__":
-    init_generic_resources()</content>
-<parameter name="filePath">/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/init_generic_rooms.py
+    init_generic_resources()

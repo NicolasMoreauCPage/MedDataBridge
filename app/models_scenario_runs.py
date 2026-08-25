@@ -28,6 +28,10 @@ class ScenarioExecutionRun(SQLModel, table=True):
     error_steps: int = 0
     skipped_steps: int = 0
     dry_run: bool = Field(default=False, index=True)
+    qualification_verdict: str = Field(default="not_evaluated", index=True)  # passed|failed|error|not_evaluated
+    assertion_total: int = 0
+    assertion_passed: int = 0
+    evidence_json: Optional[str] = Field(default=None, description="Résultats des assertions JSON")
     options_json: Optional[str] = Field(default=None, description="JSON des options (start_index, filters, timeplan)")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -56,6 +60,7 @@ class ScenarioExecutionStepLog(SQLModel, table=True):
     duration_ms: Optional[int] = Field(default=None)
     error_message: Optional[str] = Field(default=None)
     payload_excerpt: Optional[str] = Field(default=None, description="Extrait du message (début) limité pour dashboard")
+    assertion_results_json: Optional[str] = Field(default=None, description="Résultats d'assertions de l'étape")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     run: ScenarioExecutionRun = Relationship(back_populates="step_logs")

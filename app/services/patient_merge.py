@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 from sqlmodel import Session, select
@@ -184,9 +185,11 @@ async def handle_merge_patient(
                         birth_date_obj = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
                 except Exception:
                     birth_date_obj = None
+            generated_identifier = None
+            if not pid_data.get("identifier"):
+                generated_identifier = f"MERGED-{get_next_sequence(session, 'patient')}"
             surviving_patient = Patient(
-                patient_seq=get_next_sequence(session, "patient"),
-                identifier=pid_data.get("identifier") or f"MERGED-{get_next_sequence(session, 'patient')}",
+                identifier=pid_data.get("identifier") or generated_identifier,
                 family=pid_data.get("family", ""),
                 given=pid_data.get("given", ""),
                 gender=pid_data.get("gender", "unknown"),

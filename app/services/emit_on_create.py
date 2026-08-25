@@ -1755,7 +1755,8 @@ def emit_to_senders_async(
                 from app.services.hprim.hprim_xml import HprimXmlService
                 from app.hprim_models import (
                     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
-                    HprimActeCCAM, HprimActeNGAP, HprimMessageType, HprimAction
+                    HprimActeCCAM, HprimActeNGAP, HprimActeLPP, HprimActeUCD,
+                    HprimCodeLPP, HprimLPP, HprimUCD, HprimMessageType, HprimAction
                 )
                 from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct, Dossier, Patient
                 from app.models_practitioners import MedecinResponsable
@@ -1775,10 +1776,10 @@ def emit_to_senders_async(
                 entete = HprimEnteteMessage(
                     message_id=f"COTATION-{entity.id}-{int(datetime.now().timestamp())}",
                     date_emission=datetime.now(),
-                    emetteur_id=getattr(endpoint, 'sending_app', 'MEDBRIDGE'),
-                    emetteur_nom=getattr(endpoint, 'sending_facility', 'MedData Bridge'),
-                    destinataire_id=getattr(endpoint, 'receiving_app', 'REMOTE'),
-                    destinataire_nom=getattr(endpoint, 'receiving_facility', 'Remote System'),
+                    emetteur_id=getattr(endpoint, 'sending_app', None) or 'MEDBRIDGE',
+                    emetteur_nom=getattr(endpoint, 'sending_facility', None) or 'MedData Bridge',
+                    destinataire_id=getattr(endpoint, 'receiving_app', None) or 'REMOTE',
+                    destinataire_nom=getattr(endpoint, 'receiving_facility', None) or 'Remote System',
                     message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
                 )
                 
@@ -1822,8 +1823,8 @@ def emit_to_senders_async(
                 hprim_patient = HprimPatient(
                     identifiant_id=str(patient_identifier),
                     identifiant_clef=patient_ident_clef,
-                    nom=patient.nom,
-                    prenom=patient.prenom or "",
+                    nom=getattr(patient, "family", None) or getattr(patient, "nom", None) or "INCONNU",
+                    prenom=getattr(patient, "given", None) or getattr(patient, "prenom", None) or "",
                     date_naissance=date_naissance_str,
                     sexe=_normalize_sexe(getattr(patient, "gender", None) or getattr(patient, "sexe", None))
                 )
@@ -1837,6 +1838,15 @@ def emit_to_senders_async(
                     if medecin is None and getattr(entity, "prescripteur_id", None):
                         medecin = session.get(MedecinResponsable, entity.prescripteur_id)
                 elif entity_type == "ngap_act":
+                    medecin = getattr(entity, "prestataire", None)
+                    if medecin is None and getattr(entity, "prestataire_id", None):
+                        medecin = session.get(MedecinResponsable, entity.prestataire_id)
+                elif entity_type == "ucd_act":
+                    medecin = getattr(entity, "prestataire", None) or getattr(entity, "prescripteur", None)
+                    medecin_id = getattr(entity, "prestataire_id", None) or getattr(entity, "prescripteur_id", None)
+                    if medecin is None and medecin_id:
+                        medecin = session.get(MedecinResponsable, medecin_id)
+                elif entity_type == "lpp_act":
                     medecin = getattr(entity, "prestataire", None)
                     if medecin is None and getattr(entity, "prestataire_id", None):
                         medecin = session.get(MedecinResponsable, entity.prestataire_id)
@@ -1896,10 +1906,35 @@ def emit_to_senders_async(
                     )
                     message.actes_ngap = [hprim_acte]
                 
-                # TODO: Add support for UCD and LPP acts when models are ready
-                elif entity_type in ["ucd_act", "lpp_act"]:
-                    logger.warning(f"[HPRIM] {entity_type} emission not yet implemented")
-                    continue
+                elif entity_type == "ucd_act" and isinstance(entity, UCDAct):
+                    quantite = Decimal(str(entity.quantite or 1))
+                    prix_unitaire = Decimal(str(entity.montant_unitaire_facture_ttc or 0))
+                    message.actes_ucd = HprimActeUCD(
+                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"UCD-{entity.id}"),
+                        ucds=[HprimUCD(
+                            code=entity.code_ucd,
+                            designation=entity.denomination_libelle or entity.code_ucd,
+                            quantite=quantite,
+                            prix_unitaire=prix_unitaire,
+                            montant_total=prix_unitaire * quantite,
+                        )],
+                    )
+
+                elif entity_type == "lpp_act" and isinstance(entity, LPPAct):
+                    if not entity.code_lpp:
+                        raise ValueError("Un code LPP est requis pour l'émission HPRIM")
+                    quantite = entity.quantite or 1
+                    prix_unitaire = Decimal(str(entity.montant_unitaire_facture_ttc or 0))
+                    message.actes_lpp = HprimActeLPP(
+                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"LPP-{entity.id}"),
+                        lpps=[HprimLPP(
+                            code=HprimCodeLPP(code=entity.code_lpp),
+                            prix_unitaire=prix_unitaire,
+                            montant_total=prix_unitaire * quantite,
+                            libelle=entity.denomination_libelle,
+                            quantite=quantite,
+                        )],
+                    )
                 
                 # Generate XML
                 hprim_service = HprimXmlService()
@@ -1910,14 +1945,12 @@ def emit_to_senders_async(
                 # Create message log
                 log = MessageLog(
                     endpoint_id=endpoint.id,
-                    direction="outbound",
+                    direction="out",
+                    kind="HPRIM",
+                    message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES.value,
                     status="pending",
                     correlation_id=correlation_id,
                     payload=hprim_xml,
-                    entity_type=entity_type,
-                    entity_id=entity.id,
-                    sent_at=None,
-                    response=None
                 )
                 session.add(log)
                 session.commit()

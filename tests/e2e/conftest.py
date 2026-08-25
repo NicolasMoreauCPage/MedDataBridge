@@ -1,12 +1,17 @@
 # Configuration des Tests E2E pour Phase 5
 
 import pytest
+import pytest_asyncio
 import asyncio
 from playwright.async_api import async_playwright
-from fastapi.testclient import TestClient
 import os
+import socket
+import subprocess
+import sys
 import time
+from pathlib import Path
 from typing import Dict, Any
+from urllib.request import urlopen
 
 
 # Ensure app runs in testing mode
@@ -20,21 +25,89 @@ os.environ.setdefault("TESTING", "1")
 
 
 
-# Note: Use Playwright pytest plugin-provided fixtures (playwright, browser, page, context)
-# to avoid conflicts and ensure correct async fixture behavior.
+# The installed pytest-playwright plugin exposes synchronous fixtures.  The E2E
+# suite itself is asynchronous, therefore it owns an async ``page`` fixture.
 
 # Keep `test_server` fixture to point to local server under test.
 
 
 @pytest.fixture(scope="session")
 def test_server():
-    """Provide test server URL."""
-    return "http://localhost:8000"
+    """Start an isolated application server for browser-based tests.
+
+    Playwright drives a real browser and cannot use FastAPI's in-process
+    ``TestClient``.  The former fixture returned ``localhost:8000`` without
+    starting anything, making E2E results depend on a manually launched server.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+
+    project_root = Path(__file__).resolve().parents[2]
+    environment = os.environ.copy()
+    environment.update({"TESTING": "1", "E2E_TESTING": "1"})
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "app.app:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+            "--log-level",
+            "warning",
+        ],
+        cwd=project_root,
+        env=environment,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    url = f"http://127.0.0.1:{port}"
+    deadline = time.monotonic() + 20
+    try:
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                raise RuntimeError("Le serveur E2E s'est arrêté avant son démarrage")
+            try:
+                with urlopen(f"{url}/health/live", timeout=1) as response:
+                    if response.status == 200:
+                        break
+            except OSError:
+                time.sleep(0.2)
+        else:
+            raise RuntimeError("Délai dépassé lors du démarrage du serveur E2E")
+
+        yield url
+    finally:
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
+async def page(test_server):
+    """Create an asynchronous Chromium page bound to the isolated server."""
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(headless=True)
+        context = await browser.new_context(base_url=test_server)
+        browser_page = await context.new_page()
+        browser_page.set_default_timeout(30_000)
+        browser_page.set_default_navigation_timeout(30_000)
+        try:
+            yield browser_page
+        finally:
+            await context.close()
+            await browser.close()
+
+
+@pytest_asyncio.fixture
 async def authenticated_page(page, test_server):
-    """Use the plugin-provided `page` fixture and ensure the session is ready for protected routes."""
+    """Prime a browser session for routes that may use it."""
     # Ensure timeout/console behavior matches previous expectations
     page.set_default_timeout(30000)
 
@@ -129,7 +202,7 @@ def pytest_configure(config):
 
 
 # Fixtures for specific Phase 5 routes
-@pytest.fixture
+@pytest_asyncio.fixture
 async def design_system_page(authenticated_page, test_server):
     """Navigate to Design System page."""
     await authenticated_page.goto(f"{test_server}/design-system")
@@ -137,7 +210,7 @@ async def design_system_page(authenticated_page, test_server):
     return authenticated_page
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def interactive_structure_page(authenticated_page, test_server):
     """Navigate to Interactive Structure page."""
     await authenticated_page.goto(f"{test_server}/structure/interactive")
@@ -145,7 +218,7 @@ async def interactive_structure_page(authenticated_page, test_server):
     return authenticated_page
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def search_structure_page(authenticated_page, test_server):
     """Navigate to Search Structure page."""
     await authenticated_page.goto(f"{test_server}/structure/search")

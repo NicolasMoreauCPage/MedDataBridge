@@ -315,17 +315,25 @@ def create_app() -> FastAPI:
 
     @app.get("/health/db")
     async def database_health():
-        """Detailed database health check"""
+        """Detailed database health check for the configured SQL backend."""
         try:
-            async with session_factory() as session:
-                result = await session.execute(text("SELECT version()"))
+            # ``session_factory`` returns a synchronous SQLModel session.  The
+            # previous async context manager made this probe fail systematically
+            # (``__aenter__``) on the default SQLite deployment.
+            with session_factory() as session:
+                if engine.dialect.name == "sqlite":
+                    result = session.execute(text("SELECT sqlite_version()"))
+                    database_type = "sqlite"
+                else:
+                    result = session.execute(text("SELECT version()"))
+                    database_type = engine.dialect.name
                 version = result.scalar()
 
             return {
                 "status": "healthy",
-                "database_type": "postgresql",
+                "database_type": database_type,
                 "version": version,
-                "connection_pool": "active"
+                "connection_pool": engine.pool.status(),
             }
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"Database unhealthy: {str(e)}")
@@ -395,7 +403,7 @@ def create_app() -> FastAPI:
     app.include_router(structure.redirect_router)  # Redirections singulier->pluriel (AVANT le router principal)
     app.include_router(structure.api_router)  # Has prefix /api/structure
     app.include_router(structure.router)  # Main structure dashboard at /structure
-    app.include_router(structure_hl7.router)  # Has prefix /structure
+    app.include_router(structure_hl7.router)  # Has prefix /structure (legacy MFN helpers)
     app.include_router(fhir_structure.router)  # Has prefix /fhir
     app.include_router(structure_select.router)  # Has prefix /structure
     print(" - Structure routers mounted")
@@ -617,11 +625,6 @@ def create_app() -> FastAPI:
     app.include_router(cache.router, prefix="/api")
     print(" - Cache router mounted at /api/cache")
     
-    # 7.1. Tasks API
-    from app.routers import tasks as tasks_router
-    app.include_router(tasks_router.router)
-    print(" - Tasks API router mounted at /api/tasks")
-    
     # 8. Import endpoints for test Exemple
     from app.routers import import_examples
     app.include_router(import_examples.router)
@@ -666,17 +669,19 @@ def create_app() -> FastAPI:
     except Exception as e:
         logging.getLogger(__name__).warning(f"Dashboard not available: {e}")
     
-    # 9. Test helpers
+    # 9. Lightweight health/version helpers
     app.include_router(health.router)
-    print(" - Test helpers mounted")
+    print(" - Health/version helpers mounted")
     
-    # 10. Debug endpoints (dev only)
-    try:
-        from app.routers import debug_events
-        app.include_router(debug_events.router)
-        print(" - Debug router mounted at /debug")
-    except Exception as e:
-        logging.getLogger(__name__).warning(f"Debug router not available: {e}")
+    # 10. Debug endpoints: available only in development and tests. They create
+    # durable data and must not be exposed by a normal runtime configuration.
+    if settings.debug or settings.testing:
+        try:
+            from app.routers import debug_events
+            app.include_router(debug_events.router)
+            print(" - Debug router mounted at /debug")
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Debug router not available: {e}")
     
     print("All routes registered.")
     

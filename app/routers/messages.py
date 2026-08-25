@@ -77,7 +77,7 @@ def list_messages(
     date_start: Optional[str] = Query(None),  # "2025-10-01T00:00"
     date_end: Optional[str] = Query(None),    # "2025-10-31T23:59"
     neg_ack_only: bool = Query(False),
-    kind: Optional[str] = Query(None),        # "MLLP" | "FHIR"
+    kind: Optional[str] = Query(None),        # "MLLP" | "FHIR" | "HPRIM"
     direction: Optional[str] = Query(None),   # "in" | "out"
     limit: int = Query(500, ge=1, le=5000),
 ):
@@ -111,7 +111,7 @@ def list_messages(
     if neg_ack_only:
         stmt = stmt.where(col(MessageLog.status).in_(NEG_STATUSES))
 
-    if kind in ("MLLP", "FHIR"):
+    if kind in ("MLLP", "FHIR", "HPRIM"):
         stmt = stmt.where(MessageLog.kind == kind)
     
     if direction in ("in", "out"):
@@ -172,7 +172,7 @@ def list_rejections(
 
     if endpoint_id_int:
         stmt = stmt.where(MessageLog.endpoint_id == endpoint_id_int)
-    if kind in ("MLLP", "FHIR"):
+    if kind in ("MLLP", "FHIR", "HPRIM"):
         stmt = stmt.where(MessageLog.kind == kind)
     if date_start:
         try:

@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-import sys
-import os
-# Ajouter le répertoire racine du projet au chemin
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 """Script principal d'initialisation complète de la base de données.
 
 Usage:
@@ -40,6 +36,7 @@ from subprocess import run, CalledProcessError
 from typing import List, Tuple
 from datetime import datetime, timedelta
 from random import choice
+from sqlalchemy.engine.url import make_url
 
 
 # Imports pour les nouvelles fonctionnalités
@@ -49,14 +46,21 @@ from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_structure import LocationPhysicalType, LocationServiceType
 from app.db import init_db as init_db_schema, engine, get_next_sequence
+from config.settings import settings
 from random import choice
 
 # Import seed helpers from maintenance script
 from scripts.maintenance.init_db import seed_rich, seed_minimal, seed_demo_scenarios, _add_cotations_to_existing_dossiers
 
-DB_PATH = Path("medbridge.db")
+def _sqlite_database_path() -> Path | None:
+    """Return the configured SQLite file, or ``None`` for server databases."""
+    url = make_url(settings.database_url)
+    if url.drivername != "sqlite" or not url.database or url.database == ":memory:":
+        return None
+    return Path(url.database)
 
-DB_PATH = Path("medbridge.db")
+
+DB_PATH = _sqlite_database_path()
 
 
 def extract_hl7_messages(hl7_content: str) -> list:
@@ -193,77 +197,10 @@ def _add_cotations_to_dossier(session: Session, dossier: Dossier, cotation_type:
         session.add(act)
         total_count += 1
     
-    # Mettre à jour les flags
-        scenario_defs = [
-            ("SCENARIO-TRANSFERTS", ["A01", "A02", "A02", "A03"]),
-            ("SCENARIO-ANNULATION", ["A01", "A11", "A01", "A02", "A03"]),
-            ("SCENARIO-TRANSFERT-MULTI", ["A01", "A02", "A02", "A02", "A03"]),
-        ]
-        uf_codes = [uf.identifier for uf in session.exec(select(UniteFonctionnelle)).all()] or ["UF-DEMO-1", "UF-DEMO-2"]
-        for scen_idx, (family_name, triggers) in enumerate(scenario_defs, start=1):
-            patient = Patient(
-                family=family_name,
-                given="Demo",
-                birth_date="1980-01-01",
-                gender="other",
-                city="DemoVille",
-                postal_code="00000",
-                country="FR",
-                identity_reliability_code="VALI",
-                identity_reliability_date="2024-03-01",
-                identity_reliability_source="CNI",
-            )
-            session.add(patient)
-            session.commit()
-            session.refresh(patient)
-            dossier_seq = get_next_sequence(session, "dossier")
-            uf_resp = choice(uf_codes)
-            dossier = Dossier(
-                dossier_seq=dossier_seq,
-                patient_id=patient.id,
-                uf_responsabilite=uf_resp,
-                admit_time=now,
-                dossier_type=DossierType.HOSPITALISE,
-                reason="Scenario démo",
-            )
-            session.add(dossier)
-            session.commit()
-            session.refresh(dossier)
-            venues = []
-            for v in range(1, 3):
-                venue_seq = get_next_sequence(session, "venue")
-                venue = Venue(
-                    venue_seq=venue_seq,
-                    dossier_id=dossier.id,
-                    uf_responsabilite=choice(uf_codes),
-                    start_time=now,
-                    code=f"SC-{scen_idx}-{v}",
-                    label=f"Unité Scénario {v}",
-                    operational_status="active",
-                )
-                session.add(venue)
-                session.commit()
-                session.refresh(venue)
-                venues.append(venue)
-            current_index = 0
-            for step_idx, trig in enumerate(triggers, start=1):
-                if trig == "A02":
-                    current_index = 1 - current_index
-                venue = venues[current_index]
-                mouvement_seq = get_next_sequence(session, "mouvement")
-                mouvement = Mouvement(
-                    mouvement_seq=mouvement_seq,
-                    venue_id=venue.id,
-                    when=now,
-                    location=f"{venue.uf_responsabilite}^BOX-{step_idx}^CH-{step_idx:02d}",
-                    trigger_event=trig,
-                    movement_type="Transfert" if trig == "A02" else ("Annulation" if trig == "A11" else "Admission/Sortie"),
-                    from_location=venues[1 - current_index].uf_responsabilite if trig == "A02" else None,
-                    to_location=venue.uf_responsabilite if trig == "A02" else None,
-                )
-                session.add(mouvement)
-                session.commit()
-        print("✓ Scénarios démo insérés")
+    dossier.has_cotations = total_count > 0
+    dossier.cotations_count = total_count
+    session.add(dossier)
+    return total_count
 
 
 
@@ -742,23 +679,34 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
                        help="Saute l'import des scénarios HL7/HPRIM")
     parser.add_argument("--minimal", action="store_true", 
                        help="Seed minimal : 1 seul patient (au lieu de 120)")
+    # Ces options sont conservées pour rendre effectives les commandes documentées.
+    # Le mode complet les active déjà par défaut ; elles servent donc aussi d'alias
+    # explicites pour les scripts d'exploitation existants.
+    parser.add_argument("--rich", action="store_true", help="Active le seed riche (mode complet par défaut)")
+    parser.add_argument("--with-cotations", action="store_true", help="Ajoute les cotations (mode complet par défaut)")
+    parser.add_argument("--demo-scenarios", action="store_true", help="Ajoute les scénarios démo (mode complet par défaut)")
     
     args = parser.parse_args()
     
     # PAR DÉFAUT : mode FULL (rich + cotations + demo-scenarios)
-    if not args.minimal:
-        args.rich = True
-        args.with_cotations = True
-        args.demo_scenarios = True
-    else:
+    if args.minimal:
+        if args.rich or args.with_cotations or args.demo_scenarios:
+            parser.error("--minimal ne peut pas être combiné avec --rich, --with-cotations ou --demo-scenarios")
         args.rich = False
         args.with_cotations = False
         args.demo_scenarios = False
+    else:
+        args.rich = True
+        args.with_cotations = True
+        args.demo_scenarios = True
 
-    if args.reset and DB_PATH.exists():
-        print("→ Suppression de medbridge.db existante...")
-        DB_PATH.unlink()
-        print("✓ Base supprimée\n")
+    if args.reset:
+        if DB_PATH is None:
+            parser.error("--reset est disponible uniquement avec une base SQLite fichier")
+        if DB_PATH.exists():
+            print(f"→ Suppression de {DB_PATH}...")
+            DB_PATH.unlink()
+            print("✓ Base supprimée\n")
 
     # 1. Schéma (tables)
     print("=" * 60)
@@ -776,11 +724,13 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         # Créer les tables manuellement sans déclencher l'import automatique des templates
         SQLModel.metadata.create_all(engine)
 
-        # Activer WAL pour SQLite
-        import sqlite3
-        conn = sqlite3.connect("medbridge.db")
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.close()
+        # Activer WAL uniquement pour la base SQLite réellement configurée.
+        if DB_PATH is not None:
+            import sqlite3
+            DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.close()
 
         print("✓ Tables créées\n")
     except Exception as e:
@@ -862,7 +812,7 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         print("=" * 60)
         try:
             # Import du script seed_hl7_scenarios.py
-            sys.path.insert(0, str(Path(__file__).parent.parent / "manual"))
+            sys.path.insert(0, str(Path(__file__).parent / "scripts" / "manual"))
             from seed_hl7_scenarios import seed_hl7_scenarios
             seed_hl7_scenarios()
             print("✓ 124 scénarios HL7 IHE PAM importés\n")
@@ -917,20 +867,14 @@ Utilisez les options ci-dessous uniquement pour personnaliser.
         if args.demo_scenarios:
             print("  • Scénarios démo : 3 scénarios complexes (transferts/annulations)")
     if not args.skip_scenarios:
-        # Affichage robuste même si certaines variables ne sont pas définies
-        pam_count_disp = pam_count if 'pam_count' in locals() else '?'
-        hprim_count_disp = hprim_count if 'hprim_count' in locals() else '?'
+        pam_count_disp = pam_count
+        # L'import HPRIM est explicitement désactivé plus haut : ne pas référencer
+        # une variable jamais initialisée dans le résumé.
+        hprim_count = 0
+        hprim_count_disp = hprim_count
         print(f"  • Scénarios HL7 PAM : {pam_count_disp} scénarios IHE PAM importés")
         print(f"  • Scénarios HPRIM : {hprim_count_disp} scénarios importés")
-        try:
-            total = 0
-            if 'pam_count' in locals() and isinstance(pam_count, int):
-                total += pam_count
-            if 'hprim_count' in locals() and isinstance(hprim_count, int):
-                total += hprim_count
-            print(f"  • Total scénarios : {total} scénarios d'intégration")
-        except Exception:
-            print("  • Total scénarios : ? scénarios d'intégration")
+        print(f"  • Total scénarios : {pam_count + hprim_count} scénarios d'intégration")
     else:
         print("  • Scénarios    : sautés (--skip-scenarios)")
     print("\nLe serveur peut être démarré avec:")

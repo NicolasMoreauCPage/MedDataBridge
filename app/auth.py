@@ -40,8 +40,8 @@ def _resolve_jwt_secret() -> str:
     if secret and secret not in insecure_defaults:
         return secret
 
-    testing_env = os.getenv("TESTING", "false").lower() == "true"
-    debug_env = os.getenv("DEBUG", "false").lower() == "true"
+    testing_env = os.getenv("TESTING", "false").strip().lower() in ("1", "true", "yes", "on")
+    debug_env = os.getenv("DEBUG", "false").strip().lower() in ("1", "true", "yes", "on")
     running_under_pytest = "pytest" in sys.modules
 
     if settings.testing or settings.debug or testing_env or debug_env or running_under_pytest:

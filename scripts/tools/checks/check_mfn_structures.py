@@ -8,8 +8,7 @@ from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from sqlmodel import select
 
 def main():
-    with session_factory() as session:
-    
+    session = session_factory()
     # 1. Vérifier le message
     print("=== MESSAGE ===")
     msg = session.exec(
@@ -84,7 +83,7 @@ def main():
         ght = ej.ght_context if ej else None
         print(f"  - {eg.name} (FINESS: {eg.finess}) - EJ: {ej.name if ej else 'None'}, GHT: {ght.name if ght else 'None'}")
     
-    # session closed by contextmanager
+    session.close()
 
 if __name__ == "__main__":
     main()

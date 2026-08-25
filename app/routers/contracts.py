@@ -119,7 +119,9 @@ async def create_contract(
     except ValueError as e:
         # En cas d'erreur de validation, retourner au formulaire avec l'erreur
         dossier = db.get(Dossier, dossier_id)
-        medecins = db.query(Medecin).order_by(Medecin.nom, Medecin.prenom).all()
+        medecins = db.query(MedecinResponsable).order_by(
+            MedecinResponsable.family_name, MedecinResponsable.given_name
+        ).all()
 
         return templates.TemplateResponse("contracts/create_form.html", {
             "request": request,

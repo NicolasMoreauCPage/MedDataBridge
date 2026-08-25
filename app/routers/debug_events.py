@@ -72,8 +72,8 @@ async def entity_events_status(session: Session = Depends(get_session)):
 @router.post("/entity-events/test-create-patient")
 async def test_create_patient(session: Session = Depends(get_session)):
     """Test endpoint: create a patient and check if emission happens."""
+    import asyncio
     import time
-    from datetime import datetime
     
     # Count messages before
     before_count = len(session.exec(select(MessageLog).where(MessageLog.direction == "out")).all())
@@ -91,7 +91,7 @@ async def test_create_patient(session: Session = Depends(get_session)):
     session.commit()
     
     # Wait a bit
-    time.sleep(2)
+    await asyncio.sleep(2)
     
     # Count messages after
     session.expire_all()

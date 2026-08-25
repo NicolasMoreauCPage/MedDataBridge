@@ -103,9 +103,9 @@ def remove_duplicate_address_fields():
         with open("app/models_structure.py", 'w', encoding='utf-8') as f:
             f.write(content)
 
-        print("
-🎉 SUPPRESSION TERMINÉE"        print(f"📊 {total_fields_removed} champs d'adresse supprimés")
-        print("📁 Sauvegarde disponible: app/models_structure.py.backup_address_fields"
+        print("\n🎉 SUPPRESSION TERMINÉE")
+        print(f"📊 {total_fields_removed} champs d'adresse supprimés")
+        print("📁 Sauvegarde disponible: app/models_structure.py.backup_address_fields")
         return True
     else:
         print("\n⚠️ AUCUN CHAMP SUPPRIMÉ")

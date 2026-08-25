@@ -34,6 +34,7 @@ class EndpointRole(str):
 class EndpointKind(str):
     MLLP = "MLLP"
     FHIR = "FHIR"
+    HPRIM = "HPRIM"
     FILE = "FILE"
     FTP = "FTP"
     SFTP = "SFTP"

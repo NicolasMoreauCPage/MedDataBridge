@@ -250,6 +250,38 @@
       </div>
     </details>
 
+    <!-- Section: Contrôle de conformité PAM entrant -->
+    <details class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-rose-50 dark:from-rose-950/30 to-rose-100 dark:to-rose-900/40 px-6 py-4 font-semibold text-slate-800 dark:text-slate-100 hover:from-rose-100 hover:to-rose-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">✓</div>
+        <span class="text-lg">Contrôle IHE PAM France des messages entrants</span>
+      </summary>
+      <div class="p-6 space-y-4">
+        <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-200">
+          Ce contrôle concerne les flux reçus. Le mode <strong>Rejeter</strong> renvoie un ACK AE sur une erreur normative ; activez-le après qualification du correspondant. Les messages sortants non conformes sont toujours bloqués avant transport.
+        </div>
+        <div class="grid gap-5 md:grid-cols-3">
+          <label class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 p-4 cursor-pointer">
+            <input type="checkbox" name="pam_validate_enabled" value="true" {% if e.pam_validate_enabled %}checked{% endif %} class="mt-0.5 form-checkbox h-5 w-5 text-rose-600">
+            <span><span class="block font-medium text-sm">Activer le contrôle</span><span class="block text-xs text-slate-500 dark:text-slate-400 mt-1">Journalise le verdict PAM pour chaque réception.</span></span>
+          </label>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2" for="pam_validate_mode">Politique si erreur</label>
+            <select id="pam_validate_mode" name="pam_validate_mode" class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 px-4 py-2.5 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20">
+              <option value="warn" {% if e.pam_validate_mode != 'reject' %}selected{% endif %}>Avertir et traiter</option>
+              <option value="reject" {% if e.pam_validate_mode == 'reject' %}selected{% endif %}>Rejeter (ACK AE)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2" for="pam_profile">Profil</label>
+            <select id="pam_profile" name="pam_profile" class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 px-4 py-2.5 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20">
+              <option value="IHE_PAM_FR" selected>IHE PAM France 2.11</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <!-- Section: Association d'endpoints (anti-rebond) -->
     <details class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm" open>
       <summary class="cursor-pointer bg-gradient-to-r from-amber-50 dark:from-amber-950/30 to-amber-100 dark:to-amber-900/40 px-6 py-4 font-semibold text-slate-800 dark:text-slate-100 hover:from-amber-100 hover:to-amber-200 transition-colors flex items-center gap-3">

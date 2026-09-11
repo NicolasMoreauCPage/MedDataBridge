@@ -932,11 +932,11 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
             session.commit()
             return ack
     
-    # 2.1. Validation des segments obligatoires selon le profil IHE PAM FR
-    # Messages de mouvement : ZBE obligatoire (sauf A28, A31, A40, A47 qui sont des messages d'identité)
+    # 2.1. Validation des segments obligatoires selon le profil IHE PAM FR.
+    # A44 réattribue un dossier (PID-18/MRG-1) et n'est pas conditionné à ZBE.
     movement_triggers = {"A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08",
                          "A11", "A12", "A13", "A21", "A22", "A23", "A38",
-                         "A44", "A45", "A52", "A53", "A54", "A55"}
+                         "A45", "A52", "A53", "A54", "A55"}
     if strict_ej:
         movement_triggers.discard("A08")
     
@@ -948,8 +948,9 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                 text=f"Segment ZBE obligatoire manquant pour le message ADT^{trigger}. Le profil IHE PAM France requiert le segment ZBE pour tous les messages de mouvement patient."
             )
     
-    # Messages A40 (fusion patients) et A47 (changement identifiant) : MRG obligatoire
-    if trigger in {"A40", "A47"}:
+    # A40/A47 et A44 portent MRG-1 ; A44 l'utilise pour identifier le patient
+    # auquel le dossier était précédemment rattaché.
+    if trigger in {"A40", "A47", "A44"}:
         if not has_segment(msg, "MRG"):
             return build_ack(
                 msg,

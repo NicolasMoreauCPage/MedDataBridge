@@ -20,6 +20,7 @@ from app.services.fhir_resources import generate_fhir_bundle_for_entity
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_validation import validate_pam
+from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
 import json
 
@@ -160,10 +161,11 @@ def build_pid3_identifiers(
         else:
             identifiers.append(f"{external_id_clean}^^^{_auth('EXTERNAL', None)}^PI")
 
-    # 3. NIR (Sécurité sociale) si présent
+    # 3. INS/NIR : l'identifiant national est déclaré avec son autorité et le
+    # type INS (et non NH, réservé à un ancien codage local).
     nir_clean = _c(_get("nir", None))
     if nir_clean:
-        identifiers.append(f"{nir_clean}^^^INS-NIR^NH")
+        identifiers.append(f"{nir_clean}^^^ASIP-SANTE&1.2.250.1.213.1.4.8&ISO^INS")
 
     # 4. Tous les autres identifiants actifs
     already_added_values = set()
@@ -468,16 +470,16 @@ def generate_pam_hl7(
         phones = []
         phone = _c_local(_get("phone", ""))
         if phone:
-            phones.append(f"^PRN^PH^^^^{phone}")
+            phones.append(format_xtn(number=phone, use="PRN", equipment="PH"))
         mobile = _c_local(_get("mobile", ""))
         if mobile:
-            phones.append(f"^ORN^CP^^^^{mobile}")
+            phones.append(format_xtn(number=mobile, use="ORN", equipment="CP"))
         work_phone = _c_local(_get("work_phone", ""))
         if work_phone:
-            phones.append(f"^WPN^PH^^^^{work_phone}")
+            phones.append(format_xtn(number=work_phone, use="WPN", equipment="PH"))
         email = _c_local(_get("email", ""))
         if email:
-            phones.append(f"^NET^Internet^{email}")
+            phones.append(format_xtn(use="NET", equipment="Internet", email=email))
         phone_field = "~".join(phones)
 
         birth_place = _c_local(_get("birth_city", ""))
@@ -587,9 +589,9 @@ def generate_pam_hl7(
             if mrg_prior_name:
                 mrg_fields[7] = _c_local(mrg_prior_name)
             mrg = "|".join(mrg_fields)
-            return "\r".join([msh, evn, pid, mrg])
+            return normalize_generated_message("\r".join([msh, evn, pid, mrg]))
 
-        return "\r".join([msh, evn, pid, pv1])
+        return normalize_generated_message("\r".join([msh, evn, pid, pv1]))
         
     if entity_type == "dossier":
         # ⚠️ IMPORTANT : La création d'un dossier ne génère PAS de message IHE PAM
@@ -678,11 +680,11 @@ def generate_pam_hl7(
             pid_fields[11] = "^".join(addr)
             xtn_parts = []
             if getattr(patient, "phone", None):
-                xtn_parts.append(f"^PRN^PH^^^^{patient.phone}")
+                xtn_parts.append(format_xtn(number=patient.phone, use="PRN", equipment="PH"))
             if getattr(patient, "mobile", None):
-                xtn_parts.append(f"^ORN^CP^^^^{patient.mobile}")
+                xtn_parts.append(format_xtn(number=patient.mobile, use="ORN", equipment="CP"))
             if getattr(patient, "email", None):
-                xtn_parts.append(f"^NET^Internet^{patient.email}")
+                xtn_parts.append(format_xtn(use="NET", equipment="Internet", email=patient.email))
             if xtn_parts:
                 pid_fields[13] = "~".join(xtn_parts)
 
@@ -742,13 +744,13 @@ def generate_pam_hl7(
         from app.services.nature_mapping import derive_nature
         nature = getattr(entity, "nature", None)
         zbe_9 = derive_nature(event_type, nature)
-        valid_natures = {"S", "H", "M", "L", "D", "SM"}
+        valid_natures = {"S", "H", "M", "L", "D", "SM", "SH", "MH", "LD", "HMS", "C"}
         if not zbe_9 or zbe_9 not in valid_natures:
             zbe_9 = "H"  # Default to hospitalisation
         # ZBE for A05 (venue creation): no ZBE-6 for INSERT
         zbe = f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}||{zbe_7}|{zbe_8}|{zbe_9}"
 
-        return "\r".join([msh, evn, pid, pv1, zbe])
+        return normalize_generated_message("\r".join([msh, evn, pid, pv1, zbe]))
     if entity_type == "mouvement":
         # Utiliser le mapping métier <-> HL7 pour déterminer le code HL7 à partir du type métier
         from app.movement_type_mapping import to_standard_movement_code
@@ -814,14 +816,14 @@ def generate_pam_hl7(
                     # Priority 3: Use operation to determine event
                     action = getattr(entity, "action", None)
                     if action == "CANCEL":
-                        # For cancellations, use the appropriate cancel code
                         original_trigger = getattr(entity, "original_trigger", None)
-                        if original_trigger == "A01":
-                            event_code = "A12"  # Cancel Admission
-                        elif original_trigger == "A03":
-                            event_code = "A13"  # Cancel Discharge
-                        else:
-                            event_code = "A12"  # Default to cancel admission
+                        cancel_events = {
+                            "A01": "A11", "A04": "A11", "A03": "A13",
+                            "A02": "A12", "A05": "A38", "A15": "A26",
+                            "A21": "A52", "A22": "A53", "A54": "A55",
+                            "A06": "A07", "A07": "A06",
+                        }
+                        event_code = cancel_events.get(original_trigger, "A12")
                         msg_type = f"ADT^{event_code}"
                     elif operation == "update":
                         event_code = "Z99"  # Generic/Custom event for modifications
@@ -1131,7 +1133,7 @@ def generate_pam_hl7(
         from app.services.nature_mapping import derive_nature
         nature = getattr(entity, "nature", None)
         zbe_9 = derive_nature(event_code, nature)
-        valid_natures = {"S", "H", "M", "L", "D", "SM"}
+        valid_natures = {"S", "H", "M", "L", "D", "SM", "SH", "MH", "LD", "HMS", "C"}
         if not zbe_9 or zbe_9 not in valid_natures:
             zbe_9 = "H"  # Default to hospitalisation
         
@@ -1169,7 +1171,7 @@ def generate_pam_hl7(
         zbe = "|".join(zbe_fields)
         
         # Combine all segments with \r separator (HL7 standard)
-        return "\r".join([msh, evn, pid, pv1, zbe])
+        return normalize_generated_message("\r".join([msh, evn, pid, pv1, zbe]))
     
     return ""
 
@@ -1353,7 +1355,11 @@ def emit_to_senders_async(
                         pam_status = "warn"
                         pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
                     try:
-                        if endpoint.host and endpoint.port:
+                        if pam_status == "fail":
+                            status = "validation_failed"
+                            first_issue = next((issue.message for issue in val.issues if issue.severity == "error"), "Message PAM sortant non conforme")
+                            ack_payload = f"[Emission bloquée : {first_issue}]"
+                        elif endpoint.host and endpoint.port:
                             # call the dynamically imported sender (may be monkeypatched)
                             import time as _time, asyncio as _asyncio, inspect as _inspect
                             _start = _time.time()
@@ -1477,7 +1483,7 @@ def emit_to_senders_async(
                                 os.replace(tmpf, fname)
                         except Exception:
                             logger.exception('Failed to dump outbound MLLP HL7 to /tmp')
-                    if status == "sent":
+                    if status in {"sent", "validation_failed"}:
                         break
                     retry += 1
                     if retry < max_retry:

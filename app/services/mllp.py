@@ -20,6 +20,7 @@ from typing import Callable, Awaitable, List
 from datetime import datetime
 from sqlmodel import Session
 from app.models_endpoints import SystemEndpoint
+from app.services.pam_profile_fr import expected_structure
 
 logger = logging.getLogger("mllp")
 TRACE = os.getenv("MLLP_TRACE", "0") in ("1", "true", "True")
@@ -29,9 +30,29 @@ END_BLOCK = b"\x1c"    # FS
 CARRIAGE_RETURN = b"\x0d"
 
 
+def _hl7_charset(message: str) -> str:
+    """Retourne le codec Python correspondant à MSH-18.
+
+    Le profil France privilégie ``UNICODE UTF-8``. ISO-8859-15 reste pris en
+    charge pour les correspondants historiques ; un MSH-18 absent utilise UTF-8.
+    """
+    msh = next((line for line in message.replace("\n", "\r").split("\r") if line.startswith("MSH|")), "")
+    parts = msh.split("|")
+    declared = (parts[17].strip().upper() if len(parts) > 17 else "")
+    if declared in {"8859/15", "ISO-8859-15", "ISO 8859/15"}:
+        return "iso-8859-15"
+    if declared in {"8859/1", "ISO-8859-1", "ISO 8859/1"}:
+        return "iso-8859-1"
+    return "utf-8"
+
+
 def frame_hl7(message: str) -> bytes:
-    """Encapsule un message HL7 en trame MLLP (VT <msg> FS CR)."""
-    return START_BLOCK + message.encode("utf-8") + END_BLOCK + CARRIAGE_RETURN
+    """Encapsule un message HL7 en trame MLLP (VT <msg> FS CR).
+
+    Les octets transmis sont cohérents avec MSH-18, au lieu d'annoncer un jeu
+    de caractères puis d'envoyer systématiquement de l'UTF-8.
+    """
+    return START_BLOCK + message.encode(_hl7_charset(message)) + END_BLOCK + CARRIAGE_RETURN
 
 def deframe_hl7(stream: bytes) -> List[str]:
     """Extrait les messages HL7 d'un flux de bytes MLLP.
@@ -49,7 +70,10 @@ def deframe_hl7(stream: bytes) -> List[str]:
         if end < 0:
             break
         payload = bytes(buf)[start + 1 : end]
-        msg = payload.decode("utf-8", errors="replace")
+        # MSH est ASCII ; un premier décodage latin-1 permet de lire MSH-18 sans
+        # perdre d'octet, puis le contenu est décodé avec le codec annoncé.
+        probe = payload.decode("latin-1", errors="replace")
+        msg = payload.decode(_hl7_charset(probe), errors="replace")
         cr = bytes(buf).find(CARRIAGE_RETURN, end + 1)
         buf = buf[cr + 1:] if cr >= 0 else buf[end + 1:]
         msgs.append(msg)
@@ -83,15 +107,20 @@ def parse_msh_fields(message: str) -> dict:
         "control_id": parts[9] if len(parts) > 9 else "",
         "processing_id": parts[10] if len(parts) > 10 else "P",
         "version": parts[11] if len(parts) > 11 else "2.5",
+        "country_code": parts[16] if len(parts) > 16 else "",
+        "charset": parts[17] if len(parts) > 17 else "",
     }
 
 def build_ack(original: str, ack_code: str = "AA", text: str = "") -> str:
     """Construit un ACK HL7 (MSH+MSA et ERR si AE/AR) en réponse à `original`."""
     f = parse_msh_fields(original)
     now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    msh9 = f"ACK^{f['trigger']}" if f["trigger"] else "ACK"
+    structure = expected_structure(f["trigger"])
+    msh9 = f"ACK^{f['trigger']}^{structure}" if f["trigger"] and structure else (f"ACK^{f['trigger']}" if f["trigger"] else "ACK")
+    country_code = f["country_code"] or "FRA"
+    charset = f["charset"] or "UNICODE UTF-8"
     msh = (
-        "MSH|{enc}|{send_app}|{send_fac}|{recv_app}|{recv_fac}|{ts}||{msh9}|ACK{ts}|{proc}|{ver}"
+        "MSH|{enc}|{send_app}|{send_fac}|{recv_app}|{recv_fac}|{ts}||{msh9}|ACK{ts}|{proc}|{ver}|||||{country}|{charset}"
         .format(
             enc=f["enc"],
             send_app=f["receiving_app"],
@@ -102,6 +131,8 @@ def build_ack(original: str, ack_code: str = "AA", text: str = "") -> str:
             msh9=msh9,
             proc=f["processing_id"],
             ver=f["version"],
+            country=country_code,
+            charset=charset,
         )
     )
     msa = f"MSA|{ack_code}|{f['control_id']}|{text or ''}"

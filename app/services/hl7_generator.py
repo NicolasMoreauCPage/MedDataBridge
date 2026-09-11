@@ -32,6 +32,7 @@ from app.models_shared import SystemEndpoint
 from app.models_identifiers import Identifier
 from app.models_structure import IdentifierNamespace
 from sqlmodel import Session, select
+from app.services.pam_profile_fr import normalize_generated_message
 
 
 def format_datetime(dt: Optional[datetime] = None) -> str:
@@ -643,7 +644,7 @@ def generate_adt_message(
         for vc in venue_contacts:
             segments.append(build_nk1_segment_venue(vc))
 
-    return "\r".join(segments)
+    return normalize_generated_message("\r".join(segments))
 
 
 def generate_admission_message(

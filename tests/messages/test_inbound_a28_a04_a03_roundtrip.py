@@ -36,7 +36,7 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
     # Messages: A28 (create identity), A04 (admission), A03 (discharge) provided by user
     # PID-5 requires XPN-7 (Name Type Code): L=Legal, D=Usage, U=Unspecified
     a28 = (
-        "MSH|^~\\&|SRC-PAM|SRC|MEDBRIDGE|POC|20251101010101||ADT^A28|MSG-A28|P|2.5\r"
+            "MSH|^~\\&|SRC-PAM|SRC|MEDBRIDGE|POC|20251101010101||ADT^A28^ADT_A05|MSG-A28|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8\r"
         "EVN|A28|20251101010101\r"
         "PID|||SRC12345^^^SRC-PAM&1.2.250.1.211.99.1&ISO^PI||DOE^JOHN^^^^^L||19800101|M||||||||||||||||||||||||VALI\r"
     )
@@ -146,20 +146,19 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
         #   to either fail under strict mode or be reported as a warning when
         #   production tokens are tolerated.
         assert val1.is_valid is True
-        # ZBE-9 validation was relaxed to a warning for some production tokens.
-        # Accept either an error (is_valid==False) or a warning-level result.
+        # Les échantillons CPage utilisent HMS : cette nature de venue est
+        # bien définie par le profil national. D'autres écarts de l'échantillon
+        # (notamment ZBE-8 conditionnel) peuvent toutefois rester signalés.
         assert (val2.is_valid is False) or (val2.level == 'warn')
         assert (val3.is_valid is False) or (val3.level == 'warn')
 
-        # Check that either ZBE9_INVALID (strict) or ZBE9_NONSTANDARD_COMPOSITE
-        # (production token tolerated) appears in the issue codes.
         def issue_codes(validation):
             return {i.code for i in validation.issues}
 
         codes2 = issue_codes(val2)
         codes3 = issue_codes(val3)
-        assert ('ZBE9_INVALID' in codes2) or ('ZBE9_NONSTANDARD_COMPOSITE' in codes2), f'A04 should report ZBE9_INVALID or ZBE9_NONSTANDARD_COMPOSITE, got {codes2}'
-        assert ('ZBE9_INVALID' in codes3) or ('ZBE9_NONSTANDARD_COMPOSITE' in codes3), f'A03 should report ZBE9_INVALID or ZBE9_NONSTANDARD_COMPOSITE, got {codes3}'
+        assert 'ZBE9_INVALID' not in codes2, f'A04 must accept the national ZBE-9 value HMS, got {codes2}'
+        assert 'ZBE9_INVALID' not in codes3, f'A03 must accept the national ZBE-9 value HMS, got {codes3}'
 
         # For the scenario validator, we expect workflow errors because A28 is not an initial event
         # and the transitions A28->A04 and A04->A03 are flagged invalid for this ordered set.

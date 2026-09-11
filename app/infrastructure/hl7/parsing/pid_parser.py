@@ -210,10 +210,15 @@ def parse_pid(message: str) -> dict:
             all_phones = []
             for phone_rep in phone_repetitions:
                 phone_parts = phone_rep.split("^")
+                # HL7 v2.5 XTN : use=XTN-2, equipment=XTN-3, e-mail=XTN-4,
+                # numéro non formaté=XTN-12. XTN-1 reste toléré pour les flux
+                # historiques. L'ancien parseur inversait ces composants.
+                number = phone_parts[11] if len(phone_parts) > 11 and phone_parts[11] else (phone_parts[0] if phone_parts else None)
                 phone_data = {
-                    "number": phone_parts[0] if len(phone_parts) > 0 else None,
-                    "type": phone_parts[2] if len(phone_parts) > 2 else None,  # PRN=primary, ORN=other
-                    "use": phone_parts[1] if len(phone_parts) > 1 else None   # HOME, WORK, CELL
+                    "number": number,
+                    "use": phone_parts[1] if len(phone_parts) > 1 else None,
+                    "type": phone_parts[2] if len(phone_parts) > 2 else None,
+                    "email": phone_parts[3] if len(phone_parts) > 3 and phone_parts[1:2] == ["NET"] else None,
                 }
                 all_phones.append(phone_data)
             
@@ -222,13 +227,14 @@ def parse_pid(message: str) -> dict:
             
             # For compatibility, keep first phone in simple field
             if all_phones:
-                out["phone"] = all_phones[0]["number"]
+                out["phone"] = next((item["number"] for item in all_phones if item.get("number")), None)
+                out["email"] = next((item["email"] for item in all_phones if item.get("email")), None)
                 
                 # Store additional phones in dedicated fields
                 for phone_data in all_phones[1:]:
-                    if phone_data.get("use") == "CELL" or phone_data.get("type") == "CP":
+                    if phone_data.get("use") in {"ORN", "PRS"} or phone_data.get("type") == "CP":
                         out["mobile"] = phone_data["number"]
-                    elif phone_data.get("use") == "WORK" or phone_data.get("type") == "WP":
+                    elif phone_data.get("use") == "WPN" or phone_data.get("type") == "WP":
                         out["work_phone"] = phone_data["number"]
             
         # Marital status (PID-16)

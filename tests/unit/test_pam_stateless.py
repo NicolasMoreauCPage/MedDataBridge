@@ -59,7 +59,7 @@ def test_a40_requires_mrg_segment():
     assert not res.is_valid
 
 
-def test_rejects_forbidden_clinical_segments():
+def test_allows_obx_when_profile_structure_permits_it():
     msh = _base_msh("A01")
     pid = "PID|1|12345||DOE^JOHN||19700101||||||||+33123456789"
     pv1 = "PV1|1|I|WARD^101^A1^^O|3|||||||||||||||||||||VIS001"
@@ -69,7 +69,7 @@ def test_rejects_forbidden_clinical_segments():
 
     res = validate_pam(msg)
     codes = {i.code for i in res.issues}
-    assert "OBX_FORBIDDEN" in codes
+    assert "OBX_FORBIDDEN" not in codes
     assert not res.is_valid
 
 

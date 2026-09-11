@@ -283,6 +283,9 @@ def create_endpoint(
     emit_hprim_ngap: bool = Form(False),
     emit_hprim_ucd: bool = Form(False),
     emit_hprim_lpp: bool = Form(False),
+    pam_validate_enabled: bool = Form(False),
+    pam_validate_mode: str = Form("warn"),
+    pam_profile: str = Form("IHE_PAM_FR"),
     linked_endpoint_id: str = Form(None),
     session=Depends(get_session),
 ):
@@ -361,7 +364,10 @@ def create_endpoint(
         emit_hprim_ccam=bool(emit_hprim_ccam),
         emit_hprim_ngap=bool(emit_hprim_ngap),
         emit_hprim_ucd=bool(emit_hprim_ucd),
-        emit_hprim_lpp=bool(emit_hprim_lpp)
+        emit_hprim_lpp=bool(emit_hprim_lpp),
+        pam_validate_enabled=bool(pam_validate_enabled),
+        pam_validate_mode="reject" if pam_validate_mode == "reject" else "warn",
+        pam_profile="IHE_PAM_FR" if pam_profile != "IHE_PAM_FR" else pam_profile,
     )
     # linked endpoint (anti-rebond)
     if linked_endpoint_id and str(linked_endpoint_id).strip():
@@ -453,6 +459,9 @@ def update_endpoint(
     emit_hprim_ngap: bool = Form(False),
     emit_hprim_ucd: bool = Form(False),
     emit_hprim_lpp: bool = Form(False),
+    pam_validate_enabled: bool = Form(False),
+    pam_validate_mode: str = Form("warn"),
+    pam_profile: str = Form("IHE_PAM_FR"),
     session=Depends(get_session),
 ):
     e = session.get(SystemEndpoint, endpoint_id)
@@ -529,6 +538,9 @@ def update_endpoint(
     e.emit_hprim_ngap = bool(emit_hprim_ngap)
     e.emit_hprim_ucd = bool(emit_hprim_ucd)
     e.emit_hprim_lpp = bool(emit_hprim_lpp)
+    e.pam_validate_enabled = bool(pam_validate_enabled)
+    e.pam_validate_mode = "reject" if pam_validate_mode == "reject" else "warn"
+    e.pam_profile = "IHE_PAM_FR" if pam_profile != "IHE_PAM_FR" else pam_profile
     e.updated_at = datetime.now(timezone.utc)
 
     session.add(e); session.commit()

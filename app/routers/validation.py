@@ -47,10 +47,11 @@ def detect_message_format(content: str) -> str:
 async def validation_page(request: Request):
     """Page de validation de messages HL7."""
     # Message exemple par défaut
-    example_message = """MSH|^~\\&|SENDING_APP|SEND_FAC|RECEIVING_APP|RECV_FAC|20251105120000||ADT^A01^ADT_A01|MSG001|P|2.5
+    example_message = """MSH|^~\\&|SENDING_APP|SEND_FAC|RECEIVING_APP|RECV_FAC|20251105120000||ADT^A01^ADT_A01|MSG001|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8
 EVN|A01|20251105120000
-PID|1||123456^^^HOSP||DUPONT^JEAN||19800101|M
-PV1|1|I|CARDIO^101^1|||||||||||||||||1"""
+PID|1||123456^^^HOSP^PI||DUPONT^JEAN||19800101|M||||||||||||||||||||||||VALI
+PV1|1|I|CARDIO^101^1||||||||||||||||1
+ZBE|MVT001^HOSP^1.2.250.1.1^ISO|20251105120000||INSERT|N|||^^^^^^^^^UF01|H"""
     
     return get_templates_with_filters(request).TemplateResponse(request, "validation.html", {
         "title": "Validation Messages HL7 v2.5",

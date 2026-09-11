@@ -1829,7 +1829,7 @@ async def handle_transfer_message(
 
 
 # -------------------------------------------------------------
-# HANDLER POUR LES CORRECTIONS DE MOUVEMENT (A44, A45)
+# HANDLERS A44/A45
 # -------------------------------------------------------------
 async def handle_move_account_message(
     session: Session,
@@ -1839,15 +1839,12 @@ async def handle_move_account_message(
     message: Optional[str] = None,
     ej_id: Optional[int] = None
 ) -> Tuple[bool, Optional[str]]:
-    """
-    Traitement de A44 (Déplacement compte) : IHE PAM France utilise A44 pour corriger les
-    métadonnées (UF médicale/de soins, nature) d'un mouvement déjà enregistré, sans changer
-    la localisation physique du patient ni créer de nouveau mouvement — c'est une correction
-    en place, cohérente avec le fait que la machine à états (state_transitions.py) autorise A44
-    depuis quasiment n'importe quel état sans changer l'état courant.
+    """Réattribue le dossier administratif d'un patient à un autre (ADT^A44).
 
-    ZBE-1 identifie le mouvement à corriger (même identifiant que le mouvement original,
-    contrairement à A02 qui crée un nouveau mouvement).
+    PID-3 identifie le nouveau patient, PID-18 le dossier administratif et
+    MRG-1 l'ancien patient. ZBE peut être présent suivant le correspondant,
+    mais n'est pas la clé de la réattribution et ne doit pas être exigé pour
+    accepter les messages CPage minimaux.
 
     Args:
         session: Session DB
@@ -1863,29 +1860,53 @@ async def handle_move_account_message(
     try:
         logger.info(f"[pam][move_account] Processing {trigger} message")
 
-        zbe_data = _parse_zbe_segment(message) if message else {}
-        if not zbe_data:
-            return False, f"Segment ZBE obligatoire manquant pour {trigger}"
+        from app.services.patient_merge import _find_patient_by_identifiers, _parse_mrg_segment
 
-        movement_id = zbe_data.get("movement_id")
-        if not movement_id:
-            return False, "ZBE-1 (movement_id) requis pour correction A44"
+        if not message:
+            return False, "Message complet requis pour A44"
+        mrg_data = _parse_mrg_segment(message)
+        if not mrg_data or not mrg_data.get("identifiers"):
+            return False, "MRG-1 (ancien identifiant patient) est requis pour A44"
 
-        mouvement = _find_mouvement_by_movement_id(session, movement_id)
-        if not mouvement:
-            return False, f"Mouvement {movement_id} introuvable pour correction A44"
+        target_identifiers = [cx for cx, _type in (pid_data.get("identifiers") or [])]
+        target_patient = _find_patient_by_identifiers(session, target_identifiers)
+        if not target_patient:
+            target_identifier = pid_data.get("external_id") or (target_identifiers[0].split("^")[0] if target_identifiers else None)
+            if not target_identifier:
+                return False, "PID-3 (nouvel identifiant patient) est requis pour A44"
+            target_patient = Patient(
+                identifier=target_identifier,
+                family=pid_data.get("family") or "",
+                given=pid_data.get("given") or "",
+                gender=pid_data.get("gender") or "unknown",
+            )
+            session.add(target_patient)
+            session.flush()
 
-        # Correction des métadonnées UF/nature portées par ZBE, sans changer la localisation
-        if zbe_data.get("uf_medicale"):
-            mouvement.uf_responsabilite = zbe_data["uf_medicale"]
-        if zbe_data.get("uf_soins"):
-            mouvement.uf_soins_code = zbe_data["uf_soins"]
-        if zbe_data.get("nature"):
-            mouvement.nature = zbe_data["nature"]
+        source_patient = _find_patient_by_identifiers(session, mrg_data["identifiers"])
+        if not source_patient:
+            return False, "Patient source introuvable avec MRG-1 pour A44"
+        if source_patient.id == target_patient.id:
+            return False, "A44 invalide : le patient source et le nouveau patient sont identiques"
 
-        session.add(mouvement)
+        account = pid_data.get("account_number")
+        account_value = account.split("^")[0] if account else ""
+        if not account_value:
+            return False, "PID-18 (numéro de dossier administratif) est requis pour A44"
+        try:
+            dossier_seq = int(account_value)
+        except (TypeError, ValueError):
+            return False, f"PID-18 non exploitable comme numéro de dossier: {account_value}"
+        dossier = session.exec(select(Dossier).where(Dossier.dossier_seq == dossier_seq)).first()
+        if not dossier:
+            return False, f"Dossier administratif {account_value} introuvable pour A44"
+        if dossier.patient_id != source_patient.id:
+            return False, "A44 incohérent : PID-18 n'est pas rattaché au patient indiqué dans MRG-1"
+
+        dossier.patient_id = target_patient.id
+        session.add(dossier)
         session.flush()
-        logger.info(f"[pam][move_account] Corrected movement {movement_id} (mouvement_seq)")
+        logger.info("[pam][move_account] Dossier %s reassigned from patient %s to %s", dossier_seq, source_patient.id, target_patient.id)
         return True, None
 
     except Exception as e:

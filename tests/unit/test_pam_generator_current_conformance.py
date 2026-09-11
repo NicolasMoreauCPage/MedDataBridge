@@ -15,8 +15,15 @@ class _Fake:
         self.__dict__.update(kw)
 
 
-@pytest.mark.parametrize("trigger", ["A01", "A02", "A03", "A04", "A05", "A06", "A13", "A28", "A31"])
-def test_msh9_has_exactly_two_components(trigger):
+@pytest.mark.parametrize(
+    ("trigger", "structure"),
+    [
+        ("A01", "ADT_A01"), ("A02", "ADT_A02"), ("A03", "ADT_A03"),
+        ("A04", "ADT_A01"), ("A05", "ADT_A05"), ("A06", "ADT_A06"),
+        ("A13", "ADT_A01"), ("A28", "ADT_A05"), ("A31", "ADT_A05"),
+    ],
+)
+def test_msh9_has_profile_message_structure(trigger, structure):
     patient = _Fake(identifier="IPP1", family="DOE", given="JOHN", birth_date="1980-01-01", gender="M")
     dossier = _Fake(uf_responsabilite="UF1")
     venue = _Fake(code="W1", uf_responsabilite="UF1")
@@ -25,4 +32,4 @@ def test_msh9_has_exactly_two_components(trigger):
     msg = build_message_for_movement(dossier=dossier, venue=venue, movement=movement, patient=patient)
     msh = msg.split("\r")[0]
     msh9 = msh.split("|")[8]
-    assert msh9 == f"ADT^{trigger}", f"MSH-9 malformed for trigger {trigger}: {msh9}"
+    assert msh9 == f"ADT^{trigger}^{structure}", f"MSH-9 malformed for trigger {trigger}: {msh9}"

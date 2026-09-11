@@ -62,7 +62,7 @@ def parse_zbe(message: str) -> dict:
     - ZBE-6: Original trigger (required if UPDATE/CANCEL)
     - ZBE-7: UF médicale (XON) -> label (comp1), code (comp10)
     - ZBE-8: UF soins (XON)
-    - ZBE-9: Nature code (S,H,M,L,D,SM)
+    - ZBE-9: Nature code (table nationale IHE France)
     """
     out = {
         "movement_id": None,
@@ -123,7 +123,7 @@ def parse_zbe(message: str) -> dict:
         # ZBE-9 Nature
         if len(parts) > 9 and parts[9]:
             nature = parts[9].strip().upper()
-            if nature in {"S", "H", "M", "L", "D", "SM"}:
+            if nature in {"S", "H", "M", "L", "D", "SM", "SH", "MH", "LD", "HMS", "C"}:
                 out["nature"] = nature
     except Exception as e:
         logger.error(f"Error parsing ZBE segment: {str(e)}")

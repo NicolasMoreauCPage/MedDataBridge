@@ -11,6 +11,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from app.services.pam_profile_fr import normalize_generated_message
+
 
 def _format_ts(value: datetime | None) -> str:
     if not value:
@@ -137,9 +139,8 @@ def build_message_for_movement(
     else:
         zbe_1 = str(movement_id)
     zbe_2 = when or ''
-    zbe_3 = getattr(movement, 'end_period', '') or ''
-    if zbe_3 and hasattr(zbe_3, 'strftime'):
-        zbe_3 = zbe_3.strftime('%Y%m%d%H%M%S')
+    # ZBE-3 est interdit par l'extension nationale IHE PAM France.
+    zbe_3 = ''
     zbe_4 = getattr(movement, 'action_code', 'INSERT') or 'INSERT'
     zbe_5 = getattr(movement, 'historic_indicator', 'N') or 'N'
     zbe_6 = getattr(movement, 'origin_event_code', '') or ''
@@ -182,5 +183,4 @@ def build_message_for_movement(
         segments.append(nk1)
     if pd1:
         segments.append(pd1)
-    return "\r".join(segments)
-
+    return normalize_generated_message("\r".join(segments))

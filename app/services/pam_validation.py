@@ -43,6 +43,19 @@ import os  # needed for EXTENDED_MODE env flag
 
 from app.services.mllp import parse_msh_fields
 from app.models_vocabulary import VocabularySystem, VocabularyValue
+from app.services.pam_profile_fr import (
+    ALLOWED_SEGMENTS,
+    EVN_OPTIONAL_EVENTS,
+    IDENTITY_EVENTS,
+    MESSAGE_STRUCTURES,
+    MERGE_EVENTS,
+    MOVEMENT_EVENTS,
+    PID32_CODES,
+    ZBE9_C_ORIGINAL_EVENTS,
+    ZBE9_NATURES,
+    ZBE_FREE_EVENTS,
+    expected_structure,
+)
 from sqlmodel import select
 
 # Import only for type checking to avoid circular imports
@@ -50,44 +63,30 @@ if TYPE_CHECKING:
     from app.models import Mouvement
 
 
-# Mapping des segments attendus par trigger (basé sur les structures HAPI)
-# Format: trigger -> {"required": [segments], "optional": [segments]}
-# "required" = segment obligatoire (true, false dans HAPI)
-# "optional" = segment optionnel (false, false ou false, true dans HAPI)
+# Mapping des segments attendus par trigger du profil IHE PAM France.
+# Les listes optionnelles ne sont pas exhaustives : elles servent à l'information
+# et à l'ordre, jamais à interdire les segments HL7 v2.5 prévus par le profil.
 EXTENDED_MODE = os.getenv("ENABLE_PAM_EXT", "0") in {"1", "true", "True"}
 
 SEGMENT_RULES = {
-    # Séjour / venue events (IHE PAM minimal): MSH EVN PID PV1; optional PD1 NK1 PV2
-    "A01": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A03": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A04": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A05": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A06": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A07": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A08": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A11": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "Z99": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A12": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A13": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A21": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A22": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A23": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A52": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    "A53": {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2"]},
-    # Identité: PV1 optionnel; MRG pour fusion
-    "A28": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "PV1", "PV2"]},
-    "A31": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "PV1", "PV2"]},
-    "A40": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "NK1", "MRG"]},
-    "A47": {"required": ["MSH", "EVN", "PID"], "optional": ["PD1", "MRG"]},
+    **{
+        event: {"required": ["MSH", "EVN", "PID", "PV1"], "optional": ["PD1", "NK1", "PV2", "ROL", "ACC", "OBX", "IN1", "IN2", "IN3", "GT1", "ZFA", "ZFP", "ZFV", "ZFM", "ZFD", "ZFS", "ZBE"]}
+        for event in MOVEMENT_EVENTS
+        if event != "A44"
+    },
+    "A28": {"required": ["MSH", "PID"], "optional": ["EVN", "PD1", "NK1", "PV1", "PV2", "ROL", "ZFA", "ZFP", "ZFD"]},
+    "A31": {"required": ["MSH", "PID"], "optional": ["EVN", "PD1", "NK1", "PV1", "PV2", "ROL", "ZFA", "ZFP", "ZFD"]},
+    "A40": {"required": ["MSH", "PID", "MRG"], "optional": ["EVN", "PD1", "NK1", "ROL", "ZFA", "ZFP", "ZFD"]},
+    "A47": {"required": ["MSH", "PID", "MRG"], "optional": ["EVN", "PD1", "ROL", "ZFA", "ZFP", "ZFD"]},
+    "A44": {"required": ["MSH", "EVN", "PID", "MRG"], "optional": ["PD1", "PV1", "PV2", "ROL", "ZFA", "ZFP", "ZFD"]},
 }
 
 # Events that are identity-only in IHE PAM; PV1 is optional
-IDENTITY_ONLY = {"A28", "A31", "A40", "A47"}
+IDENTITY_ONLY = set(IDENTITY_EVENTS)
 
 # Events which normally require a PV1 (visit context)
 REQUIRE_PV1 = {
-    "A01", "A03", "A04", "A05", "A06", "A07", "A11",
-    "A12", "A13", "A21", "A22", "A23", "A52", "A53"
+    event for event in MOVEMENT_EVENTS if event != "A44"
 }
 import os as _os
 if _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}:
@@ -127,10 +126,10 @@ SEGMENT_ORDER = {
     "A47": ["MSH", "EVN", "PID", "PD1", "MRG"],
 }
 
-# Segments explicitement exclus du profil IHE PAM FR (hors extensions locales)
-FORBIDDEN_PAM_SEGMENTS = {
-    "AL1", "DG1", "OBX", "DRG", "GT1", "ACC", "UB1", "UB2", "PDA", "DB1"
-}
+# Aucun segment HL7 v2.5 standard n'est interdit globalement : son autorisation
+# dépend de l'événement et de sa cardinalité. Les champs interdits sont contrôlés
+# à leur emplacement (PID-19, ZBE-3, ZFV-3, ...).
+FORBIDDEN_PAM_SEGMENTS: Set[str] = set()
 
 
 def load_custom_segment_rules(file_path: str | None = None) -> None:
@@ -452,7 +451,7 @@ def _validate_xtn_telecom(xtn: str, field_name: str, issues: List[ValidationIssu
                     f"{field_name}: XTN-2 Use Code '{use_code}' not in HL7 Table 0201",
                     severity="error"
                 ))
-        else:
+        elif pv1_2:
             # non-PID13 fields: warn when not in permissive set
             if not is_pid13 and use_code not in valid_uses:
                 issues.append(ValidationIssue(
@@ -534,6 +533,15 @@ def _validate_ts_timestamp(ts: str, field_name: str, issues: List[ValidationIssu
         ))
         return
     
+    # Les précisions HL7 autorisées vont de l'année à la seconde, par paires.
+    if len(ts_core) not in {4, 6, 8, 10, 12, 14}:
+        issues.append(ValidationIssue(
+            f"{field_name}_TS_PRECISION_INVALID",
+            f"{field_name}: précision TS invalide ({len(ts_core)} chiffres)",
+            severity="error",
+        ))
+        return
+
     # Valider les valeurs selon la longueur
     year = ts_core[:4]
     if len(ts_core) >= 6:
@@ -579,6 +587,20 @@ def _validate_ts_timestamp(ts: str, field_name: str, issues: List[ValidationIssu
                 f"{field_name}_TS_SECOND_INVALID",
                 f"{field_name}: TS second '{second}' not in 00-59",
                 severity="error"
+            ))
+
+    # Le contrôle numérique 01..31 ne suffit pas (ex. 31 février). Construire
+    # la partie renseignée avec datetime donne une validation calendrier réelle.
+    if len(ts_core) >= 8:
+        try:
+            from datetime import datetime
+            padded = ts_core.ljust(14, "0")
+            datetime.strptime(padded, "%Y%m%d%H%M%S")
+        except ValueError:
+            issues.append(ValidationIssue(
+                f"{field_name}_TS_CALENDAR_INVALID",
+                f"{field_name}: date/heure calendrier impossible: {ts}",
+                severity="error",
             ))
 
 
@@ -697,7 +719,7 @@ def validate_pam(
     msg_type = f"{msh.get('type','')}^{msh.get('trigger','')}".strip("^")
     trigger = msh.get("trigger") or ""
 
-    if (msh.get("type") or "").upper() == "ADT" and trigger not in SEGMENT_RULES:
+    if (msh.get("type") or "").upper() == "ADT" and trigger not in MESSAGE_STRUCTURES:
         issues.append(ValidationIssue(
             "TRIGGER_UNSUPPORTED",
             f"Trigger ADT^{trigger} non supporte par le profil IHE PAM FR",
@@ -722,6 +744,18 @@ def validate_pam(
         msg_type_field = _field(msh_parts, 8) if len(msh_parts) > 8 else ""
         if not msg_type_field or "^" not in msg_type_field:
             issues.append(ValidationIssue("MSH9_FORMAT", "MSH-9 (Message Type) must be in format type^trigger[^structure]", severity="error"))
+        else:
+            components = msg_type_field.split("^")
+            if components[0].upper() != "ADT":
+                issues.append(ValidationIssue("MSH9_TYPE_INVALID", f"MSH-9.1 doit être ADT, reçu: {components[0]}", severity="error"))
+            expected = expected_structure(trigger)
+            structure = components[2] if len(components) > 2 else ""
+            if expected and structure != expected:
+                issues.append(ValidationIssue(
+                    "MSH9_STRUCTURE_INVALID",
+                    f"MSH-9.3 doit être {expected} pour ADT^{trigger}, reçu: {structure or '(absent)'}",
+                    severity="error",
+                ))
         
         # MSH-10 (Message Control ID) non vide
         control_id = _field(msh_parts, 9) if len(msh_parts) > 9 else ""
@@ -733,14 +767,25 @@ def validate_pam(
         if proc_id and proc_id not in ("P", "D", "T"):
             issues.append(ValidationIssue("MSH11_INVALID", f"MSH-11 (Processing ID) '{proc_id}' not in (P, D, T)", severity="warn"))
         
-        # MSH-12 (Version ID) présent
+        # MSH-12 : HL7 2.5 et annexe française. CPage 2.10 reste accepté
+        # avec avertissement pour permettre une migration sans faux rejet.
         version = _field(msh_parts, 11) if len(msh_parts) > 11 else ""
         if not version:
-            issues.append(ValidationIssue("MSH12_MISSING", "MSH-12 (Version ID) is recommended", severity="info"))
+            issues.append(ValidationIssue("MSH12_MISSING", "MSH-12 (Version ID) est requis", severity="error"))
+        elif not version.startswith("2.5^FRA"):
+            issues.append(ValidationIssue("MSH12_INVALID", f"MSH-12 doit annoncer HL7 2.5 France, reçu: {version}", severity="error"))
+        elif version not in {"2.5^FRA^2.11", "2.5^FRA^2.11.1"}:
+            issues.append(ValidationIssue("MSH12_PROFILE_LEGACY", f"Profil PAM France historique reçu: {version}", severity="warn"))
+
+        charset = _field(msh_parts, 17) if len(msh_parts) > 17 else ""
+        if charset and charset.upper() in {"8859/1", "ISO-8859-1", "ISO 8859/1"}:
+            issues.append(ValidationIssue("MSH18_LEGACY", "MSH-18=8859/1 est toléré pour CPage historique ; préférer UNICODE UTF-8 ou 8859/15", severity="warn"))
+        elif charset and charset.upper() not in {"UNICODE UTF-8", "8859/15", "ISO-8859-15"}:
+            issues.append(ValidationIssue("MSH18_INVALID", f"MSH-18 non supporté par le profil France: {charset}", severity="error"))
 
     # EVN presence and consistency
     evn = _get_first_segment(msg, "EVN")
-    if not evn:
+    if not evn and trigger not in EVN_OPTIONAL_EVENTS:
         issues.append(ValidationIssue("EVN_MISSING", "EVN segment is required"))
     else:
         evn_parts = evn.split("|")
@@ -829,19 +874,19 @@ def validate_pam(
         pid18 = _field(pid_parts, 18)
         if pid18:
             _validate_cx_identifier(pid18, "PID18", issues)
-        # PID-32 (Statut identité, RNIV)
+        # PID-19 est interdit par l'extension nationale PAM France.
+        if _field(pid_parts, 19):
+            issues.append(ValidationIssue("PID19_FORBIDDEN", "PID-19 est interdit par le profil IHE PAM France", severity="error"))
+        # PID-32 (Statut identité, RNIV) est répétable.
         pid32 = _field(pid_parts, 32)
-        _validate_code_with_vocab(
-            pid32,
-            "PID32",
-            issues,
-            session=session if 'session' in locals() else None,
-            vocab_names=["semantic-identity-reliability"],
-            fallback={"VIDE", "PROV", "VALI", "DOUTE", "FICTI", "QUAL", "DOUB"},
-            severity="error",
-            required=strict_inbound,
-            msg=f"PID-32 (Statut identité) doit être une valeur du vocabulaire sémantique, reçu: {pid32}"
-        )
+        if not pid32:
+            if strict_inbound:
+                issues.append(ValidationIssue("PID32_MISSING", "PID-32 (statut identité) est requis", severity="error"))
+        else:
+            for idx, value in enumerate(pid32.split("~")):
+                code = value.split("^")[0].strip().upper()
+                if code not in PID32_CODES:
+                    issues.append(ValidationIssue("PID32_INVALID", f"PID-32[{idx}] invalide: {value}", severity="error"))
 
     # PV1 validation (champs principaux)
     pv1 = _get_first_segment(msg, "PV1")
@@ -849,18 +894,15 @@ def validate_pam(
         pv1_parts = pv1.split("|")
         pv1_2 = _field(pv1_parts, 2)
         _validate_code_with_vocab(
-            pv1_2,
-            "PV1_2",
-            issues,
+            pv1_2, "PV1_2", issues,
             session=session if 'session' in locals() else None,
             vocab_names=["semantic-patient-class"],
             fallback={"E", "I", "O", "P", "R", "B", "C", "N", "U"},
-            severity="error",
-            required=True,
-            msg=f"PV1-2 (Classe patient) doit être une valeur du vocabulaire sémantique, reçu: {pv1_2}"
+            severity="error", required=trigger in REQUIRE_PV1,
+            msg=f"PV1-2 (Classe patient) doit être une valeur du vocabulaire sémantique, reçu: {pv1_2}",
         )
         pv1_3 = _field(pv1_parts, 3)
-        if not pv1_3:
+        if trigger in REQUIRE_PV1 and not pv1_3:
             issues.append(ValidationIssue(
                 "PV1_3_MISSING",
                 "PV1-3 (Hébergement) est requis",
@@ -868,7 +910,7 @@ def validate_pam(
             ))
         pv1_10 = _field(pv1_parts, 10)
         pv1_19 = _field(pv1_parts, 19)
-        if not pv1_19:
+        if trigger in REQUIRE_PV1 and not pv1_19:
             issues.append(ValidationIssue("PV1_19_MISSING", "PV1-19 (Identifiant venue) est requis", severity="warn"))
 
     # ZBE validation (tous champs principaux)
@@ -886,7 +928,7 @@ def validate_pam(
             issues,
             session=session if 'session' in locals() else None,
             vocab_names=["semantic-movement-type"],
-            fallback={"INSERT", "UPDATE", "CANCEL", "ADM", "DIS", "TRF", "REG", "PRE", "ANN", "DEC", "AUT", "DUP", "ERR", "CAN", "MOD"},
+            fallback={"INSERT", "UPDATE", "CANCEL"},
             severity="error",
             required=True,
             msg=f"ZBE-4 (Type mouvement) doit être une valeur du vocabulaire sémantique, reçu: {zbe_4}"
@@ -902,7 +944,7 @@ def validate_pam(
             issues,
             session=session if 'session' in locals() else None,
             vocab_names=["semantic-movement-nature"],
-            fallback={"S", "H", "M", "L", "D", "SM", "NAT1", "NAT2", "NAT3", "NAT4", "NAT5"},
+            fallback=set(ZBE9_NATURES),
             severity="info",
             required=False,
             msg=f"ZBE-9 (Nature mouvement) doit être une valeur du vocabulaire sémantique, reçu: {zbe_9}"
@@ -910,7 +952,7 @@ def validate_pam(
 
     # MRG (fusion, obligatoire pour A40/A47)
     mrg = _get_first_segment(msg, "MRG")
-    if trigger in {"A40", "A47"} and not mrg:
+    if trigger in MERGE_EVENTS and not mrg:
         issues.append(ValidationIssue("MRG_MISSING", f"Segment MRG obligatoire pour ADT^{trigger}", severity="error"))
     if mrg:
         mrg_parts = mrg.split("|")
@@ -991,15 +1033,27 @@ def validate_pam(
             f"Segment {seg} interdit par le profil IHE PAM FR",
             severity="error"
         ))
+
+    for line in _split_lines(msg):
+        if not line or "|" not in line:
+            continue
+        segment = line.split("|", 1)[0]
+        if segment and segment not in ALLOWED_SEGMENTS:
+            issues.append(ValidationIssue("SEGMENT_UNKNOWN", f"Segment {segment} non prévu par le profil IHE PAM France", severity="error"))
+    for singleton in {"MSH", "EVN", "PID", "PV1", "PV2", "MRG", "ZBE"}:
+        count = sum(1 for line in _split_lines(msg) if line.startswith(singleton + "|"))
+        if count > 1:
+            issues.append(ValidationIssue(f"{singleton}_REPEATED", f"{singleton} ne doit pas être répété dans un message ADT PAM", severity="error"))
     
     # Validation ZBE (IHE PAM FR étendue)
     zbe = _get_first_segment(msg, "ZBE")
-    if strict_inbound and trigger and trigger not in IDENTITY_ONLY and not zbe:
+    if strict_inbound and trigger in MOVEMENT_EVENTS and not zbe:
         issues.append(ValidationIssue("ZBE_MISSING", f"Segment ZBE obligatoire pour ADT^{trigger}", severity="error"))
     if zbe:
         zbe_parts = zbe.split("|")
         zbe_1 = _field(zbe_parts, 1)
         zbe_2 = _field(zbe_parts, 2)
+        zbe_3 = _field(zbe_parts, 3)
         zbe_4 = _field(zbe_parts, 4).upper() if _field(zbe_parts, 4) else ""
         zbe_5 = _field(zbe_parts, 5).upper() if _field(zbe_parts, 5) else ""
         zbe_6 = _field(zbe_parts, 6).upper() if _field(zbe_parts, 6) else ""
@@ -1011,24 +1065,31 @@ def validate_pam(
         if not zbe_1:
             issues.append(ValidationIssue("ZBE1_MISSING", "ZBE-1 identifiant mouvement requis", severity="error"))
         else:
-            # Vérifier la présence d'un namespace dans ZBE-1 (composant 2 ou 3 attendu)
-            # Format attendu produit par l'émetteur: id^namespace_name^namespace_oid^ISO
-            comps1 = zbe_1.split("^")
-            comp_ns_name = comps1[1].strip() if len(comps1) > 1 else ""
-            comp_ns_oid = comps1[2].strip() if len(comps1) > 2 else ""
-            if not comp_ns_name and not comp_ns_oid:
-                issues.append(ValidationIssue(
-                    "ZBE1_NAMESPACE_MISSING",
-                    "ZBE-1 doit contenir un namespace (composant 2 ou 3) pour l'identifiant de mouvement",
-                    severity="error" if strict_inbound else "warn"
-                ))
+            for idx, identifier in enumerate(zbe_1.split("~")):
+                comps1 = identifier.split("^")
+                entity_id = comps1[0].strip() if comps1 else ""
+                namespace = comps1[1].strip() if len(comps1) > 1 else ""
+                universal_id = comps1[2].strip() if len(comps1) > 2 else ""
+                universal_type = comps1[3].strip() if len(comps1) > 3 else ""
+                if not entity_id:
+                    issues.append(ValidationIssue("ZBE1_ID_EMPTY", f"ZBE-1[{idx}] identifiant vide", severity="error"))
+                if not namespace and not universal_id:
+                    issues.append(ValidationIssue(
+                        "ZBE1_NAMESPACE_MISSING",
+                        f"ZBE-1[{idx}] doit contenir EI-2 (namespace) ou EI-3 (OID)",
+                        severity="error" if strict_inbound else "warn",
+                    ))
+                if universal_id and universal_type and universal_type != "ISO":
+                    issues.append(ValidationIssue("ZBE1_UNIVERSAL_ID_TYPE_INVALID", f"ZBE-1[{idx}].EI-4 doit être ISO", severity="error"))
+
+        if zbe_3:
+            issues.append(ValidationIssue("ZBE3_FORBIDDEN", "ZBE-3 est interdit par le profil IHE PAM France", severity="error"))
 
         # ZBE-2 date/heure
         if not zbe_2:
             issues.append(ValidationIssue("ZBE2_MISSING", "ZBE-2 date/heure mouvement requise", severity="error"))
         else:
-            if not re.match(r"^\d{8}(\d{2}(\d{2}(\d{2})?)?)?$", zbe_2):
-                issues.append(ValidationIssue("ZBE2_FORMAT", f"ZBE-2 format timestamp invalide: {zbe_2}", severity="warn"))
+            _validate_ts_timestamp(zbe_2, "ZBE2", issues)
 
         # ZBE-4 action
         if zbe_4 and zbe_4 not in {"INSERT", "UPDATE", "CANCEL"}:
@@ -1046,10 +1107,15 @@ def validate_pam(
         if zbe_4 in {"UPDATE", "CANCEL"} and not zbe_6:
             issues.append(ValidationIssue("ZBE6_REQUIRED", f"ZBE-6 trigger original requis avec action {zbe_4}", severity="error"))
         if zbe_6 and zbe_4 == "INSERT":
-            issues.append(ValidationIssue("ZBE6_UNEXPECTED", "ZBE-6 ne doit pas être présent avec action INSERT", severity="warn"))
+            issues.append(ValidationIssue("ZBE6_UNEXPECTED", "ZBE-6 ne doit pas être présent avec action INSERT", severity="error"))
+        if zbe_4 == "UPDATE" and trigger != "Z99":
+            issues.append(ValidationIssue("ZBE4_TRIGGER_INCONSISTENT", "UPDATE est réservé à l'événement Z99", severity="error"))
+        if trigger == "Z99" and zbe_4 != "UPDATE":
+            issues.append(ValidationIssue("Z99_ACTION_INVALID", "Z99 doit porter ZBE-4=UPDATE", severity="error"))
 
         # ZBE-7 UF médicale (XON) code composant 10
-        if not zbe_7:
+        requires_medical_uf = bool(set(zbe_9) & {"M"})
+        if requires_medical_uf and not zbe_7:
             issues.append(ValidationIssue("ZBE7_MISSING", "ZBE-7 UF médicale requise", severity="error"))
         else:
             comps7 = zbe_7.split("^")
@@ -1057,66 +1123,31 @@ def validate_pam(
                 issues.append(ValidationIssue("ZBE7_CODE_MISSING", "ZBE-7 composant 10 code UF médicale manquant", severity="error"))
 
         # ZBE-8 UF soins (XON) code composant 10 (warning si absent, pas erreur pour compat)
+        requires_care_uf = bool(set(zbe_9) & {"S"})
         if zbe_8:
             comps8 = zbe_8.split("^")
             if len(comps8) < 10 or not comps8[9].strip():
-                issues.append(ValidationIssue("ZBE8_CODE_MISSING", "ZBE-8 composant 10 code UF soins manquant", severity="warn"))
-        else:
-            issues.append(ValidationIssue("ZBE8_ABSENT", "ZBE-8 UF soins absente (compatibilité legacy: warning seulement)", severity="info"))
+                issues.append(ValidationIssue("ZBE8_CODE_MISSING", "ZBE-8 composant 10 code UF soins manquant", severity="error" if requires_care_uf else "warn"))
+        elif requires_care_uf:
+            issues.append(ValidationIssue("ZBE8_MISSING", "ZBE-8 UF soins requise pour cette nature de mouvement", severity="error"))
 
-        # ZBE-9 nature
-        # Accept standard natures per spec: S, H, M, L, D, SM
-        # But tolerate production tokens composed or suffixed (ex: 'MH', 'HM', 'MHU', 'MH-EXT') by
-        # normalizing known combos or downgrading to info to keep message as "truth" while reporting non-standardness.
-        standard_natures = {"S", "H", "M", "L", "D", "SM"}
-
-        def _normalize_zbe9(raw: str) -> Optional[str]:
-            if not raw:
-                return None
-            val = raw.strip().upper()
-            # Direct match
-            if val in standard_natures:
-                return val
-            # Known composite tokens from production: e.g., 'MH' (Med/Hosp mix) — accept as 'MH' but not standard
-            # Map two-letter combos where both letters are in standard set to a stable composite token
-            if len(val) == 2 and all(ch in "SHMLD" for ch in val):
-                # keep as-is (e.g., 'MH', 'HM')
-                return val
-            # Map values with non-alphanum suffixes like 'MH-EXT' -> 'MH'
-            m = re.match(r"^([A-Z]{1,3})[^A-Z0-9]?.*$", val)
-            if m:
-                core = m.group(1)
-                if len(core) == 2 and all(ch in "SHMLD" for ch in core):
-                    return core
-                if core in standard_natures:
-                    return core
-            return val  # unknown token, Renvoie raw for reporting
-
-        norm_zbe9 = _normalize_zbe9(zbe_9)
         if not zbe_9:
             issues.append(ValidationIssue("ZBE9_MISSING", "ZBE-9 nature requise", severity="error"))
-        else:
-            # If normalized into a standard nature, accept
-            if norm_zbe9 in standard_natures:
-                pass
-            # If it is a composite known production token (like 'MH' or 'HM'), report as info (non-standard but accepted)
-            elif norm_zbe9 and len(norm_zbe9) == 2 and all(ch in "SHMLD" for ch in norm_zbe9):
-                # Treat known non-standard composites (production tokens like 'MH', 'HM') as errors again.
-                issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature non-standard/composite: {zbe_9}", severity="error"))
-            else:
-                # Unknown token: report as error.
-                issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature inconnue: {zbe_9}", severity="error"))
+        elif zbe_9 not in ZBE9_NATURES:
+            issues.append(ValidationIssue("ZBE9_INVALID", f"ZBE-9 nature inconnue: {zbe_9}", severity="error"))
+        elif zbe_9 == "C" and (trigger != "Z99" or zbe_6 not in ZBE9_C_ORIGINAL_EVENTS):
+            issues.append(ValidationIssue("ZBE9_C_INVALID", "ZBE-9=C est réservé à Z99 corrigeant A01, A04 ou A05", severity="error"))
     
     # Validation des champs PV1 (types de données complexes) si présent
     pv1 = _get_first_segment(msg, "PV1")
     if pv1:
         pv1_parts = pv1.split("|")
         
-        # PV1-2 (Patient Class) - requis
+        # PV1-2 est obligatoire uniquement dans le contexte d'une venue/mouvement.
         pv1_2 = _field(pv1_parts, 2)
-        if not pv1_2:
+        if trigger in REQUIRE_PV1 and not pv1_2:
             issues.append(ValidationIssue("PV1_2_MISSING", "PV1-2 (Patient Class) is required", severity="error"))
-        else:
+        elif pv1_2:
             # HL7 Table 0004: E, I, O, P, R, B, C, N, U
             valid_classes = {"E", "I", "O", "P", "R", "B", "C", "N", "U"}
             if pv1_2 not in valid_classes:

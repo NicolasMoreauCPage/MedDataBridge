@@ -15,8 +15,7 @@
     
     {# Grouper par layer #}
     {% set ihe_pam = issues | selectattr('layer', 'equalto', 'ihe_pam') | list %}
-    {% set hapi = issues | selectattr('layer', 'equalto', 'hapi_structure') | list %}
-    {% set segment_order = issues | selectattr('layer', 'equalto', 'segment_order') | list %}
+    {% set structure = issues | selectattr('layer', 'equalto', 'structure') | list %}
     {% set hl7_base = issues | selectattr('layer', 'equalto', 'hl7_base') | list %}
     {% set datatypes = issues | selectattr('layer', 'equalto', 'datatypes') | list %}
     
@@ -78,17 +77,17 @@
       </div>
       {% endif %}
       
-      {# Couche 2: HAPI Structures #}
-      {% if hapi or segment_order %}
+      {# Couche 2: Structure HL7/PAM #}
+      {% if structure %}
       <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
         <div class="bg-indigo-100 dark:bg-indigo-900/40 px-4 py-3 border-b border-indigo-200 dark:border-indigo-800">
           <h3 class="text-lg font-semibold text-indigo-800 dark:text-indigo-200">
-            Couche 2: HAPI Structures ({{ (hapi | length) + (segment_order | length) }})
+            Couche 2: Structure HL7/PAM ({{ structure | length }})
           </h3>
-          <p class="text-sm text-indigo-600 dark:text-indigo-400">Structure et ordre des segments selon HAPI</p>
+          <p class="text-sm text-indigo-600 dark:text-indigo-400">Structure, cardinalité et ordre des segments du profil</p>
         </div>
         <div class="p-4">
-          {% for issue in hapi + segment_order %}
+          {% for issue in structure %}
           <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
             <div class="flex items-start">
               <span class="px-2 py-1 rounded text-xs font-semibold mr-3
@@ -178,7 +177,7 @@
       {% endif %}
       
       {# Issues non classées #}
-      {% set uncategorized = issues | rejectattr('layer', 'in', ['ihe_pam', 'hapi_structure', 'segment_order', 'hl7_base', 'datatypes']) | list %}
+    {% set uncategorized = issues | rejectattr('layer', 'in', ['ihe_pam', 'structure', 'hl7_base', 'datatypes']) | list %}
       {% if uncategorized %}
       <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
         <div class="bg-gray-100 dark:bg-slate-700 px-4 py-3 border-b border-gray-200 dark:border-slate-700">

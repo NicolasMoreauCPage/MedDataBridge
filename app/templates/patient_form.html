@@ -355,19 +355,11 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">
               Fiabilité de l'identité (PID-32)
             </label>
-            <select name="identity_reliability_code" class="input-field">
-              <option value="">-- Choisir --</option>
-              <option value="VALI" {% if (patient and patient.identity_reliability_code == 'VALI') or (sample_data and sample_data.get('identity_reliability_code') == 'VALI') %}selected{% endif %}>VALI - Identité validée (avec INS qualifié)</option>
-              <option value="PROV" {% if (patient and patient.identity_reliability_code == 'PROV') or (sample_data and sample_data.get('identity_reliability_code') == 'PROV') %}selected{% endif %}>PROV - Identité provisoire</option>
-              <option value="VIDE" {% if (patient and patient.identity_reliability_code == 'VIDE') or (sample_data and sample_data.get('identity_reliability_code') == 'VIDE') %}selected{% endif %}>VIDE - Identité non qualifiée</option>
-              <option value="DOUB" {% if (patient and patient.identity_reliability_code == 'DOUB') or (sample_data and sample_data.get('identity_reliability_code') == 'DOUB') %}selected{% endif %}>DOUB - Doublon détecté</option>
-              <option value="DESA" {% if (patient and patient.identity_reliability_code == 'DESA') or (sample_data and sample_data.get('identity_reliability_code') == 'DESA') %}selected{% endif %}>DESA - Identité désactivée</option>
-              <option value="DPOT" {% if (patient and patient.identity_reliability_code == 'DPOT') or (sample_data and sample_data.get('identity_reliability_code') == 'DPOT') %}selected{% endif %}>DPOT - Dépôt provisoire</option>
-              <option value="IDVER" {% if (patient and patient.identity_reliability_code == 'IDVER') or (sample_data and sample_data.get('identity_reliability_code') == 'IDVER') %}selected{% endif %}>IDVER - Identité vérifiée</option>
-              <option value="CACH" {% if (patient and patient.identity_reliability_code == 'CACH') or (sample_data and sample_data.get('identity_reliability_code') == 'CACH') %}selected{% endif %}>CACH - Identité cachée</option>
-              <option value="ANOM" {% if (patient and patient.identity_reliability_code == 'ANOM') or (sample_data and sample_data.get('identity_reliability_code') == 'ANOM') %}selected{% endif %}>ANOM - Identité anonyme</option>
-            </select>
-            <p class="text-xs text-slate-500 mt-1">Obligatoire (réglementation identité nationale) si un INS est présent</p>
+            <input name="identity_reliability_code" list="pid32-codes" class="input-field" pattern="[A-Z]+(~[A-Z]+)*" value="{{ (patient.identity_reliability_code if patient else (sample_data.identity_reliability_code if sample_data else '')) | default('', true) }}" aria-describedby="pid32-help" placeholder="VALI ou PROV~ANOM">
+            <datalist id="pid32-codes">
+              {% for code in ['VIDE', 'PROV', 'VALI', 'DOUB', 'DESA', 'DPOT', 'DOUA', 'COLP', 'COLV', 'FILI', 'CACH', 'ANOM', 'IDVER', 'RECD', 'IDRA', 'USUR', 'HOMD', 'HOMA', 'INVA', 'FICT', 'DOUT'] %}<option value="{{ code }}">{{ code }}</option>{% endfor %}
+            </datalist>
+            <p id="pid32-help" class="text-xs text-slate-500 mt-1">Codes nationaux PID-32 ; plusieurs valeurs sont séparées par <code>~</code> (ex. <code>PROV~ANOM</code>).</p>
           </div>
         </div>
 

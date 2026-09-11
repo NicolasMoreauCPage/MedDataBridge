@@ -16,6 +16,7 @@ from app.db_session_factory import session_factory
 from app.services.transport_inbound import on_message_inbound_async
 from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.scenario_validation import validate_scenario
+from app.services.hl7_display import build_hl7_view
 from app.services.vocabulary_lookup import get_vocabulary_options
 
 # NOTE: Ne pas créer une instance Jinja2Templates ici
@@ -77,6 +78,7 @@ def list_messages(
     date_start: Optional[str] = Query(None),  # "2025-10-01T00:00"
     date_end: Optional[str] = Query(None),    # "2025-10-31T23:59"
     neg_ack_only: bool = Query(False),
+    status: Optional[str] = Query(None),
     kind: Optional[str] = Query(None),        # "MLLP" | "FHIR" | "HPRIM"
     direction: Optional[str] = Query(None),   # "in" | "out"
     limit: int = Query(500, ge=1, le=5000),
@@ -108,7 +110,7 @@ def list_messages(
         except Exception:
             pass
 
-    if neg_ack_only:
+    if neg_ack_only or status == "error":
         stmt = stmt.where(col(MessageLog.status).in_(NEG_STATUSES))
 
     if kind in ("MLLP", "FHIR", "HPRIM"):
@@ -134,6 +136,7 @@ def list_messages(
                 "date_start": date_start or "",
                 "date_end": date_end or "",
                 "neg_ack_only": neg_ack_only,
+                "status": status or "",
                 "kind": kind or "",
                 "direction": direction or "",
                 "limit": limit,
@@ -778,7 +781,13 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "message_detail.html",
-        {"request": request, "m": m, "endpoint": ep, "validation_issues": validation_issues},
+        {
+            "request": request,
+            "m": m,
+            "endpoint": ep,
+            "validation_issues": validation_issues,
+            "hl7_view": build_hl7_view(m.payload) if m.kind in {"MLLP", "HL7"} else [],
+        },
     )
 
 

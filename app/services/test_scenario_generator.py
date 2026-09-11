@@ -11,6 +11,8 @@ import random
 import uuid
 from dataclasses import dataclass
 
+from app.services.pam_profile_fr import expected_structure, normalize_generated_message
+
 
 class ErrorType(Enum):
     """Types d'erreurs injectables."""
@@ -348,17 +350,19 @@ class TestScenarioGenerator:
                 "8": "",
                 "9.1": "ADT",
                 "9.2": trigger_event,
+                "9.3": expected_structure(trigger_event) or "ADT_A01",
                 "10": str(uuid.uuid4())[:20],
                 "11": "P",
-                "12": "2.5",
+                "12": "2.5^FRA^2.11",
                 "15": "",
                 "16": "",
-                "17": "",
-                "18": "",
+                "17": "FRA",
+                "18": "UNICODE UTF-8",
                 "19": "",
                 "20": "",
                 "21": ""
             },
+            "EVN": {"1": trigger_event, "2": now},
             "PID": {
                 "1": "1",
                 "2": "",
@@ -372,6 +376,7 @@ class TestScenarioGenerator:
                 "11.1": "123 RUE DE TEST",
                 "11.3": "PARIS",
                 "11.5": "75001"
+                ,"32": "VALI"
             },
             "PV1": {
                 "1": "1",
@@ -382,9 +387,19 @@ class TestScenarioGenerator:
                 "7.2": "JOHN",
                 "19.1": visit_id,
                 "44": now
-            }
+            },
+            "ZBE": {
+                "1.1": f"MVT-{uuid.uuid4().hex[:10].upper()}",
+                "1.2": "SIMULATOR",
+                "1.3": "1.2.250.1.1",
+                "1.4": "ISO",
+                "2": now,
+                "4": "INSERT",
+                "5": "N",
+                "7": "^^^^^^^^^UF-SIM",
+                "9": "H",
+            },
         }
-
     def _apply_error_injections(self, message: Dict[str, Any],
                                error_injections: List[ErrorInjection]) -> Dict[str, Any]:
         """Applique les injections d'erreurs au message."""
@@ -439,6 +454,34 @@ class TestScenarioGenerator:
     def _generate_visit_id(self) -> str:
         """Génère un identifiant de visite unique."""
         return f"VISIT-{uuid.uuid4().hex[:8].upper()}"
+
+
+def message_to_hl7(message: Dict[str, Any]) -> str:
+    """Sérialise la représentation de scénario en ADT PAM France lisible."""
+    def segment_line(name: str, values: Dict[str, Any]) -> str:
+        max_field = max((int(key.split(".", 1)[0]) for key in values if key.split(".", 1)[0].isdigit()), default=0)
+        fields = [""] * (max_field + 1)
+        for key, value in values.items():
+            parts = key.split(".")
+            if not parts[0].isdigit():
+                continue
+            field_index = int(parts[0])
+            if len(parts) == 1:
+                fields[field_index] = str(value or "")
+            else:
+                component_index = int(parts[1])
+                components = fields[field_index].split("^") if fields[field_index] else []
+                while len(components) < component_index:
+                    components.append("")
+                components[component_index - 1] = str(value or "")
+                fields[field_index] = "^".join(components)
+        if name == "MSH":
+            separator = fields[1] or "|"
+            return "MSH" + separator + separator.join(fields[2:])
+        return name + "|" + "|".join(fields[1:])
+
+    lines = [segment_line(name, values) for name, values in message.items() if isinstance(values, dict)]
+    return normalize_generated_message("\r".join(lines))
 
 
 # Fonctions utilitaires pour créer des injections d'erreurs courantes

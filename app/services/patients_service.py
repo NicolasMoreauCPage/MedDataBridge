@@ -177,9 +177,10 @@ def update_patient(
 
     for key, value in list(update_data.items()):
         update_data[key] = _sanitize(value)
+    # ``exclude_unset`` distinguishes a field omitted from the form from one
+    # deliberately cleared by the user. Persist both values.
     for key, value in update_data.items():
-        if value is not None:  # Only update non-None values
-            setattr(patient, key, value)
+        setattr(patient, key, value)
     
     session.add(patient)
     session.commit()

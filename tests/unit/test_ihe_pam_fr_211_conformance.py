@@ -6,14 +6,17 @@ fixtures HL7 v2.5 génériques : structure MSH-9, ZBE France, caractères et A44
 
 import asyncio
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlmodel import SQLModel, Session, create_engine
 
 from app.models import Dossier, Patient
+from app.services.hl7_display import build_hl7_view
 from app.services.mllp import build_ack, frame_hl7
 from app.services.pam import handle_move_account_message
 from app.services.pam_profile_fr import normalize_generated_message
 from app.services.pam_validation import validate_pam
+from app.services.test_scenario_generator import TestScenarioGenerator, TestScenarioType, message_to_hl7
 
 
 def _pid(identifier: str = "P1", identity_status: str = "VALI") -> str:
@@ -44,8 +47,8 @@ def _xon(code: str) -> str:
     return "^".join(fields)
 
 
-def _message(*, trigger: str = "A01", structure: str = "ADT_A01", zbe: str | None = None) -> str:
-    msh = f"MSH|^~\\&|S|F|R|F|202601010101||ADT^{trigger}^{structure}|MSG1|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8"
+def _message(*, trigger: str = "A01", structure: str = "ADT_A01", zbe: str | None = None, sending_app: str = "S") -> str:
+    msh = f"MSH|^~\\&|{sending_app}|F|R|F|202601010101||ADT^{trigger}^{structure}|MSG1|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8"
     evn = f"EVN|{trigger}|202601010101"
     if zbe is None:
         zbe = f"ZBE|MVT1^HOSP^1.2.3^ISO|202601010101||INSERT|N|||{_xon('UF1')}|H"
@@ -82,6 +85,63 @@ def test_z99_requires_update_action_and_c_is_strictly_scoped():
     assert {"Z99_ACTION_INVALID", "ZBE9_C_INVALID"} <= errors
 
 
+def test_cpage_known_zbe9_suffix_bug_is_tolerated_but_reported():
+    z99 = _message(
+        trigger="Z99", structure="ADT_A01", sending_app="CPAGE",
+        zbe=f"ZBE|MVT1^CPAGE^1.2.3^ISO|202601010101||UPDATE|N|A01|{_xon('UF1')}||HMSC",
+    )
+    movement = _message(
+        trigger="A03", structure="ADT_A03", sending_app="CPAGE",
+        zbe=f"ZBE|MVT1^CPAGE^1.2.3^ISO|202601010101||INSERT|N||{_xon('UF1')}||MHC",
+    )
+
+    for message, expected in ((z99, "C"), (movement, "MH")):
+        result = validate_pam(message, direction="in")
+        issue = next(issue for issue in result.issues if issue.code == "ZBE9_CPAGE_SUFFIX_COMPAT")
+        assert issue.severity == "warn"
+        assert issue.expected == expected
+        assert "ZBE9_INVALID" not in {issue.code for issue in result.issues}
+
+    non_cpage = _message(
+        trigger="A03", structure="ADT_A03",
+        zbe=f"ZBE|MVT1^HOSP^1.2.3^ISO|202601010101||INSERT|N||{_xon('UF1')}||MHC",
+    )
+    assert "ZBE9_INVALID" in _error_codes(non_cpage)
+
+
+def test_cpage_sample_corpus_has_no_zbe9_false_rejection():
+    corpus = Path(__file__).parents[2] / "data" / "pam"
+    cpage_messages = [
+        path for path in corpus.glob("*.hl7")
+        if path.read_text(encoding="utf-8", errors="replace").startswith("MSH|^~\\&|CPAGE|")
+    ]
+    assert cpage_messages
+
+    error_codes = set()
+    compatibility_warnings = 0
+    for path in cpage_messages:
+        result = validate_pam(path.read_text(encoding="utf-8", errors="replace"), direction="in")
+        error_codes.update(issue.code for issue in result.issues if issue.severity == "error")
+        compatibility_warnings += sum(
+            issue.code == "ZBE9_CPAGE_SUFFIX_COMPAT" for issue in result.issues
+        )
+
+    assert "ZBE9_INVALID" not in error_codes
+    assert not error_codes
+    assert compatibility_warnings > 0
+
+
+def test_cpage_missing_care_uf_is_warned_but_other_senders_are_rejected():
+    zbe = "ZBE|MVT1^CPAGE^1.2.3^ISO|202601010101||INSERT|N||^^^^^^^^^UF1||HMS"
+    cpage_result = validate_pam(_message(sending_app="CPAGE", zbe=zbe), direction="in")
+    cpage_issue = next(issue for issue in cpage_result.issues if issue.code == "ZBE8_MISSING")
+    assert cpage_issue.severity == "warn"
+
+    standard_result = validate_pam(_message(zbe=zbe.replace("^CPAGE^", "^HOSP^")), direction="in")
+    standard_issue = next(issue for issue in standard_result.issues if issue.code == "ZBE8_MISSING")
+    assert standard_issue.severity == "error"
+
+
 def test_normalizer_emits_msh_profile_and_ei_zbe_without_zbe3():
     legacy = "\r".join([
         "MSH|^~\\&|S|F|R|F|202601010101||ADT^A05^ADT_A01|MSG1|P|2.5^FRA^2.10|||||FRA|8859/1",
@@ -105,6 +165,28 @@ def test_mllp_and_ack_follow_declared_utf8_profile():
     ack = build_ack(message)
     assert "ACK^A01^ADT_A01" in ack.split("\r")[0]
     assert ack.split("\r")[0].split("|")[17] == "UNICODE UTF-8"
+
+
+def test_diagnostics_are_linkable_to_a_structured_hl7_view():
+    result = validate_pam(_message(structure="ADT_A39"), direction="in")
+    issue = next(issue for issue in result.issues if issue.code == "MSH9_STRUCTURE_INVALID")
+
+    assert issue.layer == "hl7_base"
+    assert issue.location == "MSH-9"
+    msh = next(segment for segment in build_hl7_view(_message()) if segment["name"] == "MSH")
+    message_type = next(field for field in msh["fields"] if field["location"] == "MSH-9")
+    assert message_type["label"] == "Type de message"
+    assert message_type["repetitions"][0]["components"][2]["value"] == "ADT_A01"
+
+
+def test_qualification_generator_exports_a_valid_pam_fr_message():
+    scenario = TestScenarioGenerator().generate_scenario(TestScenarioType.ADMISSION_COMPLETE, specialty="Urgences")
+    message = message_to_hl7(scenario.messages[0])
+    errors = [issue.code for issue in validate_pam(message, direction="out").issues if issue.severity == "error"]
+
+    assert "ADT^A01^ADT_A01" in message
+    assert "2.5^FRA^2.11" in message
+    assert not errors
 
 
 def test_a44_reassigns_only_the_identified_administrative_account():

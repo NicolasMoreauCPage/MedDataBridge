@@ -18,6 +18,21 @@ router = APIRouter(
 def get_templates(request: Request):
     return request.app.state.templates
 
+
+def _form_context(request: Request, session, *, title: str, contact, action_url: str, error: str | None = None):
+    """Supply human-readable association choices to the contact form."""
+    context = {
+        "request": request,
+        "title": title,
+        "contact": contact,
+        "action_url": action_url,
+        "patients": session.exec(select(Patient).order_by(Patient.family, Patient.given)).all(),
+        "venues": session.exec(select(Venue).order_by(Venue.id)).all(),
+    }
+    if error:
+        context["error"] = error
+    return context
+
 @router.get("", response_class=HTMLResponse)
 def list_contacts(request: Request, session=Depends(get_session)):
     """Liste tous les contacts (patients et venues)."""
@@ -34,10 +49,13 @@ def list_contacts(request: Request, session=Depends(get_session)):
     return templates.TemplateResponse(request, "contacts_list.html", ctx)
 
 @router.get("/new", response_class=HTMLResponse)
-def new_contact(request: Request):
+def new_contact(request: Request, session=Depends(get_session)):
     """Formulaire de création d'un contact."""
     templates = get_templates(request)
-    return templates.TemplateResponse(request, "contact_form.html", {"title": "Nouveau contact", "contact": None, "action_url": "/contacts/new"})
+    return templates.TemplateResponse(
+        request, "contact_form.html",
+        _form_context(request, session, title="Nouveau contact", contact=None, action_url="/contacts/new"),
+    )
 
 @router.post("/new")
 def create_contact(
@@ -66,14 +84,18 @@ def create_contact(
         error = "Format d'email invalide."
     if address_postalcode and not re.match(r"^\d{5}$", address_postalcode):
         error = "Code postal invalide (5 chiffres attendus)."
+    if contact_type not in {"patient", "venue"}:
+        error = "Le type de contact doit être PatientContact ou VenueContact."
+    elif contact_type == "patient" and not patient_id:
+        error = "Sélectionnez le patient auquel rattacher ce contact."
+    elif contact_type == "venue" and not venue_id:
+        error = "Sélectionnez la venue à laquelle rattacher ce contact."
     if error:
         templates = get_templates(request)
-        return templates.TemplateResponse(request, "contact_form.html", {
-            "title": "Nouveau contact",
-            "contact": None,
-            "action_url": "/contacts/new",
-            "error": error
-        })
+        return templates.TemplateResponse(
+            request, "contact_form.html",
+            _form_context(request, session, title="Nouveau contact", contact=None, action_url="/contacts/new", error=error),
+        )
     if contact_type == "patient":
         contact = PatientContact(
             patient_id=patient_id,
@@ -117,7 +139,10 @@ def edit_contact(contact_id: int, request: Request, session=Depends(get_session)
     templates = get_templates(request)
     if not contact:
         return templates.TemplateResponse(request, "not_found.html", {"title": "Contact introuvable"}, status_code=404)
-    return templates.TemplateResponse(request, "contact_form.html", {"title": "Modifier contact", "contact": contact, "action_url": f"/contacts/{contact_id}/edit"})
+    return templates.TemplateResponse(
+        request, "contact_form.html",
+        _form_context(request, session, title="Modifier contact", contact=contact, action_url=f"/contacts/{contact_id}/edit"),
+    )
 
 @router.post("/{contact_id:int}/edit")
 def update_contact(
@@ -150,12 +175,10 @@ def update_contact(
         error = "Code postal invalide (5 chiffres attendus)."
     if error:
         templates = get_templates(request)
-        return templates.TemplateResponse(request, "contact_form.html", {
-            "title": "Modifier contact",
-            "contact": contact,
-            "action_url": f"/contacts/{contact_id}/edit",
-            "error": error
-        })
+        return templates.TemplateResponse(
+            request, "contact_form.html",
+            _form_context(request, session, title="Modifier contact", contact=contact, action_url=f"/contacts/{contact_id}/edit", error=error),
+        )
     contact.family_name = family_name
     contact.given_name = given_name
     contact.relationship_code = relationship_code

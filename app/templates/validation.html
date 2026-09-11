@@ -20,10 +20,13 @@
         <!-- Onglets de mode -->
         <div class="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700">
             <nav class="flex -mb-px px-6" aria-label="Tabs">
-                <button 
+                <button
                     type="button"
                     onclick="switchMode('single')"
                     id="tab-single"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="form-single"
                     class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-blue-500 text-blue-600 dark:text-blue-400"
                 >
                     <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,10 +34,13 @@
                     </svg>
                     Message unique
                 </button>
-                <button 
+                <button
                     type="button"
                     onclick="switchMode('scenario')"
                     id="tab-scenario"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="form-scenario"
                     class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:border-gray-300"
                 >
                     <svg class="inline-block w-5 h-5 mr-2 -mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +54,7 @@
         <!-- Formulaire de validation -->
         <div class="p-6">
             <!-- Mode: Message unique -->
-            <form method="post" action="/validation/validate" class="space-y-4" data-no-ajax="1" id="form-single">
+            <form method="post" action="/validation/validate" class="space-y-4" data-no-ajax="1" id="form-single" role="tabpanel" aria-labelledby="tab-single">
                 <div class="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -104,13 +110,12 @@ ZBE|MVT001^HOSP^1.2.250.1.1^ISO|20240101120000||INSERT|N|||^^^^^^^^^UF01|H"
                         <label for="profile" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                             Profil de validation
                         </label>
-                        <select 
-                            id="profile" 
+                        <select
+                            id="profile"
                             name="profile"
                             class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500"
                         >
-                            <option value="IHE_PAM_FR" {% if profile == "IHE_PAM_FR" %}selected{% endif %}>IHE PAM France</option>
-                            <option value="IHE_PAM" {% if profile == "IHE_PAM" %}selected{% endif %}>IHE PAM International</option>
+                            <option value="IHE_PAM_FR" selected>IHE PAM France 2.11</option>
                         </select>
                     </div>
                 </div>
@@ -130,7 +135,7 @@ ZBE|MVT001^HOSP^1.2.250.1.1^ISO|20240101120000||INSERT|N|||^^^^^^^^^UF01|H"
             </form>
 
             <!-- Mode: Scénario (workflow) -->
-            <form method="post" action="/validation/validate-scenario" class="space-y-4 hidden" data-no-ajax="1" id="form-scenario">
+            <form method="post" action="/validation/validate-scenario" class="space-y-4 hidden" data-no-ajax="1" id="form-scenario" role="tabpanel" aria-labelledby="tab-scenario">
                 <div class="bg-purple-50 dark:bg-purple-950/30 border-l-4 border-purple-400 p-4 mb-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -158,20 +163,23 @@ ZBE|MVT001^HOSP^1.2.250.1.1^ISO|20240101120000||INSERT|N|||^^^^^^^^^UF01|H"
                         name="scenario_messages" 
                         rows="20" 
                         required
-                        placeholder="MSH|^~\&|App|Fac|App|Fac|20240101100000||ADT^A05^ADT_A05|MSG001|P|2.5
+                        placeholder="MSH|^~\&|App|Fac|App|Fac|20240101100000||ADT^A05^ADT_A05|MSG001|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8
 EVN|A05|20240101100000
-PID|1||PAT123^^^HOSP||DOE^JOHN||19800101|M
-PV1|1|P|||||||||||||||||VIS001^^^HOSP
+PID|1||PAT123^^^HOSP^PI||DOE^JOHN||19800101|M||||||||||||||||||||||||VALI
+PV1|1|P|AMB^001^A||||||||||||||||VIS001^^^HOSP
+ZBE|MVT001^HOSP^1.2.250.1.1^ISO|20240101100000||INSERT|N||^^^^^^^^^UF01||H
 
-MSH|^~\&|App|Fac|App|Fac|20240101120000||ADT^A01^ADT_A01|MSG002|P|2.5
+MSH|^~\&|App|Fac|App|Fac|20240101120000||ADT^A01^ADT_A01|MSG002|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8
 EVN|A01|20240101120000
-PID|1||PAT123^^^HOSP||DOE^JOHN||19800101|M
+PID|1||PAT123^^^HOSP^PI||DOE^JOHN||19800101|M||||||||||||||||||||||||VALI
 PV1|1|I|CARDIO^101^1||||||||||||||||VIS001^^^HOSP
+ZBE|MVT002^HOSP^1.2.250.1.1^ISO|20240101120000||INSERT|N||^^^^^^^^^UF01||H
 
-MSH|^~\&|App|Fac|App|Fac|20240101140000||ADT^A02^ADT_A02|MSG003|P|2.5
+MSH|^~\&|App|Fac|App|Fac|20240101140000||ADT^A02^ADT_A02|MSG003|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8
 EVN|A02|20240101140000
-PID|1||PAT123^^^HOSP||DOE^JOHN||19800101|M
-PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
+PID|1||PAT123^^^HOSP^PI||DOE^JOHN||19800101|M||||||||||||||||||||||||VALI
+PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP
+ZBE|MVT003^HOSP^1.2.250.1.1^ISO|20240101140000||INSERT|N||^^^^^^^^^UF01||H"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-xs"
                     >{{ scenario_messages if scenario_messages else '' }}</textarea>
                 </div>
@@ -201,8 +209,7 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                             name="profile"
                             class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-purple-500"
                         >
-                            <option value="IHE_PAM_FR" selected>IHE PAM France</option>
-                            <option value="IHE_PAM">IHE PAM International</option>
+                            <option value="IHE_PAM_FR" selected>IHE PAM France 2.11</option>
                         </select>
                     </div>
                 </div>
@@ -398,6 +405,42 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                 </div>
             </div>
 
+            {% if hl7_view %}
+            <details class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800" open>
+                <summary class="cursor-pointer bg-slate-50 px-4 py-3 font-semibold text-slate-800 dark:bg-slate-700 dark:text-slate-100">
+                    Message décodé — segments, champs, répétitions et composants
+                </summary>
+                <div class="space-y-3 p-4">
+                    {% for segment in hl7_view %}
+                    <details class="rounded-lg border border-slate-200 dark:border-slate-700" {% if segment.name in ['MSH', 'PID', 'PV1', 'ZBE'] %}open{% endif %}>
+                        <summary class="cursor-pointer px-3 py-2 font-mono font-bold text-blue-800 dark:text-blue-300">
+                            Ligne {{ segment.line }} · {{ segment.name }} <span class="font-sans text-xs font-normal text-slate-500">{{ segment.fields|length }} champ(s) renseigné(s)</span>
+                        </summary>
+                        <div class="overflow-x-auto border-t border-slate-200 dark:border-slate-700">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900"><tr><th class="px-3 py-2">Champ</th><th class="px-3 py-2">Libellé</th><th class="px-3 py-2">Valeur / décomposition</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                                {% for field in segment.fields %}
+                                <tr id="{{ field.location|replace('-', '_') }}" class="scroll-mt-6">
+                                    <td class="px-3 py-2 font-mono font-semibold text-blue-700 dark:text-blue-300">{{ field.location }}</td>
+                                    <td class="px-3 py-2 text-slate-700 dark:text-slate-200">{{ field.label }}</td>
+                                    <td class="px-3 py-2"><code class="break-all text-xs text-slate-800 dark:text-slate-100">{{ field.value }}</code>
+                                        {% if field.repetitions|length > 1 or '^' in field.value or '&' in field.value %}
+                                        <div class="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                                          {% for repetition in field.repetitions %}<div><span class="font-semibold">Rép. {{ repetition.index }}</span> : {% for component in repetition.components %}<span class="font-mono">{{ component.index }}={{ component.value or '∅' }}</span>{% if not loop.last %} · {% endif %}{% endfor %}</div>{% endfor %}
+                                        </div>{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+
             <!-- Issues par couche de validation -->
             {% if result.issues %}
             <div class="space-y-4">
@@ -431,17 +474,17 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                 </div>
                 {% endif %}
 
-                <!-- Couche 2: HAPI Structures -->
-                {% if hapi or segment_order %}
+                <!-- Couche 2: structure HL7/PAM -->
+                {% if structure %}
                 <div class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
                     <div class="bg-indigo-100 dark:bg-indigo-900/40 px-4 py-3 border-b border-indigo-200 dark:border-indigo-800">
                         <h3 class="text-lg font-semibold text-indigo-800 dark:text-indigo-200">
-                            Couche 2: HAPI Structures ({{ (hapi|length) + (segment_order|length) }})
+                            Couche 2: Structure HL7/PAM ({{ structure|length }})
                         </h3>
-                        <p class="text-sm text-indigo-600 dark:text-indigo-400">Structure et ordre des segments selon HAPI</p>
+                        <p class="text-sm text-indigo-600 dark:text-indigo-400">Structure, cardinalité et ordre des segments du profil</p>
                     </div>
                     <div class="p-4">
-                        {% for issue in hapi + segment_order %}
+                        {% for issue in structure %}
                         <div class="mb-3 pb-3 {% if not loop.last %}border-b border-gray-200{% endif %}">
                             <div class="flex items-start">
                                 <span class="px-2 py-1 rounded text-xs font-semibold mr-3
@@ -453,6 +496,7 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                                 <div class="flex-1">
                                     <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
                                     <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
+                                    {% if issue.location %}<a href="#{{ issue.location.split('.')[0]|replace('-', '_') }}" class="mt-1 inline-block text-xs font-semibold text-blue-700 hover:underline">📍 {{ issue.location }} — voir le champ</a>{% endif %}
                                 </div>
                             </div>
                         </div>
@@ -483,6 +527,7 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                                 <div class="flex-1">
                                     <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
                                     <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
+                                    {% if issue.location %}<a href="#{{ issue.location.split('.')[0]|replace('-', '_') }}" class="mt-1 inline-block text-xs font-semibold text-blue-700 hover:underline">📍 {{ issue.location }} — voir le champ</a>{% endif %}
                                 </div>
                             </div>
                         </div>
@@ -513,6 +558,7 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                                 <div class="flex-1">
                                     <div class="font-mono text-sm font-semibold text-gray-800 dark:text-slate-200">{{ issue.code }}</div>
                                     <div class="text-sm text-gray-600 dark:text-slate-300 mt-1">{{ issue.message }}</div>
+                                    {% if issue.location %}<a href="#{{ issue.location.split('.')[0]|replace('-', '_') }}" class="mt-1 inline-block text-xs font-semibold text-blue-700 hover:underline">📍 {{ issue.location }} — voir le champ</a>{% endif %}
                                 </div>
                             </div>
                         </div>
@@ -527,8 +573,8 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
                 <svg class="w-16 h-16 mx-auto text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <h3 class="text-xl font-bold text-green-800 dark:text-green-200 mb-2">Message parfaitement valide !</h3>
-                <p class="text-green-600 dark:text-green-400">Aucun problème détecté sur aucune des 4 couches de validation.</p>
+                <h3 class="text-xl font-bold text-green-800 dark:text-green-200 mb-2">Aucune anomalie détectée par ce profil</h3>
+                <p class="text-green-600 dark:text-green-400">Les contrôles IHE PAM France et HL7 v2.5 implémentés n'ont relevé aucune issue.</p>
             </div>
             {% endif %}
 
@@ -741,7 +787,7 @@ PV1|1|I|NEURO^201^2||||||||||||||||VIS001^^^HOSP"
             <p><strong>4 couches de validation :</strong></p>
             <ul class="list-disc list-inside ml-4 space-y-1">
                 <li><strong>Couche 1 (IHE PAM)</strong> : Règles métier IHE Patient Administration Management</li>
-                <li><strong>Couche 2 (HAPI)</strong> : Structure et ordre des segments selon HAPI (18 triggers)</li>
+                <li><strong>Couche 2 (structure)</strong> : Structure, cardinalité et ordre des segments du profil PAM France</li>
                 <li><strong>Couche 3 (HL7 v2.5)</strong> : Validation segments MSH, EVN, PID obligatoires</li>
                 <li><strong>Couche 4 (Datatypes)</strong> : Types de données complexes (CX, XPN, XAD, XTN, TS, PL, XCN)</li>
             </ul>
@@ -781,6 +827,8 @@ function switchMode(mode) {
         
         singleForm.classList.remove('hidden');
         scenarioForm.classList.add('hidden');
+        singleTab.setAttribute('aria-selected', 'true');
+        scenarioTab.setAttribute('aria-selected', 'false');
         console.log('Mode message unique activé');
     } else {
         // Active le mode scénario
@@ -791,6 +839,8 @@ function switchMode(mode) {
         
         scenarioForm.classList.remove('hidden');
         singleForm.classList.add('hidden');
+        scenarioTab.setAttribute('aria-selected', 'true');
+        singleTab.setAttribute('aria-selected', 'false');
         console.log('Mode scénario activé');
     }
 }
@@ -811,6 +861,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Si on affiche des résultats de scénario, basculer sur l'onglet scénario
     switchMode('scenario');
     {% endif %}
+});
+
+document.querySelectorAll('[role="tab"]').forEach((tab) => {
+    tab.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+            event.preventDefault();
+            const target = tab.id === 'tab-single' ? 'scenario' : 'single';
+            switchMode(target);
+            document.getElementById(`tab-${target}`).focus();
+        }
+    });
 });
 </script>
 

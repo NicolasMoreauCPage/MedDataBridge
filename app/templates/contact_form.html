@@ -41,6 +41,9 @@
         </svg>
         Type et contexte
       </h3>
+      {% if error %}
+      <div class="mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200" role="alert">{{ error }}</div>
+      {% endif %}
       <div class="grid md:grid-cols-3 gap-6">
         <div>
           <label for="contact_type" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Type de contact</label>
@@ -50,12 +53,18 @@
           </select>
         </div>
         <div>
-          <label for="patient_id" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Patient ID</label>
-          <input type="number" name="patient_id" id="patient_id" class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-teal-500" value="{{ contact.patient_id|default('', true) if contact else '' }}">
+          <label for="patient_id" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Patient associé</label>
+          <select name="patient_id" id="patient_id" class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-teal-500">
+            <option value="">Choisir un patient</option>
+            {% for patient in patients %}<option value="{{ patient.id }}" {% if contact and contact.patient_id == patient.id %}selected{% endif %}>{{ patient.family }} {{ patient.given }} — {{ patient.identifier }}</option>{% endfor %}
+          </select>
         </div>
         <div>
-          <label for="venue_id" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Venue ID</label>
-          <input type="number" name="venue_id" id="venue_id" class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-teal-500" value="{{ contact.venue_id|default('', true) if contact else '' }}">
+          <label for="venue_id" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Venue associée</label>
+          <select name="venue_id" id="venue_id" class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-teal-500">
+            <option value="">Choisir une venue</option>
+            {% for venue in venues %}<option value="{{ venue.id }}" {% if contact and contact.venue_id == venue.id %}selected{% endif %}>#{{ venue.venue_seq }}{% if venue.label %} — {{ venue.label }}{% elif venue.code %} — {{ venue.code }}{% endif %}</option>{% endfor %}
+          </select>
         </div>
       </div>
     </div>
@@ -174,4 +183,20 @@
     </div>
   </form>
 </div>
+<script>
+  (() => {
+    const type = document.getElementById('contact_type');
+    const patient = document.getElementById('patient_id');
+    const venue = document.getElementById('venue_id');
+    const updateAssociation = () => {
+      const isPatient = type.value === 'patient';
+      patient.disabled = !isPatient;
+      patient.required = isPatient;
+      venue.disabled = isPatient;
+      venue.required = !isPatient;
+    };
+    type.addEventListener('change', updateAssociation);
+    updateAssociation();
+  })();
+</script>
 {% endblock %}

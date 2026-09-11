@@ -31,11 +31,23 @@ def translate_issues_to_fr(issues: List[ValidationIssue]) -> List[ValidationIssu
         if code and code in MESSAGES_FR:
             fr = MESSAGES_FR[code]
             # If original message contains detail after ':' keep it
-            out.append(ValidationIssue(code, fr, severity=sev))
+            out.append(ValidationIssue(
+                code, fr, severity=sev,
+                layer=getattr(it, "layer", "ihe_pam"),
+                location=getattr(it, "location", ""),
+                expected=getattr(it, "expected", ""),
+                actual=getattr(it, "actual", ""),
+            ))
         else:
             # Try minimal translation for common English words
             fr_msg = msg.replace("references movement", "référence le mouvement")
             fr_msg = fr_msg.replace("not found", "introuvable en base")
             fr_msg = fr_msg.replace("already cancelled", "déjà annulé")
-            out.append(ValidationIssue(code or "UNKNOWN", fr_msg, severity=sev))
+            out.append(ValidationIssue(
+                code or "UNKNOWN", fr_msg, severity=sev,
+                layer=getattr(it, "layer", "ihe_pam"),
+                location=getattr(it, "location", ""),
+                expected=getattr(it, "expected", ""),
+                actual=getattr(it, "actual", ""),
+            ))
     return out

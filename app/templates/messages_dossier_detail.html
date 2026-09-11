@@ -40,7 +40,7 @@
                         </span>
                         
                         <!-- Statut de validation -->
-                        {% if msg.validation_status == "error" or msg.status in ["error", "ack_error"] or ack_statuses.get(msg.id) in ["AR", "AE", "CR", "CE"] %}
+                        {% if msg.status in ["error", "ack_error", "rejected"] or ack_statuses.get(msg.id) in ["AR", "AE", "CR", "CE"] %}
                         <span class="px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200">
                             ❌ Erreur ACK
                         </span>
@@ -85,40 +85,26 @@
                 </div>
 
                 <!-- Erreurs de validation PAM -->
-                {% if msg.pam_validation_errors %}
-                {% set pam_errors = msg.pam_validation_errors|from_json %}
+                {% if msg.pam_validation_issues %}
+                {% set pam_issues = msg.pam_validation_issues|from_json %}
+                {% set pam_errors = pam_issues|selectattr('severity', 'equalto', 'error')|list %}
                 {% if pam_errors %}
                 <div class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
                     <h4 class="text-sm font-semibold text-red-900 dark:text-red-200 mb-2">Erreurs de validation PAM:</h4>
                     <ul class="list-disc list-inside space-y-1 text-sm text-red-800 dark:text-red-200">
                         {% for error in pam_errors %}
-                        <li>{{ error }}</li>
+                        <li><code>{{ error.code|default('PAM', true) }}</code> — {{ error.message|default(error, true) }}</li>
                         {% endfor %}
                     </ul>
                 </div>
                 {% endif %}
                 {% endif %}
 
-                <!-- Erreurs de validation de segments -->
-                {% if msg.segment_validation_errors %}
-                {% set seg_errors = msg.segment_validation_errors|from_json %}
-                {% if seg_errors %}
-                <div class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                    <h4 class="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-2">Erreurs de validation de segments:</h4>
-                    <ul class="list-disc list-inside space-y-1 text-sm text-orange-800 dark:text-orange-200">
-                        {% for error in seg_errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-                {% endif %}
-
-                <!-- Erreur ACK -->
-                {% if msg.status in ["error", "ack_error"] and msg.ack_text %}
+                <!-- ACK négatif -->
+                {% if msg.status in ["error", "ack_error", "rejected"] and msg.ack_payload %}
                 <div class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
                     <h4 class="text-sm font-semibold text-red-900 dark:text-red-200 mb-2">Message d'erreur ACK:</h4>
-                    <p class="text-sm text-red-800 dark:text-red-200">{{ msg.ack_text }}</p>
+                    <pre class="overflow-x-auto whitespace-pre-wrap text-sm text-red-800 dark:text-red-200">{{ msg.ack_payload|format_hl7_payload }}</pre>
                 </div>
                 {% endif %}
 

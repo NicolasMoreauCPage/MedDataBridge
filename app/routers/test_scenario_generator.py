@@ -11,6 +11,7 @@ from app.services.test_scenario_generator import (
     ErrorType,
     TestScenarioGenerator,
     TestScenarioType,
+    message_to_hl7,
 )
 
 router = APIRouter(prefix="/test-scenario-generator", tags=["Test Scenario Generator"])
@@ -59,6 +60,8 @@ async def generate_scenario(payload: ScenarioGenerationRequest) -> dict:
             patient_count=payload.patient_count,
             error_injections=injections or None,
         )
-        return jsonable_encoder(asdict(scenario))
+        response = asdict(scenario)
+        response["messages_hl7"] = [message_to_hl7(message) for message in scenario.messages]
+        return jsonable_encoder(response)
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

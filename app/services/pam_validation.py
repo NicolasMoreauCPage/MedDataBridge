@@ -88,6 +88,21 @@ IDENTITY_ONLY = set(IDENTITY_EVENTS)
 REQUIRE_PV1 = {
     event for event in MOVEMENT_EVENTS if event != "A44"
 }
+
+# Exception d'interopérabilité limitée aux messages entrants CPage observés
+# dans le corpus. Certaines versions concatènent à tort le marqueur ``C`` à
+# ZBE-9 (ex. MHC, MC, HMSC). Cette donnée reste non conforme sur le fil ; elle
+# est normalisée pour appliquer les règles métier, avec un avertissement
+# traçable plutôt qu'un rejet technique de tout le message.
+CPAGE_ZBE9_SUFFIX_BUG_VALUES = frozenset({"MC", "MHC", "HMSC"})
+
+
+def _normalize_cpage_zbe9(value: str, *, sending_app: str, trigger: str) -> str:
+    """Retourne l'interprétation nationale d'une variante CPage connue."""
+    normalized = (value or "").strip().upper()
+    if sending_app == "CPAGE" and normalized in CPAGE_ZBE9_SUFFIX_BUG_VALUES:
+        return "C" if trigger == "Z99" else normalized[:-1]
+    return normalized
 import os as _os
 if _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}:
     REQUIRE_PV1 = {e for e in REQUIRE_PV1 if e != "A08"}
@@ -180,9 +195,59 @@ except Exception:
 
 @dataclass
 class ValidationIssue:
+    """Diagnostic exploitable à la fois par l'API et par les IHM.
+
+    Les trois premiers attributs sont conservés pour compatibilité avec les
+    journaux existants. Les suivants permettent à l'IHM de placer précisément
+    le curseur sur le segment et le champ à corriger.
+    """
     code: str
     message: str
     severity: str = "error"  # error|warn|info
+    layer: str = "ihe_pam"  # ihe_pam|structure|hl7_base|datatypes
+    location: str = ""
+    expected: str = ""
+    actual: str = ""
+
+
+_ISSUE_LOCATION_RE = re.compile(r"^(MSH|EVN|PID|PD1|NK1|PV1|PV2|MRG|ZBE|ZFA|ZFP|ZFV|ZFM|ZFD|ZFS)(?:_?(\d+))?(?:_(\d+))?")
+
+
+def _issue_layer(code: str) -> str:
+    """Classe une issue de façon centralisée, sans heuristique d'IHM."""
+    if code.startswith(("MSH", "STRUCTURE")) or code == "EVN_MISMATCH":
+        return "hl7_base"
+    if any(token in code for token in ("_CX_", "_XPN_", "_XAD_", "_XTN_", "_TS_")) or code.startswith(("PID15", "PV1_2", "PV1_3", "PV1_7")):
+        return "datatypes"
+    if code.startswith(("SEGMENT", "OPTIONAL_SEGMENTS")) or code.endswith(("_REPEATED", "_ORDER")):
+        return "structure"
+    return "ihe_pam"
+
+
+def _issue_location(code: str) -> str:
+    """Déduit une localisation HL7 lisible depuis les codes de validation."""
+    match = _ISSUE_LOCATION_RE.match(code or "")
+    if not match:
+        return ""
+    segment, field, component = match.groups()
+    location = segment
+    if field:
+        location += f"-{field}"
+    if component:
+        location += f".{component}"
+    return location
+
+
+def enrich_issues(issues: List[ValidationIssue]) -> List[ValidationIssue]:
+    """Complète les diagnostics anciens sans modifier leur sévérité ni texte."""
+    for issue in issues:
+        if not issue.layer:
+            issue.layer = _issue_layer(issue.code)
+        elif issue.layer == "ihe_pam":
+            issue.layer = _issue_layer(issue.code)
+        if not issue.location:
+            issue.location = _issue_location(issue.code)
+    return issues
 
 
 @dataclass
@@ -208,7 +273,11 @@ class ValidationResult:
     issues: List[ValidationIssue]
     audit: Optional[ValidationAuditEntry] = None
 
+    def __post_init__(self) -> None:
+        enrich_issues(self.issues)
+
     def to_dict(self) -> Dict:
+        enrich_issues(self.issues)
         return {
             "is_valid": self.is_valid,
             "level": self.level,
@@ -451,8 +520,10 @@ def _validate_xtn_telecom(xtn: str, field_name: str, issues: List[ValidationIssu
                     f"{field_name}: XTN-2 Use Code '{use_code}' not in HL7 Table 0201",
                     severity="error"
                 ))
-        elif pv1_2:
-            # non-PID13 fields: warn when not in permissive set
+        else:
+            # Non-PID13 fields use an informational, permissive check.  This
+            # helper is also called for PID-14, so it must not depend on a
+            # local PV1 value from the enclosing message validator.
             if not is_pid13 and use_code not in valid_uses:
                 issues.append(ValidationIssue(
                     f"{field_name}_XTN_USE_INVALID",
@@ -718,6 +789,7 @@ def validate_pam(
 
     msg_type = f"{msh.get('type','')}^{msh.get('trigger','')}".strip("^")
     trigger = msh.get("trigger") or ""
+    sending_app = (msh.get("sending_app") or "").strip().upper()
 
     if (msh.get("type") or "").upper() == "ADT" and trigger not in MESSAGE_STRUCTURES:
         issues.append(ValidationIssue(
@@ -937,7 +1009,16 @@ def validate_pam(
         zbe_6 = _field(zbe_parts, 6)
         zbe_7 = _field(zbe_parts, 7)
         zbe_8 = _field(zbe_parts, 8)
-        zbe_9 = _field(zbe_parts, 9)
+        received_zbe_9 = _field(zbe_parts, 9)
+        zbe_9 = _normalize_cpage_zbe9(received_zbe_9, sending_app=sending_app, trigger=trigger)
+        if zbe_9 != (received_zbe_9 or "").strip().upper():
+            issues.append(ValidationIssue(
+                "ZBE9_CPAGE_SUFFIX_COMPAT",
+                f"ZBE-9={received_zbe_9} est une variante CPage connue ; interprété comme {zbe_9}",
+                severity="warn",
+                actual=received_zbe_9,
+                expected=zbe_9,
+            ))
         _validate_code_with_vocab(
             zbe_9,
             "ZBE9",
@@ -1059,7 +1140,9 @@ def validate_pam(
         zbe_6 = _field(zbe_parts, 6).upper() if _field(zbe_parts, 6) else ""
         zbe_7 = _field(zbe_parts, 7)
         zbe_8 = _field(zbe_parts, 8)
-        zbe_9 = _field(zbe_parts, 9).upper() if _field(zbe_parts, 9) else ""
+        zbe_9 = _normalize_cpage_zbe9(
+            _field(zbe_parts, 9), sending_app=sending_app, trigger=trigger,
+        )
 
         # ZBE-1 identifiant mouvement
         if not zbe_1:
@@ -1122,14 +1205,25 @@ def validate_pam(
             if len(comps7) < 10 or not comps7[9].strip():
                 issues.append(ValidationIssue("ZBE7_CODE_MISSING", "ZBE-7 composant 10 code UF médicale manquant", severity="error"))
 
-        # ZBE-8 UF soins (XON) code composant 10 (warning si absent, pas erreur pour compat)
+        # ZBE-8 UF soins (XON) code composant 10. CPage renseigne rarement
+        # cette UF, y compris pour certaines natures contenant S : conserver
+        # le diagnostic sans rejeter le flux partenaire connu.
         requires_care_uf = bool(set(zbe_9) & {"S"})
+        cpage_care_uf_compat = sending_app == "CPAGE" and requires_care_uf
         if zbe_8:
             comps8 = zbe_8.split("^")
             if len(comps8) < 10 or not comps8[9].strip():
-                issues.append(ValidationIssue("ZBE8_CODE_MISSING", "ZBE-8 composant 10 code UF soins manquant", severity="error" if requires_care_uf else "warn"))
+                issues.append(ValidationIssue(
+                    "ZBE8_CODE_MISSING",
+                    "ZBE-8 composant 10 code UF soins manquant",
+                    severity="warn" if cpage_care_uf_compat or not requires_care_uf else "error",
+                ))
         elif requires_care_uf:
-            issues.append(ValidationIssue("ZBE8_MISSING", "ZBE-8 UF soins requise pour cette nature de mouvement", severity="error"))
+            issues.append(ValidationIssue(
+                "ZBE8_MISSING",
+                "ZBE-8 UF soins requise pour cette nature de mouvement (tolérée pour CPage)",
+                severity="warn" if cpage_care_uf_compat else "error",
+            ))
 
         if not zbe_9:
             issues.append(ValidationIssue("ZBE9_MISSING", "ZBE-9 nature requise", severity="error"))

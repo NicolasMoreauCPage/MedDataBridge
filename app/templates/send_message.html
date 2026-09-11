@@ -83,7 +83,7 @@
       </label>
       <textarea name="payload" rows="14" 
         class="block w-full rounded-xl border-2 border-slate-300 px-4 py-3 font-mono text-sm bg-slate-900 text-green-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-        placeholder="MSH|^~\&|SENDING_APP|SENDING_FAC|RECEIVING_APP|RECEIVING_FAC|20231205120000||ADT^A01|MSG123|P|2.5|||||FRA&#10;PID|1||123456^^^HOSPITAL^PI||MARTIN^SOPHIE||19800515|F|||15 RUE VICTOR HUGO^^PARIS^^75001^FRA"></textarea>
+        placeholder="MSH|^~\&|SENDING_APP|SENDING_FAC|RECEIVING_APP|RECEIVING_FAC|20231205120000||ADT^A01^ADT_A01|MSG123|P|2.5^FRA^2.11|||||FRA|UNICODE UTF-8&#10;EVN|A01|20231205120000&#10;PID|1||123456^^^HOSPITAL^PI||MARTIN^SOPHIE||19800515|F||||||||||||||||||||||||VALI&#10;PV1|1|I|CARDIO^101^A||||||||||||||||VIS001&#10;ZBE|MVT001^HOSPITAL^1.2.250.1.1^ISO|20231205120000||INSERT|N||^^^^^^^^^UF01||H"></textarea>
       
       <!-- Info helper -->
       <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-sm">
@@ -93,7 +93,7 @@
           </svg>
           <div>
             <p class="font-semibold text-blue-900 dark:text-blue-200 mb-1">💡 Astuce</p>
-            <p class="text-blue-800 dark:text-blue-200">Pour simuler un MLLP entrant, choisissez un endpoint de type MLLP. Le message sera traité par le pipeline d'entrée (validation, parsing PID/PV1, etc.).</p>
+            <p class="text-blue-800 dark:text-blue-200">L'exemple est IHE PAM France 2.11. Pour simuler un MLLP entrant, choisissez un endpoint MLLP : le message passera par le pipeline d'entrée et ses contrôles HL7/PAM.</p>
           </div>
         </div>
       </div>

@@ -164,30 +164,30 @@ def edit_patient(patient_id: int, request: Request, session=Depends(get_session)
 
 
 @router.post("/{patient_id:int}/edit")
-def update_patient_from_form(
+async def update_patient_from_form(
     patient_id: int,
-    family: str = Form(...),
-    given: str = Form(...),
-    birth_date: str = Form(None),
-    gender: str = Form(None),
-    identifier: str = Form(None),
-    request: Request = None,
-    session: Session = Depends(get_session)
+    request: Request,
+    session: Session = Depends(get_session),
 ):
     """Handles the submission of the patient edit form."""
     patient = session.get(Patient, patient_id)
     if not patient:
         return HTMLResponse("Patient introuvable", status_code=404)
 
-    is_ajax = request.headers.get('accept') == 'application/json' if request else False
+    is_ajax = request.headers.get('accept') == 'application/json'
     try:
+        form = await request.form()
+        # Keep this list tied to the schema: every field exposed by the form is
+        # persisted instead of silently dropping the PAM-relevant demographics.
         patient_update_data = PatientUpdateSchema(
-            identifier=identifier,
-            family=family,
-            given=given,
-            birth_date=birth_date,
-            gender=gender
+            **{
+                name: form.get(name)
+                for name in PatientUpdateSchema.model_fields
+                if name in form
+            }
         )
+        if not (patient_update_data.family or "").strip() or not (patient_update_data.given or "").strip():
+            raise ValueError("Le nom et le prénom sont obligatoires.")
 
         patients_service.update_patient(session=session, patient=patient, patient_data=patient_update_data)
         flash(request, "Patient mis à jour avec succès", "success")

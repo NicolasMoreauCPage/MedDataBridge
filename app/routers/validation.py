@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi import Request as FastAPIRequest
 from app.services.pam_validation import validate_pam
+from app.services.hl7_display import build_hl7_view
 from app.services.hprim.hprim_service import HprimService
 from app.services.scenario_validation import validate_scenario
 import json
@@ -69,8 +70,9 @@ async def validate_message(
     profile: str = Form(default="IHE_PAM_FR")
 ):
     """Valide un message HL7 et retourne le rapport."""
-    print(f"[VALIDATION] Received message of length: {len(hl7_message)}")
-    print(f"[VALIDATION] Direction: {direction}, Profile: {profile}")
+    # L'écran est celui du profil France ; ne pas laisser croire qu'un second
+    # profil est effectivement appliqué.
+    profile = "IHE_PAM_FR"
 
     fmt = detect_message_format(hl7_message)
     if fmt == "HPRIM_XML":
@@ -93,34 +95,17 @@ async def validate_message(
     else:
         # Validation HL7/PAM
         result = validate_pam(hl7_message, direction, profile)
-        print(f"[VALIDATION] Result level: {result.level}, issues: {len(result.issues)}")
-
         # Classifier les issues par sévérité
         errors = [i for i in result.issues if i.severity == "error"]
         warnings = [i for i in result.issues if i.severity == "warn"]
         infos = [i for i in result.issues if i.severity == "info"]
 
-        # Classifier par couche de validation
-        ihe_pam = []
-        hapi = []
-        hl7_base = []
-        datatypes = []
-        segment_order = []
-
-        for issue in result.issues:
-            code = issue.code
-            if "ORDER" in code:
-                segment_order.append(issue)
-            elif code.startswith("PV1_MISSING") or code.startswith("EVN_MISSING") or code.startswith("PID_MISSING"):
-                ihe_pam.append(issue)
-            elif "SEGMENT" in code or code.endswith("_REQUIRED") or code.endswith("_FORBIDDEN") or "OPTIONAL_SEGMENTS" in code:
-                hapi.append(issue)
-            elif code.startswith("MSH") or code.startswith("EVN_MISMATCH"):
-                hl7_base.append(issue)
-            elif "_CX_" in code or "_XPN_" in code or "_XAD_" in code or "_XTN_" in code or "_TS_" in code or code.startswith("PV1_2") or code.startswith("PV1_3") or code.startswith("PV1_7") or code.startswith("PID"):
-                datatypes.append(issue)
-            else:
-                hl7_base.append(issue)
+        # Les couches sont portées par le validateur afin que le journal et
+        # l'écran immédiat utilisent exactement le même contrat.
+        ihe_pam = [i for i in result.issues if i.layer == "ihe_pam"]
+        structure = [i for i in result.issues if i.layer == "structure"]
+        hl7_base = [i for i in result.issues if i.layer == "hl7_base"]
+        datatypes = [i for i in result.issues if i.layer == "datatypes"]
 
         return get_templates_with_filters(request).TemplateResponse(request, "validation.html", {
             "title": "Validation Messages HL7 v2.5 / HPRIM XML",
@@ -134,10 +119,10 @@ async def validate_message(
             "warnings": warnings,
             "infos": infos,
             "ihe_pam": ihe_pam,
-            "hapi": hapi,
             "hl7_base": hl7_base,
             "datatypes": datatypes,
-            "segment_order": segment_order,
+            "structure": structure,
+            "hl7_view": build_hl7_view(hl7_message),
             "scenario_result": None
         })
 
@@ -150,18 +135,10 @@ async def validate_scenario_route(
     profile: str = Form(default="IHE_PAM_FR")
 ):
     """Valide un scénario de plusieurs messages HL7 et retourne le rapport."""
-    
-    print(f"[SCENARIO VALIDATION] Received scenario of length: {len(scenario_messages)}")
-    print(f"[SCENARIO VALIDATION] Direction: {direction}, Profile: {profile}")
+    profile = "IHE_PAM_FR"
     
     # Validation du scénario
     result = validate_scenario(scenario_messages, direction, profile)
-    print(f"[SCENARIO VALIDATION] Result level: {result.level}, "
-          f"messages: {result.total_messages}, "
-          f"valid: {result.valid_messages}, "
-          f"workflow issues: {len(result.workflow_issues)}, "
-          f"coherence issues: {len(result.coherence_issues)}")
-    
     return get_templates_with_filters(request).TemplateResponse(request, "validation.html", {
         "title": "Validation Scénario HL7 v2.5",
         "validation_done": False,

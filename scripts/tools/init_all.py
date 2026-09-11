@@ -21,7 +21,7 @@ import argparse
 import sys
 import subprocess
 from pathlib import Path
-parent_dir = str(Path(__file__).resolve().parent.parent)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # Import des autres scripts
 from app.vocabularies.init import init_vocabularies
 from app.services.structure_seed import DEMO_STRUCTURE, ensure_demo_structure
@@ -570,36 +570,43 @@ def main():
     # Étape 5: Importer les scénarios d'interopérabilité
     print("\n[5/5] Import des scénarios d'interopérabilité...")
     try:
-        import subprocess
-        result = subprocess.run(
-            [sys.executable, "-m", "tools.init_interop_scenarios"],
-            capture_output=True,
-            text=True,
-            cwd=parent_dir
+        scenario_scripts = (
+            PROJECT_ROOT / "scripts/manual/seed_ihe_pam_scenarios.py",
+            PROJECT_ROOT / "scripts/manual/seed_hprim_scenarios.py",
         )
-        if result.returncode == 0:
+        results = [
+            subprocess.run(
+                [sys.executable, str(script)],
+                capture_output=True,
+                text=True,
+                cwd=PROJECT_ROOT,
+            )
+            for script in scenario_scripts
+        ]
+        if all(result.returncode == 0 for result in results):
             print("  ✓ Scénarios importés")
-            # Afficher les 3 dernières lignes du résultat
-            lines = result.stdout.strip().split('\n')
+            lines = "\n".join(result.stdout for result in results).strip().split('\n')
             for line in lines[-3:]:
                 print(f"    {line}")
         else:
             print(f"  ⚠️  Erreur lors de l'import des scénarios")
-            print(f"    {result.stderr}")
+            for result in results:
+                if result.returncode != 0:
+                    print(f"    {result.stderr}")
     except Exception as e:
         print(f"  ⚠️  Erreur lors de l'import des scénarios: {e}")
     
     # Injection des patients, dossiers, venues, mouvements de test réalistes
     print("\n[6/6] Injection des patients, dossiers, venues, mouvements de test...")
     try:
-        cmd = [sys.executable, "tools/init_demo_movements.py"]
+        cmd = [sys.executable, str(PROJECT_ROOT / "scripts/tools/init_demo_movements.py")]
         if args.export_fhir:
             cmd.append("--export-fhir")
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            cwd=parent_dir
+            cwd=PROJECT_ROOT
         )
         if result.returncode == 0:
             print("  ✓ Jeu de données réaliste injecté (patients, dossiers, venues, mouvements IHE PAM)")

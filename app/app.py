@@ -730,7 +730,7 @@ if not testing:
         app,
         engine,
         base_url="/sqladmin",
-        title="IntegraSanté - Admin SQL",
+        title="PAMélia - Admin SQL",
         templates_dir=templates_path,
         authentication_backend=SqlAdminAuthBackend(secret_key=settings.secret_key)
     )

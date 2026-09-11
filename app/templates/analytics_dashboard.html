@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block extra_head %}
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Chart.js, servi localement pour que le tableau de bord reste utilisable en réseau isolé. -->
+<script src="{{ url_for('static', path='js/chart.umd.min.js') }}"></script>
 <style>
   .kpi-card {
     @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 transition-all duration-200 hover:shadow-md;
@@ -203,7 +203,7 @@
 
 <script>
 // État global
-let currentEgId = {{ eg_id if eg_id else 1 }}; // Default à 1 pour MVP
+let currentEgId = {{ eg_id if eg_id else 'null' }};
 let currentPeriod = '7d';
 let charts = {};
 
@@ -231,16 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Ensure Chart.js is available; try to load from CDN if not present
+// Chart.js est inclus localement dans la page. Garder une promesse évite de
+// dupliquer la séquence d'initialisation des données.
 function ensureChart() {
   return new Promise((resolve, reject) => {
     if (typeof Chart !== 'undefined') return resolve();
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Chart.js load failed'));
-    document.head.appendChild(script);
+    reject(new Error('Chart.js local indisponible'));
   });
 }
 

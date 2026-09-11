@@ -150,6 +150,10 @@ class StructureEditor {
     // ========================================
     
     initDragDrop() {
+        if (typeof window.Sortable !== 'function') {
+            console.info('Glisser-déposer indisponible : la bibliothèque Sortable n’est pas chargée.');
+            return;
+        }
         // Pour chaque liste d'éléments dans l'arbre
         const sortableLists = this.tree.querySelectorAll('[data-sortable]');
         

@@ -33,24 +33,13 @@
   </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title|default('IntegraSanté by CPage') }}</title>
-  <!-- Tailwind CSS via CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: {} }
-    }
-  </script>
+  <title>{{ title|default('PAMélia — Laboratoire d’interopérabilité') }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/output.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='css/forms.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='css/design-system.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='css/animations.css') }}">
-  <meta name="description" content="Plateforme d'intégration des données de santé - Interopérabilité FHIR/HPRIM/HL7">
-  <meta name="theme-color" content="#0f766e">
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='img/integrasante_favicon_concept3.svg') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta name="description" content="PAMélia, laboratoire de tests d’interopérabilité HL7, FHIR, IHE PAM et HPRIM">
+  <meta name="theme-color" content="#6d28d9">
   <style>
     /* Variables CSS essentielles pour le dark mode et branding */
     :root {
@@ -59,8 +48,8 @@
       --color-border: #e2e8f0; /* slate-200 - borders */
       --color-text: #1f2937; /* slate-800 - primary text */
       --color-muted: #64748b; /* slate-500 - secondary text */
-      --color-accent: #2563eb; /* blue-600 - primary accent */
-      --color-accent-alt: #0ea5e9; /* cyan-500 - secondary accent */
+      --color-accent: #6d28d9; /* violet-700 - primary accent */
+      --color-accent-alt: #db2777; /* pink-600 - secondary accent */
       --color-success: #10b981; /* green-500 - success states */
       --color-warning: #f59e0b; /* amber-500 - warning states */
       --color-danger: #ef4444; /* red-500 - error states */
@@ -74,8 +63,8 @@
         --color-border: #334155; /* slate-700 */
         --color-text: #f1f5f9; /* slate-100 */
         --color-muted: #94a3b8; /* slate-400 */
-        --color-accent: #3b82f6; /* blue-500 */
-        --color-accent-alt: #06b6d4; /* cyan-500 */
+        --color-accent: #a78bfa; /* violet-400 */
+        --color-accent-alt: #f472b6; /* pink-400 */
       }
     }
 
@@ -85,8 +74,8 @@
       --color-border: #334155;
       --color-text: #f1f5f9;
       --color-muted: #94a3b8;
-      --color-accent: #3b82f6;
-      --color-accent-alt: #06b6d4;
+      --color-accent: #a78bfa;
+      --color-accent-alt: #f472b6;
     }
 
     /* Classes utilitaires pour les couleurs accent */
@@ -110,21 +99,21 @@
     /* Styles de base - maintenant minimalistes */
     body {
       min-height: 100vh;
-      font-family: "Source Sans 3", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background-color: #f8fafc; /* slate-50 */
-      background-image: radial-gradient(circle at 90% 0%, rgba(14, 165, 233, 0.08), transparent 35%), radial-gradient(circle at 0% 100%, rgba(20, 184, 166, 0.1), transparent 40%);
+      background-image: radial-gradient(circle at 92% 0%, rgba(168, 85, 247, 0.12), transparent 34%), radial-gradient(circle at 0% 100%, rgba(236, 72, 153, 0.09), transparent 40%);
       color: #1f2937; /* slate-800 */
     }
 
     h1, h2, h3, .font-sans {
-      font-family: "Manrope", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       letter-spacing: -0.01em;
     }
     
     /* Dark mode styles */
     .dark body {
       background-color: #0f172a; /* slate-900 */
-      background-image: radial-gradient(circle at 90% 0%, rgba(45, 212, 191, 0.1), transparent 35%), radial-gradient(circle at 0% 100%, rgba(59, 130, 246, 0.12), transparent 40%);
+      background-image: radial-gradient(circle at 90% 0%, rgba(167, 139, 250, 0.14), transparent 35%), radial-gradient(circle at 0% 100%, rgba(244, 114, 182, 0.1), transparent 40%);
       color: #f1f5f9; /* slate-100 */
     }
     
@@ -147,9 +136,38 @@
     
     /* Focus visible pour accessibilité */
     *:focus-visible {
-      outline: 2px solid #2563eb;
+      outline: 2px solid #7c3aed;
       outline-offset: 2px;
     }
+
+    .pamelia-brand {
+      color: #24113f;
+      letter-spacing: -0.04em;
+    }
+    .pamelia-brand-mark {
+      display: grid;
+      place-items: center;
+      width: 2.65rem;
+      height: 2.65rem;
+      border-radius: 1rem;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.08em;
+      background: linear-gradient(135deg, #6d28d9, #db2777);
+      box-shadow: 0 8px 18px rgba(109, 40, 217, 0.25);
+    }
+    .pamelia-brand-subtitle {
+      display: block;
+      margin-top: -0.1rem;
+      color: #7c3aed;
+      font-size: 0.61rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    html.dark .pamelia-brand { color: #f5f3ff; }
+    html.dark .pamelia-brand-subtitle { color: #c4b5fd; }
 
     /* Optimisations responsive pour animations */
     @media (max-width: 768px) {
@@ -289,9 +307,9 @@
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-surface focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-surface/95" role="banner">
     <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
-      <a href="/" class="flex items-center gap-3 text-lg font-semibold transition-all duration-200 hover:opacity-80 group">
-        <img src="{{ url_for('static', path='img/integrasante_logo_badge.svg') }}" alt="IntegraSanté by CPage" class="h-16 w-auto block dark:hidden" />
-        <img src="{{ url_for('static', path='img/integrasante_logo_badge_dark.svg') }}" alt="IntegraSanté by CPage" class="h-16 w-auto hidden dark:block" />
+      <a href="/" class="flex items-center gap-3 text-lg font-semibold transition-all duration-200 hover:opacity-80 group" aria-label="PAMélia — accueil">
+        <span class="pamelia-brand-mark" aria-hidden="true">P</span>
+        <span class="pamelia-brand leading-none">PAMélia<span class="pamelia-brand-subtitle">Laboratoire d'interop</span></span>
       </a>
       <div class="flex items-center gap-2">
         {% if request and request.state and request.state.ght_context %}
@@ -560,6 +578,7 @@
               <div>
                 <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">Tests & Validation</p>
                 <a href="/validation" class="block rounded-xl px-3 py-2 hover:bg-green-50">Validation HL7</a>
+                <a href="/ui/interface-testing" class="block rounded-xl px-3 py-2 font-semibold text-blue-700 hover:bg-blue-50">Qualification & verdicts</a>
                 <a href="/conformity" class="block rounded-xl px-3 py-2 hover:bg-green-50 text-amber-700">
                   Conformité IHE
                   {{ components.context_badge('Contexte requis') }}
@@ -714,7 +733,7 @@
           <a href="/hprim-cotation/" class="block rounded-xl px-3 py-2 hover:bg-emerald-50 text-emerald-700">💊 Messages HPRIM</a>
           <a href="/venues{% if request.state and request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Venues</a>
           <a href="/mouvements{% if request.state.venue_context %}?venue_id={{ request.state.venue_context.id }}{% elif request.state.dossier_context %}?dossier_id={{ request.state.dossier_context.id }}{% endif %}" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Mouvements</a>
-          <a href="/forms" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Formulaires</a>
+          <a href="/design-system" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Composants d'interface</a>
         </div>
         <div>
           <p class="text-xs uppercase tracking-wide text-slate-400 mb-1 flex items-center gap-2" data-test-section="structure">
@@ -791,6 +810,7 @@
           <a href="/messages/send" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Injecter HL7/FHIR</a>
           <a href="/endpoints" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Points d'accès</a>
           <a href="/scenarios" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Scénarios IHE</a>
+          <a href="/ui/interface-testing" class="block rounded-xl px-3 py-2 font-semibold text-blue-700 hover:bg-blue-50">Qualification & verdicts</a>
           <a href="/standards" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Standards</a>
         </div>
         <div>
@@ -807,7 +827,7 @@
           <a href="/documentation/fhir-reception-emission" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR — Réception & Émission</a>
           <a href="/docs/FHIR_API.md" class="block rounded-xl px-3 py-2 hover:bg-blue-50">FHIR — Spec API</a>
           <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-blue-50">IHE PAM — Intégration</a>
-          <a href="/Doc/IHE_PAM_TECHNIQUE.html" class="block rounded-xl px-3 py-2 hover:bg-blue-50">IHE PAM — Technique (HTML)</a>
+          <a href="/documentation/pam-integration" class="block rounded-xl px-3 py-2 hover:bg-blue-50">IHE PAM — Technique</a>
         </div>
         <a href="/admin" class="block rounded-xl px-3 py-2 bg-slate-900 text-white text-center">Administration</a>
       </div>
@@ -1210,8 +1230,7 @@
     window.loadingSystem = loadingSystem;
   </script>
 
-  <!-- Alpine.js pour interactivité via CDN -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="{{ url_for('static', path='js/alpine.min.js') }}"></script>
 
   <!-- Conteneur de toasts pour les notifications -->
   {{ toast_container() }}
@@ -1220,16 +1239,16 @@
   <footer class="border-t border-border bg-gradient-to-b from-surface to-surface/95 mt-auto backdrop-blur-sm">
     <div class="mx-auto max-w-content px-4 py-6">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <img src="{{ url_for('static', path='img/integrasante_logo_badge.svg') }}" alt="IntegraSanté by CPage" class="h-12 w-auto block dark:hidden" />
-          <img src="{{ url_for('static', path='img/integrasante_logo_badge_dark.svg') }}" alt="IntegraSanté by CPage" class="h-12 w-auto hidden dark:block" />
+        <div class="flex items-center gap-3" aria-label="PAMélia">
+          <span class="pamelia-brand-mark" aria-hidden="true">P</span>
+          <span class="pamelia-brand text-lg leading-none">PAMélia<span class="pamelia-brand-subtitle">Laboratoire d'interop</span></span>
         </div>
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center gap-3 text-xs text-muted">
             <span class="px-2 py-1 rounded-md bg-surface border text-heading font-mono text-xs">v{{ request.state.version|default('1.0.0-alpha.1') }}</span>
             <span class="text-muted">•</span>
-            <span>© 2025 IntegraSanté by CPage</span>
+            <span>© 2026 PAMélia</span>
           </div>
           <div class="flex flex-wrap items-center gap-3">
             <a href="/docs/changelog" class="text-muted hover:text-accent transition-colors flex items-center gap-1.5 text-xs">
@@ -1255,10 +1274,13 @@
 
   <!-- Script global pour charger le compteur d'alertes -->
   <script>
+    const activeEgId = {{ request.state.eg_context.id if request.state.eg_context else 'null' }};
+
     // Charger le compteur d'alertes au chargement de la page
     async function loadAlertCount() {
+      if (!activeEgId) return;
       try {
-        const response = await fetch('/api/analytics/alerts?eg_id=1&severity=high');
+        const response = await fetch(`/api/analytics/alerts?eg_id=${activeEgId}&severity=high`);
         if (!response.ok) return;
         
         const alerts = await response.json();
@@ -1284,11 +1306,9 @@
 
     {% block scripts %}{% endblock %}
 
-  <!-- Phase 5 - UX Moderne: Drag & Drop + Édition inline -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <!-- L'édition reste disponible hors ligne ; le glisser-déposer se désactive proprement sans bibliothèque externe. -->
   <script src="{{ url_for('static', path='/js/components.js') }}"></script>
   <script src="{{ url_for('static', path='/js/structure-interactive.js') }}"></script>
 
 </body>
 </html>
-

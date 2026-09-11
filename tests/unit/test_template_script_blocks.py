@@ -37,3 +37,45 @@ def test_hprim_cotation_modern_uses_shared_toast_system(client, session):
     assert "window.toastSystem.show" in resp.text
     assert 'id="toastStack"' not in resp.text
     assert resp.text.count('id="toast-container"') == 1
+
+
+def test_qualification_dashboard_renders_with_the_test_bench_entrypoint(client):
+    resp = client.get("/ui/interface-testing")
+
+    assert resp.status_code == 200
+    assert "Le laboratoire des échanges partenaires" in resp.text
+    assert 'action="/ui/interface-testing/runs"' in resp.text
+
+
+def test_plan_lits_assignment_creates_a_traceable_transfer(client, session):
+    from datetime import datetime, timezone
+
+    from sqlmodel import select
+
+    from app.models import Dossier, Mouvement, Patient, Venue
+    from app.models_structure import Lit
+
+    patient = Patient(patient_seq=9001, identifier="IPP-9001", family="MARTIN", given="Anne")
+    session.add(patient)
+    session.flush()
+    dossier = Dossier(dossier_seq=9001, patient_id=patient.id, admit_time=datetime.now(timezone.utc))
+    session.add(dossier)
+    session.flush()
+    venue = Venue(venue_seq=9001, dossier_id=dossier.id, start_time=datetime.now(timezone.utc))
+    lit = Lit(identifier="LIT-UX-9001", name="Lit UX")
+    session.add(venue)
+    session.add(lit)
+    session.commit()
+    session.refresh(lit)
+
+    resp = client.post(
+        "/mouvements/plan-lits/assign",
+        data={"lit_id": lit.id, "selected_patient_id": patient.id},
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 303
+    session.refresh(venue)
+    assert venue.lit_id == lit.id
+    movement = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).one()
+    assert (movement.type, movement.trigger_event, movement.movement_type) == ("ADT^A02", "A02", "transfer")

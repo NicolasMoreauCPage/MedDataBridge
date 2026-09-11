@@ -16,25 +16,59 @@ depends_on = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("interopscenario") as batch_op:
-        batch_op.add_column(sa.Column("version", sa.Integer(), nullable=False, server_default="1"))
-        batch_op.add_column(sa.Column("preconditions_json", sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column("assertions_json", sa.Text(), nullable=True))
+    """Apply safely to databases initialized by older ``create_all`` startup paths.
 
-    with op.batch_alter_table("interopscenariostep") as batch_op:
-        batch_op.add_column(sa.Column("assertions_json", sa.Text(), nullable=True))
+    Those databases can already contain the campaign tables but still miss the
+    additive columns below. Alembic normally sees a pristine predecessor schema;
+    inspecting first makes the migration safely resumable for existing installs.
+    """
+    bind = op.get_bind()
 
-    with op.batch_alter_table("scenarioexecutionrun") as batch_op:
-        batch_op.add_column(sa.Column("qualification_verdict", sa.String(), nullable=False, server_default="not_evaluated"))
-        batch_op.add_column(sa.Column("assertion_total", sa.Integer(), nullable=False, server_default="0"))
-        batch_op.add_column(sa.Column("assertion_passed", sa.Integer(), nullable=False, server_default="0"))
-        batch_op.add_column(sa.Column("evidence_json", sa.Text(), nullable=True))
-        batch_op.create_index("ix_scenarioexecutionrun_qualification_verdict", ["qualification_verdict"])
+    def table_exists(name: str) -> bool:
+        return name in sa.inspect(bind).get_table_names()
 
-    with op.batch_alter_table("scenarioexecutionsteplog") as batch_op:
-        batch_op.add_column(sa.Column("assertion_results_json", sa.Text(), nullable=True))
+    def add_missing_columns(table: str, columns: list[sa.Column]) -> None:
+        existing = {column["name"] for column in sa.inspect(bind).get_columns(table)}
+        missing = [column for column in columns if column.name not in existing]
+        if missing:
+            with op.batch_alter_table(table) as batch_op:
+                for column in missing:
+                    batch_op.add_column(column)
 
-    op.create_table(
+    def ensure_index(name: str, table: str, columns: list[str]) -> None:
+        existing = {index["name"] for index in sa.inspect(bind).get_indexes(table)}
+        if name not in existing:
+            op.create_index(name, table, columns)
+
+    add_missing_columns(
+        "interopscenario",
+        [
+            sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
+            sa.Column("preconditions_json", sa.Text(), nullable=True),
+            sa.Column("assertions_json", sa.Text(), nullable=True),
+        ],
+    )
+    add_missing_columns(
+        "interopscenariostep",
+        [sa.Column("assertions_json", sa.Text(), nullable=True)],
+    )
+    add_missing_columns(
+        "scenarioexecutionrun",
+        [
+            sa.Column("qualification_verdict", sa.String(), nullable=False, server_default="not_evaluated"),
+            sa.Column("assertion_total", sa.Integer(), nullable=False, server_default="0"),
+            sa.Column("assertion_passed", sa.Integer(), nullable=False, server_default="0"),
+            sa.Column("evidence_json", sa.Text(), nullable=True),
+        ],
+    )
+    ensure_index("ix_scenarioexecutionrun_qualification_verdict", "scenarioexecutionrun", ["qualification_verdict"])
+    add_missing_columns(
+        "scenarioexecutionsteplog",
+        [sa.Column("assertion_results_json", sa.Text(), nullable=True)],
+    )
+
+    if not table_exists("qualificationcampaign"):
+        op.create_table(
         "qualificationcampaign",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("key", sa.String(), nullable=False),
@@ -46,11 +80,12 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("key"),
-    )
-    op.create_index("ix_qualificationcampaign_key", "qualificationcampaign", ["key"])
-    op.create_index("ix_qualificationcampaign_is_active", "qualificationcampaign", ["is_active"])
+        )
+    ensure_index("ix_qualificationcampaign_key", "qualificationcampaign", ["key"])
+    ensure_index("ix_qualificationcampaign_is_active", "qualificationcampaign", ["is_active"])
 
-    op.create_table(
+    if not table_exists("qualificationcampaignitem"):
+        op.create_table(
         "qualificationcampaignitem",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("campaign_id", sa.Integer(), nullable=False),
@@ -62,11 +97,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["scenario_id"], ["interopscenario.id"]),
         sa.ForeignKeyConstraint(["endpoint_id"], ["systemendpoint.id"]),
         sa.PrimaryKeyConstraint("id"),
-    )
+        )
     for column in ("campaign_id", "scenario_id", "endpoint_id", "order_index", "is_active"):
-        op.create_index(f"ix_qualificationcampaignitem_{column}", "qualificationcampaignitem", [column])
+        ensure_index(f"ix_qualificationcampaignitem_{column}", "qualificationcampaignitem", [column])
 
-    op.create_table(
+    if not table_exists("qualificationcampaignrun"):
+        op.create_table(
         "qualificationcampaignrun",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("campaign_id", sa.Integer(), nullable=False),
@@ -79,9 +115,9 @@ def upgrade() -> None:
         sa.Column("evidence_json", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(["campaign_id"], ["qualificationcampaign.id"]),
         sa.PrimaryKeyConstraint("id"),
-    )
+        )
     for column in ("campaign_id", "finished_at", "status"):
-        op.create_index(f"ix_qualificationcampaignrun_{column}", "qualificationcampaignrun", [column])
+        ensure_index(f"ix_qualificationcampaignrun_{column}", "qualificationcampaignrun", [column])
 
 
 def downgrade() -> None:

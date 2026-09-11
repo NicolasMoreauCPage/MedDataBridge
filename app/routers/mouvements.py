@@ -5,6 +5,7 @@ from sqlmodel import select, or_
 from datetime import datetime
 from typing import Optional
 import logging
+from urllib.parse import quote_plus
 from app.db import get_session, get_next_sequence, peek_next_sequence
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier, Patient
@@ -176,12 +177,13 @@ def plan_lits(
                 .order_by(Mouvement.when.desc())
             ).first()
             
-            # Si pas de mouvement de sortie (A03, A13, A16, etc.) ou pas de end_time, la venue est active
+            # Seule une sortie effective (A03 avec date de fin) libère le lit.
+            # A13 annule une sortie et A16 est une sortie prévisionnelle : les traiter
+            # comme une sortie rendait des patients actifs artificiellement "libres".
             is_active = True
             if dernier_mouvement:
-                # Codes de sortie : A03 (discharge), A13 (cancel discharge), A16 (pending discharge)
-                sortie_codes = ['A03', 'A13', 'A16']
-                if any(code in (dernier_mouvement.type or '') for code in sortie_codes) and dernier_mouvement.end_time:
+                is_discharge = (dernier_mouvement.trigger_event or "") == "A03" or "A03" in (dernier_mouvement.type or "")
+                if is_discharge and dernier_mouvement.end_time:
                     is_active = False
             
             if is_active:
@@ -298,6 +300,91 @@ def plan_lits(
     }
     
     return get_templates_with_filters(request).TemplateResponse(request, "plan_lits.html", ctx)
+
+
+@router.post("/plan-lits/assign")
+def assign_patient_to_bed(
+    lit_id: int = Form(...),
+    selected_patient_id: int = Form(...),
+    session=Depends(get_session),
+):
+    """Affecte la dernière venue active d'un patient à un lit libre.
+
+    Le plan de lits est une action métier, pas un simple changement visuel :
+    l'affectation met à jour la venue et trace un A02. Les patients proposés par
+    l'autocomplétion ont déjà une venue, ce qui évite de créer une venue incomplète.
+    """
+    lit = session.get(Lit, lit_id)
+    patient = session.get(Patient, selected_patient_id)
+    if not lit or not patient:
+        return RedirectResponse(
+            url="/mouvements/plan-lits?error=" + quote_plus("Lit ou patient introuvable."),
+            status_code=303,
+        )
+
+    def is_active(venue: Venue) -> bool:
+        latest = session.exec(
+            select(Mouvement)
+            .where(Mouvement.venue_id == venue.id)
+            .order_by(Mouvement.when.desc(), Mouvement.id.desc())
+        ).first()
+        if not latest:
+            return True
+        is_discharge = (latest.trigger_event or "") == "A03" or "A03" in (latest.type or "")
+        return not (is_discharge and latest.end_time)
+
+    venues = session.exec(
+        select(Venue)
+        .join(Dossier)
+        .where(Dossier.patient_id == patient.id)
+        .order_by(Venue.start_time.desc(), Venue.id.desc())
+    ).all()
+    venue = next((candidate for candidate in venues if is_active(candidate)), None)
+    if not venue:
+        return RedirectResponse(
+            url="/mouvements/plan-lits?error=" + quote_plus("Ce patient n'a pas de venue active à affecter."),
+            status_code=303,
+        )
+
+    occupants = session.exec(select(Venue).where(Venue.lit_id == lit.id)).all()
+    if any(candidate.id != venue.id and is_active(candidate) for candidate in occupants):
+        return RedirectResponse(
+            url="/mouvements/plan-lits?error=" + quote_plus("Ce lit est déjà occupé. Actualisez le plan avant de recommencer."),
+            status_code=303,
+        )
+
+    if venue.lit_id == lit.id:
+        return RedirectResponse(
+            url="/mouvements/plan-lits?message=" + quote_plus("Le patient occupe déjà ce lit."),
+            status_code=303,
+        )
+
+    previous_location = venue.assigned_location
+    venue.lit_id = lit.id
+    venue.chambre_id = lit.chambre_id
+    venue.assigned_location = lit.name
+    session.add(venue)
+    mouvement = Mouvement(
+        mouvement_seq=get_next_sequence(session, "mouvement"),
+        venue_id=venue.id,
+        entite_juridique_id=venue.entite_juridique_id,
+        type="ADT^A02",
+        trigger_event="A02",
+        movement_type="transfer",
+        when=datetime.utcnow(),
+        from_location=previous_location,
+        to_location=lit.name,
+        location=lit.name,
+        status="completed",
+        action="UPDATE",
+    )
+    session.add(mouvement)
+    session.commit()
+    emit_to_senders(mouvement, "mouvement", session)
+    return RedirectResponse(
+        url="/mouvements/plan-lits?message=" + quote_plus(f"{patient.family} {patient.given} a été affecté au lit {lit.name}."),
+        status_code=303,
+    )
 
 
 def get_status_badge(status):
@@ -2110,6 +2197,8 @@ def patient_search_api(
     """API endpoint for patient autocomplete/search in plan-lits assignment popup."""
     query = (
         select(Patient)
+        .join(Dossier)
+        .join(Venue)
         .where(
             or_(
                 Patient.family.ilike(f"%{q}%"),
@@ -2117,6 +2206,7 @@ def patient_search_api(
                 Patient.identifier.ilike(f"%{q}%")
             )
         )
+        .distinct()
         .limit(limit)
     )
     patients = session.exec(query).all()
@@ -2132,9 +2222,6 @@ def patient_search_api(
         for p in patients
     ]
     return {"results": results}
-
-
-
 
 
 

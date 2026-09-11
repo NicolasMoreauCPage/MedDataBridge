@@ -22,7 +22,8 @@
     <button class="mt-5 rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700" type="submit">Générer</button>
   </form>
 
-  <pre id="scenario-result" class="hidden overflow-auto rounded-xl bg-slate-950 p-5 text-sm text-slate-100"></pre>
+  <div id="scenario-feedback" class="hidden rounded-xl px-4 py-3 text-sm" role="alert"></div>
+  <pre id="scenario-result" class="hidden overflow-auto rounded-xl bg-slate-950 p-5 text-sm text-slate-100" aria-live="polite"></pre>
 </main>
 {% endblock %}
 
@@ -31,16 +32,30 @@
 document.getElementById('scenario-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const result = document.getElementById('scenario-result');
-  const response = await fetch('/test-scenario-generator/generate', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      scenario_type: document.getElementById('scenario-type').value,
-      patient_count: Number(document.getElementById('patient-count').value),
-    }),
-  });
-  result.classList.remove('hidden');
-  result.textContent = JSON.stringify(await response.json(), null, 2);
+  const feedback = document.getElementById('scenario-feedback');
+  feedback.classList.add('hidden');
+  try {
+    const response = await fetch('/test-scenario-generator/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        scenario_type: document.getElementById('scenario-type').value,
+        patient_count: Number(document.getElementById('patient-count').value),
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || 'La génération a échoué.');
+    result.classList.remove('hidden');
+    result.textContent = JSON.stringify(payload, null, 2);
+    feedback.textContent = 'Scénario généré localement. Aucun message n’a été envoyé.';
+    feedback.className = 'rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800';
+    feedback.classList.remove('hidden');
+  } catch (error) {
+    result.classList.add('hidden');
+    feedback.textContent = error.message || 'La génération a échoué.';
+    feedback.className = 'rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800';
+    feedback.classList.remove('hidden');
+  }
 });
 </script>
 {% endblock %}

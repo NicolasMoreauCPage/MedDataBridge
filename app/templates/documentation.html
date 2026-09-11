@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "macros/ui.html" import empty_state %}
 
-{% block title %}Documentation - IntegraSanté{% endblock %}
+{% block title %}Documentation - PAMélia{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
@@ -160,7 +160,7 @@
                     <p class="text-sm text-blue-100">{{ structure[current_doc.category].title }} • <span class="doc-meta">Source: <code>{{ doc_source_path }}</code>{% if doc_last_updated %} • Dernière mise à jour: <span data-last-updated="{{ doc_last_updated }}"></span>{% endif %}</span></p>
                 {% else %}
                     <p class="text-sm uppercase tracking-[0.24em] text-blue-200 font-semibold">Documentation</p>
-                    <h1 class="text-3xl md:text-4xl font-bold leading-tight">Documentation IntegraSanté</h1>
+                    <h1 class="text-3xl md:text-4xl font-bold leading-tight">Documentation PAMélia</h1>
                     <p class="text-sm text-blue-100">Index et navigation des guides</p>
                 {% endif %}
             </div>
@@ -266,9 +266,12 @@
 <script>
 // Highlight code blocks
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block);
-    });
+    // La documentation reste lisible même si la coloration optionnelle n'est pas chargée.
+    if (window.hljs) {
+        document.querySelectorAll('pre code').forEach((block) => {
+            window.hljs.highlightElement(block);
+        });
+    }
     
     // Smooth scroll to anchors
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {

@@ -69,6 +69,9 @@ module.exports = {
         '18': '4.5rem',  // Pour les grandes sections
         '88': '22rem',   // Pour les sidebars larges
       },
+      maxWidth: {
+        'content': '90rem',
+      },
 
       // ANIMATIONS (héritées du système précédent)
       // =========================================

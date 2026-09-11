@@ -5,8 +5,8 @@ Centralizes logic so generator and inbound processing stay consistent.
 from __future__ import annotations
 from typing import Optional
 
-# Canonical set of valid nature codes per spec (S,H,M,L,D,SM)
-VALID_NATURES = {"S", "H", "M", "L", "D", "SM"}
+# Canonical set of IHE PAM France nature codes, including compound values.
+VALID_NATURES = {"S", "H", "M", "L", "D", "SM", "SH", "MH", "LD", "HMS", "C"}
 
 # Basic trigger->nature defaults (can be extended)
 TRIGGER_DEFAULTS = {

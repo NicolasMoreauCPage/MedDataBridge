@@ -1205,24 +1205,24 @@ def validate_pam(
             if len(comps7) < 10 or not comps7[9].strip():
                 issues.append(ValidationIssue("ZBE7_CODE_MISSING", "ZBE-7 composant 10 code UF médicale manquant", severity="error"))
 
-        # ZBE-8 UF soins (XON) code composant 10. CPage renseigne rarement
-        # cette UF, y compris pour certaines natures contenant S : conserver
-        # le diagnostic sans rejeter le flux partenaire connu.
+        # ZBE-8 UF soins (XON) code composant 10. Cette UF est rarement
+        # renseignée dans les échanges de terrain, y compris pour certaines
+        # natures contenant S. Le signaler sans bloquer l'intégration ni la
+        # réémission d'un message PAM autrement exploitable.
         requires_care_uf = bool(set(zbe_9) & {"S"})
-        cpage_care_uf_compat = sending_app == "CPAGE" and requires_care_uf
         if zbe_8:
             comps8 = zbe_8.split("^")
             if len(comps8) < 10 or not comps8[9].strip():
                 issues.append(ValidationIssue(
                     "ZBE8_CODE_MISSING",
                     "ZBE-8 composant 10 code UF soins manquant",
-                    severity="warn" if cpage_care_uf_compat or not requires_care_uf else "error",
+                    severity="warn" if requires_care_uf else "info",
                 ))
         elif requires_care_uf:
             issues.append(ValidationIssue(
                 "ZBE8_MISSING",
-                "ZBE-8 UF soins requise pour cette nature de mouvement (tolérée pour CPage)",
-                severity="warn" if cpage_care_uf_compat else "error",
+                "ZBE-8 UF soins absente (avertissement d'interopérabilité)",
+                severity="warn",
             ))
 
         if not zbe_9:

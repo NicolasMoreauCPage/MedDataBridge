@@ -180,7 +180,12 @@ def extract_medecin_from_pv1_7(pv1_segment: str) -> Optional[dict]:
         return None
 
 
-def get_or_create_medecin(session: Session, medecin_data: dict) -> Optional[MedecinResponsable]:
+def get_or_create_medecin(
+    session: Session,
+    medecin_data: dict,
+    *,
+    commit: bool = True,
+) -> Optional[MedecinResponsable]:
     """
     Récupère ou crée un médecin responsable dans la base.
     
@@ -239,26 +244,38 @@ def get_or_create_medecin(session: Session, medecin_data: dict) -> Optional[Mede
             if updated:
                 medecin.updated_at = datetime.now()
                 session.add(medecin)
-                session.commit()
-                session.refresh(medecin)
+                if commit:
+                    session.commit()
+                    session.refresh(medecin)
+                else:
+                    session.flush()
                 logger.info(f"Médecin mis à jour: {medecin}")
         else:
             # Créer nouveau médecin
             medecin = MedecinResponsable(**medecin_data)
             session.add(medecin)
-            session.commit()
-            session.refresh(medecin)
+            if commit:
+                session.commit()
+                session.refresh(medecin)
+            else:
+                session.flush()
             logger.info(f"Nouveau médecin créé: {medecin}")
         
         return medecin
         
     except Exception as e:
         logger.error(f"Error in get_or_create_medecin: {e}")
-        session.rollback()
+        if commit:
+            session.rollback()
         return None
 
 
-def extract_and_store_medecin_from_pv1(pv1_segment: str, session: Session) -> Optional[MedecinResponsable]:
+def extract_and_store_medecin_from_pv1(
+    pv1_segment: str,
+    session: Session,
+    *,
+    commit: bool = True,
+) -> Optional[MedecinResponsable]:
     """
     Fonction de commodité qui extrait et stocke un médecin depuis PV1-7.
     
@@ -271,5 +288,5 @@ def extract_and_store_medecin_from_pv1(pv1_segment: str, session: Session) -> Op
     """
     medecin_data = extract_medecin_from_pv1_7(pv1_segment)
     if medecin_data:
-        return get_or_create_medecin(session, medecin_data)
+        return get_or_create_medecin(session, medecin_data, commit=commit)
     return None

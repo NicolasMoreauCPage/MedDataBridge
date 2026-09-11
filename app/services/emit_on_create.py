@@ -95,6 +95,18 @@ def _c(val):
     return str(val)
 
 
+def _new_message_control_id(seed: object) -> str:
+    """Construit un MSH-10 unique sans altérer les identifiants métier.
+
+    Un même patient ou mouvement peut être émis plusieurs fois. Réutiliser son
+    ID interne comme MSH-10 déclenche l'idempotence du récepteur et provoque la
+    perte silencieuse des mises à jour ultérieures.
+    """
+    from uuid import uuid4
+
+    return f"{seed}-{uuid4().hex[:12]}"
+
+
 def build_pid3_identifiers(
     patient: Patient,
     session: Session,
@@ -115,11 +127,44 @@ def build_pid3_identifiers(
     def _get(attr, default=None):
         return (patient.get(attr, default) if is_dict else getattr(patient, attr, default))
 
+    # L'identifiant métier porté par Patient.identifier est celui qui a servi à
+    # résoudre le patient à l'entrée (souvent l'IPP du partenaire). Il doit
+    # figurer en première répétition de PID-3 : le récepteur l'utilise comme
+    # identifiant principal. L'identifiant technique local est ajouté ensuite.
+    # L'ordre inverse cassait un roundtrip inter-GHT en faisant de l'ID local
+    # de l'émetteur l'identifiant principal du destinataire.
+    primary_identifier_value = _c(_get("identifier", None))
+    if primary_identifier_value:
+        primary_identifier = None
+        try:
+            patient_id = _get("id")
+            if patient_id:
+                primary_identifier = _safe_query(
+                    session,
+                    select(Identifier)
+                    .where(Identifier.patient_id == patient_id)
+                    .where(Identifier.value == primary_identifier_value)
+                    .where(Identifier.status == "active"),
+                )
+        except Exception:
+            logger.exception("Error resolving the primary PID-3 identifier")
+        if primary_identifier:
+            authority = _auth(primary_identifier.system, getattr(primary_identifier, "oid", None))
+            type_code = map_identifier_type_to_hl7_code(primary_identifier.type)
+            identifiers.append(f"{primary_identifier_value}^^^{authority}^{type_code}")
+        else:
+            authority = _auth(forced_system, forced_oid) or "HOSP"
+            identifiers.append(f"{primary_identifier_value}^^^{authority}^PI")
+
     # Priority: include internal IPP identifier (patient_seq or id) using IdentifierNamespace of type 'IPP' when available
     internal_identifier_value = None
     try:
         internal_id_val = _get("patient_seq") or _get("id")
-        if internal_id_val:
+        # Ne pas ajouter un second identifiant technique quand PID-3 porte
+        # déjà l'identifiant métier. Sinon un destinataire qui connaît notre
+        # namespace local peut sélectionner ce second identifiant comme
+        # principal, malgré l'ordre de PID-3, et rompre la conservation d'IPP.
+        if internal_id_val and not primary_identifier_value:
             ipp_ns = None
             ej_id = _get('entite_juridique_id')
             if ej_id:
@@ -174,6 +219,8 @@ def build_pid3_identifiers(
         already_added_values.add(str(pid_val))
     if internal_identifier_value:
         already_added_values.add(internal_identifier_value)
+    if primary_identifier_value:
+        already_added_values.add(primary_identifier_value)
     ext_val = _get('external_id')
     if ext_val:
         already_added_values.add(ext_val)
@@ -384,7 +431,7 @@ def generate_pam_hl7(
         # Build timestamp and control id
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        control_id = str(_get("patient_seq", _get("id", "UNKNOWN")))
+        control_id = _new_message_control_id(_get("patient_seq", _get("id", "UNKNOWN")))
 
         # MSH header
         if event_type == "A40":
@@ -411,11 +458,14 @@ def generate_pam_hl7(
         prefix = _c_local(_get("prefix", None)) or None
         names = []
         birth_family = _c_local(_get("birth_family", None)) or None
-        # If we have a birth_family, prefer to mark the name with type 'L' (legal/birth)
-        first_type = "L" if birth_family else None
+        # PID-5: the current name is a usual name (D); the birth name, when
+        # distinct, is carried by its own XPN repetition with type L.  Marking
+        # the current name as L would make an inbound parser overwrite the
+        # actual birth name during a round trip.
+        first_type = "D" if birth_family else None
         if family or given or middle or prefix or suffix:
             names.append(_build_xpn(family, given, middle, suffix, prefix, first_type))
-        if birth_family and birth_family != family:
+        if birth_family:
             # mark birth/legal name with type 'L' and preserve prefix/suffix when available
             names.append(_build_xpn(birth_family, given, middle, suffix, prefix, "L"))
         name = "~".join(names)
@@ -647,7 +697,7 @@ def generate_pam_hl7(
             gender = ""
 
         admit_time = entity.start_time.strftime("%Y%m%d%H%M%S") if entity.start_time else ""
-        control_id = str(entity.venue_seq)
+        control_id = _new_message_control_id(entity.venue_seq)
         visit_number = str(dossier.dossier_seq)
         authority = f"{assigning_system}&{assigning_oid}&ISO" if assigning_oid else assigning_system
         pid3 = f"{patient_id}^^^{authority}^PI"
@@ -656,10 +706,19 @@ def generate_pam_hl7(
         msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
         evn = f"EVN|{event_type}|{admit_time}"
 
-        # Build name for PID-5 using XPN builder and include name type when available
+        # PID-5 keeps the current and birth names in separate XPN repetitions.
         birth_family = getattr(patient, 'birth_family', None) if patient else None
-        first_type = "L" if birth_family else None
+        first_type = "D" if birth_family else None
         name_field = _build_xpn(family, given, getattr(patient, 'middle', None) if patient else None, getattr(patient, 'suffix', None) if patient else None, getattr(patient, 'prefix', None) if patient else None, first_type)
+        if birth_family:
+            name_field += "~" + _build_xpn(
+                birth_family,
+                given,
+                getattr(patient, 'middle', None) if patient else None,
+                getattr(patient, 'suffix', None) if patient else None,
+                getattr(patient, 'prefix', None) if patient else None,
+                "L",
+            )
 
         pid_fields = [
             "PID", "1", "", pid3, "", _c_local(name_field), "", birth_date, gender
@@ -716,7 +775,7 @@ def generate_pam_hl7(
             f"|||||||||||||||||||||||||{admit_time}"
         )
 
-        zbe_id = control_id
+        zbe_id = str(entity.venue_seq)
         action = "INSERT"
         historic = "N"
         # ZBE-7: UF médicale = UF de responsabilité (XON format: label^code^code_type^^^id^^^id_type^assigning_authority^component10=code)
@@ -853,7 +912,7 @@ def generate_pam_hl7(
         # Build timestamp
         timestamp = entity.when.strftime("%Y%m%d%H%M%S") if entity.when else ""
         # Build MSH segment avec structure de message et version IHE PAM France
-        control_id = str(entity.mouvement_seq)
+        control_id = _new_message_control_id(entity.mouvement_seq)
         # Determine message structure based on event code (IHE PAM France)
         if event_code in ["A01", "A04", "A05", "A08", "A13", "A28", "A31", "Z99"]:
             msg_structure = "ADT_A01"
@@ -941,7 +1000,7 @@ def generate_pam_hl7(
             
             # Build complete PID segment with PID-18 (Patient Account Number) using indexed fields
             birth_family = getattr(patient, 'birth_family', None)
-            first_type = "L" if birth_family else None
+            first_type = "D" if birth_family else None
             name_field = _build_xpn(
                 family,
                 given,
@@ -950,6 +1009,15 @@ def generate_pam_hl7(
                 getattr(patient, 'prefix', None),
                 first_type,
             )
+            if birth_family:
+                name_field += "~" + _build_xpn(
+                    birth_family,
+                    given,
+                    getattr(patient, 'middle', None),
+                    getattr(patient, 'suffix', None),
+                    getattr(patient, 'prefix', None),
+                    "L",
+                )
             pid_fields = [""] * 40
             pid_fields[0] = "PID"
             pid_fields[1] = "1"
@@ -1034,8 +1102,21 @@ def generate_pam_hl7(
             forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
         )
         pv1_19 = f"{visit_number_pv1}^^^{authority_vn}^{vn_type}"
-        # PV1 format: |1(SetID)|2(PatClass)|3(Location)|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19(VisitNum)|20..51|52(UF)|...|
-        pv1 = f"PV1|1|{patient_class}|{location}||||||||||||||||{pv1_19}|||||||||||||||||||||||||||||||||{uf_resp}||||||{timestamp}"
+        # Indexed construction prevents an off-by-one field shift. PV1-19 is
+        # the venue identifier, PV1-44 the admission timestamp and PV1-52 the
+        # responsible UF; those positions are read by the inbound PAM parser.
+        pv1_fields = [""] * 53
+        pv1_fields[0] = "PV1"
+        pv1_fields[1] = "1"
+        pv1_fields[2] = patient_class
+        pv1_fields[3] = location
+        pv1_fields[19] = pv1_19
+        if dossier and getattr(dossier, "admit_time", None):
+            pv1_fields[44] = dossier.admit_time.strftime("%Y%m%d%H%M%S")
+        else:
+            pv1_fields[44] = timestamp
+        pv1_fields[52] = uf_resp
+        pv1 = "|".join(pv1_fields)
 
         # ZBE segment generation for mouvement (same format as venue)
         # ZBE-1 is repeatable (EI~EI~...) for cooperative Movement Management : several

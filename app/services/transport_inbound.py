@@ -867,6 +867,14 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
         logger.warning(f"Error checking message idempotence: {e}")
         # Continue processing if check fails; don't block on idempotence check errors
 
+    # Une lecture ORM (y compris le chargement de l'endpoint par une route)
+    # ouvre implicitement une transaction SQLite. Le traitement entrant est un
+    # cas d'usage autonome : fermer cette transaction de lecture avant d'ouvrir
+    # son propre bloc d'écriture garantit que ses MessageLog, ACK et données
+    # métier sont persistés, même si l'appelant ne fait pas de ``commit``.
+    if session.in_transaction():
+        session.commit()
+
     # Détermination per-endpoint du mode strict (priorité EJ > env)
     import os as _os
     strict_ej = False
@@ -960,8 +968,13 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
         
     # 3. Initialisation du traitement transactionnel
     try:
-        from contextlib import nullcontext
-        ctx = session.begin() if not session.in_transaction() else nullcontext()
+        # La résolution paresseuse de relations SQLAlchemy (par exemple EJ de
+        # l'endpoint ci-dessus) peut avoir rouvert une transaction de lecture.
+        # Le traitement d'un message doit toujours démarrer dans sa propre
+        # transaction, qui sera validée avant le retour de son ACK.
+        if session.in_transaction():
+            session.commit()
+        ctx = session.begin()
 
         with ctx:
             # Reuse existing log if provided (from file_poller), else create new
@@ -1186,11 +1199,15 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                         previous_event = last_mouvement.trigger_event
                         logger.debug(f"Found previous event '{previous_event}' from venue {visit_num_id}")
             
-            # Stratégie 3 : Solution de repli - chercher le dernier événement du patient
-            # (utilisé quand ni dossier ni venue ne sont spécifiés)
-            if not previous_event:
-                # Si pas de visit_number, chercher le dernier événement du patient
-                # pour permettre des enchaînements sans numéro de venue explicite
+            # Stratégie 3 : solution de repli uniquement en l'absence de toute
+            # référence de dossier/venue. Un patient peut avoir plusieurs dossiers
+            # indépendants : si PID-18 ou PV1-19 désigne un nouveau dossier/venue,
+            # son historique patient global ne doit pas rendre l'admission initiale
+            # (notamment A05) invalide.
+            has_explicit_encounter_reference = bool(account_number or pv1_data.get("visit_number"))
+            if not previous_event and not has_explicit_encounter_reference:
+                # Sans numéro de dossier ni de venue, chercher le dernier événement
+                # du patient permet de traiter les messages incomplets.
                 if pid_data.get("identifiers"):
                     first_ident = pid_data["identifiers"][0][0] if pid_data["identifiers"] else None
                     if first_ident:
@@ -1228,6 +1245,11 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
             )
             # Extract EJ ID from endpoint for proper patient association
             ej_id = endpoint.entite_juridique_id if endpoint and hasattr(endpoint, 'entite_juridique_id') else None
+            # Le journal et l'ACK doivent être conservés même lorsqu'un handler
+            # refuse le message. Les données métier, elles, doivent rester
+            # atomiques : ce savepoint annule toute création/édition réalisée
+            # par le handler en cas d'ACK négatif.
+            business_savepoint = session.begin_nested()
             success, err = await IHEMessageRouter.route_message(session, trigger, pid_data, pv1_data, message=msg, ej_id=ej_id)
             logger.debug(f"IHE handler returned: success={success!r}, err={err!r}")
 
@@ -1275,6 +1297,11 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                         session.flush()
                 except Exception:
                     logger.exception("Erreur persistance contacts NK1")
+
+            if success:
+                business_savepoint.commit()
+            else:
+                business_savepoint.rollback()
 
             if success:
                 log.status = "processed"

@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlmodel import select
 
@@ -19,6 +20,7 @@ from app.services.transport_inbound import (
     _validate_message_structure,
     _validate_z99_original_message,
     on_message_inbound,
+    on_message_inbound_async,
 )
 
 
@@ -256,6 +258,41 @@ def test_on_message_inbound_async_rejects_non_hl7_message(session):
     assert isinstance(ack, dict)
     assert ack["status"] == "error"
     assert "MSA|AR" in ack["ack"]
+
+
+def test_inbound_negative_ack_keeps_log_but_rolls_back_business_data(session, monkeypatch):
+    """Un ACK AE ne doit jamais laisser de dossier/venue partiellement créés."""
+    from app.models import Dossier, Mouvement, Venue
+
+    monkeypatch.delenv("PAM_AUTO_CREATE_UF", raising=False)
+
+    sample = Path("data/pam/1117924501.hl7").read_text(encoding="latin-1")
+    message = "\r".join(part for part in sample.splitlines() if part)
+    fields = message.split("\r")
+    msh = fields[0].split("|")
+    msh[9] = "ATOMIC-NEGATIVE-ACK"
+    fields[0] = "|".join(msh)
+    message = "\r".join(fields)
+
+    before = (
+        len(session.exec(select(Dossier)).all()),
+        len(session.exec(select(Venue)).all()),
+        len(session.exec(select(Mouvement)).all()),
+    )
+    ack = asyncio.run(on_message_inbound_async(message, session, None))
+    after = (
+        len(session.exec(select(Dossier)).all()),
+        len(session.exec(select(Venue)).all()),
+        len(session.exec(select(Mouvement)).all()),
+    )
+
+    log = session.exec(
+        select(MessageLog).where(MessageLog.correlation_id == "ATOMIC-NEGATIVE-ACK")
+    ).one()
+    assert "MSA|AE|ATOMIC-NEGATIVE-ACK" in ack
+    assert log.status == "error"
+    assert log.ack_payload == ack
+    assert after == before
 
 
 def test_on_message_inbound_async_rejects_unsupported_type(session):
@@ -847,6 +884,42 @@ def test_on_message_inbound_async_previous_event_fallback_by_patient(session, mo
     assert result["status"] == "success"
     assert captured["previous_event"] == "A21"
     assert captured["trigger"] == "A28"
+
+
+def test_on_message_inbound_async_new_dossier_does_not_use_other_patient_history(session, monkeypatch):
+    """PID-18/PV1-19 d'un nouveau séjour bornent la validation de transition."""
+    graph = _seed_patient_graph(session, identifier="PAT_NEW_DOSSIER", trigger_event="A05")
+    captured = {}
+
+    async def _fake_route_message(_session, _trigger, _pid_data, _pv1_data, message=None, ej_id=None):
+        return True, None
+
+    def _capture_transition(previous_event, trigger):
+        captured["previous_event"] = previous_event
+        captured["trigger"] = trigger
+        return True, None
+
+    monkeypatch.setattr("app.services.transport_inbound.IHEMessageRouter.route_message", _fake_route_message)
+    monkeypatch.setattr("app.services.transport_inbound.validate_transition", _capture_transition)
+    monkeypatch.setattr(
+        "app.services.transport_inbound.parse_pid",
+        lambda _msg: {
+            "account_number": str(graph["dossier"].dossier_seq + 1),
+            "identifiers": [["PAT_NEW_DOSSIER^^^SYS&1.2.3&ISO^PI"]],
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.transport_inbound.parse_pv1",
+        lambda _msg: {"visit_number": str(graph["venue"].venue_seq + 1)},
+    )
+    monkeypatch.setattr("app.services.transport_inbound.parse_zbe", lambda _msg: {"action": None, "is_historic": False})
+    monkeypatch.setattr("app.services.transport_inbound._parse_nk1_segments", lambda _msg: {})
+
+    msg = _base_msh("ADT^A28", "CTRL_NEW_DOSSIER") + "PID|1||PAT_NEW_DOSSIER^^^SYS&1.2.3&ISO^PI\r"
+    result = on_message_inbound(msg, session, None)
+
+    assert result["status"] == "success"
+    assert captured == {"previous_event": None, "trigger": "A28"}
 
 
 def test_on_message_inbound_callable_running_loop_uses_thread_execution_path(session, monkeypatch):

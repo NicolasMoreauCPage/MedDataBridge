@@ -1124,9 +1124,16 @@ async def handle_admission_message(
         if d_seq is None:
             d_seq = get_next_sequence(session, "dossier")
             logger.info(f"[pam][admission] Generated new dossier sequence: {d_seq}")
-        # Use parsed datetime if available (pid parser provides birth_date_dt),
-        # otherwise attempt to parse HL7 YYYYMMDD string, or Solution de repli to now.
+        # Date clinique du séjour : PV1-44, puis ZBE-2. Les données PID (date
+        # de naissance) ne constituent jamais une date d'admission valide et ne
+        # sont conservées qu'en dernier recours de compatibilité pour les anciens
+        # flux sans aucune date de mouvement.
         admit_time = pv1_data.get("admit_time")
+        if not admit_time and zbe_data and zbe_data.get("movement_datetime"):
+            try:
+                admit_time = datetime.strptime(zbe_data["movement_datetime"], "%Y%m%d%H%M%S")
+            except (TypeError, ValueError):
+                admit_time = None
         if not admit_time and pid_data.get("birth_date_dt"):
             admit_time = pid_data.get("birth_date_dt")
         elif not admit_time and pid_data.get("birth_date"):
@@ -1167,7 +1174,7 @@ async def handle_admission_message(
             if message:
                 pv1_segment = _extract_pv1_segment(message)
                 if pv1_segment:
-                    medecin = extract_and_store_medecin_from_pv1(pv1_segment, session)
+                    medecin = extract_and_store_medecin_from_pv1(pv1_segment, session, commit=False)
                     if medecin:
                         logger.info(f"[pam][admission] Médecin responsable extrait pour dossier: {medecin}")
             
@@ -1247,7 +1254,7 @@ async def handle_admission_message(
                 venue_seq=v_seq,
                 dossier_id=dossier.id,
                 uf_responsabilite=hospital_service or pv1_data.get("hospital_service") or dossier.uf_responsabilite,
-                start_time=datetime.now(timezone.utc),
+                start_time=admit_time,
                 assigned_location=location_value,
                 entite_juridique_id=ej_id,
             )
@@ -1442,7 +1449,7 @@ async def handle_admission_message(
         if message:
             pv1_segment = _extract_pv1_segment(message)
             if pv1_segment:
-                medecin = extract_and_store_medecin_from_pv1(pv1_segment, session)
+                medecin = extract_and_store_medecin_from_pv1(pv1_segment, session, commit=False)
                 if medecin:
                     logger.info(f"[pam][admission] Médecin responsable extrait: {medecin}")
         
@@ -2048,8 +2055,17 @@ async def handle_discharge_message(
         if not venue:
             return False, f"Venue {venue_seq} introuvable pour sortie"
         
-        # Créer le mouvement de sortie
+        # Créer le mouvement de sortie. Comme pour les admissions, conserver
+        # l'identifiant métier ZBE-1 lorsqu'il est numérique : il permet à un
+        # récepteur de rejouer fidèlement le mouvement et d'adresser ensuite
+        # ses annulations/corrections.
         m_seq = get_next_sequence(session, "mouvement")
+        movement_id = zbe_data.get("movement_id")
+        if movement_id:
+            try:
+                m_seq = int(movement_id.split("^")[0])
+            except (ValueError, TypeError):
+                logger.warning("[pam][discharge] ZBE-1 non numérique, séquence locale conservée: %s", movement_id)
         
         # Déterminer la date du mouvement
         movement_datetime = datetime.now(timezone.utc)

@@ -131,7 +131,7 @@ def test_cpage_sample_corpus_has_no_zbe9_false_rejection():
     assert compatibility_warnings > 0
 
 
-def test_cpage_missing_care_uf_is_warned_but_other_senders_are_rejected():
+def test_missing_care_uf_is_warned_for_all_senders():
     zbe = "ZBE|MVT1^CPAGE^1.2.3^ISO|202601010101||INSERT|N||^^^^^^^^^UF1||HMS"
     cpage_result = validate_pam(_message(sending_app="CPAGE", zbe=zbe), direction="in")
     cpage_issue = next(issue for issue in cpage_result.issues if issue.code == "ZBE8_MISSING")
@@ -139,7 +139,7 @@ def test_cpage_missing_care_uf_is_warned_but_other_senders_are_rejected():
 
     standard_result = validate_pam(_message(zbe=zbe.replace("^CPAGE^", "^HOSP^")), direction="in")
     standard_issue = next(issue for issue in standard_result.issues if issue.code == "ZBE8_MISSING")
-    assert standard_issue.severity == "error"
+    assert standard_issue.severity == "warn"
 
 
 def test_normalizer_emits_msh_profile_and_ei_zbe_without_zbe3():

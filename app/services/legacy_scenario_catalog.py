@@ -19,6 +19,9 @@ from sqlmodel import Session, select
 
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.services.scenario_qualification_service import assign_theme, ensure_theme
+from app.services.scenario_import import split_embedded_messages
+from app.services.scenario_naming import humanize_scenario_name
+from app.services.scenario_protocol_classifier import classify_hl7_scenario
 
 
 def _format(value: str | None) -> str:
@@ -53,41 +56,21 @@ def _legacy_tokens(value: str) -> str:
 
 
 def _expand_steps(item: dict[str, Any]) -> list[dict[str, Any]]:
-    """Déplie les exports HPRIM qui concaténaient une amorce HL7 et un ou plusieurs XML."""
+    """Déplie les exports historiques qui concaténaient plusieurs messages."""
     expanded: list[dict[str, Any]] = []
-    for index, step in enumerate(item.get("steps") or [], 1):
+    for step in item.get("steps") or []:
         fmt = _format(step.get("message_format"))
-        payload = step.get("payload", "")
-        if fmt == "xml" and "<?xml" in payload:
-            # Chaque XML est un message HPRIM autonome ; le préambule PAM est
-            # une donnée de contexte historique, pas un XML à écrire sur le fil.
-            chunks: list[str] = []
-            cursor = 0
-            while True:
-                start = payload.find("<?xml", cursor)
-                if start < 0:
-                    break
-                declaration_end = payload.find(">", start)
-                root_match = re.search(r"<([A-Za-z_][\w.:-]*)\b[^>]*>", payload[declaration_end + 1:])
-                if declaration_end < 0 or not root_match:
-                    break
-                root = root_match.group(1)
-                root_start = declaration_end + 1 + root_match.start()
-                end_tag = f"</{root}>"
-                end = payload.find(end_tag, root_start)
-                if end < 0:
-                    # Le contrôle préalable rendra l'anomalie visible sans
-                    # perdre l'extrait source concerné.
-                    end = payload.find("MSH|", root_start + 1)
-                    end = len(payload) if end < 0 else end
-                else:
-                    end += len(end_tag)
-                chunks.append(payload[start:end])
-                cursor = max(end, start + 5)
-            for xml_index, chunk in enumerate(chunks, 1):
-                expanded.append({**step, "order_index": len(expanded) + 1, "name": step.get("name") or f"HPRIM {xml_index}", "message_format": "xml", "payload": chunk})
-            continue
-        expanded.append({**step, "order_index": len(expanded) + 1, "message_format": fmt})
+        fragments = split_embedded_messages(step.get("payload", ""), fmt, step.get("message_type"))
+        for message_index, fragment in enumerate(fragments, 1):
+            label = step.get("name") or fragment["message_type"] or f"Message {message_index}"
+            expanded.append({
+                **step,
+                "order_index": len(expanded) + 1,
+                "name": label if len(fragments) == 1 else f"{label} — message {message_index}",
+                "message_format": fragment["message_format"],
+                "message_type": fragment["message_type"],
+                "payload": fragment["payload"],
+            })
     return expanded
 
 
@@ -108,6 +91,11 @@ def _theme_for(item: dict[str, Any]) -> tuple[str, str, str, str]:
             if code in text:
                 return "hprim", "HPRIM XML", f"hprim.{code}", label
         return "hprim", "HPRIM XML", "hprim.autres", "Autres flux HPRIM"
+    hl7_family = classify_hl7_scenario(_expand_steps(item))
+    if hl7_family == "siu":
+        return "hl7", "HL7 v2", "hl7.siu", "Rendez-vous (SIU)"
+    if hl7_family == "mixed_siu":
+        return "hl7", "HL7 v2", "hl7.mixte", "Mouvements et rendez-vous"
     for code, label in (("ident", "Identité patient"), ("urgence", "Urgences"), ("matern", "Maternité"), ("séance", "Séances"), ("annul", "Annulations et corrections")):
         if code in text:
             return "pam", "IHE PAM France", f"pam.{code}", label
@@ -145,9 +133,11 @@ def import_legacy_catalog(session: Session, path: str | Path | list[dict[str, An
         sources = [{"key": value.get("key"), "source_path": value.get("source_path"), "name": value.get("name")} for value in variants]
         if not scenario:
             scenario = InteropScenario(
-                key=f"legacy.{root_key}.{checksum[:14]}", name=item.get("name") or f"Catalogue {checksum[:8]}",
+                key=f"legacy.{root_key}.{checksum[:14]}", name=humanize_scenario_name(
+                    item.get("name") or f"Catalogue {checksum[:8]}", family=root_key
+                ),
                 description=item.get("description"), functional_comment=_comment(item),
-                category="HPRIM" if root_key == "hprim" else "IHE_PAM", protocol="HPRIM" if root_key == "hprim" else "HL7",
+                category="HPRIM" if root_key == "hprim" else "HL7_SIU" if theme_key == "hl7.siu" else "HL7_MIXTE" if theme_key == "hl7.mixte" else "IHE_PAM", protocol="HPRIM" if root_key == "hprim" else "HL7",
                 tags=item.get("tags"), source_path=item.get("source_path"), source_checksum=checksum,
                 legacy_package=theme_key, legacy_source_json=json.dumps(sources, ensure_ascii=False),
             )
@@ -163,8 +153,10 @@ def import_legacy_catalog(session: Session, path: str | Path | list[dict[str, An
                 ))
             created += 1
         else:
-            scenario.name = item.get("name") or scenario.name
+            scenario.name = humanize_scenario_name(item.get("name") or scenario.name, family=root_key)
             scenario.functional_comment = scenario.functional_comment or _comment(item)
+            scenario.category = "HPRIM" if root_key == "hprim" else "HL7_SIU" if theme_key == "hl7.siu" else "HL7_MIXTE" if theme_key == "hl7.mixte" else "IHE_PAM"
+            scenario.protocol = "HPRIM" if root_key == "hprim" else "HL7"
             scenario.source_checksum = checksum
             scenario.legacy_package, scenario.legacy_source_json, scenario.updated_at = theme_key, json.dumps(sources, ensure_ascii=False), datetime.utcnow()
             scenario.is_active = True

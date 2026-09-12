@@ -5,6 +5,8 @@ et réintégration. Il remplace le scénario historique, alors marqué xfail, qu
 attendait un stockage temporaire sur disque.
 """
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -45,3 +47,26 @@ def test_hprim_xml_roundtrip_all_act_types(act_type, code, extra):
     assert body["status"] == "ok"
     assert body["message_id"] == generated_body["message_id"]
     assert body["actes_count"] == 1
+
+
+def test_hprim_rejects_a_compact_hl7_date_in_an_act():
+    """Une date d'acte HPRIM est un xs:date, pas une date HL7 compacte."""
+    generated = client.post("/roundtrip-hprim/generate", json={"type_acte": "CCAM", "code": "ZZQK900"})
+    assert generated.status_code == 200, generated.text
+    downloaded = client.get(generated.json()["download_url"])
+    invalid_xml = re.sub(
+        r"(<(?:[A-Za-z0-9_]+:)?execute>\s*<(?:[A-Za-z0-9_]+:)?date>)\d{4}-\d{2}-\d{2}(</(?:[A-Za-z0-9_]+:)?date>)",
+        r"\g<1>20260912\g<2>",
+        downloaded.content.decode("iso-8859-1"),
+        count=1,
+    )
+    assert "20260912" in invalid_xml
+
+    reintegrated = client.post(
+        "/roundtrip-hprim/reintegrate",
+        files={"file": ("date-invalide.xml", invalid_xml.encode("iso-8859-1"), "application/xml")},
+    )
+    assert reintegrated.status_code == 200
+    body = reintegrated.json()
+    assert body["status"] == "error"
+    assert "xs:date" in body["erreurs"][0]

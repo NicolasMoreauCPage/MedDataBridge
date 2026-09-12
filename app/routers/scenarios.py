@@ -13,11 +13,16 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 from app.models import Dossier
-from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioVersion
 from app.models_structure import GHTContext
 from app.services.scenario_runner import ScenarioExecutionError, get_scenario, send_scenario, send_step
 from app.services.scenario_capture import capture_dossier_as_scenario
-from app.services.scenario_import import import_scenario_from_json, validate_scenario_json, ScenarioImportError
+from app.services.scenario_import import (
+    ScenarioImportError,
+    import_scenario_from_json,
+    split_embedded_messages_in_scenario,
+    validate_scenario_json,
+)
 from app.services.scenario_dashboard import (
     get_scenario_stats,
     get_ack_distribution,
@@ -26,12 +31,15 @@ from app.services.scenario_dashboard import (
     get_scenario_comparison
 )
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog, ScenarioDelivery
+from app.models_outbox import OutboundMessage
 from app.models_qualification import QualificationCampaign, QualificationCampaignItem, ScenarioTheme, ScenarioThemeAssignment
+from app.models_scenario_review import ScenarioCatalogReview
 from app.services.scenario_play_service import (
     ScenarioPlayError,
     execute_scenario_play,
     get_play_details,
     prepare_scenario_play,
+    retry_failed_scenario_play,
     retry_scenario_delivery,
 )
 from app.services.legacy_scenario_catalog import import_legacy_catalog
@@ -42,6 +50,8 @@ from app.services.scenario_qualification_service import (
     set_target_active,
     theme_tree,
 )
+from app.services.scenario_version_service import snapshot_scenario_version
+from app.services.scenario_campaign_service import run_scenario_campaign
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Glose en langage clair pour les triggers ADT couramment rencontrés dans les
@@ -119,6 +129,7 @@ def list_scenarios(
         "actions": [
             {"label": "Nouveau scénario", "url": "/scenarios/new", "type": "link", "icon": "plus"},
             {"label": "Qualification", "url": "/scenarios/qualification", "type": "link", "icon": "check-circle"},
+            {"label": "Administration", "url": "/scenarios/admin", "type": "link", "icon": "settings"},
             {"label": "Exécuter en masse", "url": "/scenarios/bulk-execute", "type": "link", "icon": "play"},
             {"label": "Importer", "url": "/scenarios/import", "type": "link", "icon": "upload"}
         ],
@@ -531,6 +542,115 @@ def dashboard_redirect(request: Request):
     return RedirectResponse(url="/scenarios/runs", status_code=302)
 
 
+@router.get("/admin", response_class=HTMLResponse)
+def scenarios_admin(
+    request: Request,
+    active: Optional[str] = None,
+    review_status: Optional[str] = None,
+    category: Optional[str] = None,
+    query: Optional[str] = None,
+    session: Session = Depends(get_session),
+):
+    """Administration de tout le catalogue, y compris les scénarios désactivés."""
+    scenarios = session.exec(select(InteropScenario).order_by(InteropScenario.name)).all()
+    reviews = {
+        review.scenario_id: review
+        for review in session.exec(select(ScenarioCatalogReview)).all()
+    }
+    if active in {"active", "inactive"}:
+        wanted = active == "active"
+        scenarios = [item for item in scenarios if item.is_active == wanted]
+    if review_status:
+        scenarios = [
+            item for item in scenarios
+            if (reviews.get(item.id).status if reviews.get(item.id) else "unassessed") == review_status
+        ]
+    if category:
+        scenarios = [item for item in scenarios if (item.category or "") == category]
+    if query and query.strip():
+        needle = query.strip().lower()
+        scenarios = [
+            item for item in scenarios
+            if needle in " ".join(filter(None, [item.key, item.name, item.description, item.functional_comment, item.tags])).lower()
+        ]
+    review_labels = {
+        "approved": "Conforme",
+        "repairable": "Réparable",
+        "manual_review": "À qualifier manuellement",
+        "duplicate": "Doublon",
+        "unassessed": "Non évalué",
+    }
+    all_scenarios = session.exec(select(InteropScenario)).all()
+    review_counts = {
+        status: sum(1 for item in all_scenarios if (reviews.get(item.id).status if reviews.get(item.id) else "unassessed") == status)
+        for status in review_labels
+    }
+    categories = sorted({item.category for item in all_scenarios if item.category})
+    return get_templates_with_filters(request).TemplateResponse(request, "scenarios_admin.html", {
+        "request": request,
+        "scenarios": scenarios,
+        "reviews": reviews,
+        "active": active or "",
+        "review_status": review_status or "",
+        "category": category or "",
+        "query": query or "",
+        "categories": categories,
+        "review_counts": review_counts,
+        "review_options": [{"value": key, "label": label} for key, label in review_labels.items()],
+        "review_labels": review_labels,
+    })
+
+
+@router.post("/{scenario_id}/admin/toggle")
+def toggle_scenario_catalog_active(
+    scenario_id: int,
+    request: Request,
+    is_active: bool = Form(False),
+    return_to: str = Form("admin"),
+    session: Session = Depends(get_session),
+):
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    scenario.is_active, scenario.updated_at = is_active, datetime.utcnow()
+    session.add(scenario)
+    session.commit()
+    flash(request, f"Scénario {'activé' if is_active else 'désactivé'}.", level="success")
+    destination = f"/scenarios/{scenario_id}" if return_to == "detail" else "/scenarios/admin"
+    return RedirectResponse(url=destination, status_code=303)
+
+
+@router.post("/{scenario_id}/admin/edit")
+def edit_scenario_catalog_metadata(
+    scenario_id: int,
+    request: Request,
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    functional_comment: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    protocol: str = Form("HL7"),
+    tags: Optional[str] = Form(None),
+    is_active: bool = Form(False),
+    session: Session = Depends(get_session),
+):
+    """Édite les métadonnées sans toucher à la clé stable ni aux étapes."""
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    scenario.name = name.strip() or scenario.name
+    scenario.description = description or None
+    scenario.functional_comment = functional_comment or None
+    scenario.category = category or None
+    scenario.protocol = protocol.strip().upper() or "HL7"
+    scenario.tags = tags or None
+    scenario.is_active = is_active
+    scenario.updated_at = datetime.utcnow()
+    session.add(scenario)
+    session.commit()
+    flash(request, "Scénario mis à jour.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+
+
 @router.get("/qualification", response_class=HTMLResponse)
 def qualification_catalog(
     request: Request,
@@ -602,6 +722,30 @@ def update_scenario_qualification_metadata(
     return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
 
 
+@router.post("/{scenario_id}/qualification/assertions")
+def update_scenario_assertions(
+    scenario_id: int, request: Request, preconditions_json: Optional[str] = Form(None), assertions_json: Optional[str] = Form(None),
+    session: Session = Depends(get_session),
+):
+    """Édite des critères déclaratifs sans exécuter de code arbitraire."""
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    try:
+        for label, raw in (("préconditions", preconditions_json), ("assertions", assertions_json)):
+            if raw and not isinstance(json.loads(raw), list):
+                raise ValueError(f"Les {label} doivent être une liste JSON")
+    except (ValueError, json.JSONDecodeError) as exc:
+        flash(request, f"Critères non enregistrés : {exc}", level="error")
+        return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+    scenario.preconditions_json, scenario.assertions_json = preconditions_json or None, assertions_json or None
+    scenario.updated_at = datetime.utcnow()
+    session.add(scenario)
+    session.commit()
+    flash(request, "Critères de qualification enregistrés.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+
+
 @router.get("/campaigns", response_class=HTMLResponse)
 def qualification_campaigns(request: Request, session: Session = Depends(get_session)):
     campaigns = session.exec(select(QualificationCampaign).order_by(QualificationCampaign.name)).all()
@@ -628,6 +772,17 @@ def create_campaign(
             session.add(QualificationCampaignItem(campaign_id=campaign.id, scenario_id=scenario_id, endpoint_id=endpoint_id, order_index=index))
     session.commit()
     flash(request, "Campagne créée. Elle est exécutable depuis l'espace Qualification.", level="success")
+    return RedirectResponse(url="/scenarios/campaigns", status_code=303)
+
+
+@router.post("/campaigns/{campaign_id}/run")
+async def run_durable_campaign(campaign_id: int, request: Request, dry_run: bool = Form(False), session: Session = Depends(get_session)):
+    campaign = session.get(QualificationCampaign, campaign_id)
+    if not campaign or not campaign.is_active:
+        raise HTTPException(status_code=404, detail="Campagne introuvable ou désactivée")
+    run = await run_scenario_campaign(session, campaign, dry_run=dry_run)
+    level = "success" if run.status == "passed" else "warning"
+    flash(request, f"Campagne terminée : {run.passed_items}/{run.total_items} scénario(s) réussis.", level=level)
     return RedirectResponse(url="/scenarios/campaigns", status_code=303)
 
 
@@ -708,6 +863,24 @@ def add_scenario_step(
     session.add(step)
     session.commit()
     flash(request, f"Étape #{next_order} ajoutée au scénario", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+
+
+@router.post("/{scenario_id}/steps/split-embedded")
+def split_embedded_scenario_messages(
+    scenario_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    """Sépare les messages historiques concaténés en étapes éditables."""
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    added = split_embedded_messages_in_scenario(session, scenario)
+    if added:
+        flash(request, f"{added} étape(s) créée(s) : un message par étape.", level="success")
+    else:
+        flash(request, "Aucun message concaténé à séparer.", level="info")
     return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
 
 
@@ -811,6 +984,9 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
             select(ScenarioThemeAssignment).where(ScenarioThemeAssignment.scenario_id == scenario.id).where(ScenarioThemeAssignment.is_primary == True)  # noqa: E712
         ).first(),
         "preflight_issues": preflight_issues(scenario),
+        "scenario_versions": session.exec(
+            select(ScenarioVersion).where(ScenarioVersion.scenario_id == scenario.id).order_by(ScenarioVersion.version_number.desc())
+        ).all(),
         "event_labels": _trigger_labels(),
         "breadcrumbs": [
             {"label": "Scénarios", "url": "/scenarios"},
@@ -818,6 +994,19 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
         ],
     }
     return get_templates_with_filters(request).TemplateResponse(request, "scenario_detail.html", ctx)
+
+
+@router.post("/{scenario_id}/versions/publish")
+def publish_scenario_version(
+    scenario_id: int, request: Request, comment: Optional[str] = Form(None), session: Session = Depends(get_session),
+):
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    version = snapshot_scenario_version(session, scenario, comment=comment or None, publish=True)
+    session.commit()
+    flash(request, f"Version {version.version_number} publiée et figée pour les prochains jeux.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
 
 
 @router.post("/capture", response_class=RedirectResponse)
@@ -844,11 +1033,14 @@ async def scenario_send(
     step_id: Optional[int] = Form(None),
     dry_run: bool = Form(False),
     start_order_index: Optional[int] = Form(None),
+    error_policy: str = Form("continue_other_targets"),
     session: Session = Depends(get_session),
 ):
     scenario = get_scenario(session, scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Scénario introuvable")
+    if not scenario.is_active:
+        raise HTTPException(status_code=409, detail="Scénario désactivé : activez-le dans l’administration avant émission.")
 
     # ``endpoint_id`` stays accepted for bookmarked forms and the public API;
     # the UI now posts endpoint_ids and may select distinct MLLP/FHIR/HPRIM
@@ -862,7 +1054,7 @@ async def scenario_send(
     try:
         play = prepare_scenario_play(
             session, scenario, endpoints, dry_run=dry_run,
-            step_id=step_id, start_order_index=start_order_index,
+            step_id=step_id, start_order_index=start_order_index, error_policy=error_policy,
         )
         play = await execute_scenario_play(session, play.id)
         delivered = session.exec(
@@ -889,11 +1081,36 @@ def scenario_play_detail(scenario_id: int, play_id: int, request: Request, sessi
     if play.scenario_id != scenario_id:
         raise HTTPException(status_code=404, detail="Jeu hors scénario")
     endpoints = {endpoint.id: endpoint for endpoint in session.exec(select(SystemEndpoint).where(SystemEndpoint.id.in_([row.endpoint_id for row in deliveries]))).all()}
+    outbox_by_id = {row.id: row for row in session.exec(select(OutboundMessage).where(OutboundMessage.id.in_([delivery.outbox_id for delivery in deliveries if delivery.outbox_id]))).all()}
     return get_templates_with_filters(request).TemplateResponse(request, "scenario_play_detail.html", {
         "request": request, "scenario": scenario, "play": play, "steps": steps, "deliveries": deliveries,
-        "endpoints_by_id": endpoints, "identity": json.loads(play.identity_json or "{}"),
+        "endpoints_by_id": endpoints, "outbox_by_id": outbox_by_id, "identity": json.loads(play.identity_json or "{}"),
+        "target_context_by_delivery": {
+            item.id: json.loads(item.target_context_json or "{}") for item in deliveries
+        },
         "breadcrumbs": [{"label": "Scénarios", "url": "/scenarios"}, {"label": scenario.name, "url": f"/scenarios/{scenario.id}"}, {"label": play.play_key, "url": ""}],
     })
+
+
+@router.get("/{scenario_id}/plays/{play_id}/diagnostic.json")
+def scenario_play_diagnostic(scenario_id: int, play_id: int, session: Session = Depends(get_session)):
+    """Preuve portable : payloads, routage, réponses et tentatives d'un jeu."""
+    play, steps, deliveries = get_play_details(session, play_id)
+    if play.scenario_id != scenario_id:
+        raise HTTPException(status_code=404, detail="Jeu hors scénario")
+    outbox = {row.id: row for row in session.exec(select(OutboundMessage).where(OutboundMessage.id.in_([item.outbox_id for item in deliveries if item.outbox_id]))).all()}
+    return {
+        "play_key": play.play_key, "status": play.status, "scenario_version_id": play.scenario_version_id,
+        "identity": json.loads(play.identity_json or "{}"),
+        "steps": [{"order": item.order_index, "format": item.message_format, "source": item.source_payload, "compiled": item.compiled_payload} for item in steps],
+        "deliveries": [
+            {"id": item.id, "step_id": item.play_step_id, "endpoint_id": item.endpoint_id, "transport": item.transport,
+             "status": item.status, "ack": item.ack_code, "response": item.response_payload, "error": item.error_message,
+             "compiled_payload": item.compiled_payload, "target_context": json.loads(item.target_context_json or "{}"),
+             "outbox": {"id": outbox[item.outbox_id].id, "status": outbox[item.outbox_id].status, "attempts": outbox[item.outbox_id].attempts, "last_error": outbox[item.outbox_id].last_error} if item.outbox_id in outbox else None}
+            for item in deliveries
+        ],
+    }
 
 
 @router.post("/{scenario_id}/plays/{play_id}/deliveries/{delivery_id}/retry")
@@ -907,6 +1124,21 @@ async def scenario_delivery_retry(scenario_id: int, play_id: int, delivery_id: i
     except ScenarioPlayError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     flash(request, f"Livraison #{delivery.id} {'envoyée' if delivery.status == 'sent' else 'en erreur'} avec le même jeu.", level="success" if delivery.status == "sent" else "warning")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/plays/{play_id}", status_code=303)
+
+
+@router.post("/{scenario_id}/plays/{play_id}/retry-failed")
+async def scenario_play_retry_failed(scenario_id: int, play_id: int, request: Request, session: Session = Depends(get_session)):
+    """Reprend le reliquat d'un jeu sans jamais régénérer son identité."""
+    try:
+        play, _, _ = get_play_details(session, play_id)
+        if play.scenario_id != scenario_id:
+            raise ScenarioPlayError("Jeu hors scénario")
+        play = await retry_failed_scenario_play(session, play_id)
+    except ScenarioPlayError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    level = "success" if play.status == "success" else "warning"
+    flash(request, f"Reprise du jeu {play.play_key} terminée : {play.status}.", level=level)
     return RedirectResponse(url=f"/scenarios/{scenario_id}/plays/{play_id}", status_code=303)
 
 # --- JSON export endpoints (added) ---

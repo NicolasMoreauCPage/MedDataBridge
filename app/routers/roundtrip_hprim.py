@@ -113,7 +113,14 @@ def _build_message(payload: dict) -> tuple[HprimMessage, str]:
 
 def _act_projection(act_type: str, act: object) -> tuple[str, str, dict]:
     values = vars(act)
-    code = values.get("code_acte") or values.get("lettre_cle") or values.get("code_lpp") or values.get("code_ucd") or values.get("code")
+    # Le parseur des flux historiques retourne les UCD avec ``code_ucd`` ou
+    # ``code_commercial`` (et non le champ ``code`` des UCD générées par
+    # l'IHM). Les deux représentations décrivent le même code de produit et
+    # doivent être persistées de façon uniforme pendant un roundtrip.
+    code = (
+        values.get("code_acte") or values.get("lettre_cle") or values.get("code_lpp")
+        or values.get("code_ucd") or values.get("code_commercial") or values.get("code")
+    )
     if isinstance(values.get("code"), HprimCodeLPP):
         code = values["code"].code
     if not code:

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Roundtrip complet du catalogue de sc&eacute;narios &mdash; deux GHT</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension tisch019.markdowninteractive */
+.gallery {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    /*justify-content: center;*/
+}
+
+.column {
+    position: relative;
+}
+
+.column img {
+    margin: 0 20px 0 0;
+    max-height: 25vh;
+}
+
+/* The Modal (background) */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    padding-top: 10px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Modal Content */
+
+.modal-content {
+    position: relative;
+    text-align: center;
+    margin: auto;
+    padding: 0;
+    max-width: 95vw;
+}
+
+/* The Close Button */
+
+.close {
+    color: white;
+    position: absolute;
+    top: 10px;
+    right: 25px;
+    font-size: 35px;
+    font-weight: bold;
+    z-index: 3;
+}
+
+.close:hover, .close:focus {
+    color: #999;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Hide the slides by default */
+
+.mySlides {
+    display: none;
+    height: 98vh;
+    align-items: center;
+    justify-content: center;
+}
+
+.mySlides img {
+    box-sizing: border-box;
+    padding: 20px;
+    max-height: 95vh;
+    width: auto;
+    max-width: 95vw;
+}
+
+/* Next & previous buttons */
+
+.prev, .next {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    width: auto;
+    padding: 16px;
+    margin-top: -50px;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+    transition: 0.6s ease;
+    border-radius: 0 3px 3px 0;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.prev {
+    left: 10px;
+}
+
+.next {
+    right: 10px;
+}
+
+/* Position the "next button" to the right */
+
+.next {
+    right: 0;
+    border-radius: 3px 0 0 3px;
+}
+
+/* On hover, add a black background color with a little bit see-through */
+
+.prev:hover, .next:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Number text (1/3 etc) */
+
+.numbertext {
+    color: #f2f2f2;
+    font-size: 12px;
+    padding: 8px 12px;
+    position: absolute;
+    top: 0;
+    left: 10px;
+}
+
+/* Caption text */
+
+.caption-container {
+    text-align: center;
+    background-color: black;
+    padding: 2px 16px;
+    color: white;
+}
+
+img.demo {
+    opacity: 1;
+    box-shadow: 4px 4px 8px 0 rgba(0, 0, 0, 0.8);
+}
+
+.active, .demo:hover {
+    opacity: 0.8;
+}
+
+img.hover-shadow {
+    transition: 0.3s;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 0);
+}
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <span id="markdown-mermaid" aria-hidden="true" data-config="{&quot;darkModeTheme&quot;:&quot;vscode&quot;,&quot;lightModeTheme&quot;:&quot;vscode&quot;,&quot;maxTextSize&quot;:50000,&quot;clickDrag&quot;:&quot;alt&quot;,&quot;showControls&quot;:&quot;onHoverOrFocus&quot;,&quot;resizable&quot;:true,&quot;maxHeight&quot;:&quot;&quot;}"></span>
+				<h1 id="roundtrip-complet-du-catalogue-de-scénarios--deux-ght">Roundtrip complet du catalogue de scénarios — deux GHT</h1>
+<p>Date : 12 septembre 2026</p>
+<h2 id="objectif-de-cette-réexécution">Objectif de cette réexécution</h2>
+<p>La campagne a été rejouée après le paramétrage explicite du profil clinique de
+la destination <code>GHT-B</code> : une UF et un médecin responsable par rôle
+(hospitalisation, externe, urgences, mutation, hôpital de jour et laboratoire).
+Les valeurs sont appliquées à chaque livraison dans <code>PV1-3</code>, <code>ZBE-7</code>, HPRIM et
+FHIR, puis figées avec le payload émis.</p>
+<h2 id="résultat">Résultat</h2>
+<table>
+<thead>
+<tr>
+<th>Indicateur</th>
+<th style="text-align:right">Avant profil + <code>ZBE-7</code></th>
+<th style="text-align:right">Après</th>
+<th style="text-align:right">Évolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scénarios entièrement acceptés</td>
+<td style="text-align:right">28</td>
+<td style="text-align:right"><strong>35</strong></td>
+<td style="text-align:right"><strong>+7</strong></td>
+</tr>
+<tr>
+<td>Scénarios partiels</td>
+<td style="text-align:right">72</td>
+<td style="text-align:right">77</td>
+<td style="text-align:right">+5</td>
+</tr>
+<tr>
+<td>Scénarios en erreur</td>
+<td style="text-align:right">119</td>
+<td style="text-align:right"><strong>107</strong></td>
+<td style="text-align:right"><strong>-12</strong></td>
+</tr>
+<tr>
+<td>ACK PAM <code>AA</code></td>
+<td style="text-align:right">136</td>
+<td style="text-align:right"><strong>194</strong></td>
+<td style="text-align:right"><strong>+58</strong></td>
+</tr>
+<tr>
+<td>ACK PAM <code>AE</code></td>
+<td style="text-align:right">368</td>
+<td style="text-align:right"><strong>310</strong></td>
+<td style="text-align:right"><strong>-58</strong></td>
+</tr>
+<tr>
+<td>ACK PAM <code>AR</code></td>
+<td style="text-align:right">243</td>
+<td style="text-align:right">243</td>
+<td style="text-align:right">0</td>
+</tr>
+<tr>
+<td>BDD GHT A = BDD GHT B</td>
+<td style="text-align:right">oui</td>
+<td style="text-align:right"><strong>oui</strong></td>
+<td style="text-align:right">conservé</td>
+</tr>
+</tbody>
+</table>
+<p>Les 830 livraisons de la campagne ont utilisé le profil de destination
+(<code>source = target_profile</code>) ; aucun repli générique n’a été employé. Les deux
+BDD contiennent le même état métier final : 96 patients, 232 identifiants,
+37 dossiers, 37 venues, 62 mouvements et 49 actes HPRIM.</p>
+<p>Les sept scénarios désormais complètement acceptés sont :</p>
+<ul>
+<li><code>legacy.pam.1bc233716ebfa4</code></li>
+<li><code>legacy.pam.1dfaa28852d032</code></li>
+<li><code>legacy.pam.460923b74d2de3</code></li>
+<li><code>legacy.pam.514a1f12fefd9e</code></li>
+<li><code>legacy.pam.79f1aa2d554e0c</code></li>
+<li><code>legacy.pam.cbf9b5bbe5c0fb</code></li>
+<li><code>legacy.pam.e8460a8d94118c</code></li>
+</ul>
+<p>Douze autres scénarios PAM passent d’un échec complet à un résultat partiel.
+Le correctif élimine les rejets liés à une UF historique dans <code>ZBE-7</code> : aucune
+occurrence de « UF Responsable introuvable » ne subsiste dans cette campagne.</p>
+<h2 id="quels-scénarios-retirer-du-roundtrip-positif-">Quels scénarios retirer du roundtrip positif ?</h2>
+<p>Il ne faut <strong>supprimer aucun scénario</strong> : les cas invalides restent utiles au
+validateur comme tests négatifs. En revanche, seuls les dix scénarios HPRIM
+ci-dessous doivent être retirés du corpus de <em>roundtrip positif</em> tant que leur
+XML source n’est pas réparé (encodage/XML invalide) :</p>
+<ul>
+<li><code>CreationActeCCAM_CodeAssociation_Cas1.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas2.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas3.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas4.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas5.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas6.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas7.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas8.txt</code></li>
+<li><code>CreationActeCCAM_CodeAssociation_Cas9.txt</code></li>
+<li><code>creationUCD_PHARMA_DIJON4.txt</code></li>
+</ul>
+<p>Ils doivent être conservés dans une suite « XML invalide attendu » : leur rejet
+est le comportement recherché.</p>
+<h2 id="écarts-à-corriger-pas-à-jeter">Écarts à corriger, pas à jeter</h2>
+<table>
+<thead>
+<tr>
+<th>Famille</th>
+<th style="text-align:right">Nombre</th>
+<th>Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HPRIM sans patient (<code>PATIENT_ID_001</code>)</td>
+<td style="text-align:right">15</td>
+<td>Ajouter la précondition PAM/patient ou rattacher ces actes au scénario qui crée le patient.</td>
+</tr>
+<tr>
+<td>Erreur interne HPRIM <code>str has no attribute value</code></td>
+<td style="text-align:right">12</td>
+<td>Corriger le parseur HPRIM ; les scénarios restent pertinents.</td>
+</tr>
+<tr>
+<td>PAM rejeté (<code>AE</code>/<code>AR</code>)</td>
+<td style="text-align:right">147</td>
+<td>Qualifier l’enchaînement métier ; la configuration UF/médecin n’est plus la cause.</td>
+</tr>
+<tr>
+<td>Professionnel HPRIM incomplet</td>
+<td style="text-align:right">1</td>
+<td>Réparer le template ou ajouter le rôle professionnel attendu.</td>
+</tr>
+</tbody>
+</table>
+<p>Les scénarios HPRIM sans patient et les parcours PAM partiels ne sont donc pas
+des candidats à l’abandon : ils expriment soit une précondition absente, soit
+une séquence métier à corriger ou à classer comme test négatif.</p>
+<h2 id="reproduction">Reproduction</h2>
+<pre><code class="language-bash">TESTING=1 PYTHONPATH=. .venv/bin/python \
+  scripts/roundtrip_scenario_catalog_two_ght.py \
+  --workdir artifacts/roundtrip-scenarios-two-ght-v9-target-profiles-zbe7
+</code></pre>
+<p>Les preuves détaillées sont conservées dans <code>result.json</code> et <code>report.md</code> de
+l’artefact. Le script classe désormais automatiquement les échecs en
+<code>conserver</code>, <code>ajouter_prerequis_patient</code>, <code>corriger_moteur_hprim</code>,
+<code>corriger_sequence_pam</code> ou <code>retirer_du_roundtrip_positif</code>.</p>
+
+            
+            <script async type="text/javascript">
+/* From extension tisch019.markdowninteractive */
+// Open the Modal
+function openModal(e) {
+    e.target.closest('.gallery').querySelectorAll("#myModal")[0].style.display = "block";
+}
+
+// Close the Modal
+function closeModal(e) {
+    e.target.closest('.gallery').querySelectorAll("#myModal")[0].style.display = "none";
+}
+
+// Next/previous controls
+function plusSlides(e, n) {
+    showSlides(e, slideIndex += n);
+}
+
+// Thumbnail image controls
+function currentSlide(e, n) {
+    showSlides(e, slideIndex = n);
+}
+
+function showSlides(e, n) {
+    var i;
+    var modal = e.target.closest('.gallery').querySelectorAll('.modal-content')[0];
+    var slides = modal.querySelectorAll(".mySlides");
+    var captionText = modal.querySelectorAll("#caption")[0];
+    if (n > slides.length) { slideIndex = 1 }
+    if (n < 1) { slideIndex = slides.length }
+    for (i = 0; i < slides.length; i++) {
+        slides[i].style.display = "none";
+    }
+    slides[slideIndex - 1].style.display = "flex";
+}
+
+function evaluateMultipleChoiceTest(e) {
+    let mctest = e.target.parentNode;
+    let questions = mctest.querySelectorAll(".questionContainer");
+    let correctAnswers = 0;
+    questions.forEach(function (question) {
+        let answers = question.querySelectorAll(".answer");
+        let correctCount = answers.length;
+        answers.forEach(function (answer) {
+            if (String(answer.checked) == answer.getAttribute("correct")) {
+                correctCount--;
+            }
+        });
+        if (correctCount == 0) {
+            question.style.backgroundColor = "green";
+            correctAnswers++;
+        }
+        else {
+            question.style.backgroundColor = "red";
+        }
+    });
+    mctest.querySelectorAll(".result")[0].innerHTML = correctAnswers + " von " + questions.length + " richtig beantwortet!";
+}
+</script>
+
+        </body>
+        </html>

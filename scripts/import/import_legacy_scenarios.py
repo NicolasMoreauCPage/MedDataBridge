@@ -57,6 +57,7 @@ def main():
     from app.db import engine
     from app.models_scenarios import InteropScenario, InteropScenarioStep
     from app.models_structure import GHTContext
+    from app.services.scenario_naming import humanize_scenario_name
     # Import ALL model modules to ensure SQLAlchemy knows all relationships
     from app import models, models_structure, models_scenarios, models_identifiers, models_practitioners, models_endpoints
     
@@ -97,7 +98,7 @@ def main():
         # Créer le scénario
         scenario = InteropScenario(
             key=scenario_key,
-            name=file_name.replace('_', ' ').replace('TestHL7', 'Test '),
+            name=humanize_scenario_name(file_name, family="pam"),
             description=f"Scénario importé depuis {path_obj.name} ({len(messages)} messages)",
             category=category or "legacy",
             protocol="HL7",

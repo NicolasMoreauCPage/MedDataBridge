@@ -9,7 +9,8 @@ from app.models_endpoints import SystemEndpoint
 from app.models_qualification import QualificationCampaign, QualificationCampaignItem
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.services.qualification_engine import run_campaign, run_qualification
+from app.models import Patient
+from app.services.qualification_engine import evaluate_assertions, run_campaign, run_qualification
 
 
 def _scenario_with_step(session: Session, *, key: str, preconditions: list | None = None) -> InteropScenario:
@@ -107,3 +108,21 @@ async def test_campaign_aggregates_qualification_verdicts(session: Session):
     assert campaign_run.status == "passed"
     assert (campaign_run.total_items, campaign_run.passed_items, campaign_run.failed_items) == (1, 1, 0)
     assert json.loads(campaign_run.evidence_json)[0]["verdict"] == "passed"
+
+
+def test_database_assertions_are_evaluated_on_whitelisted_models(session: Session):
+    patient = Patient(patient_seq=7001, identifier="QUAL-IPP", family="DOE", given="Jane")
+    session.add(patient)
+    session.commit()
+    run = ScenarioExecutionRun(scenario_id=1, status="success")
+    session.add(run)
+    session.commit()
+    results = evaluate_assertions(
+        run, [],
+        [
+            {"type": "database_count", "model": "Patient", "where": {"identifier": "QUAL-IPP"}, "equals": 1},
+            {"type": "database_field_equals", "model": "Patient", "where": {"identifier": "QUAL-IPP"}, "field": "family", "equals": "DOE"},
+        ],
+        session=session,
+    )
+    assert [result.passed for result in results] == [True, True]

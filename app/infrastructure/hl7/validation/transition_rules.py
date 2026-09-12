@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Optional
 
-from app.state_transitions import assert_transition
+from app.state_transitions import IDENTITY_ONLY_TRIGGERS, assert_transition
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def validate_transition(
     """
     # Default identity-only triggers (identity management, no venue workflow)
     if identity_only_triggers is None:
-        identity_only_triggers = {"A28", "A31", "A40", "A47"}
+        identity_only_triggers = IDENTITY_ONLY_TRIGGERS
     
     # Check relaxed mode
     if relax is None:

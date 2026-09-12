@@ -25,6 +25,9 @@ _venue_counter = 0
 _last_patient_timestamp = 0
 _last_dossier_timestamp = 0
 _last_venue_timestamp = 0
+_last_patient_value = 0
+_last_dossier_value = 0
+_last_venue_value = 0
 
 
 def generate_patient_seq() -> int:
@@ -48,25 +51,33 @@ def generate_patient_seq() -> int:
         >>> str(seq)[0]
         '9'
     """
-    global _patient_counter, _last_patient_timestamp
+    global _patient_counter, _last_patient_timestamp, _last_patient_value
     
     with _patient_lock:
         # Obtenir le timestamp en microsecondes
         timestamp_us = int(time.time() * 1_000_000)
         
         # Si même timestamp, incrémenter le compteur
+        timestamp_us = max(timestamp_us, _last_patient_timestamp)
         if timestamp_us == _last_patient_timestamp:
-            _patient_counter = (_patient_counter + 1) % 10
+            _patient_counter += 1
+            # Ne jamais revenir à 0 : en charge, dix appels peuvent tomber
+            # dans la même microseconde. On avance alors l'horloge logique.
+            if _patient_counter > 9:
+                timestamp_us += 1
+                _patient_counter = 0
         else:
             _patient_counter = 0
-            _last_patient_timestamp = timestamp_us
+        _last_patient_timestamp = timestamp_us
         
         # Prendre 10 chiffres du timestamp (pas les premiers pour éviter dépassement)
         # et ajouter le compteur
         timestamp_str = str(timestamp_us)[-10:]
         
         # Préfixer avec '9', ajouter timestamp et compteur
-        return int(f"9{timestamp_str}{_patient_counter}")
+        candidate = int(f"9{timestamp_str}{_patient_counter}")
+        _last_patient_value = max(candidate, _last_patient_value + 1)
+        return _last_patient_value
 
 
 def generate_dossier_seq() -> int:
@@ -90,25 +101,31 @@ def generate_dossier_seq() -> int:
         >>> str(seq)[0]
         '9'
     """
-    global _dossier_counter, _last_dossier_timestamp
+    global _dossier_counter, _last_dossier_timestamp, _last_dossier_value
     
     with _dossier_lock:
         # Obtenir le timestamp en microsecondes
         timestamp_us = int(time.time() * 1_000_000)
         
         # Si même timestamp, incrémenter le compteur
+        timestamp_us = max(timestamp_us, _last_dossier_timestamp)
         if timestamp_us == _last_dossier_timestamp:
-            _dossier_counter = (_dossier_counter + 1) % 10
+            _dossier_counter += 1
+            if _dossier_counter > 9:
+                timestamp_us += 1
+                _dossier_counter = 0
         else:
             _dossier_counter = 0
-            _last_dossier_timestamp = timestamp_us
+        _last_dossier_timestamp = timestamp_us
         
         # Prendre 7 chiffres du timestamp (pas les premiers pour éviter dépassement)
         # et ajouter le compteur
         timestamp_str = str(timestamp_us)[-7:]
         
         # Préfixer avec '9', ajouter timestamp et compteur
-        return int(f"9{timestamp_str}{_dossier_counter}")
+        candidate = int(f"9{timestamp_str}{_dossier_counter}")
+        _last_dossier_value = max(candidate, _last_dossier_value + 1)
+        return _last_dossier_value
 
 
 def generate_venue_seq() -> int:
@@ -132,21 +149,30 @@ def generate_venue_seq() -> int:
         >>> str(seq)[0]
         '8'
     """
-    global _venue_counter, _last_venue_timestamp
+    global _venue_counter, _last_venue_timestamp, _last_venue_value
     
     with _venue_lock:
         # Obtenir le timestamp en microsecondes
         timestamp_us = int(time.time() * 1_000_000)
         
         # Si même timestamp, incrémenter le compteur
+        timestamp_us = max(timestamp_us, _last_venue_timestamp)
         if timestamp_us == _last_venue_timestamp:
-            _venue_counter = (_venue_counter + 1) % 10
+            _venue_counter += 1
+            if _venue_counter > 9:
+                timestamp_us += 1
+                _venue_counter = 0
         else:
             _venue_counter = 0
-            _last_venue_timestamp = timestamp_us
+        _last_venue_timestamp = timestamp_us
         
         # Prendre 8 chiffres du timestamp
         timestamp_str = str(timestamp_us)[-8:]
         
         # Préfixer avec '8', ajouter timestamp et compteur
-        return int(f"8{timestamp_str}{_venue_counter}")
+        # Les huit derniers chiffres du timestamp rebouclent toutes les
+        # 100 secondes. La borne monotone évite donc qu'une longue campagne
+        # réutilise un identifiant déjà envoyé dans ZBE-1.
+        candidate = int(f"8{timestamp_str}{_venue_counter}")
+        _last_venue_value = max(candidate, _last_venue_value + 1)
+        return _last_venue_value

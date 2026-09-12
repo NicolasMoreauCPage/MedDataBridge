@@ -36,15 +36,20 @@ NEG_STATUSES = {"ack_error", "error"}  # ajuste selon ton usage
 
 
 def _extract_ipp_and_dossier(payload: str) -> tuple[str, str]:
-    """Extract IPP (from PID-3) and dossier/visit number (from PV1-19) from an HL7 v2 message.
+    """Extract the IPP and the dossier number from an HL7 v2 message.
 
-    Returns (ipp, dossier) with empty strings when not found. Be tolerant to CR/LF.
+    The visit number in PV1-19 is preferred.  PID-18 (administrative account
+    number) is used as a fallback because patient-oriented events such as A28,
+    A31 or A44 commonly do not carry a PV1 segment.  Empty strings are returned
+    when neither identifier is available.  Line endings are deliberately
+    accepted in either CR, LF or CRLF form.
     """
     if not isinstance(payload, str):
         return "", ""
     lines = payload.replace("\r\n", "\r").replace("\n", "\r").split("\r")
     ipp = ""
     dossier = ""
+    account_number = ""
     for line in lines:
         if not line:
             continue
@@ -61,13 +66,18 @@ def _extract_ipp_and_dossier(payload: str) -> tuple[str, str]:
                     ipp = cand
                 elif cand:
                     ipp = cand
+            # PID-18 is the Patient Account Number (NDA in IHE PAM France).
+            # It is useful for patient-only ADT events which have no PV1-19.
+            if len(parts) > 18 and parts[18]:
+                cx = parts[18].split("~", 1)[0].split("^")
+                account_number = cx[0] if cx else ""
         elif line.startswith("PV1|"):
             parts = line.split("|")
             # PV1-19 = Visit Number (CX)
             if len(parts) > 19 and parts[19]:
                 cx = parts[19].split("^")
                 dossier = cx[0] if cx else ""
-    return ipp, dossier
+    return ipp, dossier or account_number
 
 @router.get("", response_class=HTMLResponse)
 @router.get("/", response_class=HTMLResponse)
@@ -255,9 +265,10 @@ def list_by_dossier(
     date_start: Optional[str] = Query(None),
     date_end: Optional[str] = Query(None),
     direction: Optional[str] = Query(None),  # "in" or "out"
+    dossier_status: Optional[str] = Query(None, pattern="^(ok|warning|error)?$"),
     limit: int = Query(1000, ge=1, le=10000),
 ):
-    """Vue des messages groupés par dossier avec statut global."""
+    """Vue de tous les messages MLLP groupés par dossier et par statut global."""
     stmt = select(MessageLog).where(MessageLog.kind == "MLLP")
     
     # Convertir endpoint_id en int si présent et non vide
@@ -297,13 +308,20 @@ def list_by_dossier(
         
         ipp, dossier_num = _extract_ipp_and_dossier(msg.payload)
         
-        if not dossier_num:
-            # Pas de numéro de dossier, ignorer
-            continue
-        
-        if dossier_num not in dossiers_map:
-            dossiers_map[dossier_num] = {
+        # Les événements centrés patient (p. ex. A28/A31) n'ont pas toujours de
+        # NDA. Ne pas les cacher : ils sont groupés par IPP et signalés comme
+        # tels dans l'IHM. Sans IPP non plus, chaque journal reste visible.
+        has_dossier_number = bool(dossier_num)
+        group_key = (
+            f"dossier:{dossier_num}"
+            if has_dossier_number
+            else f"ipp:{ipp}" if ipp else f"message:{msg.id}"
+        )
+
+        if group_key not in dossiers_map:
+            dossiers_map[group_key] = {
                 "dossier_number": dossier_num,
+                "has_dossier_number": has_dossier_number,
                 "ipp": ipp,
                 "message_count": 0,
                 "error_count": 0,
@@ -318,7 +336,7 @@ def list_by_dossier(
                 "has_ack_errors": False,
             }
         
-        dossier_info = dossiers_map[dossier_num]
+        dossier_info = dossiers_map[group_key]
         dossier_info["message_count"] += 1
         
         # Vérifier si ce message est en erreur
@@ -355,7 +373,7 @@ def list_by_dossier(
     
     # Convertir en liste et calculer le statut global
     dossiers_list = []
-    for dossier_num, info in dossiers_map.items():
+    for info in dossiers_map.values():
         # Déterminer le statut global
         if info["error_count"] > 0:
             global_status = "error"
@@ -369,6 +387,14 @@ def list_by_dossier(
         info["message_types"] = sorted(list(info["message_types"]))  # Trier pour cohérence
         info["message_types_with_errors"] = list(info["message_types_with_errors"])
         dossiers_list.append(info)
+
+    # This is deliberately applied after aggregation: a dossier is in error if
+    # any of its messages is in error, even if its most recent message succeeded.
+    if dossier_status in {"ok", "warning", "error"}:
+        dossiers_list = [
+            info for info in dossiers_list
+            if info["global_status"] == dossier_status
+        ]
     
     # Trier par dernière activité (plus récent en premier)
     dossiers_list.sort(key=lambda x: x["last_activity"] or datetime.min, reverse=True)
@@ -396,6 +422,7 @@ def list_by_dossier(
                 "date_start": date_start or "",
                 "date_end": date_end or "",
                 "direction": direction or "",
+                "dossier_status": dossier_status or "",
                 "limit": limit,
             },
         },

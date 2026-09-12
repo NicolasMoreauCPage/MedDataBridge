@@ -22,7 +22,7 @@ from app.services.identifier_generator import generate_identifier, generate_iden
 def _extract_segment(message: str, segment_name: str) -> Optional[str]:
     """
     Extrait un segment HL7 d'un message complet.
-    
+
     Args:
         message: Message HL7 complet (segments séparés par \\r ou \\n)
         segment_name: Nom du segment (ex: 'PID', 'PV1')
@@ -116,8 +116,8 @@ def _replace_pid3_identifiers(
 
 def _replace_pv1_visit_number(
     pv1_segment: str,
-    nda_value: Optional[str] = None,
-    nda_namespace: Optional[IdentifierNamespace] = None
+    venue_value: Optional[str] = None,
+    venue_namespace: Optional[IdentifierNamespace] = None,
 ) -> str:
     """
     Remplace le numéro de visite dans PV1-19 (Visit Number).
@@ -126,8 +126,8 @@ def _replace_pv1_visit_number(
     
     Args:
         pv1_segment: Ligne PV1 complète
-        nda_value: Nouveau NDA
-        nda_namespace: Namespace NDA pour system/OID
+        venue_value: Nouveau numéro de venue
+        venue_namespace: Namespace VN pour system/OID
         
     Returns:
         Segment PV1 modifié
@@ -138,10 +138,30 @@ def _replace_pv1_visit_number(
     while len(fields) < 20:
         fields.append('')
     
+    if venue_value and venue_namespace:
+        oid = venue_namespace.oid or venue_namespace.system.split(':')[-1]
+        fields[19] = f"{venue_value}^^^{venue_namespace.name}&{oid}&ISO^VN"
+
+    return '|'.join(fields)
+
+
+def _replace_pid_account_number(
+    pid_segment: str,
+    nda_value: Optional[str] = None,
+    nda_namespace: Optional[IdentifierNamespace] = None,
+) -> str:
+    """Remplace PID-18 (NDA / account number) sans perdre son autorité.
+
+    Les récepteurs PAM recherchent d'abord l'historique par PID-18. Ne pas le
+    régénérer alors que PV1-19 l'est déjà casse la continuité d'un jeu et peut
+    faire rejeter un A02 ou une annulation pourtant correctement ordonnés.
+    """
+    fields = pid_segment.split('|')
+    while len(fields) <= 18:
+        fields.append('')
     if nda_value and nda_namespace:
         oid = nda_namespace.oid or nda_namespace.system.split(':')[-1]
-        fields[19] = f"{nda_value}^^^{nda_namespace.name}&{oid}&ISO^VN"
-    
+        fields[18] = f"{nda_value}^^^{nda_namespace.name}&{oid}&ISO^AN"
     return '|'.join(fields)
 
 
@@ -243,15 +263,22 @@ def replace_identifiers_in_hl7_message(
             ipp_value=generated_ids.get('ipp'),
             ipp_namespace=ipp_namespace
         )
+        new_pid = _replace_pid_account_number(
+            new_pid,
+            nda_value=generated_ids.get('nda'),
+            nda_namespace=nda_namespace,
+        )
         result_message = _replace_segment(result_message, 'PID', new_pid)
     
     # Remplacer PV1-19 (NDA)
     pv1_segment = _extract_segment(result_message, 'PV1')
     if pv1_segment:
+        # PID-18 est le NDA (dossier) ; PV1-19 est la venue. Ils ne doivent
+        # jamais être écrasés l'un par l'autre lors du rejeu d'un scénario.
         new_pv1 = _replace_pv1_visit_number(
             pv1_segment,
-            nda_value=generated_ids.get('nda'),
-            nda_namespace=nda_namespace
+            venue_value=generated_ids.get('venue') or generated_ids.get('nda'),
+            venue_namespace=venue_namespace or nda_namespace,
         )
         
         # Remplacer PV1-50 (VENUE) si configuré

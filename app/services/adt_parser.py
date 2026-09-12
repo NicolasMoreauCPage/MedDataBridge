@@ -57,7 +57,11 @@ def parse_adt_message(message: str) -> Dict[str, Any]:
     Returns:
         Dict avec clés: msh, pid, pv1, zbe (si présent)
     """
-    segments = [s.strip() for s in message.split("\r") if s.strip()]
+    # Les messages MLLP conservent normalement ``\r``. Un dépôt FILE lu avec
+    # ``Path.read_text()`` peut cependant normaliser ces séparateurs en ``\n``
+    # (et certains partenaires les émettent ainsi). Le parseur d'intégration
+    # accepte les deux, sans modifier le contenu des champs HL7.
+    segments = [s.strip() for s in message.replace("\r", "\n").split("\n") if s.strip()]
     result = {}
     
     for seg in segments:
@@ -231,7 +235,7 @@ def import_adt_into_ght(
         if nda_ns and pv1_data["visit_number"]:
             ident = Identifier(
                 dossier_id=dossier.id,
-                namespace_id=nda_ns.id,
+                type=IdentifierType.NDA,
                 value=pv1_data["visit_number"],
                 system=nda_ns.system
             )

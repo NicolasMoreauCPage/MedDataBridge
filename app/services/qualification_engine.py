@@ -27,6 +27,8 @@ from app.models_qualification import (
 )
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.models import Patient, Dossier, Venue, Mouvement
+from app.models.hprim_models import HprimCCAMAct, HprimNGAPAct, HprimExchangeAct
 from app.services.scenario_runner import send_scenario
 from app.services.scenario_qualification_service import record_target_outcome
 
@@ -46,6 +48,13 @@ _ASSERTION_TYPES = {
     "step_status",
     "ack_code",
     "payload_contains",
+    "database_count",
+    "database_field_equals",
+}
+
+_DATABASE_MODELS = {
+    "Patient": Patient, "Dossier": Dossier, "Venue": Venue, "Mouvement": Mouvement,
+    "HprimCCAMAct": HprimCCAMAct, "HprimNGAPAct": HprimNGAPAct, "HprimExchangeAct": HprimExchangeAct,
 }
 
 
@@ -74,6 +83,13 @@ def _validate_assertions(assertions: list[dict[str, Any]], field_name: str) -> N
                 int(assertion.get("equals", assertion.get("value")))
             except (TypeError, ValueError) as exc:
                 raise ValueError(f"{field_name}[{index}] attend un nombre entier") from exc
+        if kind in {"database_count", "database_field_equals"}:
+            if assertion.get("model") not in _DATABASE_MODELS:
+                raise ValueError(f"{field_name}[{index}] référence un modèle BDD non autorisé")
+            if not isinstance(assertion.get("where", {}), dict):
+                raise ValueError(f"{field_name}[{index}].where doit être un objet")
+            if kind == "database_field_equals" and not assertion.get("field"):
+                raise ValueError(f"{field_name}[{index}] doit préciser field")
 
 
 def validate_preconditions(scenario: InteropScenario, endpoint: SystemEndpoint) -> list[AssertionResult]:
@@ -108,6 +124,7 @@ def evaluate_assertions(
     run: ScenarioExecutionRun,
     step_logs: list[ScenarioExecutionStepLog],
     assertions: list[dict[str, Any]],
+    session: Optional[Session] = None,
 ) -> list[AssertionResult]:
     """Évalue les assertions d'un run contre ses journaux persistés."""
     results: list[AssertionResult] = []
@@ -134,6 +151,21 @@ def evaluate_assertions(
             else:
                 actual = step_log.payload_excerpt or ""
                 passed = str(expected) in actual
+        elif kind in {"database_count", "database_field_equals"}:
+            if session is None:
+                actual, passed = None, False
+            else:
+                model = _DATABASE_MODELS[assertion["model"]]
+                criteria = assertion.get("where", {})
+                records = [
+                    record for record in session.exec(select(model)).all()
+                    if all(str(getattr(record, key, None)) == str(value) for key, value in criteria.items())
+                ]
+                if kind == "database_count":
+                    actual, passed = len(records), len(records) == int(expected)
+                else:
+                    actual = getattr(records[0], assertion["field"], None) if records else None
+                    passed = actual == expected
         else:
             actual, passed = None, False
         results.append(AssertionResult(assertion, passed, actual, f"Assertion {kind}"))
@@ -191,7 +223,7 @@ async def run_qualification(
         .where(ScenarioExecutionStepLog.run_id == run.id)
         .order_by(ScenarioExecutionStepLog.order_index)
     ).all()
-    results = evaluate_assertions(run, step_logs, scenario_assertions)
+    results = evaluate_assertions(run, step_logs, scenario_assertions, session=session)
 
     # Une assertion définie sur une étape ne doit pas dépendre de l'ordre ou du
     # nombre des autres étapes. On la limite donc à son journal d'exécution et
@@ -204,7 +236,7 @@ async def run_qualification(
         if step is None:
             continue
         step_assertions = step_assertions_by_id.get(step.id, [])
-        step_results = evaluate_assertions(run, [step_log], step_assertions)
+        step_results = evaluate_assertions(run, [step_log], step_assertions, session=session)
         step_log.assertion_results_json = json.dumps(
             [asdict(result) for result in step_results], ensure_ascii=False
         )

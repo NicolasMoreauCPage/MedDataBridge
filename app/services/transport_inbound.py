@@ -893,12 +893,12 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
             text="Événement A08 désactivé (mode strict PAM FR per-EJ)"
         )
 
-    # 2. Validation du type de message (support MFN M05 minimal pour structure)
-    if msg_family not in ("ADT", "MFN"):
+    # 2. Validation du type de message (ADT/IHE PAM, MFN structure, SIU rendez-vous)
+    if msg_family not in ("ADT", "MFN", "SIU"):
         return build_ack(
             msg,
             ack_code="AE",
-            text=f"Unsupported message type: {msg_family} (only ADT/MFN M05 supported)"
+            text=f"Unsupported message type: {msg_family} (ADT, MFN M05 and SIU supported)"
         )
 
     # MFN M05 handling: import structure locations (Service/UF/etc.) before returning ACK
@@ -996,6 +996,27 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                 )
                 session.add(log)
             session.flush()  # Persist immediately to get ID and avoid duplicates
+
+            # SIU est un flux HL7 v2 Scheduling, distinct du profil IHE PAM.
+            # Il est contrôlé et persisté comme rendez-vous (SCH/RGS/AIS/AIL/AIP)
+            # avant toute règle propre aux mouvements ADT.
+            if msg_family == "SIU":
+                from app.services.siu import integrate_siu, validate_siu
+
+                validation = validate_siu(msg)
+                log.pam_validation_status = validation.level
+                log.pam_validation_issues = json.dumps(validation.to_dict().get("issues", []), ensure_ascii=False)
+                if not validation.is_valid:
+                    log.status = "rejected"
+                    detail = validation.issues[0].message if validation.issues else "Message SIU invalide"
+                    ack = build_ack(msg, ack_code="AE", text=detail)
+                    log.ack_payload = ack
+                    return ack
+                appointment = integrate_siu(msg, session, endpoint_id=endpoint.id if endpoint else None)
+                log.status = "processed"
+                ack = build_ack(msg, ack_code="AA", text=f"Rendez-vous {appointment.external_id} traité ({trigger})")
+                log.ack_payload = ack
+                return ack
 
             # PAM validation (configurable per endpoint)
             try:
@@ -1150,10 +1171,38 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
             # Récupérer le dernier événement du dossier/venue si applicable
             previous_event = None
             
-            # Stratégie 1 : Chercher par numéro de dossier (PID-18 Account Number)
-            # C'est la méthode la plus fiable car un dossier peut avoir plusieurs venues
+            # Stratégie 1 : chercher d'abord par venue (PV1-19), plus précise
+            # qu'un NDA. Un dossier peut porter plusieurs venues actives ou
+            # successives ; appliquer son dernier mouvement à une nouvelle
+            # venue produit de faux ``A01 -> A01``.
             account_number = pid_data.get("account_number")
-            if account_number:
+            if pv1_data.get("visit_number"):
+                # Rechercher la venue existante pour connaître le dernier événement
+                visit_num_str = pv1_data["visit_number"]
+                # Extract ID part if CX format (ID^^^system^type)
+                visit_num_id = visit_num_str.split("^^^")[0] if "^^^" in visit_num_str else visit_num_str
+                try:
+                    venue = session.exec(
+                        select(Venue).where(Venue.venue_seq == int(visit_num_id))
+                    ).first()
+                except ValueError:
+                    # If not numeric, try as string identifier
+                    venue = session.exec(
+                        select(Venue).where(Venue.code == visit_num_id)
+                    ).first()
+                if venue:
+                    last_mouvement = session.exec(
+                        select(Mouvement)
+                        .where(Mouvement.venue_id == venue.id)
+                        .order_by(Mouvement.mouvement_seq.desc())
+                    ).first()
+                    if last_mouvement and last_mouvement.trigger_event:
+                        previous_event = last_mouvement.trigger_event
+                        logger.debug(f"Found previous event '{previous_event}' from venue {visit_num_id}")
+
+            # Stratégie 2 : solution de repli par dossier (PID-18), uniquement
+            # quand le message ne porte pas de numéro de venue.
+            if not previous_event and account_number and not pv1_data.get("visit_number"):
                 # Extraire le numéro de dossier du CX (partie avant ^)
                 dossier_id_str = account_number.split("^")[0] if "^" in account_number else account_number
                 try:
@@ -1172,32 +1221,6 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                             logger.debug(f"Found previous event '{previous_event}' from dossier {dossier_seq}")
                 except (ValueError, TypeError):
                     pass
-            
-            # Stratégie 2 : Chercher par numéro de venue (PV1-19 Visit Number)
-            if not previous_event and pv1_data.get("visit_number"):
-                # Rechercher la venue existante pour connaître le dernier événement
-                visit_num_str = pv1_data["visit_number"]
-                # Extract ID part if CX format (ID^^^system^type)
-                visit_num_id = visit_num_str.split("^^^")[0] if "^^^" in visit_num_str else visit_num_str
-                try:
-                    venue = session.exec(
-                        select(Venue).where(Venue.venue_seq == int(visit_num_id))
-                    ).first()
-                except ValueError:
-                    # If not numeric, try as string identifier
-                    venue = session.exec(
-                        select(Venue).where(Venue.code == visit_num_id)
-                    ).first()
-                if venue:
-                    # Récupérer le dernier mouvement pour connaître le dernier événement
-                    last_mouvement = session.exec(
-                        select(Mouvement)
-                        .where(Mouvement.venue_id == venue.id)
-                        .order_by(Mouvement.mouvement_seq.desc())
-                    ).first()
-                    if last_mouvement and last_mouvement.trigger_event:
-                        previous_event = last_mouvement.trigger_event
-                        logger.debug(f"Found previous event '{previous_event}' from venue {visit_num_id}")
             
             # Stratégie 3 : solution de repli uniquement en l'absence de toute
             # référence de dossier/venue. Un patient peut avoir plusieurs dossiers

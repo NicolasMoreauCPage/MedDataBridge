@@ -22,12 +22,14 @@ class ScenarioPlay(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     scenario_id: int = Field(foreign_key="interopscenario.id", index=True)
+    scenario_version_id: Optional[int] = Field(default=None, foreign_key="scenarioversion.id", index=True)
     play_key: str = Field(index=True, unique=True)
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id", index=True)
     status: str = Field(default="prepared", index=True)  # prepared|running|success|partial|error|dry_run
     dry_run: bool = Field(default=False, index=True)
     identity_json: str = Field(default="{}", description="Identité et identifiants alloués à ce jeu")
     options_json: Optional[str] = Field(default=None)
+    error_policy: str = Field(default="continue_other_targets", index=True)
     result_json: Optional[str] = Field(default=None)
     started_at: Optional[datetime] = Field(default=None, index=True)
     finished_at: Optional[datetime] = Field(default=None, index=True)
@@ -76,12 +78,17 @@ class ScenarioDelivery(SQLModel, table=True):
     play_id: int = Field(foreign_key="scenarioplay.id", index=True)
     play_step_id: int = Field(foreign_key="scenarioplaystep.id", index=True)
     endpoint_id: int = Field(foreign_key="systemendpoint.id", index=True)
-    status: str = Field(default="pending", index=True)  # pending|sent|error|skipped|dry_run
+    status: str = Field(default="pending", index=True)  # queued|pending|sent|retry|error|blocked|skipped|dry_run
     transport: Optional[str] = Field(default=None, index=True)
     ack_code: Optional[str] = Field(default=None)
     response_payload: Optional[str] = Field(default=None)
     error_message: Optional[str] = Field(default=None)
     message_log_id: Optional[int] = Field(default=None, foreign_key="messagelog.id", index=True)
+    outbox_id: Optional[int] = Field(default=None, foreign_key="outboundmessage.id", index=True)
+    # Chaque cible peut recevoir une projection UF/médecin différente. Cette
+    # copie immuable est la source de vérité de l'outbox et des rejeux.
+    compiled_payload: Optional[str] = Field(default=None)
+    target_context_json: Optional[str] = Field(default=None)
     started_at: Optional[datetime] = Field(default=None)
     finished_at: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -601,8 +601,9 @@ async def _handle_cancel_admission(
         original_mouvement.status = "cancelled"
         session.add(original_mouvement)
         
-        # Mettre à jour le statut de la venue
-        venue.operational_status = "cancelled"
+        # ``Venue`` ne porte pas de statut opérationnel dans notre modèle ;
+        # l'annulation est représentée par le mouvement A11 et l'état du
+        # mouvement d'origine, sans écrire un attribut fantôme.
         session.add(venue)
         
         session.flush()
@@ -745,8 +746,9 @@ async def _handle_cancel_discharge(
         original_mouvement.status = "cancelled"
         session.add(original_mouvement)
         
-        # Réactiver la venue
-        venue.operational_status = "active"
+        # Venue ne porte pas de statut opérationnel : celui-ci appartient aux
+        # ressources de structure (lit/chambre). La réactivation du séjour se
+        # déduit de l'annulation du mouvement de sortie ci-dessus.
         dossier = venue.dossier
         dossier.discharge_time = None
         

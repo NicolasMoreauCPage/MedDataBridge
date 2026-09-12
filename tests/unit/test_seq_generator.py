@@ -27,6 +27,9 @@ class TestSequenceGenerator(unittest.TestCase):
         seq_mod._last_patient_timestamp = 0
         seq_mod._last_dossier_timestamp = 0
         seq_mod._last_venue_timestamp = 0
+        seq_mod._last_patient_value = 0
+        seq_mod._last_dossier_value = 0
+        seq_mod._last_venue_value = 0
 
     @patch('app.utils.seq_generator.time.time')
     def test_generate_patient_seq_format(self, mock_time):
@@ -125,8 +128,9 @@ class TestSequenceGenerator(unittest.TestCase):
         """Test simulation de sécurité thread (basique)."""
         mock_time.return_value = 1735173512.345678
 
-        # Générer plusieurs séquences rapidement (mais pas plus de 10 pour éviter reset du compteur)
-        sequences = [generate_patient_seq() for _ in range(10)]
+        # Une rafale supérieure à dix appels doit rester unique : le
+        # générateur avance alors son horloge logique.
+        sequences = [generate_patient_seq() for _ in range(25)]
 
         # Vérifier qu'ils sont tous uniques
         self.assertEqual(len(sequences), len(set(sequences)), "Toutes les séquences doivent être uniques")
@@ -162,6 +166,15 @@ class TestSequenceGenerator(unittest.TestCase):
 
         # Le compteur devrait être remis à zéro, donc dernier chiffre = 0
         self.assertEqual(str(seq2)[-1], '0')
+
+    @patch('app.utils.seq_generator.time.time')
+    def test_venue_sequence_does_not_wrap_after_timestamp_window(self, mock_time):
+        mock_time.return_value = 1735173512.345678
+        first = generate_venue_seq()
+        # Les huit derniers chiffres de la microseconde sont identiques 100 s plus tard.
+        mock_time.return_value = 1735173612.345678
+        second = generate_venue_seq()
+        self.assertGreater(second, first)
 
 
 if __name__ == '__main__':

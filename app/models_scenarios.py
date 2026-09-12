@@ -22,6 +22,7 @@ class InteropScenario(SQLModel, table=True):
     category: Optional[str] = Field(default=None, index=True)
     protocol: str = Field(default="HL7")  # HL7 | FHIR | MIXED
     version: int = Field(default=1, description="Version métier du scénario de qualification")
+    current_version_id: Optional[int] = Field(default=None, index=True)
     preconditions_json: Optional[str] = Field(
         default=None,
         description="Préconditions JSON (endpoint, nombre minimal d'étapes, etc.)",
@@ -82,6 +83,20 @@ class InteropScenario(SQLModel, table=True):
         back_populates="scenario",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+
+
+class ScenarioVersion(SQLModel, table=True):
+    """Révision immuable publiée pour une qualification traçable."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    scenario_id: int = Field(foreign_key="interopscenario.id", index=True)
+    version_number: int = Field(index=True)
+    status: str = Field(default="draft", index=True)  # draft|published|archived
+    content_json: str = Field(default="{}")
+    content_checksum: str = Field(index=True)
+    comment: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    published_at: Optional[datetime] = Field(default=None, index=True)
 
 
 class InteropScenarioStep(SQLModel, table=True):

@@ -10,7 +10,11 @@ tests automatisés prévalent.
 |---|---|---|
 | IHE PAM France / CPage | [AUDIT_CONFORMITE_IHE_PAM_FRANCE_20260911.md](AUDIT_CONFORMITE_IHE_PAM_FRANCE_20260911.md) | Audit technique corrigé, non équivalent à une certification IHE |
 | Roundtrip PAM CPage | [ROUNDTRIP_CPAGE_PAM_20260911.md](ROUNDTRIP_CPAGE_PAM_20260911.md) | Validé sur le corpus et les deux BDD de qualification |
+| Roundtrip scénario PAM + HPRIM | [ROUNDTRIP_SCENARIO_DEUX_GHT_20260912.md](ROUNDTRIP_SCENARIO_DEUX_GHT_20260912.md) | Deux GHT/BDD isolés, projections métier comparées |
+| Roundtrip catalogue complet | [ROUNDTRIP_CATALOGUE_SCENARIOS_DEUX_GHT_20260912.md](ROUNDTRIP_CATALOGUE_SCENARIOS_DEUX_GHT_20260912.md) | 219 scénarios, résultats et écarts par scénario |
 | HPRIM, MFN, FHIR, outbox | [PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md](PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md) | État consolidé et limites restantes |
+| Scénarios durables | [IMPLEMENTATION_QUALIFICATION_DURABLE_20260912.md](IMPLEMENTATION_QUALIFICATION_DURABLE_20260912.md) | Outbox, versions, assertions et campagnes |
+| Reprise historique PAM/HPRIM | [COUVERTURE_REPRISE_SCENARIOS_PAM_HPRIM_20260912.md](COUVERTURE_REPRISE_SCENARIOS_PAM_HPRIM_20260912.md) | Couverture du catalogue et limites de recette |
 | Scénarios multi-protocoles | [PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md](PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md) | Plan back/front de finalisation |
 | Qualification scénarios PAM/HPRIM | [PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md](PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md) | Reprise fonctionnelle de l'ancien outil d'intégration |
 | FHIR France / FR Core | [VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md](VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md) | Compatible sur le périmètre Structure testé |

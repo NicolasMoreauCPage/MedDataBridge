@@ -617,6 +617,12 @@ def create_app() -> FastAPI:
         print(" - Scenario EJ config router mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Scenario EJ config router not available: {e}")
+    try:
+        from app.routers import scenario_target_profiles
+        app.include_router(scenario_target_profiles.router)
+        print(" - Scenario target profiles router mounted")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Scenario target profiles router not available: {e}")
     
     app.include_router(scenarios.router)
     

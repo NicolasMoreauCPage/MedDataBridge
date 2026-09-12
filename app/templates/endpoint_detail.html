@@ -100,6 +100,12 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
       </svg>
     </a>
+    {% if not is_new and e.id %}
+    <a href="/scenario-target-profiles/new?target_system_key={{ (e.target_system_key or e.name)|urlencode }}" class="flex-1 rounded-xl border border-violet-200 bg-violet-50 px-6 py-4 text-violet-900 transition hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-100">
+      <div class="font-semibold">Données cliniques de destination</div>
+      <div class="mt-1 text-sm opacity-80">UF et médecins utilisés par les scénarios</div>
+    </a>
+    {% endif %}
   </div>
 
   <!-- Formulaire de configuration -->

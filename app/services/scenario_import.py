@@ -7,7 +7,8 @@ Permet de recharger des scénarios exportés pour:
 """
 
 from __future__ import annotations
-from typing import Optional
+import re
+from typing import Any, Optional
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 
@@ -18,6 +19,96 @@ from app.models_structure import GHTContext
 class ScenarioImportError(Exception):
     """Erreur lors de l'import d'un scénario."""
     pass
+
+
+def _normalized_format(value: Optional[str]) -> str:
+    value = (value or "hl7").lower()
+    return "xml" if value in {"hprim", "hprimxml"} else value
+
+
+def _message_type(payload: str, message_format: str, fallback: Optional[str]) -> Optional[str]:
+    """Déduit un libellé lisible pour une étape issue d'un payload concaténé."""
+    if message_format == "xml":
+        return fallback or "HPRIM"
+    msh = next((line for line in payload.split("\n") if line.startswith("MSH|")), "")
+    fields = msh.split("|")
+    return fields[8] if len(fields) > 8 and fields[8] else fallback
+
+
+def split_embedded_messages(
+    payload: str, message_format: Optional[str], message_type: Optional[str] = None,
+) -> list[dict[str, str | None]]:
+    """Sépare les messages HL7/HPRIM concaténés dans une étape historique.
+
+    L'ancien outil pouvait exporter plusieurs ADT suivis d'un HPRIM précédé de
+    ``MSH|<?xml`` dans le même champ. Chaque unité devient une étape autonome.
+    """
+    raw = (payload or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    fmt = _normalized_format(message_format)
+    if not raw:
+        return [{"payload": raw, "message_format": fmt, "message_type": message_type}]
+
+    # ``MSH|<?xml`` est un préfixe erroné d'export HPRIM et non un MSH HL7.
+    marker = re.compile(r"(?m)^MSH\|(?=\^~\\&)|^MSH\|(?=<\?xml)|^<\?xml")
+    matches = list(marker.finditer(raw))
+    if len(matches) <= 1:
+        only_xml = bool(matches and raw[matches[0].start():].startswith(("<?xml", "MSH|<?xml")))
+        actual_format = "xml" if only_xml else fmt
+        cleaned = re.sub(r"^MSH\|(?=<\?xml)", "", raw) if actual_format == "xml" else raw
+        return [{"payload": cleaned, "message_format": actual_format, "message_type": _message_type(cleaned, actual_format, message_type)}]
+
+    messages: list[dict[str, str | None]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
+        chunk = raw[match.start():end].strip()
+        is_xml = chunk.startswith("<?xml") or chunk.startswith("MSH|<?xml")
+        actual_format = "xml" if is_xml else "hl7"
+        if is_xml:
+            chunk = re.sub(r"^MSH\|(?=<\?xml)", "", chunk)
+        messages.append({
+            "payload": chunk,
+            "message_format": actual_format,
+            "message_type": _message_type(chunk, actual_format, message_type),
+        })
+    return messages
+
+
+def split_embedded_messages_in_scenario(session: Session, scenario: InteropScenario) -> int:
+    """Matérialise un message par étape dans un scénario déjà enregistré."""
+    originals = list(session.exec(
+        select(InteropScenarioStep)
+        .where(InteropScenarioStep.scenario_id == scenario.id)
+        .order_by(InteropScenarioStep.order_index, InteropScenarioStep.id)
+    ).all())
+    expanded: list[dict[str, Any]] = []
+    for source in originals:
+        fragments = split_embedded_messages(source.payload, source.message_format, source.message_type)
+        for part_number, fragment in enumerate(fragments, 1):
+            label = source.name or source.message_type or "Message"
+            expanded.append({
+                "name": label if len(fragments) == 1 else f"{label} — message {part_number}",
+                "description": source.description,
+                "message_format": fragment["message_format"],
+                "message_type": fragment["message_type"],
+                "payload": fragment["payload"],
+                "delay_seconds": source.delay_seconds,
+                "assertions_json": source.assertions_json,
+            })
+    if len(expanded) == len(originals):
+        return 0
+    for index, values in enumerate(expanded, 1):
+        step = originals[index - 1] if index <= len(originals) else InteropScenarioStep(scenario_id=scenario.id, order_index=index)
+        step.order_index = index
+        step.name = values["name"]
+        step.description = values["description"]
+        step.message_format = values["message_format"]
+        step.message_type = values["message_type"]
+        step.payload = values["payload"]
+        step.delay_seconds = values["delay_seconds"]
+        step.assertions_json = values["assertions_json"]
+        session.add(step)
+    session.commit()
+    return len(expanded) - len(originals)
 
 
 def import_scenario_from_json(
@@ -103,8 +194,18 @@ def import_scenario_from_json(
         session.rollback()
         raise ScenarioImportError(f"Erreur d'intégrité lors de la création: {str(e)}")
     
-    # Créer Étape
+    # Déplier les exports historiques qui ont concaténé plusieurs messages.
+    # L'ordre du JSON reste la source de vérité, puis chaque fragment reçoit
+    # son propre ordre d'émission.
+    expanded_steps: list[dict[str, Any]] = []
     for step_data in json_data["steps"]:
+        for fragment in split_embedded_messages(
+            step_data.get("payload", ""), step_data.get("format", "HL7"), step_data.get("message_type"),
+        ):
+            expanded_steps.append({**step_data, **fragment})
+
+    # Créer Étape
+    for order_index, step_data in enumerate(expanded_steps, 1):
         # Validation Étape
         if "order_index" not in step_data:
             raise ScenarioImportError(f"Champ 'order_index' manquant dans step")
@@ -115,9 +216,9 @@ def import_scenario_from_json(
         
         step = InteropScenarioStep(
             scenario_id=scenario.id,
-            order_index=step_data["order_index"],
+            order_index=order_index,
             message_type=step_data["message_type"],
-            message_format=step_data.get("format", "HL7"),
+            message_format=step_data.get("message_format", step_data.get("format", "HL7")),
             delay_seconds=step_data.get("delay_seconds", 0),
             payload=step_data["payload"],
         )

@@ -23,7 +23,8 @@ from datetime import datetime
 
 from app.services.pam_validation import validate_pam, ValidationResult, ValidationIssue
 from app.services.mllp import parse_msh_fields
-from app.state_transitions import is_valid_transition, INITIAL_EVENTS
+from app.services.siu import validate_siu
+from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition, INITIAL_EVENTS
 
 
 @dataclass
@@ -71,7 +72,13 @@ def _split_hl7_lines(message: str) -> List[str]:
     comme une seule "ligne" commençant par MSH, et aucun segment PID/PV1/EVN
     n'est jamais retrouvé par les extracteurs ci-dessous.
     """
-    normalized = message.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = (
+        message.replace("\\r\\n", "\n")
+        .replace("\\n", "\n")
+        .replace("\\r", "\n")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+    )
     return normalized.strip().split("\n")
 
 
@@ -194,7 +201,14 @@ def validate_scenario(
     raw_messages = []
     current_message = []
     
-    for line in messages_text.split("\n"):
+    normalized_messages_text = (
+        messages_text.replace("\\r\\n", "\n")
+        .replace("\\n", "\n")
+        .replace("\\r", "\n")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+    )
+    for line in normalized_messages_text.split("\n"):
         line = line.strip()
         if line.startswith("MSH|"):
             # Début d'un nouveau message
@@ -222,14 +236,17 @@ def validate_scenario(
         return result
     
     # Valider chaque message individuellement
-    previous_event: Optional[str] = None
+    # Un scénario peut couvrir plusieurs entités (p. ex. mère et nouveau-né).
+    # L'automate PAM doit donc suivre chaque patient/venue indépendamment.
+    previous_events: dict[str, Optional[str]] = {}
     patient_ids = set()
     visit_ids = set()
     timestamps = []
     
     for idx, message in enumerate(raw_messages, start=1):
-        # Validation structurelle
-        validation = validate_pam(message, direction, profile)
+        # Validation structurelle : SIU est un flux Scheduling HL7 v2 et ne
+        # doit pas être validé par les règles IHE PAM/ADT.
+        validation = validate_siu(message, direction) if parse_msh_fields(message).get("type") == "SIU" else validate_pam(message, direction, profile)
         
         # Extraction métadonnées
         event_code = _extract_event_code(message)
@@ -258,9 +275,14 @@ def validate_scenario(
             timestamps.append((idx, timestamp))
         
         # Vérifier le workflow de transitions
-        if event_code:
+        if event_code and event_code not in IDENTITY_ONLY_TRIGGERS and not event_code.startswith("S"):
+            entity_key = patient_id or visit_id or "__default__"
+            previous_event = previous_events.get(entity_key)
             # Premier message : doit être un événement initial
-            if idx == 1:
+            # Le premier *mouvement* peut être précédé de transactions
+            # d'identité (A28/A31/A40/A47) ou de rendez-vous SIU. Celles-ci
+            # n'entrent pas dans l'automate PAM des venues.
+            if previous_event is None:
                 if event_code not in INITIAL_EVENTS:
                     result.workflow_issues.append(
                         ValidationIssue(
@@ -284,7 +306,7 @@ def validate_scenario(
                     result.is_valid = False
                     result.level = "error"
             
-            previous_event = event_code
+            previous_events[entity_key] = event_code
         
         # Agréger le niveau de validation
         if not validation.is_valid:
@@ -301,12 +323,10 @@ def validate_scenario(
         result.coherence_issues.append(
             ValidationIssue(
                 code="SCENARIO_MULTIPLE_PATIENTS",
-                message=f"Le scénario contient plusieurs identifiants patient différents: {', '.join(sorted(patient_ids))}",
-                severity="error"
+                message=f"Le scénario contient plusieurs identifiants patient différents: {', '.join(sorted(patient_ids))}. Les séquences sont contrôlées séparément par patient.",
+                severity="warn"
             )
         )
-        result.is_valid = False
-        result.level = "error"
     elif len(patient_ids) == 0:
         result.coherence_issues.append(
             ValidationIssue(

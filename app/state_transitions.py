@@ -17,6 +17,12 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, Optional, Set
 
+# Les transactions d'identité ne font pas évoluer l'état d'une venue. Elles
+# peuvent précéder, suivre ou s'intercaler entre deux mouvements ADT sans que
+# cela constitue une transition de mouvement. Les traiter comme un état
+# intermédiaire conduisait notamment à rejeter à tort ``A28 -> A01``.
+IDENTITY_ONLY_TRIGGERS: Set[str] = {"A28", "A31", "A40", "A47"}
+
 # Evenements possibles au démarrage (aucun historique)
 INITIAL_EVENTS: Set[str] = {
     "A01",  # Admission directe

@@ -22,7 +22,7 @@ import os
 
 from app.services.pam_validation import ValidationIssue, ValidationResult
 from app.services.mllp import parse_msh_fields
-from app.state_transitions import is_valid_transition
+from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition
 from app.services.identifier_manager import parse_hl7_cx_identifier
 from app.models_identifiers import IdentifierType
 
@@ -353,7 +353,11 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                 ).first()
                 previous_event = last_mov.trigger_event if last_mov and getattr(last_mov, "trigger_event", None) else None
                 # If previous_event exists, validate transition
-                if previous_event and trigger and not is_valid_transition(previous_event, trigger):
+                if (
+                    previous_event and trigger
+                    and trigger not in IDENTITY_ONLY_TRIGGERS
+                    and not is_valid_transition(previous_event, trigger)
+                ):
                     sev = "error" if STRICT_PAM_SEQUENCE else "warn"
                     issues.append(ValidationIssue(
                         "TRANSITION_NOT_ALLOWED",

@@ -246,7 +246,7 @@ pertinent pour l'état métier. Les mouvements PAM dépendent de la chronologie.
 
 ### Reprendre une émission sortante
 
-L'outbox persistante couvre les émissions MLLP et FHIR :
+L'outbox persistante couvre les émissions MLLP, FHIR et FILE/HPRIM :
 
 | Action | Endpoint |
 |---|---|
@@ -276,18 +276,34 @@ doit pas écraser le patient/dossier du lancement précédent chez le partenaire
    endpoints d'un même partenaire avec la même clé de système cible dans la
    configuration des endpoints ; cela rend explicite leur appartenance au même
    système, par exemple MLLP PAM + dépôt HPRIM + FHIR.
-4. Ajouter les étapes dans leur ordre métier. Les boutons ↑/↓ réordonnent une
+4. Paramétrer le profil clinique du partenaire dans
+   `/scenario-target-profiles`. Pour chaque rôle (hospitalisation, externe,
+   urgences, mutation, hôpital de jour/séance ou laboratoire), choisir l'UF,
+   la chambre/le lit éventuels et le médecin responsable. Le profil est lié à
+   la clé de système cible, pas au transport : un endpoint PAM, HPRIM et FHIR
+   du même logiciel utilisent donc les mêmes valeurs.
+5. Ajouter les étapes dans leur ordre métier. Les boutons ↑/↓ réordonnent une
    étape, et **Modifier** permet de corriger son type, son format ou son
    payload. Les formats pris en charge sont HL7 v2 (MLLP ou FILE), FHIR/JSON
    (FHIR) et HPRIM XML (HPRIM ou FILE).
-5. Utiliser **Prévisualiser le jeu** avant l'envoi : la page de résultat montre
+6. Utiliser **Prévisualiser le jeu** avant l'envoi : la page de résultat montre
    les identifiants générés, la matrice étape × endpoint, et le payload compilé
    réellement destiné au partenaire. Aucune émission n'a lieu dans ce mode.
-6. Envoyer le jeu et contrôler chaque livraison/ACK. Une livraison en erreur
+7. Envoyer le jeu et contrôler chaque livraison/ACK. Une livraison en erreur
    peut être **Réessayée** : le payload et les identifiants restent exactement
    les mêmes. **Rejouer comme nouveau jeu** crée au contraire de nouveaux
    identifiants.
-7. Comparer les données avant/après et conserver le rapport anonymisé.
+8. Comparer les données avant/après et conserver le rapport anonymisé.
+
+Les données cliniques sont résolues dans cet ordre : ligne du profil de la
+destination, médecin responsable de l'UF choisie, ancienne configuration EJ,
+puis une paire UF–médecin responsable active de la structure liée à la
+destination. Cette dernière règle permet d'exécuter un scénario lorsque le
+profil n'est pas encore complété. Le détail du jeu indique la provenance de la
+projection pour chaque livraison et affiche le payload immuable réellement
+envoyé. Dans IHE PAM, la projection renseigne notamment `PV1-3` et les rôles
+médecins usuels ; elle est également appliquée aux professionnels HPRIM et à
+`Encounter.location` / `Encounter.participant` en FHIR.
 
 ### Catalogue et qualification par logiciel cible
 
@@ -304,6 +320,14 @@ scénario pour l'audit. Les anciens formats `hprim`/`hprimxml`, le préfixe
 `MSH|` avant un XML et les variables CPage courantes sont normalisés pendant
 l'import et à l'émission.
 
+Pour un payload HPRIM, les dates métier déjà présentes dans le XML ne sont pas
+modifiées. Une date d'acte doit être un `xs:date`, donc `YYYY-MM-DD` (par
+exemple `2026-09-12`) ; une date HL7 compacte telle que `20260912`, une date
+vide ou un jeton non résolu est rejeté. Les marqueurs historiques `$DATE$` et
+`$HEURE$` sont rendus automatiquement en `YYYY-MM-DD` et `HH:MM:SS` dans une
+étape XML HPRIM. Les formes HL7 compactes restent employées seulement dans une
+étape HL7.
+
 Dans le détail d'un scénario, renseigner le champ **À quoi sert ce scénario ?**
 et choisir son thème. Cette information est destinée aux équipes de recette :
 elle n'est pas injectée dans le message. Les contrôles préalables visibles sur
@@ -314,12 +338,60 @@ historique inconnue.
 pour un endpoint cible. Les exécutions et leurs preuves restent accessibles
 depuis l'espace de qualification `/ui/interface-testing`.
 
+### Livraison durable, versions et assertions
+
+Avant une recette de référence, publier une version depuis le détail du
+scénario. Chaque jeu garde cette version et son empreinte ; modifier ensuite le
+scénario n'altère jamais les payloads ni les preuves déjà obtenues.
+
+Les livraisons réelles sont placées dans l'outbox persistante. En cas de panne,
+le worker `/outbox/process` reprend les lignes `pending` et `retry`. Le bouton
+**Réessayer** conserve le même payload et les mêmes identifiants ; **Rejouer
+comme nouveau jeu** produit un autre IPP/NDA/venue.
+
+Depuis le détail d'un jeu partiel ou en erreur, **Reprendre les échecs** ne
+réémet que les livraisons qui n'ont pas abouti ; les messages déjà acceptés ne
+sont pas renvoyés. Télécharger le diagnostic JSON conserve une preuve portable
+de la version, des payloads source et compilés, des réponses et des tentatives.
+
+Les critères déclaratifs peuvent vérifier le statut, un ACK, le contenu d'un
+payload et des données locales. Les assertions BDD autorisées sont
+`database_count` et `database_field_equals`, sur Patient, Dossier, Venue,
+Mouvement et les actes HPRIM. Exemple :
+
+```json
+[{"type":"database_count","model":"Patient","where":{"identifier":"{{patient.ipp}}"},"equals":1}]
+```
+
 Les tokens suivants peuvent être placés dans les payloads FHIR, JSON ou HPRIM
 XML : `{{patient.ipp}}`, `{{dossier.nda}}`, `{{venue.id}}`, `{{play.key}}`,
 `{{movement.id}}`, `{{message.control_id}}`, `{{patient.family}}` et
-`{{patient.given}}`. Ils sont remplacés durant la préparation du jeu. Pour HL7,
-les champs PAM usuels (`PID`, `PV1`, `MSH-10`, `ZBE-1`) sont également projetés
-automatiquement.
+`{{patient.given}}`. Ils sont remplacés durant la préparation du jeu. Le
+praticien commun au jeu est également disponible avec
+`{{practitioner.rpps}}`, `{{practitioner.adeli}}`, `{{practitioner.family}}`,
+`{{practitioner.given}}`, `{{practitioner.name}}` et `{{practitioner.xcn}}`
+(aliases français `{{medecin.*}}`). Pour HL7, les champs PAM usuels (`PID`,
+`PV1`, `MSH-10`, `ZBE-1`) sont également projetés automatiquement.
+
+Le praticien est résolu une seule fois au début du jeu et conservé dans son
+contexte et son diagnostic. L'application prend le premier praticien actif du
+référentiel local ; sans référentiel, elle emploie un praticien de recette avec
+un RPPS/ADELI syntaxiquement valides. Il est donc identique dans toutes les
+étapes d'un même jeu, y compris lors d'une reprise technique.
+
+Les valeurs de praticien codées en dur dans les templates sont également
+remplacées à l'exécution : `PV1-7`, `PV1-8`, `PV1-17` et `ROL-4` en HL7, les
+identifiants et l'identité des professionnels HPRIM, ainsi que les ressources
+FHIR `Practitioner`. Cela permet de rejouer les scénarios historiques sans
+réutiliser leurs médecins de démonstration.
+
+Dans une étape HPRIM XML, préférer `{{hprim.date}}`,
+`{{hprim.date_time}}`, `{{hprim.time}}` et
+`{{hprim.patient_birth_date}}` pour respecter respectivement `xs:date`,
+`xs:dateTime`, `xs:time` et `xs:date`. Les aliases génériques
+`{{date}}`, `{{time}}` et `{{patient.birth_date}}` sont aussi convertis dans
+ce contexte XML ; dans une étape HL7, ils gardent au contraire le format HL7
+v2 compact.
 
 Un roundtrip valable utilise deux environnements et deux BDD :
 
@@ -331,6 +403,17 @@ GHT-1 / BDD-1 → message généré → endpoint → GHT-2 / BDD-2
 
 La réussite exige les ACK attendus et l'égalité des données métier ou de leurs
 empreintes. Un `AA` seul n'est pas une preuve de roundtrip.
+
+Le roundtrip automatisé de référence pour les scénarios mixtes utilise deux
+GHT et deux BDD SQLite isolées, puis compare patient, dossier, venue et acte
+HPRIM. Il est décrit dans
+[ROUNDTRIP_SCENARIO_DEUX_GHT_20260912.md](reports/ROUNDTRIP_SCENARIO_DEUX_GHT_20260912.md).
+
+Pour qualifier tout le catalogue historique, lancer
+`scripts/roundtrip_scenario_catalog_two_ght.py`. La campagne consolide les
+doublons, exécute chaque scénario PAM/HPRIM actif et produit un résultat par
+étape dans `artifacts/`. Son dernier bilan est conservé dans
+[ROUNDTRIP_CATALOGUE_SCENARIOS_DEUX_GHT_20260912.md](reports/ROUNDTRIP_CATALOGUE_SCENARIOS_DEUX_GHT_20260912.md).
 
 ## Diagnostic et glossaire
 

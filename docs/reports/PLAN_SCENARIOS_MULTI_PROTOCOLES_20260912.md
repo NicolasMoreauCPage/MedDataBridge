@@ -13,13 +13,23 @@ Le socle fonctionnel ci-dessous a été implémenté après ce plan :
 - tables persistantes `ScenarioPlay`, `ScenarioPlayTarget`,
   `ScenarioPlayStep` et `ScenarioDelivery`, avec migration Alembic ;
 - clé logique `target_system_key` sur les endpoints ;
-- préparation atomique d'un jeu : identité, IPP, NDA et venue sont générés une
-  seule fois, puis les payloads compilés sont figés avant émission ;
+- préparation atomique d'un jeu : identité, IPP, NDA, venue et praticien sont
+  résolus une seule fois, puis les payloads compilés sont figés avant émission ;
 - routage par format de chaque étape : HL7 → MLLP/FILE, FHIR/JSON → FHIR,
   HPRIM XML → HPRIM/FILE ;
 - compatibilité FHIR avec les configurations FHIR dédiées de l'endpoint ;
 - projection automatique des références patient/venue dans PAM, FHIR et HPRIM
   XML canonique, en complément des tokens explicites ;
+- projection du praticien commun, y compris lorsqu'un médecin est codé en dur
+  dans les positions HL7, les professionnels HPRIM ou une ressource FHIR ;
+- profils cliniques par `target_system_key`, avec UF, chambre/lit et médecin
+  par rôle métier (hospitalisation, externe, urgences, mutation, hôpital de
+  jour/séance et laboratoire) ;
+- repli déterministe sur le médecin responsable de l'UF, la configuration EJ
+  historique puis une paire UF–médecin active de la structure de destination ;
+- compilation et conservation du payload par livraison : deux destinations
+  peuvent désormais recevoir les mêmes identifiants de jeu, mais leurs propres
+  UF et professionnels, sans compromettre le retry ;
 - sélection multi-endpoints, prévisualisation sans envoi, détail de la matrice
   de livraisons, retry technique identique et action « nouveau jeu » ;
 - édition et réordonnancement des étapes dans l'IHM ;
@@ -27,10 +37,14 @@ Le socle fonctionnel ci-dessous a été implémenté après ce plan :
 - tests unitaires de cohérence intra-jeu et de non-réutilisation entre deux
   jeux.
 
-Les lots restant ci-dessous sont conservés comme trajectoire : ils couvrent la
-version métier, les politiques d'arrêt fines, l'intégration complète de l'outbox
-par livraison, la génération d'actes à partir des tables métier et les tests
-E2E multi-BDD.
+Le lot de finalisation a depuis complété cette trajectoire : version immuable,
+politique d'arrêt, lien `ScenarioDelivery` → outbox, retry déterministe,
+assertions déclaratives/BDD, campagnes fondées sur les jeux et diagnostic
+portable sont implémentés. Le test automatisé couvre un jeu mixte PAM + HPRIM
+vers deux cibles FILE isolées. La recette E2E avec deux logiciels réels et deux
+BDD partenaires reste une activité de qualification locale : elle dépend de
+leurs endpoints, de leurs schémas et de leurs règles métier, pas d'un manque du
+moteur de scénarios.
 
 ## Objectif produit
 

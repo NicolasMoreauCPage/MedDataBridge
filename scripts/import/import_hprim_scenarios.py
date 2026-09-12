@@ -11,6 +11,7 @@ from app.db import engine
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from sqlmodel import Session, select
 from datetime import datetime
+from app.services.scenario_naming import humanize_scenario_name
 
 
 def extract_hl7_messages(content: str) -> List[str]:
@@ -97,14 +98,7 @@ def get_hprim_message_type(xml_content: str) -> str:
 
 def get_scenario_name_from_path(file_path: str) -> str:
     """Génère un nom lisible depuis le chemin du fichier HPRIM"""
-    basename = os.path.basename(file_path)
-    # Supprimer l'extension .txt
-    name = basename.replace('.txt', '')
-    # Remplacer les underscores par des espaces
-    name = name.replace('_', ' ')
-    # Capitaliser
-    name = name.title()
-    return f"HPRIM - {name}"
+    return humanize_scenario_name(os.path.basename(file_path), family="hprim")
 
 
 def parse_hprim_scenario_file(file_path: str) -> Tuple[List[str], str]:

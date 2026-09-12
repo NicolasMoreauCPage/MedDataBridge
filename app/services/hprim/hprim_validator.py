@@ -169,7 +169,12 @@ class HprimValidator:
             errors = [f"XSD Error: {e.message}"]
             return False, errors
         except etree.XMLSyntaxError as e:
-            errors = [f"XML Syntax Error: {e.message}"]
+            # ``lxml.etree.XMLSyntaxError`` n'expose pas systématiquement
+            # l'attribut ``message`` (contrairement à certaines versions de
+            # libxml2). Utiliser sa représentation garantit que l'erreur XML
+            # d'un scénario négatif reste lisible au lieu d'être masquée par
+            # un ``AttributeError`` interne.
+            errors = [f"XML Syntax Error: {str(e)}"]
             return False, errors
         except Exception as e:
             errors = [f"Validation Error: {str(e)}"]

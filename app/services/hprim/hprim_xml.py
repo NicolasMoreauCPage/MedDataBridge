@@ -22,6 +22,23 @@ from app.hprim_models import (
 
 logger = logging.getLogger(__name__)
 
+def _parse_hprim_datetime(value: Optional[str], *, xs_date: bool = False) -> datetime:
+    """Parse une date HPRIM sans jamais la transformer ni en inventer une.
+
+    Les dates d'acte HPRIM sont des ``xs:date`` et doivent donc être portées
+    sous la forme ``YYYY-MM-DD``. Les valeurs compactes HL7 (``YYYYMMDD``),
+    les jetons non résolus et les valeurs absentes sont volontairement refusés.
+    ``dateHeureProduction`` reste, lui, une date-heure XML ISO 8601.
+    """
+    raw = (value or "").strip()
+    expected = "xs:date (YYYY-MM-DD)" if xs_date else "xs:dateTime ISO 8601"
+    if not raw or raw.startswith("$"):
+        raise ValueError(f"Date HPRIM obligatoire au format {expected}")
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d") if xs_date else datetime.fromisoformat(raw)
+    except ValueError as exc:
+        raise ValueError(f"Date HPRIM invalide {raw!r} : format attendu {expected}") from exc
+
 
 class HprimXmlService:
     """Service de génération/parsing XML HPRIM"""
@@ -600,6 +617,14 @@ class HprimXmlService:
         try:
             # Parser le XML
             root = ET.fromstring(xml_string)
+            # Les exports historiques HPRIM 1.x rencontrés en recette ne
+            # déclarent pas systématiquement l'espace de noms HPRIM. Le
+            # modèle de lecture interne, lui, utilise des recherches
+            # qualifiées. On le rétablit ici *après* le parsing : le XML
+            # d'origine reste inchangé pour la validation XSD et pour
+            # l'archivage, tandis que la lecture métier fonctionne de la même
+            # façon avec les deux écritures.
+            self._qualify_legacy_namespace(root)
 
             # Déterminer le type de message (gérer les namespaces)
             tag_local = root.tag.split('}')[-1] if '}' in root.tag else root.tag
@@ -614,6 +639,19 @@ class HprimXmlService:
             raise ValueError(f"Erreur de parsing XML: {e}")
         except Exception as e:
             raise ValueError(f"Erreur lors du parsing HPRIM: {e}")
+
+    def _qualify_legacy_namespace(self, root: ET.Element) -> None:
+        """Ajoute le namespace HPRIM aux éléments non qualifiés d'un export.
+
+        HPRIM XML 2.4 est namespacé, mais des flux HPRIM 1.06/2.00 encore
+        utilisés par les éditeurs omettent ce préfixe. Ne pas le faire ici
+        faisait créer un en-tête de secours (dont ``message_type`` était une
+        chaîne), puis échouer l'intégration avec ``.value`` ou avec un patient
+        fictif. Les attributs ne sont volontairement pas touchés.
+        """
+        for element in root.iter():
+            if not element.tag.startswith("{"):
+                element.tag = f"{{{self.NAMESPACE}}}{element.tag}"
 
     def _parse_acquittements_serveur_actes(self, root: ET.Element) -> HprimMessage:
         """Parse un acquittement HPRIM 2.4 sans le confondre avec un événement."""
@@ -680,7 +718,7 @@ class HprimXmlService:
                 destinataire_nom="Test Destinataire",
                 date_emission=datetime.now(),
                 message_id="TEST_MSG",
-                message_type="evenementsServeurActes"
+                message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
             )
             logger.warning("En-tête de message manquant dans le XML HPRIM - utilisation de valeurs par défaut")
         else:
@@ -818,10 +856,7 @@ class HprimXmlService:
                     destinataire_nom = libelle_elem.text
 
         date_value = entete_elem.findtext(".//{http://www.hprim.org/hprimXML}dateHeureProduction")
-        try:
-            date_emission = datetime.fromisoformat(date_value) if date_value else datetime.now()
-        except ValueError:
-            date_emission = datetime.now()
+        date_emission = _parse_hprim_datetime(date_value)
         
         # Parser l'identifiant du message
         message_id_elem = entete_elem.find(".//{http://www.hprim.org/hprimXML}identifiantMessage")
@@ -896,17 +931,12 @@ class HprimXmlService:
 
         # Exécution
         execute_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}execute")
-        execute_date = datetime.now()
-        execute_heure = None
-        if execute_elem is not None:
-            date_str = execute_elem.findtext(".//{http://www.hprim.org/hprimXML}date")
-            if date_str and not date_str.startswith('$'):  # Ignore placeholders like $DATE$
-                try:
-                    execute_date = datetime.fromisoformat(date_str)
-                except ValueError:
-                    # Si le parsing échoue, garder la valeur par défaut
-                    pass
-            execute_heure = execute_elem.findtext(".//{http://www.hprim.org/hprimXML}heure")
+        date_str = execute_elem.findtext(".//{http://www.hprim.org/hprimXML}date") if execute_elem is not None else None
+        execute_date = _parse_hprim_datetime(date_str, xs_date=True)
+        execute_heure = (
+            execute_elem.findtext(".//{http://www.hprim.org/hprimXML}heure")
+            if execute_elem is not None else None
+        )
 
         # Exécutant
         executant_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}executant/{http://www.hprim.org/hprimXML}medecins/{http://www.hprim.org/hprimXML}medecinExecutant/{http://www.hprim.org/hprimXML}medecin")
@@ -1036,7 +1066,7 @@ class HprimXmlService:
         execute_date_str = acte_elem.findtext("dateExecution")
         if not execute_date_str:
             execute_date_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}execute/{http://www.hprim.org/hprimXML}date")
-        execute_date = datetime.fromisoformat(execute_date_str) if execute_date_str and not execute_date_str.startswith('$') else datetime.now()
+        execute_date = _parse_hprim_datetime(execute_date_str, xs_date=True)
 
         # Prestataire
         prestataire_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}prestataire/{http://www.hprim.org/hprimXML}medecins/{http://www.hprim.org/hprimXML}medecin")
@@ -1175,7 +1205,7 @@ class HprimXmlService:
         
         # Date d'exécution (obligatoire)
         execute_date_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}datePose/{http://www.hprim.org/hprimXML}date")
-        execute_date = datetime.fromisoformat(execute_date_str) if execute_date_str and not execute_date_str.startswith('$') else datetime.now()
+        execute_date = _parse_hprim_datetime(execute_date_str, xs_date=True)
         
         # Quantité (obligatoire)
         quantite_str = acte_elem.findtext("{http://www.hprim.org/hprimXML}quantite", "1")
@@ -1271,16 +1301,9 @@ class HprimXmlService:
         
         # Date (obligatoire) avec nature optionnelle
         execute_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}date")
-        execute_date = datetime.now()
-        nature_date = None
-        if execute_elem is not None:
-            date_str = execute_elem.findtext(".//{http://www.hprim.org/hprimXML}date")
-            if date_str and not date_str.startswith('$'):
-                try:
-                    execute_date = datetime.fromisoformat(date_str)
-                except ValueError:
-                    pass
-            nature_date = execute_elem.get("natureDate", None)
+        date_str = execute_elem.findtext(".//{http://www.hprim.org/hprimXML}date") if execute_elem is not None else None
+        execute_date = _parse_hprim_datetime(date_str, xs_date=True)
+        nature_date = execute_elem.get("natureDate", None) if execute_elem is not None else None
         
         # Quantité fractionnée (obligatoire)
         quantite_str = acte_elem.findtext("{http://www.hprim.org/hprimXML}quantiteFractionnee", "1")
@@ -1350,6 +1373,11 @@ class HprimXmlService:
             identifiant_id = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}id")
             if not identifiant_id:
                 identifiant_id = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}emetteur/{http://www.hprim.org/hprimXML}valeur")
+            if not identifiant_id:
+                # Un acte de suppression peut ne présenter que l'identifiant
+                # récepteur : c'est toujours un identifiant patient valide et
+                # doit être accepté au même titre que l'émetteur.
+                identifiant_id = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}recepteur/{http://www.hprim.org/hprimXML}valeur")
             if not identifiant_id:
                 identifiant_id = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroIdentifiantPatient/{http://www.hprim.org/hprimXML}identifiant")
             identifiant_clef = identifiant_elem.findtext(".//{http://www.hprim.org/hprimXML}clef")
@@ -1427,6 +1455,8 @@ class HprimXmlService:
         identifiant = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant", "")
         if not identifiant:
             identifiant = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}emetteur/{http://www.hprim.org/hprimXML}valeur", "")
+        if not identifiant:
+            identifiant = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}identifiant/{http://www.hprim.org/hprimXML}recepteur/{http://www.hprim.org/hprimXML}valeur", "")
         if not identifiant:
             identifiant = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}numeroIdentifiantVenue/{http://www.hprim.org/hprimXML}identifiant", "")
         libelle = venue_elem.findtext(".//{http://www.hprim.org/hprimXML}libelle", "")

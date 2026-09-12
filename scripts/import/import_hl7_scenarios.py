@@ -9,6 +9,7 @@ from app.db import engine
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from sqlmodel import Session, select
 from datetime import datetime
+from app.services.scenario_naming import humanize_scenario_name
 
 
 def extract_hl7_messages(hl7_content: str) -> list:
@@ -148,9 +149,7 @@ def get_scenario_name_from_path(file_path: str) -> str:
             name = value
             break
 
-    # Capitaliser et ajouter le préfixe
-    name = name.strip().title()
-    return f"IHE PAM - {name}" if name else f"IHE PAM - {basename.replace('.hl7', '')}"
+    return humanize_scenario_name(name or basename.replace('.hl7', ''), family="pam")
 
 
 def import_hl7_scenarios():

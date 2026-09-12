@@ -28,7 +28,10 @@ from app.models_identifiers import Identifier
 from app.models_practitioners import MedecinResponsable  # Import for FK resolution
 from app import models_scenarios  # ensure scenario models are registered
 from app import models_scenario_runs  # ensure scenario execution run models are registered
+from app import models_scenario_target_profiles  # ensure target clinical profiles are registered
 from app import models_qualification  # ensure qualification campaign models are registered
+from app import models_scenario_review  # ensure catalogue review models are registered
+from app import models_appointments  # ensure HL7 SIU appointment models are registered
 try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)
     from app.services.scenario_template_init import init_scenario_templates  # noqa: E402
 except Exception:  # pragma: no cover

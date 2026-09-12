@@ -198,7 +198,7 @@ async def play_template(
             {
                 "status": delivery.status,
                 "ack": delivery.ack_code,
-                "payload_preview": (compiled_steps[delivery.play_step_id].compiled_payload[:100] + "…") if len(compiled_steps[delivery.play_step_id].compiled_payload) > 100 else compiled_steps[delivery.play_step_id].compiled_payload,
+                "payload_preview": ((delivery.compiled_payload or compiled_steps[delivery.play_step_id].compiled_payload)[:100] + "…") if len(delivery.compiled_payload or compiled_steps[delivery.play_step_id].compiled_payload) > 100 else (delivery.compiled_payload or compiled_steps[delivery.play_step_id].compiled_payload),
             }
             for delivery in deliveries
         ],

@@ -1,5 +1,9 @@
 # Auto-transmission HPRIM pour Cotations
 
+> Statut : note d'implémentation historique. Le contrat de roundtrip et les
+> validations XSD actuellement qualifiés sont décrits dans le
+> [plan d'interopérabilité](reports/PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md).
+
 ## 🎯 Objectif
 
 Implémenter l'auto-transmission HPRIM pour les actes de cotation (CCAM, NGAP, UCD, LPP), alignant le comportement sur PAM/FHIR qui transmettent automatiquement les entités (patient, venue, mouvement).

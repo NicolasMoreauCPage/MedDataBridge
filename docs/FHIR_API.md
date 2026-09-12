@@ -1,5 +1,11 @@
 # API REST FHIR - Documentation
 
+> Statut : guide d'API applicative. Les exemples historiques fondés uniquement
+> sur `Location` ne constituent pas le contrat partenaire FR Core. Pour
+> l'échange de structure actuel, consulter la
+> [vérification FHIR France / FR Core 2.2.0](reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md),
+> qui décrit les `Organization`, les `Location` et leurs relations.
+
 ## Vue d'ensemble
 
 MedDataBridge expose une API REST pour l'export et l'import de données au format FHIR R4.

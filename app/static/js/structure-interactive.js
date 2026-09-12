@@ -7,6 +7,7 @@ class StructureEditor {
     constructor(treeElement) {
         this.tree = treeElement;
         this.selectedNode = null;
+        this.selectedNodes = new Set();
         this.autoSaveTimeout = null;
         this.editingElement = null;
         
@@ -15,6 +16,7 @@ class StructureEditor {
     
     init() {
         this.initInlineEdit();
+        this.initSelection();
         this.initKeyboardShortcuts();
         this.initDragDrop();
         console.log('✅ StructureEditor initialized');
@@ -27,7 +29,8 @@ class StructureEditor {
     initInlineEdit() {
         // Double-clic sur éléments éditables
         this.tree.addEventListener('dblclick', (e) => {
-            const field = e.target.closest('[data-editable]');
+            const card = e.target.closest('.structure-card');
+            const field = e.target.closest('[data-editable]') || card?.querySelector('[data-editable][data-field="name"]');
             if (field && !this.editingElement) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -48,7 +51,7 @@ class StructureEditor {
         const input = document.createElement('input');
         input.type = 'text';
         input.value = originalValue;
-        input.className = 'inline-edit-input px-2 py-1 border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.className = 'inline-edit-input inline-edit-name inline-edit-mode px-2 py-1 border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
         input.style.width = `${element.offsetWidth + 20}px`;
         
         // Remplacer l'élément
@@ -76,6 +79,39 @@ class StructureEditor {
                 this.cancelEdit();
             }
         });
+    }
+
+    initSelection() {
+        this.tree.addEventListener('click', (event) => {
+            const card = event.target.closest('.structure-card');
+            if (!card || this.editingElement) return;
+            if (event.ctrlKey || event.metaKey) {
+                this.selectedNodes.has(card) ? this.selectedNodes.delete(card) : this.selectedNodes.add(card);
+            } else {
+                this.selectedNodes.clear();
+                this.selectedNodes.add(card);
+            }
+            this.selectedNode = this.selectedNodes.values().next().value || null;
+            this.renderSelection();
+        });
+    }
+
+    renderSelection() {
+        this.tree.querySelectorAll('.structure-card').forEach((card) => {
+            card.classList.toggle('selected', this.selectedNodes.has(card));
+        });
+    }
+
+    selectAll() {
+        this.selectedNodes = new Set(this.tree.querySelectorAll('.structure-card'));
+        this.selectedNode = this.selectedNodes.values().next().value || null;
+        this.renderSelection();
+    }
+
+    clearSelection() {
+        this.selectedNodes.clear();
+        this.selectedNode = null;
+        this.renderSelection();
     }
     
     async saveEdit() {
@@ -248,6 +284,10 @@ class StructureEditor {
                         e.preventDefault();
                         this.createNew();
                         break;
+                    case 'a':
+                        e.preventDefault();
+                        this.selectAll();
+                        break;
                     case 'e':
                         e.preventDefault();
                         this.editSelected();
@@ -275,6 +315,8 @@ class StructureEditor {
             
             // Escape
             if (e.key === 'Escape') {
+                if (this.editingElement) this.cancelEdit();
+                this.clearSelection();
                 this.closeModals();
             }
         });
@@ -294,9 +336,8 @@ class StructureEditor {
             this.showNotification('Aucun élément sélectionné', 'warning');
             return;
         }
-        console.log('✏️ Edit selected:', this.selectedNode);
-        // TODO: Ouvrir modal d'édition
-        this.showNotification('Ctrl+E - Éditer (à implémenter)', 'info');
+        const editable = this.selectedNode.querySelector('[data-editable][data-field="name"]');
+        if (editable) this.startEdit(editable);
     }
     
     async duplicateSelected() {

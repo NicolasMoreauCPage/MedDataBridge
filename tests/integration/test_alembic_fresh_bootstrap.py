@@ -34,9 +34,9 @@ def test_alembic_upgrade_head_bootstraps_a_fresh_database(tmp_path: Path):
     finally:
         connection.close()
 
-    assert {"patient", "interopscenario", "qualificationcampaign", "alembic_version"} <= tables
+    assert {"patient", "interopscenario", "qualificationcampaign", "outboundmessage", "alembic_version"} <= tables
     assert {"qualification_verdict", "assertion_total", "evidence_json"} <= run_columns
-    assert version == "c8d1f5e2a7b4"
+    assert version == "e4b7f0c2d991"
 
 
 def test_alembic_keeps_incremental_upgrade_for_an_existing_database(tmp_path: Path):

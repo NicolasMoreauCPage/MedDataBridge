@@ -1,5 +1,9 @@
 # 🎉 Récapitulatif Complet - Projet Structure Hospitalière UX
 
+> Statut : récapitulatif historique de janvier 2026. Les écrans et routes ont
+> pu évoluer ; utiliser [README.md](README.md) et les tests IHM comme référence
+> opérationnelle.
+
 **Date**: 8 janvier 2026  
 **Status**: Phases 1, 2, 3.1, 4.1 (partiel), 5.1 complètes
 

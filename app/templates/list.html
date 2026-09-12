@@ -60,11 +60,11 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
           </svg>
-          Filtrer
+          Filtres
         </button>
       {% endif %}
 
-      {% if new_url %}
+      {% if new_url and rows %}
         {{ components.actions_menu([{'type': 'link', 'label': 'Nouveau', 'url': new_url}]) }}
       {% endif %}
 
@@ -91,9 +91,24 @@
 
 {# Filtres #}
 {% if filters %}
-  <div id="list-filters-panel" hidden>
+  {% set has_active_filters = filters | selectattr('value') | list | length > 0 %}
+  <div id="list-filters-panel" {% if not has_active_filters %}hidden{% endif %}>
     {{ components.search_filter(filters, request.url.path) }}
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const trigger = document.getElementById('toggle-filters-btn');
+      const panel = document.getElementById('list-filters-panel');
+      if (!trigger || !panel) return;
+      trigger.dataset.filterToggleBound = 'true';
+      trigger.addEventListener('click', function () {
+        const open = panel.hasAttribute('hidden');
+        panel.toggleAttribute('hidden', !open);
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) panel.querySelector('input, select, textarea')?.focus();
+      });
+    });
+  </script>
 {% endif %}
 
 {# Tableau principal #}
@@ -403,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const filterToggleBtn = document.getElementById('toggle-filters-btn');
   const filterPanel = document.getElementById('list-filters-panel');
 
-  if (filterToggleBtn && filterPanel) {
+  if (filterToggleBtn && filterPanel && !filterToggleBtn.dataset.filterToggleBound) {
     const setFiltersVisibility = (isVisible) => {
       if (isVisible) {
         filterPanel.removeAttribute('hidden');

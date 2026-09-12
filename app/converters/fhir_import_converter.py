@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from app.models_structure import EntiteJuridique
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteActivite,
-    UniteHebergement, Chambre, Lit, LocationPhysicalType
+    UniteHebergement, Chambre, Lit, LocationPhysicalType, LocationStatus
 )
 from app.converters.fhir_converter import FRCORE_PROFILES
 from app.models import Patient, Dossier, Mouvement, Venue
@@ -25,12 +25,23 @@ class FHIRImportError(Exception):
     pass
 
 
+def _canonical_uri(profile: str) -> str:
+    """Retire la version éventuelle d'un canonical FHIR (``uri|version``)."""
+    return profile.split("|", 1)[0]
+
+
+def _has_profile(profiles: List[str], expected: str) -> bool:
+    """Accepte les canonicals FR Core versionnés et non versionnés."""
+    return any(_canonical_uri(profile) == expected for profile in profiles)
+
+
 class FHIRToLocationConverter:
     """Convertit des ressources FHIR Location vers les modèles de structure."""
 
-    def __init__(self, session: Session, ej: EntiteJuridique):
+    def __init__(self, session: Session, ej: EntiteJuridique, resource_map: Optional[Dict[str, int]] = None):
         self.session = session
         self.ej = ej
+        self.resource_map = resource_map if resource_map is not None else {}
 
     def convert_location(self, fhir_location: Dict[str, Any]) -> Any:
         """
@@ -44,6 +55,7 @@ class FHIRToLocationConverter:
         ressources produites par une version antérieure de cet export.
         """
         name = fhir_location.get("name", "")
+        status = fhir_location.get("status") or "active"
         identifiers = self._extract_identifiers(fhir_location)
         description = fhir_location.get("description")
 
@@ -52,18 +64,19 @@ class FHIRToLocationConverter:
         parent_ref = part_of.get("reference") if part_of else None
 
         # Extraire identifier pour entité (NOT NULL required)
-        identifier = identifiers[0]["value"] if identifiers else name.replace(" ", "_").upper()
+        identifier = fhir_location.get("id") or (identifiers[0]["value"] if identifiers else name.replace(" ", "_").upper())
 
         location_kind = self._extract_location_kind(fhir_location)
 
         if location_kind == "UH":
             # UH est désormais partOf une Organization UF (pas une autre Location)
-            uh = UniteHebergement(
-                name=name,
-                identifier=identifier,
-                unite_fonctionnelle_id=self._resolve_parent_id(parent_ref, UniteFonctionnelle),
-                description=description
-            )
+            parent_id = self._resolve_parent_id(parent_ref, UniteFonctionnelle)
+            if parent_id is None:
+                raise FHIRImportError("UH sans parent UF résoluble")
+            uh = self.session.exec(select(UniteHebergement).where(UniteHebergement.identifier == identifier)).first()
+            if uh is None:
+                uh = UniteHebergement(identifier=identifier, unite_fonctionnelle_id=parent_id)
+            uh.name, uh.unite_fonctionnelle_id, uh.description, uh.status = name, parent_id, description, status
             self.session.add(uh)
             self.session.commit()
             self.session.refresh(uh)
@@ -71,16 +84,17 @@ class FHIRToLocationConverter:
 
         elif location_kind == "CHAMB":
             parent_id = self._resolve_parent_id(parent_ref, UniteHebergement)
-            chambre = Chambre(
-                name=name,
-                identifier=identifier,
-                physical_type=LocationPhysicalType.RO,
-                type_chambre=self._extract_extension_code(
-                    fhir_location, f"{FRCORE_PROFILES['location'].rsplit('/StructureDefinition', 1)[0]}/StructureDefinition/fr-core-location-type-chambre"
-                ),
-                unite_hebergement_id=parent_id,
-                description=description
+            if parent_id is None:
+                raise FHIRImportError("Chambre sans parent UH résoluble")
+            chambre = self.session.exec(select(Chambre).where(Chambre.identifier == identifier)).first()
+            if chambre is None:
+                chambre = Chambre(identifier=identifier, unite_hebergement_id=parent_id)
+            chambre.name = name
+            chambre.physical_type = LocationPhysicalType.RO
+            chambre.type_chambre = self._extract_extension_code(
+                fhir_location, f"{FRCORE_PROFILES['location'].rsplit('/StructureDefinition', 1)[0]}/StructureDefinition/fr-core-location-type-chambre"
             )
+            chambre.unite_hebergement_id, chambre.description, chambre.status = parent_id, description, status
             self.session.add(chambre)
             self.session.commit()
             self.session.refresh(chambre)
@@ -88,13 +102,13 @@ class FHIRToLocationConverter:
 
         elif location_kind == "LIT":
             parent_id = self._resolve_parent_id(parent_ref, Chambre)
-            lit = Lit(
-                name=name,
-                identifier=identifier,
-                physical_type=LocationPhysicalType.BD,
-                chambre_id=parent_id,
-                description=description
-            )
+            if parent_id is None:
+                raise FHIRImportError("Lit sans parent Chambre résoluble")
+            lit = self.session.exec(select(Lit).where(Lit.identifier == identifier)).first()
+            if lit is None:
+                lit = Lit(identifier=identifier, chambre_id=parent_id)
+            lit.name, lit.physical_type = name, LocationPhysicalType.BD
+            lit.chambre_id, lit.description, lit.status = parent_id, description, status
             self.session.add(lit)
             self.session.commit()
             self.session.refresh(lit)
@@ -171,19 +185,20 @@ class FHIRToLocationConverter:
         return identifiers
 
     def _resolve_parent_id(self, parent_ref: Optional[str], parent_model) -> Optional[int]:
-        """Résout une référence parent vers un ID."""
+        """Résout une référence FHIR par id logique, map du bundle ou identifiant métier."""
         if not parent_ref:
             return None
-        
-        # Format: "Location/123" → extraire 123
-        parts = parent_ref.split("/")
+        parts = parent_ref.rsplit("/", 1)
         if len(parts) != 2:
             return None
-        
-        # À FAIRE: Implémenter une vraie résolution depuis la base
-        # Pour l'instant, on retourne l'ID extrait
+        identifier = parts[1]
+        parent = self.session.exec(
+            select(parent_model).where(parent_model.identifier == identifier)
+        ).first()
+        if parent:
+            return parent.id
         try:
-            return int(parts[1])
+            return int(identifier)
         except ValueError:
             return None
 
@@ -243,9 +258,10 @@ class FHIRToOrganizationConverter:
     gérée ici : l'EJ est le contexte racine déjà résolu par l'appelant.
     """
 
-    def __init__(self, session: Session, ej: EntiteJuridique):
+    def __init__(self, session: Session, ej: EntiteJuridique, resource_map: Optional[Dict[str, int]] = None):
         self.session = session
         self.ej = ej
+        self.resource_map = resource_map if resource_map is not None else {}
 
     def convert_organization(self, fhir_organization: Dict[str, Any]) -> Any:
         """Dispatch par `meta.profile` (FRCoreOrganizationEtablissementProfile /
@@ -255,67 +271,79 @@ class FHIRToOrganizationConverter:
         d'EG — ou d'un Service — enfant de Pôle)."""
         profiles = (fhir_organization.get("meta") or {}).get("profile", [])
         name = fhir_organization.get("name", "")
+        status = "active" if fhir_organization.get("active", True) else "inactive"
         identifiers = fhir_organization.get("identifier", []) or []
-        identifier = identifiers[0].get("value") if identifiers else name.replace(" ", "_").upper()
+        identifier = fhir_organization.get("id") or (identifiers[0].get("value") if identifiers else name.replace(" ", "_").upper())
         part_of = fhir_organization.get("partOf")
         parent_ref = part_of.get("reference") if part_of else None
 
-        if FRCORE_PROFILES["organization_etablissement"] in profiles:
+        if _has_profile(profiles, FRCORE_PROFILES["organization_etablissement"]):
             type_code = None
             for type_cc in fhir_organization.get("type", []) or []:
                 for coding in type_cc.get("coding", []):
                     type_code = coding.get("code")
-            if type_code == "EG":
-                eg = EntiteGeographique(
-                    name=name,
-                    identifier=identifier,
-                    finess=self._extract_identifier_value(fhir_organization, "FINEG") or "999999999",
-                    entite_juridique_id=self.ej.id,
-                )
+            if type_code in {"GEOGRAPHICAL-ENTITY", "EG"}:
+                eg = self.session.exec(select(EntiteGeographique).where(EntiteGeographique.identifier == identifier)).first()
+                if eg is None:
+                    eg = EntiteGeographique(identifier=identifier, entite_juridique_id=self.ej.id)
+                eg.name = name
+                eg.finess = self._extract_identifier_value(fhir_organization, "FINEG") or "999999999"
+                eg.entite_juridique_id, eg.status = self.ej.id, LocationStatus(status)
                 self.session.add(eg)
                 self.session.commit()
                 self.session.refresh(eg)
                 return eg
+            if type_code in {"LEGAL-ENTITY", "EJ"}:
+                return self.ej
             raise FHIRImportError(f"Type d'établissement non supporté à l'import: {type_code}")
 
-        if FRCORE_PROFILES["organization_uf"] in profiles:
+        if _has_profile(profiles, FRCORE_PROFILES["organization_uf"]):
             parent_id = self._resolve_parent_id(parent_ref, Service)
-            uf = UniteFonctionnelle(
-                name=name,
-                identifier=identifier,
-                service_id=parent_id,
-            )
+            if parent_id is None:
+                raise FHIRImportError("UF sans parent Service résoluble")
+            uf = self.session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == identifier)).first()
+            if uf is None:
+                uf = UniteFonctionnelle(identifier=identifier, service_id=parent_id)
+            uf.name, uf.service_id, uf.status = name, parent_id, status
             self.session.add(uf)
             self.session.commit()
             self.session.refresh(uf)
             return uf
 
-        if FRCORE_PROFILES["organization_uac"] in profiles:
+        if _has_profile(profiles, FRCORE_PROFILES["organization_uac"]):
             parent_id = self._resolve_parent_id(parent_ref, UniteFonctionnelle)
-            uac = UniteActivite(
-                name=name,
-                identifier=identifier,
-                unite_fonctionnelle_id=parent_id,
-            )
+            if parent_id is None:
+                raise FHIRImportError("UAC sans parent UF résoluble")
+            uac = self.session.exec(select(UniteActivite).where(UniteActivite.identifier == identifier)).first()
+            if uac is None:
+                uac = UniteActivite(identifier=identifier, unite_fonctionnelle_id=parent_id)
+            uac.name, uac.unite_fonctionnelle_id, uac.status = name, parent_id, status
             self.session.add(uac)
             self.session.commit()
             self.session.refresh(uac)
             return uac
 
-        if FRCORE_PROFILES["organization"] in profiles:
+        if _has_profile(profiles, FRCORE_PROFILES["organization"]):
             # Pôle ou Service : plus de profil dédié depuis FRCore 2.2.0, distingués
             # par le type du parent réel en base (EG -> Pôle, Pôle -> Service).
-            parent_id = self._extract_parent_numeric_id(parent_ref)
+            parent_id = self._resolve_parent_id(parent_ref, EntiteGeographique)
             parent_eg = self.session.get(EntiteGeographique, parent_id) if parent_id else None
             if parent_eg:
-                pole = Pole(name=name, identifier=identifier, entite_geo_id=parent_eg.id)
+                pole = self.session.exec(select(Pole).where(Pole.identifier == identifier)).first()
+                if pole is None:
+                    pole = Pole(identifier=identifier, entite_geo_id=parent_eg.id)
+                pole.name, pole.entite_geo_id, pole.status = name, parent_eg.id, status
                 self.session.add(pole)
                 self.session.commit()
                 self.session.refresh(pole)
                 return pole
+            parent_id = self._resolve_parent_id(parent_ref, Pole)
             parent_pole = self.session.get(Pole, parent_id) if parent_id else None
             if parent_pole:
-                service = Service(name=name, identifier=identifier, service_type="MCO", pole_id=parent_pole.id)
+                service = self.session.exec(select(Service).where(Service.identifier == identifier)).first()
+                if service is None:
+                    service = Service(identifier=identifier, service_type="MCO", pole_id=parent_pole.id)
+                service.name, service.pole_id, service.status = name, parent_pole.id, status
                 self.session.add(service)
                 self.session.commit()
                 self.session.refresh(service)
@@ -343,9 +371,12 @@ class FHIRToOrganizationConverter:
             return None
 
     def _resolve_parent_id(self, parent_ref: Optional[str], parent_model) -> Optional[int]:
-        """Résout une référence parent vers un ID (même limitation que
-        FHIRToLocationConverter._resolve_parent_id : l'ID FHIR est traité comme l'ID
-        numérique local, sans validation d'existence — À FAIRE : vraie résolution)."""
+        if not parent_ref:
+            return None
+        identifier = parent_ref.rsplit("/", 1)[-1]
+        parent = self.session.exec(select(parent_model).where(parent_model.identifier == identifier)).first()
+        if parent:
+            return parent.id
         return self._extract_parent_numeric_id(parent_ref)
 
 
@@ -927,7 +958,8 @@ class FHIRBundleImporter:
         self.ej = ej
         # resource_map: maps bundle-local ids and references to DB ids
         self.resource_map: Dict[str, int] = {}
-        self.location_converter = FHIRToLocationConverter(session, ej)
+        self.location_converter = FHIRToLocationConverter(session, ej, self.resource_map)
+        self.organization_converter = FHIRToOrganizationConverter(session, ej, self.resource_map)
         self.patient_converter = FHIRToPatientConverter(session, ej)
         self.encounter_converter = FHIRToEncounterConverter(session, resource_map=self.resource_map)
         self.practitioner_converter = FHIRToPractitionerConverter(session)
@@ -955,8 +987,24 @@ class FHIRBundleImporter:
             "organizations": 0
         }
         
-        # Import des ressources dans l'ordre : Location → Patient → Encounter → Practitioner → Organization
-        for entry in entries:
+        # La hiérarchie FRCore doit être importée des parents vers les enfants.
+        # Les anciens imports Location-first rendaient les références partOf
+        # non résolubles pour les Organization/UF et les UH.
+        organization_rank = {
+            FRCORE_PROFILES["organization_etablissement"]: 0,
+            FRCORE_PROFILES["organization"]: 1,
+            FRCORE_PROFILES["organization_uf"]: 2,
+            FRCORE_PROFILES["organization_uac"]: 3,
+        }
+        organizations = [entry for entry in entries if (entry.get("resource") or {}).get("resourceType") == "Organization"]
+        organizations.sort(key=lambda entry: min(
+            (organization_rank.get(_canonical_uri(profile), 99) for profile in ((entry.get("resource") or {}).get("meta") or {}).get("profile", [])),
+            default=99,
+        ))
+        ordered_entries = organizations + [
+            entry for entry in entries if (entry.get("resource") or {}).get("resourceType") != "Organization"
+        ]
+        for entry in ordered_entries:
             resource = entry.get("resource", {})
             resource_type = resource.get("resourceType")
             
@@ -1002,13 +1050,15 @@ class FHIRBundleImporter:
                     results["imported"] += 1
 
                 elif resource_type == "Organization":
-                    # Une Organization du bundle représente ici une UF/structure déjà gérée
-                    # par la hiérarchie de structure (import Location) ; elle n'est pas
-                    # persistée comme entité séparée, seulement acquittée et rendue
-                    # résolvable pour les références qui la pointent (serviceProvider, etc).
+                    entity = self.organization_converter.convert_organization(resource)
                     res_id = resource.get('id')
-                    if res_id:
-                        self.resource_map[f"Organization/{res_id}"] = res_id
+                    identifier = next((item.get("value") for item in resource.get("identifier", []) if item.get("value")), None)
+                    if hasattr(entity, "id"):
+                        if res_id:
+                            self.resource_map[res_id] = entity.id
+                            self.resource_map[f"Organization/{res_id}"] = entity.id
+                        if identifier:
+                            self.resource_map[f"Organization/{identifier}"] = entity.id
                     results["organizations"] += 1
                     results["imported"] += 1
 
@@ -1026,20 +1076,25 @@ class FHIRBundleImporter:
         meta = resource.get("meta", {})
         profiles = meta.get("profile", [])
         
-        # Profils FRCore attendus par type de ressource
+        # Profils FR Core 2.2.0 attendus par type de ressource.  Les anciens
+        # URI ``interopsante.org`` ne correspondent plus aux bundles émis par
+        # l'application et créaient des avertissements trompeurs à chaque
+        # import valide.
         expected_profiles = {
-            "Patient": ["http://interopsante.org/fhir/StructureDefinition/fr-core-patient"],
-            "Encounter": ["http://interopsante.org/fhir/StructureDefinition/fr-encounter"],
-            "Location": ["http://interopsante.org/fhir/StructureDefinition/fr-location"],
-            "Organization": ["http://interopsante.org/fhir/StructureDefinition/fr-organization"]
+            "Location": [FRCORE_PROFILES["location"]],
+            "Organization": [
+                FRCORE_PROFILES["organization"],
+                FRCORE_PROFILES["organization_etablissement"],
+                FRCORE_PROFILES["organization_uf"],
+                FRCORE_PROFILES["organization_uac"],
+            ],
         }
         
         if resource_type in expected_profiles:
             expected = expected_profiles[resource_type]
             # Vérifier qu'au moins un profil FRCore est présent
-            has_fr_profile = any(profile in profiles for profile in expected)
+            has_fr_profile = any(_has_profile(profiles, profile) for profile in expected)
             
             if not has_fr_profile:
                 # Ne pas lever d'erreur, juste un avertissement dans les logs
                 print(f"⚠️  Ressource {resource_type} sans profil FRCore. Profils attendus: {expected}, profils trouvés: {profiles}")
-

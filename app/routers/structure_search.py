@@ -40,6 +40,6 @@ async def structure_search_interface(
         {
             "request": request,
             "eg_count": eg_count,
-            "page_title": "Recherche Avancée Structure"
+            "title": "Recherche Avancée Structure"
         }
     )

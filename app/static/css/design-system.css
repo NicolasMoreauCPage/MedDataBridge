@@ -62,6 +62,17 @@
   --color-lit-bg: #e0e7ff;
   --color-lit-border: #818cf8;
 
+  /* Alias stables utilisés par les vues de qualification et les intégrateurs. */
+  --color-ght: var(--color-ej-primary);
+  --color-eg: var(--color-ej-primary);
+  --color-pole: var(--color-pole-primary);
+  --color-service: var(--color-service-primary);
+  --urgence-1: #10b981;
+  --urgence-2: #3b82f6;
+  --urgence-3: #f59e0b;
+  --urgence-4: #f97316;
+  --urgence-5: #ef4444;
+
   /* États d'occupation */
   --color-occ-low: #10b981;          /* < 50% = Vert */
   --color-occ-normal: #3b82f6;       /* 50-80% = Bleu */

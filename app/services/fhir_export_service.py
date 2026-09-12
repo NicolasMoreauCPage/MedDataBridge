@@ -78,7 +78,7 @@ class FHIRExportService:
         ej_organization = self.structure_converter.create_organization_etablissement(
             identifier=ej.identifier or ej.finess_ej or f"EJ-{ej.id}",
             name=ej.name,
-            entity_type="EJ",
+            entity_type="LEGAL-ENTITY",
             finess=ej.finess_ej,
             finess_type_code="FINEJ",
             siren=getattr(ej, "siren", None),
@@ -98,7 +98,7 @@ class FHIRExportService:
             eg_organization = self.structure_converter.create_organization_etablissement(
                 identifier=eg.identifier,
                 name=eg.name,
-                entity_type="EG",
+                entity_type="GEOGRAPHICAL-ENTITY",
                 finess=eg.finess,
                 finess_type_code="FINEG",
                 active=(getattr(eg, "status", "active") != "inactive"),
@@ -117,6 +117,8 @@ class FHIRExportService:
                     identifier=pole.identifier,
                     name=pole.name,
                     active=(getattr(pole, "status", "active") != "inactive"),
+                    type_code="POLE",
+                    type_display="Pôle",
                     parent_ref=eg_ref,
                 )
                 entries.append(self.converter.create_bundle_entry(pole_organization))
@@ -132,7 +134,8 @@ class FHIRExportService:
                         identifier=service.identifier,
                         name=service.name,
                         active=(getattr(service, "status", "active") != "inactive"),
-                        type_code=service.service_type,
+                        type_code="SERVICE",
+                        type_display="Service",
                         parent_ref=pole_ref,
                     )
                     entries.append(self.converter.create_bundle_entry(service_organization))

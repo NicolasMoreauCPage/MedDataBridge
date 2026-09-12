@@ -1,52 +1,47 @@
-import os
+"""Contrat de roundtrip HPRIM pour les quatre catégories d'actes.
+
+Le test passe par les mêmes endpoints que l'IHM : génération, téléchargement
+et réintégration. Il remplace le scénario historique, alors marqué xfail, qui
+attendait un stockage temporaire sur disque.
+"""
+
 import pytest
 from fastapi.testclient import TestClient
+
 from app.app import app
+
 
 client = TestClient(app)
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Ce test cible une implémentation antérieure de /roundtrip-hprim/generate et "
-        "/reintegrate : stockage sur disque (clé 'filepath'/'saved_to') et support "
-        "générique CCAM/NGAP/UCD/LPP à partir d'un payload minimal {type, code}. "
-        "L'implémentation actuelle (app/routers/roundtrip_hprim.py) stocke les messages "
-        "en base (clés 'message_id'/'filename'/'download_url') et le chemin sans "
-        "xml_content ne supporte que l'émission CCAM via EmissionRequest (payload riche "
-        "avec émetteur/destinataire/patient/acteur/actes), quel que soit le 'type' fourni. "
-        "À réécrire une fois le contrat de cet endpoint stabilisé pour NGAP/UCD/LPP."
-    ),
-    strict=False,
+@pytest.mark.parametrize(
+    ("act_type", "code", "extra"),
+    [
+        ("CCAM", "ZZQK900", {"code_activite": "01", "code_phase": "00"}),
+        ("NGAP", "AMK", {"coefficient": 1}),
+        ("UCD", "1234567890123", {"prix_unitaire": 10.50, "quantite": 2}),
+        ("LPP", "1234567890123", {"prix_unitaire": 25.75, "quantite": 1}),
+    ],
 )
-@pytest.mark.parametrize("cotation", [
-    {"type": "CCAM", "code": "ZZQK900"},
-    {"type": "NGAP", "code": "AMK"},
-    {"type": "UCD", "code": "1234567890123", "montant": 10.50},
-    {"type": "LPP", "code": "1234567890123", "montant": 25.75},
-])
-def test_hprim_xml_roundtrip(cotation):
-    # 1. Générer le message HPRIM XML
-    resp = client.post("/roundtrip-hprim/generate", json=cotation)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "filepath" in data
-    filepath = data["filepath"]
-    assert os.path.exists(filepath)
+def test_hprim_xml_roundtrip_all_act_types(act_type, code, extra):
+    payload = {"type_acte": act_type, "code": code, **extra}
 
-    # 2. Télécharger le message généré
-    filename = data["filename"]
-    resp = client.get(f"/roundtrip-hprim/download/{filename}")
-    assert resp.status_code == 200
-    xml_content = resp.content
-    # Vérifie que le root XML correspond au schéma attendu (ex: <evenementsServeurActes> pour CCAM)
-    assert b"<evenementsServeurActes" in xml_content or b"<ns0:evenementsServeurActes" in xml_content or b"<evenementServeurActes" in xml_content or b"<ns0:evenementServeurActes" in xml_content or b"<evenementServeurUCD" in xml_content or b"<ns0:evenementServeurUCD" in xml_content or b"<evenementServeurLPP" in xml_content or b"<ns0:evenementServeurLPP" in xml_content
+    generated = client.post("/roundtrip-hprim/generate", json=payload)
+    assert generated.status_code == 200, generated.text
+    generated_body = generated.json()
+    assert generated_body["type_acte"] == act_type
+    assert generated_body["validation"]["xsd_valid"] is True
 
-    # 3. Réintégrer le message (upload)
-    files = {"file": (filename, xml_content, "application/xml")}
-    resp = client.post("/roundtrip-hprim/reintegrate", files=files)
-    assert resp.status_code == 200
-    reintegrate_data = resp.json()
-    assert reintegrate_data["status"] == "ok"
-    assert reintegrate_data["filename"] == filename
-    assert os.path.exists(reintegrate_data["saved_to"])
+    downloaded = client.get(generated_body["download_url"])
+    assert downloaded.status_code == 200
+    assert b"evenementsServeurActes" in downloaded.content
+
+    reintegrated = client.post(
+        "/roundtrip-hprim/reintegrate",
+        files={"file": (generated_body["filename"], downloaded.content, "application/xml")},
+    )
+    assert reintegrated.status_code == 200, reintegrated.text
+    body = reintegrated.json()
+    assert body["status"] == "ok"
+    assert body["message_id"] == generated_body["message_id"]
+    assert body["actes_count"] == 1

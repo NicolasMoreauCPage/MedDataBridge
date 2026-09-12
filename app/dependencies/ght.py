@@ -14,6 +14,8 @@ Notes
     et reste cohérent avec l'usage existant dans l'application.
 """
 
+import os
+
 from fastapi import HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
@@ -26,6 +28,12 @@ def require_ght_context(request: Request):
     """
     context = getattr(request.state, "ght_context", None)
     if context is None:
+        # Le serveur Playwright est isolé et démarre avec une BDD éphémère sans
+        # contexte métier. Autoriser ses parcours de lecture évite de tester la
+        # page de sélection GHT à la place des écrans visés, sans modifier le
+        # comportement de l'application hors E2E.
+        if os.getenv("E2E_TESTING") == "1":
+            return None
         # Debug logging
         import logging
         logger = logging.getLogger(__name__)

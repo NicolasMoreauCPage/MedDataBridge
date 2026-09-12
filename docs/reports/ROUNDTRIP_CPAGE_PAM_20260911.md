@@ -3,6 +3,11 @@
 Date : 11 septembre 2026  
 Corpus : 199 captures CPage de `data/pam/` (fichiers numériques uniquement)
 
+> Statut documentaire : **preuve de qualification PAM/CPage conservée**. Les
+> volumes et empreintes correspondent à la campagne du 11 septembre 2026 ; ils
+> ne représentent pas un compteur permanent. Pour le périmètre courant et les
+> limites ouvertes, voir [README_FOR_REPORTS.md](README_FOR_REPORTS.md).
+
 ## Verdict
 
 **Succès : les deux environnements GHT aboutissent à des données métier strictement identiques.**
@@ -72,4 +77,8 @@ Les BDD d’évidence du dernier essai sont temporaires et isolées. Le résulta
 
 ## Tests automatisés complémentaires
 
-Les suites ciblées ont été exécutées avec succès : **80 tests passés**. Elles couvrent notamment le transport MLLP, la transaction/ACK en erreur, les transitions PAM, la génération et la conformité IHE PAM France.
+Les suites ciblées de cette campagne ont été exécutées avec succès : **80 tests
+passés**. Elles couvrent notamment le transport MLLP, la transaction/ACK en
+erreur, les transitions PAM, la génération et la conformité IHE PAM France.
+Le nombre de tests actuel est suivi par la CI et par
+[`docs/TESTS_STATUS.md`](../TESTS_STATUS.md), et non par ce compte rendu daté.

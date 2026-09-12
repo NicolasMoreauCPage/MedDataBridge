@@ -88,7 +88,10 @@ async def docs_markdown(request: Request, filename: str):
     # (avoid redirecting when the requested filename already is .html,
     # which caused a self-redirect loop).
     html_equiv = doc_path.with_suffix('.html')
-    if filename.lower().endswith('.md') and html_equiv.exists():
+    # Le guide utilisateur Markdown est la référence maintenue. Un ancien HTML
+    # homonyme existe encore pour compatibilité mais ne doit pas masquer le
+    # manuel complet demandé depuis l'IHM.
+    if filename.lower().endswith('.md') and html_equiv.exists() and filename.lower() != "user_guide.md":
         static_url = f"/docs/{html_equiv.name}"
         return RedirectResponse(url=static_url)
 

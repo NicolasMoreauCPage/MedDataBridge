@@ -1,6 +1,12 @@
 # MedData Bridge — Documentation complète
 
-Date: 2025-11-30
+Date initiale : 30 novembre 2025
+Statut : vue d'architecture générale ; les contrats interopérables et les
+preuves à jour sont indexés dans [README.md](README.md).
+
+> Les noms de modules et les exemples de ce document sont des repères
+> d'architecture. Pour IHE PAM, HPRIM, MFN et FHIR France, les tests et les
+> rapports de qualification les plus récents prévalent.
 
 But de ce document
 

@@ -79,7 +79,7 @@ class StructureCard {
     } = options;
 
     const card = document.createElement('div');
-    card.className = `card-structure level-${entity.type.toLowerCase()}`;
+    card.className = `structure-card card-structure level-${entity.type.toLowerCase()}`;
     card.dataset.entityId = entity.id;
     card.dataset.entityType = entity.type;
 
@@ -98,6 +98,7 @@ class StructureCard {
       card.style.cursor = 'pointer';
       card.addEventListener('click', (e) => {
         if (!e.target.closest('.btn-action')) {
+          card.classList.toggle('selected');
           onClick(entity, e);
         }
       });
@@ -108,7 +109,7 @@ class StructureCard {
 
   static createHeader(entity, showActions) {
     const header = document.createElement('div');
-    header.className = 'card-structure-header';
+    header.className = 'card-header card-structure-header';
 
     // Icon
     const icon = document.createElement('div');
@@ -141,7 +142,7 @@ class StructureCard {
 
   static createBody(entity, showStats, showOccupation) {
     const body = document.createElement('div');
-    body.className = 'card-structure-body';
+    body.className = 'card-content card-structure-body';
 
     // Stats
     if (showStats && entity.stats) {
@@ -420,14 +421,15 @@ class SearchComponent {
     // Input
     this.input = document.createElement('input');
     this.input.type = 'text';
-    this.input.className = 'form-control';
+    this.input.className = 'search-input form-control';
+    this.input.name = 'search';
     this.input.placeholder = this.options.placeholder;
     this.input.style.paddingRight = '80px';
 
     // Clear button
     this.clearBtn = document.createElement('button');
     this.clearBtn.textContent = '×';
-    this.clearBtn.className = 'btn btn-sm btn-secondary';
+    this.clearBtn.className = 'search-clear btn btn-sm btn-secondary';
     this.clearBtn.style.cssText = `
       position: absolute;
       right: 40px;
@@ -440,7 +442,7 @@ class SearchComponent {
     // Search button
     this.searchBtn = document.createElement('button');
     this.searchBtn.textContent = '🔍';
-    this.searchBtn.className = 'btn btn-sm btn-primary';
+    this.searchBtn.className = 'search-button btn btn-sm btn-primary';
     this.searchBtn.style.cssText = `
       position: absolute;
       right: 4px;

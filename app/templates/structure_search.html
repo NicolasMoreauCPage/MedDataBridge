@@ -209,21 +209,21 @@
       <div class="search-stat">
         <span class="search-stat-icon">🏥</span>
         <div>
-          <div class="search-stat-value" id="total-structures">{{ eg_count or 0 }}</div>
+          <div class="search-stat-value total-structures" id="total-structures">{{ eg_count or 0 }}</div>
           <div class="search-stat-label">Structures</div>
         </div>
       </div>
       <div class="search-stat">
         <span class="search-stat-icon">🔍</span>
         <div>
-          <div class="search-stat-value" id="search-count">0</div>
+          <div class="search-stat-value search-count results-count" id="search-count">0</div>
           <div class="search-stat-label">Résultats</div>
         </div>
       </div>
       <div class="search-stat">
         <span class="search-stat-icon">⏱️</span>
         <div>
-          <div class="search-stat-value" id="search-time">0ms</div>
+          <div class="search-stat-value search-time" id="search-time">0ms</div>
           <div class="search-stat-label">Temps</div>
         </div>
       </div>
@@ -322,6 +322,7 @@ class AdvancedStructureSearch {
     this.currentPage = 0;
     this.pageSize = 20;
     this.totalResults = 0;
+    this.searchRun = 0;
     
     this.init();
   }
@@ -583,8 +584,9 @@ class AdvancedStructureSearch {
   }
 
   updateStats(count, time) {
+    this.searchRun += 1;
     document.getElementById('search-count').textContent = count;
-    document.getElementById('search-time').textContent = `${time}ms`;
+    document.getElementById('search-time').textContent = `${time}ms · recherche ${this.searchRun}`;
   }
 
   updatePagination() {

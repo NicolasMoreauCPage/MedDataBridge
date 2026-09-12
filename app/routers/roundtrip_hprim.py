@@ -1,20 +1,157 @@
 """Roundtrip HPRIM persistant pour génération, téléchargement et réintégration."""
 
 from datetime import datetime
+from decimal import Decimal
+import json
+from uuid import uuid4
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 from sqlmodel import select
 
-from app.api.hprim_ccam import EmissionRequest, ReceptionRequest, emettre_actes_ccam, recevoir_actes_ccam
+from app.api.hprim_ccam import ReceptionRequest, recevoir_actes_ccam
 from app.db import get_session
-from app.models.hprim_models import HprimMessage as StoredHprimMessage
+from app.models.hprim_models import HprimMessage as StoredHprimMessage, HprimExchangeAct
+from app.hprim_models import (
+    HprimActeCCAM, HprimActeLPP, HprimActeNGAP, HprimActeUCD, HprimAction,
+    HprimCodeLPP, HprimEnteteMessage, HprimLPP, HprimMessage,
+    HprimMessageType, HprimPatient, HprimProfessionnel, HprimUCD,
+)
 from app.services.hprim import HprimService
 
 router = APIRouter(prefix="/roundtrip-hprim", tags=["Roundtrip HPRIM"])
 
 _roundtrip_hprim_service = HprimService()
+
+
+def _as_datetime(value: object) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            pass
+    return datetime.utcnow()
+
+
+def _build_message(payload: dict) -> tuple[HprimMessage, str]:
+    """Construit le contrat commun CCAM/NGAP/UCD/LPP du roundtrip.
+
+    Les valeurs de contexte restent explicites lorsqu'elles sont fournies, avec
+    des valeurs de démonstration uniquement pour l'ancien payload minimal de
+    qualification (`type` + `code`).
+    """
+    acts_payload = payload.get("actes") or []
+    act_data = acts_payload[0] if isinstance(acts_payload, list) and acts_payload else payload
+    act_type = str(payload.get("type_acte") or payload.get("type") or ("CCAM" if acts_payload else "")).upper()
+    if act_type not in {"CCAM", "NGAP", "UCD", "LPP"}:
+        raise ValueError("type_acte doit être CCAM, NGAP, UCD ou LPP")
+    message_id = str(payload.get("message_id") or uuid4().hex[:12].upper())[:12]
+    patient_data = payload.get("patient") or {}
+    actor_data = payload.get("acteur") or {}
+    patient = HprimPatient(
+        identifiant_id=str(patient_data.get("identifiant_id") or "PATIENT001"),
+        identifiant_clef=str(patient_data.get("identifiant_clef") or "CLEF"),
+        nom=str(patient_data.get("nom") or "DUPONT"),
+        prenom=str(patient_data.get("prenom") or "Jean"),
+        date_naissance=patient_data.get("date_naissance") or "1980-01-01",
+        sexe=patient_data.get("sexe") or "M",
+    )
+    actor = HprimProfessionnel(
+        nom=str(actor_data.get("nom") or "MARTIN"),
+        prenom=str(actor_data.get("prenom") or "Marie"),
+        numero_rpps=str(actor_data.get("numero_rpps") or "12345678901"),
+    )
+    entete = HprimEnteteMessage(
+        emetteur_id=str(payload.get("emetteur_id") or "123456789")[:10],
+        emetteur_nom=str(payload.get("emetteur_nom") or "HOPITAL TEST")[:35],
+        destinataire_id=str(payload.get("destinataire_id") or "987654321")[:10],
+        destinataire_nom=str(payload.get("destinataire_nom") or "DESTINATAIRE TEST")[:35],
+        date_emission=_as_datetime(payload.get("date_emission")),
+        message_id=message_id,
+        message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES,
+    )
+    code = str(act_data.get("code") or act_data.get("code_acte") or "")
+    if not code:
+        raise ValueError("code est obligatoire")
+    act_id = str(act_data.get("act_id") or f"A{message_id[-10:]}")[:17]
+    quantity = Decimal(str(act_data.get("quantite", act_data.get("quantity", 1))))
+    unit_price = Decimal(str(act_data.get("prix_unitaire", act_data.get("montant", 0))))
+    total = Decimal(str(act_data.get("montant_total", unit_price * quantity)))
+    if total != unit_price * quantity:
+        raise ValueError("montant_total doit être égal à prix_unitaire × quantite")
+
+    message = HprimMessage(entete=entete, patient=patient, acteur=actor)
+    if act_type == "CCAM":
+        message.actes_ccam = [HprimActeCCAM(
+            identifiant=act_id, code_acte=code,
+            code_activite=str(act_data.get("code_activite") or "01").zfill(2),
+            code_phase=str(act_data.get("code_phase") or "00").zfill(2),
+            execute_date=_as_datetime(act_data.get("date_execution")), executant=actor,
+            quantite=int(quantity), action=HprimAction.CREATION,
+        )]
+    elif act_type == "NGAP":
+        message.actes_ngap = [HprimActeNGAP(
+            identifiant=act_id, lettre_cle=code, coefficient=Decimal(str(act_data.get("coefficient", 1))),
+            execute_date=_as_datetime(act_data.get("date_execution")), prestataire=actor,
+            action=HprimAction.CREATION,
+        )]
+    elif act_type == "LPP":
+        message.actes_lpp = HprimActeLPP(
+            identifiant=act_id,
+            lpps=[HprimLPP(HprimCodeLPP(code), unit_price, total, act_data.get("libelle"), int(quantity))],
+        )
+    else:
+        message.actes_ucd = HprimActeUCD(
+            identifiant=act_id,
+            ucds=[HprimUCD(code, str(act_data.get("libelle") or "Produit UCD"), quantity, unit_price, total)],
+        )
+    return message, act_type
+
+
+def _act_projection(act_type: str, act: object) -> tuple[str, str, dict]:
+    values = vars(act)
+    code = values.get("code_acte") or values.get("lettre_cle") or values.get("code_lpp") or values.get("code_ucd") or values.get("code")
+    if isinstance(values.get("code"), HprimCodeLPP):
+        code = values["code"].code
+    if not code:
+        raise ValueError(f"Acte HPRIM {act_type} sans code")
+    act_id = str(values.get("identifiant") or f"{act_type}-{code}")
+    projection = {key: str(value) if isinstance(value, (datetime, Decimal)) else value for key, value in values.items()}
+    return act_id, str(code), projection
+
+
+def _persist_exchange_acts(db: Session, message: HprimMessage) -> int:
+    count = 0
+    lpp_acts = (
+        message.actes_lpp.lpps if isinstance(message.actes_lpp, HprimActeLPP)
+        else message.actes_lpp or []
+    )
+    ucd_acts = (
+        message.actes_ucd.ucds if isinstance(message.actes_ucd, HprimActeUCD)
+        else message.actes_ucd or []
+    )
+    for act_type, acts in (
+        ("CCAM", message.actes_ccam),
+        ("NGAP", message.actes_ngap),
+        ("LPP", lpp_acts),
+        ("UCD", ucd_acts),
+    ):
+        for act in acts or []:
+            act_id, code, projection = _act_projection(act_type, act)
+            key = f"{message.entete.message_id}:{act_type}:{act_id}"
+            stored = db.get(HprimExchangeAct, key) or HprimExchangeAct(id=key, message_id=message.entete.message_id)
+            stored.patient_id = message.patient.identifiant_id
+            stored.act_type = act_type
+            stored.code = code
+            stored.action = str(getattr(act, "action", "creation"))
+            stored.payload_json = json.dumps(projection, default=str, ensure_ascii=False, sort_keys=True)
+            stored.updated_at = datetime.utcnow()
+            db.add(stored)
+            count += 1
+    return count
 
 
 def _store_roundtrip_message(
@@ -86,18 +223,31 @@ async def generate_hprim_xml(payload: dict, db: Session = Depends(get_session)):
         )
 
     try:
-        request_model = EmissionRequest.model_validate(payload)
+        message, act_type = _build_message(payload)
+        validation_errors = _roundtrip_hprim_service.valider_message(message)
+        if validation_errors:
+            raise ValueError("; ".join(error.message for error in validation_errors))
+        xml_content = _roundtrip_hprim_service.generer_xml(message, valider=False)
+        xsd_valid, xsd_errors = _roundtrip_hprim_service.validate_generated_xml(xml_content, message.entete.message_type)
+        if not xsd_valid:
+            raise ValueError("; ".join(xsd_errors))
+        _store_roundtrip_message(
+            db, message_id=message.entete.message_id, type_message=act_type,
+            xml_content=xml_content, status="validated", source="roundtrip-generate-structured",
+        )
+        _persist_exchange_acts(db, message)
+        db.commit()
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Payload roundtrip HPRIM invalide: {exc}") from exc
-
-    response = await emettre_actes_ccam(request_model, BackgroundTasks(), db)
     return JSONResponse(
         {
-            "message_id": response.message_id,
-            "filename": f"{response.message_id}.xml",
-            "download_url": f"/roundtrip-hprim/download/{response.message_id}.xml",
-            "xml_size": response.xml_size,
-            "validation_errors": response.validation_errors,
+            "message_id": message.entete.message_id,
+            "filename": f"{message.entete.message_id}.xml",
+            "download_url": f"/roundtrip-hprim/download/{message.entete.message_id}.xml",
+            "xml_size": len(xml_content),
+            "type_acte": act_type,
+            "validation_errors": [],
+            "validation": {"succes": True, "xsd_valid": True, "schema_utilise": "evenements_serveur_actes"},
         }
     )
 
@@ -128,14 +278,22 @@ async def reintegrate_hprim_xml(file: UploadFile = File(...), db: Session = Depe
         raise HTTPException(status_code=400, detail="Fichier HPRIM vide")
 
     xml_content = content.decode("iso-8859-1", errors="ignore")
-    response = await recevoir_actes_ccam(
-        ReceptionRequest(xml_content=xml_content, validate_only=False),
-        db,
+    result = _roundtrip_hprim_service.traiter_message_xml(xml_content)
+    if not result.get("succes"):
+        return {"status": "error", "filename": file.filename, "message_id": None, "actes_count": 0,
+                "erreurs": [result.get("erreur", "Erreur HPRIM inconnue")]}
+    message = result["message"]
+    _store_roundtrip_message(
+        db, message_id=message.entete.message_id, type_message=message.entete.message_type.value,
+        xml_content=xml_content, status="received", source="roundtrip-reintegrate",
     )
+    actes_count = _persist_exchange_acts(db, message)
+    db.commit()
+    response = await recevoir_actes_ccam(ReceptionRequest(xml_content=xml_content, validate_only=False), db)
     return {
         "status": "ok" if response.succes else "error",
         "filename": file.filename,
-        "message_id": response.message_id,
-        "actes_count": len(response.actes_recus),
+        "message_id": message.entete.message_id,
+        "actes_count": actes_count,
         "erreurs": response.erreurs_traitement,
     }

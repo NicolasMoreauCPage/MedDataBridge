@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Phase 5.2 - Design System Démo{% endblock %}
+{% block title %}Design System Hospitalier{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', path='/css/design-system.css') }}">
@@ -63,10 +63,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 1400px; margin: 0 auto; padding: 24px;">
+<div class="design-system-container container" style="max-width: 1400px; margin: 0 auto; padding: 24px;">
   
   <!-- Header -->
-  <div style="margin-bottom: 32px;">
+  <div class="design-system-header" style="margin-bottom: 32px;">
     <h1 style="font-size: 32px; font-weight: 700; color: #111827; margin-bottom: 8px;">
       🎨 Phase 5.2 - Design System Hospitalier
     </h1>
@@ -77,17 +77,17 @@
 
   <!-- Navigation Tabs -->
   <div class="flex gap-2" style="margin-bottom: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
-    <button class="btn btn-sm btn-primary tab-btn" data-tab="colors">🎨 Couleurs</button>
-    <button class="btn btn-sm btn-secondary tab-btn" data-tab="cards">🃏 Cartes</button>
-    <button class="btn btn-sm btn-secondary tab-btn" data-tab="occupation">📊 Occupation</button>
-    <button class="btn btn-sm btn-secondary tab-btn" data-tab="buttons">🔘 Boutons</button>
-    <button class="btn btn-sm btn-secondary tab-btn" data-tab="forms">📋 Formulaires</button>
-    <button class="btn btn-sm btn-secondary tab-btn" data-tab="notifications">🔔 Notifications</button>
+    <button class="demo-tab-btn rounded px-3 py-2 bg-blue-600 text-white" data-tab="colors">🎨 Couleurs</button>
+    <button class="demo-tab-btn rounded px-3 py-2 border border-slate-300" data-tab="cards">🃏 Cartes</button>
+    <button class="demo-tab-btn rounded px-3 py-2 border border-slate-300" data-tab="occupation">📊 Occupation</button>
+    <button class="demo-tab-btn rounded px-3 py-2 border border-slate-300" data-tab="buttons">🔘 Boutons</button>
+    <button class="demo-tab-btn rounded px-3 py-2 border border-slate-300" data-tab="forms">📋 Formulaires</button>
+    <button class="demo-tab-btn rounded px-3 py-2 border border-slate-300" data-tab="notifications">🔔 Notifications</button>
   </div>
 
   <!-- Tab: Couleurs -->
   <div class="tab-content" id="tab-colors">
-    <div class="demo-section">
+    <div class="color-palette-section demo-section">
       <div class="demo-section-title">🎨 Palette par Type d'Unité Médicale</div>
       <div class="demo-grid">
         <div class="demo-color-swatch">
@@ -124,28 +124,28 @@
     <div class="demo-section">
       <div class="demo-section-title">🏥 Couleurs par Niveau Hiérarchique</div>
       <div class="demo-grid">
-        <div class="demo-color-swatch level-ej">
+        <div class="color-card demo-color-swatch level-ej color-ght color-eg">
           <div class="demo-color-box" style="background: var(--color-ej-primary);"></div>
           <div class="demo-color-info">
             <div class="demo-color-name">🏥 EG/EJ</div>
             <div class="demo-color-code">Entité Géographique / Juridique</div>
           </div>
         </div>
-        <div class="demo-color-swatch level-pole">
+        <div class="color-card demo-color-swatch level-pole color-pole">
           <div class="demo-color-box" style="background: var(--color-pole-primary);"></div>
           <div class="demo-color-info">
             <div class="demo-color-name">🏢 Pôle</div>
             <div class="demo-color-code">Regroupement de services</div>
           </div>
         </div>
-        <div class="demo-color-swatch level-service">
+        <div class="color-card demo-color-swatch level-service color-service">
           <div class="demo-color-box" style="background: var(--color-service-primary);"></div>
           <div class="demo-color-info">
             <div class="demo-color-name">🏛️ Service</div>
             <div class="demo-color-code">Service médical</div>
           </div>
         </div>
-        <div class="demo-color-swatch level-uf">
+        <div class="color-card demo-color-swatch level-uf color-uf">
           <div class="demo-color-box" style="background: var(--color-uf-primary);"></div>
           <div class="demo-color-info">
             <div class="demo-color-name">🔹 UF</div>
@@ -159,14 +159,14 @@
             <div class="demo-color-code">Unité d'Hébergement</div>
           </div>
         </div>
-        <div class="demo-color-swatch level-chambre">
+        <div class="color-card demo-color-swatch level-chambre color-chambre">
           <div class="demo-color-box" style="background: var(--color-chambre-primary);"></div>
           <div class="demo-color-info">
             <div class="demo-color-name">🛏️ Chambre</div>
             <div class="demo-color-code">Chambre physique</div>
           </div>
         </div>
-        <div class="demo-color-swatch level-lit">
+        <div class="color-card demo-color-swatch level-lit color-lit">
           <div class="demo-color-box" style="background: var(--color-lit-primary);"></div>
           <div class="demo-color-info">
             <div class="demo-color-name">💺 Lit</div>
@@ -174,19 +174,26 @@
           </div>
         </div>
       </div>
+      <div class="mt-6 flex flex-wrap gap-2" aria-label="Niveaux d'urgence">
+        <span class="urgence-1 rounded px-3 py-2 text-white" style="background:#10b981">Urgence 1</span>
+        <span class="urgence-2 rounded px-3 py-2 text-white" style="background:#3b82f6">Urgence 2</span>
+        <span class="urgence-3 rounded px-3 py-2 text-white" style="background:#f59e0b">Urgence 3</span>
+        <span class="urgence-4 rounded px-3 py-2 text-white" style="background:#f97316">Urgence 4</span>
+        <span class="urgence-5 rounded px-3 py-2 text-white" style="background:#ef4444">Urgence 5</span>
+      </div>
     </div>
   </div>
 
   <!-- Tab: Cartes -->
-  <div class="tab-content" id="tab-cards" style="display: none;">
-    <div class="demo-section">
+  <div class="tab-content components-demo-section" id="tab-cards">
+    <div class="structure-card-demo demo-section">
       <div class="demo-section-title">🃏 Cartes de Structure</div>
       <div id="cards-demo"></div>
     </div>
   </div>
 
   <!-- Tab: Occupation -->
-  <div class="tab-content" id="tab-occupation" style="display: none;">
+  <div class="tab-content" id="tab-occupation">
     <div class="demo-section">
       <div class="demo-section-title">📊 Indicateurs d'Occupation</div>
       
@@ -205,7 +212,7 @@
   </div>
 
   <!-- Tab: Boutons -->
-  <div class="tab-content" id="tab-buttons" style="display: none;">
+  <div class="tab-content" id="tab-buttons">
     <div class="demo-section">
       <div class="demo-section-title">🔘 Boutons</div>
       
@@ -228,7 +235,7 @@
   </div>
 
   <!-- Tab: Formulaires -->
-  <div class="tab-content" id="tab-forms" style="display: none;">
+  <div class="tab-content" id="tab-forms">
     <div class="demo-section">
       <div class="demo-section-title">📋 Formulaires</div>
       
@@ -280,7 +287,7 @@
   </div>
 
   <!-- Tab: Notifications -->
-  <div class="tab-content" id="tab-notifications" style="display: none;">
+  <div class="tab-content" id="tab-notifications">
     <div class="demo-section">
       <div class="demo-section-title">🔔 Notifications</div>
       
@@ -289,16 +296,16 @@
       </p>
 
       <div class="flex flex-wrap gap-2">
-        <button class="btn btn-success" onclick="NotificationSystem.success('Opération réussie !')">
+        <button class="btn btn-success btn-test-success" onclick="NotificationSystem.success('Opération réussie !')">
           Succès
         </button>
-        <button class="btn btn-danger" onclick="NotificationSystem.error('Une erreur est survenue')">
+        <button class="btn btn-danger btn-test-error" onclick="NotificationSystem.error('Une erreur est survenue')">
           Erreur
         </button>
-        <button class="btn btn-warning" onclick="NotificationSystem.warning('Attention aux seuils')">
+        <button class="btn btn-warning btn-test-warning" onclick="NotificationSystem.warning('Attention aux seuils')">
           Attention
         </button>
-        <button class="btn btn-primary" onclick="NotificationSystem.info('Information utile')">
+        <button class="btn btn-primary btn-test-info" onclick="NotificationSystem.info('Information utile')">
           Info
         </button>
         <button class="btn btn-secondary" onclick="NotificationSystem.show('Message personnalisé', 'success', 0)">
@@ -313,13 +320,15 @@
 <script src="{{ url_for('static', path='/js/components.js') }}"></script>
 <script>
 // Gestion des onglets
-document.querySelectorAll('.tab-btn').forEach(btn => {
+document.querySelectorAll('.demo-tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
     
     // Update button states
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.className = b === btn ? 'btn btn-sm btn-primary tab-btn' : 'btn btn-sm btn-secondary tab-btn';
+    document.querySelectorAll('.demo-tab-btn').forEach(b => {
+      b.className = b === btn
+        ? 'demo-tab-btn rounded px-3 py-2 bg-blue-600 text-white'
+        : 'demo-tab-btn rounded px-3 py-2 border border-slate-300';
     });
     
     // Show/hide content
@@ -483,9 +492,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initOccupationBarsDemo();
   initSearchDemo();
   initFiltersDemo();
-  
-  // Notification de bienvenue
-  NotificationSystem.success('Bienvenue dans le Design System !', 5000);
 });
 </script>
 {% endblock %}

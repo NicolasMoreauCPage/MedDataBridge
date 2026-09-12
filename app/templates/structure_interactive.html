@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
+{% block title %}Structure Interactive{% endblock %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="structure-interactive-container max-w-6xl mx-auto px-4 py-8">
   <!-- Header -->
-  <div class="mb-8">
+  <div class="structure-header mb-8">
     <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-lg">
       <div class="flex items-center space-x-4">
         <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
@@ -15,6 +17,11 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="action-buttons mb-6 flex flex-wrap gap-3" aria-label="Actions sur la structure">
+    <a href="/structure/wizard" class="btn-primary inline-flex items-center rounded-lg px-4 py-2">Créer une structure</a>
+    <a href="/structure/search" class="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 hover:bg-slate-50">Rechercher</a>
   </div>
 
   <!-- Instructions -->
@@ -38,9 +45,9 @@
   </div>
 
   <!-- Structure Tree avec édition inline -->
-  <div id="structure-tree" class="space-y-6">
+  <div id="structure-tree" class="structure-tree space-y-6">
     {% for eg in egs %}
-    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-700">
+    <div class="structure-card bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-slate-700" data-item-id="{{ eg.id }}" data-item-type="entitegeographique">
       <!-- Entité Géographique Header -->
       <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
         <div class="flex items-center justify-between">
@@ -49,7 +56,7 @@
               data-editable 
               data-item-id="{{ eg.id }}" 
               data-item-type="entitegeographique" 
-              data-field="nom"
+              data-field="name"
               class="text-2xl font-bold text-white cursor-text hover:bg-white/10 px-2 py-1 rounded transition"
               title="Double-clic pour éditer"
             >
@@ -61,7 +68,7 @@
                 data-editable 
                 data-item-id="{{ eg.id }}" 
                 data-item-type="entitegeographique" 
-                data-field="code"
+                data-field="identifier"
                 class="font-mono cursor-text hover:bg-white/10 px-1 rounded"
                 title="Double-clic pour éditer"
               >
@@ -88,7 +95,7 @@
                   data-editable 
                   data-item-id="{{ pole.id }}" 
                   data-item-type="pole" 
-                  data-field="nom"
+                  data-field="name"
                   data-parent-id="{{ eg.id }}"
                   data-parent-type="entitegeographique"
                   class="text-xl font-semibold text-indigo-900 dark:text-indigo-200 cursor-text hover:bg-white/50 px-2 py-1 rounded"
@@ -101,7 +108,7 @@
                     data-editable 
                     data-item-id="{{ pole.id }}" 
                     data-item-type="pole" 
-                    data-field="code"
+                    data-field="identifier"
                     class="font-mono cursor-text hover:bg-white/50 px-1 rounded"
                     >{{ pole.identifier or '' }}</span>
                 </p>
@@ -130,7 +137,7 @@
                     data-editable 
                     data-item-id="{{ service.id }}" 
                     data-item-type="service" 
-                    data-field="nom"
+                    data-field="name"
                     class="font-semibold text-emerald-800 dark:text-emerald-200 cursor-text hover:bg-emerald-50 px-2 py-1 rounded"
                   >
                     🏛️ {{ service.name }}
@@ -140,7 +147,7 @@
                       data-editable 
                       data-item-id="{{ service.id }}" 
                       data-item-type="service" 
-                      data-field="code"
+                      data-field="identifier"
                       class="font-mono cursor-text hover:bg-emerald-50 px-1 rounded"
                     >{{ service.identifier or '' }}</span>
                   </p>
@@ -167,7 +174,7 @@
                       data-editable 
                       data-item-id="{{ uf.id }}" 
                       data-item-type="unitefonctionnelle" 
-                      data-field="nom"
+                      data-field="name"
                       class="text-sm font-medium text-teal-800 dark:text-teal-200 cursor-text hover:bg-white px-1 rounded"
                     >
                       🔹 {{ uf.name }}
@@ -177,7 +184,7 @@
                         data-editable 
                         data-item-id="{{ uf.id }}" 
                         data-item-type="unitefonctionnelle" 
-                        data-field="code"
+                        data-field="identifier"
                         class="font-mono cursor-text hover:bg-white px-1 rounded"
                       >{{ uf.identifier or '' }}</span>)
                     </span>

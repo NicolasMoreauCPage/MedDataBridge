@@ -51,7 +51,7 @@ def test_generate_mfn_includes_all_types_and_lrl():
         lines = [l.strip() for l in mfn.splitlines() if l.strip()]
 
         # Check MFE entries exist for each created entity
-        assert any(f"^^^^^M^^^^{eg.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for EG"
+        assert any(f"^^^^^ETBL_GRPQ^^^^{eg.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for EG"
         assert any(f"^^^^^P^^^^{pole.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for Pole"
         assert any(f"^^^^^D^^^^{service.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for Service"
         assert any(f"^^^^^UF^^^^{uf.identifier}" in l and l.startswith("MFE") for l in lines), "Missing MFE for UF"

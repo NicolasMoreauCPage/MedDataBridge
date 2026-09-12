@@ -5,6 +5,13 @@
 **Révision initialement auditée :** `403ce0e` (`main`), avec les modifications locales présentes au moment de l'analyse
 **Référentiels :** IHE France PAM National Extension 2.11.1, contraintes françaises sur les types de données 1.8.1, HL7 v2.5 et spécification d'interface CPage IHE PAM 2.11 (document 1.3 du 01/07/2025)
 
+> Statut documentaire : **audit historique, correctifs intégrés**. Les tableaux
+> qui suivent les sections « constat avant correction » restent volontairement
+> inchangés pour conserver les écarts observés le 11 septembre. L'état de
+> preuve courant est complété par le
+> [roundtrip CPage](ROUNDTRIP_CPAGE_PAM_20260911.md) et l'
+> [index des rapports](README_FOR_REPORTS.md).
+
 ## Conclusion exécutive
 
 **Verdict après correctifs : socle IHE PAM France/CPage techniquement réaligné et contrôlé par tests ciblés.**
@@ -32,9 +39,11 @@ Cette conclusion est une validation technique interne : elle **ne vaut pas certi
 - l'émission automatique est bloquée si la validation sortante échoue ;
 - l'IHM de configuration d'endpoint permet d'activer le contrôle PAM France entrant et de choisir entre journalisation et ACK `AE`.
 
-Les détails ci-dessous décrivent le constat **avant correction** et sont conservés comme traçabilité de l'audit.
-
-Il ne faut donc pas présenter l'application comme « conforme IHE PAM France 2.11.1 » ni activer un rejet systématique des flux CPage sur la seule décision du validateur actuel.
+Les détails ci-dessous décrivent le constat **avant correction** et sont
+conservés comme traçabilité de l'audit. La réserve de certification externe
+reste applicable : ne pas présenter l'application comme certifiée IHE PAM
+France 2.11.1 ni activer un rejet systématique d'un partenaire sans recette
+bilatérale de l'endpoint.
 
 ## Périmètre et méthode
 
@@ -67,7 +76,7 @@ Le profil national impose les événements suivants :
 
 Le socle national obligatoire couvre notamment A01/A11, A04/A11, A03/A13, A05/A38, A06/A07, A07/A06, A02/A12, A54/A55, A21/A52, A22/A53, A44 et Z99. Les événements d'attente A15/A26 font partie des options selon le périmètre d'intégration. La mise à jour d'identité est portée par A31 et la correction d'un mouvement par Z99 ; A08 n'est pas l'événement de mise à jour PAM France attendu.
 
-## Matrice de couverture observée
+## Matrice de couverture observée avant correction
 
 La colonne « Réception » signifie que le routeur possède un chemin applicatif. Elle ne garantit pas que tous les messages conformes sont acceptés ni que toutes leurs données sont conservées.
 

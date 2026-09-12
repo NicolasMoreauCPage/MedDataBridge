@@ -1,6 +1,6 @@
-# IntegraSanté by CPage
+# MedData Bridge
 
-IntegraSanté est une plateforme légère d'interopérabilité destinée à la qualification et au test d'interfaces HL7 / FHIR (IHE PAM, HPRIM, etc.).
+MedData Bridge est une plateforme légère d'interopérabilité destinée à la qualification et au test d'interfaces HL7 / FHIR (IHE PAM, HPRIM, etc.).
 
 L'objectif principal est de fournir un environnement reproductible pour :
 - importer et valider des messages HPRIM/HL7 ;
@@ -12,26 +12,18 @@ Ce dépôt contient une application FastAPI + Jinja2 (UI) avec une petite base S
 ## 📚 Documentation
 
 **Documentation complète disponible dans [`docs/`](docs/)** :
-- [PROGRAM_DOCUMENTATION.md](docs/PROGRAM_DOCUMENTATION.md) - Architecture et composants techniques
-- [NAMESPACES_CLARIFICATION.md](docs/NAMESPACES_CLARIFICATION.md) - Guide HL7v2/FHIR sur les namespaces (OID, URI, nom)
-- [API_REST_DOCUMENTATION.md](docs/API_REST_DOCUMENTATION.md) - Documentation des endpoints API
-- [docs/README.md](docs/README.md) - Index complet de la documentation
-
-### 🎨 Refonte Interface Structure (Phases 1-5.1)
-- [SPRINT1_DASHBOARD_STRUCTURE.md](docs/SPRINT1_DASHBOARD_STRUCTURE.md) - Dashboard avec visualisation hiérarchique
-- [SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md](docs/SPRINT2_STRUCTURE_WIZARD_TEMPLATES.md) - Wizard de création avec templates
-- [SPRINT3_MODE_GESTIONNAIRE.md](docs/SPRINT3_MODE_GESTIONNAIRE.md) - Mode Gestionnaire avec analytics
-- [PHASE4_IMPORT_EXPORT.md](docs/PHASE4_IMPORT_EXPORT.md) - Spécifications Import/Export Excel
-- [PHASE4.1_IMPORT_EXPORT_COMPLETE.md](docs/PHASE4.1_IMPORT_EXPORT_COMPLETE.md) - Documentation technique complète
-- [API_FHIR_STRUCTURE.md](docs/API_FHIR_STRUCTURE.md) - API FHIR Structure (CRUD complet)
-- [PHASE5_UX_MODERNE.md](docs/PHASE5_UX_MODERNE.md) - UX interactive (inline editing, drag & drop)
-- [RECAPITULATIF_COMPLET.md](docs/RECAPITULATIF_COMPLET.md) - Vue d'ensemble de toutes les phases
+- [docs/README.md](docs/README.md) - index de la documentation maintenue
+- [docs/IHE_PAM.md](docs/IHE_PAM.md) - utilisation du validateur IHE PAM France
+- [docs/user_guide.md](docs/user_guide.md) - guide utilisateur et procédures d'exploitation
+- [docs/reports/ROUNDTRIP_CPAGE_PAM_20260911.md](docs/reports/ROUNDTRIP_CPAGE_PAM_20260911.md) - preuve roundtrip CPage
+- [docs/reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md](docs/reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md) - périmètre FHIR France / FR Core
+- [docs/OUTBOX.md](docs/OUTBOX.md) - reprise persistante des émissions
 
 ## Contenu clé
 - `app/` : code de l'application (routers, templates, modèles SQLModel, services).
 - `docs/` : documentation détaillée (IHE PAM, HPRIM, API, guides d'intégration).
 - `data/medbridge.db` : base SQLite locale par défaut, générée après `init_db`.
-- `tests/` : suite complète de tests (575+ tests : API, intégration, UI, sécurité, performance).
+- `tests/` : tests unitaires, d'intégration, de roundtrip et d'IHM. Les commandes de qualification sont décrites dans [docs/TESTS_STATUS.md](docs/TESTS_STATUS.md).
 
 Architecture (schéma rapide)
 

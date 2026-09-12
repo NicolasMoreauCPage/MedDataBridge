@@ -9,7 +9,7 @@ MedData Bridge est organisé en modules fonctionnels clairs avec séparation des
 ```
 MedDataBridge-main/
 ├── app/                    # Application principale FastAPI
-├── tests/                  # Suite de tests complète (575+ tests)
+├── tests/                  # Tests unitaires, intégration, roundtrip et IHM
 ├── docs/                   # Documentation projet
 ├── scripts/                # Scripts utilitaires et maintenance
 ├── adapters/               # Adaptateurs HL7
@@ -310,7 +310,8 @@ app/infrastructure/              # Infrastructure
 
 ## 📁 tests/ - Suite de tests complète
 
-**575+ tests** organisés par type :
+Les tests sont organisés par type. Les commandes de qualification et le statut
+de la campagne sont dans [TESTS_STATUS.md](TESTS_STATUS.md) :
 
 ```
 tests/

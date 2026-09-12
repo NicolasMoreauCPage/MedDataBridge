@@ -39,6 +39,8 @@ tmp/generated/
 tmp_ui_convert_test/
 temp/
 hprim_xml_roundtrip/
+artifacts/
+tests/artifacts/screenshots/
 logs/
 *.zip
 Doc/interfaces.integration/

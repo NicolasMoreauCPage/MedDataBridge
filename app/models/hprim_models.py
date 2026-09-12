@@ -73,3 +73,23 @@ class HprimNGAPAct(SQLModel, table=True):
     deleted: bool = Field(default=False, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
+class HprimExchangeAct(SQLModel, table=True):
+    """Projection canonique d'un acte reçu ou émis via HPRIM.
+
+    CCAM et NGAP conservent leurs tables détaillées historiques. Cette table est
+    commune aux quatre nomenclatures et permet notamment de contrôler un
+    roundtrip UCD/LPP sans perdre les champs non couverts par les anciens
+    modèles SQL.
+    """
+
+    id: str = Field(primary_key=True, index=True)
+    message_id: str = Field(foreign_key="hprimmessage.message_id", index=True)
+    patient_id: Optional[str] = Field(default=None, index=True)
+    act_type: str = Field(index=True)
+    code: str = Field(index=True)
+    action: str = Field(default="creation", index=True)
+    payload_json: str = Field(default="{}", sa_column_kwargs={"nullable": False})
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)

@@ -1,78 +1,50 @@
-# IHE PAM (Profile Application Management) — Validation guide
+# IHE PAM France — guide d'utilisation du validateur
 
-Ce document décrit des règles pratiques pour valider les messages IHE PAM et
-les enchaînements (workflows) attendus par MedData_Bridge.
+MedData Bridge valide, intègre et génère les flux IHE PAM France : ITI-30
+(identité patient) et ITI-31 (mouvements), fondés sur HL7 v2.5. Ce document
+est un guide d'exploitation ; il ne remplace pas les spécifications IHE France,
+HL7 v2.5 et la convention bilatérale du partenaire.
 
-## 1. Objectif
+## Contrôles réalisés
 
-- Fournir une check-list technique pour valider les messages PAM (segments, champs
-  obligatoires, codages attendus).
+- intégrité HL7 de base : séparateurs, `MSH`, version, structure, segments et
+  répétitions ;
+- cohérence IHE PAM France : `MSH-9`, trigger, segments obligatoires, `PID`,
+  `PV1`, `ZBE`, `MRG` et événements ITI-30/ITI-31 ;
+- règles françaises et CPage : encodage, identifiants, dates, actions et
+  variantes nationales admises ;
+- cohérence métier : transition de venue/mouvement et annulations ;
+- ACK et diagnostic : les messages invalides sont expliqués par code, sévérité
+  et emplacement de champ.
 
-- Proposer un outil de validation minimal `scripts/validate_pam.py` qui effectue
-  des contrôles de conformité (message et workflow).
+`MSH-18=8859/1`, valeur préconisée par les spécifications PAM France, est
+accepté. Le contrôle de complétude de `ZBE-8` est un avertissement : des flux
+CPage légitimes le laissent vide. La valeur connue comme erronée de `ZBE-9`
+peut être diagnostiquée sans empêcher l'intégration si la politique du flux le
+prévoit.
 
-## 2. Règles de validation des messages
+## Politique de réception
 
-- Segments requis pour un message d'hospitalisation typique (ADT): `MSH`, `PID`, `PV1`.
+Chaque endpoint peut être configuré en mode :
 
-- Codages HL7: vérifier que MSH-12 contient 2.5 ou 2.5.1 selon l'envoi attendu.
+- `warn` : journaliser les écarts et produire un diagnostic sans bloquer le
+  flux lorsque le contexte métier le permet ;
+- `reject` : retourner un ACK `AE` pour les erreurs bloquantes.
 
-- Pour PAM, certains Z-segments (ZBE, ZBE-...) sont utilisés pour transmettre des
-  métadonnées opérationnelles. Le validateur vérifiera la présence si configuré.
+Commencer une intégration partenaire en `warn`, analyser les écarts réels, puis
+passer au rejet après recette bilatérale. L'émission applicative est, elle,
+bloquée lorsqu'elle échoue à sa validation sortante.
 
-- Formats d'identifiants: XPN / CX / EI doivent respecter les longueurs attendues
-  (ex. EI-1 <= 16 pour certains output MFN, mais PAM peut tolérer plus selon le profil).
+## Preuves disponibles
 
-### Exemples de contrôles rapides
+- [Audit PAM France / CPage](reports/AUDIT_CONFORMITE_IHE_PAM_FRANCE_20260911.md)
+  : couverture, corrections et limites de certification ;
+- [Roundtrip CPage](reports/ROUNDTRIP_CPAGE_PAM_20260911.md) : injection MLLP
+  dans deux GHT et comparaison des BDD ;
+- [État des tests](TESTS_STATUS.md) : commandes reproductibles et CI.
 
-- Vérifier la présence de `MSH` en première ligne et que `MSH-9` contient une valeur (ex.: `ADT^A01`).
+## Limites
 
-- `PID-3` contient au moins un identifiant patient sous la forme `ID^^^SYSTEM&OID&ISO^PI`.
-
-- `PV1-2` / `PV1-3` contiennent des codes de location valides.
-
-## 3. Règles de validation des enchaînements (workflows)
-
-L'objectif est de valider que les événements applicatifs arrivent dans un ordre
-logique. Exemples de règles possibles:
-
-- Admission (A01) doit précéder toute modification d'état liée au séjour (A08, A03 pour sortie en A03). 
-
-- Sortie définitive (A03/A08 selon contexte) ne doit pas précéder l'admission.
-
-- Suite d'événements pour un patient donné (PID-3) : A01 → A02/A08* → A03.
-
-Le validateur `workflow` proposera des vérifications basiques :
-
-- construction d'une timeline par `PID-3` à partir des fichiers fournis;
-
-- détection d'anomalies temporelles (A03 avant A01, etc.);
-
-- détection d'événements manquants (pas d'A01 avant un A03, etc.).
-
-## 4. Usage de l'outil de validation
-
-- Validation d'un seul message :
-
-```bash
-python3 scripts/validate_pam.py message path/to/message.hl7
-```
-
-- Validation d'un répertoire d'enchaînements pour workflow :
-
-```bash
-python3 scripts/validate_pam.py workflow path/to/messages_dir
-```
-
-## 5. Extensions possibles
-
-  autorisées par service, code mappings, exceptions).
-
-
-Annexe: Référence rapide des segments usuels utilisés en PAM
-
-# Pour la documentation technique détaillée du pipeline d'intégration, voir :
-
-# [Documentation technique IHE PAM (HTML)](IHE_PAM_TECHNIQUE.html)
-
-
+La conformité technique testée ne vaut ni certification IHE, ni Connectathon,
+ni recette bilatérale. Toute extension Z consommée par un partenaire doit être
+qualifiée avec son corpus, sa politique de sévérité et ses ACK attendus.

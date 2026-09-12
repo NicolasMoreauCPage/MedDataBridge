@@ -1,674 +1,340 @@
-# Guide Utilisateur - Interface Web
+# Guide utilisateur complet — MedData Bridge
 
-## Accueil
+Dernière mise à jour : 12 septembre 2026.
 
-L'interface MedData Bridge propose une navigation contextuelle basée sur les GHT, Établissements Juridiques, Patients et Dossiers.
+MedData Bridge est un environnement local de qualification et d'exploitation
+des échanges IHE PAM France, HL7 MFN, HPRIM XML et FHIR R4 / FR Core. Il permet
+également de gérer la structure hospitalière, les patients, les dossiers, les
+venues et les mouvements associés.
 
-### Sélection du Contexte
+Ce guide est destiné aux intégrateurs, référents identité et structure,
+équipes de recette et exploitants. Les spécifications des partenaires restent
+prioritaires.
 
-#### Contexte GHT
+## Sommaire
 
-1. Accéder à **Administration** → **GHT & Établissements**
+1. Démarrage et accès
+2. Contextes et données métier
+3. Validation et IHE PAM France
+4. Endpoints, HPRIM, MFN et FHIR
+5. Journaux, outbox, scénarios et roundtrips
+6. Diagnostic et glossaire
 
-2. Cliquer sur un GHT pour l'activer
+## Démarrage et accès
 
-3. Badge bleu affiché en haut à gauche confirme le contexte actif
+Depuis la racine du dépôt :
 
-#### Contexte Établissement Juridique (EJ)
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python init_db.py
+uvicorn app.app:app --reload --port 8000
+```
 
-1. Dans la liste des EJ du GHT actif, cliquer sur un établissement
+Ouvrir ensuite <http://localhost:8000>.
 
-2. Badge cyan affiché en haut pour confirmation
+| Adresse | Usage |
+|---|---|
+| `/` | Accueil et accès aux modules |
+| `/guide` | Guide rapide dans l'IHM |
+| `/documentation` | Index de la documentation rendue par l'application |
+| `/api/docs` | Contrat OpenAPI des API HTTP |
+| `/health/live` | Vérification de disponibilité |
 
-3. Permet de filtrer patients/dossiers de cet établissement
+Pour une recette, utiliser une BDD et des répertoires d'artefacts dédiés. Ne
+pas mélanger un corpus de qualification avec les données de démonstration.
 
-#### Contexte Patient
+## Contextes et données métier
 
-1. Rechercher un patient dans **Patients** → **Recherche**
-
-2. Cliquer sur le patient pour l'activer
-
-3. Badge vert affiché avec nom + ID patient
-
-#### Contexte Dossier
-
-1. Dans la fiche patient, sélectionner un dossier
-
-2. Badge indigo affiché avec numéro de dossier
-
-3. Filtrage automatique des mouvements pour ce dossier
-
-**Effacement**: Cliquer sur × dans le badge ou Menu → **Effacer Contexte**.
-
-## Gestion des Patients
-
-### Créer un Patient
-
-1. **Patients** → **Nouveau Patient**
-
-2. Remplir:
-
-   - Nom de famille (obligatoire)
-
-   - Prénom (obligatoire)
-
-   - Date de naissance (obligatoire)
-
-   - Sexe: male | female | other | unknown
-
-3. Optionnel: Adresse, Téléphones, Identifiants
-
-4. **Enregistrer**
-
-### Modifier un Patient
-
-1. Rechercher le patient
-
-2. Cliquer sur **Modifier**
-
-3. Mettre à jour les champs
-
-4. **Enregistrer les modifications**
-
-### Supprimer un Patient
-
-1. Ouvrir la fiche patient
-
-2. **Actions** → **Supprimer**
-
-3. Confirmation requise
-
-4. Suppression logique (archivage)
-
-## Gestion des Dossiers
-
-### Créer un Dossier
-
-1. Activer contexte Patient
-
-2. **Dossiers** → **Nouveau Dossier**
-
-3. Renseigner:
-
-   - Numéro de dossier (unique)
-
-   - Type: HOSPITALISE | URGENCES | EXTERNE | AMBULATOIRE
-
-   - UF responsable
-
-   - Date/heure admission
-
-4. **Créer**
-
-### Associer une Venue (Séjour)
-
-1. Dans le dossier, **Venues** → **Nouvelle Venue**
-
-2. Indiquer:
-
-   - Code venue (unique)
-
-   - UF responsable
-
-   - Date/heure début
-
-   - Location initiale
-
-3. **Enregistrer**
-
-## Gestion des Mouvements
-
-### Enregistrer un Mouvement
-
-1. Activer contexte Dossier + Venue
-
-2. **Mouvements** → **Nouveau Mouvement**
-
-3. Remplir:
-
-   - Numéro séquence (unique)
-
-   - Date/heure
-
-   - Location (format: `SERVICE/CHAMBRE/LIT`)
-
-   - Trigger Event: A01 (admission) | A02 (transfert) | A03 (sortie)
-
-   - Action: INSERT | UPDATE | CANCEL
-
-   - UF médicale + UF soins (codes)
-
-   - Nature: S (Somatique) | H (Hospitalisation) | M (Maternité) | L (Long séjour) | D (Domicile) | SM (Santé mentale)
-
-4. **Enregistrer**
-
-### Modifier un Mouvement
-
-1. Rechercher le mouvement
-
-2. **Modifier**
-
-3. Changer champs nécessaires
-
-4. **Action**: Mettre `UPDATE` + indiquer **Trigger Original** (ex: A01)
-
-5. **Enregistrer**
-
-### Annuler un Mouvement
-
-1. Ouvrir le mouvement
-
-2. **Action** → `CANCEL`
-
-3. Indiquer **Trigger Original**
-
-4. **Enregistrer**
-
-## Structure Hiérarchique
-
-### Consulter la Hiérarchie
-
-**Structure** → **Hiérarchie Complète**
-
-Arborescence affichée:
+Les contextes limitent les données visibles et les émissions au bon périmètre.
+Les badges de l'en-tête indiquent le contexte actif.
 
 ```text
-
-GHT
-└── Entité Juridique
-    └── Pôle
-        └── Service
-            └── Unité Fonctionnelle (UF)
-                └── Unité d'Hébergement (UH)
-                    └── Chambre
-                        └── Lit
-
+GHT → Entité juridique (EJ) → Entité géographique (EG)
+                                ↓
+                        Patient → dossier → venue → mouvement
 ```
 
-### Créer une Location
+### Sélectionner le contexte
 
-1. Naviguer vers le niveau parent (ex: UF pour créer UH)
+1. Ouvrir **Administration → GHT et établissements** (`/admin/ght`).
+2. Sélectionner le GHT, puis l'EJ ou l'EG si nécessaire.
+3. Vérifier les badges avant une importation, génération ou émission.
+4. Depuis une fiche, activer le patient ou le dossier avec l'action de contexte.
 
-2. **Nouvelle [Type]**
+`/context/clear` efface le contexte voulu. Un changement de GHT ou d'EJ retire
+automatiquement les contextes incompatibles afin d'éviter un travail dans le
+mauvais établissement.
 
-3. Renseigner:
+### Structure hospitalière
 
-   - Nom
+La hiérarchie utilisée par l'application est :
 
-   - Identifiant unique
-
-   - Statut opérationnel
-
-4. **Créer**
-
-## Configuration Endpoints
-
-### Ajouter un Endpoint MLLP
-
-1. **Administration** → **Endpoints**
-
-2. **Nouveau Endpoint**
-
-3. Type: **MLLP**
-
-4. Paramètres:
-
-   - Nom
-
-   - Host (IP ou hostname)
-
-   - Port (ex: 2575)
-
-   - Direction: inbound | outbound
-
-   - EJ émetteur (sélection)
-
-5. **Enregistrer**
-
-### Tester un Endpoint
-
-1. Liste endpoints
-
-2. Cliquer sur **Tester**
-
-3. Résultat connexion affiché (succès/erreur)
-
-### Ajouter un Endpoint File
-
-1. Type: **File**
-
-2. Paramètres:
-
-   - Répertoire inbox (messages entrants)
-
-   - Répertoire outbox (messages sortants)
-
-   - Pattern fichiers (ex: `*.hl7`)
-
-3. **Enregistrer**
-
-## Consultation des Messages
-
-### Logs Messages
-
-**Messages** → **Historique**
-
-Filtres disponibles:
-
-- Statut: ✓ Succès | ✗ Erreur | ⏳ En cours
-
-- Trigger Event: A01, A02, A03, etc.
-
-- Direction: ⬇ Entrant | ⬆ Sortant
-
-- Période (date début/fin)
-
-### Détails d'un Message
-
-1. Cliquer sur le message
-
-2. Affichage:
-
-   - Contenu HL7 brut
-
-   - Segments parsés
-
-   - Erreurs de validation
-
-   - Timestamp émission/réception
-
-   - Endpoint source/destination
-
-### Regénérer un Message
-
-1. Ouvrir le message
-
-2. **Actions** → **Regénérer**
-
-3. Nouveau message créé avec timestamp actuel
-
-## Documentation
-
-### Accéder à la Documentation
-
-**Menu** → **Documentation** ou `/documentation`
-
-Sections disponibles:
-
-- Architecture système
-
-- Guide API
-
-- Guide utilisateur (ce document)
-
-- Conformité IHE PAM France
-
-- Matrice de conformité ZBE
-
-- Comportements legacy
-
-### Rechercher dans la Documentation
-
-1. Barre de recherche en haut à droite
-
-2. Saisir mots-clés (min 3 caractères)
-
-3. Résultats affichés avec contexte
-
-## Notifications & Alertes
-
-### Messages Flash
-
-Affichés en haut de page après actions:
-
-- ✓ Vert: Succès
-
-- ✗ Rouge: Erreur
-
-- ℹ Bleu: Information
-
-- ⚠ Jaune: Avertissement
-
-### Compteur Messages en Erreur
-
-Badge rouge dans l'en-tête indique nombre de messages en erreur pour le contexte actif. Cliquer pour accéder aux logs filtrés.
-
-## Raccourcis Clavier
-
-- `Alt+H`: Accueil
-
-- `Alt+P`: Patients
-
-- `Alt+D`: Dossiers
-
-- `Alt+M`: Messages
-
-- `Alt+S`: Structure
-
-- `Alt+A`: Administration
-
-- `/`: Focus recherche
-
-- `Esc`: Fermer modales/overlay
-
-## Scénarios d'Interopération
-
-Les scénarios permettent de capturer, reproduire et tester des séquences de messages HL7/FHIR complètes.
-
-### Concepts Clés
-
-**Scénario**: Séquence ordonnée de messages avec délais entre chaque étape
-**Step**: Un message dans le scénario (ADT^A01, ORU^R01, etc.)
-**Capture**: Créer un scénario automatiquement depuis un dossier existant
-**Replay**: Rejouer un scénario vers un endpoint configuré
-
-### Créer un Scénario par Capture
-
-**Méthode Automatique** (recommandée):
-
-1. Ouvrir un dossier avec mouvements
-
-2. **Actions** → **Capturer comme Scénario**
-
-3. Renseigner:
-
-   - Nom du scénario
-
-   - Clé unique (ex: `admission-simple-a01`)
-
-   - Catégorie (optionnel)
-
-   - Tags (ex: `urgences,admission`)
-
-4. **Capturer**
-
-Le système analyse les mouvements et génère automatiquement:
-
-- Séquence de messages HL7 (A01, A02, A03...)
-
-- Délais réels entre chaque événement
-
-- Payloads HL7 complets
-
-**Messages Z** (Legacy): Les messages Z01-Z99 (sauf Z99) sont marqués comme dépréciés IHE PAM ≥2.8 et ne seront pas émis lors du replay.
-
-### Configuration Temporelle Avancée
-
-Permet d'adapter les dates lors du replay:
-
-**Mode Ancre** (`anchor_mode`):
-
-- `sliding`: Dates décalées de N jours depuis aujourd'hui
-
-- `fixed`: Date de départ fixe (ISO 8601)
-
-- `none`: Utiliser dates originales (peut être obsolète)
-
-**Décalage** (`anchor_days_offset`):
-
-- `-7`: Scénario commence il y a 7 jours
-
-- `0`: Aujourd'hui
-
-- `+1`: Demain
-
-**Préserver Intervalles** (`preserve_intervals`):
-
-- `true`: Garder délais exacts entre messages (ex: 2h entre A01 et A08)
-
-- `false`: Grouper messages (tous envoyés immédiatement)
-
-**Jitter** (`jitter_min/max_minutes`):
-
-- Variation aléatoire des timestamps (±N minutes)
-
-- Simule envois non-parfaitement synchrones
-
-- Appliqué sur événements spécifiques (`jitter_events`)
-
-**Exemple Configuration**:
-```json
-{
-  "anchor_mode": "sliding",
-  "anchor_days_offset": -3,
-  "preserve_intervals": true,
-  "jitter_min": 1,
-  "jitter_max": 5,
-  "jitter_events": true
-}
-```
-→ Scénario commence il y a 3 jours, délais préservés, ±1-5 min de variation
-
-### Rejouer un Scénario
-
-1. **Scénarios** → Sélectionner un scénario
-
-2. Choisir **Endpoint cible** (système configuré en mode sender)
-
-3. Options:
-
-   - **Scénario complet**: Tous les messages en séquence
-
-   - **Étape unique**: Un seul message spécifique
-
-4. **Envoyer**
-
-Le système:
-
-- Applique la configuration temporelle
-
-- Met à jour les dates HL7 (MSH-7, EVN-2, PV1-44...)
-
-- Respecte les délais configurés
-
-- Enregistre l'exécution dans Dashboard
-
-### Dashboard d'Exécution
-
-**Scénarios** → **Runs** affiche:
-
-**Statistiques Globales**:
-
-- Nombre total d'exécutions
-
-- Taux de succès
-
-- Messages en erreur
-
-- Temps moyen d'exécution
-
-**Vue Temporelle**:
-
-- Graphique d'exécutions par jour (30 derniers jours)
-
-- Filtrable par scénario ou endpoint
-
-**Distribution ACK**:
-
-- AA (Application Accept): Succès
-
-- AE (Application Error): Erreur applicative
-
-- AR (Application Reject): Rejet
-
-- CA/CE/CR: Variantes conditionnelles
-
-**Liste des Runs**:
-
-- ID, Date, Scénario, Endpoint
-
-- Statut (success, partial, error)
-
-- Steps réussis/échoués/ignorés
-
-- Détails erreurs (cliquer sur run)
-
-**Comparaison Scénarios**:
-
-- Performance relative entre scénarios
-
-- Taux succès, temps moyen, fréquence d'usage
-
-### Export / Import de Scénarios
-
-**Exporter un Scénario**:
-
-1. Ouvrir détail du scénario
-
-2. Cliquer **Exporter JSON**
-
-3. Fichier JSON téléchargé contient:
-
-   - Métadonnées (nom, clé, protocole, tags)
-
-   - Configuration temporelle complète
-
-   - Tous les steps avec payloads
-
-**Format JSON Exporté**:
-```json
-{
-  "id": 42,
-  "key": "admission-urgences-a01",
-  "name": "Admission Urgences Standard",
-  "description": "Patient arrivé aux urgences puis hospitalisé",
-  "protocol": "HL7v2",
-  "tags": "urgences,admission",
-  "time_config": {
-    "anchor_mode": "sliding",
-    "anchor_days_offset": -1,
-    "preserve_intervals": true,
-    "jitter_min": 1,
-    "jitter_max": 3
-  },
-  "steps": [
-    {
-      "order_index": 0,
-      "message_type": "ADT^A01",
-      "format": "HL7v2",
-      "delay_seconds": 0,
-      "payload": "MSH|^~\\&|SENDING|..."
-    },
-    {
-      "order_index": 1,
-      "message_type": "ADT^A02",
-      "format": "HL7v2",
-      "delay_seconds": 7200,
-      "payload": "MSH|^~\\&|SENDING|..."
-    }
-  ]
-}
+```text
+GHT → EJ → EG → Pôle → Service → UF → UH → Chambre → Lit
 ```
 
-**Importer un Scénario**:
+Utiliser `/structure` pour la vue d'ensemble et les écrans spécialisés :
+`/structure/eg`, `/structure/poles`, `/structure/services`, `/structure/ufs`,
+`/structure/uh`, `/structure/chambres` et `/structure/lits`.
 
-1. **Scénarios** → **Importer**
+`/structure/interactive` permet de relire l'arborescence, modifier certains
+libellés ou identifiants, déplacer des entités et réaliser des actions
+groupées. Vérifier tout déplacement avant confirmation : il modifie les liens
+réutilisés par les exports MFN et FHIR.
 
-2. Sélectionner **Contexte GHT** cible
+### Patients, dossiers, venues et mouvements
 
-3. **Méthode 1**: Upload fichier JSON
+1. Créer ou rechercher le patient dans `/patients`.
+2. Contrôler ses identifiants, en particulier l'IPP et son espace d'identifiants.
+3. Créer le dossier dans `/dossiers`, avec l'EJ, le type et les dates.
+4. Créer la venue dans `/venues`, avec l'UF et la localisation si elles sont
+   connues.
+5. Créer les mouvements dans `/mouvements`.
 
-4. **Méthode 2**: Coller JSON directement
+Avant toute émission, vérifier que le patient, le dossier, la venue, l'UF et
+la localisation appartiennent au même périmètre. La vue
+`/workflow/venue/{id}/view` aide à relire les transitions autorisées.
 
-5. Options avancées (optionnel):
+## Validation et IHE PAM France
 
-   - **Nouvelle clé**: Évite collision avec scénario existant
+L'écran `/validation` accepte un message HL7 v2 ou un XML HPRIM collé dans le
+formulaire et détecte automatiquement son format.
 
-   - **Nouveau nom**: Renomme lors de l'import
+### Valider un message HL7
 
-6. **Importer**
+1. Coller le message complet, avec `MSH` en premier segment.
+2. Choisir le sens `inbound` ou `outbound`.
+3. Lancer la validation du profil IHE PAM France.
+4. Lire les diagnostics par couche : HL7 de base, structure, types de données
+   et règles IHE PAM.
 
-**Cas d'Usage Import/Export**:
+| Niveau | Signification |
+|---|---|
+| Erreur | Écart bloquant ; l'émission applicative est empêchée |
+| Avertissement | Écart toléré, à qualifier avec le partenaire |
+| Information | Indication ou normalisation sans blocage |
 
-- 📦 Partager scénarios entre environnements (dev → prod)
+`MSH-18=8859/1` est accepté comme valeur préconisée par le profil français.
+L'absence de `ZBE-8` est un avertissement, non un rejet systématique. Les
+valeurs connues comme erronées de `ZBE-9` sont diagnostiquées pour traiter les
+corpus CPage avec une politique adaptée.
 
-- 📚 Créer bibliothèques de tests réutilisables
+### Injecter et contrôler un message PAM
 
-- 🔄 Modifier payloads manuellement (éditer JSON)
+1. Sélectionner le GHT et l'EJ de destination.
+2. Ouvrir `/messages/send`.
+3. Choisir `MLLP`, l'endpoint attendu ou aucun endpoint pour une simulation
+   locale, puis coller le message HL7.
+4. Soumettre et lire l'ACK retourné.
+5. Vérifier le journal dans `/messages`, puis le patient, dossier, venue ou
+   mouvement créé.
 
-- 💾 Archiver scénarios pour documentation
+| ACK | Interprétation |
+|---|---|
+| `AA` | Message accepté par l'application |
+| `AE` | Erreur applicative à diagnostiquer |
+| `AR` | Message rejeté |
 
-- 🧪 Générer variantes d'un scénario (changer délais, dates)
+Un ACK positif ne suffit pas : il faut toujours vérifier le résultat métier.
+Les endpoints PAM peuvent appliquer une politique `warn` ou `reject`.
+Commencer une recette partenaire en `warn`, analyser les écarts puis activer le
+rejet après accord bilatéral. `/conformity` présente la vue par EJ et les
+diagnostics associés.
 
-**Modification Manuelle JSON**:
+Le guide fonctionnel est [IHE_PAM.md](IHE_PAM.md). Le corpus de référence est
+dans `data/pam/` et son roundtrip est décrit dans
+[ROUNDTRIP_CPAGE_PAM_20260911.md](reports/ROUNDTRIP_CPAGE_PAM_20260911.md).
+
 ```bash
-
-# Exporter scénario
-
-curl http://localhost:8000/scenarios/42/export > scenario.json
-
-# Éditer (changer délais, payloads, time_config...)
-
-vim scenario.json
-
-# Réimporter avec nouvelle clé
-
-# Via UI: Importer avec override_key="scenario-modified"
-
+python3 scripts/true_roundtrip_cpage.py run
 ```
 
-### Namespaces et Identifiants
+## Endpoints et échanges
 
-Scénarios utilisent les identifiants du patient/dossier d'origine. Lors du replay:
+Configurer les systèmes dans `/endpoints`, après avoir sélectionné le GHT ou
+l'EJ concernée.
 
-- IPP/NDA mappés selon namespaces du contexte cible
+### Créer un endpoint
 
-- MSH-3/MSH-4 adaptés au système émetteur
+1. Cliquer sur **Nouveau système**.
+2. Donner un nom explicite, par exemple `CPage recette MLLP`.
+3. Choisir le transport : `MLLP` pour HL7 v2, `FHIR` pour les Bundles HTTP,
+   ou `FILE` pour un échange par répertoire lorsqu'il est configuré.
+4. Renseigner l'hôte/port MLLP ou l'URL de base FHIR.
+5. Définir le rôle `sender`, `receiver` ou `both` et le contexte GHT/EJ.
+6. Tester avec un corpus non nominatif avant activation.
 
-- PID-3/PV1-19 mis à jour automatiquement
+Un endpoint désactivé reste conservé mais n'est pas utilisé pour l'émission.
+`/endpoints/admin` affiche tous les endpoints, sans filtre de contexte.
 
-**Configuration**: **Admin** → **Namespaces** pour gérer mappings.
+### Importer et qualifier HPRIM XML
 
-### Bonnes Pratiques
+1. Ouvrir `/hprim/import`.
+2. Charger ou coller le XML d'actes.
+3. Vérifier la validation XML/XSD et l'acquittement.
+4. Consulter l'historique persistant dans `/hprim/messages`.
 
-**Nommage**:
+Le périmètre qualifié couvre CCAM, NGAP, UCD et LPP. Pour saisir un acte,
+utiliser `/dossier/{dossier_id}/saisie` et contrôler le dossier, le code, la
+date d'exécution, la quantité, l'exécutant et le montant avant validation.
 
-- Clés descriptives: `admission-urg-a01-a02-a03`
+Le roundtrip HPRIM automatisé expose :
 
-- Noms explicites: "Admission Urgences puis Hospitalisation"
+| Besoin | Endpoint |
+|---|---|
+| Générer un XML | `POST /roundtrip-hprim/generate` |
+| Télécharger le résultat | `GET /roundtrip-hprim/download/{filename}` |
+| Réintégrer un XML | `POST /roundtrip-hprim/reintegrate` |
 
-- Tags cohérents: `urgences`, `admission`, `transfert`
+Le payload de génération indique `CCAM`, `NGAP`, `UCD` ou `LPP` et un code
+d'acte. Si un montant est fourni, `montant_total` doit être égal à
+`prix_unitaire × quantite`. Le contrat complet est visible dans `/api/docs`.
 
-**Organisation**:
+### Importer un MFN^M05
 
-- Catégories par service: `Urgences`, `MCO`, `SSR`
+L'import MFN utilise le GHT actif :
 
-- Bibliothèque de cas types (admission simple, complexe, avec transferts...)
+```bash
+curl -X POST http://localhost:8000/structure/import/hl7 \
+  -H 'Content-Type: text/plain' \
+  --data-binary @structure.mfn
+```
 
-- Versionner scénarios importants (export JSON en Git)
+Le message contient un `MSH` et annonce normalement `MFN^M05`. Après import,
+contrôler dans `/structure` les liens EJ → EG et les parents des services, UF,
+UH, chambres et lits.
 
-**Testing**:
+### Échanger une structure FHIR R4 / FR Core
 
-- Tester scénarios sur environnement dev avant prod
+L'API IHM historique `/fhir/Location` n'est pas le contrat partenaire FR Core.
+Utiliser :
 
-- Vérifier Dashboard pour détecter régressions
+| Besoin | Endpoint |
+|---|---|
+| Exporter la structure d'une EJ | `GET /api/fhir/export/structure/{ej_id}` |
+| Importer un Bundle | `POST /api/fhir/import/bundle` |
+| Obtenir le contrat complet | `/api/docs` |
 
-- Comparer performances entre versions
+Exemple d'import :
 
-**Maintenance**:
+```bash
+curl -X POST http://localhost:8000/api/fhir/import/bundle \
+  -H 'Content-Type: application/json' \
+  --data '{"ej_id": 1, "bundle": {"resourceType": "Bundle", "type": "transaction", "entry": []}}'
+```
 
-- Archiver scénarios obsolètes (tags `deprecated`)
+L'import traite les `Organization` avant les `Location`, résout les références
+`partOf` et est idempotent au rejeu. Voir le périmètre vérifié dans
+[VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md](reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md).
 
-- Mettre à jour scénarios après changements structurels (nouveaux champs obligatoires)
+## Journaux, outbox, scénarios et roundtrips
 
-- Exporter régulièrement pour backup
+### Journaux et rejeu
 
-## Astuces
+| Écran | Utilité |
+|---|---|
+| `/messages` | Historique général, filtres par statut, sens, type et période |
+| `/messages/rejections` | Rejets et erreurs à traiter |
+| `/messages/by-dossier` | Messages liés à un dossier |
+| `/messages/{message_id}` | Payload, ACK, endpoint et validation |
+| `/hprim/messages` | Historique HPRIM persistant |
 
-### Navigation Rapide
+Avant un rejeu, corriger la cause et vérifier que l'événement est encore
+pertinent pour l'état métier. Les mouvements PAM dépendent de la chronologie.
 
-Utiliser les badges contexte en haut pour passer rapidement d'un patient/dossier à l'autre sans repasser par les listes.
+### Reprendre une émission sortante
 
-### Filtrage Intelligent
+L'outbox persistante couvre les émissions MLLP et FHIR :
 
-L'interface filtre automatiquement selon le contexte actif. Exemple: avec contexte Patient, seuls les dossiers de ce patient sont affichés.
+| Action | Endpoint |
+|---|---|
+| Lister les lignes | `GET /outbox?status=retry` |
+| Récupérer les journaux sortants en échec | `POST /outbox/recover` |
+| Traiter les tentatives échues | `POST /outbox/process?limit=100` |
+| Rejouer une ligne corrigée | `POST /outbox/{id}/retry` |
 
-### Identifiants Multiples
+Les statuts sont `pending`, `retry`, `sent` et `failed`. Un ACK MLLP `AE` ou
+`AR`, ou une réponse FHIR non 2xx, est traité comme un échec. Consulter
+[OUTBOX.md](OUTBOX.md) pour le détail d'exploitation.
 
-Un patient/dossier peut avoir plusieurs identifiants (IPP, NDA, etc.) selon les namespaces configurés. Gérer dans **Identifiants** de la fiche.
+### Scénarios et roundtrips
 
-### Export Messages
+Les scénarios sont gérés dans `/scenarios`, avec les exécutions dans
+`/scenarios/runs` et les outils de qualification dans `/interface-testing`.
 
-Possible via **Messages** → **Exporter** (formats: JSON, HL7 brut, CSV logs).
-# 
-Guide utilisateur v0.3.0
+1. Préparer GHT, EJ, namespaces, structure et endpoint cible.
+2. Créer ou importer le scénario dans `/scenarios`.
+3. Lancer l'exécution et contrôler chaque ACK dans `/messages`.
+4. Comparer les données avant/après et conserver le rapport anonymisé.
+
+Un roundtrip valable utilise deux environnements et deux BDD :
+
+```text
+GHT-1 / BDD-1 → message généré → endpoint → GHT-2 / BDD-2
+                                  ↓
+                            ACK et journaux
+```
+
+La réussite exige les ACK attendus et l'égalité des données métier ou de leurs
+empreintes. Un `AA` seul n'est pas une preuve de roundtrip.
+
+## Diagnostic et glossaire
+
+### Ordre de diagnostic
+
+1. Vérifier le contexte GHT/EJ actif.
+2. Ouvrir le journal et relever le type, l'ACK et le diagnostic.
+3. Valider le payload dans `/validation`.
+4. Vérifier structure, identifiants et transition métier.
+5. Vérifier l'endpoint ; pour une émission sortante, contrôler l'outbox.
+6. Corriger, rejouer une fois, puis contrôler journal et BDD.
+
+| Symptôme | Vérification prioritaire |
+|---|---|
+| Endpoint absent | Contexte actif, puis `/endpoints/admin` |
+| ACK `AE` ou `AR` | Diagnostic, payload et transition métier |
+| Import MFN incomplet | GHT actif et liens parent-enfant |
+| Import FHIR partiel | Bundle, profils, identifiants et `partOf` |
+| Acte HPRIM non rapproché | Patient, NDA/dossier et type d'acte |
+| Émission non reprise | Outbox, endpoint activé et disponibilité |
+
+### Routes principales
+
+| Domaine | Routes |
+|---|---|
+| Contextes | `/admin/ght`, `/context/select`, `/context/clear` |
+| Structure | `/structure`, `/structure/interactive`, `/structure/search` |
+| Patients et séjours | `/patients`, `/dossiers`, `/venues`, `/mouvements` |
+| Validation et conformité | `/validation`, `/conformity`, `/ihe` |
+| Messages | `/messages`, `/messages/send`, `/messages/rejections` |
+| Endpoints et outbox | `/endpoints`, `/endpoints/admin`, `/outbox` |
+| HPRIM | `/hprim/import`, `/hprim/messages`, `/roundtrip-hprim` |
+| Scénarios | `/scenarios`, `/scenarios/runs`, `/interface-testing` |
+| FHIR | `/api/fhir/export/structure/{ej_id}`, `/api/fhir/import/bundle` |
+
+### Glossaire
+
+| Terme | Définition |
+|---|---|
+| ACK | Acquittement HL7 indiquant l'acceptation ou le rejet |
+| EJ / EG | Entité juridique / entité géographique |
+| FHIR | Standard d'échange de données de santé, ici en R4 |
+| GHT | Groupement hospitalier de territoire, contexte principal |
+| HPRIM | Format XML français utilisé ici pour les actes |
+| IHE PAM | Profil identité et mouvements : ITI-30 et ITI-31 |
+| IPP / NDA | Identifiant patient / numéro de dossier administratif |
+| MFN^M05 | Message HL7 v2 de structure |
+| MLLP | Encapsulation réseau des messages HL7 v2 |
+| Outbox | File persistante de reprise des émissions sortantes |
+| UF / UH | Unité fonctionnelle / unité d'hébergement |
+
+## Documents complémentaires
+
+- [Index de la documentation](README.md) ;
+- [Guide IHE PAM France](IHE_PAM.md) ;
+- [État des tests](TESTS_STATUS.md) ;
+- [Audit IHE PAM France / CPage](reports/AUDIT_CONFORMITE_IHE_PAM_FRANCE_20260911.md) ;
+- [Roundtrip CPage](reports/ROUNDTRIP_CPAGE_PAM_20260911.md) ;
+- [Vérification FHIR France / FR Core](reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md).

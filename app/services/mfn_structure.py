@@ -899,7 +899,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
     
     # Local imports to avoid circular dependency
     from app.models_structure import (
-        EntiteGeographique, Pole, Service, UniteFonctionnelle,
+        EntiteJuridique, EntiteGeographique, Pole, Service, UniteFonctionnelle,
         UniteHebergement, Chambre, Lit
     )
 
@@ -1053,9 +1053,28 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
     def _canonical_label(label: str) -> str:
         return _canonical_loc_code.get(label, label)
 
+    # Les entités juridiques sont des entrées MFN distinctes des sites
+    # géographiques.  L'ancienne génération émettait l'EG comme un ``M``
+    # (EJ), ce qui empêchait un import dans une autre BDD de restituer la
+    # hiérarchie EJ -> EG.
+    juridical_entities = {}
     for eg in entites_geo:
-        # build identifier with possible authority using EJ id
-        identifier = _build_pl_identifier('M', eg.identifier, getattr(eg, 'entite_juridique_id', None))
+        if getattr(eg, "entite_juridique_id", None):
+            ej = session.get(EntiteJuridique, eg.entite_juridique_id)
+            if ej:
+                juridical_entities[ej.id] = ej
+
+    for ej in juridical_entities.values():
+        ej_identifier = _build_pl_identifier('M', ej.identifier or ej.finess_ej or f"EJ-{ej.id}", ej.id)
+        message.append(f"MFE|MAD|||{ej_identifier}|PL")
+        message.append(f"LOC|{ej_identifier}||M|Etablissement juridique")
+        message.extend(add_lch_segments(ej, ej_identifier))
+        if getattr(ej, "finess_ej", None):
+            message.append(f"LCH|{ej_identifier}|||FNS^Code FINESS^L|^{ej.finess_ej}")
+
+    for eg in entites_geo:
+        # build identifier with possible authority using the juridical entity
+        identifier = _build_pl_identifier('ETBL_GRPQ', eg.identifier, getattr(eg, 'entite_juridique_id', None))
         # length check EI-1: entity identifier must be <= 16
         try:
             # Extract the EI-1 candidate (before any '&')
@@ -1065,9 +1084,15 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         except Exception:
             pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        # Use canonical label if available
-        message.append(f"LOC|{identifier}||M|{_canonical_label('Etablissement juridique')}")
+        message.append(f"LOC|{identifier}||ETBL_GRPQ|Etablissement géographique")
         message.extend(add_lch_segments(eg, identifier))
+        if getattr(eg, "entite_juridique_id", None):
+            parent_ej = juridical_entities.get(eg.entite_juridique_id)
+            if parent_ej:
+                parent_identifier = parent_ej.identifier or parent_ej.finess_ej or f"EJ-{parent_ej.id}"
+                message.append(
+                    f"LRL|{identifier}|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^{parent_identifier}"
+                )
         if hasattr(eg, 'finess') and eg.finess:
             message.append(f"LCH|{identifier}|||FNS^Code FINESS^L|^{eg.finess}")
         if hasattr(eg, 'category_sae') and eg.category_sae:
@@ -1100,7 +1125,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         except Exception:
             pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||D|{_canonical_label('Service')}")
+        message.append(f"LOC|{identifier}||D|Service")
         message.extend(add_lch_segments(service, identifier))
 
         if hasattr(service, 'typology') and service.typology:
@@ -1160,13 +1185,13 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         except Exception:
             pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||P|{_canonical_label('Pole')}")
+        message.append(f"LOC|{identifier}||P|Pôle")
         message.extend(add_lch_segments(pole, identifier))
         # Relation avec l'entité géographique (use FK)
         if getattr(pole, 'entite_geo_id', None):
             parent_eg = session.exec(select(EntiteGeographique).where(EntiteGeographique.id == pole.entite_geo_id)).first()
             if parent_eg:
-                message.append(f"LRL|{identifier}|||ETBLSMNT^Relation établissement^L||^^^^^M^^^^{parent_eg.identifier}")
+                message.append(f"LRL|{identifier}|||ETBLSMNT^Relation établissement^L||^^^^^ETBL_GRPQ^^^^{parent_eg.identifier}")
     
     # UF
     for uf in unites_fonctionnelles:
@@ -1178,7 +1203,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         except Exception:
             pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||UF|{_canonical_label('Unite Fonctionnelle')}")
+        message.append(f"LOC|{identifier}||UF|Unité fonctionnelle")
         message.extend(add_lch_segments(uf, identifier))
         if hasattr(uf, 'um_code') and uf.um_code:
             message.append(f"LCH|{identifier}|||CD_UM^Code UM^L|^{uf.um_code}")
@@ -1198,7 +1223,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         except Exception:
             pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||UH|{_canonical_label('Unite Hebergement')}")
+        message.append(f"LOC|{identifier}||UH|Unité d'hébergement")
         message.extend(add_lch_segments(uh, identifier))
         # Relation avec UF (use FK)
         if getattr(uh, 'unite_fonctionnelle_id', None):
@@ -1216,7 +1241,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         except Exception:
             pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||R|{_canonical_label('Chambre')}")
+        message.append(f"LOC|{identifier}||R|Chambre")
         message.extend(add_lch_segments(chambre, identifier))
         # Relation avec UH (use FK)
         if getattr(chambre, 'unite_hebergement_id', None):
@@ -1234,7 +1259,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         except Exception:
             pass
         message.append(f"MFE|MAD|||{identifier}|PL")
-        message.append(f"LOC|{identifier}||B|{_canonical_label('Lit')}")
+        message.append(f"LOC|{identifier}||B|Lit")
         message.extend(add_lch_segments(lit, identifier))
         if hasattr(lit, 'operational_status') and lit.operational_status:
             message.append(f"LCH|{identifier}|||OPERATIONAL_STATUS^Statut opérationnel^L|^{lit.operational_status}")

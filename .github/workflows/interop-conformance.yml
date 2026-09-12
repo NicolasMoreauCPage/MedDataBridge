@@ -1,0 +1,62 @@
+name: Interop conformance
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    env:
+      TESTING: "1"
+      PYTHONPATH: .
+      ROUNDTRIP_ARTIFACT_DIR: artifacts/roundtrip-pam
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Check source integrity
+        run: |
+          git diff --check
+          python -m compileall -q app
+
+      - name: IHE PAM France and CPage corpus
+        run: |
+          pytest -q tests/unit/test_ihe_pam_fr_211_conformance.py
+          python scripts/true_roundtrip_cpage.py
+
+      - name: HPRIM XML XSD and four-act roundtrip
+        run: |
+          pytest -q \
+            tests/test_hprim_xsd_validation.py \
+            tests/unit/test_hprim_ccam_roundtrip.py \
+            tests/unit/test_hprim_acquittement_xsd.py \
+            tests/integration/test_hprim_xml_roundtrip.py
+
+      - name: Structure MFN and FHIR FRCore
+        run: |
+          pytest -q \
+            tests/unit/test_mfn_export.py \
+            tests/integration/test_mfn_structure_roundtrip.py \
+            tests/unit/test_fhir_frcore_2_2_0_conformance.py \
+            tests/integration/test_fhir_structure_roundtrip.py \
+            tests/integration/test_fhir_interop.py \
+            tests/unit/test_outbox_service.py
+
+      - name: Publish qualification artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interoperability-qualification
+          path: |
+            artifacts/
+            docs/reports/
+          if-no-files-found: warn

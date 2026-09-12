@@ -457,6 +457,8 @@ def create_app() -> FastAPI:
     
     # 5. Integration and transport
     app.include_router(messages.router)
+    from app.routers import outbox
+    app.include_router(outbox.router)
     app.include_router(fhir_inbox.router)
     app.include_router(transport_views.router, prefix="/transport")
     app.include_router(transport.router)  # Has own prefix

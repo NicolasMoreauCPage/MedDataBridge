@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Optional, Dict, Any
 from datetime import datetime
+import os
 
 from app.db import get_session
 from app.models_structure import (
@@ -30,6 +31,22 @@ ui_router = APIRouter(prefix="/structure", tags=["Structure Interactive UI"])
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _ensure_e2e_demo_structure(session: Session, egs: list[EntiteGeographique]) -> list[EntiteGeographique]:
+    """Crée une seule EG de démonstration dans la BDD éphémère des tests E2E.
+
+    L'IHM réelle affiche naturellement un état vide tant qu'aucune structure
+    n'est créée. Les scénarios Playwright doivent toutefois exercer l'édition
+    sur une ressource persistée ; ce jeu de données est donc strictement
+    réservé au serveur démarré avec ``E2E_TESTING=1``.
+    """
+    if egs or os.getenv("E2E_TESTING") != "1":
+        return egs
+    demo = EntiteGeographique(identifier="E2E-EG", name="Structure de démonstration E2E")
+    session.add(demo)
+    session.commit()
+    return [demo]
+
+
 # ========================================
 # UI ROUTES
 # ========================================
@@ -45,7 +62,7 @@ async def structure_interactive_page(
     """
     # Charger toutes les EGs avec leur hiérarchie complète
     statement = select(EntiteGeographique)
-    egs = session.exec(statement).all()
+    egs = _ensure_e2e_demo_structure(session, session.exec(statement).all())
     
     # Enrichir chaque EG avec ses pôles → services → UFs
     for eg in egs:
@@ -77,7 +94,11 @@ async def structure_interactive_page(
     
     # Calculer stats
     total_poles = sum(len(eg.poles) for eg in egs)
-    total_services = sum(len(pole.services) for pole in eg.poles for eg in egs if hasattr(eg, 'poles'))
+    total_services = sum(
+        len(pole.services)
+        for eg in egs
+        for pole in (eg.poles if hasattr(eg, "poles") else [])
+    )
     total_ufs = sum(
         len(service.unites_fonctionnelles) 
         for eg in egs 
@@ -88,6 +109,7 @@ async def structure_interactive_page(
     
     return templates.TemplateResponse("structure_interactive.html", {
         "request": request,
+        "title": "Structure Interactive",
         "egs": egs,
         "total_poles": total_poles,
         "total_services": total_services,
@@ -148,9 +170,11 @@ async def update_field(
     if not entity:
         raise HTTPException(status_code=404, detail=f"{entity_type} #{entity_id} non trouvée")
     
-    # Si format {"field": "nom", "value": "val"}
+    # Si format {"field": "name", "value": "val"}. Les alias français
+    # historiques restent lus afin de ne pas casser les anciennes pages.
+    field_aliases = {"nom": "name", "code": "identifier"}
     if "field" in update_data and "value" in update_data:
-        field = update_data["field"]
+        field = field_aliases.get(update_data["field"], update_data["field"])
         value = update_data["value"]
         
         # Vérifier que le champ existe
@@ -161,17 +185,23 @@ async def update_field(
         setattr(entity, field, value)
     else:
         # Format direct {nom: "val", telephone: "val"}
-        for field, value in update_data.items():
+        for raw_field, value in update_data.items():
+            field = field_aliases.get(raw_field, raw_field)
             if hasattr(entity, field):
                 setattr(entity, field, value)
             else:
                 raise HTTPException(status_code=400, detail=f"Champ '{field}' inexistant")
     
     # Validation unicité code si modifié
-    if hasattr(entity, 'code') and 'code' in update_data or ('field' in update_data and update_data['field'] == 'code'):
-        code_to_check = entity.code
+    identifier_was_updated = (
+        "identifier" in update_data
+        or "code" in update_data
+        or ("field" in update_data and field_aliases.get(update_data["field"], update_data["field"]) == "identifier")
+    )
+    if identifier_was_updated and hasattr(entity, "identifier"):
+        code_to_check = entity.identifier
         statement_check = select(model_class).where(
-            model_class.code == code_to_check,
+            model_class.identifier == code_to_check,
             model_class.id != entity_id
         )
         existing = session.exec(statement_check).first()

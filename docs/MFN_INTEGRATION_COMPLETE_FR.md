@@ -3,6 +3,10 @@
 
 Version: 2025-11-30
 
+> Statut : mémo technique historique. Le générateur, l'importeur et les tests
+> de roundtrip actuels prévalent ; leur état est consolidé dans le
+> [plan d'interopérabilité](reports/PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md).
+
 ## Objectif
 
 Ce document décrit de manière exhaustive l'intégration des messages MFN (généralement MFN^M05 dans nos jeux de données) au sein du projet MedData_Bridge. Il couvre :

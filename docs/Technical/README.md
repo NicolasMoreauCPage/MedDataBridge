@@ -1,4 +1,7 @@
-# Documentation technique — IntegraSanté
+# Documentation technique — MedData Bridge
+
+> Statut : documentation développeur de référence d'orientation. Consulter
+> aussi [../README.md](../README.md) pour les contrats et rapports courants.
 
 Ce dossier centralise la documentation développeur sur la validation, la
 logique métier et l'architecture des services.

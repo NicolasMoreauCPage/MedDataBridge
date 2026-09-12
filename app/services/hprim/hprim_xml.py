@@ -17,7 +17,7 @@ from app.hprim_models import (
     HprimActeCCAM, HprimActeNGAP, HprimVenue, HprimModificateur,
     HprimMontant, HprimPriseCharge, HprimMessageType, HprimAction,
     HprimCivilite, HprimActeLPP, HprimActeUCD, HprimLPP, HprimUCD,
-    HprimIntervention
+    HprimIntervention, HprimAcquittement, HprimReponse, HprimTypeActe
 )
 
 logger = logging.getLogger(__name__)
@@ -48,250 +48,6 @@ class HprimXmlService:
             return self._generate_acquittements_serveur_actes(message)
         else:
             raise ValueError(f"Type de message non supporté: {message.entete.message_type}")
-
-    def parse_xml(self, xml_content: str) -> Dict[str, Any]:
-        """
-        Parse un fichier XML HPRIM et extrait les informations principales
-
-        Args:
-            xml_content: Contenu XML du fichier HPRIM
-
-        Returns:
-            Dictionnaire avec les informations extraites
-        """
-        try:
-            # Nettoyer le contenu XML si nécessaire
-            xml_content = xml_content.strip()
-            if not xml_content.startswith('<?xml'):
-                # Essayer d'ajouter la déclaration XML si manquante
-                xml_content = f'<?xml version="1.0" encoding="ISO-8859-1"?>\n{xml_content}'
-
-            # Parser le XML
-            ET.register_namespace('', self.NAMESPACE)  # Enregistrer le namespace par défaut
-            root = ET.fromstring(xml_content)
-
-            # Extraire les informations de base
-            result = {
-                "type_message": root.tag,
-                "version": root.get("version", "1.0"),
-                "acquittement_attendu": root.get("acquittementAttendu") == "oui",
-                "identifiant_attendu": root.get("identifiantAttendu") == "oui",
-                "realise": root.get("realise") == "oui",
-                "interrogation": root.get("interrogation") == "oui",
-                "entete": {},
-                "evenements": []
-            }
-
-            # Parser l'en-tête
-            entete_elem = root.find(".//enteteMessage")
-            if entete_elem is not None:
-                result["entete"] = self._parse_entete(entete_elem)
-            else:
-                # En-tête manquant - créer une structure minimale
-                result["entete"] = {
-                    "emetteur": {"id": "UNKNOWN", "nom": "UNKNOWN"},
-                    "destinataire": {"id": "UNKNOWN", "nom": "UNKNOWN"},
-                    "date_emission": "",
-                    "message": {"id": "", "type": ""}
-                }
-                logger.warning("En-tête de message manquant dans le XML HPRIM")
-
-            # Parser les événements selon le type
-            tag_local = root.tag.split('}')[-1] if '}' in root.tag else root.tag
-            if tag_local == "evenementsServeurActes":
-                result["evenements"] = self._parse_evenements(root)
-            elif tag_local == "acquittementsServeurActes":
-                result["acquittements"] = self._parse_acquittements(root)
-
-            return result
-
-        except ET.ParseError as e:
-            logger.error(f"Erreur de parsing XML: {e}")
-            raise ValueError(f"XML invalide: {e}")
-        except Exception as e:
-            logger.error(f"Erreur lors du parsing HPRIM: {e}")
-            raise ValueError(f"Erreur de parsing HPRIM: {e}")
-
-    def _parse_entete(self, entete_elem: ET.Element) -> Dict[str, Any]:
-        """Parse l'en-tête du message"""
-        entete = {}
-
-        # Émetteur - utiliser la structure agents/agent/code
-        emetteur = entete_elem.find("emetteur")
-        if emetteur is not None:
-            agent = emetteur.find(".//{http://www.hprim.org/hprimXML}agent")
-            if agent is not None:
-                code = agent.findtext(".//{http://www.hprim.org/hprimXML}code", "")
-                entete["emetteur"] = {
-                    "id": code,
-                    "nom": code  # Utiliser code comme nom
-                }
-
-        # Destinataire - utiliser la structure agents/agent/code
-        destinataire = entete_elem.find("destinataire")
-        if destinataire is not None:
-            agent = destinataire.find(".//{http://www.hprim.org/hprimXML}agent")
-            if agent is not None:
-                code = agent.findtext(".//{http://www.hprim.org/hprimXML}code", "")
-                entete["destinataire"] = {
-                    "id": code,
-                    "nom": code  # Utiliser code comme nom
-                }
-
-        # Date et message
-        entete["date_emission"] = entete_elem.findtext("dateEmission", "")
-        message_elem = entete_elem.find("message")
-        if message_elem is not None:
-            entete["message"] = {
-                "id": message_elem.findtext("id", ""),
-                "type": message_elem.findtext("type", "")
-            }
-
-        return entete
-
-    def _parse_evenements(self, root: ET.Element) -> List[Dict[str, Any]]:
-        """Parse les événements du message"""
-        evenements = []
-
-        for evt_elem in root.findall("{%s}evenementServeurActe" % self.NAMESPACE):
-            evenement = {
-                "date_action": evt_elem.findtext("{%s}dateAction" % self.NAMESPACE, ""),
-                "patient": {},
-                "professionnel": {},
-                "actes": []
-            }
-
-            # Patient
-            patient_elem = evt_elem.find("{%s}patient" % self.NAMESPACE)
-            if patient_elem is not None:
-                evenement["patient"] = self._parse_patient(patient_elem)
-            else:
-                # Patient manquant - structure vide
-                evenement["patient"] = {"id": "", "nom": "", "prenom": "", "date_naissance": "", "sexe": ""}
-                logger.warning("Patient manquant dans l'événement HPRIM")
-
-            # Professionnel (dans acteur/medecin)
-            acteur_elem = evt_elem.find("{%s}acteur" % self.NAMESPACE)
-            if acteur_elem is not None:
-                medecin_elem = acteur_elem.find("{%s}medecin" % self.NAMESPACE)
-                if medecin_elem is not None:
-                    evenement["professionnel"] = self._parse_professionnel(medecin_elem)
-                else:
-                    evenement["professionnel"] = {"id": "", "nom": "", "prenom": "", "numero_rpps": "", "numero_adeli": "", "specialite": ""}
-            else:
-                # Acteur manquant
-                evenement["professionnel"] = {"id": "", "nom": "", "prenom": "", "numero_rpps": "", "numero_adeli": "", "specialite": ""}
-                logger.warning("Acteur manquant dans l'événement HPRIM")
-
-            # Actes selon le type
-            for acte_elem in evt_elem:
-                tag_local = acte_elem.tag.split('}')[-1] if '}' in acte_elem.tag else acte_elem.tag
-                if tag_local in ["acteCCAM", "acteNGAP", "acteLPP", "acteUCD"]:
-                    evenement["actes"].append(self._parse_acte(acte_elem))
-
-            evenements.append(evenement)
-
-        return evenements
-
-    def _parse_acquittements(self, root: ET.Element) -> List[Dict[str, Any]]:
-        """Parse les acquittements du message"""
-        acquittements = []
-
-        for ack_elem in root.findall("{%s}acquittementServeurActe" % self.NAMESPACE):
-            acquittement = {
-                "id_message_original": ack_elem.findtext("{%s}idMessageOriginal" % self.NAMESPACE, ""),
-                "statut": ack_elem.findtext("{%s}statut" % self.NAMESPACE, ""),
-                "commentaire": ack_elem.findtext("{%s}commentaire" % self.NAMESPACE, "")
-            }
-            acquittements.append(acquittement)
-
-        return acquittements
-
-    def _parse_patient(self, patient_elem: ET.Element) -> Dict[str, Any]:
-        """Parse les informations patient"""
-        def safe_findtext(parent, tag, default=''):
-            """Helper pour findtext avec gestion d'erreur"""
-            if parent is None:
-                return default
-            try:
-                result = parent.findtext("{%s}%s" % (self.NAMESPACE, tag), default)
-                return result if result is not None else default
-            except:
-                return default
-
-        return {
-            "id": safe_findtext(patient_elem, "id"),
-            "nom": safe_findtext(patient_elem, "nom"),
-            "prenom": safe_findtext(patient_elem, "prenom"),
-            "date_naissance": safe_findtext(patient_elem, "dateNaissance"),
-            "sexe": safe_findtext(patient_elem, "sexe")
-        }
-
-    def _parse_professionnel(self, prof_elem: ET.Element) -> Dict[str, Any]:
-        """Parse les informations professionnel"""
-        def safe_findtext(parent, tag, default=''):
-            """Helper pour findtext avec gestion d'erreur"""
-            if parent is None:
-                return default
-            try:
-                result = parent.findtext("{%s}%s" % (self.NAMESPACE, tag), default)
-                return result if result is not None else default
-            except:
-                return default
-
-        return {
-            "id": safe_findtext(prof_elem, "id"),
-            "nom": safe_findtext(prof_elem, "nom"),
-            "prenom": safe_findtext(prof_elem, "prenom"),
-            "numero_rpps": safe_findtext(prof_elem, "numeroRPPS"),
-            "numero_adeli": safe_findtext(prof_elem, "numeroAdeli"),
-            "specialite": safe_findtext(prof_elem, "specialite")
-        }
-
-    def _parse_acte(self, acte_elem: ET.Element) -> Dict[str, Any]:
-        """Parse un acte médical"""
-        def safe_findtext(parent, tag, default=''):
-            """Helper pour findtext avec gestion d'erreur"""
-            if parent is None:
-                return default
-            try:
-                result = parent.findtext("{%s}%s" % (self.NAMESPACE, tag), default)
-                return result if result is not None else default
-            except:
-                return default
-
-        acte = {
-            "type": acte_elem.tag if acte_elem is not None else "",
-            "code": safe_findtext(acte_elem, "code"),
-            "libelle": safe_findtext(acte_elem, "libelle"),
-            "date": safe_findtext(acte_elem, "date"),
-            "quantite": safe_findtext(acte_elem, "quantite"),
-            "montant": {},
-            "prise_charge": {}
-        }
-
-        # Gérer les placeholders dans les codes
-        if acte["code"] and acte["code"].startswith('$') and acte["code"].endswith('$'):
-            acte["code"] = "PLACEHOLDER"  # Valeur par défaut pour les tests
-
-        # Montant
-        montant_elem = acte_elem.find("{%s}montant" % self.NAMESPACE) if acte_elem is not None else None
-        if montant_elem is not None:
-            acte["montant"] = {
-                "total": safe_findtext(montant_elem, "total"),
-                "rembourse": safe_findtext(montant_elem, "rembourse"),
-                "ticket_moderateur": safe_findtext(montant_elem, "ticketModerateur")
-            }
-
-        # Prise en charge
-        pc_elem = acte_elem.find("{%s}priseCharge" % self.NAMESPACE) if acte_elem is not None else None
-        if pc_elem is not None:
-            acte["prise_charge"] = {
-                "organisme": safe_findtext(pc_elem, "organisme"),
-                "pourcentage": safe_findtext(pc_elem, "pourcentage")
-            }
-
-        return acte
 
     def _generate_evenements_serveur_actes(self, message: HprimMessage) -> str:
         """Génère un message evenementsServeurActes"""
@@ -685,18 +441,20 @@ class HprimXmlService:
     def _add_evenement_actes_lpp(self, root: ET.Element, message: HprimMessage):
         """Ajoute un événement avec actes LPP"""
         evenement = self._add_evenement_context(root, message, "evenementServeurLPP")
-        actes = message.actes_lpp.lpps if isinstance(message.actes_lpp, HprimActeLPP) else message.actes_lpp
         lpps = ET.SubElement(evenement, "{%s}LPPs" % self.NAMESPACE)
-        for acte in actes or []:
-            self._add_lpp(lpps, acte)
+        acte_lpp = message.actes_lpp
+        acte_id = acte_lpp.identifiant if isinstance(acte_lpp, HprimActeLPP) else message.entete.message_id
+        for lpp in (acte_lpp.lpps if isinstance(acte_lpp, HprimActeLPP) else acte_lpp or []):
+            self._add_lpp(lpps, lpp, acte_id, message)
 
     def _add_evenement_actes_ucd(self, root: ET.Element, message: HprimMessage):
         """Ajoute un événement avec actes UCD"""
         evenement = self._add_evenement_context(root, message, "evenementServeurUCD")
-        actes = message.actes_ucd.ucds if isinstance(message.actes_ucd, HprimActeUCD) else message.actes_ucd
         ucds = ET.SubElement(evenement, "{%s}UCDs" % self.NAMESPACE)
-        for acte in actes or []:
-            self._add_ucd(ucds, acte)
+        acte_ucd = message.actes_ucd
+        acte_id = acte_ucd.identifiant if isinstance(acte_ucd, HprimActeUCD) else message.entete.message_id
+        for ucd in (acte_ucd.ucds if isinstance(acte_ucd, HprimActeUCD) else acte_ucd or []):
+            self._add_ucd(ucds, ucd, acte_id, message)
 
     def _add_evenement_interventions(self, root: ET.Element, message: HprimMessage):
         """Ajoute un événement avec interventions"""
@@ -723,55 +481,100 @@ class HprimXmlService:
             self._add_venue(venue, message.venue)
         return evenement
 
-    def _add_lpp(self, parent: ET.Element, acte: HprimLPP) -> None:
+    def _add_lpp(self, parent: ET.Element, acte: HprimLPP, acte_id: str, message: HprimMessage) -> None:
+        """Ajoute une LPP dans l'ordre imposé par le XSD HPRIM 2.4."""
         lpp = ET.SubElement(parent, "{%s}LPP" % self.NAMESPACE)
+        lpp.set("action", HprimAction.CREATION.value)
+        ET.SubElement(lpp, "{%s}dateAction" % self.NAMESPACE).text = datetime.now().isoformat()
+        self._add_identifiant_simple(lpp, acte_id)
+        date_pose = ET.SubElement(lpp, "{%s}datePose" % self.NAMESPACE)
+        ET.SubElement(date_pose, "{%s}date" % self.NAMESPACE).text = datetime.now().date().isoformat()
         code = ET.SubElement(lpp, "{%s}codeLPP" % self.NAMESPACE, portee=acte.code.portee)
         code.text = acte.code.code
-        if acte.libelle:
-            ET.SubElement(lpp, "{%s}denomination" % self.NAMESPACE).text = acte.libelle
-        ET.SubElement(lpp, "{%s}prixUnitaire" % self.NAMESPACE).text = str(acte.prix_unitaire)
+        fournisseur = ET.SubElement(lpp, "{%s}identifiantFournisseur" % self.NAMESPACE)
+        ET.SubElement(fournisseur, "{%s}code" % self.NAMESPACE).text = message.entete.emetteur_id[:17]
+        ET.SubElement(fournisseur, "{%s}libelle" % self.NAMESPACE).text = message.entete.emetteur_nom[:120]
+        ET.SubElement(lpp, "{%s}montantUnitaireFactureTTC" % self.NAMESPACE).text = str(acte.prix_unitaire)
         ET.SubElement(lpp, "{%s}quantite" % self.NAMESPACE).text = str(acte.quantite)
-        ET.SubElement(lpp, "{%s}montantTotal" % self.NAMESPACE).text = str(acte.montant_total)
+        if acte.libelle:
+            denomination = ET.SubElement(lpp, "{%s}denomination" % self.NAMESPACE)
+            ET.SubElement(denomination, "{%s}libelle" % self.NAMESPACE).text = acte.libelle[:80]
 
-    def _add_ucd(self, parent: ET.Element, acte: HprimUCD) -> None:
+    def _add_ucd(self, parent: ET.Element, acte: HprimUCD, acte_id: str, message: HprimMessage) -> None:
+        """Ajoute une UCD dans l'ordre imposé par le XSD HPRIM 2.4."""
         ucd = ET.SubElement(parent, "{%s}UCD" % self.NAMESPACE)
+        ucd.set("action", HprimAction.CREATION.value)
+        ET.SubElement(ucd, "{%s}dateAction" % self.NAMESPACE).text = datetime.now().isoformat()
+        self._add_identifiant_simple(ucd, acte_id)
+        date = ET.SubElement(ucd, "{%s}date" % self.NAMESPACE)
+        ET.SubElement(date, "{%s}date" % self.NAMESPACE).text = datetime.now().date().isoformat()
+        prescripteur = ET.SubElement(ucd, "{%s}prescripteur" % self.NAMESPACE)
+        medecin = ET.SubElement(prescripteur, "{%s}medecin" % self.NAMESPACE)
+        self._add_professionnel_sante(medecin, message.acteur)
         ET.SubElement(ucd, "{%s}codeUCD" % self.NAMESPACE).text = acte.code
-        ET.SubElement(ucd, "{%s}denomination" % self.NAMESPACE).text = acte.designation
-        ET.SubElement(ucd, "{%s}quantite" % self.NAMESPACE).text = str(acte.quantite)
-        ET.SubElement(ucd, "{%s}prixUnitaire" % self.NAMESPACE).text = str(acte.prix_unitaire)
-        ET.SubElement(ucd, "{%s}montantTotal" % self.NAMESPACE).text = str(acte.montant_total)
+        ET.SubElement(ucd, "{%s}montantEcartIndemnisable" % self.NAMESPACE).text = "0"
+        ET.SubElement(ucd, "{%s}montantUnitaireFactureTTC" % self.NAMESPACE).text = str(acte.prix_unitaire)
+        ET.SubElement(ucd, "{%s}quantiteFractionnee" % self.NAMESPACE).text = str(acte.quantite)
+        denomination = ET.SubElement(ucd, "{%s}denomination" % self.NAMESPACE)
+        ET.SubElement(denomination, "{%s}libelle" % self.NAMESPACE).text = acte.designation[:80]
 
     def _generate_acquittements_serveur_actes(self, message: HprimMessage) -> str:
-        """Génère un message acquittementsServeurActes"""
-        # TODO: Implémenter
-        root = ET.Element("acquittementsServeurActes", version=message.version)
+        """Génère un acquittement HPRIM 2.4 conforme au XSD officiel."""
+        if not message.acquittement:
+            raise ValueError("Un acquittement HPRIM doit contenir son statut et le message acquitté")
+        ack = message.acquittement
+        ack_status = {"OK": "ok", "AVERTISSEMENT": "avt", "ERREUR": "err", "REJET": "rj"}.get(
+            ack.statut.upper(), ack.statut.lower()
+        )
+        root = ET.Element("{%s}acquittementsServeurActes" % self.NAMESPACE, version=message.version)
+        entete = ET.SubElement(root, "{%s}enteteMessage" % self.NAMESPACE, statut=ack_status)
+        self._add_entete_message(entete, message.entete)
+        ET.SubElement(entete, "{%s}identifiantMessageAcquitte" % self.NAMESPACE).text = ack.message_id_original[:12]
+
+        reponses = list(ack.reponses_actes) + list(ack.reponses_interventions)
+        if reponses:
+            container = ET.SubElement(root, "{%s}reponses" % self.NAMESPACE)
+            patient = ET.SubElement(container, "{%s}patient" % self.NAMESPACE)
+            self._add_patient(patient, message.patient)
+            if message.venue:
+                venue = ET.SubElement(container, "{%s}venue" % self.NAMESPACE)
+                self._add_venue(venue, message.venue)
+            for response in reponses:
+                self._add_acquittement_reponse(container, response)
         return self._xml_to_string(root)
 
-    def parse_xml(self, xml_string: str) -> 'HprimMessage':
-        """
-        Parse une chaîne XML en objet HprimMessage (implémentation minimale pour tests)
-
-        Args:
-            xml_string: XML à parser
-
-        Returns:
-            Objet HprimMessage (dummy pour test)
-        """
-        from app.hprim_models import HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel, HprimActeNGAP, HprimMessageType
-        from datetime import datetime
-        entete = HprimEnteteMessage(
-            emetteur_id="123456789",
-            emetteur_nom="Hôpital Test",
-            destinataire_id="987654321",
-            destinataire_nom="Destinataire Test",
-            date_emission=datetime(2025, 12, 20, 10, 0),
-            message_id="MSG_NGAP_TEST_001",
-            message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
+    def _add_acquittement_reponse(self, parent: ET.Element, response: HprimReponse) -> None:
+        """Ajoute une réponse d'acquittement, en conservant le type d'acte."""
+        status = {"OK": "ok", "AVERTISSEMENT": "avt", "ERREUR": "err"}.get(
+            response.statut.upper(), response.statut.lower()
         )
-        patient = HprimPatient(identifiant_id="PAT123456", identifiant_clef="CLEF123", nom="DUPONT", prenom="Jean", date_naissance="1980-05-15", sexe="M")
-        acteur = HprimProfessionnel(nom="MARTIN", prenom="Marie", numero_rpps="12345678901", numero_adeli="9A7654321", specialite="Médecin généraliste")
-        acte_ngap = HprimActeNGAP(identifiant="NGAP_TEST_001", lettre_cle="A", coefficient=1.5, execute_date=datetime(2025, 12, 20, 10, 0), prestataire=acteur, action=None)
-        return HprimMessage(entete=entete, patient=patient, acteur=acteur, actes_ngap=[acte_ngap])
+        reponse = ET.SubElement(parent, "{%s}reponse" % self.NAMESPACE, statut=status)
+        if response.codeErreur:
+            reponse.set("codeErreur", response.codeErreur)
+        type_acte = response.type_acte.value if isinstance(response.type_acte, HprimTypeActe) else str(response.type_acte)
+        if type_acte == "LPP":
+            content = ET.SubElement(reponse, "{%s}LPP" % self.NAMESPACE, valide="oui" if status == "ok" else "non")
+            self._add_identifiant_simple(content, response.identifiant_acte)
+            date_pose = ET.SubElement(content, "{%s}datePose" % self.NAMESPACE)
+            ET.SubElement(date_pose, "{%s}date" % self.NAMESPACE).text = datetime.now().date().isoformat()
+            code = ET.SubElement(content, "{%s}codeLPP" % self.NAMESPACE, portee="n")
+            code.text = response.code
+        elif type_acte == "UCD":
+            content = ET.SubElement(reponse, "{%s}UCD" % self.NAMESPACE, valide="oui" if status == "ok" else "non")
+            self._add_identifiant_simple(content, response.identifiant_acte)
+            date = ET.SubElement(content, "{%s}date" % self.NAMESPACE)
+            ET.SubElement(date, "{%s}date" % self.NAMESPACE).text = datetime.now().date().isoformat()
+            # Le XSD d'acquittement limite codeUCD à 7 chiffres. Un CIP-13
+            # reçu est donc renvoyé dans l'alternative codeCommercial afin de
+            # préserver sa valeur tout en restant conforme au schéma.
+            code_tag = "codeUCD" if response.code.isdigit() and len(response.code) <= 7 else "codeCommercial"
+            ET.SubElement(content, "{%s}%s" % (self.NAMESPACE, code_tag)).text = response.code
+        else:
+            raise ValueError(f"Acquittement HPRIM non supporté pour le type {type_acte}")
+        if response.messageErreur:
+            erreur = ET.SubElement(reponse, "{%s}erreur" % self.NAMESPACE)
+            ET.SubElement(erreur, "{%s}code" % self.NAMESPACE).text = (response.codeErreur or "erreur")[:17]
+            ET.SubElement(erreur, "{%s}libelle" % self.NAMESPACE).text = response.messageErreur[:120]
 
     def _xml_to_string(self, root: ET.Element) -> str:
         """Convertit un élément XML en string formatée ISO-8859-1 avec header majuscule"""
@@ -812,6 +615,50 @@ class HprimXmlService:
         except Exception as e:
             raise ValueError(f"Erreur lors du parsing HPRIM: {e}")
 
+    def _parse_acquittements_serveur_actes(self, root: ET.Element) -> HprimMessage:
+        """Parse un acquittement HPRIM 2.4 sans le confondre avec un événement."""
+        entete_elem = root.find(f"{{{self.NAMESPACE}}}enteteMessage")
+        if entete_elem is None:
+            raise ValueError("En-tête absent de l'acquittement HPRIM")
+        entete = self._parse_entete_message(entete_elem)
+        entete.message_type = HprimMessageType.ACQUITTEMENTS_SERVEUR_ACTES
+        original_id = entete_elem.findtext(f"{{{self.NAMESPACE}}}identifiantMessageAcquitte", "")
+        responses: List[HprimReponse] = []
+        for response_elem in root.findall(f".//{{{self.NAMESPACE}}}reponse"):
+            status = response_elem.get("statut", "err")
+            code_error = response_elem.get("codeErreur")
+            error_text = response_elem.findtext(
+                f"{{{self.NAMESPACE}}}erreur/{{{self.NAMESPACE}}}libelle"
+            )
+            for tag, act_type, code_tag in (
+                ("LPP", HprimTypeActe.LPP, "codeLPP"),
+                ("UCD", HprimTypeActe.UCD, "codeUCD"),
+            ):
+                content = response_elem.find(f"{{{self.NAMESPACE}}}{tag}")
+                if content is None:
+                    continue
+                act_id = content.findtext(
+                    f"{{{self.NAMESPACE}}}identifiant/{{{self.NAMESPACE}}}emetteur/{{{self.NAMESPACE}}}valeur", ""
+                )
+                code = content.findtext(f"{{{self.NAMESPACE}}}{code_tag}", "")
+                responses.append(HprimReponse(act_id, act_type, code, status, code_error, error_text))
+
+        patient_elem = root.find(f".//{{{self.NAMESPACE}}}reponses/{{{self.NAMESPACE}}}patient")
+        patient = self._parse_patient(patient_elem) if patient_elem is not None else HprimPatient(
+            identifiant_id="ACK", identifiant_clef="", nom="ACQUITTEMENT", prenom="HPRIM"
+        )
+        return HprimMessage(
+            entete=entete,
+            patient=patient,
+            acteur=HprimProfessionnel(nom="ACQUITTEMENT", prenom="HPRIM"),
+            acquittement=HprimAcquittement(
+                statut=entete_elem.get("statut", "err"),
+                message_id_original=original_id,
+                date_acquittement=entete.date_emission,
+                reponses_actes=responses,
+            ),
+        )
+
     def _parse_evenements_serveur_actes(self, root: ET.Element) -> HprimMessage:
         """Parse un message evenementsServeurActes"""
         # Attributs du root
@@ -851,7 +698,16 @@ class HprimXmlService:
         acteur = None
         venue = None
         
-        for evenement in root.findall(".//{http://www.hprim.org/hprimXML}evenementServeurActe"):
+        event_tags = (
+            "evenementServeurActe",
+            "evenementServeurLPP",
+            "evenementServeurUCD",
+        )
+        for evenement in (
+            node
+            for tag in event_tags
+            for node in root.findall(f".//{{{self.NAMESPACE}}}{tag}")
+        ):
             # Extraire patient et acteur du premier événement
             if patient is None:
                 patient_elem = evenement.find(".//{http://www.hprim.org/hprimXML}patient")
@@ -877,9 +733,9 @@ class HprimXmlService:
                 actes_ngap.extend(self._parse_actes_ngap(evenement))
             if evenement.find(".//{http://www.hprim.org/hprimXML}actesCCAM") is not None:
                 actes_ccam.extend(self._parse_actes_ccam(evenement))
-            if evenement.find(".//{http://www.hprim.org/hprimXML}actesLPP") is not None:
+            if evenement.find(".//{http://www.hprim.org/hprimXML}LPPs") is not None:
                 actes_lpp.extend(self._parse_actes_lpp(evenement))
-            if evenement.find(".//{http://www.hprim.org/hprimXML}actesUCD") is not None:
+            if evenement.find(".//{http://www.hprim.org/hprimXML}UCDs") is not None:
                 actes_ucd.extend(self._parse_actes_ucd(evenement))
 
         if patient is None or acteur is None:
@@ -961,8 +817,11 @@ class HprimXmlService:
                 if libelle_elem is not None and libelle_elem.text:
                     destinataire_nom = libelle_elem.text
 
-        # Pour l'instant, on ne parse pas la date d'émission et le message
-        date_emission = datetime.now()
+        date_value = entete_elem.findtext(".//{http://www.hprim.org/hprimXML}dateHeureProduction")
+        try:
+            date_emission = datetime.fromisoformat(date_value) if date_value else datetime.now()
+        except ValueError:
+            date_emission = datetime.now()
         
         # Parser l'identifiant du message
         message_id_elem = entete_elem.find(".//{http://www.hprim.org/hprimXML}identifiantMessage")
@@ -975,7 +834,10 @@ class HprimXmlService:
             emetteur_nom=emetteur_nom,
             destinataire_id=destinataire_id,
             destinataire_nom=destinataire_nom,
-            message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
+            message_type=(
+                HprimMessageType.ACQUITTEMENTS_SERVEUR_ACTES
+                if entete_elem.get("statut") else HprimMessageType.EVENEMENTS_SERVEUR_ACTES
+            )
         )
 
     def _parse_actes_ccam(self, evenement: ET.Element) -> List[HprimActeCCAM]:
@@ -1279,9 +1141,9 @@ class HprimXmlService:
     def _parse_actes_lpp(self, evenement: ET.Element) -> List[Any]:
         """Parse les actes LPP d'un événement"""
         actes = []
-        actes_lpp_elem = evenement.find(".//{http://www.hprim.org/hprimXML}actesLPP")
+        actes_lpp_elem = evenement.find(".//{http://www.hprim.org/hprimXML}LPPs")
         if actes_lpp_elem is not None:
-            for acte_elem in actes_lpp_elem.findall(".//{http://www.hprim.org/hprimXML}acteLPP"):
+            for acte_elem in actes_lpp_elem.findall("{http://www.hprim.org/hprimXML}LPP"):
                 acte = self._parse_acte_lpp(acte_elem)
                 actes.append(acte)
         return actes
@@ -1312,15 +1174,15 @@ class HprimXmlService:
         denomination_libelle = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}denomination/{http://www.hprim.org/hprimXML}libelle", None)
         
         # Date d'exécution (obligatoire)
-        execute_date_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}execute/{http://www.hprim.org/hprimXML}date")
+        execute_date_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}datePose/{http://www.hprim.org/hprimXML}date")
         execute_date = datetime.fromisoformat(execute_date_str) if execute_date_str and not execute_date_str.startswith('$') else datetime.now()
         
         # Quantité (obligatoire)
-        quantite_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}quantite", "1")
+        quantite_str = acte_elem.findtext("{http://www.hprim.org/hprimXML}quantite", "1")
         quantite = int(quantite_str) if quantite_str else 1
         
         # Montants (montant unitaire facturé TTC obligatoire)
-        montant_unitaire_facture_ttc_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}montant/{http://www.hprim.org/hprimXML}montantUnitaireFactureTTC", "0.0")
+        montant_unitaire_facture_ttc_str = acte_elem.findtext("{http://www.hprim.org/hprimXML}montantUnitaireFactureTTC", "0.0")
         montant_value = Decimal(montant_unitaire_facture_ttc_str) if montant_unitaire_facture_ttc_str else Decimal("0.0")
         montant = SimpleNamespace(valeur=montant_value, devise="EUR") if montant_value else None
         
@@ -1370,9 +1232,9 @@ class HprimXmlService:
     def _parse_actes_ucd(self, evenement: ET.Element) -> List[Any]:
         """Parse les actes UCD d'un événement"""
         actes = []
-        actes_ucd_elem = evenement.find(".//{http://www.hprim.org/hprimXML}actesUCD")
+        actes_ucd_elem = evenement.find(".//{http://www.hprim.org/hprimXML}UCDs")
         if actes_ucd_elem is not None:
-            for acte_elem in actes_ucd_elem.findall(".//{http://www.hprim.org/hprimXML}acteUCD"):
+            for acte_elem in actes_ucd_elem.findall("{http://www.hprim.org/hprimXML}UCD"):
                 acte = self._parse_acte_ucd(acte_elem)
                 actes.append(acte)
         return actes
@@ -1408,7 +1270,7 @@ class HprimXmlService:
         denomination_forme = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}denomination/{http://www.hprim.org/hprimXML}forme", None)
         
         # Date (obligatoire) avec nature optionnelle
-        execute_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}execute")
+        execute_elem = acte_elem.find(".//{http://www.hprim.org/hprimXML}date")
         execute_date = datetime.now()
         nature_date = None
         if execute_elem is not None:
@@ -1421,14 +1283,14 @@ class HprimXmlService:
             nature_date = execute_elem.get("natureDate", None)
         
         # Quantité fractionnée (obligatoire)
-        quantite_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}quantite", "1")
+        quantite_str = acte_elem.findtext("{http://www.hprim.org/hprimXML}quantiteFractionnee", "1")
         quantite = float(quantite_str) if quantite_str else 1.0
         
         # Montants
         taux_tva_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}montant/{http://www.hprim.org/hprimXML}tauxTVA")
         taux_tva = float(taux_tva_str) if taux_tva_str else None
         
-        montant_unitaire_facture_ttc_str = acte_elem.findtext(".//{http://www.hprim.org/hprimXML}montant/{http://www.hprim.org/hprimXML}montantUnitaireFactureTTC", "0.0")
+        montant_unitaire_facture_ttc_str = acte_elem.findtext("{http://www.hprim.org/hprimXML}montantUnitaireFactureTTC", "0.0")
         montant_value = Decimal(montant_unitaire_facture_ttc_str) if montant_unitaire_facture_ttc_str else Decimal("0.0")
         montant = SimpleNamespace(valeur=montant_value, devise="EUR") if montant_value else None
         

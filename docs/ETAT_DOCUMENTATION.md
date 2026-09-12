@@ -1,5 +1,8 @@
 # 📚 État de la Documentation - Refonte Structure UX
 
+> Statut : instantané historique du 8 janvier 2026. Il est conservé pour la
+> traçabilité des phases UX ; l'index courant est [README.md](README.md).
+
 **Date** : 8 janvier 2026  
 **Branche** : `refonte-ihm-professionnelle`  
 **Dernier commit** : `04aa130`

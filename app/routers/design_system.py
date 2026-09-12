@@ -27,5 +27,5 @@ async def design_system_demo(request: Request):
     """
     return templates.TemplateResponse(
         "design_system_demo.html",
-        {"request": request}
+        {"request": request, "title": "Design System Hospitalier"}
     )

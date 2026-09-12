@@ -23,6 +23,9 @@ from app.models_structure import (
 )
 
 
+FRCORE_V220 = "|2.2.0"
+
+
 def _build_full_hierarchy(session):
     ght = session.exec(select(GHTContext)).first()
     if not ght:
@@ -123,14 +126,22 @@ class TestFRCore220StructureExport:
         organizations = _entries_by_type(bundle, "Organization")
 
         ej_org = next(o for o in organizations if o.get("name") == "CHU Test")
-        assert ej_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-etablissement"]
+        assert ej_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-etablissement" + FRCORE_V220]
+        assert ej_org["type"][0]["coding"][0] == {
+            "system": "https://hl7.fr/ig/fhir/core/CodeSystem/fr-core-cs-v2-3307",
+            "code": "LEGAL-ENTITY",
+        }
         finess_idents = [i for i in ej_org["identifier"] if i.get("system") == "https://finess.esante.gouv.fr"]
         assert finess_idents and finess_idents[0]["value"] == "750000010"
         siren_idents = [i for i in ej_org["identifier"] if i.get("system") == "https://sirene.fr" and i["type"]["coding"][0]["code"] == "SIREN"]
         assert siren_idents and siren_idents[0]["value"] == "123456789"
 
         eg_org = next(o for o in organizations if o.get("name") == "Site Central")
-        assert eg_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-etablissement"]
+        assert eg_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-etablissement" + FRCORE_V220]
+        assert eg_org["type"][0]["coding"][0] == {
+            "system": "https://hl7.fr/ig/fhir/core/CodeSystem/fr-core-cs-v2-3307",
+            "code": "GEOGRAPHICAL-ENTITY",
+        }
         assert eg_org["partOf"]["reference"] == f"Organization/{ej.finess_ej}"
         eg_finess_idents = [i for i in eg_org["identifier"] if i.get("system") == "https://finess.esante.gouv.fr"]
         assert eg_finess_idents and eg_finess_idents[0]["value"] == "750000028"
@@ -143,11 +154,13 @@ class TestFRCore220StructureExport:
         organizations = _entries_by_type(bundle, "Organization")
 
         pole_org = next(o for o in organizations if o.get("name") == "Pôle Médecine")
-        assert pole_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization"]
+        assert pole_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization" + FRCORE_V220]
+        assert pole_org["type"][0]["coding"][0]["code"] == "POLE"
         assert pole_org["partOf"]["reference"] == "Organization/EG-1"
 
         service_org = next(o for o in organizations if o.get("name") == "Cardiologie")
-        assert service_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization"]
+        assert service_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization" + FRCORE_V220]
+        assert service_org["type"][0]["coding"][0]["code"] == "SERVICE"
         assert service_org["partOf"]["reference"] == "Organization/POLE-1"
 
     def test_uf_uses_uf_profile_with_fixed_type(self, client, session):
@@ -156,7 +169,7 @@ class TestFRCore220StructureExport:
         organizations = _entries_by_type(bundle, "Organization")
 
         uf_org = next(o for o in organizations if o.get("name") == "UF Cardio A")
-        assert uf_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-uf"]
+        assert uf_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-uf" + FRCORE_V220]
         assert uf_org["type"][0]["coding"][0]["code"] == "UF"
         assert uf_org["partOf"]["reference"] == "Organization/SERV-1"
 
@@ -168,7 +181,7 @@ class TestFRCore220StructureExport:
         organizations = _entries_by_type(bundle, "Organization")
 
         uac_org = next(o for o in organizations if o.get("name") == "UAC Cardio A")
-        assert uac_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-uac"]
+        assert uac_org["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-organization-uac" + FRCORE_V220]
         assert uac_org["type"][0]["coding"][0]["code"] == "UAC"
         assert uac_org["partOf"]["reference"] == "Organization/UF-1"
         discipline_ext = [e for e in uac_org["extension"] if e["url"].endswith("fr-core-organization-discipline-prestation")]
@@ -181,7 +194,7 @@ class TestFRCore220StructureExport:
 
         uh_loc = _find_by_identifier(locations, "UH-1")
         assert uh_loc is not None
-        assert uh_loc["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-location"]
+        assert uh_loc["meta"]["profile"] == ["https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-location" + FRCORE_V220]
         # UH est désormais partOf une Organization (UF), pas une autre Location
         assert uh_loc["partOf"]["reference"] == "Organization/UF-1"
 

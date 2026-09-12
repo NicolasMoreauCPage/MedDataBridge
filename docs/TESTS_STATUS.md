@@ -1,115 +1,52 @@
-# État des Tests - MedData Bridge
+# État des tests
 
-Date: 9 janvier 2026 (Mise à jour)
+Dernière revue documentaire : 12 septembre 2026.
 
-## ✅ Tests Fonctionnels (14/14 passés)
+Ce document ne fige volontairement ni un nombre global de tests ni une promesse
+de suite intégralement verte : ces chiffres deviennent vite périmés. La CI et
+les commandes ci-dessous constituent la source de vérité exécutable.
 
-### Tests HPRIM
-- `test_hprim_cotations.py` (4 tests) ✅
-  - test_cotations_count_no_cotations
-  - test_cotations_count_with_cotations  
-  - test_acquittement_processing
-  - test_dossier_cotations_flags_update
+## Périmètre de conformité interopérabilité
 
-- `test_hprim_xsd_validation.py` (1 test) ✅
-  - test_hprim_xsd_validation_evenements
+La campagne ciblée vérifie les contrats réellement revendiqués :
 
-### Tests Admin
-- `test_admin_ej_route.py` (1 test) ✅
-  - test_ej_detail_route_basic
+- IHE PAM France / CPage, y compris le roundtrip MLLP entre deux BDD ;
+- HPRIM XML CCAM, NGAP, UCD et LPP, avec validation XSD et acquittements ;
+- HL7 MFN^M05, avec import/export et roundtrip de structure ;
+- FHIR R4 / FR Core 2.2.0, avec import/export, idempotence et relations de
+  structure ;
+- outbox persistante, rejet et reprise des émissions sortantes.
 
-### Tests Models - TOUS CORRIGÉS ✅
-- `test_models.py::TestNGAPAct` (2 tests) ✅
-  - test_ngap_act_creation_minimal
-  - test_ngap_act_creation_complete
+La liste exacte est exécutée par
+[`interop-conformance.yml`](../.github/workflows/interop-conformance.yml).
 
-- `test_models.py::TestUCDAct` (2 tests) ✅
-  - test_ucd_act_creation_minimal
-  - test_ucd_act_creation_complete
+## Exécution locale
 
-- `test_models.py::TestLPPAct` (2 tests) ✅
-  - test_lpp_act_creation_minimal
-  - test_lpp_act_creation_complete
+```bash
+TESTING=1 PYTHONPATH=. .venv/bin/pytest -q \
+  tests/unit/test_fhir_frcore_2_2_0_conformance.py \
+  tests/integration/test_fhir_structure_roundtrip.py \
+  tests/integration/test_fhir_interop.py \
+  tests/unit/test_outbox_service.py \
+  tests/unit/test_mfn_export.py \
+  tests/integration/test_mfn_structure_roundtrip.py \
+  tests/unit/test_hprim_acquittement_xsd.py \
+  tests/integration/test_hprim_xml_roundtrip.py
 
-- `test_models.py::TestCCAMAct` (2 tests) ✅
-  - test_ccam_act_creation_minimal
-  - test_ccam_act_creation_complete
+python3 scripts/true_roundtrip_cpage.py run
+```
 
-## ⚠️ Tests Nécessitant des Corrections
+Les tests d'IHM sont distincts des preuves de conformité protocolaire. Les
+suites Phase 5 sont vertes lors de la dernière campagne ciblée ; le scénario
+Phase 6 de filtrage de dossiers requiert encore une stabilisation E2E. Cette
+limite n'affecte ni la validation PAM ni les roundtrips interopérables.
 
-### Tests API - Obsolètes (Architecture changée)
-- `tests/api/test_api_ucd_lpp.py` (10 tests) ❌
-  - **Problème**: Tests utilisent TestClient avec routers isolés
-  - **Solution**: Réécrire avec app complète ou intégration
-  - **Priorité**: Basse (fonctionnalité testée ailleurs)
+## Règles de maintenance
 
-### Tests Models - Champs obsolètes
-- `test_models.py::TestUCDAct` (2 tests) ❌
-  - **Problème**: Utilise `code_cip` au lieu de `code_ucd`
-  - **Problème**: Utilise `designation` au lieu de `denomination_libelle`
-  - **Problème**: Champs obsolètes (prix_unitaire, montant_total, facturable, valide, facture)
-  - **Solution**: Adapter aux nouveaux champs du modèle UCDAct
-
-- `test_models.py::TestLPPAct` (2 tests) ❌
-  - **Problème**: Utilise `libelle` au lieu de `denomination_libelle`  
-  - **Problème**: Utilise `prix_unitaire` au lieu de `montant_unitaire_facture_ttc`
-  - **Problème**: Champs obsolètes (montant_total, facturable, valide, facture)
-  - **Solution**: Adapter aux nouveaux champs du modèle LPPAct
-
-- `test_models.py::TestCCAMAct` (2 tests) ⚠️
-  - À vérifier après UCD/LPP
-
-### Tests UI - Multiples problèmes
-- Nombreux tests UI avec codes 404/405/500
-- **Cause**: Routes changées, mocks obsolètes  
-- **Priorité**: Moyenne (UI fonctionnelle en dev)
-
-### Tests E2E - Event loop  
-- Tests e2e/phase5/phase6 avec erreurs async
-- **Cause**: Playwright fixtures non compatibles
-- **Priorité**: Basse (tests manuels OK)
-
-### Tests Performance - Event loop
-- Tests avec "RuntimeError: This event loop is already running"
-- **Cause**: Conflits async/await dans tests
-- **Priorité**: Basse (performance OK en prod)
-
-## 📊 Statistique Globale
-
-- **Tests fonctionnels**: 8
-- **Tests à corriger (priorité haute)**: ~4-6 (models UCD/LPP/CCAM)
-- **Tests obsolètes à réécrire**: ~10 (API routers)
-- **Tests non critiques**: ~50+ (UI, E2E, Performance)
-
-## 🎯 Plan d'Action
-
-### Court terme (Priorité 1)
-1. ✅ NGAP models tests - FAIT
-2. ⏳ UCD models tests - Adapter champs
-3. ⏳ LPP models tests - Adapter champs  
-4. ⏳ CCAM models tests - Vérifier
-
-### Moyen terme (Priorité 2)
-5. Réécrire tests API UCD/LPP avec app complète
-6. Corriger fixtures Playwright pour E2E
-7. Résoudre conflicts event loop
-
-### Long terme (Priorité 3)
-8. Tests UI complets
-9. Tests performance stabilisés
-10. Coverage > 80%
-
-## 📝 Notes
-
-### Changements d'Architecture Récents
-- Schémas UCD/LPP simplifiés (code unique au lieu de multiples)
-- Models alignés sur HPRIM XML v2.4
-- Suppression champs métier obsolètes (facturable, valide, facture pour UCD/LPP)
-- `facture` devient string "oui"/"non"/"trd"/"ec" pour NGAP au lieu de boolean
-
-### Recommandations
-- Prioriser tests fonctionnels core (HPRIM, models, API principales)
-- Tests UI peuvent être manuels temporairement
-- E2E et Performance à long terme
-- Maintenir coverage des fonctionnalités critiques
-
+- Ajouter un test positif, un test négatif et un roundtrip dès qu'un nouveau
+  champ métier est pris en charge par un protocole.
+- Ne pas masquer une régression par un `xfail` non justifié.
+- Publier les empreintes anonymisées et les rapports de roundtrip comme
+  artefacts CI.
+- Conserver les écarts restant ouverts dans le rapport de référence du
+  protocole, avec leur sévérité et leur effet métier.

@@ -167,6 +167,7 @@ class HL7ToFHIRConverter:
 # ---------------------------------------------------------------------------
 
 FRCORE_BASE = "https://hl7.fr/ig/fhir/core"
+FRCORE_VERSION = "2.2.0"
 
 FRCORE_PROFILES = {
     "organization": f"{FRCORE_BASE}/StructureDefinition/fr-core-organization",
@@ -178,6 +179,16 @@ FRCORE_PROFILES = {
 
 FRCORE_CS_V2_0203 = f"{FRCORE_BASE}/CodeSystem/fr-core-cs-v2-0203"
 FRCORE_CS_V2_3307 = f"{FRCORE_BASE}/CodeSystem/fr-core-cs-v2-3307"
+
+
+def frcore_profile(profile_name: str) -> str:
+    """Retourne le canonical FR Core versionné pour ``meta.profile``.
+
+    La version explicite rend le contrat interopérable sans ambiguïté avec le
+    guide publié. Les imports acceptent néanmoins aussi l'URI non versionné,
+    conformément au format canonical FHIR.
+    """
+    return f"{FRCORE_PROFILES[profile_name]}|{FRCORE_VERSION}"
 
 
 class StructureToFHIRConverter:
@@ -240,11 +251,25 @@ class StructureToFHIRConverter:
             # au moins un identifier ou un name est requis par le profil (org-1).
             identifiers.append({"value": identifier})
 
+        entity_type_codes = {
+            # EJ/EG sont les libellés historiques internes ; le guide FR Core
+            # 2.2.0 impose les codes de la table v2-3307 ci-dessous.
+            "EJ": "LEGAL-ENTITY",
+            "LEGAL-ENTITY": "LEGAL-ENTITY",
+            "EG": "GEOGRAPHICAL-ENTITY",
+            "GEOGRAPHICAL-ENTITY": "GEOGRAPHICAL-ENTITY",
+        }
+        try:
+            frcore_entity_type = entity_type_codes[entity_type]
+        except KeyError as exc:
+            raise ValueError(f"Type d'établissement FR Core invalide : {entity_type}") from exc
+
         return FHIROrganization(
-            meta={"profile": [FRCORE_PROFILES["organization_etablissement"]]},
+            id=identifier,
+            meta={"profile": [frcore_profile("organization_etablissement")]},
             identifier=identifiers,
             active=active,
-            type=[{"coding": [{"system": FRCORE_CS_V2_0203, "code": entity_type}]}] if entity_type else None,
+            type=[{"coding": [{"system": FRCORE_CS_V2_3307, "code": frcore_entity_type}]}],
             name=name,
             partOf=parent_ref,
         )
@@ -270,7 +295,8 @@ class StructureToFHIRConverter:
                 coding["display"] = type_display
             type_field = [{"coding": [coding]}]
         return FHIROrganization(
-            meta={"profile": [FRCORE_PROFILES["organization"]]},
+            id=identifier,
+            meta={"profile": [frcore_profile("organization")]},
             identifier=[{"value": identifier}] if identifier else None,
             active=active,
             type=type_field,
@@ -300,7 +326,8 @@ class StructureToFHIRConverter:
                 "valueCodeableConcept": {"coding": [{"code": type_activite_code}]},
             })
         return FHIROrganization(
-            meta={"profile": [FRCORE_PROFILES["organization_uf"]]},
+            id=identifier,
+            meta={"profile": [frcore_profile("organization_uf")]},
             identifier=[{"value": identifier}] if identifier else None,
             active=active,
             type=[{"coding": [{"system": FRCORE_CS_V2_3307, "code": "UF"}]}],
@@ -336,7 +363,8 @@ class StructureToFHIRConverter:
                 "valueCoding": {"code": tarif_code},
             })
         return FHIROrganization(
-            meta={"profile": [FRCORE_PROFILES["organization_uac"]]},
+            id=identifier,
+            meta={"profile": [frcore_profile("organization_uac")]},
             identifier=[{"value": identifier}] if identifier else None,
             active=active,
             type=[{"coding": [{"system": FRCORE_CS_V2_3307, "code": "UAC"}]}],
@@ -385,7 +413,8 @@ class StructureToFHIRConverter:
             type_coding = {"code": "UH", "display": "Unité d'hébergement"}
 
         return FHIRLocation(
-            meta={"profile": [FRCORE_PROFILES["location"]]},
+            id=identifier,
+            meta={"profile": [frcore_profile("location")]},
             identifier=[self.converter.create_identifier(f"{self.base_url}/location/identifier", identifier)],
             status=status or "active",
             name=name,

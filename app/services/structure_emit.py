@@ -99,14 +99,38 @@ from typing import Tuple
 from sqlmodel import Session, select
 
 from app.models_endpoints import SystemEndpoint, MessageLog
-from app.services.fhir_structure import entity_to_fhir_location
-from app.services.fhir_organization import organization_to_bundle
 from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import send_mllp
 from app.services.mfn_structure import generate_mfn_message
 from app.services.mfn_organization import generate_mfn_organization_message, generate_mfn_organization_delete
 
 logger = logging.getLogger(__name__)
+
+
+def _get_entity_juridique(entity, session):
+    """Résout l'EJ d'une entité de structure pour l'export FRCore unique."""
+    from app.models_structure import (
+        EntiteJuridique, EntiteGeographique, Pole, Service,
+        UniteFonctionnelle, UniteHebergement, Chambre, Lit,
+    )
+    if isinstance(entity, EntiteJuridique):
+        return entity
+    if isinstance(entity, EntiteGeographique):
+        return session.get(EntiteJuridique, entity.entite_juridique_id)
+    if isinstance(entity, Pole):
+        eg = session.get(EntiteGeographique, entity.entite_geo_id)
+        return session.get(EntiteJuridique, eg.entite_juridique_id) if eg else None
+    if isinstance(entity, Service):
+        return _get_entity_juridique(session.get(Pole, entity.pole_id), session)
+    if isinstance(entity, UniteFonctionnelle):
+        return _get_entity_juridique(session.get(Service, entity.service_id), session)
+    if isinstance(entity, UniteHebergement):
+        return _get_entity_juridique(session.get(UniteFonctionnelle, entity.unite_fonctionnelle_id), session)
+    if isinstance(entity, Chambre):
+        return _get_entity_juridique(session.get(UniteHebergement, entity.unite_hebergement_id), session)
+    if isinstance(entity, Lit):
+        return _get_entity_juridique(session.get(Chambre, entity.chambre_id), session)
+    return None
 
 
 def _get_senders(session: Session, ght_context_id=None):
@@ -362,17 +386,16 @@ async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session:
 async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> None:
     import time
     from datetime import datetime
-    resource = entity_to_fhir_location(entity, session)
-    bundle = {
-        "resourceType": "Bundle",
-        "type": "transaction",
-        "entry": [
-            {
-                "resource": resource,
-                "request": {"method": "PUT", "url": f"Location/{entity.id}"},
-            }
-        ],
-    }
+    from app.services.fhir_export_service import FHIRExportService
+
+    ej = _get_entity_juridique(entity, session)
+    if ej is None:
+        logger.warning("[structure_emit] EJ introuvable pour %s, émission FHIR ignorée", type(entity).__name__)
+        return
+    # Une modification temps réel utilise le même convertisseur FRCore que
+    # l'export manuel. Le bundle complet préserve les Organization/Location et
+    # leurs références partOf, y compris lors d'un déplacement hiérarchique.
+    bundle = FHIRExportService(session, "http://localhost/fhir", enable_cache=False).export_structure(ej).model_dump()
     fhir_senders, _ = _get_senders(session, ght_context_id=ght_context_id)
     if not fhir_senders:
         logger.info(f"[structure_emit] Aucun endpoint FHIR configuré/activé pour GHT/EJ (ght_context_id={ght_context_id}), émission ignorée.")
@@ -617,14 +640,18 @@ async def emit_structure_change(entity, session: Session, operation: str = "upda
     """Émet FHIR (PUT) + HL7 MFN snapshot après création/mise à jour d'une entité de structure."""
     from app.models_structure import EntiteJuridique
     
-    # EntiteJuridique doit être émise comme Organization, pas Location
+    # Toutes les entités passent par le même convertisseur FRCore.
     if isinstance(entity, EntiteJuridique):
-        await _emit_organization_upsert(entity, session, ght_context_id=ght_context_id)
+        await _emit_fhir_upsert(entity, session, ght_context_id=ght_context_id)
         await _emit_mfn_organization(entity, session, ght_context_id=ght_context_id)
+        from app.services.outbox_service import enqueue_failed_message_logs
+        enqueue_failed_message_logs(session)
         session.commit()
         return
     await _emit_fhir_upsert(entity, session, ght_context_id=ght_context_id)
     await _emit_mfn_entity(entity, session, ght_context_id=ght_context_id)
+    from app.services.outbox_service import enqueue_failed_message_logs
+    enqueue_failed_message_logs(session)
     session.commit()
 async def emit_structure_snapshot_ej(ej_id: int, session: Session) -> None:
     """Émet le snapshot complet de la structure de l'EJ (FHIR + MFN) vers tous les endpoints."""
@@ -633,9 +660,11 @@ async def emit_structure_snapshot_ej(ej_id: int, session: Session) -> None:
     if not ej:
         logger.error(f"[structure_emit] EJ id={ej_id} introuvable pour émission snapshot.")
         return
-    await _emit_organization_upsert(ej, session, ght_context_id=ej.ght_context_id)
+    await _emit_fhir_upsert(ej, session, ght_context_id=ej.ght_context_id)
     await _emit_mfn_organization(ej, session, ght_context_id=ej.ght_context_id)
     await _emit_mfn_snapshot(session, ght_context_id=ej.ght_context_id)
+    from app.services.outbox_service import enqueue_failed_message_logs
+    enqueue_failed_message_logs(session)
     session.commit()
 
 
@@ -647,9 +676,13 @@ async def emit_structure_delete(entity_id: int, session: Session, entity_type: s
     if entity_type == "EntiteJuridique":
         await _emit_organization_delete(entity_id, finess_ej, session)
         await _emit_mfn_organization_delete(entity_id, finess_ej, session)
+        from app.services.outbox_service import enqueue_failed_message_logs
+        enqueue_failed_message_logs(session)
         session.commit()
         return
     
     await _emit_fhir_delete(entity_id, session)
     await _emit_mfn_snapshot(session)
+    from app.services.outbox_service import enqueue_failed_message_logs
+    enqueue_failed_message_logs(session)
     session.commit()

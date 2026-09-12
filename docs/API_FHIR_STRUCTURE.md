@@ -1,8 +1,14 @@
 # 🔷 API FHIR Structure - Documentation Technique
 
-**Status** : ✅ Déjà implémentée et fonctionnelle  
-**Version FHIR** : R4  
+**Statut** : API IHM historique, maintenue pour la recherche et la gestion locale
+**Version FHIR** : R4
 **Ressource** : Location (structure hospitalière hiérarchique)
+
+> Cette API `/fhir/Location` n'est pas le contrat d'échange partenaire FHIR
+> France. Pour l'export/import de structure conforme au périmètre FR Core,
+> utiliser `/api/fhir/export/structure/{ej_id}` et le convertisseur
+> `StructureToFHIRConverter`. Voir la
+> [vérification FR Core 2.2.0](reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md).
 
 ---
 

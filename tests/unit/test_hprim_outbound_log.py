@@ -6,15 +6,17 @@ from sqlmodel import select
 
 from app.models import Dossier, Patient, UCDAct
 from app.models_shared import EndpointKind, EndpointRole, MessageLog, SystemEndpoint
+from app.models_outbox import OutboundMessage
 from app.services.emit_on_create import emit_to_senders_async
 
 
-def test_hprim_emission_persists_a_valid_message_log(session):
+def test_hprim_emission_persists_a_valid_message_log_and_outbox_row(session, tmp_path):
     endpoint = SystemEndpoint(
         name="HPRIM test sender",
         kind=EndpointKind.HPRIM,
         role=EndpointRole.SENDER,
         emit_hprim_ucd=True,
+        outbox_path=str(tmp_path),
     )
     patient = Patient(identifier="IPP-HPRIM-1", family="DUPONT", given="Alice", gender="female")
     session.add_all([endpoint, patient])
@@ -44,3 +46,6 @@ def test_hprim_emission_persists_a_valid_message_log(session):
     assert log.kind == "HPRIM"
     assert log.status == "pending"
     assert "DUPONT" in log.payload
+    queued = session.exec(select(OutboundMessage).where(OutboundMessage.source_message_log_id == log.id)).one()
+    assert queued.protocol == "FILE"
+    assert queued.status == "pending"

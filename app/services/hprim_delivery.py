@@ -15,6 +15,7 @@ from app.services.outbox_service import enqueue_message
 @dataclass(frozen=True)
 class HprimDelivery:
     endpoint: SystemEndpoint
+    source_log: MessageLog
     outbox: OutboundMessage
 
 
@@ -75,6 +76,10 @@ def queue_hprim_delivery(
     if (endpoint.role or "").lower() not in {"sender", "both"}:
         raise ValueError("Endpoint HPRIM non émetteur")
     protocol = _protocol(endpoint)
+    if protocol == "FILE" and not endpoint.outbox_path:
+        raise ValueError("Endpoint HPRIM FILE sans répertoire de sortie")
+    if protocol in {"FTP", "SFTP"} and not endpoint.ftp_host:
+        raise ValueError(f"Endpoint HPRIM {protocol} sans hôte")
     source_log = MessageLog(
         direction="out",
         kind="HPRIM",
@@ -96,4 +101,4 @@ def queue_hprim_delivery(
         source_message_log_id=source_log.id,
     )
     session.flush()
-    return HprimDelivery(endpoint=endpoint, outbox=outbox)
+    return HprimDelivery(endpoint=endpoint, source_log=source_log, outbox=outbox)

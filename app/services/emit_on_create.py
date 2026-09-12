@@ -2029,23 +2029,25 @@ def emit_to_senders_async(
                 
                 logger.info(f"[HPRIM] Generated XML for {entity_type} {entity.id} to endpoint {endpoint.id}")
                 
-                # Create message log
-                log = MessageLog(
-                    endpoint_id=endpoint.id,
-                    direction="out",
-                    kind="HPRIM",
+                # La génération automatique suit la même outbox durable que
+                # l'API HPRIM et les scénarios : un MessageLog ``pending``
+                # seul n'était jamais traité par le worker.
+                from app.services.hprim_delivery import queue_hprim_delivery
+                delivery = queue_hprim_delivery(
+                    session,
+                    xml_content=hprim_xml,
+                    message_id=correlation_id or entete.message_id,
                     message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES.value,
-                    status="pending",
-                    correlation_id=correlation_id,
-                    payload=hprim_xml,
+                    endpoint_id=endpoint.id,
                 )
-                session.add(log)
                 session.commit()
-                sent_logs.append(log)
+                if delivery is not None:
+                    sent_logs.append(delivery.source_log)
                 
-                # TODO: Actually send the HPRIM XML via FILE/HTTP endpoint
-                # For now, just log it. The file poller or HTTP sender will handle it.
-                logger.info(f"[HPRIM] Queued {entity_type} emission for endpoint {endpoint.id}")
+                logger.info(
+                    "[HPRIM] Queued %s emission for endpoint %s (outbox #%s)",
+                    entity_type, endpoint.id, delivery.outbox.id if delivery else "none",
+                )
                 
             except Exception as e:
                 logger.error(f"[HPRIM] Error generating/sending message for {entity_type} {entity.id}: {e}")

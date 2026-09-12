@@ -147,3 +147,50 @@ def test_negative_coefficient(db_session, sample_dossier):
 
     with pytest.raises(Exception):
         service.create_act(act_data)
+
+
+def test_search_only_returns_recorded_ngap_codes(db_session, sample_dossier):
+    service = NGAPService(db_session)
+
+    assert service.search_acte("ami") is None
+    assert service.validate_code("ami")
+    assert not service.validate_code("AMI-1")
+
+    created = service.create_act(NGAPActCreate(
+        dossier_id=sample_dossier.id, lettre_cle="ami", coefficient=2.5,
+    ))
+    found = service.search_acte("AMI")
+
+    assert found == {
+        "code": "AMI",
+        "source": "actes_locaux",
+        "last_act_id": created.id,
+        "last_coefficient": 2.5,
+    }
+
+
+def test_update_ngap_act_preserves_all_editable_fields(db_session, sample_dossier):
+    service = NGAPService(db_session)
+    created = service.create_act(NGAPActCreate(
+        dossier_id=sample_dossier.id, lettre_cle="A", coefficient=1,
+    ))
+
+    updated = service.update_act(created.id, NGAPActCreate(
+        dossier_id=sample_dossier.id,
+        lettre_cle="ami",
+        coefficient=2.5,
+        denombrement=3,
+        identifiant_acte="NGAP-RECETTE-1",
+        position_dentaire="11",
+        numero_seance=4,
+        montant=42.75,
+        commentaire="mise à jour complète",
+    ))
+
+    assert updated.lettre_cle == "AMI"
+    assert updated.denombrement == 3
+    assert updated.identifiant_acte == "NGAP-RECETTE-1"
+    assert updated.position_dentaire == "11"
+    assert updated.numero_seance == 4
+    assert updated.montant == 42.75
+    assert updated.commentaire == "mise à jour complète"

@@ -2,6 +2,8 @@
 Service de gestion de la Nomenclature Générale des Actes Professionnels (NGAP).
 """
 from typing import Optional, List, Dict, Any
+import math
+import re
 from sqlmodel import Session, select
 from pydantic import BaseModel
 from datetime import datetime
@@ -41,43 +43,105 @@ class NGAPActResponse(BaseModel):
 
 
 class NGAPService:
-    """Service pour gérer la nomenclature NGAP."""
+    """Service des actes NGAP locaux.
+
+    Le projet ne livre pas le référentiel national NGAP : ce service ne doit
+    donc jamais prétendre qu'un code inventé existe. La recherche porte sur les
+    actes enregistrés localement et la validation de code est seulement
+    syntaxique ; la validation réglementaire demeure celle du référentiel
+    partenaire importé par l'établissement.
+    """
     
     def __init__(self, session: Session):
         self.session = session
     
     def search_acte(self, code: str) -> Optional[Dict[str, Any]]:
-        """Recherche un acte NGAP par code."""
-        # TODO: Implémenter la recherche dans la nomenclature NGAP
+        """Recherche une lettre-clé parmi les actes déjà enregistrés.
+
+        Aucun tarif ni libellé fictif n'est fabriqué lorsqu'aucun référentiel
+        NGAP n'est installé.
+        """
+        normalized = self._normalize_code(code)
+        if not normalized:
+            return None
+        row = self.session.execute(
+            select(NGAPAct).where(NGAPAct.lettre_cle == normalized).order_by(NGAPAct.id)
+        ).scalars().first()
+        if row is None:
+            return None
         return {
-            "code": code,
-            "libelle": f"Acte NGAP {code}",
-            "tarif": 0.0
+            "code": normalized,
+            "source": "actes_locaux",
+            "last_act_id": row.id,
+            "last_coefficient": row.coefficient,
         }
     
     def get_actes(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-        """Récupère la liste des actes NGAP."""
-        # TODO: Implémenter la récupération depuis la base
-        return []
-    
-    def validate_acte(self, code: str) -> bool:
-        """Valide qu'un code NGAP existe."""
-        # TODO: Implémenter la validation
-        return True
+        """Liste paginée des actes NGAP locaux, sans faux référentiel."""
+        safe_limit = max(1, min(int(limit), 500))
+        safe_offset = max(0, int(offset))
+        rows = self.session.execute(
+            select(NGAPAct).order_by(NGAPAct.id).offset(safe_offset).limit(safe_limit)
+        ).scalars().all()
+        return [self._as_dict(row) for row in rows]
+
+    @staticmethod
+    def _normalize_code(code: str | None) -> str:
+        return (code or "").strip().upper()
+
+    @classmethod
+    def validate_code(cls, code: str | None) -> bool:
+        """Valide uniquement la forme d'une lettre-clé NGAP locale."""
+        return bool(re.fullmatch(r"[A-Z]{1,10}", cls._normalize_code(code)))
+
+    @staticmethod
+    def _as_dict(row: NGAPAct) -> Dict[str, Any]:
+        facture = row.facture
+        facture_bool = (
+            facture
+            if isinstance(facture, bool)
+            else str(facture or "").lower() not in {"", "0", "false", "no", "non"}
+        )
+        return {
+            "id": row.id,
+            "dossier_id": row.dossier_id,
+            "lettre_cle": row.lettre_cle,
+            "coefficient": row.coefficient,
+            "denombrement": row.denombrement,
+            "execute_date": row.execute_date,
+            "identifiant_acte": row.identifiant_acte,
+            "prestataire_id": row.prestataire_id,
+            "position_dentaire": row.position_dentaire,
+            "numero_seance": row.numero_seance,
+            "montant": row.montant_total,
+            "commentaire": row.commentaire,
+            "valide": row.valide,
+            "facture": facture_bool,
+        }
+
+    @classmethod
+    def _validate_create(cls, act: NGAPActCreate) -> tuple[str, int]:
+        code = cls._normalize_code(act.lettre_cle)
+        if not cls.validate_code(code):
+            raise ValueError("Lettre-clé NGAP invalide (1 à 10 lettres A-Z)")
+        if act.dossier_id is None:
+            raise ValueError("Un dossier est requis")
+        if act.coefficient is None or not math.isfinite(act.coefficient) or act.coefficient <= 0:
+            raise ValueError("Coefficient NGAP invalide")
+        denombrement = act.denombrement if act.denombrement is not None else 1
+        if not isinstance(denombrement, int) or denombrement <= 0:
+            raise ValueError("Dénombrement NGAP invalide")
+        return code, denombrement
 
     # Minimal CRUD-like methods expected by API layer/tests
     def create_act(self, act: NGAPActCreate) -> NGAPActResponse:
-        # Basic validation expected by tests
-        if not act.lettre_cle or not isinstance(act.lettre_cle, str) or not act.lettre_cle.isalpha():
-            raise ValueError("Invalid lettre_cle")
-        if act.coefficient is None or act.coefficient <= 0:
-            raise ValueError("Invalid coefficient")
+        code, denombrement = self._validate_create(act)
 
         ngap = NGAPAct(
             dossier_id=getattr(act, "dossier_id", None),
-            lettre_cle=act.lettre_cle,
+            lettre_cle=code,
             coefficient=act.coefficient,
-            denombrement=act.denombrement,
+            denombrement=denombrement,
             execute_date=act.execute_date or datetime.now(),
             identifiant_acte=act.identifiant_acte,
             prestataire_id=getattr(act, "prestataire_id", None),
@@ -92,70 +156,40 @@ class NGAPService:
         self.session.commit()
         self.session.refresh(ngap)
 
-        return NGAPActResponse(
-            id=ngap.id,
-            dossier_id=ngap.dossier_id,
-            lettre_cle=ngap.lettre_cle,
-            coefficient=ngap.coefficient,
-            denombrement=ngap.denombrement,
-            execute_date=ngap.execute_date,
-            identifiant_acte=ngap.identifiant_acte,
-            prestataire_id=ngap.prestataire_id,
-            position_dentaire=ngap.position_dentaire,
-            numero_seance=ngap.numero_seance,
-            montant=ngap.montant_total,
-            commentaire=ngap.commentaire,
-            valide=ngap.valide,
-            facture=False,
-        )
+        return NGAPActResponse(**self._as_dict(ngap))
 
     def get_acts_by_dossier(self, dossier_id: int) -> List[NGAPActResponse]:
         stmt = select(NGAPAct).where(NGAPAct.dossier_id == dossier_id).order_by(NGAPAct.id)
         result = self.session.execute(stmt)
         rows = result.scalars().all()
-        def _facture_bool(val):
-            if val is None:
-                return False
-            if isinstance(val, bool):
-                return val
-            # Treat string values like 'non' as False
-            if isinstance(val, str):
-                return val.lower() not in ("non", "no", "false", "0", "")
-            return bool(val)
-
-        return [NGAPActResponse(
-            id=r.id,
-            dossier_id=r.dossier_id,
-            lettre_cle=r.lettre_cle,
-            coefficient=r.coefficient,
-            denombrement=r.denombrement,
-            execute_date=r.execute_date,
-            identifiant_acte=r.identifiant_acte,
-            montant=r.montant_total,
-            commentaire=r.commentaire,
-            valide=r.valide,
-            facture=_facture_bool(r.facture) if hasattr(r, 'facture') else False,
-        ) for r in rows]
+        return [NGAPActResponse(**self._as_dict(r)) for r in rows]
 
     def update_act(self, act_id: int, act: NGAPActCreate) -> NGAPActResponse:
         ngap = self.session.get(NGAPAct, act_id)
         if not ngap:
             raise ValueError("Act not found")
-        ngap.lettre_cle = act.lettre_cle
+        code, denombrement = self._validate_create(act)
+        ngap.lettre_cle = code
         ngap.coefficient = act.coefficient
-        ngap.denombrement = act.denombrement
+        ngap.denombrement = denombrement
         ngap.execute_date = act.execute_date or ngap.execute_date
+        ngap.identifiant_acte = act.identifiant_acte
+        ngap.prestataire_id = act.prestataire_id
+        ngap.position_dentaire = act.position_dentaire
+        ngap.numero_seance = act.numero_seance
+        ngap.montant_total = act.montant
+        ngap.commentaire = act.commentaire
         self.session.add(ngap)
         self.session.commit()
         self.session.refresh(ngap)
-        return NGAPActResponse(id=ngap.id, lettre_cle=ngap.lettre_cle, coefficient=ngap.coefficient)
+        return NGAPActResponse(**self._as_dict(ngap))
 
     def delete_act(self, act_id: int) -> None:
         ngap = self.session.get(NGAPAct, act_id)
-        if ngap:
-            self.session.delete(ngap)
-            self.session.commit()
-        return None
+        if not ngap:
+            raise ValueError("Act not found")
+        self.session.delete(ngap)
+        self.session.commit()
 
     def validate_act(self, act_id: int) -> NGAPActResponse:
         ngap = self.session.get(NGAPAct, act_id)
@@ -165,4 +199,4 @@ class NGAPService:
         self.session.add(ngap)
         self.session.commit()
         self.session.refresh(ngap)
-        return NGAPActResponse(id=ngap.id, valide=ngap.valide, lettre_cle=ngap.lettre_cle, coefficient=ngap.coefficient)
+        return NGAPActResponse(**self._as_dict(ngap))

@@ -95,7 +95,6 @@ def enqueue_message(
         existing = session.exec(
             select(OutboundMessage)
             .where(OutboundMessage.source_message_log_id == source_message_log_id)
-            .where(OutboundMessage.status.in_(["pending", "retry"]))
         ).first()
         if existing:
             return existing
@@ -170,8 +169,12 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
         else:
             raise ValueError(f"Protocole d'outbox non supporté: {row.protocol}")
         row.status, row.sent_at, row.last_error, row.response_payload = "sent", now, None, ack
+        # Le transport est un détail technique : une émission HPRIM reste un
+        # message HPRIM qu'elle soit déposée en fichier, FTP ou SFTP.  Garder
+        # le type fonctionnel permet aux journaux et aux filtres métier de
+        # restituer toutes les émissions HPRIM de la même façon.
         log = MessageLog(
-            direction="out", kind="HPRIM" if protocol == "FILE" and (row.message_type or "").upper().startswith("HPRIM") else protocol,
+            direction="out", kind="HPRIM" if (row.message_type or "").upper().startswith("HPRIM") else protocol,
             endpoint_id=row.endpoint_id, message_type=row.message_type, payload=row.payload,
             ack_payload=ack, status="sent", correlation_id=row.correlation_id,
         )
@@ -196,6 +199,16 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
         row.status = "failed" if row.attempts >= row.max_attempts else "retry"
         if row.status == "retry":
             row.next_attempt_at = now + timedelta(seconds=min(3600, 2 ** row.attempts))
+        if row.source_message_log_id:
+            source_log = session.get(MessageLog, row.source_message_log_id)
+            if source_log:
+                # Le journal métier reste en attente pendant les reprises puis
+                # devient explicitement en erreur lorsque le plafond est
+                # atteint. Il ne doit jamais donner l'impression qu'un envoi
+                # terminalement échoué est encore en cours.
+                source_log.status = "error" if row.status == "failed" else "pending"
+                source_log.ack_payload = row.response_payload
+                session.add(source_log)
         if row.scenario_delivery_id:
             from app.models_scenario_runs import ScenarioDelivery
             delivery = session.get(ScenarioDelivery, row.scenario_delivery_id)
@@ -220,10 +233,12 @@ def enqueue_failed_message_logs(session: Session) -> int:
     ).all()
     created = 0
     for log in logs:
+        # Une ligne d'outbox, même terminalement échouée, est la preuve que ce
+        # journal est déjà pris en charge par le mécanisme durable. La recréer
+        # ici contournerait ``max_attempts`` à chaque passage du planificateur.
         before = session.exec(
             select(OutboundMessage)
             .where(OutboundMessage.source_message_log_id == log.id)
-            .where(OutboundMessage.status.in_(["pending", "retry"]))
         ).first()
         if before is None:
             enqueue_message(
@@ -249,6 +264,11 @@ def retry_now(session: Session, outbox_id: int) -> OutboundMessage:
     row.next_attempt_at = datetime.utcnow()
     row.updated_at = datetime.utcnow()
     session.add(row)
+    if row.source_message_log_id:
+        source_log = session.get(MessageLog, row.source_message_log_id)
+        if source_log:
+            source_log.status = "pending"
+            session.add(source_log)
     return row
 
 

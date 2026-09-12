@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Query, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, col
 from datetime import datetime
 from typing import Optional
@@ -16,7 +15,6 @@ from app.models import Dossier
 from app.models_structure import EntiteJuridique
 from app.converters.fhir_import_converter import FHIRBundleImporter, FHIRImportError
 from app.services.transport_inbound import on_message_inbound_async
-from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.scenario_validation import validate_scenario
 from app.services.hl7_display import build_hl7_view
 from app.services.vocabulary_lookup import get_vocabulary_options
@@ -124,6 +122,8 @@ def list_messages(
 
     if neg_ack_only or status == "error":
         stmt = stmt.where(col(MessageLog.status).in_(NEG_STATUSES))
+    elif status:
+        stmt = stmt.where(MessageLog.status == status)
 
     if kind in ("MLLP", "FHIR", "HPRIM"):
         stmt = stmt.where(MessageLog.kind == kind)
@@ -556,7 +556,7 @@ def dossier_export(
                 f"Statut: {msg.status}"
             )
             if msg.pam_validation_status == "fail":
-                summary_lines.append(f"   ⚠️ Erreurs PAM détectées")
+                summary_lines.append("   ⚠️ Erreurs PAM détectées")
             if msg.status in {"error", "ack_error", "rejected"}:
                 # Extraire le texte de l'ACK si disponible
                 ack_text = "N/A"
@@ -850,7 +850,6 @@ async def validate_dossier(
 def message_detail(message_id: int, request: Request, session: Session = Depends(get_session)):
     m = session.get(MessageLog, message_id)
     if not m:
-        templates = get_templates_with_filters(request)
         return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Message introuvable"}, status_code=404)
     ep = session.get(SystemEndpoint, m.endpoint_id) if m.endpoint_id else None
     
@@ -862,7 +861,6 @@ def message_detail(message_id: int, request: Request, session: Session = Depends
         except (json.JSONDecodeError, TypeError):
             validation_issues = None
     
-    templates = get_templates_with_filters(request)
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "message_detail.html",
@@ -920,7 +918,7 @@ async def replay_message(
             )
             return {
                 "status": "success",
-                "message": f"Message replayed successfully",
+                "message": "Message replayed successfully",
                 "ack": ack,
                 "new_status": msg_log.status
             }

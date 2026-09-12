@@ -1,12 +1,12 @@
 from datetime import datetime
 
 from app.models_shared import MessageLog
-from app.routers.messages import _extract_ipp_and_dossier, list_by_dossier
+from app.routers.messages import _extract_ipp_and_dossier, list_by_dossier, list_messages
 
 
 class _TemplatesCapture:
     def TemplateResponse(self, request, template_name, context):
-        assert template_name == "messages_by_dossier.html"
+        assert template_name in {"messages_by_dossier.html", "messages.html"}
         return context
 
 
@@ -89,3 +89,26 @@ def test_by_dossier_keeps_messages_without_nda_and_filters_global_status(isolate
     assert len(error_context["dossiers"]) == 1
     assert error_context["dossiers"][0]["dossier_number"] == "NDA-ERROR"
     assert error_context["filters"]["dossier_status"] == "error"
+
+
+def test_messages_filters_an_exact_status_and_groups_negative_ack_statuses(isolated_session):
+    isolated_session.add_all([
+        MessageLog(direction="out", kind="MLLP", status="sent", payload="MSH|^~\\&|A|B"),
+        MessageLog(direction="out", kind="MLLP", status="ack_error", payload="MSH|^~\\&|A|B"),
+    ])
+    isolated_session.commit()
+
+    sent_context = list_messages(
+        _Request(), isolated_session, endpoint_id=None, date_start=None,
+        date_end=None, neg_ack_only=False, status="sent", kind=None,
+        direction=None, limit=100,
+    )
+    assert [message.status for message in sent_context["messages"]] == ["sent"]
+    assert sent_context["filters"]["status"] == "sent"
+
+    errors_context = list_messages(
+        _Request(), isolated_session, endpoint_id=None, date_start=None,
+        date_end=None, neg_ack_only=False, status="error", kind=None,
+        direction=None, limit=100,
+    )
+    assert [message.status for message in errors_context["messages"]] == ["ack_error"]

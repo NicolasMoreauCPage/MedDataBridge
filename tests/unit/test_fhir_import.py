@@ -3,7 +3,7 @@ import os
 from sqlmodel import Session, select, SQLModel
 from app.db import engine
 from app.models_structure import EntiteJuridique
-from app.converters.fhir_import_converter import FHIRToEncounterConverter, FHIRBundleImporter
+from app.converters.fhir_import_converter import FHIRToEncounterConverter, FHIRToPatientConverter, FHIRBundleImporter
 
 
 def test_extract_id_from_reference_variants():
@@ -34,6 +34,15 @@ def test_extract_id_from_reference_variants():
     assert conv._extract_id_from_reference('unknown-id') is None
 
 
+def test_fhir_date_parsers_reject_invalid_values_without_masking_other_errors():
+    patient_converter = FHIRToPatientConverter.__new__(FHIRToPatientConverter)
+    encounter_converter = FHIRToEncounterConverter.__new__(FHIRToEncounterConverter)
+
+    assert patient_converter._parse_birth_date("not-a-date") is None
+    assert encounter_converter._parse_datetime("not-a-date") is None
+    assert encounter_converter._parse_datetime(None) is None
+
+
 def test_import_debug_bundle_roundtrip(tmp_path):
     # ensure DB tables
     SQLModel.metadata.create_all(engine)
@@ -48,7 +57,9 @@ def test_import_debug_bundle_roundtrip(tmp_path):
         ej = s.exec(select(EntiteJuridique)).first()
         if not ej:
             ej = EntiteJuridique(name='TEST EJ', code='TEST', finess='000000')
-            s.add(ej); s.commit(); s.refresh(ej)
+            s.add(ej)
+            s.commit()
+            s.refresh(ej)
 
         importer = FHIRBundleImporter(s, ej)
         results = importer.import_bundle(bundle)

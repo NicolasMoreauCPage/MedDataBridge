@@ -465,7 +465,7 @@ class FHIRToPatientConverter:
             return None
         try:
             return datetime.fromisoformat(birth_date_str)
-        except:
+        except (TypeError, ValueError):
             return None
 
     def _parse_gender(self, gender: Optional[str]) -> Optional[str]:
@@ -884,7 +884,7 @@ class FHIRToEncounterConverter:
             return None
         try:
             return datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
-        except:
+        except (AttributeError, TypeError, ValueError):
             return None
 
     def _map_status(self, fhir_status: str) -> str:

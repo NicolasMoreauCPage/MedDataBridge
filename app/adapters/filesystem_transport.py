@@ -5,11 +5,10 @@ Provides:
 - FileSystemReader: scans inbox directories for message files, processes them alphabetically
 - FileSystemWriter: writes messages to outbox directories
 """
-import os
 from pathlib import Path
 from typing import List, Optional, Callable
 from datetime import datetime
-from app.utils.atomic_write import write_atomic_text
+from app.utils.atomic_write import write_atomic_text, write_atomic_text_file
 
 
 class FileSystemReader:
@@ -193,17 +192,16 @@ class FileSystemWriter:
             else:
                 filename = f"{timestamp}{self.extension}"
         
-        file_path = target_dir / filename
-
-        # Use atomic writer to write content with unique timestamp+rand filename
-        # Derive a sensible basename (strip extension if filename provided)
+        # Un partenaire peut imposer un nom précis (par exemple pour un dépôt
+        # HPRIM XML). Dans ce cas le nom *et* son extension doivent être
+        # conservés ; l'écriture reste atomique.
         if filename:
-            basename = filename.rsplit('.', 1)[0]
-        else:
-            basename = timestamp
+            requested_path = Path(filename)
+            if requested_path.name != filename or filename in {"", ".", ".."}:
+                raise ValueError("Le nom de fichier doit être un nom simple, sans répertoire")
+            return write_atomic_text_file(target_dir / filename, content)
 
-        final = write_atomic_text(target_dir, basename, content, extension=self.extension)
-        return final
+        return write_atomic_text(target_dir, timestamp, content, extension=self.extension)
     
     def write_batch(self, messages: List[tuple[str, Optional[str]]]) -> List[Path]:
         """

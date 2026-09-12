@@ -44,3 +44,25 @@ def write_atomic_text(target_dir: Path, basename: str, content: str, extension: 
         tmp_path.replace(final_path)
 
     return final_path
+
+
+def write_atomic_text_file(final_path: Path, content: str) -> Path:
+    """Écrit atomiquement un nom de fichier explicitement choisi.
+
+    Contrairement à :func:`write_atomic_text`, cette variante ne génère ni
+    suffixe ni extension : elle est destinée aux partenaires qui imposent un
+    nom de dépôt précis. ``os.replace`` garde la publication atomique du
+    fichier, y compris lors du remplacement volontaire d'un dépôt précédent.
+    """
+    final_path = Path(final_path)
+    _ensure_dir(final_path.parent)
+    tmp_path = final_path.with_suffix(final_path.suffix + ".tmp")
+    with tmp_path.open("w", encoding="utf-8") as fh:
+        fh.write(content)
+        fh.flush()
+        try:
+            os.fsync(fh.fileno())
+        except Exception:
+            pass
+    os.replace(str(tmp_path), str(final_path))
+    return final_path

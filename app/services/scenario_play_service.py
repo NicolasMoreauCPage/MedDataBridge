@@ -720,7 +720,8 @@ def _replace_hardcoded_practitioner_in_hprim(root: ET.Element, tokens: dict[str,
     # médecin résolu pour la cible. On complète uniquement les nœuds déjà
     # présents, afin de respecter les scénarios qui testent explicitement
     # l'absence d'un prescripteur ou d'un exécutant.
-    qualified_tag = lambda name: f"{{{root.tag.split('}', 1)[0][1:]}}}{name}" if root.tag.startswith("{") else name
+    def qualified_tag(name: str) -> str:
+        return f"{{{root.tag.split('}', 1)[0][1:]}}}{name}" if root.tag.startswith("{") else name
     for element in list(root.iter()):
         if within_patient(element) or _local_name(element.tag) not in {"acteur", "medecin"}:
             continue

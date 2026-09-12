@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -85,6 +85,7 @@ class EmissionRequest(BaseModel):
     venue: Optional[VenueInfo] = Field(None, description="Informations de venue")
     actes: List[ActeCCAMRequest] = Field(..., description="Liste des actes CCAM")
     message_id: Optional[str] = Field(None, description="ID du message (auto-généré)")
+    endpoint_id: Optional[int] = Field(None, description="Endpoint HPRIM/FILE/FTP/SFTP de destination")
 
 
 class ActeCCAMResponse(BaseModel):
@@ -112,6 +113,9 @@ class MessageHPRIMResponse(BaseModel):
     xml_size: int
     validation_errors: List[Dict[str, Any]] = Field(default_factory=list)
     created_at: datetime
+    delivery_status: str = Field(default="validated")
+    endpoint_id: Optional[int] = None
+    outbox_id: Optional[int] = None
 
 class ReceptionRequest(BaseModel):
     """Requête de réception d'actes CCAM"""
@@ -297,7 +301,6 @@ async def creer_acte_ccam(
 @router.post("/emission", response_model=MessageHPRIMResponse)
 async def emettre_actes_ccam(
     request: EmissionRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_session)
 ):
     """
@@ -436,7 +439,7 @@ async def emettre_actes_ccam(
                 },
             )
 
-        _persist_message(
+        stored_message = _persist_message(
             db,
             message_id=message.entete.message_id,
             type_message=message.entete.message_type.value,
@@ -471,6 +474,21 @@ async def emettre_actes_ccam(
                     facture=acte.facture,
                 )
             )
+        from app.services.hprim_delivery import queue_hprim_delivery
+
+        try:
+            delivery = queue_hprim_delivery(
+                db,
+                xml_content=xml_content,
+                message_id=message.entete.message_id,
+                message_type=message.entete.message_type.value,
+                endpoint_id=request.endpoint_id,
+                target_system_key=request.destinataire_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        stored_message.status = "queued" if delivery else "validated"
+        db.add(stored_message)
         db.commit()
 
         # Préparer la réponse
@@ -480,17 +498,11 @@ async def emettre_actes_ccam(
             xml_content=xml_content,
             xml_size=len(xml_content),
             validation_errors=[],
-            created_at=datetime.now()
+            created_at=datetime.now(),
+            delivery_status="queued" if delivery else "validated",
+            endpoint_id=delivery.endpoint.id if delivery else None,
+            outbox_id=delivery.outbox.id if delivery else None,
         )
-
-        # Ajouter tâche en arrière-plan pour l'envoi réel
-        if not erreurs_validation:
-            background_tasks.add_task(
-                envoyer_message_hprim,
-                message.entete.message_id,
-                xml_content,
-                request.destinataire_id
-            )
 
         logger.info(f"Message HPRIM généré: {message.entete.message_id} ({len(xml_content)} caractères)")
         return response
@@ -779,107 +791,3 @@ async def page_cotation_actes():
     except Exception as e:
         logger.error(f"Erreur chargement page cotation: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur chargement page: {str(e)}")
-
-
-# Fonctions utilitaires
-async def envoyer_message_hprim(message_id: str, xml_content: str, destinataire_id: str):
-    """
-    Tâche en arrière-plan pour envoyer un message HPRIM
-
-    Cette fonction sera appelée en arrière-plan pour gérer l'envoi
-    réel du message XML vers le destinataire.
-    """
-    try:
-        logger.info(f"Envoi message {message_id} vers {destinataire_id}")
-
-        # Validation HPRIM automatique avant émission (XSD + contenu)
-        from app.services.hprim.hprim_service import HprimService
-        import time as _time
-        start = _time.time()
-        hprim = HprimService()
-        result = hprim.traiter_message_xml(xml_content)
-        if not result.get("succes"):
-            logger.error(f"Validation HPRIM avant émission échouée: {result.get('erreur')}")
-            # Metrics outbound error
-            try:
-                from app.metrics import record_hprim_validation
-                err_type = result.get("type_erreur")
-                # Map to helper types
-                mapped = {
-                    "XSD_VALIDATION": "xsd",
-                    "VALIDATION": "content",
-                    "ENCODING": "encoding",
-                }.get(err_type, "processing")
-                record_hprim_validation(
-                    succes=False,
-                    schema=result.get("schema_utilise"),
-                    error_type=mapped,
-                    direction="outbound",
-                    duration_seconds=_time.time() - start,
-                )
-            except Exception:
-                pass
-            # Enregistrer dans MessageLog (out)
-            try:
-                from app.models_shared import MessageLog
-                from app.db import engine
-                from sqlmodel import Session as SQLModelSession
-                with SQLModelSession(engine) as session:
-                    log = MessageLog(
-                        direction="out",
-                        kind="HPRIM",
-                        message_type="HPRIM-XML",
-                        endpoint_id=None,
-                        correlation_id=message_id,
-                        status="error",
-                        payload=xml_content,
-                        ack_payload=f"HPRIM validation failed before send ({result.get('type_erreur')}): {result.get('erreur')}"
-                    )
-                    session.add(log)
-                    session.commit()
-            except Exception:
-                pass
-            return
-
-        # TODO: Implémenter l'envoi réel (HTTP, file d'attente, etc.)
-        # Pour l'instant, on simule un envoi réussi
-        logger.info(f"Message {message_id} envoyé avec succès (simulation)")
-
-        # Log emission OK
-        try:
-            from app.models_shared import MessageLog
-            from app.db import engine
-            from sqlmodel import Session as SQLModelSession
-            with SQLModelSession(engine) as session:
-                schema_info = result.get("schema_utilise")
-                log = MessageLog(
-                    direction="out",
-                    kind="HPRIM",
-                    message_type="HPRIM-XML",
-                    endpoint_id=None,
-                    correlation_id=message_id,
-                    status="sent",
-                    payload=xml_content,
-                    ack_payload=f"HPRIM sent OK{(' (' + schema_info + ')') if schema_info else ''}"
-                )
-                session.add(log)
-                session.commit()
-        except Exception:
-            pass
-
-        # Metrics outbound success
-        try:
-            from app.metrics import record_hprim_validation
-            record_hprim_validation(
-                succes=True,
-                schema=result.get("schema_utilise"),
-                error_type=None,
-                direction="outbound",
-                duration_seconds=_time.time() - start,
-            )
-        except Exception:
-            pass
-
-    except Exception as e:
-        logger.error(f"Erreur envoi message {message_id}: {e}")
-        # TODO: Gérer les erreurs d'envoi (retry, alertes, etc.)

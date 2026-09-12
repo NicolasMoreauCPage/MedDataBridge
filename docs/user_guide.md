@@ -200,6 +200,14 @@ Le payload de génération indique `CCAM`, `NGAP`, `UCD` ou `LPP` et un code
 d'acte. Si un montant est fourni, `montant_total` doit être égal à
 `prix_unitaire × quantite`. Le contrat complet est visible dans `/api/docs`.
 
+Les API d'émission CCAM et NGAP HPRIM génèrent, valident puis placent le XML
+dans l'outbox durable. Transmettre `endpoint_id` pour sélectionner la
+destination ; à défaut, l'application recherche un endpoint émetteur ayant
+pour `target_system_key` l'identifiant du destinataire. La réponse indique
+`delivery_status=queued` et `outbox_id` lorsqu'une livraison est prête, ou
+`delivery_status=validated` lorsqu'aucun endpoint n'est configuré : un XML
+validé n'est jamais présenté comme déjà envoyé.
+
 ### Importer un MFN^M05
 
 L'import MFN utilise le GHT actif :

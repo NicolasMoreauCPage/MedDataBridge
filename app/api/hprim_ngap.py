@@ -9,7 +9,7 @@ import json
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -67,6 +67,7 @@ class EmissionNGAPRequest(BaseModel):
     actes: List[ActeNGAPRequest] = Field(..., description="Liste des actes NGAP")
     dossier_id: Optional[str] = Field(None, description="ID du dossier médical")
     message_id: Optional[str] = Field(None, description="ID du message (auto-généré)")
+    endpoint_id: Optional[int] = Field(None, description="Endpoint HPRIM/FILE/FTP/SFTP de destination")
 
 
 class ActeNGAPResponse(BaseModel):
@@ -98,6 +99,9 @@ class MessageNGAPResponse(BaseModel):
     validation_errors: List[Dict[str, Any]]
     created_at: datetime
     dossier_id: Optional[str] = None
+    delivery_status: str = Field(default="validated")
+    endpoint_id: Optional[int] = None
+    outbox_id: Optional[int] = None
 
 class ReceptionNGAPResponse(BaseModel):
     succes: bool
@@ -278,7 +282,6 @@ async def creer_acte_ngap(
 @router.post("/emission", response_model=MessageNGAPResponse)
 async def emettre_actes_ngap(
     request: EmissionNGAPRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_session)
 ):
     """
@@ -422,7 +425,7 @@ async def emettre_actes_ngap(
                 },
             )
 
-        _persist_message(
+        stored_message = _persist_message(
             db,
             message_id=message.entete.message_id,
             type_message=message.entete.message_type.value,
@@ -457,6 +460,21 @@ async def emettre_actes_ngap(
                 valide=acte.valide,
                 facture=acte.facture,
             )
+        from app.services.hprim_delivery import queue_hprim_delivery
+
+        try:
+            delivery = queue_hprim_delivery(
+                db,
+                xml_content=xml_content,
+                message_id=message.entete.message_id,
+                message_type=message.entete.message_type.value,
+                endpoint_id=request.endpoint_id,
+                target_system_key=request.destinataire_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        stored_message.status = "queued" if delivery else "validated"
+        db.add(stored_message)
         db.commit()
 
         # Préparer la réponse
@@ -468,17 +486,11 @@ async def emettre_actes_ngap(
             actes_count=len(actes),
             validation_errors=[],
             created_at=datetime.now(),
-            dossier_id=request.dossier_id
+            dossier_id=request.dossier_id,
+            delivery_status="queued" if delivery else "validated",
+            endpoint_id=delivery.endpoint.id if delivery else None,
+            outbox_id=delivery.outbox.id if delivery else None,
         )
-
-        # Ajouter tâche en arrière-plan pour l'envoi réel
-        if not erreurs_validation:
-            background_tasks.add_task(
-                envoyer_message_hprim,
-                message.entete.message_id,
-                xml_content,
-                request.destinataire_id
-            )
 
         logger.info(f"Message NGAP généré: {message.entete.message_id} ({len(xml_content)} caractères)")
         return response
@@ -653,20 +665,3 @@ async def historique_actes_ngap(patient_id: str, limit: int = 50, offset: int = 
         "limit": safe_limit,
         "offset": safe_offset,
     }
-
-
-# Fonctions utilitaires (à implémenter)
-async def envoyer_message_hprim(message_id: str, xml_content: str, destinataire: str):
-    """Envoie un message HPRIM en arrière-plan"""
-    # TODO: Implémenter l'envoi réel (MLLP, HTTP, etc.)
-    logger.info(f"Message {message_id} envoyé à {destinataire}")
-
-
-async def envoyer_acquittement_hprim(acquittement_xml: str, destinataire: str):
-    """Envoie un acquittement HPRIM en arrière-plan"""
-    # TODO: Implémenter l'envoi réel
-    logger.info(f"Acquittement envoyé à {destinataire}")
-
-
-# Les modèles partagés PatientInfo, MedecinInfo, VenueInfo, ReceptionRequest,
-# ReceptionResponse et hprim_service sont importés en haut du fichier.

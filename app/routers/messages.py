@@ -12,6 +12,8 @@ import zipfile
 from app.db import get_session
 from app.models_endpoints import MessageLog, SystemEndpoint
 from app.models import Dossier
+from app.models_structure import EntiteJuridique
+from app.converters.fhir_import_converter import FHIRBundleImporter, FHIRImportError
 from app.db_session_factory import session_factory
 from app.services.transport_inbound import on_message_inbound_async
 from app.services.fhir_transport import post_fhir_bundle as send_fhir
@@ -638,20 +640,76 @@ async def send_message(request: Request):
             {"request": request, "kind": kind, "ack": ack, "endpoints": endpoints},
         )
 
-    # FHIR inbound simulation: just log and Renvoie a simple response
+    # FHIR inbound: importer réellement le Bundle ou la ressource dans l'EJ
+    # de l'endpoint. L'ancien comportement ne faisait que journaliser le JSON,
+    # ce qui rendait le formulaire trompeur pour une recette d'intégration.
     if kind == "FHIR":
-        # try to parse payload as JSON
-        import json
         try:
             obj = json.loads(payload)
-        except Exception:
-            obj = None
-        # find endpoint
+        except json.JSONDecodeError as exc:
+            return get_templates_with_filters(request).TemplateResponse(
+                request,
+                "send_message.html",
+                {"request": request, "error": f"JSON FHIR invalide : {exc.msg}", "endpoints": []},
+            )
         with session_factory() as s:
-            ep = s.get(SystemEndpoint, int(endpoint_id)) if endpoint_id else None
-            log = MessageLog(direction="in", kind="FHIR", endpoint_id=(ep.id if ep else None), payload=payload, ack_payload="", status="received", created_at=datetime.utcnow())
-            s.add(log); s.commit(); s.refresh(log)
-    return get_templates_with_filters(request).TemplateResponse(request, "send_message_result.html", {"request": request, "kind": kind, "ack": f"Logged message id={log.id}"})
+            try:
+                endpoint_pk = int(endpoint_id) if endpoint_id else None
+            except (TypeError, ValueError):
+                endpoint_pk = None
+            ep = s.get(SystemEndpoint, endpoint_pk) if endpoint_pk else None
+            endpoints = s.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
+            if ep and ep.kind != "FHIR":
+                return get_templates_with_filters(request).TemplateResponse(
+                    request,
+                    "send_message.html",
+                    {"request": request, "error": "Endpoint FHIR invalide", "endpoints": endpoints},
+                )
+            ej_id = (ep.entite_juridique_id if ep else None) or getattr(getattr(request.state, "ej_context", None), "id", None)
+            ej = s.get(EntiteJuridique, ej_id) if ej_id else None
+            if ej is None:
+                return get_templates_with_filters(request).TemplateResponse(
+                    request,
+                    "send_message.html",
+                    {"request": request, "error": "Sélectionnez un endpoint FHIR rattaché à une EJ", "endpoints": endpoints},
+                )
+            bundle = obj if obj.get("resourceType") == "Bundle" else {
+                "resourceType": "Bundle", "type": "collection", "entry": [{"resource": obj}],
+            }
+            log = MessageLog(
+                direction="in", kind="FHIR", endpoint_id=(ep.id if ep else None),
+                payload=payload, ack_payload="", status="received", created_at=datetime.utcnow(),
+            )
+            s.add(log)
+            try:
+                result = FHIRBundleImporter(s, ej).import_bundle(bundle)
+                errors = result.get("errors", [])
+                outcome = {
+                    "resourceType": "OperationOutcome",
+                    "issue": [{
+                        "severity": "warning" if errors else "information",
+                        "code": "processing" if errors else "informational",
+                        "diagnostics": f"Import FHIR : {result.get('imported', 0)} ressource(s), {len(errors)} erreur(s)",
+                    }],
+                    "result": result,
+                }
+                log.status = "partial" if errors else "ack_ok"
+                log.ack_payload = json.dumps(outcome, ensure_ascii=False)
+                s.add(log)
+                s.commit()
+                s.refresh(log)
+                ack = log.ack_payload
+            except (FHIRImportError, ValueError) as exc:
+                s.rollback()
+                log.status, log.ack_payload = "error", str(exc)
+                s.add(log)
+                s.commit()
+                ack = f"ERROR: {exc}"
+        return get_templates_with_filters(request).TemplateResponse(
+            request,
+            "send_message_result.html",
+            {"request": request, "kind": kind, "ack": ack, "endpoints": endpoints},
+        )
 
     return get_templates_with_filters(request).TemplateResponse(request, "send_message.html", {"request": request, "error": "Kind non supporté", "endpoints": []})
 

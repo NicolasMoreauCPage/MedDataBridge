@@ -138,6 +138,12 @@ corpus CPage avec une politique adaptée.
 5. Vérifier le journal dans `/messages`, puis le patient, dossier, venue ou
    mouvement créé.
 
+Pour un payload FHIR dans ce même écran, sélectionner un endpoint FHIR lié à
+l'EJ cible. Un Bundle est importé directement ; une ressource seule est placée
+dans un Bundle `collection`. Le journal contient un `OperationOutcome` avec le
+nombre de ressources importées et les éventuels écarts, au lieu d'un simple
+journal technique.
+
 | ACK | Interprétation |
 |---|---|
 | `AA` | Message accepté par l'application |

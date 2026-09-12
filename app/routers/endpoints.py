@@ -27,6 +27,15 @@ def get_templates_with_filters(request: FastAPIRequest):
 
 router = APIRouter(prefix="/endpoints", tags=["endpoints"])
 
+# Les endpoints de fichiers ne vivent pas dans le registry MLLP : leur état
+# effectif est piloté par le poller du planificateur.
+POLLING_ENDPOINT_KINDS = {"FILE", "SFTP"}
+
+
+def uses_background_poller(kind: str | None) -> bool:
+    """Indique si l'état visible est celui du poller, pas du registry MLLP."""
+    return (kind or "").upper() in POLLING_ENDPOINT_KINDS
+
 def _bool_from_str(v: str | None, default: bool = False) -> bool:
     if v is None:
         return default
@@ -125,9 +134,9 @@ def list_endpoints(request: Request, session=Depends(get_session), admin: bool =
             no_ght_endpoints.append(e)
     
     def _make_endpoint_row(e):
-        # Pour les endpoints FILE, "running" = is_enabled (scanner automatique)
+        # Pour les endpoints FILE/SFTP, "running" = is_enabled (poller automatique)
         # Pour les endpoints MLLP/FHIR, "running" = dans le registry
-        if e.kind == "FILE":
+        if uses_background_poller(e.kind):
             runtime = "RUNNING" if e.is_enabled else "STOPPED"
         else:
             runtime = "RUNNING" if e.id in running_ids else "STOPPED"
@@ -402,9 +411,9 @@ def detail_endpoint(endpoint_id: int, request: Request, session=Depends(get_sess
     # Récupérer tous les endpoints pour l'association anti-rebond
     all_endpoints = session.exec(select(SystemEndpoint)).all()
     
-    # Pour les endpoints FILE, "running" = is_enabled (scanner automatique)
+    # Pour les endpoints FILE/SFTP, "running" = is_enabled (poller automatique)
     # Pour les endpoints MLLP/FHIR, "running" = dans le registry
-    if e.kind == "FILE":
+    if uses_background_poller(e.kind):
         is_running = e.is_enabled
     else:
         is_running = endpoint_id in set(registry.running_ids())
@@ -480,8 +489,8 @@ def update_endpoint(
         ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
         ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
         all_endpoints = session.exec(select(SystemEndpoint)).all()
-        # Pour les endpoints FILE, "running" = is_enabled
-        is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
+        # Pour les endpoints FILE/SFTP, "running" = is_enabled
+        is_running = e.is_enabled if uses_background_poller(e.kind) else endpoint_id in set(registry.running_ids())
         return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", {
             "e": e,
             "is_running": is_running,
@@ -504,8 +513,8 @@ def update_endpoint(
             ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
             ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
             all_endpoints = session.exec(select(SystemEndpoint)).all()
-            # Pour les endpoints FILE, "running" = is_enabled
-            is_running = e.is_enabled if e.kind == "FILE" else endpoint_id in set(registry.running_ids())
+            # Pour les endpoints FILE/SFTP, "running" = is_enabled
+            is_running = e.is_enabled if uses_background_poller(e.kind) else endpoint_id in set(registry.running_ids())
             return get_templates_with_filters(request).TemplateResponse(request, "endpoint_detail.html", {
                 "e": e,
                 "is_running": is_running,

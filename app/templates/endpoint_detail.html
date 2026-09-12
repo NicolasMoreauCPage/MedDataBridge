@@ -58,7 +58,7 @@
           </span>
           <span class="font-semibold text-sm">{{ 'RUNNING' if is_running else 'STOPPED' }}</span>
         </div>
-        {% if e.kind == 'FILE' %}
+        {% if e.kind in ['FILE', 'SFTP'] %}
         <span class="text-xs text-white/60 italic">(Polling automatique)</span>
         {% else %}
         <form method="post" action="/endpoints/{{ e.id }}/restart">

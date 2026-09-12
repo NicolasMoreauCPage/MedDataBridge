@@ -8,13 +8,13 @@ import logging
 import json
 import io
 import zipfile
+from contextlib import nullcontext
 
 from app.db import get_session
 from app.models_endpoints import MessageLog, SystemEndpoint
 from app.models import Dossier
 from app.models_structure import EntiteJuridique
 from app.converters.fhir_import_converter import FHIRBundleImporter, FHIRImportError
-from app.db_session_factory import session_factory
 from app.services.transport_inbound import on_message_inbound_async
 from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.scenario_validation import validate_scenario
@@ -598,7 +598,7 @@ def send_message_form(request: Request, session: Session = Depends(get_session))
     })
 
 @router.post("/send")
-async def send_message(request: Request):
+async def send_message(request: Request, session: Session = Depends(get_session)):
     form = await request.form()
     kind = form.get("kind")
     endpoint_id = form.get("endpoint_id")
@@ -613,7 +613,7 @@ async def send_message(request: Request):
 
     # HL7 via on_message_inbound
     if kind == "MLLP":
-        with session_factory() as s:
+        with nullcontext(session) as s:
             try:
                 endpoint_pk = int(endpoint_id) if endpoint_id else None
             except (TypeError, ValueError):
@@ -652,7 +652,7 @@ async def send_message(request: Request):
                 "send_message.html",
                 {"request": request, "error": f"JSON FHIR invalide : {exc.msg}", "endpoints": []},
             )
-        with session_factory() as s:
+        with nullcontext(session) as s:
             try:
                 endpoint_pk = int(endpoint_id) if endpoint_id else None
             except (TypeError, ValueError):

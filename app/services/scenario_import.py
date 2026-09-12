@@ -171,9 +171,13 @@ def import_scenario_from_json(
         key=scenario_key,
         name=scenario_name,
         description=json_data.get("description"),
+        functional_comment=json_data.get("functional_comment"),
         category=json_data.get("category"),
         protocol=json_data["protocol"],
         tags=json_data.get("tags"),
+        preconditions_json=json_data.get("preconditions_json"),
+        assertions_json=json_data.get("assertions_json"),
+        expected_outcome_json=json_data.get("expected_outcome_json"),
         ght_context_id=ght_context_id,
         # Time config
         time_anchor_mode=time_config.get("anchor_mode"),
@@ -217,10 +221,13 @@ def import_scenario_from_json(
         step = InteropScenarioStep(
             scenario_id=scenario.id,
             order_index=order_index,
+            name=step_data.get("name"),
+            description=step_data.get("description"),
             message_type=step_data["message_type"],
             message_format=step_data.get("message_format", step_data.get("format", "HL7")),
             delay_seconds=step_data.get("delay_seconds", 0),
             payload=step_data["payload"],
+            assertions_json=step_data.get("assertions_json"),
         )
         session.add(step)
     

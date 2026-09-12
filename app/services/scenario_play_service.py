@@ -746,6 +746,8 @@ def _transport_for(endpoint: SystemEndpoint, message_format: str) -> Optional[st
         return "FHIR"
     if fmt == "xml" and kind in {"HPRIM", "FILE"}:
         return "FILE"
+    if kind in {"FTP", "SFTP"} and fmt in {"hl7", "xml", "json", "fhir"}:
+        return kind
     if kind == "FILE" and fmt in {"hl7", "xml", "json", "fhir"}:
         return "FILE"
     return None

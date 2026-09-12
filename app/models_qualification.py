@@ -83,8 +83,12 @@ class QualificationCampaignRun(SQLModel, table=True):
     campaign_id: int = Field(foreign_key="qualificationcampaign.id", index=True)
     started_at: datetime = Field(default_factory=datetime.utcnow)
     finished_at: Optional[datetime] = Field(default=None, index=True)
-    status: str = Field(default="running", index=True)  # passed|failed|error
+    status: str = Field(default="queued", index=True)  # queued|running|passed|failed|error
+    dry_run: bool = Field(default=False, index=True)
+    next_item_index: int = Field(default=0)
     total_items: int = 0
     passed_items: int = 0
     failed_items: int = 0
     evidence_json: Optional[str] = None
+    error_message: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

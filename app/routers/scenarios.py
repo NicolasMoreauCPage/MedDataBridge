@@ -32,7 +32,7 @@ from app.services.scenario_dashboard import (
 )
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog, ScenarioDelivery
 from app.models_outbox import OutboundMessage
-from app.models_qualification import QualificationCampaign, QualificationCampaignItem, ScenarioTheme, ScenarioThemeAssignment
+from app.models_qualification import QualificationCampaign, QualificationCampaignItem, QualificationCampaignRun, ScenarioTheme, ScenarioThemeAssignment
 from app.models_scenario_review import ScenarioCatalogReview
 from app.services.scenario_play_service import (
     ScenarioPlayError,
@@ -50,8 +50,9 @@ from app.services.scenario_qualification_service import (
     set_target_active,
     theme_tree,
 )
+from app.services.message_diff import semantic_diff
 from app.services.scenario_version_service import snapshot_scenario_version
-from app.services.scenario_campaign_service import run_scenario_campaign
+from app.services.scenario_campaign_service import queue_scenario_campaign, run_scenario_campaign
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Glose en langage clair pour les triggers ADT couramment rencontrés dans les
@@ -724,7 +725,7 @@ def update_scenario_qualification_metadata(
 
 @router.post("/{scenario_id}/qualification/assertions")
 def update_scenario_assertions(
-    scenario_id: int, request: Request, preconditions_json: Optional[str] = Form(None), assertions_json: Optional[str] = Form(None),
+    scenario_id: int, request: Request, preconditions_json: Optional[str] = Form(None), assertions_json: Optional[str] = Form(None), expected_outcome_json: Optional[str] = Form(None),
     session: Session = Depends(get_session),
 ):
     """Édite des critères déclaratifs sans exécuter de code arbitraire."""
@@ -735,10 +736,17 @@ def update_scenario_assertions(
         for label, raw in (("préconditions", preconditions_json), ("assertions", assertions_json)):
             if raw and not isinstance(json.loads(raw), list):
                 raise ValueError(f"Les {label} doivent être une liste JSON")
+        if expected_outcome_json and not isinstance(json.loads(expected_outcome_json), dict):
+            raise ValueError("Le résultat attendu doit être un objet JSON")
+        # Centralise la validation métier du contrat pour éviter de découvrir
+        # une faute de configuration seulement après émission.
+        from app.services.qualification_engine import _expected_outcome
+        _expected_outcome(expected_outcome_json)
     except (ValueError, json.JSONDecodeError) as exc:
         flash(request, f"Critères non enregistrés : {exc}", level="error")
         return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
     scenario.preconditions_json, scenario.assertions_json = preconditions_json or None, assertions_json or None
+    scenario.expected_outcome_json = expected_outcome_json or None
     scenario.updated_at = datetime.utcnow()
     session.add(scenario)
     session.commit()
@@ -751,7 +759,13 @@ def qualification_campaigns(request: Request, session: Session = Depends(get_ses
     campaigns = session.exec(select(QualificationCampaign).order_by(QualificationCampaign.name)).all()
     endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True)).order_by(SystemEndpoint.name)).all()
     scenarios = session.exec(select(InteropScenario).where(InteropScenario.is_active.is_(True)).order_by(InteropScenario.name)).all()
-    return get_templates_with_filters(request).TemplateResponse(request, "scenario_campaigns.html", {"request": request, "campaigns": campaigns, "endpoints": endpoints, "scenarios": scenarios})
+    recent_runs = session.exec(
+        select(QualificationCampaignRun).order_by(QualificationCampaignRun.created_at.desc()).limit(50)
+    ).all()
+    runs_by_campaign = {}
+    for run in recent_runs:
+        runs_by_campaign.setdefault(run.campaign_id, run)
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_campaigns.html", {"request": request, "campaigns": campaigns, "endpoints": endpoints, "scenarios": scenarios, "runs_by_campaign": runs_by_campaign})
 
 
 @router.post("/campaigns")
@@ -780,9 +794,8 @@ async def run_durable_campaign(campaign_id: int, request: Request, dry_run: bool
     campaign = session.get(QualificationCampaign, campaign_id)
     if not campaign or not campaign.is_active:
         raise HTTPException(status_code=404, detail="Campagne introuvable ou désactivée")
-    run = await run_scenario_campaign(session, campaign, dry_run=dry_run)
-    level = "success" if run.status == "passed" else "warning"
-    flash(request, f"Campagne terminée : {run.passed_items}/{run.total_items} scénario(s) réussis.", level=level)
+    run = queue_scenario_campaign(session, campaign, dry_run=dry_run)
+    flash(request, f"Campagne #{run.id} mise en file ({run.total_items} scénario(s)). Sa progression est reprise automatiquement.", level="success")
     return RedirectResponse(url="/scenarios/campaigns", status_code=303)
 
 
@@ -1088,6 +1101,10 @@ def scenario_play_detail(scenario_id: int, play_id: int, request: Request, sessi
         "target_context_by_delivery": {
             item.id: json.loads(item.target_context_json or "{}") for item in deliveries
         },
+        "diffs_by_step": {
+            item.id: semantic_diff(item.source_payload, item.compiled_payload, item.message_format)
+            for item in steps
+        },
         "breadcrumbs": [{"label": "Scénarios", "url": "/scenarios"}, {"label": scenario.name, "url": f"/scenarios/{scenario.id}"}, {"label": play.play_key, "url": ""}],
     })
 
@@ -1150,10 +1167,13 @@ def export_scenario_json(scenario_id: int, session: Session = Depends(get_sessio
     steps = [
         {
             "order_index": s.order_index,
+            "name": s.name,
+            "description": s.description,
             "message_type": s.message_type,
             "format": s.message_format,
             "delay_seconds": s.delay_seconds,
             "payload": s.payload,
+            "assertions_json": s.assertions_json,
         }
         for s in sorted(scenario.steps, key=lambda st: st.order_index)
     ]
@@ -1162,8 +1182,12 @@ def export_scenario_json(scenario_id: int, session: Session = Depends(get_sessio
         "key": scenario.key,
         "name": scenario.name,
         "description": scenario.description,
+        "functional_comment": scenario.functional_comment,
         "protocol": scenario.protocol,
         "tags": scenario.tags,
+        "preconditions_json": scenario.preconditions_json,
+        "assertions_json": scenario.assertions_json,
+        "expected_outcome_json": scenario.expected_outcome_json,
         "time_config": {
             "anchor_mode": scenario.time_anchor_mode,
             "anchor_days_offset": scenario.time_anchor_days_offset,

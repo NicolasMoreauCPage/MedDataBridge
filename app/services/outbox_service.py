@@ -4,8 +4,11 @@ Le worker est volontairement appelable à la demande (route API ou tâche planif
 afin de ne pas imposer de processus supplémentaire sur les installations LAN.
 """
 
+import asyncio
 import json
 from datetime import datetime, timedelta
+from ftplib import FTP
+from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
@@ -15,6 +18,47 @@ from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
 from app.models_outbox import OutboundMessage
 from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import send_mllp
+
+
+def _outbox_suffix(message_type: Optional[str]) -> str:
+    normalized = (message_type or "").upper()
+    if normalized.startswith("HPRIM"):
+        return ".xml"
+    if normalized.lower() in {"fhir", "json", "bundle"}:
+        return ".json"
+    return ".hl7"
+
+
+def _send_sftp(endpoint: SystemEndpoint, filename: str, payload: str) -> None:
+    from app.adapters.sftp_writer import SFTPWriter
+    writer = SFTPWriter(
+        host=endpoint.ftp_host or "",
+        port=endpoint.ftp_port or 22,
+        username=endpoint.ftp_username,
+        password=endpoint.ftp_password,
+        remote_path=endpoint.ftp_remote_outbox_path or ".",
+    )
+    try:
+        writer.connect()
+        writer.write_file(filename, payload)
+    finally:
+        writer.disconnect()
+
+
+def _send_ftp(endpoint: SystemEndpoint, filename: str, payload: str) -> None:
+    client = FTP()
+    client.connect(endpoint.ftp_host or "", endpoint.ftp_port or 21, timeout=30)
+    try:
+        client.login(endpoint.ftp_username or "", endpoint.ftp_password or "")
+        remote_path = endpoint.ftp_remote_outbox_path or "."
+        if remote_path not in {"", ".", "/"}:
+            client.cwd(remote_path)
+        client.storbinary(f"STOR {filename}", BytesIO(payload.encode("utf-8")))
+    finally:
+        try:
+            client.quit()
+        except Exception:
+            client.close()
 
 
 def _fhir_targets(endpoint: SystemEndpoint) -> list[tuple[str, str, Optional[str]]]:
@@ -110,10 +154,19 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
                 raise ValueError("Endpoint fichier sans répertoire de sortie")
             folder = Path(endpoint.outbox_path)
             folder.mkdir(parents=True, exist_ok=True)
-            suffix = ".xml" if (row.message_type or "").upper().startswith("HPRIM") else ".json" if (row.message_type or "").lower() in {"fhir", "json", "bundle"} else ".hl7"
+            suffix = _outbox_suffix(row.message_type)
             file_path = folder / f"outbox_{row.id}{suffix}"
             file_path.write_text(row.payload, encoding="utf-8")
             ack = f"FILE:{file_path.name}"
+        elif protocol in {"SFTP", "FTP"}:
+            if not endpoint.ftp_host:
+                raise ValueError(f"Endpoint {protocol} sans hôte")
+            filename = f"outbox_{row.id}{_outbox_suffix(row.message_type)}"
+            if protocol == "SFTP":
+                await asyncio.to_thread(_send_sftp, endpoint, filename, row.payload)
+            else:
+                await asyncio.to_thread(_send_ftp, endpoint, filename, row.payload)
+            ack = f"{protocol}:{filename}"
         else:
             raise ValueError(f"Protocole d'outbox non supporté: {row.protocol}")
         row.status, row.sent_at, row.last_error, row.response_payload = "sent", now, None, ack

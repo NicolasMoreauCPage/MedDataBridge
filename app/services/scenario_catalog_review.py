@@ -141,9 +141,10 @@ def apply_catalog_review(
     """Déduplique le catalogue et applique la politique active/inactive.
 
     Un seul scénario est conservé par contenu identique. Les décisions du
-    rapport priment sur les imports non qualifiés : ``approved`` et
-    ``repairable`` restent actifs ; les autres restent éditables, mais
-    désactivés pour les campagnes et les émissions de masse.
+    rapport priment sur les imports non qualifiés : seul ``approved`` reste
+    actif. Les scénarios réparables, non évalués ou en doublon restent
+    éditables, mais sont désactivés pour les campagnes et les émissions de
+    masse jusqu'à leur qualification explicite.
     """
     decisions = load_report_decisions(report_path)
     scenarios = session.exec(select(InteropScenario).order_by(InteropScenario.id)).all()

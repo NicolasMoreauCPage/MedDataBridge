@@ -57,6 +57,8 @@ _DATABASE_MODELS = {
     "HprimCCAMAct": HprimCCAMAct, "HprimNGAPAct": HprimNGAPAct, "HprimExchangeAct": HprimExchangeAct,
 }
 
+_EXPECTED_OUTCOME_MODES = {"positive", "negative"}
+
 
 def _json_list(raw: Optional[str], field_name: str) -> list[dict[str, Any]]:
     if not raw:
@@ -90,6 +92,103 @@ def _validate_assertions(assertions: list[dict[str, Any]], field_name: str) -> N
                 raise ValueError(f"{field_name}[{index}].where doit être un objet")
             if kind == "database_field_equals" and not assertion.get("field"):
                 raise ValueError(f"{field_name}[{index}] doit préciser field")
+
+
+def _expected_outcome(raw: Optional[str]) -> dict[str, Any]:
+    """Lit le contrat facultatif d'un scénario positif ou négatif.
+
+    Exemple de test négatif ::
+
+        {"mode":"negative", "ack_codes":["AE", "AR"], "step_order":2}
+
+    Le contrat reste volontairement simple et sérialisable : il peut être
+    édité dans l'IHM, exporté et exécuté sans code arbitraire.
+    """
+    if not raw:
+        return {}
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"expected_outcome_json doit être un objet JSON valide: {exc.msg}") from exc
+    if not isinstance(value, dict):
+        raise ValueError("expected_outcome_json doit être un objet JSON")
+    mode = value.get("mode", "positive")
+    if mode not in _EXPECTED_OUTCOME_MODES:
+        raise ValueError("expected_outcome_json.mode doit valoir positive ou negative")
+    ack_codes = value.get("ack_codes")
+    if ack_codes is not None and (
+        not isinstance(ack_codes, list) or not all(isinstance(code, str) and code for code in ack_codes)
+    ):
+        raise ValueError("expected_outcome_json.ack_codes doit être une liste de codes non vides")
+    if value.get("step_order") is not None:
+        try:
+            if int(value["step_order"]) < 1:
+                raise ValueError
+        except (TypeError, ValueError) as exc:
+            raise ValueError("expected_outcome_json.step_order doit être un entier positif") from exc
+    if value.get("error_contains") is not None and not isinstance(value["error_contains"], str):
+        raise ValueError("expected_outcome_json.error_contains doit être une chaîne")
+    if value.get("run_statuses") is not None and (
+        not isinstance(value["run_statuses"], list)
+        or not all(isinstance(status, str) and status for status in value["run_statuses"])
+    ):
+        raise ValueError("expected_outcome_json.run_statuses doit être une liste de statuts non vides")
+    return value
+
+
+def evaluate_expected_outcome(
+    run: ScenarioExecutionRun,
+    step_logs: list[ScenarioExecutionStepLog],
+    contract: dict[str, Any],
+) -> list[AssertionResult]:
+    """Transforme un résultat attendu en preuve de qualification.
+
+    Un scénario négatif est valide lorsqu'il est rejeté par le mécanisme visé,
+    optionnellement avec l'ACK et le texte de diagnostic attendus. Il ne faut
+    donc plus désactiver un corpus négatif uniquement parce qu'il produit AE
+    ou AR : son rejet devient le comportement attendu.
+    """
+    if not contract:
+        return []
+    mode = contract.get("mode", "positive")
+    selected = step_logs
+    if contract.get("step_order") is not None:
+        selected = [
+            item for item in step_logs
+            if item.order_index == int(contract["step_order"])
+        ]
+    expected_codes = {code.upper() for code in contract.get("ack_codes", [])}
+    ack_codes = {str(item.ack_code or "").upper() for item in selected if item.ack_code}
+    errors = "\n".join(item.error_message or "" for item in selected)
+    rejected = any(
+        item.status == "error" or str(item.ack_code or "").upper() in {"AE", "AR"}
+        for item in selected
+    )
+    if mode == "negative":
+        passed = bool(selected) and rejected
+        if expected_codes:
+            passed = passed and bool(expected_codes.intersection(ack_codes))
+        expected_text = contract.get("error_contains")
+        if expected_text:
+            passed = passed and expected_text.lower() in errors.lower()
+        actual = {
+            "run_status": run.status,
+            "step_count": len(selected),
+            "ack_codes": sorted(ack_codes),
+            "rejected": rejected,
+            "errors": errors[:500],
+        }
+        return [AssertionResult(contract, passed, actual, "Rejet attendu")]
+
+    statuses = set(contract.get("run_statuses", ["success", "dry_run"]))
+    passed = run.status in statuses
+    if expected_codes:
+        passed = passed and expected_codes.issubset(ack_codes)
+    expected_text = contract.get("error_contains")
+    if expected_text:
+        passed = passed and expected_text.lower() in errors.lower()
+    actual = {"run_status": run.status, "ack_codes": sorted(ack_codes), "errors": errors[:500]}
+    return [AssertionResult(contract, passed, actual, "Résultat attendu")]
 
 
 def validate_preconditions(scenario: InteropScenario, endpoint: SystemEndpoint) -> list[AssertionResult]:
@@ -182,6 +281,7 @@ async def run_qualification(
     """Exécute un scénario, évalue ses assertions et conserve les preuves."""
     scenario_assertions = _json_list(scenario.assertions_json, "assertions_json")
     _validate_assertions(scenario_assertions, "assertions_json")
+    expected_outcome = _expected_outcome(scenario.expected_outcome_json)
     step_assertions_by_id: dict[int, list[dict[str, Any]]] = {}
     for step in scenario.steps:
         if step.id is None:
@@ -224,6 +324,7 @@ async def run_qualification(
         .order_by(ScenarioExecutionStepLog.order_index)
     ).all()
     results = evaluate_assertions(run, step_logs, scenario_assertions, session=session)
+    results.extend(evaluate_expected_outcome(run, step_logs, expected_outcome))
 
     # Une assertion définie sur une étape ne doit pas dépendre de l'ordre ou du
     # nombre des autres étapes. On la limite donc à son journal d'exécution et

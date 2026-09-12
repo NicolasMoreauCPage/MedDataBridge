@@ -59,6 +59,12 @@ def _bootstrap_empty_database(connection) -> bool:
         return False
 
     target_metadata.create_all(connection)
+    # Le schéma historique est créé directement pour les bases complètement
+    # vides ; on applique donc explicitement le jeu de données qui appartient
+    # à la migration tête. Sans cela, une installation neuve aurait un schéma
+    # complet mais aucun catalogue de qualification.
+    from app.services.scenario_catalog_seed import apply_catalog_seed
+    apply_catalog_seed(connection)
     connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
     connection.execute(
         text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),

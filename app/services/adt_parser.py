@@ -95,7 +95,11 @@ def parse_adt_message(message: str) -> Dict[str, Any]:
                 "family": family,
                 "given": given,
                 "birth_date": parse_hl7_date(fields[7]) if len(fields) > 7 else None,
-                "gender": fields[8] if len(fields) > 8 else ""
+                "gender": fields[8] if len(fields) > 8 else "",
+                # PID-18 est le compte / dossier administratif. PV1-19 est
+                # une venue ; les confondre crée un dossier dont l'identifiant
+                # varie à chaque admission et casse le roundtrip PAM + HPRIM.
+                "account_number": parse_cx_identifier(fields[18])[0] if len(fields) > 18 and fields[18] else "",
             }
         
         elif seg_type == "PV1":
@@ -148,6 +152,7 @@ def import_adt_into_ght(
     pv1_data = parsed["pv1"]
     msh_data = parsed.get("msh", {})
     zbe_data = parsed.get("zbe")
+    dossier_identifier = pid_data.get("account_number") or pv1_data["visit_number"]
     
     # Charger namespaces cible
     namespaces = session.exec(
@@ -203,10 +208,10 @@ def import_adt_into_ght(
     
     # Chercher dossier existant par NDA
     dossier = None
-    if pv1_data["visit_number"]:
+    if dossier_identifier:
         existing_dossier_id = session.exec(
             select(Identifier).where(
-                Identifier.value == pv1_data["visit_number"],
+                Identifier.value == dossier_identifier,
                 Identifier.dossier_id.isnot(None)
             )
         ).first()
@@ -232,11 +237,11 @@ def import_adt_into_ght(
         session.refresh(dossier)
         # Créer identifiant NDA
         nda_ns = ns_by_type.get("NDA") or ns_by_type.get("NDA-RT")
-        if nda_ns and pv1_data["visit_number"]:
+        if nda_ns and dossier_identifier:
             ident = Identifier(
                 dossier_id=dossier.id,
                 type=IdentifierType.NDA,
-                value=pv1_data["visit_number"],
+                value=dossier_identifier,
                 system=nda_ns.system
             )
             session.add(ident)

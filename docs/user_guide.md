@@ -32,6 +32,13 @@ python init_db.py
 uvicorn app.app:app --reload --port 8000
 ```
 
+En installation ou mise à niveau, appliquer également les migrations et le
+catalogue de scénarios livré :
+
+```bash
+alembic upgrade head
+```
+
 Ouvrir ensuite <http://localhost:8000>.
 
 | Adresse | Usage |
@@ -161,7 +168,8 @@ l'EJ concernée.
 1. Cliquer sur **Nouveau système**.
 2. Donner un nom explicite, par exemple `CPage recette MLLP`.
 3. Choisir le transport : `MLLP` pour HL7 v2, `FHIR` pour les Bundles HTTP,
-   ou `FILE` pour un échange par répertoire lorsqu'il est configuré.
+   `FILE` pour un échange par répertoire, ou `SFTP`/`FTP` pour un dépôt de
+   fichiers lorsqu'il est configuré.
 4. Renseigner l'hôte/port MLLP ou l'URL de base FHIR.
 5. Définir le rôle `sender`, `receiver` ou `both` et le contexte GHT/EJ.
 6. Tester avec un corpus non nominatif avant activation.
@@ -246,7 +254,8 @@ pertinent pour l'état métier. Les mouvements PAM dépendent de la chronologie.
 
 ### Reprendre une émission sortante
 
-L'outbox persistante couvre les émissions MLLP, FHIR et FILE/HPRIM :
+L'outbox persistante couvre les émissions MLLP, FHIR et les dépôts de fichiers
+FILE, SFTP ou FTP (notamment HPRIM) :
 
 | Action | Endpoint |
 |---|---|
@@ -258,6 +267,10 @@ L'outbox persistante couvre les émissions MLLP, FHIR et FILE/HPRIM :
 Les statuts sont `pending`, `retry`, `sent` et `failed`. Un ACK MLLP `AE` ou
 `AR`, ou une réponse FHIR non 2xx, est traité comme un échec. Consulter
 [OUTBOX.md](OUTBOX.md) pour le détail d'exploitation.
+
+Le planificateur de l'application reprend automatiquement les lignes `pending`
+et `retry` dont l'échéance est atteinte. Les actions HTTP restent disponibles
+pour une reprise immédiate ou un diagnostic manuel.
 
 ### Scénarios et roundtrips
 
@@ -334,6 +347,14 @@ elle n'est pas injectée dans le message. Les contrôles préalables visibles su
 la même page signalent un XML invalide, un scénario désactivé ou une variable
 historique inconnue.
 
+Un scénario de contrôle négatif peut déclarer son résultat attendu dans
+`expected_outcome_json`, par exemple
+`{"mode":"negative","ack_codes":["AE","AR"],"step_order":2}`. Il est alors
+qualifié comme réussi lorsqu'il est rejeté à l'étape et avec l'ACK attendus ;
+un ACK négatif n'est donc plus confondu avec une panne de recette. Conserver
+ces scénarios désactivés hors campagne positive tant que leur objectif métier
+et leur endpoint de validation n'ont pas été explicitement qualifiés.
+
 `/scenarios/campaigns` permet de mémoriser une liste ordonnée de scénarios
 pour un endpoint cible. Les exécutions et leurs preuves restent accessibles
 depuis l'espace de qualification `/ui/interface-testing`.
@@ -345,7 +366,8 @@ scénario. Chaque jeu garde cette version et son empreinte ; modifier ensuite le
 scénario n'altère jamais les payloads ni les preuves déjà obtenues.
 
 Les livraisons réelles sont placées dans l'outbox persistante. En cas de panne,
-le worker `/outbox/process` reprend les lignes `pending` et `retry`. Le bouton
+le worker périodique reprend automatiquement les lignes `pending` et `retry` ;
+`/outbox/process` permet aussi de le déclencher immédiatement. Le bouton
 **Réessayer** conserve le même payload et les mêmes identifiants ; **Rejouer
 comme nouveau jeu** produit un autre IPP/NDA/venue.
 

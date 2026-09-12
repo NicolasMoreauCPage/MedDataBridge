@@ -34,10 +34,18 @@ PYTHONPATH=. .venv/bin/python scripts/roundtrip_scenario_catalog_two_ght.py \
 ```
 
 Le résultat machine-readable de cette campagne est
-`/tmp/medbridge-scenarios-final-ETCa2m/result.json` (répertoire temporaire de
-qualification).
+`result.json`, dans le répertoire passé à `--workdir`.
 
-## Résultat final
+La dernière exécution de référence a également comparé les volumes suivants,
+sans aucun écart entre les deux GHT : **203 patients, 668 identifiants, 131
+dossiers, 138 venues, 203 mouvements et 180 actes HPRIM**.
+
+## Historique de qualification avant politique du catalogue
+
+Les chiffres ci-dessous sont conservés comme trace de la campagne effectuée
+avant la politique actuelle : seuls les scénarios explicitement `approved`
+sont actifs. Ils ne décrivent donc pas le catalogue exécutable actuel, défini
+en tête de ce document.
 
 La campagne a rejoué les **219 scénarios actifs** dans deux environnements
 SQLite isolés et identiquement structurés. Chaque message est émis depuis le
@@ -80,7 +88,7 @@ dossiers, 38 venues, 63 mouvements et 200 actes HPRIM**.
 - Les erreurs XML HPRIM sont maintenant remontées telles quelles ; elles ne
   sont plus masquées par une erreur interne d'attribut.
 
-## Ce qui reste volontairement contrôlé
+## Historique des cas volontairement contrôlés
 
 Les **139 scénarios alors qualifiés** `corriger_sequence_pam` contiennent
 des transitions effectivement refusées par la machine d'état (par exemple

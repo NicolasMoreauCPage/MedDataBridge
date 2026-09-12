@@ -169,7 +169,7 @@ def _copy_active_catalog_from_database(session: Session) -> dict[str, int]:
         for original in source_scenarios:
             fields = (
                 "key", "name", "description", "functional_comment", "category", "protocol", "version",
-                "preconditions_json", "assertions_json", "source_path", "source_checksum", "legacy_package",
+                "preconditions_json", "assertions_json", "expected_outcome_json", "source_path", "source_checksum", "legacy_package",
                 "legacy_source_json", "tags", "is_active", "time_anchor_mode", "time_anchor_days_offset",
                 "time_fixed_start_iso", "preserve_intervals", "jitter_min_minutes", "jitter_max_minutes",
                 "apply_jitter_on_events",

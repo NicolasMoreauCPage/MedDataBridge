@@ -31,6 +31,10 @@ class InteropScenario(SQLModel, table=True):
         default=None,
         description="Assertions JSON évaluées à la fin d'une exécution",
     )
+    expected_outcome_json: Optional[str] = Field(
+        default=None,
+        description="Contrat de qualification attendu, notamment pour les scénarios négatifs.",
+    )
     source_path: Optional[str] = None  # emplacement d'origine (documentation/debug)
     source_checksum: Optional[str] = Field(default=None, index=True)
     legacy_package: Optional[str] = Field(default=None, index=True)

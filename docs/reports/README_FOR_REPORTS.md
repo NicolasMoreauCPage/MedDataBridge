@@ -11,6 +11,8 @@ tests automatisés prévalent.
 | IHE PAM France / CPage | [AUDIT_CONFORMITE_IHE_PAM_FRANCE_20260911.md](AUDIT_CONFORMITE_IHE_PAM_FRANCE_20260911.md) | Audit technique corrigé, non équivalent à une certification IHE |
 | Roundtrip PAM CPage | [ROUNDTRIP_CPAGE_PAM_20260911.md](ROUNDTRIP_CPAGE_PAM_20260911.md) | Validé sur le corpus et les deux BDD de qualification |
 | HPRIM, MFN, FHIR, outbox | [PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md](PLAN_AMELIORATIONS_INTEROPERABILITE_20260911.md) | État consolidé et limites restantes |
+| Scénarios multi-protocoles | [PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md](PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md) | Plan back/front de finalisation |
+| Qualification scénarios PAM/HPRIM | [PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md](PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md) | Reprise fonctionnelle de l'ancien outil d'intégration |
 | FHIR France / FR Core | [VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md](VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md) | Compatible sur le périmètre Structure testé |
 
 ## Lecture des rapports historiques

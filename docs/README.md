@@ -17,6 +17,8 @@ mais ne décrivent pas nécessairement l'état courant.
 | Outbox persistante | [OUTBOX.md](OUTBOX.md) | Référence d'exploitation |
 | Tests et CI | [TESTS_STATUS.md](TESTS_STATUS.md) | Commandes et périmètre de preuve |
 | Guide utilisateur | [user_guide.md](user_guide.md) | Parcours IHM et procédures d'exploitation |
+| Scénarios multi-protocoles | [plan back/front](reports/PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md) | Évolutions nécessaires pour un jeu cohérent et multi-endpoints |
+| Qualification scénarios PAM/HPRIM | [plan de reprise de l'ancien outil](reports/PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md) | Catalogue, statuts par cible, rejeu, assertions et campagnes |
 | Rapports | [reports/README_FOR_REPORTS.md](reports/README_FOR_REPORTS.md) | Index et statut des rapports |
 
 ## Règles de lecture et de maintenance

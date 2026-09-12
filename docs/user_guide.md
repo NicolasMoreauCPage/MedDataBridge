@@ -264,10 +264,62 @@ Les statuts sont `pending`, `retry`, `sent` et `failed`. Un ACK MLLP `AE` ou
 Les scénarios sont gérés dans `/scenarios`, avec les exécutions dans
 `/scenarios/runs` et les outils de qualification dans `/interface-testing`.
 
+Un scénario est un modèle réutilisable. Chaque clic sur **Envoyer** ou
+**Prévisualiser le jeu** crée un jeu distinct : IPP, NDA, venue, identité
+démonstrative et messages techniques sont générés une seule fois pour ce jeu,
+puis figés. Un lancement suivant produit donc de nouveaux identifiants et ne
+doit pas écraser le patient/dossier du lancement précédent chez le partenaire.
+
 1. Préparer GHT, EJ, namespaces, structure et endpoint cible.
 2. Créer ou importer le scénario dans `/scenarios`.
-3. Lancer l'exécution et contrôler chaque ACK dans `/messages`.
-4. Comparer les données avant/après et conserver le rapport anonymisé.
+3. Dans le scénario, sélectionner un ou plusieurs destinataires. Grouper les
+   endpoints d'un même partenaire avec la même clé de système cible dans la
+   configuration des endpoints ; cela rend explicite leur appartenance au même
+   système, par exemple MLLP PAM + dépôt HPRIM + FHIR.
+4. Ajouter les étapes dans leur ordre métier. Les boutons ↑/↓ réordonnent une
+   étape, et **Modifier** permet de corriger son type, son format ou son
+   payload. Les formats pris en charge sont HL7 v2 (MLLP ou FILE), FHIR/JSON
+   (FHIR) et HPRIM XML (HPRIM ou FILE).
+5. Utiliser **Prévisualiser le jeu** avant l'envoi : la page de résultat montre
+   les identifiants générés, la matrice étape × endpoint, et le payload compilé
+   réellement destiné au partenaire. Aucune émission n'a lieu dans ce mode.
+6. Envoyer le jeu et contrôler chaque livraison/ACK. Une livraison en erreur
+   peut être **Réessayée** : le payload et les identifiants restent exactement
+   les mêmes. **Rejouer comme nouveau jeu** crée au contraire de nouveaux
+   identifiants.
+7. Comparer les données avant/après et conserver le rapport anonymisé.
+
+### Catalogue et qualification par logiciel cible
+
+`/scenarios/qualification` est le point d'entrée quotidien du catalogue PAM et
+HPRIM. Il permet de filtrer par système cible, thème ou texte, d'afficher le
+statut courant (`never_run`, `success`, `partial`, `error`) et la date depuis
+laquelle ce statut est observé. Un scénario peut être activé ou désactivé pour
+chaque logiciel cible sans être supprimé du catalogue.
+
+Le bouton **Importer le catalogue historique** charge de manière idempotente
+les corpus PAM et HPRIM fournis par le projet. Les doublons de payload sont
+regroupés, mais leurs clés et chemins historiques restent conservés dans le
+scénario pour l'audit. Les anciens formats `hprim`/`hprimxml`, le préfixe
+`MSH|` avant un XML et les variables CPage courantes sont normalisés pendant
+l'import et à l'émission.
+
+Dans le détail d'un scénario, renseigner le champ **À quoi sert ce scénario ?**
+et choisir son thème. Cette information est destinée aux équipes de recette :
+elle n'est pas injectée dans le message. Les contrôles préalables visibles sur
+la même page signalent un XML invalide, un scénario désactivé ou une variable
+historique inconnue.
+
+`/scenarios/campaigns` permet de mémoriser une liste ordonnée de scénarios
+pour un endpoint cible. Les exécutions et leurs preuves restent accessibles
+depuis l'espace de qualification `/ui/interface-testing`.
+
+Les tokens suivants peuvent être placés dans les payloads FHIR, JSON ou HPRIM
+XML : `{{patient.ipp}}`, `{{dossier.nda}}`, `{{venue.id}}`, `{{play.key}}`,
+`{{movement.id}}`, `{{message.control_id}}`, `{{patient.family}}` et
+`{{patient.given}}`. Ils sont remplacés durant la préparation du jeu. Pour HL7,
+les champs PAM usuels (`PID`, `PV1`, `MSH-10`, `ZBE-1`) sont également projetés
+automatiquement.
 
 Un roundtrip valable utilise deux environnements et deux BDD :
 

@@ -28,6 +28,7 @@ from app.models_qualification import (
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.services.scenario_runner import send_scenario
+from app.services.scenario_qualification_service import record_target_outcome
 
 
 @dataclass
@@ -223,6 +224,9 @@ async def run_qualification(
     )
     session.add(run)
     session.commit()
+    if not dry_run:
+        record_target_outcome(session, scenario.id, endpoint.target_system_key or endpoint.name, verdict, run_at=run.finished_at)
+        session.commit()
     return {"run_id": run.id, "verdict": verdict, "preconditions": [asdict(r) for r in preconditions], "assertions": [asdict(r) for r in results]}
 
 

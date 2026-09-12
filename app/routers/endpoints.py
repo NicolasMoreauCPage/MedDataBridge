@@ -259,6 +259,7 @@ def create_endpoint(
     kind: str = Form(...),
     role: str = Form("receiver"),
     is_enabled: str = Form("true"),
+    target_system_key: str = Form(None),
     ght_context_id: str = Form(None),
     entite_juridique_id: str = Form(None),
     host: str = Form(None),
@@ -349,6 +350,7 @@ def create_endpoint(
     
     e = SystemEndpoint(
         name=name, kind=kind.upper(), role=role, is_enabled=_bool_from_str(is_enabled, True),
+        target_system_key=target_system_key.strip() or None if target_system_key else None,
         ght_context_id=ght_id,
         entite_juridique_id=ej_id,
         host=host, port=port,
@@ -425,6 +427,7 @@ def update_endpoint(
     kind: str = Form(...),
     role: str = Form("receiver"),
     is_enabled: str = Form("true"),
+    target_system_key: str = Form(None),
     ght_context_id: str = Form(None),
     entite_juridique_id: str = Form(None),
     linked_endpoint_id: str = Form(None),
@@ -516,6 +519,7 @@ def update_endpoint(
     e.kind = kind.upper()
     e.role = role
     e.is_enabled = _bool_from_str(is_enabled, True)
+    e.target_system_key = target_system_key.strip() or None if target_system_key else None
     e.ght_context_id = ght_id
     e.entite_juridique_id = ej_id
     e.linked_endpoint_id = int(linked_endpoint_id) if linked_endpoint_id and linked_endpoint_id.strip() else None
@@ -830,8 +834,8 @@ async def execute_scenario_on_endpoint(
     request: Request,
     session: Session = Depends(get_session)
 ):
-    """Exécute un scénario complet sur cet endpoint."""
-    from app.services.scenario_runner import execute_scenario_on_endpoint as exec_scenario
+    """Exécute un scénario via le moteur de jeux cohérents."""
+    from app.services.scenario_play_service import prepare_scenario_play, execute_scenario_play, ScenarioPlayError
     from app.utils.flash import flash
     
     # Vérifier que l'endpoint existe
@@ -844,34 +848,16 @@ async def execute_scenario_on_endpoint(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     
-    # Charger les steps du scénario
-    steps = session.exec(
-        select(InteropScenarioStep)
-        .where(InteropScenarioStep.scenario_id == scenario_id)
-        .order_by(InteropScenarioStep.order_index)
-    ).all()
-    
-    if not steps:
-        flash(request, "error", f"Le scénario '{scenario.name}' n'a aucun message à exécuter.")
-        return RedirectResponse(
-            url=f"/endpoints/{endpoint_id}/scenarios",
-            status_code=status.HTTP_303_SEE_OTHER
-        )
-    
     try:
-        # Exécuter le scénario
-        result = await exec_scenario(
-            endpoint=endpoint,
-            scenario=scenario,
-            steps=steps,
-            session=session
+        play = prepare_scenario_play(session, scenario, [endpoint])
+        play = await execute_scenario_play(session, play.id)
+        flash(request, f"Jeu {play.play_key} : {play.status}", level="success" if play.status == "success" else "warning")
+        return RedirectResponse(
+            url=f"/scenarios/{scenario_id}/plays/{play.id}",
+            status_code=status.HTTP_303_SEE_OTHER,
         )
-        
-        flash(request, "success", 
-              f"Scénario '{scenario.name}' exécuté avec succès: {result['success_count']}/{result['total_count']} messages OK")
-        
-    except Exception as e:
-        flash(request, "error", f"Erreur lors de l'exécution: {str(e)}")
+    except ScenarioPlayError as e:
+        flash(request, f"Erreur lors de l'exécution: {str(e)}", level="error")
     
     return RedirectResponse(
         url=f"/endpoints/{endpoint_id}/scenarios",

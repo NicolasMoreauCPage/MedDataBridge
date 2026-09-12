@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -24,7 +25,23 @@ from app.services.scenario_dashboard import (
     get_step_error_summary,
     get_scenario_comparison
 )
-from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
+from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog, ScenarioDelivery
+from app.models_qualification import QualificationCampaign, QualificationCampaignItem, ScenarioTheme, ScenarioThemeAssignment
+from app.services.scenario_play_service import (
+    ScenarioPlayError,
+    execute_scenario_play,
+    get_play_details,
+    prepare_scenario_play,
+    retry_scenario_delivery,
+)
+from app.services.legacy_scenario_catalog import import_legacy_catalog
+from app.services.scenario_qualification_service import (
+    assign_theme,
+    list_target_states,
+    preflight_issues,
+    set_target_active,
+    theme_tree,
+)
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Glose en langage clair pour les triggers ADT couramment rencontrés dans les
@@ -101,6 +118,7 @@ def list_scenarios(
         "show_actions": True,
         "actions": [
             {"label": "Nouveau scénario", "url": "/scenarios/new", "type": "link", "icon": "plus"},
+            {"label": "Qualification", "url": "/scenarios/qualification", "type": "link", "icon": "check-circle"},
             {"label": "Exécuter en masse", "url": "/scenarios/bulk-execute", "type": "link", "icon": "play"},
             {"label": "Importer", "url": "/scenarios/import", "type": "link", "icon": "upload"}
         ],
@@ -336,7 +354,7 @@ async def bulk_execute_scenarios(
     session: Session = Depends(get_session)
 ):
     """Exécute plusieurs scénarios sur un endpoint en arrière-plan."""
-    from app.services.scenario_runner import execute_scenario_on_endpoint
+    from app.services.scenario_play_service import prepare_scenario_play, execute_scenario_play
     from app.utils.flash import flash
     import asyncio
     
@@ -428,20 +446,16 @@ async def bulk_execute_scenarios(
 
                     try:
                         logger.info(f"[Background] Exécution ({i+1}/{repeat_count}) du scénario '{scenario_name}' sur '{endpoint_name}'")
-                        result = await execute_scenario_on_endpoint(
-                            endpoint=bg_endpoint,
-                            scenario=scenario,
-                            steps=steps,
-                            session=bg_session
-                        )
+                        play = prepare_scenario_play(bg_session, scenario, [bg_endpoint])
+                        play = await execute_scenario_play(bg_session, play.id)
 
-                        if result.get('error_count', 0) == 0:
+                        if play.status == "success":
                             success_count += 1
                             logger.info(f"[Background] ✅ '{scenario_name}' exécuté avec succès (run {i+1})")
                         else:
                             error_count += 1
                             failed_scenarios.append(scenario_name)
-                            logger.warning(f"[Background] ⚠️ '{scenario_name}' exécuté avec {result.get('error_count', 0)} erreurs (run {i+1})")
+                            logger.warning(f"[Background] ⚠️ '{scenario_name}' exécuté avec le statut {play.status} (run {i+1})")
                     except Exception as e:
                         error_count += 1
                         failed_scenarios.append(scenario_name)
@@ -515,6 +529,106 @@ def run_detail(run_id: int, request: Request, session: Session = Depends(get_ses
 def dashboard_redirect(request: Request):
     """Redirect /scenarios/dashboard to /scenarios/runs (the actual dashboard)."""
     return RedirectResponse(url="/scenarios/runs", status_code=302)
+
+
+@router.get("/qualification", response_class=HTMLResponse)
+def qualification_catalog(
+    request: Request,
+    target_system_key: Optional[str] = None,
+    theme_id: Optional[int] = None,
+    query: Optional[str] = None,
+    session: Session = Depends(get_session),
+):
+    """Catalogue opérationnel : état par logiciel, classement et pré-contrôles."""
+    scenarios = session.exec(select(InteropScenario).where(InteropScenario.is_active == True).order_by(InteropScenario.category, InteropScenario.name)).all()  # noqa: E712
+    assignments = session.exec(select(ScenarioThemeAssignment)).all()
+    assignment_by_scenario = {item.scenario_id: item.theme_id for item in assignments if item.is_primary}
+    themes = {item.id: item for item in session.exec(select(ScenarioTheme)).all()}
+    states = list_target_states(session, target_system_key)
+    states_by_scenario = {item.scenario_id: item for item in states} if target_system_key else {}
+    if theme_id:
+        scenarios = [item for item in scenarios if assignment_by_scenario.get(item.id) == theme_id]
+    if query:
+        needle = query.lower().strip()
+        scenarios = [item for item in scenarios if needle in " ".join(filter(None, [item.name, item.description, item.functional_comment, item.tags])).lower()]
+    targets = sorted({item.target_system_key for item in list_target_states(session)} | {endpoint.target_system_key or endpoint.name for endpoint in session.exec(select(SystemEndpoint)).all()})
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_qualification_catalog.html", {
+        "request": request, "scenarios": scenarios, "states_by_scenario": states_by_scenario,
+        "assignment_by_scenario": assignment_by_scenario, "themes": themes, "theme_tree": theme_tree(session),
+        "targets": targets, "target_system_key": target_system_key, "theme_id": theme_id, "query": query or "",
+        "preflight": {item.id: preflight_issues(item) for item in scenarios},
+    })
+
+
+@router.post("/qualification/catalog/import")
+def import_legacy_qualification_catalog(request: Request, session: Session = Depends(get_session)):
+    from pathlib import Path
+    from data.scenarios_hprim_seed import scenarios as hprim_scenarios
+    pam_raw = json.loads(Path("data/all_scenarios_dump.json").read_text(encoding="utf-8"))
+    pam_scenarios = pam_raw.get("scenarios", pam_raw) if isinstance(pam_raw, dict) else pam_raw
+    report = import_legacy_catalog(session, pam_scenarios + hprim_scenarios)
+    flash(request, f"Catalogue historique importé : {report['created']} créés, {report['updated']} mis à jour, {report['duplicates']} doublons regroupés.", level="success")
+    return RedirectResponse(url="/scenarios/qualification", status_code=303)
+
+
+@router.post("/{scenario_id}/qualification/target")
+def toggle_scenario_target(
+    scenario_id: int, request: Request, target_system_key: str = Form(...), is_active: bool = Form(False),
+    session: Session = Depends(get_session),
+):
+    if not session.get(InteropScenario, scenario_id):
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    set_target_active(session, scenario_id, target_system_key, is_active)
+    flash(request, "Activation de la cible enregistrée.", level="success")
+    return RedirectResponse(url=f"/scenarios/qualification?target_system_key={target_system_key}", status_code=303)
+
+
+@router.post("/{scenario_id}/qualification/metadata")
+def update_scenario_qualification_metadata(
+    scenario_id: int, request: Request, functional_comment: Optional[str] = Form(None), theme_id: Optional[int] = Form(None),
+    session: Session = Depends(get_session),
+):
+    scenario = session.get(InteropScenario, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    scenario.functional_comment, scenario.updated_at = (functional_comment or None), datetime.utcnow()
+    session.add(scenario)
+    if theme_id:
+        if not session.get(ScenarioTheme, theme_id):
+            raise HTTPException(status_code=404, detail="Thème introuvable")
+        assign_theme(session, scenario_id, theme_id)
+    session.commit()
+    flash(request, "Commentaire et classement enregistrés.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+
+
+@router.get("/campaigns", response_class=HTMLResponse)
+def qualification_campaigns(request: Request, session: Session = Depends(get_session)):
+    campaigns = session.exec(select(QualificationCampaign).order_by(QualificationCampaign.name)).all()
+    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True)).order_by(SystemEndpoint.name)).all()
+    scenarios = session.exec(select(InteropScenario).where(InteropScenario.is_active.is_(True)).order_by(InteropScenario.name)).all()
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_campaigns.html", {"request": request, "campaigns": campaigns, "endpoints": endpoints, "scenarios": scenarios})
+
+
+@router.post("/campaigns")
+def create_campaign(
+    request: Request, key: str = Form(...), name: str = Form(...), description: Optional[str] = Form(None),
+    endpoint_id: int = Form(...), scenario_ids: list[int] = Form(...), session: Session = Depends(get_session),
+):
+    if session.exec(select(QualificationCampaign).where(QualificationCampaign.key == key)).first():
+        flash(request, "Cette clé de campagne existe déjà.", level="error")
+        return RedirectResponse(url="/scenarios/campaigns", status_code=303)
+    endpoint = session.get(SystemEndpoint, endpoint_id)
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="Endpoint introuvable")
+    campaign = QualificationCampaign(key=key, name=name, description=description or None, target_system_key=endpoint.target_system_key or endpoint.name)
+    session.add(campaign); session.flush()
+    for index, scenario_id in enumerate(dict.fromkeys(scenario_ids)):
+        if session.get(InteropScenario, scenario_id):
+            session.add(QualificationCampaignItem(campaign_id=campaign.id, scenario_id=scenario_id, endpoint_id=endpoint_id, order_index=index))
+    session.commit()
+    flash(request, "Campagne créée. Elle est exécutable depuis l'espace Qualification.", level="success")
+    return RedirectResponse(url="/scenarios/campaigns", status_code=303)
 
 
 # Route de création "from scratch" (doit être avant /{scenario_id} pour éviter les conflits) :
@@ -615,6 +729,63 @@ def delete_scenario_step(
     return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
 
 
+@router.post("/{scenario_id}/steps/{step_id}/edit")
+def edit_scenario_step(
+    scenario_id: int,
+    step_id: int,
+    request: Request,
+    name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    message_type: Optional[str] = Form(None),
+    message_format: str = Form("hl7"),
+    payload: str = Form(""),
+    delay_seconds: Optional[int] = Form(None),
+    session: Session = Depends(get_session),
+):
+    """Modifie une étape sans changer le modèle source lors des futurs jeux."""
+    step = session.get(InteropScenarioStep, step_id)
+    if not step or step.scenario_id != scenario_id:
+        raise HTTPException(status_code=404, detail="Étape introuvable")
+    step.name, step.description = name or None, description or None
+    step.message_type, step.message_format = message_type or None, message_format.lower().strip()
+    step.payload, step.delay_seconds, step.updated_at = payload, delay_seconds, datetime.utcnow()
+    session.add(step)
+    session.commit()
+    flash(request, f"Étape #{step.order_index} mise à jour", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+
+
+@router.post("/{scenario_id}/steps/{step_id}/move")
+def move_scenario_step(
+    scenario_id: int,
+    step_id: int,
+    request: Request,
+    direction: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    """Échange une étape avec sa voisine tout en conservant un ordre dense."""
+    step = session.get(InteropScenarioStep, step_id)
+    if not step or step.scenario_id != scenario_id:
+        raise HTTPException(status_code=404, detail="Étape introuvable")
+    ordered = session.exec(
+        select(InteropScenarioStep)
+        .where(InteropScenarioStep.scenario_id == scenario_id)
+        .order_by(InteropScenarioStep.order_index, InteropScenarioStep.id)
+    ).all()
+    index = next((i for i, item in enumerate(ordered) if item.id == step_id), None)
+    target_index = index - 1 if direction == "up" else index + 1 if direction == "down" else None
+    if index is None or target_index is None or not 0 <= target_index < len(ordered):
+        return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+    ordered[index], ordered[target_index] = ordered[target_index], ordered[index]
+    # Values are rewritten in a second pass to tolerate pre-existing gaps.
+    for position, item in enumerate(ordered, start=1):
+        item.order_index, item.updated_at = position, datetime.utcnow()
+        session.add(item)
+    session.commit()
+    flash(request, "Ordre des étapes mis à jour", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
+
+
 @router.get("/{scenario_id}", response_class=HTMLResponse)
 def scenario_detail(scenario_id: int, request: Request, session: Session = Depends(get_session)):
     scenario = get_scenario(session, scenario_id)
@@ -635,6 +806,11 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
         "scenario": scenario,
         "steps": steps,
         "endpoints": endpoints,
+        "themes": session.exec(select(ScenarioTheme).where(ScenarioTheme.is_active == True).order_by(ScenarioTheme.name)).all(),  # noqa: E712
+        "current_theme_assignment": session.exec(
+            select(ScenarioThemeAssignment).where(ScenarioThemeAssignment.scenario_id == scenario.id).where(ScenarioThemeAssignment.is_primary == True)  # noqa: E712
+        ).first(),
+        "preflight_issues": preflight_issues(scenario),
         "event_labels": _trigger_labels(),
         "breadcrumbs": [
             {"label": "Scénarios", "url": "/scenarios"},
@@ -663,7 +839,8 @@ def capture_from_dossier(
 async def scenario_send(
     scenario_id: int,
     request: Request,
-    endpoint_id: int = Form(...),
+    endpoint_ids: list[int] = Form(default=[]),
+    endpoint_id: Optional[int] = Form(None),
     step_id: Optional[int] = Form(None),
     dry_run: bool = Form(False),
     start_order_index: Optional[int] = Form(None),
@@ -673,64 +850,64 @@ async def scenario_send(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scénario introuvable")
 
-    endpoint = session.get(SystemEndpoint, endpoint_id)
-    if not endpoint:
+    # ``endpoint_id`` stays accepted for bookmarked forms and the public API;
+    # the UI now posts endpoint_ids and may select distinct MLLP/FHIR/HPRIM
+    # endpoints in a single coherent play.
+    selected_ids = list(dict.fromkeys(endpoint_ids + ([endpoint_id] if endpoint_id else [])))
+    endpoints = [session.get(SystemEndpoint, selected_id) for selected_id in selected_ids]
+    if not endpoints or any(endpoint is None for endpoint in endpoints):
         raise HTTPException(status_code=404, detail="Endpoint introuvable")
+    endpoints = [endpoint for endpoint in endpoints if endpoint is not None]
 
     try:
-        if step_id:
-            step = session.get(InteropScenarioStep, step_id)
-            if not step:
-                raise HTTPException(status_code=404, detail="Étape introuvable")
-            log = await send_step(
-                session,
-                step,
-                endpoint,
-                identity_profile=generate_patient_identity(),
-            )
-            if log.status == "sent":
-                level = "success"
-            elif log.status == "skipped":
-                level = "info"
-            else:
-                level = "warning"
-            flash(
-                request,
-                f"Étape #{step.order_index} envoyée vers {endpoint.name} (statut {log.status}).",
-                level=level,
-            )
+        play = prepare_scenario_play(
+            session, scenario, endpoints, dry_run=dry_run,
+            step_id=step_id, start_order_index=start_order_index,
+        )
+        play = await execute_scenario_play(session, play.id)
+        delivered = session.exec(
+            select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)
+        ).all()
+        if play.status in {"success", "dry_run"}:
+            flash(request, f"Jeu {play.play_key} {'prévisualisé' if dry_run else 'émis'} vers {len(endpoints)} endpoint(s) : {len(delivered)} livraison(s).", level="success")
         else:
-            logs = await send_scenario(
-                session,
-                scenario,
-                endpoint,
-                dry_run=dry_run,
-                start_order_index=start_order_index,
-            )
-            errors = [log for log in logs if log.status not in {"sent", "skipped"}]
-            skipped = [log for log in logs if log.status == "skipped"]
-            if errors:
-                flash(
-                    request,
-                    f"Scénario {scenario.name} envoyé avec {len(errors)} messages en anomalie.",
-                    level="warning",
-                )
-            elif skipped:
-                flash(
-                    request,
-                    f"Scénario {scenario.name} exécuté ({len(logs)} messages, {len(skipped)} ignorés car Zxx).",
-                    level="info",
-                )
-            else:
-                flash(
-                    request,
-                    f"Scénario {scenario.name} envoyé avec succès ({len(logs)} messages).",
-                    level="success",
-                )
-    except ScenarioExecutionError as exc:
+            flash(request, f"Jeu {play.play_key} terminé avec le statut {play.status}. Consultez le détail des livraisons.", level="warning")
+        return RedirectResponse(url=f"/scenarios/{scenario_id}/plays/{play.id}", status_code=303)
+    except (ScenarioExecutionError, ScenarioPlayError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return RedirectResponse(url=f"/scenarios/{scenario_id}?sent=1", status_code=303)
+
+@router.get("/{scenario_id}/plays/{play_id}", response_class=HTMLResponse)
+def scenario_play_detail(scenario_id: int, play_id: int, request: Request, session: Session = Depends(get_session)):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    try:
+        play, steps, deliveries = get_play_details(session, play_id)
+    except ScenarioPlayError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if play.scenario_id != scenario_id:
+        raise HTTPException(status_code=404, detail="Jeu hors scénario")
+    endpoints = {endpoint.id: endpoint for endpoint in session.exec(select(SystemEndpoint).where(SystemEndpoint.id.in_([row.endpoint_id for row in deliveries]))).all()}
+    return get_templates_with_filters(request).TemplateResponse(request, "scenario_play_detail.html", {
+        "request": request, "scenario": scenario, "play": play, "steps": steps, "deliveries": deliveries,
+        "endpoints_by_id": endpoints, "identity": json.loads(play.identity_json or "{}"),
+        "breadcrumbs": [{"label": "Scénarios", "url": "/scenarios"}, {"label": scenario.name, "url": f"/scenarios/{scenario.id}"}, {"label": play.play_key, "url": ""}],
+    })
+
+
+@router.post("/{scenario_id}/plays/{play_id}/deliveries/{delivery_id}/retry")
+async def scenario_delivery_retry(scenario_id: int, play_id: int, delivery_id: int, request: Request, session: Session = Depends(get_session)):
+    """Technical retry: preserve the exact compiled payload and identifiers."""
+    try:
+        play, _, _ = get_play_details(session, play_id)
+        if play.scenario_id != scenario_id:
+            raise ScenarioPlayError("Jeu hors scénario")
+        delivery = await retry_scenario_delivery(session, delivery_id)
+    except ScenarioPlayError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    flash(request, f"Livraison #{delivery.id} {'envoyée' if delivery.status == 'sent' else 'en erreur'} avec le même jeu.", level="success" if delivery.status == "sent" else "warning")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/plays/{play_id}", status_code=303)
 
 # --- JSON export endpoints (added) ---
 @router.get("/{scenario_id}/export")

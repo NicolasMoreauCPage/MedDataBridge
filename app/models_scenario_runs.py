@@ -8,6 +8,84 @@ dashboard de suivi (succès/erreurs, heatmap, filtres).
 from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import UniqueConstraint
+
+
+class ScenarioPlay(SQLModel, table=True):
+    """Un jeu immuable d'un scénario, partagé par toutes ses cibles.
+
+    Contrairement à ``ScenarioExecutionRun`` (historique par endpoint), un play
+    porte les identifiants créés une seule fois et les payloads réellement
+    compilés. Il rend un rejeu multi-protocoles traçable et non destructif pour
+    le système destinataire.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    scenario_id: int = Field(foreign_key="interopscenario.id", index=True)
+    play_key: str = Field(index=True, unique=True)
+    ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id", index=True)
+    status: str = Field(default="prepared", index=True)  # prepared|running|success|partial|error|dry_run
+    dry_run: bool = Field(default=False, index=True)
+    identity_json: str = Field(default="{}", description="Identité et identifiants alloués à ce jeu")
+    options_json: Optional[str] = Field(default=None)
+    result_json: Optional[str] = Field(default=None)
+    started_at: Optional[datetime] = Field(default=None, index=True)
+    finished_at: Optional[datetime] = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ScenarioPlayTarget(SQLModel, table=True):
+    """Cible sélectionnée pour un jeu, avec un nom de système logique."""
+
+    __table_args__ = (UniqueConstraint("play_id", "endpoint_id", name="uq_scenario_play_target"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    play_id: int = Field(foreign_key="scenarioplay.id", index=True)
+    endpoint_id: int = Field(foreign_key="systemendpoint.id", index=True)
+    target_system_key: Optional[str] = Field(default=None, index=True)
+    status: str = Field(default="pending", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ScenarioPlayStep(SQLModel, table=True):
+    """Instantané compilé d'une étape, avant toute émission."""
+
+    __table_args__ = (UniqueConstraint("play_id", "order_index", name="uq_scenario_play_step_order"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    play_id: int = Field(foreign_key="scenarioplay.id", index=True)
+    scenario_step_id: Optional[int] = Field(default=None, foreign_key="interopscenariostep.id", index=True)
+    order_index: int = Field(index=True)
+    name: Optional[str] = None
+    message_format: str = Field(index=True)
+    message_type: Optional[str] = None
+    source_payload: str
+    compiled_payload: str
+    routing_json: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ScenarioDelivery(SQLModel, table=True):
+    """Livraison d'une étape compilée vers une cible précise."""
+
+    __table_args__ = (UniqueConstraint("play_step_id", "endpoint_id", name="uq_scenario_delivery_step_endpoint"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    play_id: int = Field(foreign_key="scenarioplay.id", index=True)
+    play_step_id: int = Field(foreign_key="scenarioplaystep.id", index=True)
+    endpoint_id: int = Field(foreign_key="systemendpoint.id", index=True)
+    status: str = Field(default="pending", index=True)  # pending|sent|error|skipped|dry_run
+    transport: Optional[str] = Field(default=None, index=True)
+    ack_code: Optional[str] = Field(default=None)
+    response_payload: Optional[str] = Field(default=None)
+    error_message: Optional[str] = Field(default=None)
+    message_log_id: Optional[int] = Field(default=None, foreign_key="messagelog.id", index=True)
+    started_at: Optional[datetime] = Field(default=None)
+    finished_at: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class ScenarioExecutionRun(SQLModel, table=True):

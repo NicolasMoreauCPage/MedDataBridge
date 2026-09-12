@@ -175,23 +175,31 @@ async def play_template(
             raise HTTPException(status_code=404, detail="Entité juridique introuvable")
     opts = MaterializationOptions(protocol=protocol, ipp_prefix=ipp_prefix, nda_prefix=nda_prefix)
     scenario = materialize_template(session, template, ej_context=ej, options=opts)
+    from app.services.scenario_play_service import ScenarioPlayError, execute_scenario_play, prepare_scenario_play
     try:
-        logs = await send_scenario(session, scenario, endpoint, dry_run=dry_run)
-    except ScenarioExecutionError as e:
+        play = prepare_scenario_play(session, scenario, [endpoint], dry_run=dry_run)
+        play = await execute_scenario_play(session, play.id)
+    except ScenarioPlayError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    from app.models_scenario_runs import ScenarioDelivery, ScenarioPlayStep
+    deliveries = session.exec(select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)).all()
+    compiled_steps = {item.id: item for item in session.exec(select(ScenarioPlayStep).where(ScenarioPlayStep.play_id == play.id)).all()}
     return {
         "run": {
             "scenario_id": scenario.id,
             "endpoint_id": endpoint.id,
             "dry_run": dry_run,
-            "message_count": len(logs),
+            "play_id": play.id,
+            "play_key": play.play_key,
+            "status": play.status,
+            "message_count": len(deliveries),
         },
         "messages": [
             {
-                "status": lg.status,
-                "ack": getattr(lg, "ack_code", None),
-                "payload_preview": (lg.payload[:100] + "…") if len(lg.payload) > 100 else lg.payload,
+                "status": delivery.status,
+                "ack": delivery.ack_code,
+                "payload_preview": (compiled_steps[delivery.play_step_id].compiled_payload[:100] + "…") if len(compiled_steps[delivery.play_step_id].compiled_payload) > 100 else compiled_steps[delivery.play_step_id].compiled_payload,
             }
-            for lg in logs
+            for delivery in deliveries
         ],
     }

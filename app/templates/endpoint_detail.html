@@ -284,6 +284,13 @@
 
     <!-- Section: Association d'endpoints (anti-rebond) -->
     <details class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm" open>
+      <summary class="cursor-pointer bg-gradient-to-r from-violet-50 dark:from-violet-950/30 to-violet-100 dark:to-violet-900/40 px-6 py-4 font-semibold text-slate-800 dark:text-slate-100 hover:from-violet-100 hover:to-violet-200 transition-colors flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">⇄</div><span class="text-lg">Système partenaire logique</span>
+      </summary>
+      <div class="p-6"><label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2" for="target_system_key">Clé de système cible</label><input id="target_system_key" name="target_system_key" value="{{ e.target_system_key or '' }}" placeholder="ex. DPI_PARTENAIRE_A" class="w-full rounded-xl border-2 border-slate-200 dark:border-slate-700 px-4 py-2.5 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"><p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Donnez la même clé aux endpoints MLLP, FHIR et HPRIM du même partenaire. Les scénarios afficheront ce regroupement et projettent une identité de jeu cohérente.</p></div>
+    </details>
+
+    <details class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm" open>
       <summary class="cursor-pointer bg-gradient-to-r from-amber-50 dark:from-amber-950/30 to-amber-100 dark:to-amber-900/40 px-6 py-4 font-semibold text-slate-800 dark:text-slate-100 hover:from-amber-100 hover:to-amber-200 transition-colors flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
           <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -15,6 +15,10 @@ class InteropScenario(SQLModel, table=True):
     key: str = Field(index=True, unique=True)  # identifiant stable (ex: path fichier)
     name: str
     description: Optional[str] = None
+    functional_comment: Optional[str] = Field(
+        default=None,
+        description="But fonctionnel du scénario, affiché au catalogue de qualification",
+    )
     category: Optional[str] = Field(default=None, index=True)
     protocol: str = Field(default="HL7")  # HL7 | FHIR | MIXED
     version: int = Field(default=1, description="Version métier du scénario de qualification")
@@ -27,6 +31,12 @@ class InteropScenario(SQLModel, table=True):
         description="Assertions JSON évaluées à la fin d'une exécution",
     )
     source_path: Optional[str] = None  # emplacement d'origine (documentation/debug)
+    source_checksum: Optional[str] = Field(default=None, index=True)
+    legacy_package: Optional[str] = Field(default=None, index=True)
+    legacy_source_json: Optional[str] = Field(
+        default=None,
+        description="Clés et chemins source historiques conservés après dédoublonnage",
+    )
     tags: Optional[str] = None  # liste séparée par virgules
     is_active: bool = Field(default=True, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)

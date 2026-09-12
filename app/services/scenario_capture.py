@@ -193,6 +193,7 @@ def capture_dossier_as_scenario(
     - tests/test_scenario_integration.py
     """
     from app.models_scenarios import InteropScenario, InteropScenarioStep
+    from app.models.hprim_models import HprimMessage
     
     # Générer métadonnées
     key = key or f"capture/dossier/{dossier.id}/{datetime.now().isoformat()}"
@@ -204,7 +205,7 @@ def capture_dossier_as_scenario(
         key=key,
         name=name,
         description=description,
-        protocol="HL7",
+        protocol="MIXED",
         category="capture",
         tags="capture,auto",
     )
@@ -257,6 +258,30 @@ def capture_dossier_as_scenario(
         )
         session.add(step)
         prev_when = mvt.when
+
+    # Conserver également les actes HPRIM déjà associés au patient. La capture
+    # reste tolérante aux historiques anciens (patient_id peut être IPP, id SQL
+    # ou numéro de dossier suivant l'import qui les a produits).
+    patient_keys = {str(value) for value in (getattr(dossier, "patient_id", None), dossier.dossier_seq) if value is not None}
+    hprim_messages = []
+    if patient_keys:
+        hprim_messages = session.exec(
+            select(HprimMessage).where(HprimMessage.patient_id.in_(patient_keys)).order_by(HprimMessage.created_at)
+        ).all()
+    next_order = len(all_mouvements) + 1
+    for message in hprim_messages:
+        if not message.xml_content.strip():
+            continue
+        session.add(InteropScenarioStep(
+            scenario_id=scenario.id,
+            order_index=next_order,
+            message_format="xml",
+            message_type=message.type_message or "HPRIM",
+            payload=message.xml_content,
+            name=f"HPRIM {message.type_message or 'acte'} #{message.message_id}",
+            description="Acte HPRIM capturé avec le dossier; l'identité sera projetée au lancement.",
+        ))
+        next_order += 1
     
     session.commit()
     return scenario

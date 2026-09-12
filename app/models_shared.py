@@ -46,6 +46,11 @@ class SystemEndpoint(SQLModel, table=True):
     kind: str
     role: str = Field(default=EndpointRole.RECEIVER)  # "sender" or "receiver"
     is_enabled: bool = Field(default=True)
+    target_system_key: Optional[str] = Field(
+        default=None,
+        index=True,
+        description="Identifiant logique du système partenaire; regroupe ses endpoints multi-protocoles.",
+    )
 
     # Configuration commune
     ght_context_id: Optional[int] = Field(foreign_key="ghtcontext.id", nullable=True)

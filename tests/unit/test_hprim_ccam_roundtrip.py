@@ -2,6 +2,8 @@ from fastapi.testclient import TestClient
 from sqlmodel import select
 
 from app.models.hprim_models import HprimCCAMAct, HprimNGAPAct, HprimMessage
+from app.models_endpoints import SystemEndpoint
+from app.models_outbox import OutboundMessage
 from app.services.hprim.hprim_validator import HprimValidator
 
 
@@ -134,6 +136,28 @@ def test_hprim_ccam_emission_xml_is_xsd_valid(client: TestClient):
     body = response.json()
     assert body["validation_errors"] == []
     _assert_hprim_evenements_xml_valid(body["xml_content"])
+
+
+def test_hprim_ccam_emission_is_queued_when_an_endpoint_is_selected(client: TestClient, session, tmp_path):
+    endpoint = SystemEndpoint(
+        name="Dépôt HPRIM API", kind="HPRIM", role="sender", is_enabled=True,
+        outbox_path=str(tmp_path), target_system_key="987654321",
+    )
+    session.add(endpoint)
+    session.commit()
+
+    payload = _emission_payload()
+    payload["endpoint_id"] = endpoint.id
+    response = client.post("/api/hprim/actes/ccam/emission", json=payload)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["delivery_status"] == "queued"
+    assert body["endpoint_id"] == endpoint.id
+    queued = session.get(OutboundMessage, body["outbox_id"])
+    assert queued is not None
+    assert queued.status == "pending"
+    assert queued.protocol == "FILE"
 
 
 def test_roundtrip_hprim_generate_download_reintegrate(client: TestClient, session):

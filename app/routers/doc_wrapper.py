@@ -10,7 +10,6 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi import Request as FastAPIRequest
 from pathlib import Path
 import logging
-import mimetypes
 import markdown
 
 
@@ -98,6 +97,7 @@ async def serve_wrapped_doc(request: Request, file_path: str):
 
         # Envelopper le contenu HTML dans le template base.html
         return get_templates_with_filters(request).TemplateResponse(
+            request,
             "doc_wrapper.html",
             {
                 "request": request,

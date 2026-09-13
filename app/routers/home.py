@@ -37,11 +37,11 @@ def home(request: Request, session=Depends(get_session)):
     ).all()
     
     dossiers = session.exec(
-        select(Dossier).where(Dossier.entite_juridique_id.in_(ej_ids)) if ej_ids else select(Dossier).where(Dossier.id == None)
+        select(Dossier).where(Dossier.entite_juridique_id.in_(ej_ids)) if ej_ids else select(Dossier).where(Dossier.id.is_(None))
     ).all()
     
     venues = session.exec(
-        select(Venue).where(Venue.entite_juridique_id.in_(ej_ids)) if ej_ids else select(Venue).where(Venue.id == None)
+        select(Venue).where(Venue.entite_juridique_id.in_(ej_ids)) if ej_ids else select(Venue).where(Venue.id.is_(None))
     ).all()
     
     recent_messages = session.exec(select(MessageLog).order_by(MessageLog.created_at.desc()).limit(10)).all()

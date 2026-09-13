@@ -1575,7 +1575,17 @@ function selectedActePayload() {
 
 async function runBulkAction(action, label, actes = selectedActePayload()) {
     if (actes.length === 0) return;
-    if (!confirm(`${label} ${actes.length} acte(s) ?`)) return;
+    if (!window.PameliaUi?.confirm) {
+        showNotification('Le dialogue de confirmation n\'est pas disponible.', 'error');
+        return;
+    }
+    const confirmed = await window.PameliaUi.confirm({
+        title: action === 'delete' ? 'Supprimer des actes' : 'Confirmer l’action',
+        message: `${label} ${actes.length} acte(s) ?`,
+        acceptLabel: label,
+        variant: action === 'delete' ? 'danger' : 'primary',
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch('/cotations/api/bulk', {

@@ -5,10 +5,9 @@ Intégration HPRIM XML pour codage CCAM, NGAP, UCD, LPP.
 from fastapi import APIRouter, Request, Depends, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session, select
+from sqlmodel import Session
 from app.db import get_session
-from app.models import Dossier, Patient
-import os
+from app.models import Dossier
 
 router = APIRouter(tags=["Cotation Modern"])
 templates = Jinja2Templates(directory="app/templates")
@@ -40,11 +39,8 @@ async def cotation_modern_interface(
     request: Request,
     session: Session = Depends(get_session)
 ):
-    """Interface principale de cotation HPRIM (CCAM, NGAP, UCD, LPP).
-    
-    Affiche le formulaire de saisie des prestations médicales pour le séjour.
-    """
-    # Charger le dossier et le patient
+    """Redirige vers l'unique workspace de cotation réellement persistant."""
+
     dossier = session.get(Dossier, dossier_id)
     if not dossier:
         return templates.TemplateResponse(
@@ -52,15 +48,5 @@ async def cotation_modern_interface(
             {"request": request, "message": f"Séjour {dossier_id} non trouvé"},
             status_code=404
         )
-    
-    # Charger le patient associé
-    patient = session.get(Patient, dossier.patient_id) if dossier.patient_id else None
-    
-    return templates.TemplateResponse(
-        "hprim_cotation_modern.html",
-        {
-            "request": request,
-            "dossier": dossier,
-            "patient": patient
-        }
-    )
+
+    return RedirectResponse(url=f"/cotations/dossier/{dossier.id}/saisie", status_code=303)

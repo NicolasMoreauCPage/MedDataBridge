@@ -16,7 +16,7 @@ prioritaires.
 1. Démarrage et accès
 2. Contextes et données métier
 3. Validation et IHE PAM France
-4. Endpoints, HPRIM, MFN et FHIR
+4. Endpoints, cotations, HPRIM, MFN et FHIR
 5. Journaux, outbox, scénarios et roundtrips
 6. Diagnostic et glossaire
 
@@ -203,9 +203,25 @@ Un endpoint désactivé reste conservé mais n'est pas utilisé pour l'émission
 3. Vérifier la validation XML/XSD et l'acquittement.
 4. Consulter l'historique persistant dans `/hprim/messages`.
 
-Le périmètre qualifié couvre CCAM, NGAP, UCD et LPP. Pour saisir un acte,
-utiliser `/dossier/{dossier_id}/saisie` et contrôler le dossier, le code, la
-date d'exécution, la quantité, l'exécutant et le montant avant validation.
+Le périmètre qualifié couvre CCAM, NGAP, UCD et LPP.
+
+### Saisir et traiter les cotations
+
+Ouvrir `/cotations/dossier/{dossier_id}/saisie`. Les anciennes entrées
+`/cotation-modern/...` rejoignent automatiquement ce même workspace : il n’y
+a qu’une seule saisie opérationnelle, sans écran de démonstration parallèle.
+
+1. Choisir CCAM, NGAP, UCD ou LPP puis compléter les champs requis.
+2. Utiliser **Enregistrer** pour revenir à la liste actualisée, ou
+   **Suivant** (`Ctrl` + `Entrée`) pour conserver le formulaire ouvert et
+   saisir immédiatement l’acte suivant du même type.
+3. Sélectionner un ou plusieurs actes dans la liste pour les valider, les
+   marquer comme facturés ou les supprimer.
+4. Filtrer ensuite par type, état ou date pour contrôler le résultat.
+
+Les états `valide` et `facture` sont des booléens métier. L’interface peut les
+présenter sous forme de badges ou de choix Oui/Non ; l’échange HPRIM XML les
+représente par `oui` ou `non`.
 
 Le roundtrip HPRIM automatisé expose :
 

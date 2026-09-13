@@ -36,7 +36,7 @@ def create_venue(session: Session, venue_data: VenueCreateSchema) -> Venue:
         if not dossier:
             raise ValueError(f"Le dossier avec l'ID {venue_data.dossier_id} n'existe pas.")
         seq = venue_data.venue_seq or get_next_sequence(session, "venue")
-        data = venue_data.dict()
+        data = venue_data.model_dump()
         # avoid passing venue_seq twice if provided by the schema
         data.pop("venue_seq", None)
         # Assigne l'EJ du dossier parent si non fourni

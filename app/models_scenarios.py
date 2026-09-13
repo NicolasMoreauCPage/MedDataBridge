@@ -1,12 +1,8 @@
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 from sqlalchemy.orm import Mapped
-
-if TYPE_CHECKING:  # pragma: no cover
-    from app.models import Dossier
-
 
 class InteropScenario(SQLModel, table=True):
     """Scénario d'interop (suite de messages HL7/FHIR à rejouer)."""
@@ -115,6 +111,23 @@ class InteropScenarioStep(SQLModel, table=True):
     message_type: Optional[str] = None  # ex: ADT^A28, Bundle
     payload: str = Field(default="", sa_column_kwargs={"nullable": False})
     delay_seconds: Optional[int] = None  # délai suggéré avant envoi suivant
+    is_required: bool = Field(
+        default=True,
+        description="Une étape obligatoire doit disposer d'au moins une destination compatible",
+    )
+    route_mode: str = Field(
+        default="all_compatible",
+        description="all_compatible | explicit | target_system",
+    )
+    endpoint_ids_json: Optional[str] = Field(
+        default=None,
+        description="Liste JSON des endpoints autorisés lorsque route_mode=explicit",
+    )
+    target_system_key: Optional[str] = Field(
+        default=None,
+        index=True,
+        description="Système logique ciblé lorsque route_mode=target_system",
+    )
     assertions_json: Optional[str] = Field(
         default=None,
         description="Assertions JSON évaluées sur le résultat de cette étape",

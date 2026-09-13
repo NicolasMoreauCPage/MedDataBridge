@@ -313,6 +313,11 @@ doit pas écraser le patient/dossier du lancement précédent chez le partenaire
    étape, et **Modifier** permet de corriger son type, son format ou son
    payload. Les formats pris en charge sont HL7 v2 (MLLP ou FILE), FHIR/JSON
    (FHIR) et HPRIM XML (HPRIM ou FILE).
+   Une étape peut être obligatoire ou facultative et utiliser l'un des trois
+   routages : toutes les cibles compatibles, une liste explicite d'endpoints,
+   ou tous les endpoints portant une clé de système cible donnée. Le délai
+   d'une étape est appliqué avant l'étape suivante et reste persisté dans
+   l'outbox : un redémarrage ne raccourcit pas la temporisation.
 6. Utiliser **Prévisualiser le jeu** avant l'envoi : la page de résultat montre
    les identifiants générés, la matrice étape × endpoint, et le payload compilé
    réellement destiné au partenaire. Aucune émission n'a lieu dans ce mode.
@@ -385,10 +390,26 @@ le worker périodique reprend automatiquement les lignes `pending` et `retry` ;
 **Réessayer** conserve le même payload et les mêmes identifiants ; **Rejouer
 comme nouveau jeu** produit un autre IPP/NDA/venue.
 
+Le moteur valide chaque payload **après** projection des identifiants, UF et
+médecins, donc sur le contenu exact de chaque livraison. Il choisit le
+validateur IHE PAM, HL7 SIU, HL7 MFN, HL7 v2 générique, HPRIM/XSD ou FHIR
+FR Core selon le format. Le verdict et les erreurs sont conservés avec la
+livraison et visibles dans le jeu. Un scénario positif publié et approuvé ne
+peut pas émettre un payload devenu invalide ; un scénario négatif conserve la
+possibilité d'envoyer volontairement un défaut attendu.
+
+Le statut `scheduled` signifie qu'une étape attend son échéance ou la fin de
+l'étape précédente. Les politiques d'erreur distinguent l'arrêt global, la
+continuité sur les autres destinations et la poursuite complète. Une erreur
+d'étape facultative reste visible sans transformer à elle seule le jeu en
+échec. `/outbox/stats` fournit les compteurs JSON, le nombre de messages dus,
+l'âge du plus ancien et un état synthétique exploitable par la supervision.
+
 Depuis le détail d'un jeu partiel ou en erreur, **Reprendre les échecs** ne
 réémet que les livraisons qui n'ont pas abouti ; les messages déjà acceptés ne
 sont pas renvoyés. Télécharger le diagnostic JSON conserve une preuve portable
-de la version, des payloads source et compilés, des réponses et des tentatives.
+de la version, des payloads source et compilés, du routage, des échéances, des
+validations, des réponses et des tentatives.
 
 Les critères déclaratifs peuvent vérifier le statut, un ACK, le contenu d'un
 payload et des données locales. Les assertions BDD autorisées sont

@@ -4,8 +4,10 @@ Ce service permet de générer des scénarios de test avec injection
 d'erreurs contrôlées pour valider les interfaces d'interopérabilité.
 """
 
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime, timedelta
+__test__ = False
+
+from typing import Any, Dict, List, Optional
+from datetime import datetime
 from enum import Enum
 import random
 import uuid
@@ -27,6 +29,8 @@ class ErrorType(Enum):
 
 class TestScenarioType(Enum):
     """Types de scénarios de test."""
+
+    __test__ = False
     ADMISSION_COMPLETE = "admission_complete"
     TRANSFER_PATIENT = "transfer_patient"
     DISCHARGE_PATIENT = "discharge_patient"
@@ -39,6 +43,8 @@ class TestScenarioType(Enum):
 @dataclass
 class TestScenario:
     """Scénario de test généré."""
+
+    __test__ = False
     id: str
     name: str
     description: str
@@ -61,6 +67,8 @@ class ErrorInjection:
 
 class TestScenarioGenerator:
     """Générateur de scénarios de test avec injection d'erreurs."""
+
+    __test__ = False
 
     def __init__(self):
         self.specialties = [

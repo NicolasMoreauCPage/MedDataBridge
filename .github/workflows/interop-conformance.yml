@@ -28,6 +28,21 @@ jobs:
           git diff --check
           python -m compileall -q app
 
+      - name: Migration and focused lint smoke tests
+        run: |
+          python -m pip install ruff
+          ruff check \
+            app/services/outbox_service.py \
+            app/services/scenario_output_validation.py \
+            app/services/scenario_play_service.py \
+            alembic/versions/b6d4e2f7a901_scenario_routing_validation_schedule.py \
+            tests/unit/test_scenario_output_validation.py \
+            tests/unit/test_alembic_fresh_install.py \
+            tests/performance/test_scenario_play_performance.py
+          pytest -q \
+            tests/unit/test_alembic_fresh_install.py \
+            tests/performance/test_scenario_play_performance.py
+
       - name: IHE PAM France and CPage corpus
         run: |
           pytest -q tests/unit/test_ihe_pam_fr_211_conformance.py
@@ -50,7 +65,9 @@ jobs:
             tests/integration/test_fhir_structure_roundtrip.py \
             tests/integration/test_fhir_interop.py \
             tests/unit/test_outbox_service.py \
+            tests/unit/test_scenario_output_validation.py \
             tests/unit/test_scenario_play_service.py \
+            tests/unit/test_scenario_routing_ui.py \
             tests/unit/test_scenario_version_service.py \
             tests/unit/test_scenario_campaign_service.py \
             tests/unit/test_qualification_engine.py \

@@ -36,7 +36,7 @@ def test_alembic_upgrade_head_bootstraps_a_fresh_database(tmp_path: Path):
 
     assert {"patient", "interopscenario", "qualificationcampaign", "outboundmessage", "alembic_version"} <= tables
     assert {"qualification_verdict", "assertion_total", "evidence_json"} <= run_columns
-    assert version == "e4b7f0c2d991"
+    assert version == "b6d4e2f7a901"
 
 
 def test_alembic_keeps_incremental_upgrade_for_an_existing_database(tmp_path: Path):

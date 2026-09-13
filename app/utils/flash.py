@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from typing import Literal, TypedDict
 from uuid import uuid4
@@ -23,7 +24,8 @@ def flash(request: Request, message: str, level: FlashLevel = "info") -> None:
     Messages are popped by the FlashMessageMiddleware and exposed on
     ``request.state.flash_messages`` for template rendering.
     """
-    if not hasattr(request, "session"):
+    session = getattr(request, "session", None)
+    if not isinstance(session, MutableMapping):
         return
 
     payload: FlashPayload = {
@@ -33,8 +35,8 @@ def flash(request: Request, message: str, level: FlashLevel = "info") -> None:
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
-    messages = request.session.get("_messages")
+    messages = session.get("_messages")
     if not isinstance(messages, list):
         messages = []
     messages.append(payload)
-    request.session["_messages"] = messages
+    session["_messages"] = messages

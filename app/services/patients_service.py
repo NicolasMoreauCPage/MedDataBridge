@@ -3,7 +3,6 @@ from uuid import uuid4
 from sqlmodel import Session
 from pydantic import BaseModel
 from app.models import Patient
-from sqlalchemy.orm import attributes
 
 class PatientCreateSchema(BaseModel):
     """Schéma de données pour la création d'un patient."""
@@ -79,7 +78,7 @@ def create_patient(
     Gère la logique de génération d'identifiant et la transaction.
     """
     identifier_val = patient_data.identifier or str(uuid4())
-    data = patient_data.dict()
+    data = patient_data.model_dump()
     # Sanitize string values to avoid encoding errors (lone surrogates etc.)
     import unicodedata
     def _sanitize(val):

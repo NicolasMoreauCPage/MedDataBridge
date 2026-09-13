@@ -6,12 +6,14 @@ afin de ne pas imposer de processus supplémentaire sur les installations LAN.
 
 import asyncio
 import json
+import re
 from datetime import datetime, timedelta
 from ftplib import FTP
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
@@ -71,6 +73,16 @@ def _fhir_targets(endpoint: SystemEndpoint) -> list[tuple[str, str, Optional[str
     return configured or ([(endpoint.base_url, endpoint.auth_kind or "none", endpoint.auth_token)] if endpoint.base_url else [])
 
 
+def _delivery_ack_code(protocol: str, response: str, http_status: Optional[int] = None) -> str:
+    """Extrait un verdict court, indépendant du payload de réponse complet."""
+    if protocol == "MLLP":
+        match = re.search(r"(?:^|[\r\n])MSA\|([^|\r\n]+)", response or "")
+        return match.group(1) if match else "UNKNOWN"
+    if protocol == "FHIR":
+        return str(http_status or "UNKNOWN")
+    return "OK"
+
+
 def enqueue_message(
     session: Session,
     *,
@@ -123,7 +135,7 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
         raise ValueError("Message d'outbox introuvable")
     if row.status == "sent":
         return row
-    now, ack = datetime.utcnow(), ""
+    now, ack, http_status = datetime.utcnow(), "", None
     endpoint = session.get(SystemEndpoint, row.endpoint_id)
     try:
         if not endpoint or not endpoint.is_enabled:
@@ -148,6 +160,7 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
                     break
             if not 200 <= status_code < 300:
                 raise ValueError(f"FHIR HTTP {status_code}: {ack[:300]}")
+            http_status = status_code
         elif protocol == "FILE":
             if not endpoint.outbox_path:
                 raise ValueError("Endpoint fichier sans répertoire de sortie")
@@ -190,7 +203,8 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
             delivery = session.get(ScenarioDelivery, row.scenario_delivery_id)
             if delivery:
                 delivery.status, delivery.message_log_id = "sent", log.id
-                delivery.ack_code, delivery.response_payload, delivery.error_message = ack[:100], ack, None
+                delivery.ack_code = _delivery_ack_code(protocol, ack, http_status)
+                delivery.response_payload, delivery.error_message = ack, None
                 delivery.finished_at, delivery.updated_at = now, now
                 session.add(delivery)
     except Exception as exc:  # Evidence is retained even after the final attempt.
@@ -272,6 +286,34 @@ def retry_now(session: Session, outbox_id: int) -> OutboundMessage:
     return row
 
 
+def outbox_stats(session: Session) -> dict:
+    """Expose une vue d'exploitation compacte de la file persistante."""
+    now = datetime.utcnow()
+    counts = {
+        status: session.exec(
+            select(func.count(OutboundMessage.id)).where(OutboundMessage.status == status)
+        ).one()
+        for status in ("pending", "retry", "sent", "failed")
+    }
+    oldest = session.exec(
+        select(func.min(OutboundMessage.created_at)).where(
+            OutboundMessage.status.in_(["pending", "retry"])
+        )
+    ).one()
+    due = session.exec(
+        select(func.count(OutboundMessage.id))
+        .where(OutboundMessage.status.in_(["pending", "retry"]))
+        .where(OutboundMessage.next_attempt_at <= now)
+    ).one()
+    age_seconds = max(int((now - oldest).total_seconds()), 0) if oldest else 0
+    return {
+        "status": "degraded" if counts["failed"] else "healthy",
+        "counts": counts,
+        "due": due,
+        "oldest_open_age_seconds": age_seconds,
+    }
+
+
 async def process_due_messages(session: Session, limit: int = 100) -> dict:
     """Envoie les lignes échues et applique un backoff exponentiel borné."""
     now = datetime.utcnow()
@@ -283,8 +325,18 @@ async def process_due_messages(session: Session, limit: int = 100) -> dict:
         .limit(limit)
     ).all()
     result = {"processed": 0, "sent": 0, "retry": 0, "failed": 0}
+    touched_play_ids: set[int] = set()
     for row in rows:
         result["processed"] += 1
+        gate, play_id = _scenario_delivery_gate(session, row, now)
+        if play_id:
+            touched_play_ids.add(play_id)
+        if gate == "deferred":
+            result["deferred"] = result.get("deferred", 0) + 1
+            continue
+        if gate == "blocked":
+            result["failed"] += 1
+            continue
         processed = await process_outbox_message(session, row.id)
         if processed.status == "sent":
             result["sent"] += 1
@@ -292,4 +344,66 @@ async def process_due_messages(session: Session, limit: int = 100) -> dict:
             result["failed"] += 1
         else:
             result["retry"] += 1
+    if touched_play_ids:
+        # Import local pour conserver l'indépendance du transport et éviter
+        # une dépendance circulaire au chargement des modules.
+        from app.services.scenario_play_service import reconcile_scenario_plays
+        reconcile_scenario_plays(session, touched_play_ids)
     return result
+
+
+def _scenario_delivery_gate(
+    session: Session, row: OutboundMessage, now: datetime
+) -> tuple[str, Optional[int]]:
+    """Préserve l'ordre et la politique d'erreur des jeux différés.
+
+    Le worker générique ne doit pas émettre une étape ultérieure pendant que
+    l'étape précédente attend encore son ACK/retry. Après un échec terminal,
+    la politique du jeu décide si la suite est bloquée ou peut continuer.
+    """
+    if not row.scenario_delivery_id:
+        return "ready", None
+    from app.models_scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep
+
+    delivery = session.get(ScenarioDelivery, row.scenario_delivery_id)
+    if not delivery:
+        return "ready", None
+    play = session.get(ScenarioPlay, delivery.play_id)
+    step = session.get(ScenarioPlayStep, delivery.play_step_id)
+    if not play or not step:
+        return "ready", delivery.play_id
+    earlier_steps = session.exec(
+        select(ScenarioPlayStep.id)
+        .where(ScenarioPlayStep.play_id == play.id)
+        .where(ScenarioPlayStep.order_index < step.order_index)
+    ).all()
+    if not earlier_steps:
+        return "ready", play.id
+    earlier = session.exec(
+        select(ScenarioDelivery)
+        .where(ScenarioDelivery.play_id == play.id)
+        .where(ScenarioDelivery.play_step_id.in_(earlier_steps))
+        .where(ScenarioDelivery.status != "skipped")
+    ).all()
+    outstanding = [item for item in earlier if item.status in {"queued", "pending", "retry"}]
+    if outstanding:
+        row.next_attempt_at = now + timedelta(seconds=1)
+        row.updated_at = now
+        session.add(row)
+        session.commit()
+        return "deferred", play.id
+    failures = [item for item in earlier if item.status in {"error", "failed", "blocked"}]
+    blocks = play.error_policy == "stop_all" or (
+        play.error_policy == "continue_other_targets"
+        and any(item.endpoint_id == delivery.endpoint_id for item in failures)
+    )
+    if failures and blocks:
+        reason = "Non émise : une étape précédente du jeu a échoué"
+        delivery.status, delivery.error_message = "blocked", reason
+        delivery.finished_at, delivery.updated_at = now, now
+        row.status, row.last_error, row.updated_at = "failed", reason, now
+        session.add(delivery)
+        session.add(row)
+        session.commit()
+        return "blocked", play.id
+    return "ready", play.id

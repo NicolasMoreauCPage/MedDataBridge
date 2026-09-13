@@ -1,11 +1,10 @@
 """
 Service d'importation de ressources FHIR.
 """
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, Optional
 from sqlmodel import Session, select
 from app.models import Patient, Dossier, Venue, Mouvement
 from datetime import datetime
-import json
 
 
 class FHIRImportService:
@@ -197,7 +196,7 @@ class FHIRImportService:
             mouvement = Mouvement(
                 mouvement_seq=next_mov_seq,
                 venue_id=venue.id,
-                type=f"ADT^A01",  # Default ADT admission
+                type="ADT^A01",  # Default ADT admission
                 when=start_time,
                 end_time=end_time,
                 status=status,

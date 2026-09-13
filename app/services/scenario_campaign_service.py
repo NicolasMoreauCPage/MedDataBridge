@@ -110,7 +110,8 @@ async def process_scenario_campaign(
     if not campaign or not campaign.is_active:
         run.status, run.error_message, run.finished_at = "error", "Campagne introuvable ou désactivée", datetime.utcnow()
         run.updated_at = datetime.utcnow()
-        session.add(run); session.commit()
+        session.add(run)
+        session.commit()
         return run
     items = session.exec(
         select(QualificationCampaignItem)
@@ -137,9 +138,19 @@ async def process_scenario_campaign(
             if play is None:
                 play = prepare_scenario_play(session, scenario, [endpoint], dry_run=run.dry_run)
                 play.options_json = json.dumps({"campaign_run_id": run.id, "campaign_item_id": item.id})
-                session.add(play); session.commit()
+                session.add(play)
+                session.commit()
             if play.status not in {"success", "dry_run", "error", "partial"}:
                 play = await execute_scenario_play(session, play.id)
+            if play.status == "scheduled":
+                # Ne pas consommer l'item tant que ses délais/retries durables
+                # ne sont pas terminés. Le prochain passage retrouve ce jeu
+                # via ``_existing_play`` et conserve ses identifiants.
+                run.status, run.updated_at = "running", datetime.utcnow()
+                session.add(run)
+                session.commit()
+                session.refresh(run)
+                return run
             passed = play.status in {"success", "dry_run"}
             entry = {"item_id": item.id, "campaign_item_id": item.id, "play_id": play.id, "play_key": play.play_key, "status": play.status, "verdict": "passed" if passed else "failed"}
         except Exception as exc:  # one bad test must not discard a campaign
@@ -150,12 +161,14 @@ async def process_scenario_campaign(
         run.passed_items = sum(row.get("verdict") == "passed" for row in evidence)
         run.failed_items = len(evidence) - run.passed_items
         run.evidence_json, run.updated_at = json.dumps(evidence, ensure_ascii=False), datetime.utcnow()
-        session.add(run); session.commit()
+        session.add(run)
+        session.commit()
         processed += 1
     if run.next_item_index >= len(items):
         run.status = "passed" if run.failed_items == 0 else "failed"
         run.finished_at, run.updated_at = datetime.utcnow(), datetime.utcnow()
-        session.add(run); session.commit()
+        session.add(run)
+        session.commit()
     session.refresh(run)
     return run
 

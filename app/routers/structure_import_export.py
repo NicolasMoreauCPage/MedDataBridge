@@ -12,7 +12,6 @@ from datetime import datetime
 try:
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
-    from openpyxl.worksheet.datavalidation import DataValidation
 except ModuleNotFoundError:
     Workbook = None
 
@@ -525,7 +524,7 @@ async def import_excel_preview(
     duration = time.time() - start_time
     
     return {
-        **preview.dict(),
+        **preview.model_dump(),
         "duration_seconds": round(duration, 2),
         "can_proceed": preview.can_proceed
     }
@@ -543,7 +542,7 @@ async def import_excel_confirm(
     _require_openpyxl()
     from openpyxl import load_workbook
     from app.schemas.import_schemas import (
-        ImportMode, ImportResult, ImportMessage, ImportSeverity,
+        ImportResult, ImportMessage, ImportSeverity,
         ExcelRowEG, ExcelRowPole, ExcelRowService, ExcelRowUF,
         ExcelRowUH, ExcelRowChambre, ExcelRowLit
     )
@@ -607,7 +606,7 @@ async def import_excel_confirm(
                     
                     if existing and mode in ["update", "replace"]:
                         # Mise à jour
-                        for key, value in validated_row.dict(exclude_unset=True).items():
+                        for key, value in validated_row.model_dump(exclude_unset=True).items():
                             if key not in ["code"]:  # Ne pas modifier le code
                                 setattr(existing, key, value)
                         for fk_key, fk_value in fk_values.items():
@@ -615,7 +614,7 @@ async def import_excel_confirm(
                         result.updated_count += 1
                     else:
                         # Création
-                        entity_data = validated_row.dict(exclude_unset=True)
+                        entity_data = validated_row.model_dump(exclude_unset=True)
                         entity_data.update(fk_values)
                         new_entity = config["db_model"](**entity_data)
                         session.add(new_entity)
@@ -659,7 +658,7 @@ async def import_excel_confirm(
     
     result.duration_seconds = round(time.time() - start_time, 2)
     
-    return result.dict()
+    return result.model_dump()
 
 
 # === Helper Functions ===

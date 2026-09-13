@@ -7,6 +7,7 @@ Permet de recharger des scénarios exportés pour:
 """
 
 from __future__ import annotations
+import json
 import re
 from typing import Any, Optional
 from sqlmodel import Session, select
@@ -93,6 +94,10 @@ def split_embedded_messages_in_scenario(session: Session, scenario: InteropScena
                 "payload": fragment["payload"],
                 "delay_seconds": source.delay_seconds,
                 "assertions_json": source.assertions_json,
+                "is_required": source.is_required,
+                "route_mode": source.route_mode,
+                "endpoint_ids_json": source.endpoint_ids_json,
+                "target_system_key": source.target_system_key,
             })
     if len(expanded) == len(originals):
         return 0
@@ -106,6 +111,10 @@ def split_embedded_messages_in_scenario(session: Session, scenario: InteropScena
         step.payload = values["payload"]
         step.delay_seconds = values["delay_seconds"]
         step.assertions_json = values["assertions_json"]
+        step.is_required = values["is_required"]
+        step.route_mode = values["route_mode"]
+        step.endpoint_ids_json = values["endpoint_ids_json"]
+        step.target_system_key = values["target_system_key"]
         session.add(step)
     session.commit()
     return len(expanded) - len(originals)
@@ -212,7 +221,7 @@ def import_scenario_from_json(
     for order_index, step_data in enumerate(expanded_steps, 1):
         # Validation Étape
         if "order_index" not in step_data:
-            raise ScenarioImportError(f"Champ 'order_index' manquant dans step")
+            raise ScenarioImportError("Champ 'order_index' manquant dans step")
         if "message_type" not in step_data:
             raise ScenarioImportError(f"Champ 'message_type' manquant dans step {step_data.get('order_index')}")
         if "payload" not in step_data:
@@ -228,6 +237,10 @@ def import_scenario_from_json(
             delay_seconds=step_data.get("delay_seconds", 0),
             payload=step_data["payload"],
             assertions_json=step_data.get("assertions_json"),
+            is_required=step_data.get("is_required", True),
+            route_mode=step_data.get("route_mode", "all_compatible"),
+            endpoint_ids_json=json.dumps(step_data.get("endpoint_ids", [])) if step_data.get("route_mode") == "explicit" else None,
+            target_system_key=step_data.get("target_system_key"),
         )
         session.add(step)
     

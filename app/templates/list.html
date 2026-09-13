@@ -149,59 +149,6 @@
         </div>
       </div>
 
-      {% if new_url %}
-      <script>
-        (function() {
-          try {
-            var newUrl = "{{ new_url }}";
-            if (!newUrl) return;
-            document.addEventListener('keydown', function (e) {
-              // Ctrl+N / Cmd+N : Nouveau
-              if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'n') {
-                e.preventDefault();
-                window.location.href = newUrl;
-              }
-              // / : Focus premier champ de filtre (si panneau visible)
-              if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                var target = e.target;
-                if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
-                  return;
-                }
-                e.preventDefault();
-                var filterPanel = document.querySelector('[x-show="showFilters"]');
-                if (filterPanel && filterPanel.style.display !== 'none') {
-                  var firstInput = filterPanel.querySelector('input, select');
-                  if (firstInput) {
-                    firstInput.focus();
-                  }
-                }
-              }
-              // Esc : Fermer le panneau de filtres (si ouvert)
-              if (e.key === 'Escape' || e.key === 'Esc') {
-                var showFiltersAttr = document.querySelector('[\\@click*="showFilters"]');
-                if (showFiltersAttr && typeof Alpine !== 'undefined' && Alpine.store) {
-                  // Si Alpine.js est utilisé, basculer showFilters
-                  try {
-                    var alpineData = showFiltersAttr._x_dataStack;
-                    if (alpineData && alpineData[0] && alpineData[0].showFilters) {
-                      alpineData[0].showFilters = false;
-                    }
-                  } catch (err) {
-                    // Fallback : masquer directement le panneau
-                    var filterPanel = document.querySelector('[x-show="showFilters"]');
-                    if (filterPanel) {
-                      filterPanel.style.display = 'none';
-                    }
-                  }
-                }
-              }
-            });
-          } catch (e) {
-            console.warn('Erreur init raccourcis clavier sur liste:', e);
-          }
-        })();
-        </script>
-      {% endif %}
       {% endif %}
     </div>
   </div>
@@ -251,11 +198,11 @@
               {% if row.detail_url %}role="link" tabindex="0" aria-label="Ouvrir le détail de la ligne {{ loop.index }}"{% endif %}
               {% if row.detail_url %}onclick="window.location.href='{{ row.detail_url }}'"{% endif %}>
             {# Checkbox column for bulk actions if endpoints available #}
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-200 sticky-col">
-              {% if all_endpoints %}
+            {% if all_endpoints %}
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-200 sticky-col">
                 <input type="checkbox" name="selected_row" value="{{ row.id }}" class="row-select w-4 h-4">
-              {% endif %}
-            </td>
+              </td>
+            {% endif %}
             {% for cell in row.cells %}
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-200">
                 {% if row.detail_url and loop.first %}
@@ -369,6 +316,52 @@
 {% endblock %}
 {% block scripts %}
 <script src="{{ url_for('static', path='js/patients.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const filterToggle = document.getElementById('toggle-filters-btn');
+  const filterPanel = document.getElementById('list-filters-panel');
+  const newUrl = {{ new_url|default('', true)|tojson }};
+
+  document.addEventListener('keydown', function (event) {
+    const tagName = event.target?.tagName;
+    const isEditing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName)
+      || event.target?.isContentEditable;
+
+    if (newUrl && (event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'n') {
+      event.preventDefault();
+      window.location.assign(newUrl);
+      return;
+    }
+
+    if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditing && filterPanel) {
+      event.preventDefault();
+      filterPanel.removeAttribute('hidden');
+      filterToggle?.setAttribute('aria-expanded', 'true');
+      filterPanel.querySelector('input, select, textarea')?.focus();
+      return;
+    }
+
+    if ((event.key === 'Escape' || event.key === 'Esc') && filterPanel && !filterPanel.hasAttribute('hidden')) {
+      filterPanel.setAttribute('hidden', 'hidden');
+      filterToggle?.setAttribute('aria-expanded', 'false');
+      filterToggle?.focus();
+    }
+  });
+
+  document.querySelectorAll('tr[role="link"][tabindex="0"]').forEach((row) => {
+    row.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        row.click();
+      }
+    });
+  });
+
+  document.querySelectorAll('tr[role="link"] a, tr[role="link"] button, tr[role="link"] form, tr[role="link"] input').forEach((interactiveElement) => {
+    interactiveElement.addEventListener('click', (event) => event.stopPropagation());
+  });
+});
+</script>
 {% if all_endpoints %}
 <script>
 // Compact bulk-execute toolbar logic for the list view
@@ -415,52 +408,6 @@ function submitBulkExecuteFromList(e) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const filterToggleBtn = document.getElementById('toggle-filters-btn');
-  const filterPanel = document.getElementById('list-filters-panel');
-
-  if (filterToggleBtn && filterPanel && !filterToggleBtn.dataset.filterToggleBound) {
-    const setFiltersVisibility = (isVisible) => {
-      if (isVisible) {
-        filterPanel.removeAttribute('hidden');
-      } else {
-        filterPanel.setAttribute('hidden', 'hidden');
-      }
-      filterToggleBtn.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
-    };
-
-    filterToggleBtn.addEventListener('click', () => {
-      const isHidden = filterPanel.hasAttribute('hidden');
-      setFiltersVisibility(isHidden);
-      if (isHidden) {
-        const firstInput = filterPanel.querySelector('input, select, textarea');
-        if (firstInput) {
-          firstInput.focus();
-        }
-      }
-    });
-
-    document.addEventListener('keydown', (event) => {
-      if ((event.key === 'Escape' || event.key === 'Esc') && !filterPanel.hasAttribute('hidden')) {
-        setFiltersVisibility(false);
-      }
-    });
-  }
-
-  document.querySelectorAll('tr[role="link"][tabindex="0"]').forEach((row) => {
-    row.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        row.click();
-      }
-    });
-  });
-
-  document.querySelectorAll('tr[role="link"] a, tr[role="link"] button, tr[role="link"] form, tr[role="link"] input').forEach((interactiveEl) => {
-    interactiveEl.addEventListener('click', (event) => {
-      event.stopPropagation();
-    });
-  });
-
   document.querySelectorAll('input.row-select').forEach(el => {
     el.addEventListener('change', updateBulkToolbar);
     // Prevent row click navigation when interacting with the checkbox

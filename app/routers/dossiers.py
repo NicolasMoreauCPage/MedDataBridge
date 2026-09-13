@@ -1,7 +1,7 @@
 
 
 # --- ALL IMPORTS AT TOP ---
-from fastapi import APIRouter, Depends, Request, Form, Query, Body
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request
 import os
 import logging
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -10,20 +10,13 @@ from sqlmodel import select, Session
 from sqlalchemy.orm import selectinload
 from sqlalchemy import String
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from app.db import get_session
 from app.models import Dossier, Patient, DossierType, Venue, CCAMAct, NGAPAct, UCDAct, LPPAct
-from app.models_endpoints import SystemEndpoint
-from app.models_scenarios import ScenarioBinding, InteropScenario
 from app.services import dossiers_service
 from app.services.dossiers_service import DossierCreateSchema, DossierUpdateSchema
-from app.services.scenario_runner import send_scenario
-from app.services.scenario_capture import capture_dossier_as_template
-from app.form_config import get_field_config
 from app.utils.flash import flash
 from app.dependencies.ght import require_ght_context
-from app.models_structure import GHTContext
-from app.models_structure import UniteFonctionnelle, Service, Pole, EntiteGeographique
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +56,7 @@ router = APIRouter(
 def list_dossiers(
     request: Request,
     patient_id: int | None = Query(None),
-    dossier_type: DossierType | None = Query(None),
+    dossier_type: str | None = Query(None),
     dossier_seq: int | None = Query(None),
     uf: str | None = Query(None, description="Filtrer par UF de responsabilité (contient)"),
     medecin: str | None = Query(None, alias="attending_provider", description="Filtrer par médecin responsable (contient)"),
@@ -72,6 +65,11 @@ def list_dossiers(
     current_state: str | None = Query(None, description="Filtrer par état courant"),
     session=Depends(get_session)
 ):
+    try:
+        dossier_type_filter = DossierType(dossier_type) if dossier_type else None
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Type de dossier inconnu") from exc
+
     # Récupérer les contextes EG et EJ (EG a priorité s'il est défini)
     eg_context = getattr(request.state, "eg_context", None)
     ej_context = getattr(request.state, "ej_context", None)
@@ -83,7 +81,7 @@ def list_dossiers(
         ej_id=ej_id,
         eg_id=eg_id,
         patient_id=patient_id,
-        dossier_type=dossier_type,
+        dossier_type=dossier_type_filter,
         dossier_seq=dossier_seq,
         uf=uf,
         medecin=medecin,
@@ -137,7 +135,7 @@ def list_dossiers(
             "label": "Type de dossier",
             "name": "dossier_type",
             "type": "select",
-            "value": dossier_type.value if dossier_type else "",
+            "value": dossier_type_filter.value if dossier_type_filter else "",
             "placeholder": "Tous les types",
             "options": [
                 {"value": dt.value, "label": dt.name.replace('_', ' ').capitalize()}
@@ -217,42 +215,26 @@ def redirect_dossier_cotation(dossier_id: int):
     """Redirige vers la page de cotation moderne pour ce dossier"""
     return RedirectResponse(url=f"/cotation-modern?dossier_id={dossier_id}", status_code=302)
 
-from typing import Optional
-
-
 @router.get("/new", response_class=HTMLResponse)
 def new_dossier(
     request: Request,
     patient_id: Optional[str] = Query(None),
     session: Session = Depends(get_session),
 ):
-    print(f"[DEBUG] Incoming query_params: {request.query_params}, patient_id={patient_id} (type={type(patient_id)})")
-    # Utilise le contexte patient injecté par le middleware ou l'injecte pour les tests UI
-    try:
-        patient_context = getattr(request.state, "patient_context", None)
-        print(f"[DEBUG] patient_id={patient_id}, patient_context={patient_context}")
-        db_patient = None
-        if not patient_context and patient_id is not None:
-            from app.models import Patient
-            try:
-                pid_int = int(patient_id)
-                db_patient = session.get(Patient, pid_int)
-            except Exception as e:
-                print(f"[DEBUG] Exception converting patient_id to int or fetching patient: {e}")
-                db_patient = None
-            print(f"[DEBUG] db_patient from id={patient_id}: {db_patient}")
-            if db_patient:
-                request.state.patient_context = db_patient
-                patient_context = db_patient
-        print(f"[DEBUG] patient_context after injection: {patient_context}")
-        if not patient_context:
-            print(f"[DEBUG] Redirecting to /patients: patient_context missing for patient_id={patient_id}")
-            return RedirectResponse("/patients", status_code=303)
-    except Exception as e:
-        print(f"[EXCEPTION in /dossiers/new]: {e}")
-        raise
+    patient_context = getattr(request.state, "patient_context", None)
+    if not patient_context and patient_id is not None:
+        try:
+            patient_context = session.get(Patient, int(patient_id))
+        except (TypeError, ValueError):
+            patient_context = None
+        if patient_context:
+            request.state.patient_context = patient_context
+    if not patient_context:
+        flash(request, "Sélectionnez d'abord le patient auquel rattacher le dossier.", level="info")
+        return RedirectResponse("/patients", status_code=303)
+
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
-    ej_id = getattr(request.state, "ej_context.id", None)
+    ej_id = getattr(getattr(request.state, "ej_context", None), "id", None)
     uf_options = dossiers_service.get_uf_options(session, ej_id) if ej_id else []
     dossier_type_opts = [{"value": dt.value, "label": dt.name.replace('_', ' ').capitalize()} for dt in DossierType]
     fields = [
@@ -297,31 +279,20 @@ def new_dossier_wizard(
     sur le POST existant `/dossiers/new` pour créer le dossier et la
     pré-admission en base. Aucune logique métier n'est dupliquée ici.
     """
-    print(f"[DEBUG] [/dossiers/new-wizard] query_params={request.query_params}, patient_id={patient_id}")
-    try:
-        patient_context = getattr(request.state, "patient_context", None)
-        print(f"[DEBUG] [/dossiers/new-wizard] patient_context initial={patient_context}")
-
-        if not patient_context and patient_id is not None:
-            from app.models import Patient
-            try:
-                pid_int = int(patient_id)
-                patient_context = session.get(Patient, pid_int)
-                if patient_context:
-                    request.state.patient_context = patient_context
-            except Exception as e:
-                print(f"[DEBUG] Exception conversion patient_id ou fetch patient dans /dossiers/new-wizard: {e}")
-                patient_context = None
-
-        if not patient_context:
-            print("[DEBUG] [/dossiers/new-wizard] aucun patient_context, redirection vers /patients")
-            return RedirectResponse("/patients", status_code=303)
-    except Exception as e:
-        print(f"[EXCEPTION in /dossiers/new-wizard]: {e}")
-        raise
+    patient_context = getattr(request.state, "patient_context", None)
+    if not patient_context and patient_id is not None:
+        try:
+            patient_context = session.get(Patient, int(patient_id))
+        except (TypeError, ValueError):
+            patient_context = None
+        if patient_context:
+            request.state.patient_context = patient_context
+    if not patient_context:
+        flash(request, "Sélectionnez d'abord le patient à admettre.", level="info")
+        return RedirectResponse("/patients", status_code=303)
 
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
-    ej_id = getattr(request.state, "ej_context.id", None)
+    ej_id = getattr(getattr(request.state, "ej_context", None), "id", None)
     uf_options = dossiers_service.get_uf_options(session, ej_id) if ej_id else []
     dossier_type_opts = [
         {"value": dt.value, "label": dt.name.replace("_", " ").capitalize()} for dt in DossierType

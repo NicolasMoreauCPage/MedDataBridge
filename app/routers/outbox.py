@@ -7,11 +7,17 @@ from app.db import get_session
 from app.models_outbox import OutboundMessage
 from app.services.outbox_service import (
     enqueue_failed_message_logs,
+    outbox_stats,
     process_due_messages,
     retry_now,
 )
 
 router = APIRouter(prefix="/outbox", tags=["outbox"])
+
+
+@router.get("/stats")
+def get_outbox_stats(session: Session = Depends(get_session)):
+    return outbox_stats(session)
 
 
 @router.get("")

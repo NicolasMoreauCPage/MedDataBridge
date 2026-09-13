@@ -51,6 +51,17 @@ def apply_catalog_seed(bind: Connection) -> dict[str, int]:
     """Ajoute les lignes de référence absentes et retourne le nombre créé."""
     raw = _read()
     created = {"scenarios": 0, "steps": 0, "reviews": 0, "themes": 0, "assignments": 0}
+    # Certaines très anciennes installations étaient marquées à une révision
+    # antérieure tout en ne possédant qu'une table de scénarios minimale. Ne
+    # jamais laisser le seed de données empêcher leur mise à niveau : les
+    # migrations suivantes complètent le schéma et l'administrateur pourra
+    # ensuite importer le catalogue. Les bases normales possèdent toujours la
+    # clé métier avant cette révision.
+    scenario_columns = {
+        column["name"] for column in bind.dialect.get_columns(bind, "interopscenario")
+    }
+    if "key" not in scenario_columns:
+        return created
     with Session(bind=bind) as session:
         themes = {item.key: item for item in session.exec(select(ScenarioTheme)).all()}
         # Les parents sont créés avant leurs enfants, quelle que soit l'ordre

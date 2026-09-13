@@ -1,7 +1,7 @@
 # Plan d'amélioration de la plateforme d'interopérabilité
 
 Date initiale : 11 septembre 2026
-État consolidé : 12 septembre 2026
+État consolidé : 13 septembre 2026
 Périmètre : IHE PAM France, HPRIM XML pour les actes, HL7 MFN et FHIR pour la structure
 Hors périmètre volontaire : sécurité et contrôle d'accès, le projet étant destiné à fonctionner sur un LAN local
 
@@ -13,9 +13,15 @@ Hors périmètre volontaire : sécurité et contrôle d'accès, le projet étant
 
 ## Synthèse
 
-Le cœur IHE PAM France/CPage est désormais solide sur le corpus disponible. Le roundtrip réel entre deux environnements GHT a transmis 125 messages générés avec 125 ACK `AA`, puis obtenu des données métier identiques dans les deux BDD.
+Le cœur IHE PAM France/CPage est désormais solide sur le corpus disponible. Le
+roundtrip réel entre deux environnements GHT a transmis 125 messages générés,
+puis obtenu des données métier identiques dans les deux BDD. Le corpus source
+CPage contient volontairement des messages négatifs : leur première ingestion
+produit 172 `AA`, 20 `AE` et 7 `AR`, ce qui ne doit pas être présenté comme une
+campagne intégralement positive.
 
-Le prochain gain de qualité consiste à appliquer ce même niveau de preuve aux trois autres chaînes d'interopérabilité :
+Le même niveau de preuve est maintenant automatisé sur les trois autres chaînes
+d'interopérabilité :
 
 - HPRIM XML pour CCAM, NGAP, UCD et LPP ;
 - HL7 MFN M05 pour la structure hospitalière ;
@@ -65,6 +71,14 @@ Les premiers développements du plan sont intégrés dans cette branche :
   supervision (`/outbox`) ;
 - les roundtrips FHIR couvrent aussi le renommage, la désactivation, le
   déplacement d'un service et le diagnostic explicite d'un parent inconnu.
+- les scénarios valident désormais leur payload final PAM, SIU, MFN, HPRIM ou
+  FHIR avant émission, avec résultat persisté par destination ;
+- les délais, dépendances entre étapes, routages et politiques d'arrêt sont
+  durables et repris après redémarrage ;
+- Alembic est testé sur une base vide et la CI couvre les nouvelles migrations
+  et les validateurs de sortie ;
+- un test de capacité prépare 120 étapes vers trois endpoints (360 livraisons),
+  en complément du roundtrip des 137 scénarios actifs entre deux GHT.
 
 La campagne locale associée est verte : les tests ciblés PAM, HPRIM, MFN et
 FHIR, puis le roundtrip PAM CPage, sont exécutés dans le même enchaînement que

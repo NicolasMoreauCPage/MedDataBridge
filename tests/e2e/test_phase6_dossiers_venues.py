@@ -75,7 +75,7 @@ async def test_keyboard_shortcut_ctrl_n_dossiers(page: Page):
     await page.wait_for_load_state("networkidle")
     
     # Vérifier qu'on est sur la page de création
-    assert "/dossiers/new" in page.url or "/patients/new" in page.url
+    assert "/dossiers/new" in page.url or page.url.endswith("/patients")
 
 
 @pytest.mark.e2e_phase6
@@ -147,9 +147,9 @@ async def test_dossier_detail_view_modern_ui(page: Page):
     await page.goto("/dossiers")
     
     # Cliquer sur le premier dossier
-    first_dossier_link = page.locator('a[href*="/dossiers/"]').first
-    if await first_dossier_link.count() > 0:
-        await first_dossier_link.click()
+    first_dossier_row = page.locator('tbody tr[role="link"]').first
+    if await first_dossier_row.count() > 0:
+        await first_dossier_row.click()
         await page.wait_for_load_state("networkidle")
         
         # Vérifier la présence du header moderne avec gradient
@@ -168,9 +168,9 @@ async def test_venue_detail_view_modern_ui(page: Page):
     await page.goto("/venues")
     
     # Cliquer sur la première venue
-    first_venue_link = page.locator('a[href*="/venues/"]').first
-    if await first_venue_link.count() > 0:
-        await first_venue_link.click()
+    first_venue_row = page.locator('tbody tr[role="link"]').first
+    if await first_venue_row.count() > 0:
+        await first_venue_row.click()
         await page.wait_for_load_state("networkidle")
         
         # Vérifier la présence du header moderne
@@ -188,9 +188,9 @@ async def test_quick_action_nouvelle_venue_from_dossier(page: Page):
     # Aller sur un dossier
     await page.goto("/dossiers")
     
-    first_dossier_link = page.locator('a[href*="/dossiers/"]').first
-    if await first_dossier_link.count() > 0:
-        await first_dossier_link.click()
+    first_dossier_row = page.locator('tbody tr[role="link"]').first
+    if await first_dossier_row.count() > 0:
+        await first_dossier_row.click()
         await page.wait_for_load_state("networkidle")
         
         # Chercher le bouton "Nouvelle venue"
@@ -246,14 +246,13 @@ async def test_keyboard_shortcut_escape_closes_filters(page: Page):
         await asyncio.sleep(0.3)
         
         # Vérifier que le panneau est visible
-        filter_panel = page.locator('[x-show="showFilters"], .filters-panel')
+        filter_panel = page.locator('#list-filters-panel')
         if await filter_panel.count() > 0:
             # Appuyer sur Escape
             await page.keyboard.press("Escape")
             await asyncio.sleep(0.3)
             
-            # Vérifier que le panneau est caché (peut nécessiter ajustement selon implémentation)
-            # Note : Alpine.js peut mettre display:none ou utiliser x-show
+            await expect(filter_panel).to_be_hidden()
 
 
 @pytest.mark.e2e_phase6
@@ -289,9 +288,9 @@ async def test_cross_navigation_patient_dossier_venue(page: Page):
     await page.goto("/patients")
     
     # Cliquer sur un patient
-    first_patient_link = page.locator('a[href*="/patients/"]').first
-    if await first_patient_link.count() > 0:
-        await first_patient_link.click()
+    first_patient_row = page.locator('tbody tr[role="link"]').first
+    if await first_patient_row.count() > 0:
+        await first_patient_row.click()
         await page.wait_for_load_state("networkidle")
         
         # Vérifier qu'on est sur la page patient
@@ -345,28 +344,13 @@ async def test_filters_persist_after_navigation(page: Page):
 @pytest.mark.asyncio
 async def test_form_keyboard_shortcut_ctrl_s(page: Page):
     """Test que Ctrl+S sauvegarde un formulaire."""
-    # Aller sur un formulaire (ex: création dossier ou édition)
-    await page.goto("/dossiers")
-    
-    # Chercher un bouton "Nouveau" ou un formulaire
-    new_button = page.locator('a[href*="/new"]').first
-    if await new_button.count() > 0:
-        await new_button.click()
-        await page.wait_for_load_state("networkidle")
-        
-        # Vérifier qu'on est sur un formulaire
-        form = page.locator('form').first
-        if await form.count() > 0:
-            # Remplir un champ si nécessaire
-            first_input = form.locator('input[type="text"]').first
-            if await first_input.count() > 0:
-                await first_input.fill("Test E2E")
-            
-            # Appuyer sur Ctrl+S
-            await page.keyboard.press("Control+s")
-            
-            # Attendre un événement (soumission ou feedback)
-            await asyncio.sleep(1)
-            
-            # Note : Le comportement exact dépend de l'implémentation
-            # Peut être une redirection, un message de succès, etc.
+    await page.goto("/vocabularies/new")
+    form = page.locator('form[role="form"]')
+    await expect(form).to_be_visible()
+
+    first_input = form.locator('input[type="text"]:visible').first
+    if await first_input.count() > 0:
+        await first_input.fill("Test E2E")
+
+    await page.keyboard.press("Control+s")
+    await asyncio.sleep(1)

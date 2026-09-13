@@ -34,7 +34,6 @@ from app.models_structure import EntiteGeographique, EntiteJuridique, GHTContext
 from app.routers.roundtrip_hprim import _persist_exchange_acts, _store_roundtrip_message
 from app.services.hprim import HprimService
 from app.services.legacy_scenario_catalog import import_legacy_catalog
-from app.services.mllp import parse_msh_fields
 from app.services.scenario_play_service import execute_scenario_play, prepare_scenario_play
 from app.services.transport_inbound import on_message_inbound_async
 
@@ -187,6 +186,8 @@ def _copy_active_catalog_from_database(session: Session) -> dict[str, int]:
                     scenario_id=scenario.id, order_index=step.order_index, name=step.name,
                     description=step.description, message_format=step.message_format, message_type=step.message_type,
                     payload=step.payload, delay_seconds=step.delay_seconds, assertions_json=step.assertions_json,
+                    is_required=step.is_required, route_mode=step.route_mode,
+                    endpoint_ids_json=step.endpoint_ids_json, target_system_key=step.target_system_key,
                 ))
             copied += 1
         session.commit()
@@ -223,10 +224,18 @@ def _qualification_for(row: dict[str, Any]) -> str:
 
 
 async def _run(workdir: Path, *, catalog_source: str = "seed") -> dict[str, Any]:
+    # Chaque campagne constitue une preuve autonome. ``create_all`` ne met pas
+    # à niveau d'anciens artefacts SQLite et pouvait donc rejouer silencieusement
+    # un schéma obsolète. Seules les deux BDD de travail connues sont recréées.
+    for database_name in ("ght_a.sqlite", "ght_b.sqlite"):
+        (workdir / database_name).unlink(missing_ok=True)
     source_engine, source_ght_id, source_receiver_id, source_ej_id, source_roles = _create_environment(workdir / "ght_a.sqlite", "A")
     target_engine, target_ght_id, target_receiver_id, _, _ = _create_environment(workdir / "ght_b.sqlite", "B")
     outbox_dir = workdir / "outbox"
     outbox_dir.mkdir(parents=True, exist_ok=True)
+    for stale_payload in outbox_dir.glob("outbox_*"):
+        if stale_payload.is_file():
+            stale_payload.unlink()
     raw = json.loads(Path("data/all_scenarios_dump.json").read_text(encoding="utf-8"))
     from data.scenarios_hprim_seed import scenarios as hprim_scenarios
     catalog = (raw.get("scenarios", raw) if isinstance(raw, dict) else raw) + hprim_scenarios

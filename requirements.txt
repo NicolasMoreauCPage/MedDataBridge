@@ -12,6 +12,7 @@ markdown==3.6  # rendu documentation markdown
 # Testing
 pytest>=7.0.0,<8.0.0
 pytest-asyncio>=0.21.0
+pytest-timeout>=2.3.1
 playwright>=1.41.2
 pytest-playwright>=0.4.0
 

@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from datetime import datetime
-from typing import Iterable, Optional
+from typing import Optional
 
 from sqlmodel import Session, select
 
@@ -114,6 +113,8 @@ def refresh_play_target_states(session: Session, play_id: int) -> None:
             current.status = "skipped"
         elif all(status in {"sent", "dry_run"} for status in statuses):
             current.status = "success" if not play.dry_run else "dry_run"
+        elif any(status in {"queued", "pending", "retry"} for status in statuses):
+            current.status = "scheduled"
         elif any(status in {"sent", "dry_run"} for status in statuses):
             current.status = "partial"
         else:

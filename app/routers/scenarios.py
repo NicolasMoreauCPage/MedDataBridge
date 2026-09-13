@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -15,7 +16,7 @@ from app.models_endpoints import SystemEndpoint
 from app.models import Dossier
 from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioVersion
 from app.models_structure import GHTContext
-from app.services.scenario_runner import ScenarioExecutionError, get_scenario, send_scenario, send_step
+from app.services.scenario_runner import ScenarioExecutionError, get_scenario
 from app.services.scenario_capture import capture_dossier_as_scenario
 from app.services.scenario_import import (
     ScenarioImportError,
@@ -52,7 +53,14 @@ from app.services.scenario_qualification_service import (
 )
 from app.services.message_diff import semantic_diff
 from app.services.scenario_version_service import snapshot_scenario_version
-from app.services.scenario_campaign_service import queue_scenario_campaign, run_scenario_campaign
+from app.services.scenario_campaign_service import queue_scenario_campaign
+from app.services.scenario_status_service import (
+    get_last_scenario_status,
+    get_scenarios_status_for_ej,
+    get_scenarios_with_status,
+)
+from app.utils.flash import flash
+from app.services.scenario_realistic_timeplan import suggest_scenario_timing_update
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Glose en langage clair pour les triggers ADT couramment rencontrés dans les
@@ -73,14 +81,14 @@ def _trigger_labels() -> dict:
     for code, label in _EXTRA_TRIGGER_LABELS.items():
         labels.setdefault(code, label)
     return labels
-from app.services.scenario_status_service import (
-    get_last_scenario_status,
-    get_scenarios_status_for_ej,
-    get_scenarios_with_status,
-)
-from app.utils.flash import flash
-from app.services.scenario_realistic_timeplan import suggest_scenario_timing_update
-from app.services.scenario_identity_generator import generate_patient_identity
+
+
+def _json_int_list(raw: Optional[str]) -> list[int]:
+    try:
+        value = json.loads(raw or "[]")
+    except (json.JSONDecodeError, TypeError):
+        return []
+    return [item for item in value if isinstance(item, int)] if isinstance(value, list) else []
 
 logger = logging.getLogger(__name__)
 
@@ -103,20 +111,20 @@ def list_scenarios(
     scenarios_data = get_scenarios_with_status(session, filter_by_status=filter_status)
     
     rows = []
-    for scenario, status in scenarios_data:
+    for scenario, scenario_status in scenarios_data:
         rows.append(
             {
                 "cells": [
-                    status.visual_indicator,
+                    scenario_status.visual_indicator,
                     scenario.name,
                     scenario.protocol,
                     len(scenario.steps or []),
-                    status.ack_code or "—",
-                    status.last_run_at.strftime("%Y-%m-%d %H:%M") if status.last_run_at else "—",
+                    scenario_status.ack_code or "—",
+                    scenario_status.last_run_at.strftime("%Y-%m-%d %H:%M") if scenario_status.last_run_at else "—",
                 ],
                 "detail_url": f"/scenarios/{scenario.id}",
                 "id": scenario.id,
-                "css_class": status.css_class,
+                "css_class": scenario_status.css_class,
             }
         )
 
@@ -322,7 +330,11 @@ def bulk_execute_scenarios_form(
     scenarios_data = get_scenarios_with_status(session, filter_by_status=filter_status)
     
     # Construire la requête d'endpoints filtrés par EJ
-    endpoints_query = select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True))
+    endpoints_query = (
+        select(SystemEndpoint)
+        .where(SystemEndpoint.is_enabled.is_(True))
+        .where(SystemEndpoint.role.in_(["sender", "both"]))
+    )
     
     if ej_id:
         endpoints_query = endpoints_query.where(SystemEndpoint.entite_juridique_id == ej_id)
@@ -358,141 +370,53 @@ def bulk_execute_scenarios_form(
 
 
 @router.post("/bulk-execute")
-async def bulk_execute_scenarios(
+def bulk_execute_scenarios(
     request: Request,
     endpoint_id: int = Form(...),
     scenario_ids: list[int] = Form(...),
     repeat_count: int = Form(1),
     session: Session = Depends(get_session)
 ):
-    """Exécute plusieurs scénarios sur un endpoint en arrière-plan."""
-    from app.services.scenario_play_service import prepare_scenario_play, execute_scenario_play
-    from app.utils.flash import flash
-    import asyncio
-    
-    # Vérifier que l'endpoint existe
+    """Convertit un lancement en masse en campagne persistante reprise-safe."""
     endpoint = session.get(SystemEndpoint, endpoint_id)
-    if not endpoint:
-        flash(request, "error", "❌ Endpoint introuvable")
+    if not endpoint or not endpoint.is_enabled or (endpoint.role or "").lower() not in {"sender", "both"}:
+        flash(request, "Endpoint expéditeur introuvable ou désactivé.", level="error")
         return RedirectResponse(url="/scenarios/bulk-execute", status_code=status.HTTP_303_SEE_OTHER)
-    
-    if not scenario_ids or scenario_ids == ['']:
-        flash(request, "warning", "⚠️ Aucun scénario sélectionné")
+    selected = [
+        scenario_id for scenario_id in dict.fromkeys(scenario_ids)
+        if (scenario := session.get(InteropScenario, scenario_id)) and scenario.is_active
+    ]
+    if not selected:
+        flash(request, "Aucun scénario actif sélectionné.", level="warning")
         return RedirectResponse(url="/scenarios/bulk-execute", status_code=status.HTTP_303_SEE_OTHER)
-    
-    # Convertir les scenario_ids en entiers et charger les noms avant de quitter la session
-    scenario_ids_int = []
-    scenario_names = {}
-    total_messages_per_run = 0
-    
-    for scenario_id_str in scenario_ids:
-        try:
-            scenario_id = int(scenario_id_str)
-            scenario_ids_int.append(scenario_id)
-            
-            scenario = session.get(InteropScenario, scenario_id)
-            if scenario:
-                scenario_names[scenario_id] = scenario.name
-                steps = session.exec(
-                    select(InteropScenarioStep)
-                    .where(InteropScenarioStep.scenario_id == scenario_id)
-                ).all()
-                total_messages_per_run += len(steps)
-        except (ValueError, TypeError):
-            continue
-    
-    total_scenarios = len(scenario_ids_int)
-    # Validate repeat_count
-    try:
-        repeat_count = int(repeat_count)
-    except Exception:
-        repeat_count = 1
-    if repeat_count < 1:
-        repeat_count = 1
-    MAX_REPEAT = 1000
-    if repeat_count > MAX_REPEAT:
-        repeat_count = MAX_REPEAT
-
-    total_messages = total_messages_per_run * repeat_count
-    endpoint_name = endpoint.name
-    endpoint_id_copy = endpoint.id
-    
-    # Fonction d'exécution en arrière-plan avec sa propre session
-    async def run_scenarios_background():
-        """Exécute les scénarios en arrière-plan avec une nouvelle session."""
-        from app.db import session_factory
-        
-        success_count = 0
-        error_count = 0
-        failed_scenarios = []
-        
-        # Créer une nouvelle session pour la tâche de fond
-        bg_session = session_factory()
-        try:
-            # Récupérer l'endpoint et les scénarios dans cette nouvelle session
-            bg_endpoint = bg_session.get(SystemEndpoint, endpoint_id_copy)
-            if not bg_endpoint:
-                logger.error(f"[Background] Endpoint {endpoint_id_copy} introuvable")
-                return
-            
-            # Exécuter chaque scénario 'repeat_count' fois
-            for i in range(repeat_count):
-                for scenario_id in scenario_ids_int:
-                    scenario = bg_session.get(InteropScenario, scenario_id)
-                    if not scenario:
-                        error_count += 1
-                        continue
-
-                    scenario_name = scenario.name
-
-                    # Charger les steps
-                    steps = bg_session.exec(
-                        select(InteropScenarioStep)
-                        .where(InteropScenarioStep.scenario_id == scenario_id)
-                        .order_by(InteropScenarioStep.order_index)
-                    ).all()
-
-                    if not steps:
-                        error_count += 1
-                        continue
-
-                    try:
-                        logger.info(f"[Background] Exécution ({i+1}/{repeat_count}) du scénario '{scenario_name}' sur '{endpoint_name}'")
-                        play = prepare_scenario_play(bg_session, scenario, [bg_endpoint])
-                        play = await execute_scenario_play(bg_session, play.id)
-
-                        if play.status == "success":
-                            success_count += 1
-                            logger.info(f"[Background] ✅ '{scenario_name}' exécuté avec succès (run {i+1})")
-                        else:
-                            error_count += 1
-                            failed_scenarios.append(scenario_name)
-                            logger.warning(f"[Background] ⚠️ '{scenario_name}' exécuté avec le statut {play.status} (run {i+1})")
-                    except Exception as e:
-                        error_count += 1
-                        failed_scenarios.append(scenario_name)
-                        logger.error(f"[Background] ❌ Erreur lors de l'exécution de '{scenario_name}': {str(e)[:200]}")
-            
-            # Log final
-            if error_count == 0 and success_count > 0:
-                logger.info(f"[Background] ✅ {success_count}/{total_scenarios} scénarios exécutés avec succès ({total_messages} messages)")
-            elif success_count > 0:
-                logger.warning(f"[Background] ⚠️ {success_count}/{total_scenarios} scénarios réussis, {error_count} en erreur")
-            else:
-                logger.error(f"[Background] ❌ Aucun scénario n'a pu être exécuté ({error_count} erreurs)")
-        
-        finally:
-            bg_session.close()
-    
-    # Lancer l'exécution en arrière-plan sans attendre
-    asyncio.create_task(run_scenarios_background())
-    
-    # Retourner immédiatement avec un message au user
-    flash(request, "info", 
-          f"⏱️ Exécution lancée en arrière-plan: {total_scenarios} scénario(s), {total_messages} message(s). "
-          f"Vérifiez les logs ou revisitez cette page pour le statut final.")
-    
-    return RedirectResponse(url="/scenarios/bulk-execute", status_code=status.HTTP_303_SEE_OTHER)
+    repeat_count = min(max(int(repeat_count or 1), 1), 1000)
+    key = f"bulk-{datetime.utcnow():%Y%m%d%H%M%S}-{uuid4().hex[:8]}"
+    campaign = QualificationCampaign(
+        key=key,
+        name=f"Exécution en masse du {datetime.utcnow():%d/%m/%Y %H:%M}",
+        description=f"{len(selected)} scénario(s) × {repeat_count} jeu(x) vers {endpoint.name}",
+        target_system_key=endpoint.target_system_key or endpoint.name,
+    )
+    session.add(campaign)
+    session.flush()
+    order = 0
+    for _repeat in range(repeat_count):
+        for scenario_id in selected:
+            session.add(QualificationCampaignItem(
+                campaign_id=campaign.id,
+                scenario_id=scenario_id,
+                endpoint_id=endpoint.id,
+                order_index=order,
+            ))
+            order += 1
+    session.commit()
+    run = queue_scenario_campaign(session, campaign)
+    flash(
+        request,
+        f"Campagne #{run.id} mise en file : {run.total_items} jeu(x). Elle reprendra automatiquement après un redémarrage.",
+        level="success",
+    )
+    return RedirectResponse(url="/scenarios/campaigns", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/runs/{run_id}", response_class=HTMLResponse)
@@ -757,7 +681,12 @@ def update_scenario_assertions(
 @router.get("/campaigns", response_class=HTMLResponse)
 def qualification_campaigns(request: Request, session: Session = Depends(get_session)):
     campaigns = session.exec(select(QualificationCampaign).order_by(QualificationCampaign.name)).all()
-    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True)).order_by(SystemEndpoint.name)).all()
+    endpoints = session.exec(
+        select(SystemEndpoint)
+        .where(SystemEndpoint.is_enabled.is_(True))
+        .where(SystemEndpoint.role.in_(["sender", "both"]))
+        .order_by(SystemEndpoint.name)
+    ).all()
     scenarios = session.exec(select(InteropScenario).where(InteropScenario.is_active.is_(True)).order_by(InteropScenario.name)).all()
     recent_runs = session.exec(
         select(QualificationCampaignRun).order_by(QualificationCampaignRun.created_at.desc()).limit(50)
@@ -780,7 +709,8 @@ def create_campaign(
     if not endpoint:
         raise HTTPException(status_code=404, detail="Endpoint introuvable")
     campaign = QualificationCampaign(key=key, name=name, description=description or None, target_system_key=endpoint.target_system_key or endpoint.name)
-    session.add(campaign); session.flush()
+    session.add(campaign)
+    session.flush()
     for index, scenario_id in enumerate(dict.fromkeys(scenario_ids)):
         if session.get(InteropScenario, scenario_id):
             session.add(QualificationCampaignItem(campaign_id=campaign.id, scenario_id=scenario_id, endpoint_id=endpoint_id, order_index=index))
@@ -855,6 +785,10 @@ def add_scenario_step(
     message_type: Optional[str] = Form(None),
     payload: str = Form(""),
     delay_seconds: Optional[int] = Form(None),
+    is_required: bool = Form(False),
+    route_mode: str = Form("all_compatible"),
+    route_endpoint_ids: list[int] = Form(default=[]),
+    target_system_key: Optional[str] = Form(None),
     session: Session = Depends(get_session),
 ):
     """Ajoute une étape à la fin d'un scénario existant (création manuelle pas-à-pas)."""
@@ -862,7 +796,9 @@ def add_scenario_step(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scénario introuvable")
 
-    next_order = max([s.order_index for s in scenario.steps], default=-1) + 1
+    next_order = max([s.order_index for s in scenario.steps], default=0) + 1
+    if route_mode not in {"all_compatible", "explicit", "target_system"}:
+        raise HTTPException(status_code=400, detail="Mode de routage invalide")
     step = InteropScenarioStep(
         scenario_id=scenario_id,
         order_index=next_order,
@@ -872,6 +808,10 @@ def add_scenario_step(
         message_type=message_type or None,
         payload=payload,
         delay_seconds=delay_seconds,
+        is_required=is_required,
+        route_mode=route_mode,
+        endpoint_ids_json=json.dumps(sorted(set(route_endpoint_ids))) if route_mode == "explicit" else None,
+        target_system_key=(target_system_key or "").strip() or None,
     )
     session.add(step)
     session.commit()
@@ -926,15 +866,24 @@ def edit_scenario_step(
     message_format: str = Form("hl7"),
     payload: str = Form(""),
     delay_seconds: Optional[int] = Form(None),
+    is_required: bool = Form(False),
+    route_mode: str = Form("all_compatible"),
+    route_endpoint_ids: list[int] = Form(default=[]),
+    target_system_key: Optional[str] = Form(None),
     session: Session = Depends(get_session),
 ):
     """Modifie une étape sans changer le modèle source lors des futurs jeux."""
     step = session.get(InteropScenarioStep, step_id)
     if not step or step.scenario_id != scenario_id:
         raise HTTPException(status_code=404, detail="Étape introuvable")
+    if route_mode not in {"all_compatible", "explicit", "target_system"}:
+        raise HTTPException(status_code=400, detail="Mode de routage invalide")
     step.name, step.description = name or None, description or None
     step.message_type, step.message_format = message_type or None, message_format.lower().strip()
     step.payload, step.delay_seconds, step.updated_at = payload, delay_seconds, datetime.utcnow()
+    step.is_required, step.route_mode = is_required, route_mode
+    step.endpoint_ids_json = json.dumps(sorted(set(route_endpoint_ids))) if route_mode == "explicit" else None
+    step.target_system_key = (target_system_key or "").strip() or None
     session.add(step)
     session.commit()
     flash(request, f"Étape #{step.order_index} mise à jour", level="success")
@@ -980,8 +929,8 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
 
     endpoints = session.exec(
         select(SystemEndpoint)
-        .where(SystemEndpoint.is_enabled == True)
-        .where(SystemEndpoint.role == "sender")
+        .where(SystemEndpoint.is_enabled.is_(True))
+        .where(SystemEndpoint.role.in_(["sender", "both"]))
         .order_by(SystemEndpoint.name)
     ).all()
 
@@ -1001,6 +950,9 @@ def scenario_detail(scenario_id: int, request: Request, session: Session = Depen
             select(ScenarioVersion).where(ScenarioVersion.scenario_id == scenario.id).order_by(ScenarioVersion.version_number.desc())
         ).all(),
         "event_labels": _trigger_labels(),
+        "route_endpoint_ids_by_step": {
+            step.id: _json_int_list(step.endpoint_ids_json) for step in steps
+        },
         "breadcrumbs": [
             {"label": "Scénarios", "url": "/scenarios"},
             {"label": scenario.name, "url": f"/scenarios/{scenario.id}"},
@@ -1101,6 +1053,9 @@ def scenario_play_detail(scenario_id: int, play_id: int, request: Request, sessi
         "target_context_by_delivery": {
             item.id: json.loads(item.target_context_json or "{}") for item in deliveries
         },
+        "validation_by_delivery": {
+            item.id: json.loads(item.validation_json or "{}") for item in deliveries
+        },
         "diffs_by_step": {
             item.id: semantic_diff(item.source_payload, item.compiled_payload, item.message_format)
             for item in steps
@@ -1117,14 +1072,50 @@ def scenario_play_diagnostic(scenario_id: int, play_id: int, session: Session = 
         raise HTTPException(status_code=404, detail="Jeu hors scénario")
     outbox = {row.id: row for row in session.exec(select(OutboundMessage).where(OutboundMessage.id.in_([item.outbox_id for item in deliveries if item.outbox_id]))).all()}
     return {
-        "play_key": play.play_key, "status": play.status, "scenario_version_id": play.scenario_version_id,
+        "play_key": play.play_key,
+        "status": play.status,
+        "error_policy": play.error_policy,
+        "started_at": play.started_at,
+        "finished_at": play.finished_at,
+        "scenario_version_id": play.scenario_version_id,
         "identity": json.loads(play.identity_json or "{}"),
-        "steps": [{"order": item.order_index, "format": item.message_format, "source": item.source_payload, "compiled": item.compiled_payload} for item in steps],
+        "steps": [
+            {
+                "order": item.order_index,
+                "format": item.message_format,
+                "required": item.is_required,
+                "delay_seconds": item.delay_seconds,
+                "source": item.source_payload,
+                "compiled": item.compiled_payload,
+            }
+            for item in steps
+        ],
         "deliveries": [
-            {"id": item.id, "step_id": item.play_step_id, "endpoint_id": item.endpoint_id, "transport": item.transport,
-             "status": item.status, "ack": item.ack_code, "response": item.response_payload, "error": item.error_message,
-             "compiled_payload": item.compiled_payload, "target_context": json.loads(item.target_context_json or "{}"),
-             "outbox": {"id": outbox[item.outbox_id].id, "status": outbox[item.outbox_id].status, "attempts": outbox[item.outbox_id].attempts, "last_error": outbox[item.outbox_id].last_error} if item.outbox_id in outbox else None}
+            {
+                "id": item.id,
+                "step_id": item.play_step_id,
+                "endpoint_id": item.endpoint_id,
+                "transport": item.transport,
+                "required": item.is_required,
+                "status": item.status,
+                "scheduled_at": item.scheduled_at,
+                "ack": item.ack_code,
+                "response": item.response_payload,
+                "error": item.error_message,
+                "validation_status": item.validation_status,
+                "validation": json.loads(item.validation_json or "{}"),
+                "compiled_payload": item.compiled_payload,
+                "target_context": json.loads(item.target_context_json or "{}"),
+                "outbox": {
+                    "id": outbox[item.outbox_id].id,
+                    "status": outbox[item.outbox_id].status,
+                    "attempts": outbox[item.outbox_id].attempts,
+                    "next_attempt_at": outbox[item.outbox_id].next_attempt_at,
+                    "last_error": outbox[item.outbox_id].last_error,
+                }
+                if item.outbox_id in outbox
+                else None,
+            }
             for item in deliveries
         ],
     }
@@ -1172,6 +1163,10 @@ def export_scenario_json(scenario_id: int, session: Session = Depends(get_sessio
             "message_type": s.message_type,
             "format": s.message_format,
             "delay_seconds": s.delay_seconds,
+            "is_required": s.is_required,
+            "route_mode": s.route_mode,
+            "endpoint_ids": json.loads(s.endpoint_ids_json or "[]"),
+            "target_system_key": s.target_system_key,
             "payload": s.payload,
             "assertions_json": s.assertions_json,
         }

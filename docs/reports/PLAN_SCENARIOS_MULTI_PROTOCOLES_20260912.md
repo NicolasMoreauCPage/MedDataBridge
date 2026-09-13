@@ -6,6 +6,27 @@ Périmètre : création, enregistrement, génération et émission de scénarios
 cohérents contenant des messages IHE PAM, HPRIM XML, FHIR et, si nécessaire,
 HL7 MFN, vers un ou plusieurs endpoints.
 
+## Clôture technique du 13 septembre 2026
+
+Les derniers écarts du moteur ont été fermés : routage explicite ou par
+système cible au niveau de chaque étape, étapes obligatoires/facultatives,
+temporisations durables, ordonnancement garanti par l'outbox, validation du
+payload final propre à chaque destination et statut `scheduled` réconcilié
+automatiquement. Les campagnes en masse créent désormais des objets persistés
+au lieu de tâches volatiles en mémoire.
+
+L'IHM permet de configurer ces propriétés, affiche échéance et résultat de
+validation, et exporte un diagnostic JSON complet. Le catalogue entier a été
+rejoué entre deux GHT isolés : 137 scénarios réussis et empreintes métier
+identiques. Un contrôle de capacité prépare 120 étapes vers trois destinations,
+soit 360 livraisons validées. La migration est vérifiée sur une base vide et
+sur une copie de la base existante.
+
+Les activités restant dépendantes d'un environnement externe (recette avec un
+logiciel partenaire réel, capacité réseau MLLP/HTTP et validation contractuelle
+de ses règles métier) relèvent de la qualification de déploiement, pas d'un
+développement manquant dans le moteur.
+
 ## Réalisation du 12 septembre 2026
 
 Le socle fonctionnel ci-dessous a été implémenté après ce plan :

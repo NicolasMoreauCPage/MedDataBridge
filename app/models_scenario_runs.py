@@ -25,7 +25,7 @@ class ScenarioPlay(SQLModel, table=True):
     scenario_version_id: Optional[int] = Field(default=None, foreign_key="scenarioversion.id", index=True)
     play_key: str = Field(index=True, unique=True)
     ght_context_id: Optional[int] = Field(default=None, foreign_key="ghtcontext.id", index=True)
-    status: str = Field(default="prepared", index=True)  # prepared|running|success|partial|error|dry_run
+    status: str = Field(default="prepared", index=True)  # prepared|running|scheduled|success|partial|error|dry_run
     dry_run: bool = Field(default=False, index=True)
     identity_json: str = Field(default="{}", description="Identité et identifiants alloués à ce jeu")
     options_json: Optional[str] = Field(default=None)
@@ -46,6 +46,7 @@ class ScenarioPlayTarget(SQLModel, table=True):
     play_id: int = Field(foreign_key="scenarioplay.id", index=True)
     endpoint_id: int = Field(foreign_key="systemendpoint.id", index=True)
     target_system_key: Optional[str] = Field(default=None, index=True)
+    is_required: bool = Field(default=True, index=True)
     status: str = Field(default="pending", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -65,6 +66,7 @@ class ScenarioPlayStep(SQLModel, table=True):
     message_type: Optional[str] = None
     source_payload: str
     compiled_payload: str
+    delay_seconds: int = Field(default=0)
     routing_json: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -80,6 +82,10 @@ class ScenarioDelivery(SQLModel, table=True):
     endpoint_id: int = Field(foreign_key="systemendpoint.id", index=True)
     status: str = Field(default="pending", index=True)  # queued|pending|sent|retry|error|blocked|skipped|dry_run
     transport: Optional[str] = Field(default=None, index=True)
+    is_required: bool = Field(default=True, index=True)
+    scheduled_at: Optional[datetime] = Field(default=None, index=True)
+    validation_status: Optional[str] = Field(default=None, index=True)  # valid|warning|invalid
+    validation_json: Optional[str] = Field(default=None)
     ack_code: Optional[str] = Field(default=None)
     response_payload: Optional[str] = Field(default=None)
     error_message: Optional[str] = Field(default=None)

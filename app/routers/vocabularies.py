@@ -2,11 +2,10 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
-from typing import Dict, List, Optional
-from datetime import datetime
+from typing import Dict, Optional
 
 from app.db import get_session
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping, VocabularySystemType
+from app.models_vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
 
 
 def _ensure_vocabularies(session: Session) -> None:
@@ -87,7 +86,7 @@ def list_vocabularies(request: Request, session: Session = Depends(get_session))
 
     return get_templates_with_filters(request).TemplateResponse(request, "vocabularies/list.html", ctx)
 
-@router.get("/{system_id}", response_class=HTMLResponse)
+@router.get("/{system_id:int}", response_class=HTMLResponse)
 def vocabulary_detail(system_id: int, request: Request, session: Session = Depends(get_session)):
     """Détail d'un système de vocabulaire avec ses valeurs"""
     _ensure_vocabularies(session)

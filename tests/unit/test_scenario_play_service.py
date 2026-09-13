@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -11,8 +12,10 @@ from app.models_practitioners import MedecinResponsable
 from app.models_scenario_runs import ScenarioDelivery, ScenarioPlayStep
 from app.models_outbox import OutboundMessage
 from app.models_qualification import ScenarioTargetState
+from app.models_scenario_review import ScenarioCatalogReview
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.services.scenario_play_service import ScenarioPlayError, _adapt_fhir, _adapt_hprim_xml, execute_scenario_play, prepare_scenario_play
+from app.services.outbox_service import process_due_messages
 
 
 def _scenario(session):
@@ -413,5 +416,79 @@ def test_continue_other_targets_blocks_only_the_failed_target(session, tmp_path)
     play = asyncio.run(execute_scenario_play(session, play.id))
     deliveries = session.exec(select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)).all()
 
-    assert play.status == "partial"
+    assert play.status == "scheduled"
     assert sorted(item.status for item in deliveries) == ["blocked", "retry", "sent", "sent"]
+
+
+def test_step_routing_can_target_an_explicit_endpoint(session, tmp_path):
+    scenario = InteropScenario(key="explicit-routing", name="Routage explicite", protocol="HL7")
+    session.add(scenario)
+    session.commit()
+    first = SystemEndpoint(name="Cible A", kind="FILE", role="sender", outbox_path=str(tmp_path / "a"))
+    second = SystemEndpoint(name="Cible B", kind="FILE", role="both", outbox_path=str(tmp_path / "b"))
+    session.add_all([first, second])
+    session.commit()
+    session.add(InteropScenarioStep(
+        scenario_id=scenario.id, order_index=1, message_format="hl7", message_type="ADT^A28",
+        payload="MSH|^~\\&|A|B|C|D|202601010000||ADT^A28|1|P|2.5^FRA^2.11\rPID|||P",
+        route_mode="explicit", endpoint_ids_json=json.dumps([second.id]),
+    ))
+    session.commit()
+
+    play = prepare_scenario_play(session, scenario, [first, second], dry_run=True)
+    deliveries = session.exec(select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)).all()
+
+    assert [(item.endpoint_id, item.status) for item in deliveries] == [(first.id, "skipped"), (second.id, "pending")]
+
+
+def test_step_delay_is_durable_and_reconciled_by_outbox(session, tmp_path):
+    scenario = InteropScenario(key="durable-delay", name="Temporisation durable", protocol="HL7")
+    session.add(scenario)
+    session.commit()
+    session.add_all([
+        InteropScenarioStep(
+            scenario_id=scenario.id, order_index=1, message_format="hl7", message_type="ADT^A28",
+            payload="MSH|^~\\&|A|B|C|D|202601010000||ADT^A28|1|P|2.5^FRA^2.11\rPID|||P", delay_seconds=60,
+        ),
+        InteropScenarioStep(
+            scenario_id=scenario.id, order_index=2, message_format="hl7", message_type="ADT^A31",
+            payload="MSH|^~\\&|A|B|C|D|202601010001||ADT^A31|2|P|2.5^FRA^2.11\rPID|||P",
+        ),
+    ])
+    endpoint = SystemEndpoint(name="Dépôt", kind="FILE", role="sender", outbox_path=str(tmp_path))
+    session.add(endpoint)
+    session.commit()
+
+    play = prepare_scenario_play(session, scenario, [endpoint])
+    play = asyncio.run(execute_scenario_play(session, play.id))
+    deliveries = session.exec(
+        select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id).order_by(ScenarioDelivery.id)
+    ).all()
+    assert play.status == "scheduled"
+    assert [item.status for item in deliveries] == ["sent", "queued"]
+    delayed = session.get(OutboundMessage, deliveries[1].outbox_id)
+    delayed.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+    session.add(delayed)
+    session.commit()
+
+    result = asyncio.run(process_due_messages(session))
+    session.refresh(play)
+    assert result["sent"] == 1
+    assert play.status == "success"
+
+
+def test_approved_positive_scenario_cannot_enqueue_invalid_output(session, tmp_path):
+    scenario = InteropScenario(key="invalid-approved", name="Invalide approuvé", protocol="HL7")
+    session.add(scenario)
+    session.commit()
+    session.add(InteropScenarioStep(
+        scenario_id=scenario.id, order_index=1, message_format="hl7", message_type="ADT^A28",
+        payload="MSH|^~\\&|A|B|C|D||||ADT^A28||P|\rPID|||P",
+    ))
+    session.add(ScenarioCatalogReview(scenario_id=scenario.id, status="approved"))
+    endpoint = SystemEndpoint(name="Dépôt", kind="FILE", role="sender", outbox_path=str(tmp_path))
+    session.add(endpoint)
+    session.commit()
+
+    with pytest.raises(ScenarioPlayError, match="invalide avant émission"):
+        prepare_scenario_play(session, scenario, [endpoint])

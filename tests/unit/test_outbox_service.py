@@ -6,10 +6,38 @@ from sqlmodel import select
 from app.models_endpoints import MessageLog, SystemEndpoint
 from app.models_outbox import OutboundMessage
 from app.services.outbox_service import (
+    _delivery_ack_code,
     enqueue_failed_message_logs,
+    outbox_stats,
     process_due_messages,
     retry_now,
 )
+
+
+def test_delivery_ack_code_is_a_short_protocol_verdict():
+    ack = "MSH|^~\\&|R|F|S|F|20260101||ACK^A01|ACK1|P|2.5\rMSA|AA|MSG1\r"
+
+    assert _delivery_ack_code("MLLP", ack) == "AA"
+    assert _delivery_ack_code("FHIR", "{}", 201) == "201"
+    assert _delivery_ack_code("FILE", "FILE:test.hl7") == "OK"
+
+
+def test_outbox_stats_exposes_backlog_and_terminal_failures(session):
+    endpoint = SystemEndpoint(name="Stats", kind="FILE", role="sender", outbox_path="/tmp")
+    session.add(endpoint)
+    session.commit()
+    session.add_all([
+        OutboundMessage(endpoint_id=endpoint.id, protocol="FILE", payload="one", status="pending"),
+        OutboundMessage(endpoint_id=endpoint.id, protocol="FILE", payload="two", status="failed"),
+    ])
+    session.commit()
+
+    stats = outbox_stats(session)
+
+    assert stats["status"] == "degraded"
+    assert stats["counts"]["pending"] == 1
+    assert stats["counts"]["failed"] == 1
+    assert stats["due"] == 1
 
 
 @pytest.mark.asyncio

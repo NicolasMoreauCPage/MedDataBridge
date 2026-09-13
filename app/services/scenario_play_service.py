@@ -17,8 +17,10 @@ from uuid import uuid4
 from sqlmodel import Session, select
 
 from app.models_endpoints import SystemEndpoint
+from app.models_outbox import OutboundMessage
 from app.models_practitioners import MedecinResponsable
 from app.models_scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep, ScenarioPlayTarget
+from app.models_scenario_review import ScenarioCatalogReview
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.models_structure import IdentifierNamespace
 from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message
@@ -31,6 +33,7 @@ from app.services.outbox_service import enqueue_message, process_outbox_message,
 from app.services.scenario_play_assertions import evaluate_play_assertions
 from app.services.qualification_engine import validate_preconditions
 from app.services.scenario_target_profile_service import resolve_target_context
+from app.services.scenario_output_validation import validate_compiled_payload
 from app.utils.seq_generator import generate_venue_seq
 
 
@@ -754,6 +757,52 @@ def _transport_for(endpoint: SystemEndpoint, message_format: str) -> Optional[st
     return None
 
 
+def _routed_endpoints(
+    step: InteropScenarioStep,
+    endpoints: list[SystemEndpoint],
+) -> list[SystemEndpoint]:
+    """Applique le routage fonctionnel d'une étape aux endpoints compatibles."""
+    compatible = [endpoint for endpoint in endpoints if _transport_for(endpoint, step.message_format)]
+    mode = (step.route_mode or "all_compatible").strip().lower()
+    if mode == "all_compatible":
+        return compatible
+    if mode == "explicit":
+        try:
+            raw_ids = json.loads(step.endpoint_ids_json or "[]")
+        except json.JSONDecodeError as exc:
+            raise ScenarioPlayError(f"Étape #{step.order_index}: endpoint_ids_json invalide") from exc
+        if not isinstance(raw_ids, list) or not all(isinstance(item, int) for item in raw_ids):
+            raise ScenarioPlayError(f"Étape #{step.order_index}: endpoint_ids_json doit être une liste d'entiers")
+        allowed = set(raw_ids)
+        return [endpoint for endpoint in compatible if endpoint.id in allowed]
+    if mode == "target_system":
+        expected = target_key(step.target_system_key or "")
+        if not expected:
+            raise ScenarioPlayError(f"Étape #{step.order_index}: système cible non renseigné")
+        return [
+            endpoint for endpoint in compatible
+            if target_key(endpoint.target_system_key or endpoint.name) == expected
+        ]
+    raise ScenarioPlayError(f"Étape #{step.order_index}: mode de routage inconnu ({step.route_mode})")
+
+
+def _strict_output_validation(session: Session, scenario: InteropScenario) -> bool:
+    """Les scénarios approuvés positifs ne peuvent jamais émettre un payload invalide.
+
+    Les brouillons/non qualifiés conservent leurs diagnostics dans le jeu afin
+    de rester éditables. Les scénarios négatifs doivent, eux, pouvoir envoyer
+    le message volontairement fautif au système cible.
+    """
+    review = session.exec(
+        select(ScenarioCatalogReview).where(ScenarioCatalogReview.scenario_id == scenario.id)
+    ).first()
+    try:
+        expected = json.loads(scenario.expected_outcome_json or "{}")
+    except json.JSONDecodeError:
+        expected = {}
+    return bool(review and review.status == "approved" and expected.get("mode", "positive") != "negative")
+
+
 def prepare_scenario_play(
     session: Session,
     scenario: InteropScenario,
@@ -771,6 +820,9 @@ def prepare_scenario_play(
     disabled = [endpoint.name for endpoint in targets if not endpoint.is_enabled]
     if disabled:
         raise ScenarioPlayError("Endpoint désactivé : " + ", ".join(disabled))
+    invalid_roles = [endpoint.name for endpoint in targets if (endpoint.role or "").lower() not in {"sender", "both"}]
+    if invalid_roles:
+        raise ScenarioPlayError("Endpoint non émetteur : " + ", ".join(invalid_roles))
     precondition_failures = [
         f"{endpoint.name}: {result.message}"
         for endpoint in targets
@@ -819,20 +871,27 @@ def prepare_scenario_play(
     session.add(play)
     session.flush()
     for endpoint in targets:
-        session.add(ScenarioPlayTarget(play_id=play.id, endpoint_id=endpoint.id, target_system_key=target_key(endpoint.target_system_key or endpoint.name)))
+        session.add(ScenarioPlayTarget(
+            play_id=play.id,
+            endpoint_id=endpoint.id,
+            target_system_key=target_key(endpoint.target_system_key or endpoint.name),
+            is_required=True,
+        ))
     unsupported = [
         f"#{step.order_index} ({(step.message_format or 'hl7').upper()})"
         for step in source_steps
-        if not any(_transport_for(endpoint, step.message_format) for endpoint in targets)
+        if step.is_required and not _routed_endpoints(step, targets)
     ]
     if unsupported:
         raise ScenarioPlayError(
             "Aucun endpoint compatible pour les étapes " + ", ".join(unsupported) + ". "
             "Ajoutez une destination adaptée ou limitez les étapes à émettre."
         )
+    strict_validation = _strict_output_validation(session, scenario)
+    schedule_at = datetime.utcnow()
     for step in source_steps:
         step_identity, step_context = _entity_for_step(step, primary_entity_key, entity_contexts)
-        compatible = [endpoint for endpoint in targets if _transport_for(endpoint, step.message_format)]
+        compatible = _routed_endpoints(step, targets)
         normalized_format = "xml" if (step.message_format or "").lower() in {"hprim", "hprimxml"} else step.message_format
         payloads: dict[int, tuple[str, dict[str, Any]]] = {}
         for endpoint in compatible:
@@ -854,22 +913,52 @@ def prepare_scenario_play(
         # L'aperçu d'étape garde un payload représentatif. La copie par
         # livraison ci-dessous est l'artefact exact envoyé/rejoué.
         preview_payload = next(iter(payloads.values()))[0] if payloads else _compile_payload(session, scenario, step, step_identity, step_context, play_key)
-        play_step = ScenarioPlayStep(play_id=play.id, scenario_step_id=step.id, order_index=step.order_index, name=step.name, message_format=normalized_format, message_type=step.message_type, source_payload=step.payload, compiled_payload=preview_payload, routing_json=json.dumps({"compatible_endpoint_ids": [endpoint.id for endpoint in compatible]}))
+        play_step = ScenarioPlayStep(
+            play_id=play.id,
+            scenario_step_id=step.id,
+            order_index=step.order_index,
+            name=step.name,
+            message_format=normalized_format,
+            message_type=step.message_type,
+            source_payload=step.payload,
+            compiled_payload=preview_payload,
+            delay_seconds=max(step.delay_seconds or 0, 0),
+            routing_json=json.dumps({
+                "mode": step.route_mode or "all_compatible",
+                "compatible_endpoint_ids": [endpoint.id for endpoint in compatible],
+                "required": step.is_required,
+            }),
+        )
         session.add(play_step)
         session.flush()
         for endpoint in targets:
             transport = _transport_for(endpoint, step.message_format)
             delivery_payload, target_context = payloads.get(endpoint.id, (None, {}))
+            is_routed = endpoint.id in payloads
+            validation = validate_compiled_payload(delivery_payload, normalized_format) if delivery_payload else None
+            if validation and strict_validation and not validation.valid:
+                raise ScenarioPlayError(
+                    f"Étape #{step.order_index} invalide avant émission vers {endpoint.name}: "
+                    + "; ".join(validation.errors[:5])
+                )
             delivery = ScenarioDelivery(
                 play_id=play.id, play_step_id=play_step.id, endpoint_id=endpoint.id,
-                transport=transport, status="queued" if transport and not dry_run else "pending" if transport else "skipped",
-                error_message=None if transport else f"{step.message_format.upper()} non compatible avec endpoint {endpoint.kind}",
+                transport=transport if is_routed else None,
+                status="queued" if is_routed and not dry_run else "pending" if is_routed else "skipped",
+                is_required=step.is_required,
+                scheduled_at=schedule_at if is_routed else None,
+                validation_status=validation.status if validation else None,
+                validation_json=json.dumps(validation.to_dict(), ensure_ascii=False) if validation else None,
+                error_message=None if is_routed else (
+                    f"Étape non routée vers {endpoint.name}"
+                    if transport else f"{step.message_format.upper()} non compatible avec endpoint {endpoint.kind}"
+                ),
                 compiled_payload=delivery_payload,
                 target_context_json=json.dumps(target_context, ensure_ascii=False) if target_context else None,
             )
             session.add(delivery)
             session.flush()
-            if transport and not dry_run:
+            if is_routed and not dry_run:
                 protocol = "FILE" if transport == "FILE" else transport
                 message_type = step.message_type or ("HPRIM" if normalized_format == "xml" else normalized_format.upper())
                 queued = enqueue_message(
@@ -878,8 +967,11 @@ def prepare_scenario_play(
                     scenario_delivery_id=delivery.id,
                 )
                 session.flush()
+                queued.next_attempt_at = schedule_at
+                session.add(queued)
                 delivery.outbox_id = queued.id
                 session.add(delivery)
+        schedule_at += timedelta(seconds=max(step.delay_seconds or 0, 0))
     session.commit()
     session.refresh(play)
     return play
@@ -905,11 +997,16 @@ async def execute_scenario_play(session: Session, play_id: int) -> ScenarioPlay:
             continue
         if delivery.status == "skipped":
             continue
+        if delivery.outbox_id:
+            queued = session.get(OutboundMessage, delivery.outbox_id)
+            if queued and queued.next_attempt_at > datetime.utcnow():
+                # Le délai est porté par l'outbox : il survivra à un arrêt du
+                # serveur et sera repris par le planificateur périodique.
+                delivery.status = "queued"
+                session.add(delivery)
+                continue
         if play.error_policy == "continue_other_targets" and delivery.endpoint_id in blocked_endpoints:
-            delivery.status = "blocked"
-            delivery.error_message = "Non émise : une livraison précédente a échoué pour cette cible"
-            delivery.finished_at = datetime.utcnow()
-            session.add(delivery)
+            _block_delivery(session, delivery, "Non émise : une livraison précédente a échoué pour cette cible")
             session.commit()
             continue
         delivery.started_at = datetime.utcnow()
@@ -934,27 +1031,91 @@ async def execute_scenario_play(session: Session, play_id: int) -> ScenarioPlay:
         delivery.finished_at, delivery.updated_at = datetime.utcnow(), datetime.utcnow()
         session.add(delivery)
         session.commit()
-    play.finished_at = datetime.utcnow()
-    outstanding = sum(1 for delivery in deliveries if delivery.status not in {"sent", "skipped", "dry_run"})
+    if play.error_policy == "stop_all" and errors:
+        for delivery in deliveries:
+            if delivery.status in {"queued", "pending", "retry"}:
+                _block_delivery(session, delivery, "Non émise : politique d'arrêt global après un échec")
+        session.commit()
+    return reconcile_scenario_play(session, play.id)
+
+
+def _block_delivery(session: Session, delivery: ScenarioDelivery, reason: str) -> None:
+    """Rend un blocage métier terminal aussi bien dans le jeu que l'outbox."""
+    now = datetime.utcnow()
+    delivery.status, delivery.error_message = "blocked", reason
+    delivery.finished_at, delivery.updated_at = now, now
+    session.add(delivery)
+    if delivery.outbox_id:
+        queued = session.get(OutboundMessage, delivery.outbox_id)
+        if queued and queued.status != "sent":
+            queued.status, queued.last_error, queued.updated_at = "failed", reason, now
+            session.add(queued)
+
+
+def reconcile_scenario_play(session: Session, play_id: int) -> ScenarioPlay:
+    """Recalcule le verdict d'un jeu après un passage direct ou différé."""
+    play = session.get(ScenarioPlay, play_id)
+    if not play:
+        raise ScenarioPlayError("Jeu de scénario introuvable")
+    deliveries = session.exec(select(ScenarioDelivery).where(ScenarioDelivery.play_id == play.id)).all()
+    steps = session.exec(select(ScenarioPlayStep).where(ScenarioPlayStep.play_id == play.id)).all()
+    required = [item for item in deliveries if item.is_required and item.status != "skipped"]
+    optional = [item for item in deliveries if not item.is_required and item.status != "skipped"]
+    outstanding_statuses = {"queued", "pending", "retry"}
+    error_statuses = {"error", "failed", "blocked"}
+    outstanding = sum(item.status in outstanding_statuses for item in required)
+    sent = sum(item.status == "sent" for item in deliveries)
+    errors = sum(item.status in error_statuses for item in required)
+    optional_errors = sum(item.status in error_statuses for item in optional)
+
+    terminal = play.dry_run or outstanding == 0
     if play.dry_run:
         play.status = "dry_run"
-    elif (errors or outstanding) and success:
+    elif not terminal:
+        play.status = "scheduled"
+    elif errors and sent:
         play.status = "partial"
-    elif errors or outstanding:
+    elif errors:
         play.status = "error"
     else:
         play.status = "success"
+
+    assertions: list[dict[str, Any]] = []
+    assertion_failed = False
     scenario = session.get(InteropScenario, play.scenario_id)
-    assertions = evaluate_play_assertions(session, scenario, play, list(steps.values()), deliveries) if scenario else []
-    assertion_failed = any(not item["passed"] for item in assertions)
-    if assertion_failed and play.status in {"success", "partial"}:
-        play.status = "error" if not success else "partial"
-    play.result_json = json.dumps({"sent": success, "errors": errors, "outstanding": outstanding, "total": len(deliveries), "assertions": assertions, "qualification_verdict": "passed" if not assertion_failed else "failed"}, ensure_ascii=False)
+    if terminal and scenario:
+        assertions = evaluate_play_assertions(session, scenario, play, steps, deliveries)
+        assertion_failed = any(not item["passed"] for item in assertions)
+        if assertion_failed and play.status in {"success", "partial"}:
+            play.status = "partial" if sent else "error"
+    play.finished_at = datetime.utcnow() if terminal else None
+    play.result_json = json.dumps({
+        "sent": sent,
+        "errors": errors,
+        "optional_errors": optional_errors,
+        "outstanding": outstanding,
+        "total": len(deliveries),
+        "assertions": assertions,
+        "qualification_verdict": "not_evaluated" if not terminal else "failed" if assertion_failed or errors else "passed",
+    }, ensure_ascii=False)
     play.updated_at = datetime.utcnow()
     session.add(play)
     refresh_play_target_states(session, play.id)
     session.commit()
+    session.refresh(play)
     return play
+
+
+def reconcile_scenario_plays(session: Session, play_ids: Optional[Iterable[int]] = None) -> int:
+    """Synchronise les jeux touchés par le worker d'outbox."""
+    ids = sorted(set(play_ids or []))
+    if not ids:
+        ids = list(session.exec(
+            select(ScenarioPlay.id).where(ScenarioPlay.status.in_(["prepared", "running", "scheduled"]))
+        ).all())
+    for play_id in ids:
+        reconcile_scenario_play(session, play_id)
+    return len(ids)
 
 
 async def retry_scenario_delivery(session: Session, delivery_id: int) -> ScenarioDelivery:

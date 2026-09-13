@@ -36,13 +36,13 @@ certifié (ex. HAPI avec validation stricte).
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import List, Dict, Optional, Set, TYPE_CHECKING
+from typing import List, Dict, Optional, Set
 import re
 import os  # needed for EXTENDED_MODE env flag
 
 
 from app.services.mllp import parse_msh_fields
-from app.models_vocabulary import VocabularySystem, VocabularyValue
+from app.models_vocabulary import VocabularySystem
 from app.services.pam_profile_fr import (
     ALLOWED_SEGMENTS,
     EVN_OPTIONAL_EVENTS,
@@ -53,15 +53,9 @@ from app.services.pam_profile_fr import (
     PID32_CODES,
     ZBE9_C_ORIGINAL_EVENTS,
     ZBE9_NATURES,
-    ZBE_FREE_EVENTS,
     expected_structure,
 )
 from sqlmodel import select
-
-# Import only for type checking to avoid circular imports
-if TYPE_CHECKING:
-    from app.models import Mouvement
-
 
 # Mapping des segments attendus par trigger du profil IHE PAM France.
 # Les listes optionnelles ne sont pas exhaustives : elles servent à l'information
@@ -103,8 +97,7 @@ def _normalize_cpage_zbe9(value: str, *, sending_app: str, trigger: str) -> str:
     if sending_app == "CPAGE" and normalized in CPAGE_ZBE9_SUFFIX_BUG_VALUES:
         return "C" if trigger == "Z99" else normalized[:-1]
     return normalized
-import os as _os
-if _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}:
+if os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}:
     REQUIRE_PV1 = {e for e in REQUIRE_PV1 if e != "A08"}
 
 # PID-13 XTN validation configuration
@@ -393,7 +386,6 @@ def _validate_cx_identifier(cx: str, field_name: str, issues: List[ValidationIss
     
     # Check digit scheme si check digit présent
     if len(components) > 1 and components[1]:
-        check_digit = components[1]
         check_scheme = components[2] if len(components) > 2 else ""
         if not check_scheme:
             issues.append(ValidationIssue(
@@ -614,7 +606,6 @@ def _validate_ts_timestamp(ts: str, field_name: str, issues: List[ValidationIssu
         return
 
     # Valider les valeurs selon la longueur
-    year = ts_core[:4]
     if len(ts_core) >= 6:
         month = ts_core[4:6]
         if not (1 <= int(month) <= 12):
@@ -757,7 +748,8 @@ def validate_pam(
     direction: str = "in",
     profile: str = "IHE_PAM_FR",
     strict_semantic: bool = False,
-    include_audit: bool = False
+    include_audit: bool = False,
+    session=None,
 ) -> ValidationResult:
     """
     Validate HL7 ADT message against IHE PAM FR profile.
@@ -768,6 +760,7 @@ def validate_pam(
         profile: Profile name (default: "IHE_PAM_FR")
         strict_semantic: If True, A06/A07 semantic violations are error-level (default False for backward compat)
         include_audit: If True, add audit trail entry to result (default False)
+        session: Session SQLModel optionnelle pour les vocabulaires configurés
     
     Returns:
         ValidationResult with is_valid, level, issues, and optional audit trail
@@ -850,15 +843,17 @@ def validate_pam(
             issues.append(ValidationIssue("MSH12_PROFILE_LEGACY", f"Profil PAM France historique reçu: {version}", severity="warn"))
 
         charset = _field(msh_parts, 17) if len(msh_parts) > 17 else ""
-        if charset and charset.upper() in {"8859/1", "ISO-8859-1", "ISO 8859/1"}:
-            issues.append(ValidationIssue("MSH18_LEGACY", "MSH-18=8859/1 est toléré pour CPage historique ; préférer UNICODE UTF-8 ou 8859/15", severity="warn"))
-        elif charset and charset.upper() not in {"UNICODE UTF-8", "8859/15", "ISO-8859-15"}:
+        if charset and charset.upper() not in {
+            "8859/1", "ISO-8859-1", "ISO 8859/1",
+            "UNICODE UTF-8", "8859/15", "ISO-8859-15",
+        }:
             issues.append(ValidationIssue("MSH18_INVALID", f"MSH-18 non supporté par le profil France: {charset}", severity="error"))
 
     # EVN presence and consistency
     evn = _get_first_segment(msg, "EVN")
-    if not evn and trigger not in EVN_OPTIONAL_EVENTS:
-        issues.append(ValidationIssue("EVN_MISSING", "EVN segment is required"))
+    if not evn:
+        if trigger not in EVN_OPTIONAL_EVENTS:
+            issues.append(ValidationIssue("EVN_MISSING", "EVN segment is required"))
     else:
         evn_parts = evn.split("|")
         evn_code = _field(evn_parts, 1)
@@ -929,7 +924,7 @@ def validate_pam(
             pid8,
             "PID8",
             issues,
-            session=session if 'session' in locals() else None,
+            session=session,
             vocab_names=["semantic-administrative-gender"],
             fallback={"M", "F", "O", "U"},
             severity="error",
@@ -941,7 +936,6 @@ def validate_pam(
         if pid15 and len(pid15) < 2:
             issues.append(ValidationIssue("PID15_FORMAT", "PID-15 (Langue principale) doit être un code de langue valide", severity="warn"))
         # PID-16 (Situation famille, CE, optionnel)
-        pid16 = _field(pid_parts, 16)
         # PID-18 (Numéro dossier administratif, CX, optionnel mais conseillé)
         pid18 = _field(pid_parts, 18)
         if pid18:
@@ -967,7 +961,7 @@ def validate_pam(
         pv1_2 = _field(pv1_parts, 2)
         _validate_code_with_vocab(
             pv1_2, "PV1_2", issues,
-            session=session if 'session' in locals() else None,
+            session=session,
             vocab_names=["semantic-patient-class"],
             fallback={"E", "I", "O", "P", "R", "B", "C", "N", "U"},
             severity="error", required=trigger in REQUIRE_PV1,
@@ -980,7 +974,6 @@ def validate_pam(
                 "PV1-3 (Hébergement) est requis",
                 severity="error" if strict_inbound else "warn"
             ))
-        pv1_10 = _field(pv1_parts, 10)
         pv1_19 = _field(pv1_parts, 19)
         if trigger in REQUIRE_PV1 and not pv1_19:
             issues.append(ValidationIssue("PV1_19_MISSING", "PV1-19 (Identifiant venue) est requis", severity="warn"))
@@ -998,7 +991,7 @@ def validate_pam(
             zbe_4,
             "ZBE4",
             issues,
-            session=session if 'session' in locals() else None,
+            session=session,
             vocab_names=["semantic-movement-type"],
             fallback={"INSERT", "UPDATE", "CANCEL"},
             severity="error",
@@ -1023,7 +1016,7 @@ def validate_pam(
             zbe_9,
             "ZBE9",
             issues,
-            session=session if 'session' in locals() else None,
+            session=session,
             vocab_names=["semantic-movement-nature"],
             fallback=set(ZBE9_NATURES),
             severity="info",
@@ -1047,7 +1040,6 @@ def validate_pam(
         nk1_parts = nk1.split("|")
         nk1_2 = _field(nk1_parts, 2)
         nk1_3 = _field(nk1_parts, 3)
-        nk1_4 = _field(nk1_parts, 4)
         if not nk1_2:
             issues.append(ValidationIssue("NK1_2_MISSING", "NK1-2 (Relation contact) est recommandé", severity="info"))
         if not nk1_3:
@@ -1058,7 +1050,6 @@ def validate_pam(
     if pd1:
         pd1_parts = pd1.split("|")
         pd1_2 = _field(pd1_parts, 2)
-        pd1_12 = _field(pd1_parts, 12)
         if not pd1_2:
             issues.append(ValidationIssue("PD1_2_MISSING", "PD1-2 (Mode de vie) est recommandé", severity="info"))
 
@@ -1293,7 +1284,6 @@ def validate_pam(
             pov = pl_comps[0] if len(pl_comps) > 0 else ""
             room = pl_comps[1] if len(pl_comps) > 1 else ""
             bed = pl_comps[2] if len(pl_comps) > 2 else ""
-            facility = pl_comps[3] if len(pl_comps) > 3 else ""
             loc_status = pl_comps[4] if len(pl_comps) > 4 else ""
 
             # For stay/admission related events, the UF (PointOfCare) should be present
@@ -1413,7 +1403,6 @@ def validate_pam_semantics(
         return ValidationResult(is_valid=True, level="ok", event=trigger, message_type="", issues=issues)
     
     # Extract nature from ZBE-2 or PV1-2
-    msh_line = _get_first_segment(hl7_message, "MSH")
     pv1_line = _get_first_segment(hl7_message, "PV1")
     zbe_line = _get_first_segment(hl7_message, "ZBE")
     

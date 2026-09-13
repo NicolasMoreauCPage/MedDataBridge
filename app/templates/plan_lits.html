@@ -363,9 +363,30 @@ searchInput.addEventListener('input', (e) => {
   }, 300);
 });
 
+function showPlanLitsNotification(message, type = 'info') {
+  if (window.toastSystem?.show) {
+    window.toastSystem.show(message, type);
+  } else {
+    console.info(message);
+  }
+}
+
+async function confirmPlanLitsAction(message, acceptLabel = 'Confirmer') {
+  if (!window.PameliaUi?.confirm) {
+    showPlanLitsNotification("Le dialogue de confirmation n'est pas disponible.", 'error');
+    return false;
+  }
+  return window.PameliaUi.confirm({
+    title: 'Confirmer le transfert',
+    message,
+    acceptLabel,
+    variant: 'primary',
+  });
+}
+
 // Mutation rapide (transfert)
-function transferPatient(venueId, newLitId) {
-  if (confirm('Créer un mouvement de transfert vers ce lit ?')) {
+async function transferPatient(venueId, newLitId) {
+  if (await confirmPlanLitsAction('Créer un mouvement de transfert vers ce lit ?', 'Créer le mouvement')) {
     window.location.href = `/workflow/${venueId}/view?prefill_lit=${newLitId}`;
   }
 }
@@ -431,7 +452,7 @@ function initDragAndDropMutations() {
       card.classList.remove('ring-4', 'ring-amber-400', 'ring-offset-2');
     });
 
-    card.addEventListener('drop', (e) => {
+    card.addEventListener('drop', async (e) => {
       e.preventDefault();
       card.classList.remove('ring-4', 'ring-amber-400', 'ring-offset-2');
       if (!draggedVenueId) {
@@ -440,7 +461,7 @@ function initDragAndDropMutations() {
       const status = card.dataset.status;
       const hasConflict = card.dataset.hasConflict === 'true';
       if (status !== 'free' || hasConflict) {
-        alert("La mutation par glisser-déposer n'est possible que vers un lit libre sans conflit.");
+        showPlanLitsNotification("La mutation par glisser-déposer n'est possible que vers un lit libre sans conflit.", 'warning');
         return;
       }
       const targetLitId = card.dataset.litId;
@@ -451,7 +472,7 @@ function initDragAndDropMutations() {
       const message = draggedPatientName
         ? `Muter ${draggedPatientName} vers le lit ${litName} ?`
         : `Créer un mouvement de transfert vers le lit ${litName} ?`;
-      if (!confirm(message)) {
+      if (!await confirmPlanLitsAction(message, 'Muter')) {
         return;
       }
       executeDragDropMutation(draggedVenueId, targetLitId, litName);
@@ -486,7 +507,7 @@ async function executeDragDropMutation(venueId, targetLitId, litName) {
       } catch (err) {
         // Réponse non JSON (HTML de redirection, etc.)
       }
-      alert(message);
+      showPlanLitsNotification(message, 'error');
       return;
     }
 
@@ -494,7 +515,7 @@ async function executeDragDropMutation(venueId, targetLitId, litName) {
     window.location.reload();
   } catch (error) {
     console.error(error);
-    alert("Erreur réseau lors de la mutation.");
+    showPlanLitsNotification("Erreur réseau lors de la mutation.", 'error');
   }
 }
 

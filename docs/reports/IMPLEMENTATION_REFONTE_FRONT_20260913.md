@@ -30,6 +30,24 @@ Référence : [plan de refonte](PLAN_REFONTE_FRONT_UX_20260913.md)
 - La reprise planifiée des campagnes de qualification est réparée : elle trie
   désormais les exécutions sur `started_at`, champ réellement persisté, au
   lieu d'un champ inexistant.
+- Le shell propose désormais une palette de commandes (bouton ou
+  `Ctrl+K`) pour ouvrir directement les ateliers et leur documentation.
+- Le script d'édition de la structure interactive n'est plus chargé par toutes
+  les pages : il est limité à son atelier, avec un test de non-régression.
+- Le catalogue de macros ne définit plus deux fois le même composant modal.
+- Les catalogues utilisent un module partagé pour les filtres, raccourcis,
+  lignes activables, pagination, exécution groupée et suppression confirmée,
+  sans gestionnaire JavaScript inline.
+- La supervision des messages et la vue par dossier utilisent un module dédié
+  pour le rejeu et l'affichage des cotations. Les requêtes de cotations sont
+  limitées à quatre simultanées afin de préserver la réactivité des grandes
+  listes.
+- La vue par dossier est paginée après regroupement : chaque page contient des
+  dossiers complets, et les compteurs restent calculés sur tout le résultat
+  filtré, pas seulement sur la page affichée.
+- Les suppressions de patient, dossier, venue, mouvement et endpoint utilisent
+  désormais le dialogue de confirmation commun au lieu des confirmations
+  natives du navigateur.
 
 ## Contrôles réalisés
 
@@ -50,6 +68,6 @@ Le présent lot couvre le lot 0 du plan et une partie des fondations. Restent
 notamment la simplification complète du très grand layout historique, la
 consolidation de toutes les macros Jinja, la suppression systématique des
 scripts inline sur les pages moins prioritaires, le nouveau sélecteur de
-contexte, la palette de commandes et l'atelier complet de validation avec
-éditeur spécialisé. Ces sujets sont volontairement gardés dans des lots
+contexte et l'atelier complet de validation avec éditeur spécialisé. Ces sujets
+sont volontairement gardés dans des lots
 distincts afin de ne pas fragiliser les parcours d'émission existants.

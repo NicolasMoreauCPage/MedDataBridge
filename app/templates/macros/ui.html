@@ -561,35 +561,6 @@
 {% endmacro %}
 
 {# ============================================
-   MODALS - Composants de modals DaisyUI
-   ============================================ #}
-
-{% macro modal(id, title='', size='md', content='', footer='') %}
-{%- set size_classes = {
-  'sm': 'max-w-md',
-  'md': 'max-w-lg',
-  'lg': 'max-w-2xl',
-  'xl': 'max-w-4xl',
-  'full': 'max-w-full'
-} -%}
-<div id="{{ id }}" class="modal">
-  <div class="modal-box {{ size_classes[size] }}">
-    {% if title %}
-    <h3 class="font-bold text-lg mb-4">{{ title }}</h3>
-    {% endif %}
-    <div class="py-4">
-      {{ content|safe }}
-    </div>
-    {% if footer %}
-    <div class="modal-action">
-      {{ footer|safe }}
-    </div>
-    {% endif %}
-  </div>
-</div>
-{% endmacro %}
-
-{# ============================================
    TOOLTIPS - Composants d'infobulles DaisyUI
    ============================================ #}
 

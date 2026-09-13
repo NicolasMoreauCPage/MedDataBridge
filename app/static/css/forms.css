@@ -42,6 +42,17 @@ body {
   width: 100%;
 }
 
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background: var(--color-surface, #fff);
+}
+
+thead .sticky-col {
+  z-index: 30;
+}
+
 dialog.app-dialog {
   width: min(30rem, calc(100% - 2rem));
   margin: auto;

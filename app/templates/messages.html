@@ -233,7 +233,7 @@
               {% if m.status in ['ack_error','error'] %}
               <button 
                 type="button"
-                onclick="replayMessage({{ m.id }})"
+                data-replay-message-id="{{ m.id }}"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
                 title="Rejouer ce message en erreur">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -257,50 +257,7 @@
   {% endif %}
 </div>
 
-<script>
-async function replayMessage(messageId) {
-  const feedbackEl = document.getElementById('replay-feedback');
-  const confirmed = await window.PameliaUi.confirm({
-    title: 'Rejouer un message',
-    message: `Rejouer le message #${messageId} vers son endpoint d’origine ?`,
-    acceptLabel: 'Rejouer',
-    variant: 'danger'
-  });
-  if (!confirmed) {
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/messages/${messageId}/replay`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.status === 'success') {
-      if (feedbackEl) {
-        feedbackEl.textContent = `Message ${messageId} rejoué avec succès. Nouvel état: ${data.new_status}.`;
-      }
-      window.location.reload();
-    } else {
-      if (feedbackEl) {
-        feedbackEl.textContent = `Erreur lors du replay du message ${messageId}: ${data.message}`;
-      }
-      window.toastSystem.show(`Erreur lors du rejeu : ${data.message}`, 'error');
-    }
-  } catch (error) {
-    if (feedbackEl) {
-      feedbackEl.textContent = `Erreur lors du replay du message ${messageId}: ${error.message}`;
-    }
-    window.toastSystem.show(`Erreur lors du rejeu : ${error.message}`, 'error');
-  }
-}
-</script>
+{% endblock %}
+{% block scripts %}
+<script defer src="{{ url_for('static', path='js/messages-workspace.js') }}"></script>
 {% endblock %}

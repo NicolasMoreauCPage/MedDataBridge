@@ -10,6 +10,23 @@ def test_scenario_detail_script_block_renders(client, session):
     assert "data-scenario-workspace" in resp.text
 
 
+def test_structure_editor_script_is_loaded_only_by_its_workspace(client):
+    response = client.get("/structure/interactive")
+
+    assert response.status_code == 200
+    assert "js/structure-interactive.js" in response.text
+
+
+def test_messages_workspaces_load_their_scoped_script_without_inline_handlers(client):
+    for path in ("/messages", "/messages/by-dossier"):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert "js/messages-workspace.js" in response.text
+        assert "replayMessage(" not in response.text
+        assert "loadCotationsForDossiers" not in response.text
+
+
 def test_conformity_home_script_block_renders(client, session):
     resp = client.get("/conformity")
     assert resp.status_code == 200

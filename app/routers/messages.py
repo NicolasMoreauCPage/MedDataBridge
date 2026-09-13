@@ -304,6 +304,8 @@ def list_by_dossier(
     direction: Optional[str] = Query(None),  # "in" or "out"
     dossier_status: Optional[str] = Query(None, pattern="^(ok|warning|error)?$"),
     limit: int = Query(1000, ge=1, le=10000),
+    page: int = 1,
+    page_size: int = 50,
 ):
     """Vue de tous les messages MLLP groupés par dossier et par statut global."""
     stmt = select(MessageLog).where(MessageLog.kind == "MLLP")
@@ -433,8 +435,29 @@ def list_by_dossier(
             if info["global_status"] == dossier_status
         ]
     
-    # Trier par dernière activité (plus récent en premier)
+    # Trier par dernière activité (plus récent en premier), puis paginer les
+    # dossiers et non les messages : un dossier reste donc toujours entier.
     dossiers_list.sort(key=lambda x: x["last_activity"] or datetime.min, reverse=True)
+    total_count = len(dossiers_list)
+    status_counts = {
+        status: sum(1 for info in dossiers_list if info["global_status"] == status)
+        for status in ("ok", "warning", "error")
+    }
+    page_size = min(max(int(page_size), 25), 100)
+    total_pages = max(1, (total_count + page_size - 1) // page_size)
+    page = min(max(1, page), total_pages)
+    page_dossiers = dossiers_list[(page - 1) * page_size:page * page_size]
+
+    raw_query_params = getattr(request, "query_params", None)
+    query_params = dict(raw_query_params) if raw_query_params is not None else {}
+    query_params.pop("page", None)
+    query_params.pop("page_size", None)
+    query_params["page_size"] = str(page_size)
+    request_url = getattr(request, "url", None)
+    request_path = getattr(request_url, "path", None)
+    base_url = (request_path if isinstance(request_path, str) else "/messages/by-dossier") + (
+        "?" + urlencode(query_params) if query_params else "?"
+    )
     
     # Récupérer les endpoints pour affichage
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
@@ -450,7 +473,18 @@ def list_by_dossier(
         "messages_by_dossier.html",
         {
             "request": request,
-            "dossiers": dossiers_list,
+            "dossiers": page_dossiers,
+            "dossier_summary": {
+                "total": total_count,
+                **status_counts,
+            },
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total_count": total_count,
+                "total_pages": total_pages,
+                "base_url": base_url,
+            },
             "endpoints": endpoints,
             "ep_name": ep_name,
             "direction_options": direction_opts,
@@ -461,6 +495,7 @@ def list_by_dossier(
                 "direction": direction or "",
                 "dossier_status": dossier_status or "",
                 "limit": limit,
+                "page_size": page_size,
             },
         },
     )

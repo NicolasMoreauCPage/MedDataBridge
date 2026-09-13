@@ -91,6 +91,39 @@ def test_by_dossier_keeps_messages_without_nda_and_filters_global_status(isolate
     assert error_context["filters"]["dossier_status"] == "error"
 
 
+def test_by_dossier_paginates_complete_dossiers_after_aggregation(isolated_session):
+    isolated_session.add_all([
+        MessageLog(
+            direction="in",
+            kind="MLLP",
+            status="processed",
+            message_type="ADT^A01",
+            payload=_hl7_message(f"IPP-{index}", visit_number=f"NDA-{index}"),
+            created_at=datetime(2026, 9, 12, 12, 0),
+        )
+        for index in range(26)
+    ])
+    isolated_session.commit()
+
+    context = list_by_dossier(
+        _Request(),
+        isolated_session,
+        endpoint_id=None,
+        date_start=None,
+        date_end=None,
+        direction=None,
+        dossier_status=None,
+        limit=10000,
+        page=2,
+        page_size=25,
+    )
+
+    assert len(context["dossiers"]) == 1
+    assert context["dossier_summary"] == {"total": 26, "ok": 26, "warning": 0, "error": 0}
+    assert context["pagination"]["page"] == 2
+    assert context["pagination"]["total_pages"] == 2
+
+
 def test_messages_filters_an_exact_status_and_groups_negative_ack_statuses(isolated_session):
     isolated_session.add_all([
         MessageLog(direction="out", kind="MLLP", status="sent", payload="MSH|^~\\&|A|B"),

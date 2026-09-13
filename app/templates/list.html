@@ -3,6 +3,7 @@
 {# Remove old badge/alert macros import, keep empty_state if needed #}
 
 {% block content %}
+<div id="list-workspace-config" data-new-url="{{ new_url|default('', true) }}" hidden></div>
 {# Breadcrumb #}
 {% if breadcrumbs %}
 <div class="mb-6">
@@ -39,7 +40,7 @@
       {# Filtre de statut (si fourni) #}
       {% if filter_options %}
         <form method="get" class="inline-block">
-          <select name="filter_status" onchange="this.form.submit()" class="rounded-lg border-gray-200 dark:border-slate-700 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm transition-colors">
+          <select name="filter_status" data-submit-on-change class="rounded-lg border-gray-200 dark:border-slate-700 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm transition-colors">
             {% for opt in filter_options %}
               <option value="{{ opt.value or '' }}" {% if filter_status == opt.value %}selected{% endif %}>
                 {{ opt.label }}
@@ -95,20 +96,6 @@
   <div id="list-filters-panel" {% if not has_active_filters %}hidden{% endif %}>
     {{ components.search_filter(filters, request.url.path) }}
   </div>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const trigger = document.getElementById('toggle-filters-btn');
-      const panel = document.getElementById('list-filters-panel');
-      if (!trigger || !panel) return;
-      trigger.dataset.filterToggleBound = 'true';
-      trigger.addEventListener('click', function () {
-        const open = panel.hasAttribute('hidden');
-        panel.toggleAttribute('hidden', !open);
-        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if (open) panel.querySelector('input, select, textarea')?.focus();
-      });
-    });
-  </script>
 {% endif %}
 
 {# Tableau principal #}
@@ -328,222 +315,5 @@
 {% endblock %}
 {% block scripts %}
 <script src="{{ url_for('static', path='js/patients.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const filterToggle = document.getElementById('toggle-filters-btn');
-  const filterPanel = document.getElementById('list-filters-panel');
-  const newUrl = {{ new_url|default('', true)|tojson }};
-
-  document.addEventListener('keydown', function (event) {
-    const tagName = event.target?.tagName;
-    const isEditing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tagName)
-      || event.target?.isContentEditable;
-
-    if (newUrl && (event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'n') {
-      event.preventDefault();
-      window.location.assign(newUrl);
-      return;
-    }
-
-    if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditing && filterPanel) {
-      event.preventDefault();
-      filterPanel.removeAttribute('hidden');
-      filterToggle?.setAttribute('aria-expanded', 'true');
-      filterPanel.querySelector('input, select, textarea')?.focus();
-      return;
-    }
-
-    if ((event.key === 'Escape' || event.key === 'Esc') && filterPanel && !filterPanel.hasAttribute('hidden')) {
-      filterPanel.setAttribute('hidden', 'hidden');
-      filterToggle?.setAttribute('aria-expanded', 'false');
-      filterToggle?.focus();
-    }
-  });
-
-  document.querySelectorAll('tr[role="link"][tabindex="0"]').forEach((row) => {
-    row.addEventListener('click', () => {
-      if (row.dataset.detailUrl) window.location.assign(row.dataset.detailUrl);
-    });
-    row.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        if (row.dataset.detailUrl) window.location.assign(row.dataset.detailUrl);
-      }
-    });
-  });
-
-  document.querySelectorAll('tr[role="link"] a, tr[role="link"] button, tr[role="link"] form, tr[role="link"] input').forEach((interactiveElement) => {
-    interactiveElement.addEventListener('click', (event) => event.stopPropagation());
-  });
-
-  document.querySelectorAll('[data-page-size]').forEach((select) => {
-    select.addEventListener('change', () => {
-      const url = new URL(window.location.href);
-      url.searchParams.set(select.dataset.pageSizeParam || 'page_size', select.value);
-      url.searchParams.set('page', '1');
-      window.location.assign(url.toString());
-    });
-  });
-});
-</script>
-{% if all_endpoints %}
-<script>
-// Compact bulk-execute toolbar logic for the list view
-function getSelectedRowIds() {
-  return Array.from(document.querySelectorAll('input.row-select:checked')).map(el => el.value);
-}
-
-function updateBulkToolbar() {
-  const selected = getSelectedRowIds();
-  const countEl = document.getElementById('bulkSelectedCount');
-  const submitBtn = document.getElementById('bulkSubmitBtn');
-  if (countEl) countEl.textContent = selected.length;
-  const endpointSelected = document.querySelector('select#bulkEndpoint')?.value;
-  if (submitBtn) submitBtn.disabled = !(selected.length > 0 && endpointSelected);
-}
-
-function submitBulkExecuteFromList(e) {
-  e.preventDefault();
-  const selected = getSelectedRowIds();
-  const endpointId = document.querySelector('select#bulkEndpoint')?.value;
-  if (!selected.length || !endpointId) {
-    window.toastSystem?.show('Sélectionnez au moins un scénario et un endpoint.', 'warning');
-    return;
-  }
-
-  // Create and submit a form
-  const form = document.createElement('form');
-  form.method = 'post';
-  form.action = '/scenarios/bulk-execute';
-
-  const endpointInput = document.createElement('input');
-  endpointInput.type = 'hidden';
-  endpointInput.name = 'endpoint_id';
-  endpointInput.value = endpointId;
-  form.appendChild(endpointInput);
-
-  selected.forEach(id => {
-    const inp = document.createElement('input');
-    inp.type = 'hidden';
-    inp.name = 'scenario_ids';
-    inp.value = id;
-    form.appendChild(inp);
-  });
-
-  document.body.appendChild(form);
-  form.submit();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('input.row-select').forEach(el => {
-    el.addEventListener('change', updateBulkToolbar);
-    // Prevent row click navigation when interacting with the checkbox
-    el.addEventListener('click', function(e){ e.stopPropagation(); });
-  });
-  const select = document.querySelector('select#bulkEndpoint');
-  if (select) select.addEventListener('change', updateBulkToolbar);
-  const btn = document.getElementById('bulkSubmitBtn');
-  if (btn) btn.addEventListener('click', submitBulkExecuteFromList);
-  updateBulkToolbar();
-});
-</script>
-{% endif %}
-<style>
-  /* Make the checkbox column sticky so it remains visible when horizontally scrolling */
-  .sticky-col { position: sticky; left: 0; background: white; z-index: 20; }
-  thead .sticky-col { z-index: 30; }
-</style>
-
-<!-- Modal de confirmation de suppression (DaisyUI) -->
-{{ confirm_modal(
-  'deleteModal',
-  'Confirmer la suppression',
-  'Êtes-vous sûr de vouloir supprimer cet élément ?',
-  'Supprimer',
-  'Annuler',
-  'error',
-  'exclamation'
-) }}
-
-<script>
-// Gestion des suppressions asynchrones
-document.addEventListener('DOMContentLoaded', function() {
-    let deleteForm = null;
-    const deleteModal = document.getElementById('deleteModal');
-    
-    // Gestionnaire pour les boutons de suppression
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.delete-btn')) {
-            e.preventDefault();
-            const form = e.target.closest('form');
-            const itemName = form.dataset.itemName;
-            
-            // Mettre à jour le message du modal
-            const messageEl = deleteModal.querySelector('#deleteModal-message');
-            if (messageEl) {
-                messageEl.textContent = `Êtes-vous sûr de vouloir supprimer "${itemName}" ?`;
-            }
-            
-            // Afficher le modal
-            deleteModal.classList.add('modal-open');
-            deleteForm = form;
-        }
-    });
-    
-    // Gestionnaire pour les boutons du modal
-    deleteModal.addEventListener('click', function(e) {
-        // Bouton de confirmation (rouge)
-        if (e.target.matches('.btn-error')) {
-            handleDeleteConfirmation(e.target);
-        }
-        // Bouton d'annulation (ferme le modal)
-        else if (e.target.matches('.btn:not(.btn-error)')) {
-            deleteModal.classList.remove('modal-open');
-            deleteForm = null;
-        }
-    });
-    
-    async function handleDeleteConfirmation(button) {
-        if (!deleteForm) return;
-        
-        const originalText = button.textContent;
-        
-        // Désactiver le bouton et changer le texte
-        button.disabled = true;
-        button.textContent = 'Suppression...';
-        
-        try {
-            const response = await fetch(deleteForm.action, {
-                method: 'POST',
-                body: new FormData(deleteForm),
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            if (response.redirected) {
-                // Succès - rediriger
-                window.location.href = response.url;
-            } else if (response.ok) {
-                // Succès - recharger la page
-                window.location.reload();
-            } else {
-                // Erreur
-                window.toastSystem?.show('Erreur lors de la suppression. Veuillez réessayer.', 'error');
-                button.disabled = false;
-                button.textContent = originalText;
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
-            window.toastSystem?.show('Erreur réseau. Veuillez réessayer.', 'error');
-            button.disabled = false;
-            button.textContent = originalText;
-        }
-        
-        // Fermer le modal
-        deleteModal.classList.remove('modal-open');
-        deleteForm = null;
-    }
-});
-</script>
+<script defer src="{{ url_for('static', path='js/list-workspace.js') }}"></script>
 {% endblock %}

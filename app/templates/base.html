@@ -373,6 +373,10 @@
           {{ components.status_badge('error', 'ACK en erreur (' ~ request.state.error_message_count ~ ')') }}
         </a>
         {% endif %}
+        <button type="button" data-command-palette-open class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Rechercher une page ou une action" title="Recherche rapide (Ctrl+K)">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
+          <span>Recherche</span><kbd class="rounded border border-slate-300 px-1.5 py-0.5 text-[10px] dark:border-slate-600">Ctrl K</kbd>
+        </button>
         <!-- Theme toggle button (compact) -->
         <button id="theme-toggle" class="btn btn-ghost btn-sm p-2" aria-label="Basculer le thème" title="Basculer entre thème clair/sombre/auto">
           <!-- Sun icon (light theme) -->
@@ -390,6 +394,9 @@
         </button>
       </div>
       <div class="md:hidden flex items-center gap-2">
+        <button type="button" data-command-palette-open class="rounded-lg p-2 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:hover:bg-slate-700" aria-label="Recherche rapide">
+          <svg class="h-5 w-5 text-slate-700 dark:text-slate-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
+        </button>
         <button id="menu-btn" class="p-2 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors" aria-label="Menu principal" aria-expanded="false" aria-controls="mobile-menu">
           <svg class="w-6 h-6 text-slate-700 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
@@ -1247,6 +1254,30 @@
     </form>
   </dialog>
 
+  <div id="app-shell-config" data-active-eg-id="{{ request.state.eg_context.id if request.state.eg_context else '' }}" hidden></div>
+  <dialog id="command-palette" class="app-dialog" aria-labelledby="command-palette-title">
+    <form method="dialog" class="p-4 sm:p-6">
+      <div class="flex items-center justify-between gap-4">
+        <h2 id="command-palette-title" class="text-lg font-semibold text-slate-900 dark:text-white">Recherche rapide</h2>
+        <button value="cancel" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Fermer la recherche">×</button>
+      </div>
+      <label for="command-palette-search" class="sr-only">Rechercher une page ou une action</label>
+      <input id="command-palette-search" type="search" autocomplete="off" placeholder="Scénarios, validation, structure…" class="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700">
+      <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Accès direct aux principaux ateliers. Utilisez Échap pour fermer.</p>
+      <ul class="mt-4 max-h-80 space-y-1 overflow-y-auto" aria-label="Résultats de recherche rapide">
+        <li><a href="/" data-command-item="tableau de bord accueil piloter" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Tableau de bord</span><span class="ml-2 text-xs text-slate-500">Piloter</span></a></li>
+        <li><a href="/validation" data-command-item="validation valider hl7 hprim fhir message" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Valider un message</span><span class="ml-2 text-xs text-slate-500">HL7 / HPRIM</span></a></li>
+        <li><a href="/messages" data-command-item="messages supervision ack rejet" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Superviser les messages</span><span class="ml-2 text-xs text-slate-500">Interopérabilité</span></a></li>
+        <li><a href="/scenarios" data-command-item="scénarios scenario campagne émission jeu" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Catalogue des scénarios</span><span class="ml-2 text-xs text-slate-500">Scénarios</span></a></li>
+        <li><a href="/endpoints" data-command-item="endpoints destination système cible mllp fhir hprim" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Destinations et endpoints</span><span class="ml-2 text-xs text-slate-500">Configurer</span></a></li>
+        <li><a href="/dossiers" data-command-item="dossiers patient venue mouvement données test" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Dossiers et données de test</span><span class="ml-2 text-xs text-slate-500">Données</span></a></li>
+        <li><a href="/structure" data-command-item="structure uf unité fonctionnelle médecin établissement" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Structure et unités</span><span class="ml-2 text-xs text-slate-500">Données</span></a></li>
+        <li><a href="/guide" data-command-item="guide aide documentation utilisateur" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Guide utilisateur</span><span class="ml-2 text-xs text-slate-500">Aide</span></a></li>
+      </ul>
+      <p id="command-palette-empty" hidden class="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-700 dark:text-slate-300">Aucun atelier ne correspond à cette recherche.</p>
+    </form>
+  </dialog>
+
   <!-- Footer avec version et changelog -->
   <footer class="border-t border-border bg-gradient-to-b from-surface to-surface/95 mt-auto backdrop-blur-sm">
     <div class="mx-auto max-w-content px-4 py-6">
@@ -1284,44 +1315,12 @@
     </div>
   </footer>
 
-  <!-- Script global pour charger le compteur d'alertes -->
-  <script>
-    const activeEgId = {{ request.state.eg_context.id if request.state.eg_context else 'null' }};
-
-    // Charger le compteur d'alertes au chargement de la page
-    async function loadAlertCount() {
-      if (!activeEgId) return;
-      try {
-        const response = await fetch(`/api/analytics/alerts?eg_id=${activeEgId}&severity=high`);
-        if (!response.ok) return;
-        
-        const alerts = await response.json();
-        const highAlerts = alerts.filter(a => a.severity === 'high').length;
-        
-        const badge = document.getElementById('alert-badge');
-        if (highAlerts > 0 && badge) {
-          badge.textContent = highAlerts;
-          badge.classList.remove('hidden');
-        }
-      } catch (error) {
-        // Silent fail - le badge n'apparaîtra simplement pas
-        console.debug('Alert count not loaded:', error);
-      }
-    }
-    
-    // Charger au chargement de la page
-    document.addEventListener('DOMContentLoaded', loadAlertCount);
-    
-    // Recharger toutes les 2 minutes
-    setInterval(loadAlertCount, 120000);
-  </script>
-
     {% block scripts %}{% endblock %}
 
   <!-- L'édition reste disponible hors ligne ; le glisser-déposer se désactive proprement sans bibliothèque externe. -->
   <script src="{{ url_for('static', path='/js/components.js') }}"></script>
-  <script src="{{ url_for('static', path='/js/structure-interactive.js') }}"></script>
   <script defer src="{{ url_for('static', path='/js/ui-controls.js') }}"></script>
+  <script defer src="{{ url_for('static', path='/js/app-shell.js') }}"></script>
 
 </body>
 </html>

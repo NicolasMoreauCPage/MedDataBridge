@@ -323,3 +323,7 @@
 }
 </style>
 {% endblock %}
+
+{% block scripts %}
+<script defer src="{{ url_for('static', path='js/structure-interactive.js') }}"></script>
+{% endblock %}

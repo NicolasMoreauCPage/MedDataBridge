@@ -188,6 +188,14 @@
 // Variable globale pour stocker le fichier
 let uploadedFile = null;
 
+function showStructureImportNotification(message, type = 'info') {
+  if (window.toastSystem?.show) {
+    window.toastSystem.show(message, type);
+    return;
+  }
+  console.info(message);
+}
+
 // Configuration Dropzone
 Dropzone.options.fileDropzone = {
   url: "/api/structure/import/excel",
@@ -207,7 +215,7 @@ Dropzone.options.fileDropzone = {
     this.on("error", function(file, errorMessage) {
       console.error("Upload error:", errorMessage);
       const msg = typeof errorMessage === 'object' ? errorMessage.detail || JSON.stringify(errorMessage) : errorMessage;
-      alert("Erreur lors de l'upload : " + msg);
+      showStructureImportNotification("Erreur lors de l’upload : " + msg, 'error');
     });
   },
   
@@ -320,12 +328,22 @@ function cancelImport() {
 }
 
 async function confirmImport() {
-  if (!confirm('⚠️ Confirmer l\'import de la structure ?\n\nCette opération peut modifier la base de données.')) {
+  if (!window.PameliaUi?.confirm) {
+    showStructureImportNotification("Le dialogue de confirmation n'est pas disponible.", 'error');
+    return;
+  }
+  const confirmed = await window.PameliaUi.confirm({
+    title: 'Importer la structure',
+    message: 'Cette opération peut créer ou modifier la structure en base. Continuer ?',
+    acceptLabel: 'Importer',
+    variant: 'primary',
+  });
+  if (!confirmed) {
     return;
   }
   
   if (!uploadedFile) {
-    alert('Erreur: Aucun fichier sélectionné');
+    showStructureImportNotification('Aucun fichier sélectionné.', 'error');
     return;
   }
   
@@ -357,25 +375,28 @@ async function confirmImport() {
     
     if (result.success) {
       // Succès
-      alert(`✅ Import réussi!\n\n${result.created_count} entités créées\n${result.updated_count} entités modifiées\n\nDurée: ${result.duration_seconds}s`);
+      showStructureImportNotification(
+        `Import réussi : ${result.created_count} entité(s) créée(s), ${result.updated_count} modifiée(s) en ${result.duration_seconds}s.`,
+        'success'
+      );
       
       // Rediriger vers la page structure
       setTimeout(() => {
         window.location.href = '/structure';
-      }, 1000);
+      }, 700);
     } else {
       // Échec avec détails
       const errorMsg = result.messages?.filter(m => m.severity === 'error')
         .map(m => m.message)
-        .join('\n') || 'Import échoué';
-      alert(`❌ Import échoué:\n\n${errorMsg}`);
+        .join(' — ') || 'Import échoué';
+      showStructureImportNotification(`Import échoué : ${errorMsg}`, 'error');
       confirmBtn.disabled = false;
       confirmBtn.innerHTML = originalText;
     }
     
   } catch (error) {
     console.error('Import error:', error);
-    alert('❌ Erreur lors de l\'import: ' + error.message);
+    showStructureImportNotification('Erreur lors de l’import : ' + error.message, 'error');
     confirmBtn.disabled = false;
     confirmBtn.innerHTML = originalText;
   }

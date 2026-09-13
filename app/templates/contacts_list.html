@@ -250,13 +250,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.reload();
             } else {
                 // Erreur
-                alert('Erreur lors de la suppression. Veuillez réessayer.');
+                window.toastSystem?.show('Erreur lors de la suppression. Veuillez réessayer.', 'error');
                 button.disabled = false;
                 button.textContent = originalText;
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur réseau. Veuillez réessayer.');
+            window.toastSystem?.show('Erreur réseau. Veuillez réessayer.', 'error');
             button.disabled = false;
             button.textContent = originalText;
         }

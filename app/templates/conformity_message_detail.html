@@ -164,7 +164,9 @@
 function copyMessage() {
   const text = document.getElementById('rawMessage').innerText;
   navigator.clipboard.writeText(text).then(() => {
-    alert('Message copié dans le presse-papier');
+    window.toastSystem?.show('Message copié dans le presse-papier.', 'success');
+  }).catch(() => {
+    window.toastSystem?.show('Copie impossible : sélectionnez le message puis copiez-le manuellement.', 'error');
   });
 }
 </script>

@@ -66,7 +66,7 @@ def test_hprim_cotation_modern_uses_shared_toast_system(client, session):
     session.refresh(d)
     resp = client.get(f"/cotation-modern/dossiers/{d.id}/cotation")
     assert resp.status_code == 200
-    assert "window.toastSystem.show" in resp.text
+    assert "window.toastSystem?.show" in resp.text
     assert 'id="toastStack"' not in resp.text
     assert resp.text.count('id="toast-container"') == 1
 

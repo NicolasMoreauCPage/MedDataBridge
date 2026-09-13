@@ -1,26 +1,16 @@
-import os
-from fastapi.testclient import TestClient
-
-os.environ.setdefault("TESTING", "1")
-from app.app import app
-
-client = TestClient(app)
-
-def test_cotation_modern_page_renders():
-    r = client.get("/cotation-modern", allow_redirects=True)
+def test_cotation_modern_page_renders(client):
+    r = client.get("/cotation-modern/", follow_redirects=False)
     assert r.status_code == 200
-    # Should redirect to dossiers page
-    assert "/dossiers" in str(r.url) or "dossiers" in r.text.lower()
+    assert "Codage des Prestations Médicales" in r.text
+    assert "Sélectionnez le séjour patient" in r.text
 
-def test_cotation_modern_nav_link():
+def test_cotation_modern_nav_link(client):
     r = client.get("/")
     assert r.status_code == 200
-    # The old link might still be there, or it might be removed
-    # Just check that navigation works
     assert "dossiers" in r.text.lower() or "cotation" in r.text.lower()
 
-def test_cotation_modern_js_loaded():
-    # Test the redirect behavior
-    r = client.get("/cotation-modern/", allow_redirects=False)
-    assert r.status_code in [302, 307]  # Redirect status
-    assert "/dossiers" in r.headers.get("location", "")
+def test_cotation_modern_selector_loads_search_workflow(client):
+    r = client.get("/cotation-modern/", follow_redirects=False)
+    assert r.status_code == 200
+    assert "/cotation-modern/search" in r.text
+    assert "/cotation-modern/dossiers/${d.dossier_id}/cotation" in r.text

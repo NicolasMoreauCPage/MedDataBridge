@@ -19,3 +19,13 @@ def test_structure_list_empty_state_renders(client, session, path):
     assert "assistant de structure" in resp.text
     assert "\\'" not in resp.text
     assert 'href="/structure/wizard"' in resp.text
+
+
+def test_structure_wizard_selects_its_target_eg_before_generation(client, session):
+    response = client.get("/structure/wizard")
+
+    assert response.status_code == 200
+    assert 'id="targetEgId"' in response.text
+    assert "Entité géographique cible" in response.text
+    assert "ID de l'Entité Géographique cible" not in response.text
+    assert "data-step-content=\"1\"" in response.text

@@ -1,7 +1,6 @@
 import logging
 from typing import List, Optional
 from unittest.mock import Mock as MockType
-from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
@@ -9,9 +8,6 @@ from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from app.db import get_session
-from app.models_endpoints import SystemEndpoint
-from app.services.fhir_structure import entity_to_fhir_location
-from app.services.fhir_transport import post_fhir_bundle
 from app.services.structure_schedule import (
     apply_scheduled_status,
     form_datetime_to_hl7,
@@ -20,15 +16,14 @@ from app.services.structure_schedule import (
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
-from app.models_structure import StructureTemplate
-
-logger = logging.getLogger(__name__)
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit,
     LocationStatus, LocationMode, LocationPhysicalType, LocationServiceType,
     StructureTemplate,
 )
+
+logger = logging.getLogger(__name__)
 
 # Valeurs standards pour le statut opérationnel des lits.
 # Ces valeurs sont alignées avec les jeux de données de démonstration
@@ -680,6 +675,10 @@ async def structure_wizard_page(
         egs = session.exec(select(EntiteGeographique)).all()
         context["filtered_egs"] = [eg.id for eg in egs]
         context["no_ej_context"] = True
+    # L'EG est un choix métier de l'assistant ; exposer ses libellés permet de
+    # supprimer la saisie manuelle et risquée d'un identifiant à la fin.
+    context["target_egs"] = egs
+    context["selected_eg_id"] = request.session.get("eg_context_id")
     return get_templates_with_filters(request).TemplateResponse(request, "structure_wizard.html", context)
 
 @router.post("/import/hl7")
@@ -1878,7 +1877,7 @@ async def delete_chambre(
     return RedirectResponse(url=f"/structure/uh/{uh_id}", status_code=303)
 
 @api_router.get("/chambres", response_model=List[Chambre])
-async def list_chambres(
+async def list_chambres_api(
     session: Session = Depends(get_session),
     uh_id: Optional[int] = None,
     status: Optional[LocationStatus] = None

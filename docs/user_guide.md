@@ -65,7 +65,8 @@ GHT → Entité juridique (EJ) → Entité géographique (EG)
 
 ### Sélectionner le contexte
 
-1. Ouvrir **Administration → GHT et établissements** (`/admin/ght`).
+1. Utiliser **Choisir / changer le contexte** dans l'en-tête, ou ouvrir
+   **Administration → GHT et établissements** (`/admin/ght`).
 2. Sélectionner le GHT, puis l'EJ ou l'EG si nécessaire.
 3. Vérifier les badges avant une importation, génération ou émission.
 4. Depuis une fiche, activer le patient ou le dossier avec l'action de contexte.
@@ -87,9 +88,17 @@ Utiliser `/structure` pour la vue d'ensemble et les écrans spécialisés :
 `/structure/uh`, `/structure/chambres` et `/structure/lits`.
 
 `/structure/interactive` permet de relire l'arborescence, modifier certains
-libellés ou identifiants, déplacer des entités et réaliser des actions
-groupées. Vérifier tout déplacement avant confirmation : il modifie les liens
-réutilisés par les exports MFN et FHIR.
+libellés ou identifiants, déplacer les services et les UF, et dupliquer un
+élément. Le raccourci `Ctrl+N` ouvre l'assistant de création et `Ctrl+D`
+prépare une duplication de l'élément sélectionné. Vérifier tout déplacement
+avant confirmation : il modifie les liens réutilisés par les exports MFN et
+FHIR.
+
+L'assistant `/structure/wizard` crée une structure à partir d'un modèle. Choisir
+l'entité géographique cible dès la première étape, puis le modèle : les pôles,
+services, UF et l'hébergement peuvent être ajustés avant la synthèse et la
+génération. L'EG proposée est limitée à l'établissement courant ; aucun
+identifiant technique ne doit être saisi au dernier moment.
 
 ### Patients, dossiers, venues et mouvements
 
@@ -297,7 +306,10 @@ démonstrative et messages techniques sont générés une seule fois pour ce jeu
 puis figés. Un lancement suivant produit donc de nouveaux identifiants et ne
 doit pas écraser le patient/dossier du lancement précédent chez le partenaire.
 
-1. Préparer GHT, EJ, namespaces, structure et endpoint cible.
+1. Préparer GHT, EJ, namespaces, structure et endpoint cible. Sélectionner
+   l'EJ dans l'en-tête avant de matérialiser un modèle : le scénario créé et
+   les endpoints proposés respectent alors ce contexte (les endpoints globaux
+   restent disponibles).
 2. Créer ou importer le scénario dans `/scenarios`.
 3. Dans le scénario, sélectionner un ou plusieurs destinataires. Grouper les
    endpoints d'un même partenaire avec la même clé de système cible dans la
@@ -321,10 +333,12 @@ doit pas écraser le patient/dossier du lancement précédent chez le partenaire
 6. Utiliser **Prévisualiser le jeu** avant l'envoi : la page de résultat montre
    les identifiants générés, la matrice étape × endpoint, et le payload compilé
    réellement destiné au partenaire. Aucune émission n'a lieu dans ce mode.
-7. Envoyer le jeu et contrôler chaque livraison/ACK. Une livraison en erreur
-   peut être **Réessayée** : le payload et les identifiants restent exactement
-   les mêmes. **Rejouer comme nouveau jeu** crée au contraire de nouveaux
-   identifiants.
+7. Envoyer le jeu et contrôler chaque livraison/ACK. Le détail est adapté à
+   l'écran : cartes de livraison sur mobile, tableau comparatif sur poste de
+   travail. Tant qu'un jeu est actif, son état s'actualise automatiquement.
+   Une livraison en erreur peut être **Réessayée** : le payload et les
+   identifiants restent exactement les mêmes. **Rejouer comme nouveau jeu**
+   crée au contraire de nouveaux identifiants.
 8. Comparer les données avant/après et conserver le rapport anonymisé.
 
 Les données cliniques sont résolues dans cet ordre : ligne du profil de la

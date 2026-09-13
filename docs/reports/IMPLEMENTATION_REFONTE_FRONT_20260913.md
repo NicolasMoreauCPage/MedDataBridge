@@ -64,6 +64,19 @@ Référence : [plan de refonte](PLAN_REFONTE_FRONT_UX_20260913.md)
   du navigateur et à l'API de déplacement existante.
 - La duplication d'un élément de structure demande son nouvel identifiant dans
   un dialogue accessible, au lieu d'une invite native du navigateur.
+- Le suivi d'un jeu de scénario possède désormais une vue structurée et
+  responsive : synthèse, contexte d'identité, cartes mobiles de livraisons,
+  tableaux desktop, payloads compilés et rejeux confirmés.
+- Les modèles de scénarios utilisent le même poste de travail : titre
+  fonctionnel, résultats lisibles et liens directs vers le scénario ou le jeu
+  créé, sans scripts inline ni alertes natives. Les endpoints `both` y sont
+  disponibles, les destinations incompatibles sont masquées selon le protocole
+  choisi et le serveur les refuse également. Une case « simulation » décochée
+  déclenche maintenant bien une émission réelle après confirmation.
+- L'assistant de structure choisit son entité géographique cible dès sa
+  première étape, dans le périmètre de l'établissement courant. Il ne demande
+  plus d'identifiant technique en fin de parcours et utilise la confirmation
+  et les notifications partagées lors de la génération.
 
 ## Contrôles réalisés
 
@@ -83,7 +96,6 @@ prioritaires et l'interaction clavier de la validation.
 Le présent lot couvre le lot 0 du plan et une partie des fondations. Restent
 notamment la simplification complète du très grand layout historique, la
 consolidation de toutes les macros Jinja, la suppression systématique des
-scripts inline sur les pages moins prioritaires, le nouveau sélecteur de
-contexte et l'atelier complet de validation avec éditeur spécialisé. Ces sujets
-sont volontairement gardés dans des lots
-distincts afin de ne pas fragiliser les parcours d'émission existants.
+scripts inline sur les pages moins prioritaires et l'atelier complet de
+validation avec éditeur spécialisé. Ces sujets sont volontairement gardés dans
+des lots distincts afin de ne pas fragiliser les parcours d'émission existants.

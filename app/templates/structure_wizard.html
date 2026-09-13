@@ -95,6 +95,20 @@
       <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">
         Sélectionnez un type d'établissement. Les étapes suivantes seront pré-remplies avec une structure adaptée.
       </p>
+      <div class="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/30">
+        <label for="targetEgId" class="block text-sm font-semibold text-slate-800 dark:text-slate-100">Entité géographique cible</label>
+        <select id="targetEgId" required class="mt-2 w-full max-w-xl rounded-lg border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">
+          <option value="">Choisir l'entité géographique qui recevra la structure</option>
+          {% for eg in target_egs %}
+          <option value="{{ eg.id }}" {% if selected_eg_id == eg.id %}selected{% endif %}>{{ eg.name or eg.identifier or ('EG #' ~ eg.id) }}{% if eg.identifier %} — {{ eg.identifier }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        {% if not target_egs %}
+        <p class="mt-2 text-sm text-amber-700 dark:text-amber-300">Aucune entité géographique disponible. Créez-en une ou changez de contexte avant de poursuivre.</p>
+        {% else %}
+        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">La création restera limitée à cette entité géographique.</p>
+        {% endif %}
+      </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="templateCards">
         <!-- Cartes de templates chargées dynamiquement depuis /api/structure/templates -->
       </div>
@@ -197,9 +211,14 @@
     const prevBtn = document.getElementById('wizardPrev');
     const nextBtn = document.getElementById('wizardNext');
     const templateCards = document.getElementById('templateCards');
+    const targetEgId = document.getElementById('targetEgId');
     let selectedTemplate = null;
     let templatePayload = null; // Stocke le payload JSON du template sélectionné
     let currentStep = 1;
+
+    function notify(message, type = 'info') {
+      if (window.toastSystem) window.toastSystem.show(message, type);
+    }
 
     function updateStepDisplay() {
       steps.forEach(stepEl => {
@@ -245,6 +264,15 @@
 
     nextBtn.addEventListener('click', () => {
       if (currentStep < 5) {
+        if (currentStep === 1 && !targetEgId?.value) {
+          notify('Sélectionnez d’abord l’entité géographique cible.', 'warning');
+          targetEgId?.focus();
+          return;
+        }
+        if (currentStep === 1 && !selectedTemplate) {
+          notify('Sélectionnez d’abord un modèle de structure.', 'warning');
+          return;
+        }
         currentStep += 1;
         updateStepDisplay();
         if (currentStep === 2) {
@@ -684,16 +712,14 @@
     const generateStructureBtn = document.getElementById('generateStructureBtn');
     generateStructureBtn?.addEventListener('click', async () => {
       if (!templatePayload) {
-        alert('Aucun template sélectionné.');
+        notify('Aucun modèle sélectionné.', 'warning');
         return;
       }
 
-      // Demander l'EG cible
-      const egIdInput = prompt('ID de l\'Entité Géographique cible (EG) :', '1');
-      if (!egIdInput) return;
-      const egId = parseInt(egIdInput);
-      if (isNaN(egId) || egId <= 0) {
-        alert('ID d\'EG invalide.');
+      const egId = Number(targetEgId?.value);
+      if (!Number.isInteger(egId) || egId <= 0) {
+        notify('Sélectionnez une entité géographique cible valide.', 'warning');
+        targetEgId?.focus();
         return;
       }
 
@@ -701,14 +727,18 @@
       const totalServices = templatePayload.poles?.reduce((sum, p) => sum + (p.services?.length || 0), 0) || 0;
       const totalUfs = templatePayload.poles?.reduce((sum, p) => sum + p.services?.reduce((s2, svc) => s2 + (svc.ufs?.length || 0), 0), 0) || 0;
 
-      const confirmation = confirm(
-        `Générer cette structure dans la base de données ?\n\n` +
-        `EG cible : ${egId}\n` +
-        `Pôles : ${totalPoles}\n` +
-        `Services : ${totalServices}\n` +
-        `UF : ${totalUfs}\n` +
-        `UH : ${uhList.length}`
-      );
+      const confirmAction = window.PameliaUi?.confirm || ((options) => Promise.resolve(window.confirm(options.message)));
+      const confirmation = await confirmAction({
+        title: 'Générer la structure',
+        acceptLabel: 'Générer',
+        variant: 'danger',
+        message:
+          `Créer cette structure dans l’EG sélectionnée ?\n\n` +
+          `Pôles : ${totalPoles}\n` +
+          `Services : ${totalServices}\n` +
+          `UF : ${totalUfs}\n` +
+          `UH : ${uhList.length}`,
+      });
 
       if (!confirmation) return;
 
@@ -733,14 +763,11 @@
 
         const result = await response.json();
         
-        alert(
-          `✅ ${result.message}\n\n` +
-          `Créé :\n` +
-          `• ${result.created_entities.poles} pôle(s)\n` +
-          `• ${result.created_entities.services} service(s)\n` +
-          `• ${result.created_entities.ufs} UF\n` +
-          `• ${result.created_entities.uhs} UH\n\n` +
-          `Vous pouvez maintenant consulter la structure dans le dashboard.`
+        notify(
+          `${result.message} — ${result.created_entities.poles} pôle(s), ` +
+          `${result.created_entities.services} service(s), ${result.created_entities.ufs} UF, ` +
+          `${result.created_entities.uhs} UH.`,
+          'success'
         );
 
         // Rediriger vers le dashboard structure
@@ -748,7 +775,7 @@
 
       } catch (error) {
         console.error('Erreur:', error);
-        alert(`❌ Erreur : ${error.message}`);
+        notify(`Erreur lors de la génération : ${error.message}`, 'error');
         generateStructureBtn.disabled = false;
         generateStructureBtn.textContent = '🚀 Générer la structure';
       }

@@ -3,12 +3,12 @@
 {% block title %}{{ template.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
+<main class="max-w-7xl mx-auto space-y-6 px-4 py-6" data-scenario-template-workspace data-template-key="{{ template.key }}">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
     <span class="text-slate-400 dark:text-slate-500">/</span>
-    <span class="text-slate-800 dark:text-slate-100 font-medium">Étapes du scénario ()</span>
+    <span class="text-slate-800 dark:text-slate-100 font-medium">{{ template.name }}</span>
   </nav>
 
   <!-- Header -->
@@ -19,7 +19,8 @@
           <div class="text-3xl">📋</div>
         </div>
         <div>
-          <h1 class="text-3xl font-bold">Étapes du scénario ()</h1>
+          <h1 class="text-3xl font-bold">{{ template.name }}</h1>
+          <p class="mt-1 text-sm text-violet-100">Modèle de scénario réutilisable</p>
         </div>
       </div>
     </div>
@@ -100,11 +101,11 @@
   <!-- Formulaire de rejeu -->
   <div class="bg-white dark:bg-slate-800 shadow rounded-lg p-6">
     <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">🎬 Rejouer ce template</h2>
-    <form id="playForm" class="space-y-4">
+    <form id="playForm" class="space-y-4" data-template-play-form>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Protocole</label>
-          <select name="protocol" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+          <select name="protocol" data-template-protocol class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
             <option value="HL7v2">HL7 v2.5 (ADT)</option>
             <option value="FHIR">FHIR R4 (Bundle)</option>
           </select>
@@ -112,12 +113,13 @@
         
         <div>
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Endpoint cible</label>
-          <select name="endpoint_id" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+          <select name="endpoint_id" data-template-endpoint required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
             <option value="">-- Sélectionner un endpoint --</option>
             {% for ep in endpoints %}
-              <option value="{{ ep.id }}">{{ ep.name }} ({{ ep.kind }})</option>
+              <option value="{{ ep.id }}" data-endpoint-kind="{{ ep.kind|upper }}">{{ ep.name }} ({{ ep.kind }})</option>
             {% endfor %}
           </select>
+          <p data-template-endpoint-help class="mt-1 text-xs text-slate-500 dark:text-slate-400">Les destinations compatibles avec le protocole choisi sont proposées.</p>
         </div>
 
         <div>
@@ -139,62 +141,24 @@
       </div>
 
       <div class="flex gap-3">
-        <button type="button" onclick="materializeOnly()" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition">
-          📦 Matérialiser seulement
+        <button type="button" data-materialize-template class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition">
+          📦 Créer un scénario depuis le modèle
         </button>
         <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
-          ▶️ Rejouer maintenant
+          ▶️ Exécuter le template
         </button>
       </div>
     </form>
 
     <!-- Résultats -->
-    <div id="results" class="mt-6 hidden">
+    <div id="results" class="mt-6 hidden" role="status" aria-live="polite">
       <h3 class="font-semibold text-slate-900 dark:text-slate-100 mb-3">Résultat</h3>
-      <pre id="resultContent" class="bg-slate-50 border border-slate-200 rounded p-4 text-xs overflow-x-auto"></pre>
+      <div id="resultContent" class="space-y-3"></div>
     </div>
   </div>
-</div>
+</main>
+{% endblock %}
 
-<script>
-async function materializeOnly() {
-  const form = document.getElementById('playForm');
-  const formData = new FormData(form);
-  const protocol = formData.get('protocol');
-  const ipp_prefix = formData.get('ipp_prefix');
-  const nda_prefix = formData.get('nda_prefix');
-  
-  const payload = { protocol, ipp_prefix, nda_prefix };
-  
-  try {
-    const response = await fetch(`/scenarios/templates/{{ template.key }}/materialize`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await response.json();
-    document.getElementById('results').classList.remove('hidden');
-    document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
-  } catch (error) {
-    alert('Erreur: ' + error.message);
-  }
-}
-
-document.getElementById('playForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  
-  try {
-    const response = await fetch(`/scenarios/templates/{{ template.key }}/play`, {
-      method: 'POST',
-      body: formData
-    });
-    const data = await response.json();
-    document.getElementById('results').classList.remove('hidden');
-    document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
-  } catch (error) {
-    alert('Erreur: ' + error.message);
-  }
-});
-</script>
+{% block scripts %}
+<script defer src="{{ url_for('static', path='js/scenario-template-workspace.js') }}"></script>
 {% endblock %}

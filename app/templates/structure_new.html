@@ -161,9 +161,9 @@
                                 <span class="text-slate-600 dark:text-slate-300 ml-1">élément(s) sélectionné(s)</span>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
-                                <button type="button" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-white" onclick="clearBulkSelection()">Annuler</button>
-                                <button type="button" class="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700" onclick="applyBulkAction('activate')">Activer</button>
-                                <button type="button" class="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800" onclick="applyBulkAction('deactivate')">Désactiver</button>
+                                <button id="bulk-clear-button" type="button" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-white">Annuler</button>
+                                <button id="bulk-activate-button" type="button" class="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Activer</button>
+                                <button id="bulk-deactivate-button" type="button" class="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800">Désactiver</button>
                             </div>
                         </div>
                     </div>
@@ -274,6 +274,26 @@ function setupEventListeners() {
     if (listSelectAll) {
         listSelectAll.addEventListener('change', (e) => toggleSelectAll(e.target.checked));
     }
+
+    document.getElementById('bulk-clear-button')?.addEventListener('click', clearBulkSelection);
+    document.getElementById('bulk-activate-button')?.addEventListener('click', () => applyBulkAction('activate'));
+    document.getElementById('bulk-deactivate-button')?.addEventListener('click', () => applyBulkAction('deactivate'));
+
+    document.getElementById('listViewBody')?.addEventListener('change', (event) => {
+        const checkbox = event.target.closest('.list-row-select');
+        if (!checkbox) return;
+        toggleBulkSelection(checkbox.dataset.type, Number(checkbox.dataset.id));
+    });
+    document.getElementById('listViewBody')?.addEventListener('click', (event) => {
+        const control = event.target.closest('[data-select-node]');
+        if (!control) return;
+        selectNode(control.dataset.type, Number(control.dataset.id));
+    });
+    document.getElementById('cardsViewBody')?.addEventListener('click', (event) => {
+        const control = event.target.closest('[data-select-node]');
+        if (!control) return;
+        selectNode(control.dataset.type, Number(control.dataset.id));
+    });
 }
 
 // Initialisation de la structure
@@ -462,11 +482,11 @@ function renderListView() {
         <tr class="hover:bg-slate-50">
             <td class="px-2 py-1 w-6">
                 <input type="checkbox" class="rounded border-slate-300 list-row-select" ${checked}
-                       onclick="toggleBulkSelection(event, '${row.type}', ${row.id})">
+                       data-type="${row.type}" data-id="${row.id}" aria-label="Sélectionner ${getTypeLabel(row.type)} ${row.name}">
             </td>
-            <td class="px-2 py-1 text-slate-600 cursor-pointer" onclick="selectNode('${row.type}', ${row.id})">${getTypeLabel(row.type)}</td>
-            <td class="px-2 py-1 text-slate-900 cursor-pointer" onclick="selectNode('${row.type}', ${row.id})">${row.name}</td>
-            <td class="px-2 py-1 text-slate-500 cursor-pointer" onclick="selectNode('${row.type}', ${row.id})">${row.path}</td>
+            <td class="px-2 py-1 text-slate-600"><button type="button" data-select-node data-type="${row.type}" data-id="${row.id}" class="text-left hover:text-blue-700">${getTypeLabel(row.type)}</button></td>
+            <td class="px-2 py-1 text-slate-900"><button type="button" data-select-node data-type="${row.type}" data-id="${row.id}" class="text-left hover:text-blue-700">${row.name}</button></td>
+            <td class="px-2 py-1 text-slate-500"><button type="button" data-select-node data-type="${row.type}" data-id="${row.id}" class="text-left hover:text-blue-700">${row.path}</button></td>
         </tr>`;
     }).join('');
 
@@ -548,7 +568,7 @@ function renderCardsView() {
     });
 
     container.innerHTML = filtered.map(row => `
-        <button type="button" onclick="selectNode('${row.type}', ${row.id})"
+        <button type="button" data-select-node data-type="${row.type}" data-id="${row.id}"
                 class="flex flex-col items-start p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:shadow-sm text-left">
             <div class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">${getTypeLabel(row.type)}</div>
             <div class="font-medium text-slate-900">${row.name}</div>
@@ -1018,8 +1038,8 @@ function filterStructure() {
 }
 
 // Gestion de la sélection bulk (mode liste)
-function toggleBulkSelection(event, type, id) {
-    event.stopPropagation();
+function toggleBulkSelection(type, id) {
+    if (!type || !Number.isInteger(id)) return;
     const key = `${type}:${id}`;
     if (bulkSelection.has(key)) {
         bulkSelection.delete(key);
@@ -1035,10 +1055,9 @@ function toggleSelectAll(checked) {
     checkboxes.forEach(cb => {
         cb.checked = checked;
         if (checked) {
-            const type = cb.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-            const idMatch = cb.getAttribute('onclick')?.match(/,\s*(\d+)/);
-            if (type && idMatch) {
-                bulkSelection.add(`${type}:${parseInt(idMatch[1], 10)}`);
+            const id = Number(cb.dataset.id);
+            if (cb.dataset.type && Number.isInteger(id)) {
+                bulkSelection.add(`${cb.dataset.type}:${id}`);
             }
         }
     });

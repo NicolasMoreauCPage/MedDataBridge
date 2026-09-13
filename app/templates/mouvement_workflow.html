@@ -689,7 +689,9 @@
       if (feedback) {
         feedback.textContent = 'Veuillez saisir une date et heure pour le mouvement.';
       }
-      alert('Veuillez saisir une date et heure pour le mouvement.');
+      if (window.toastSystem?.show) {
+        window.toastSystem.show('Veuillez saisir une date et heure pour le mouvement.', 'error');
+      }
       movementDateTime.focus();
       return false;
     }

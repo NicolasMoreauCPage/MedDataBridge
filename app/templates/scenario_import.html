@@ -153,6 +153,14 @@
 
 <script>
 // Gestion de l'import asynchrone de scénario
+function showScenarioImportNotification(message, type = 'info') {
+    if (window.toastSystem?.show) {
+        window.toastSystem.show(message, type);
+        return;
+    }
+    console.info(message);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const importForm = document.getElementById('import-scenario-form');
     const importBtn = document.getElementById('import-scenario-btn');
@@ -186,17 +194,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Succès - rediriger vers la liste des scénarios
                     window.location.href = response.url;
                 } else if (response.ok) {
-                    const data = await response.json();
                     // Afficher un message de succès et rediriger
-                    alert('✅ Scénario importé avec succès !');
-                    window.location.href = '/scenarios';
+                    await response.json().catch(() => ({}));
+                    showScenarioImportNotification('Scénario importé avec succès.', 'success');
+                    window.setTimeout(() => { window.location.href = '/scenarios'; }, 350);
                 } else {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.detail || `Erreur HTTP ${response.status}`);
                 }
             } catch (error) {
                 console.error('Erreur lors de l\'import:', error);
-                alert(`❌ Erreur lors de l'import du scénario:\n${error.message}`);
+                showScenarioImportNotification(`Erreur lors de l’import du scénario : ${error.message}`, 'error');
                 
                 // Restaurer le bouton
                 importBtn.disabled = originalDisabled;

@@ -772,6 +772,7 @@ async def list_entites_geographiques(
     egs = session.exec(query.order_by(EntiteGeographique.name)).all()
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/eg_list.html",
         {
             "request": request,
@@ -905,6 +906,7 @@ async def list_poles(
     eg_map = {eg.id: eg.name for eg in egs}
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/poles_list.html",
         {
             "request": request,
@@ -1108,6 +1110,7 @@ async def list_services(
     pole_map = {pole.id: pole.name for pole in poles}
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/services_list.html",
         {
             "request": request,
@@ -1781,6 +1784,7 @@ async def list_chambres(
     uh_map = {uh.id: uh.name for uh in uhs}
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/chambres_list.html",
         {
             "request": request,
@@ -2065,6 +2069,7 @@ async def list_lits(
     chambre_map = {chambre.id: chambre.name for chambre in chambres}
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/lits_list.html",
         {
             "request": request,

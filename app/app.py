@@ -68,7 +68,7 @@ from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
     generate, structure, workflow, fhir_structure, vocabularies,
-    health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation,
+    health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation, validation_rules,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
     interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks,
     hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie,
@@ -583,6 +583,8 @@ def create_app() -> FastAPI:
     app.include_router(interop.router)
     app.include_router(vocabularies.router)
     app.include_router(validation.router)  # Validation hors contexte
+    app.include_router(validation_rules.router)
+    app.include_router(validation_rules.ui_router)
     app.include_router(documentation.router)  # Documentation
     app.include_router(conformity.router)  # Conformité par EJ
     app.include_router(menu.router)  # Dynamic menu mapping page

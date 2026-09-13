@@ -1,12 +1,8 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session
 import json
 from pathlib import Path
-from typing import Optional
-
-from app.db import get_session
 
 router = APIRouter(prefix="/api/validation-rules", tags=["Validation Rules"])
 ui_router = APIRouter(tags=["Validation Rules UI"])  # will mount at /validation/rules
@@ -54,4 +50,8 @@ async def save_validation_rules(payload: dict):
 @ui_router.get("/validation/rules", response_class=HTMLResponse)
 async def validation_rules_page(request: Request):
     rules = _read_rules()
-    return templates.TemplateResponse("validation_rules.html", {"request": request, "rules_json": json.dumps(rules, ensure_ascii=False, indent=2)})
+    return templates.TemplateResponse(
+        request,
+        "validation_rules.html",
+        {"request": request, "rules_json": json.dumps(rules, ensure_ascii=False, indent=2)},
+    )

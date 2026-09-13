@@ -8,6 +8,9 @@ import json
 import io
 import zipfile
 from contextlib import nullcontext
+from urllib.parse import urlencode
+
+from sqlalchemy import func
 
 from app.db import get_session
 from app.models_endpoints import MessageLog, SystemEndpoint
@@ -91,9 +94,10 @@ def list_messages(
     status: Optional[str] = Query(None),
     kind: Optional[str] = Query(None),        # "MLLP" | "FHIR" | "HPRIM"
     direction: Optional[str] = Query(None),   # "in" | "out"
-    limit: int = Query(500, ge=1, le=5000),
+    page: int = 1,
+    limit: int = 50,
 ):
-    stmt = select(MessageLog).order_by(MessageLog.created_at.desc())
+    stmt = select(MessageLog)
 
     # Convertir endpoint_id en int si présent et non vide
     endpoint_id_int = None
@@ -131,9 +135,34 @@ def list_messages(
     if direction in ("in", "out"):
         stmt = stmt.where(MessageLog.direction == direction)
 
-    msgs = session.exec(stmt.limit(limit)).all()
+    page = max(int(page), 1)
+    limit = min(max(int(limit), 25), 200)
+    total_count = int(
+        session.exec(select(func.count()).select_from(stmt.subquery())).one()
+    )
+    total_pages = max(1, (total_count + limit - 1) // limit)
+    page = min(page, total_pages)
+    msgs = session.exec(
+        stmt.order_by(MessageLog.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+    ).all()
     endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.name)).all()
     ep_name = {e.id: e.name for e in endpoints}
+    query_params = {
+        key: value
+        for key, value in {
+            "endpoint_id": endpoint_id or None,
+            "date_start": date_start or None,
+            "date_end": date_end or None,
+            "neg_ack_only": "on" if neg_ack_only else None,
+            "status": status or None,
+            "kind": kind or None,
+            "direction": direction or None,
+            "limit": limit,
+        }.items()
+        if value is not None
+    }
 
     return get_templates_with_filters(request).TemplateResponse(
         request,
@@ -152,6 +181,12 @@ def list_messages(
                 "kind": kind or "",
                 "direction": direction or "",
                 "limit": limit,
+            },
+            "pagination": {
+                "page": page,
+                "total_pages": total_pages,
+                "total_count": total_count,
+                "base_url": "/messages?" + urlencode(query_params),
             },
         },
     )

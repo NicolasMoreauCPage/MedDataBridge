@@ -26,16 +26,16 @@
 {% endif %}
 
 {# Header avec titre et actions #}
-<div class="bg-gradient-to-r from-white dark:from-slate-700 to-gray-50 dark:to-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6 mb-6 shadow-sm">
+<div class="ui-page-header bg-gradient-to-r from-white dark:from-slate-700 to-gray-50 dark:to-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6 mb-6 shadow-sm">
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100">{{ title|default('Liste', true) }}</h1>
+      <h1 class="break-words text-2xl font-bold text-gray-900 dark:text-slate-100">{{ title|default('Liste', true) }}</h1>
       {% if subtitle %}
       <p class="text-gray-600 dark:text-slate-300 mt-1">{{ subtitle }}</p>
       {% endif %}
     </div>
     
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="ui-toolbar flex flex-wrap items-center gap-3">
       {# Filtre de statut (si fourni) #}
       {% if filter_options %}
         <form method="get" class="inline-block">
@@ -115,11 +115,23 @@
 <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
   {# Info bar #}
   {% if rows %}
-  <div class="px-6 py-3 bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
-    <div class="flex items-center gap-4">
+  <div class="ui-toolbar flex flex-col gap-3 px-4 py-3 bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
       <p class="text-sm text-gray-600 dark:text-slate-300">
-        <span class="font-semibold text-gray-900 dark:text-slate-100">{{ rows|length }}</span> élément(s)
+        <span class="font-semibold text-gray-900 dark:text-slate-100">{{ pagination.total_count if pagination and pagination.total_count is defined else rows|length }}</span> élément(s)
       </p>
+      {% if pagination and pagination.page_size %}
+        <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+          Par page
+          <select data-page-size data-page-size-param="{{ pagination.page_size_param|default('page_size') }}" class="rounded border-slate-300 py-1 text-xs dark:border-slate-600 dark:bg-slate-700">
+            {% for size in [25, 50, 100, 200] %}
+              {% if size <= (pagination.max_page_size|default(100)) %}
+                <option value="{{ size }}" {% if pagination.page_size == size %}selected{% endif %}>{{ size }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </label>
+      {% endif %}
       {% if rows and rows[0].detail_url %}
         <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +142,7 @@
       {% endif %}
       {# Legend for status icons - only show on scenario pages #}
       {% if '/scenarios' in request.url.path %}
-      <div class="ml-6 text-xs text-slate-600 dark:text-slate-300 flex items-center gap-3">
+      <div class="hidden sm:flex text-xs text-slate-600 dark:text-slate-300 items-center gap-3">
         <div class="flex items-center gap-1">
           <span title="Jamais exécuté">{{ icon('x', 'w-3 h-3') }}</span>
           <span class="ml-1">Jamais exécuté</span>
@@ -156,22 +168,22 @@
 
   {# Compact bulk-execute toolbar (only if endpoints are available) #}
   {% if all_endpoints %}
-  <div class="px-6 py-3 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex items-center gap-4">
+  <div class="ui-toolbar flex flex-col gap-3 px-4 py-3 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 sm:flex-row sm:items-center sm:px-6">
     <div class="text-sm text-slate-700 dark:text-slate-200">Sélectionnés: <strong id="bulkSelectedCount">0</strong></div>
 
     <label class="text-sm text-slate-600 dark:text-slate-300">Endpoint destinataire:</label>
-    <select id="bulkEndpoint" class="rounded-lg border-slate-300 dark:border-slate-600 px-3 py-1 text-sm">
+    <select id="bulkEndpoint" class="max-w-full rounded-lg border-slate-300 dark:border-slate-600 px-3 py-1 text-sm">
       <option value="" selected>— Choisir un endpoint destinataire —</option>
       {% for ep in all_endpoints %}
         <option value="{{ ep.id }}">{{ ep.name }} ({{ ep.kind }})</option>
       {% endfor %}
     </select>
 
-    <button id="bulkSubmitBtn" class="ml-auto px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled>Lancer l'exécution</button>
+    <button id="bulkSubmitBtn" class="sm:ml-auto px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50" disabled>Lancer l'exécution</button>
   </div>
   {% endif %}
 
-  <div class="overflow-x-auto">
+  <div class="ui-table-shell">
     <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
       <caption class="sr-only">{{ title|default('Liste') }} avec {{ rows|length }} élément(s)</caption>
       <thead class="bg-slate-50 dark:bg-slate-700">
@@ -196,7 +208,7 @@
           <tr class="hover:bg-blue-50/50 transition-colors list-item-enter {% if row.css_class %}{{ row.css_class }}{% endif %} {% if row.detail_url %}cursor-pointer hover:shadow-sm{% endif %}" 
               style="animation-delay: {{ loop.index * 50 }}ms" 
               {% if row.detail_url %}role="link" tabindex="0" aria-label="Ouvrir le détail de la ligne {{ loop.index }}"{% endif %}
-              {% if row.detail_url %}onclick="window.location.href='{{ row.detail_url }}'"{% endif %}>
+              {% if row.detail_url %}data-detail-url="{{ row.detail_url }}"{% endif %}>
             {# Checkbox column for bulk actions if endpoints available #}
             {% if all_endpoints %}
               <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-200 sticky-col">
@@ -349,16 +361,28 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.querySelectorAll('tr[role="link"][tabindex="0"]').forEach((row) => {
+    row.addEventListener('click', () => {
+      if (row.dataset.detailUrl) window.location.assign(row.dataset.detailUrl);
+    });
     row.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        row.click();
+        if (row.dataset.detailUrl) window.location.assign(row.dataset.detailUrl);
       }
     });
   });
 
   document.querySelectorAll('tr[role="link"] a, tr[role="link"] button, tr[role="link"] form, tr[role="link"] input').forEach((interactiveElement) => {
     interactiveElement.addEventListener('click', (event) => event.stopPropagation());
+  });
+
+  document.querySelectorAll('[data-page-size]').forEach((select) => {
+    select.addEventListener('change', () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set(select.dataset.pageSizeParam || 'page_size', select.value);
+      url.searchParams.set('page', '1');
+      window.location.assign(url.toString());
+    });
   });
 });
 </script>
@@ -382,7 +406,10 @@ function submitBulkExecuteFromList(e) {
   e.preventDefault();
   const selected = getSelectedRowIds();
   const endpointId = document.querySelector('select#bulkEndpoint')?.value;
-  if (!selected.length || !endpointId) return alert('Sélectionnez au moins un scénario et un endpoint.');
+  if (!selected.length || !endpointId) {
+    window.toastSystem?.show('Sélectionnez au moins un scénario et un endpoint.', 'warning');
+    return;
+  }
 
   // Create and submit a form
   const form = document.createElement('form');
@@ -502,13 +529,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.reload();
             } else {
                 // Erreur
-                alert('Erreur lors de la suppression. Veuillez réessayer.');
+                window.toastSystem?.show('Erreur lors de la suppression. Veuillez réessayer.', 'error');
                 button.disabled = false;
                 button.textContent = originalText;
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur réseau. Veuillez réessayer.');
+            window.toastSystem?.show('Erreur réseau. Veuillez réessayer.', 'error');
             button.disabled = false;
             button.textContent = originalText;
         }

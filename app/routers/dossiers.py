@@ -11,6 +11,8 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import String
 from datetime import datetime
 from typing import Optional
+from urllib.parse import urlencode
+from collections.abc import Mapping
 from app.db import get_session
 from app.models import Dossier, Patient, DossierType, Venue, CCAMAct, NGAPAct, UCDAct, LPPAct
 from app.services import dossiers_service
@@ -63,6 +65,8 @@ def list_dossiers(
     admit_from: str | None = Query(None, description="Filtrer par date d'admission à partir de (AAAA-MM-JJ)"),
     admit_to: str | None = Query(None, description="Filtrer par date d'admission jusqu'à (AAAA-MM-JJ)"),
     current_state: str | None = Query(None, description="Filtrer par état courant"),
+    page: int = 1,
+    page_size: int = 50,
     session=Depends(get_session)
 ):
     try:
@@ -90,10 +94,20 @@ def list_dossiers(
         current_state=current_state,
     )
     
-    # Compter les actes pour chaque dossier
+    # Le catalogue peut contenir plusieurs milliers de dossiers.  Les actes ne
+    # sont donc comptés que pour la page demandée, et non pour toutes les lignes
+    # correspondant au filtre.
+    page = max(1, page)
+    page_size = min(max(page_size, 25), 100)
+    total_count = len(dossiers)
+    total_pages = max(1, (total_count + page_size - 1) // page_size)
+    page = min(page, total_pages)
+    page_dossiers = dossiers[(page - 1) * page_size: page * page_size]
+
+    # Compter les actes pour chaque dossier de la page courante.
     from sqlalchemy import func
     dossier_acts_count = {}
-    for d in dossiers:
+    for d in page_dossiers:
         ccam_count = session.exec(select(func.count(CCAMAct.id)).where(CCAMAct.dossier_id == d.id)).one()
         ngap_count = session.exec(select(func.count(NGAPAct.id)).where(NGAPAct.dossier_id == d.id)).one()
         ucd_count = session.exec(select(func.count(UCDAct.id)).where(UCDAct.dossier_id == d.id)).one()
@@ -109,7 +123,7 @@ def list_dossiers(
                       d.discharge_time.strftime("%d/%m/%Y %H:%M") if d.discharge_time else None,
                       dossier_acts_count.get(d.id, 0)],
             "detail_url": f"/dossiers/{d.id}", "edit_url": f"/dossiers/{d.id}/edit", "cotation_url": f"/dossiers/{d.id}/cotation",
-        } for d in dossiers
+        } for d in page_dossiers
     ]
     actions = [
         {"type": "link", "label": "Export FHIR", "url": "/dossiers/export/fhir"},
@@ -165,7 +179,28 @@ def list_dossiers(
         },
     ]
 
-    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie", "Actes"], "rows": rows, "new_url": "/dossiers/new", "filters": filters, "actions": actions, "show_actions": True}
+    raw_query_params = getattr(request, "query_params", None)
+    query_params = dict(raw_query_params) if isinstance(raw_query_params, Mapping) else {}
+    query_params.pop("page", None)
+    query_params.pop("page_size", None)
+    query_params["page_size"] = str(page_size)
+    encoded_params = urlencode(query_params)
+    request_url = getattr(request, "url", None)
+    request_path = getattr(request_url, "path", None)
+    base_url = (request_path if isinstance(request_path, str) else "/dossiers") + (
+        f"?{encoded_params}" if encoded_params else "?"
+    )
+    pagination = {
+        "page": page,
+        "page_size": page_size,
+        "page_size_param": "page_size",
+        "max_page_size": 100,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "base_url": base_url,
+    }
+
+    ctx = {"request": request, "title": "Dossiers", "headers": ["Seq", "ID", "Patient", "UF resp.", "Type", "Admission", "Sortie", "Actes"], "rows": rows, "new_url": "/dossiers/new", "filters": filters, "actions": actions, "show_actions": True, "pagination": pagination}
     return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 @public_router.get("/{dossier_id}", response_class=HTMLResponse)

@@ -9,6 +9,76 @@
   --transition-normal: 200ms;
 }
 
+/* Application shell.  Flex/grid children need min-width: 0 to keep a wide
+   table, a long identifier or an action bar inside its own scroll container
+   instead of widening the whole document on small screens. */
+html,
+body {
+  max-width: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+.app-main {
+  width: 100%;
+  min-width: 0;
+}
+
+.ui-page-header,
+.ui-toolbar,
+.ui-table-shell {
+  min-width: 0;
+}
+
+.ui-table-shell {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.ui-table-shell > table {
+  width: 100%;
+}
+
+dialog.app-dialog {
+  width: min(30rem, calc(100% - 2rem));
+  margin: auto;
+  border: 0;
+  border-radius: 1rem;
+  padding: 0;
+  color: #1e293b;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.32);
+}
+
+dialog.app-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+html.dark dialog.app-dialog {
+  color: #e2e8f0;
+  background: #1e293b;
+}
+
+@media (max-width: 639px) {
+  .ui-toolbar {
+    align-items: stretch;
+  }
+
+  .ui-toolbar > * {
+    min-width: 0;
+  }
+
+  .ui-toolbar select,
+  .ui-toolbar input,
+  .ui-toolbar button,
+  .ui-toolbar .btn {
+    max-width: 100%;
+  }
+}
+
 /* Accessibility helper: sr-only (fallback if Tailwind utilities not present) */
 .sr-only {
   position: absolute !important;

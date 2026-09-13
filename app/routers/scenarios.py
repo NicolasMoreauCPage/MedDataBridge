@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Optional
+from urllib.parse import urlencode
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -103,6 +104,8 @@ router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 def list_scenarios(
     request: Request,
     filter_status: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 50,
     session: Session = Depends(get_session)
 ):
     """Liste les scénarios avec leur dernier statut d'exécution."""
@@ -110,8 +113,16 @@ def list_scenarios(
     # Récupérer les scénarios avec statut
     scenarios_data = get_scenarios_with_status(session, filter_by_status=filter_status)
     
+    page = max(int(page), 1)
+    page_size = min(max(int(page_size), 25), 100)
+    total_count = len(scenarios_data)
+    total_pages = max(1, (total_count + page_size - 1) // page_size)
+    page = min(page, total_pages)
+    first_index = (page - 1) * page_size
+    page_items = scenarios_data[first_index:first_index + page_size]
+
     rows = []
-    for scenario, scenario_status in scenarios_data:
+    for scenario, scenario_status in page_items:
         rows.append(
             {
                 "cells": [
@@ -130,7 +141,7 @@ def list_scenarios(
 
     ctx = {
         "request": request,
-        "title": "Scénarios d'interopération",
+        "title": "Scénarios d'interopérabilité",
         "breadcrumbs": [{"label": "Scénarios", "url": "/scenarios"}],
         "headers": ["", "Nom", "Protocole", "Étapes", "Dernier ACK", "Dernière exécution"],
         "rows": rows,
@@ -150,6 +161,18 @@ def list_scenarios(
             {"label": "❌ Erreurs", "value": "error"},
             {"label": "⏹️  Jamais exécutés", "value": "no_run"},
         ],
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "page_size_param": "page_size",
+            "max_page_size": 100,
+            "total_pages": total_pages,
+            "total_count": total_count,
+            "base_url": "/scenarios" + (
+                "?" + urlencode({"filter_status": filter_status, "page_size": page_size})
+                if filter_status else "?" + urlencode({"page_size": page_size})
+            ),
+        },
     }
     # Provide endpoints for inline bulk execution (compact mode)
     endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True)).order_by(SystemEndpoint.kind, SystemEndpoint.name)).all()
@@ -689,7 +712,7 @@ def qualification_campaigns(request: Request, session: Session = Depends(get_ses
     ).all()
     scenarios = session.exec(select(InteropScenario).where(InteropScenario.is_active.is_(True)).order_by(InteropScenario.name)).all()
     recent_runs = session.exec(
-        select(QualificationCampaignRun).order_by(QualificationCampaignRun.created_at.desc()).limit(50)
+        select(QualificationCampaignRun).order_by(QualificationCampaignRun.started_at.desc()).limit(50)
     ).all()
     runs_by_campaign = {}
     for run in recent_runs:

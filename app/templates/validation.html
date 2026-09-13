@@ -4,7 +4,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
+<div class="mx-auto w-full min-w-0 max-w-7xl" data-validation-workspace data-initial-mode="{{ 'scenario' if scenario_result else 'single' }}">
     <!-- Lien vers la documentation -->
     <div class="mb-4 flex justify-end">
         {{ doc_link(request.url.path) }}
@@ -12,18 +12,18 @@
     
     <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg overflow-hidden">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-4">
-            <h1 class="text-2xl font-bold">Validation Messages HL7 v2.5 / HPRIM XML</h1>
+        <div class="bg-gradient-to-r from-blue-600 to-blue-800 px-4 py-5 text-white sm:px-6">
+            <h1 class="break-words text-2xl font-bold">Validation Messages HL7 v2.5 / HPRIM XML</h1>
             <p class="text-blue-100 mt-1">Validez vos messages HL7 ou HPRIM XML hors contexte GHT</p>
         </div>
 
         <!-- Onglets de mode -->
         <div class="border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700">
-            <nav class="flex -mb-px px-6" aria-label="Tabs">
+            <nav class="flex overflow-x-auto px-2 sm:px-6" aria-label="Mode de validation" role="tablist">
                 <button
                     type="button"
-                    onclick="switchMode('single')"
                     id="tab-single"
+                    data-validation-tab="single"
                     role="tab"
                     aria-selected="true"
                     aria-controls="form-single"
@@ -36,8 +36,8 @@
                 </button>
                 <button
                     type="button"
-                    onclick="switchMode('scenario')"
                     id="tab-scenario"
+                    data-validation-tab="scenario"
                     role="tab"
                     aria-selected="false"
                     aria-controls="form-scenario"
@@ -52,7 +52,7 @@
         </div>
 
         <!-- Formulaire de validation -->
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
             <!-- Mode: Message unique -->
             <form method="post" action="/validation/validate" class="space-y-4" data-no-ajax="1" id="form-single" role="tabpanel" aria-labelledby="tab-single">
                 <div class="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 p-4 mb-4">
@@ -231,7 +231,7 @@ ZBE|MVT003^HOSP^1.2.250.1.1^ISO|20240101140000||INSERT|N||^^^^^^^^^UF01||H"
 
         {% if validation_done and not scenario_result %}
         <!-- Résultats de validation (message unique) -->
-        <div class="border-t border-gray-200 dark:border-slate-700 px-6 py-6 bg-gray-50 dark:bg-slate-700">
+        <div class="border-t border-gray-200 bg-gray-50 px-4 py-6 dark:border-slate-700 dark:bg-slate-700 sm:px-6" data-validation-results>
             <h2 class="text-xl font-bold text-gray-800 dark:text-slate-200 mb-4">Résultats de la validation</h2>
 
             {% if format_detected == 'HPRIM_XML' %}
@@ -796,83 +796,8 @@ ZBE|MVT003^HOSP^1.2.250.1.1^ISO|20240101140000||INSERT|N||^^^^^^^^^UF01||H"
     </div>
 </div>
 
-<script>
-// Gestion des onglets de mode
-function switchMode(mode) {
-    console.log('switchMode appelée avec mode:', mode);
-    
-    const singleTab = document.getElementById('tab-single');
-    const scenarioTab = document.getElementById('tab-scenario');
-    const singleForm = document.getElementById('form-single');
-    const scenarioForm = document.getElementById('form-scenario');
-    
-    console.log('Éléments trouvés:', {
-        singleTab: !!singleTab,
-        scenarioTab: !!scenarioTab,
-        singleForm: !!singleForm,
-        scenarioForm: !!scenarioForm
-    });
-    
-    if (!singleTab || !scenarioTab || !singleForm || !scenarioForm) {
-        console.error('Certains éléments ne sont pas trouvés!');
-        return;
-    }
-    
-    if (mode === 'single') {
-        // Active le mode message unique
-        singleTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-        singleTab.classList.add('border-blue-500', 'text-blue-600');
-        scenarioTab.classList.remove('border-blue-500', 'text-blue-600');
-        scenarioTab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-        
-        singleForm.classList.remove('hidden');
-        scenarioForm.classList.add('hidden');
-        singleTab.setAttribute('aria-selected', 'true');
-        scenarioTab.setAttribute('aria-selected', 'false');
-        console.log('Mode message unique activé');
-    } else {
-        // Active le mode scénario
-        scenarioTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-        scenarioTab.classList.add('border-blue-500', 'text-blue-600');
-        singleTab.classList.remove('border-blue-500', 'text-blue-600');
-        singleTab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-        
-        scenarioForm.classList.remove('hidden');
-        singleForm.classList.add('hidden');
-        scenarioTab.setAttribute('aria-selected', 'true');
-        singleTab.setAttribute('aria-selected', 'false');
-        console.log('Mode scénario activé');
-    }
-}
+{% endblock %}
 
-// Scroll automatique vers les résultats après validation
-document.addEventListener('DOMContentLoaded', function() {
-    {% if validation_done or scenario_result %}
-    // Attendre que le DOM soit complètement chargé
-    setTimeout(function() {
-        const resultsSection = document.querySelector('.border-t.border-gray-200.px-6.py-6.bg-gray-50');
-        if (resultsSection) {
-            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }, 100);
-    {% endif %}
-    
-    {% if scenario_result %}
-    // Si on affiche des résultats de scénario, basculer sur l'onglet scénario
-    switchMode('scenario');
-    {% endif %}
-});
-
-document.querySelectorAll('[role="tab"]').forEach((tab) => {
-    tab.addEventListener('keydown', (event) => {
-        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-            event.preventDefault();
-            const target = tab.id === 'tab-single' ? 'scenario' : 'single';
-            switchMode(target);
-            document.getElementById(`tab-${target}`).focus();
-        }
-    });
-});
-</script>
-
+{% block scripts %}
+<script defer src="{{ url_for('static', path='js/validation-workspace.js') }}"></script>
 {% endblock %}

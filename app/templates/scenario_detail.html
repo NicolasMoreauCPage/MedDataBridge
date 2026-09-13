@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="mx-auto w-full min-w-0 max-w-7xl px-4 py-6" data-scenario-workspace data-scenario-id="{{ scenario.id }}">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
@@ -14,14 +14,14 @@
   <!-- Header -->
   <div class="mb-8">
     <div class="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 rounded-2xl p-8 text-white shadow-lg">
-      <div class="flex items-center space-x-4">
+      <div class="flex min-w-0 flex-wrap items-center gap-4">
         <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
         </div>
-        <div>
-          <h1 class="text-3xl font-bold">{{ scenario.name|default('', true) }}</h1>
+        <div class="min-w-0">
+          <h1 class="break-words text-3xl font-bold">{{ scenario.name|default('', true) }}</h1>
           <p class="text-violet-100 mt-1">
             Protocole: {{ scenario.protocol|default('', true) }} — {{ steps|length }} étapes{% if scenario.category %} — {{ scenario.category|default('', true) }}{% endif %}
           </p>
@@ -71,7 +71,7 @@
 
   <section class="mt-5 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
     <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold text-slate-900 dark:text-white">Versions publiées</h2><p class="text-sm text-slate-500">Un jeu conserve la version exacte utilisée, même si le scénario est modifié ensuite.</p></div><form method="post" action="/scenarios/{{ scenario.id }}/versions/publish" class="flex gap-2"><input name="comment" placeholder="Commentaire de version" class="rounded-lg border-slate-300 text-sm dark:bg-slate-700"><button class="rounded-lg bg-slate-800 px-3 py-2 text-sm text-white">Publier la version</button></form></div>
-    <ul class="mt-3 text-sm divide-y dark:divide-slate-700">{% for version in scenario_versions %}<li class="py-2">v{{ version.version_number }} · {{ version.status }} · {{ version.content_checksum[:10] }}{% if version.comment %} — {{ version.comment }}{% endif %}</li>{% else %}<li class="py-2 text-slate-500">Aucune version publiée : la première sera créée à la publication ou au lancement.</li>{% endfor %}</ul>
+    <ul class="mt-3 text-sm divide-y dark:divide-slate-700">{% for version in scenario_versions %}<li class="py-2">v{{ version.version_number }} · {{ version.status }} · {{ (version.content_checksum or '')[:10] }}{% if version.comment %} — {{ version.comment }}{% endif %}</li>{% else %}<li class="py-2 text-slate-500">Aucune version publiée : la première sera créée à la publication ou au lancement.</li>{% endfor %}</ul>
   </section>
 
 <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 mb-6">
@@ -117,7 +117,7 @@
         </svg>
         Exporter JSON
       </a>
-      <button type="button" onclick="configureRealisticTiming()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700">
+      <button type="button" data-realistic-timing class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -143,7 +143,57 @@
       <button class="rounded-lg border border-violet-300 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-200 dark:hover:bg-violet-900/30">Séparer les messages regroupés</button>
     </form>
   </div>
-  <div class="overflow-x-auto">
+  <div class="space-y-3 p-4 lg:hidden">
+    {% for step in steps %}
+      {% set trigger = (step.message_type.split('^')[1] if step.message_type and '^' in step.message_type else step.message_type) %}
+      {% set deprecated = trigger and trigger.startswith('Z') and trigger != 'Z99' %}
+      {% set trigger_label = event_labels.get(trigger) if event_labels and trigger else None %}
+      {% set display_payload = (step.payload or '')|replace('\\r\\n', '\n')|replace('\\n', '\n')|replace('\\r', '\n')|replace('\r', '\n') %}
+      <article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700 {% if deprecated %}bg-amber-50 dark:bg-amber-950/20{% endif %}">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="font-mono text-xs font-semibold text-violet-700 dark:text-violet-300">Étape {{ step.order_index if step.order_index is not none else '' }}</p>
+            <h3 class="mt-1 break-words font-mono font-semibold text-slate-900 dark:text-white">{{ step.message_type if step.message_type is not none else (step.name if step.name is not none else step.message_format|upper) }}</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ trigger_label or step.description or step.name or 'Message du scénario' }}</p>
+          </div>
+          <span class="rounded px-2 py-1 text-xs {{ 'bg-red-100 text-red-800' if step.is_required else 'bg-slate-100 text-slate-600' }}">{{ 'Obligatoire' if step.is_required else 'Facultative' }}</span>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2 text-xs">
+          <span class="rounded bg-blue-50 px-2 py-1 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200">{% if step.route_mode == 'explicit' %}Endpoints choisis{% elif step.route_mode == 'target_system' %}Système {{ step.target_system_key or 'non défini' }}{% else %}Toutes les cibles compatibles{% endif %}</span>
+          {% if step.delay_seconds %}<span class="rounded bg-slate-100 px-2 py-1 text-slate-600 dark:bg-slate-700 dark:text-slate-300">Délai : {{ step.delay_seconds }} s</span>{% endif %}
+        </div>
+        {% if deprecated %}<p class="mt-3 text-xs font-semibold text-amber-700 dark:text-amber-300">Message Z** non émis (profil IHE PAM ≥ 2.8).</p>{% endif %}
+        <details class="mt-3">
+          <summary class="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">Voir le payload</summary>
+          <pre class="mt-2 max-h-64 overflow-auto rounded-lg bg-slate-950 p-3 text-xs leading-5 text-slate-100 whitespace-pre-wrap">{{ display_payload }}</pre>
+        </details>
+        <details class="mt-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-900/40">
+          <summary class="cursor-pointer text-sm font-medium text-violet-700 dark:text-violet-300">Modifier et agir</summary>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <form method="post" action="/scenarios/{{ scenario.id }}/steps/{{ step.id }}/move"><input type="hidden" name="direction" value="up"><button class="rounded bg-white px-3 py-2 text-sm shadow-sm dark:bg-slate-700">↑ Monter</button></form>
+            <form method="post" action="/scenarios/{{ scenario.id }}/steps/{{ step.id }}/move"><input type="hidden" name="direction" value="down"><button class="rounded bg-white px-3 py-2 text-sm shadow-sm dark:bg-slate-700">↓ Descendre</button></form>
+            <form method="post" action="/scenarios/{{ scenario.id }}/steps/{{ step.id }}/delete" data-confirm="Supprimer l’étape {{ step.order_index }} ? Cette action est irréversible." data-confirm-title="Supprimer une étape" data-confirm-accept="Supprimer" data-confirm-variant="danger"><button class="rounded px-3 py-2 text-sm text-red-700 dark:text-red-300">Supprimer</button></form>
+          </div>
+          <form method="post" action="/scenarios/{{ scenario.id }}/steps/{{ step.id }}/edit" class="mt-4 space-y-3">
+            <label class="block text-sm">Nom<input name="name" value="{{ step.name or '' }}" class="mt-1 w-full rounded border-slate-300 dark:border-slate-600 dark:bg-slate-700"></label>
+            <label class="block text-sm">Type de message<input name="message_type" value="{{ step.message_type or '' }}" class="mt-1 w-full rounded border-slate-300 font-mono dark:border-slate-600 dark:bg-slate-700"></label>
+            <label class="block text-sm">Payload<textarea name="payload" rows="10" class="mt-1 w-full rounded border-slate-300 font-mono text-xs dark:border-slate-600 dark:bg-slate-700">{{ display_payload }}</textarea></label>
+            <input type="hidden" name="message_format" value="{{ step.message_format }}">
+            <input type="hidden" name="description" value="{{ step.description or '' }}">
+            <input type="hidden" name="delay_seconds" value="{{ step.delay_seconds if step.delay_seconds is not none else '' }}">
+            <input type="hidden" name="route_mode" value="{{ step.route_mode or 'all_compatible' }}">
+            <input type="hidden" name="target_system_key" value="{{ step.target_system_key or '' }}">
+            {% if step.is_required %}<input type="hidden" name="is_required" value="true">{% endif %}
+            {% for endpoint_id in route_endpoint_ids_by_step.get(step.id, []) %}<input type="hidden" name="route_endpoint_ids" value="{{ endpoint_id }}">{% endfor %}
+            <button class="rounded-lg bg-violet-600 px-4 py-2 text-sm text-white">Enregistrer</button>
+          </form>
+        </details>
+      </article>
+    {% else %}
+      <p class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Aucune étape dans ce scénario. Ajoutez un premier message ci-dessous.</p>
+    {% endfor %}
+  </div>
+  <div class="ui-table-shell hidden lg:block">
     <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
       <thead class="bg-slate-50 dark:bg-slate-700">
         <tr>
@@ -208,7 +258,10 @@
                 </form>
               </details>
               <form method="post" action="/scenarios/{{ scenario.id }}/steps/{{ step.id }}/delete"
-                    onsubmit="return confirm('Supprimer cette étape ?');">
+                    data-confirm="Supprimer l’étape {{ step.order_index }} ? Cette action est irréversible."
+                    data-confirm-title="Supprimer une étape"
+                    data-confirm-accept="Supprimer"
+                    data-confirm-variant="danger">
                 <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-700">Supprimer</button>
               </form>
             </td>
@@ -274,124 +327,8 @@
   </form>
 </div>
 
-<script>
-function showToast(message, kind = 'info') {
-  const type = kind === 'warn' ? 'warning' : kind;
-  window.toastSystem.show(message, type);
-}
+{% endblock %}
 
-async function configureRealisticTiming() {
-  const scenarioId = {{ scenario.id }};
-  
-  try {
-    // D'abord, récupérer la suggestion
-    const suggestionResponse = await fetch(`/scenarios/${scenarioId}/suggest-realistic-timing`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!suggestionResponse.ok) {
-      throw new Error(`Erreur ${suggestionResponse.status}: ${await suggestionResponse.text()}`);
-    }
-    
-    const suggestion = await suggestionResponse.json();
-    
-    // Demander confirmation avec les détails
-    const confirmMessage = `Configurer le timing réaliste pour ce scénario ?
-
-Workflow détecté: ${suggestion.analysis.detected_workflow}
-Description: ${suggestion.analysis.workflow_description}
-Séquence d'événements: ${suggestion.analysis.event_sequence.join(' → ')}
-
-Configuration suggérée:
-• Ancrage: ${suggestion.suggested_config.time_anchor_mode}
-${suggestion.suggested_config.time_anchor_days_offset ? `• Décalage: ${suggestion.suggested_config.time_anchor_days_offset} jours` : ''}
-• Jitter: ${suggestion.suggested_config.jitter_min_minutes}-${suggestion.suggested_config.jitter_max_minutes} minutes
-• Événements avec jitter: ${suggestion.suggested_config.apply_jitter_on_events}
-
-Cette action remplacera la configuration temporelle actuelle.`;
-    
-    if (confirm(confirmMessage)) {
-      // Appliquer la configuration
-      const applyResponse = await fetch(`/scenarios/${scenarioId}/apply-realistic-timing`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!applyResponse.ok) {
-        throw new Error(`Erreur ${applyResponse.status}: ${await applyResponse.text()}`);
-      }
-      
-      const result = await applyResponse.json();
-
-      showToast(`${result.message}\nWorkflow : ${result.analysis.detected_workflow}`, 'success');
-
-      // Recharger la page pour voir les changements (laisser le temps de lire le toast)
-      setTimeout(() => window.location.reload(), 1200);
-    }
-
-  } catch (error) {
-    console.error('Erreur lors de la configuration du timing réaliste:', error);
-    showToast(`Erreur lors de la configuration du timing réaliste : ${error.message}`, 'error');
-  }
-}
-
-// Gestion de l'envoi asynchrone du scénario
-document.addEventListener('DOMContentLoaded', function() {
-    const sendForm = document.getElementById('send-scenario-form');
-    const sendBtn = document.getElementById('send-scenario-btn');
-    
-    if (sendForm && sendBtn) {
-        sendForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const originalText = sendBtn.innerHTML;
-            const originalDisabled = sendBtn.disabled;
-            
-            // Désactiver le bouton et changer le texte
-            sendBtn.disabled = true;
-            sendBtn.innerHTML = `
-                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                Envoi en cours...
-            `;
-            
-            try {
-                const response = await fetch(sendForm.action, {
-                    method: 'POST',
-                    body: new FormData(sendForm),
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                if (response.redirected) {
-                    // Succès - rediriger vers la page de résultats
-                    window.location.href = response.url;
-                } else if (response.ok) {
-                    const data = await response.json();
-                    // Afficher un message de succès et rediriger
-                    showToast('Scénario envoyé avec succès !', 'success');
-                    setTimeout(() => window.location.reload(), 1200);
-                } else {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.detail || `Erreur HTTP ${response.status}`);
-                }
-            } catch (error) {
-                console.error('Erreur lors de l\'envoi:', error);
-                showToast(`Erreur lors de l'envoi du scénario : ${error.message}`, 'error');
-
-                // Restaurer le bouton
-                sendBtn.disabled = originalDisabled;
-                sendBtn.innerHTML = originalText;
-            }
-        });
-    }
-});
-</script>
+{% block scripts %}
+<script defer src="{{ url_for('static', path='js/scenario-workspace.js') }}"></script>
 {% endblock %}

@@ -306,7 +306,7 @@
   {% from 'macros/ui.html' import icon, breadcrumb as ui_breadcrumbs, status_bar, toast_container, modal, confirm_modal %}
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 bg-surface focus:px-3 focus:py-2 focus:rounded-md transition-all duration-200">Aller au contenu</a>
   <header class="surface border-b border-theme shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-surface/95" role="banner">
-    <div class="mx-auto max-w-content px-4 py-3 flex items-center justify-between gap-4">
+    <div class="mx-auto flex min-w-0 max-w-content items-center justify-between gap-4 px-4 py-3">
       <a href="/" class="flex items-center gap-3 text-lg font-semibold transition-all duration-200 hover:opacity-80 group" aria-label="PAMélia — accueil">
         <span class="pamelia-brand-mark" aria-hidden="true">P</span>
         <span class="pamelia-brand leading-none">PAMélia<span class="pamelia-brand-subtitle">Laboratoire d'interop</span></span>
@@ -434,7 +434,7 @@
   {{ status_bar(statuses) }}
 
   <nav class="hidden md:block border-t border-theme surface" aria-label="Navigation principale" role="navigation">
-  <div class="mx-auto max-w-content px-4 py-2 flex justify-between items-center text-sm text-slate-600">
+  <div class="mx-auto flex min-w-0 max-w-content items-center justify-between px-4 py-2 text-sm text-slate-600">
     <ul class="flex items-center gap-6" role="menubar">
         {% if request.state.ght_context %}
         <li class="relative group" data-test-nav="structure">
@@ -934,7 +934,7 @@
   </header>
 
   <div class="min-h-screen flex flex-col">
-    <main id="main-content" role="main" tabindex="-1" class="flex-1 mx-auto max-w-content px-4 py-6 animate-fade-in">
+    <main id="main-content" role="main" tabindex="-1" class="app-main flex-1 mx-auto w-full min-w-0 max-w-content px-4 py-6 animate-fade-in sm:px-6">
       {% if request.state and request.state.flash_messages %}
         <div class="space-y-2 mb-6" aria-live="polite">
           {% for flash in request.state.flash_messages %}
@@ -1236,6 +1236,17 @@
   <!-- Conteneur de toasts pour les notifications -->
   {{ toast_container() }}
 
+  <dialog id="confirm-dialog" class="app-dialog" aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-message">
+    <form method="dialog" class="p-6">
+      <h2 id="confirm-dialog-title" class="text-lg font-semibold text-slate-900 dark:text-white">Confirmer l’action</h2>
+      <p id="confirm-dialog-message" class="mt-2 text-sm text-slate-600 dark:text-slate-300"></p>
+      <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button value="cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">Annuler</button>
+        <button id="confirm-dialog-accept" type="button" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Confirmer</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Footer avec version et changelog -->
   <footer class="border-t border-border bg-gradient-to-b from-surface to-surface/95 mt-auto backdrop-blur-sm">
     <div class="mx-auto max-w-content px-4 py-6">
@@ -1310,6 +1321,7 @@
   <!-- L'édition reste disponible hors ligne ; le glisser-déposer se désactive proprement sans bibliothèque externe. -->
   <script src="{{ url_for('static', path='/js/components.js') }}"></script>
   <script src="{{ url_for('static', path='/js/structure-interactive.js') }}"></script>
+  <script defer src="{{ url_for('static', path='/js/ui-controls.js') }}"></script>
 
 </body>
 </html>

@@ -6,7 +6,8 @@ def test_scenario_detail_script_block_renders(client, session):
     session.refresh(s)
     resp = client.get(f"/scenarios/{s.id}")
     assert resp.status_code == 200
-    assert "configureRealisticTiming" in resp.text
+    assert "js/scenario-workspace.js" in resp.text
+    assert "data-scenario-workspace" in resp.text
 
 
 def test_conformity_home_script_block_renders(client, session):

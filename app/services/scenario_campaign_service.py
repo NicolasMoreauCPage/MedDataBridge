@@ -178,7 +178,7 @@ async def process_queued_campaigns(session: Session, *, limit: int = 5) -> dict[
     runs = session.exec(
         select(QualificationCampaignRun)
         .where(QualificationCampaignRun.status.in_(["queued", "running"]))
-        .order_by(QualificationCampaignRun.created_at, QualificationCampaignRun.id)
+        .order_by(QualificationCampaignRun.started_at, QualificationCampaignRun.id)
         .limit(limit)
     ).all()
     result = {"processed": 0, "completed": 0}

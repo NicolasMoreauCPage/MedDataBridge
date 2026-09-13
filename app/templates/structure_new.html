@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="mx-auto w-full min-w-0 max-w-7xl px-4 py-6">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
@@ -12,12 +12,12 @@
   <!-- Header -->
   <div class="mb-8">
     <div class="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
-      <div class="flex items-center space-x-4">
+      <div class="flex min-w-0 flex-wrap items-center gap-4">
         <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3">
           <div class="text-3xl">🔹</div>
         </div>
-        <div>
-          <h1 class="text-3xl font-bold">Vue structurelle</h1>
+        <div class="min-w-0">
+          <h1 class="break-words text-3xl font-bold">Vue structurelle</h1>
         </div>
       </div>
     </div>
@@ -57,9 +57,9 @@
 
         <!-- En-tête avec filtres -->
         <div class="mb-8 space-y-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <h1 class="text-3xl font-bold">Vue structurelle</h1>
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div class="flex min-w-0 flex-wrap items-center gap-3">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Explorer la structure</h2>
                 {% if filtered_ej_id %}
                 <span class="text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full">
                     Vue filtrée par établissement
@@ -81,7 +81,7 @@
                 </div>
                 {% endif %}
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap items-center gap-1 sm:gap-2">
                 <button id="expandAllBtn" class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800">
                     Tout déplier
                 </button>
@@ -121,14 +121,14 @@
     </div>
 
     <!-- Structure principale -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div class="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-4">
         <!-- Navigation arborescente / vues -->
-        <div class="lg:col-span-1">
+        <div class="min-w-0 lg:col-span-1">
             <div class="sticky top-4">
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div class="p-4 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-700">
                         <h2 class="font-semibold text-slate-900 dark:text-slate-100">Navigation</h2>
-                        <div class="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden text-xs">
+                        <div class="inline-flex max-w-full flex-wrap rounded-lg border border-slate-200 bg-white text-xs dark:border-slate-700 dark:bg-slate-800">
                             <button id="modeTreeBtn" type="button" class="px-2.5 py-1 bg-slate-900 text-white">Arbre</button>
                             <button id="modeListBtn" type="button" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Liste</button>
                             <button id="modeCardsBtn" type="button" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Cards</button>
@@ -139,7 +139,8 @@
                         <!-- Chargé dynamiquement -->
                     </div>
                     <!-- Vue liste -->
-                    <div id="listView" class="hidden p-4 text-xs border-t border-slate-100 dark:border-slate-700">
+                    <div id="listView" class="hidden border-t border-slate-100 p-4 text-xs dark:border-slate-700">
+                      <div class="ui-table-shell">
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                             <thead class="bg-slate-50 dark:bg-slate-700">
                                 <tr>
@@ -153,12 +154,13 @@
                             </thead>
                             <tbody id="listViewBody" class="divide-y divide-slate-100 bg-white dark:bg-slate-800"></tbody>
                         </table>
-                        <div id="bulkActionsBar" class="hidden mt-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 flex items-center justify-between text-xs">
+                      </div>
+                        <div id="bulkActionsBar" class="mt-3 hidden flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-700">
                             <div>
                                 <span id="bulkSelectionCount" class="font-medium text-slate-900 dark:text-slate-100">0</span>
                                 <span class="text-slate-600 dark:text-slate-300 ml-1">élément(s) sélectionné(s)</span>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <button type="button" class="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-white" onclick="clearBulkSelection()">Annuler</button>
                                 <button type="button" class="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700" onclick="applyBulkAction('activate')">Activer</button>
                                 <button type="button" class="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800" onclick="applyBulkAction('deactivate')">Désactiver</button>
@@ -174,19 +176,19 @@
         </div>
 
         <!-- Détails de la structure -->
-        <div class="lg:col-span-3">
+        <div class="min-w-0 lg:col-span-3">
             <div id="structureDetail" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                 <div class="border-b border-slate-200 dark:border-slate-700">
                     <div class="px-6 py-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100" id="detailTitle">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="min-w-0">
+                                <h3 class="break-words text-xl font-semibold text-slate-900 dark:text-slate-100" id="detailTitle">
                                     Sélectionnez un élément
                                 </h3>
                                 <p class="text-sm text-slate-500 dark:text-slate-400" id="detailType"></p>
                                 <p class="mt-1 text-xs text-slate-400 dark:text-slate-500 hidden" id="detailPath"></p>
                             </div>
-                            <div class="flex items-center gap-3" id="detailActions"></div>
+                            <div class="flex flex-wrap items-center gap-3" id="detailActions"></div>
                         </div>
                     </div>
                 </div>

@@ -1069,7 +1069,7 @@ function clearBulkSelection() {
     updateBulkBar();
 }
 
-function applyBulkAction(action) {
+async function applyBulkAction(action) {
     if (bulkSelection.size === 0) return;
     const readable = action === 'activate' ? 'activer' : action === 'deactivate' ? 'désactiver' : action;
     if (!['activate', 'deactivate'].includes(action)) {
@@ -1077,7 +1077,17 @@ function applyBulkAction(action) {
         return;
     }
 
-    if (!confirm(`Voulez-vous vraiment ${readable} ${bulkSelection.size} élément(s) ?`)) {
+    if (!window.PameliaUi?.confirm) {
+        showError("Le dialogue de confirmation n'est pas disponible.");
+        return;
+    }
+    const confirmed = await window.PameliaUi.confirm({
+        title: `Confirmer l’action en lot`,
+        message: `Voulez-vous vraiment ${readable} ${bulkSelection.size} élément(s) ?`,
+        acceptLabel: readable.charAt(0).toUpperCase() + readable.slice(1),
+        variant: action === 'deactivate' ? 'danger' : 'primary',
+    });
+    if (!confirmed) {
         return;
     }
 
@@ -1104,8 +1114,7 @@ function applyBulkAction(action) {
         })
         .then(data => {
             const msg = `${data.updated || 0} élément(s) mis à jour`;
-            console.log('Bulk action OK', data);
-            alert(msg);
+            showNotification(msg, 'success');
             clearBulkSelection();
             // Recharger la structure pour refléter les nouveaux statuts
             initializeStructure();
@@ -1117,8 +1126,16 @@ function applyBulkAction(action) {
 }
 
 function showError(message) {
-    // TODO: Implémenter un système de notification d'erreur
     console.error(message);
+    showNotification(message, 'error');
+}
+
+function showNotification(message, type = 'info') {
+    if (window.toastSystem?.show) {
+        window.toastSystem.show(message, type);
+        return;
+    }
+    console.info(message);
 }
 
 // Ouvrir la page d'édition classique pour l'entité sélectionnée

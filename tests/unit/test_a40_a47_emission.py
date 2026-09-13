@@ -59,6 +59,22 @@ def test_change_patient_identifier_updates_and_marks_old(session):
     assert new_ident.status == "active"
 
 
+def test_change_patient_identifier_rejects_an_existing_active_identifier(session):
+    patient = Patient(patient_seq=31, identifier="IPP031", family="MARTIN", given="ALICE")
+    other_patient = Patient(patient_seq=32, identifier="IPP032", family="MARTIN", given="BOB")
+    session.add(patient)
+    session.add(other_patient)
+    session.flush()
+    session.add(Identifier(value="IPP031", system="HOSP", type=IdentifierType.IPP, status="active", patient_id=patient.id))
+    session.add(Identifier(value="IPP032", system="HOSP", type=IdentifierType.IPP, status="active", patient_id=other_patient.id))
+    session.commit()
+
+    ok, error = change_patient_identifier(session, patient.id, "IPP032", new_system="HOSP")
+
+    assert not ok
+    assert "déjà actif" in error
+
+
 def test_generate_pam_hl7_merge_builds_a40_with_mrg():
     entity = {
         "id": 1, "patient_seq": 1, "identifier": "IPP001", "family": "DOE", "given": "JOHN",
@@ -92,3 +108,24 @@ def test_generate_pam_hl7_change_id_builds_a47_with_mrg():
     segments = msg.split("\r")
     assert any(s.startswith("MSH") and "A47" in s and "ADT_A30" in s for s in segments)
     assert any(s.startswith("MRG|IPP001-OLD^^^HOSP^PI") for s in segments)
+
+
+@pytest.mark.parametrize("operation", ["merge", "change_id"])
+@pytest.mark.parametrize("mrg_prior_identifiers", [None, ["~"]])
+def test_generate_pam_hl7_rejects_identity_transaction_without_mrg1(operation, mrg_prior_identifiers):
+    from unittest.mock import MagicMock
+
+    entity = {
+        "id": 1, "patient_seq": 1, "identifier": "IPP001", "family": "DOE", "given": "JOHN",
+        "gender": "M", "entite_juridique_id": None,
+    }
+    fake_session = MagicMock()
+
+    with pytest.raises(ValueError, match="MRG-1"):
+        generate_pam_hl7(
+            entity,
+            "patient",
+            fake_session,
+            operation=operation,
+            mrg_prior_identifiers=mrg_prior_identifiers,
+        )

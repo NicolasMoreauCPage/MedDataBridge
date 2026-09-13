@@ -164,6 +164,37 @@ def build_pid_segment(
     return f"PID|||{pid_3}||{pid_5}||{pid_7}|{pid_8}"
 
 
+def build_mrg_segment(
+    prior_patient_identifiers: List[str],
+    prior_patient_name: Optional[str] = None,
+) -> str:
+    """Construit le segment ``MRG`` pour un ADT^A40 ou ADT^A47.
+
+    ``PID`` décrit toujours l'identité retenue ou le nouvel identifiant. Les
+    identifiants antérieurs sont donc portés dans MRG-1 (CX répétable avec
+    ``~``) ; MRG-7 peut transporter le nom de l'identité source lors d'une
+    fusion. Un message de fusion sans MRG-1 ne permet pas au destinataire de
+    déterminer l'identité à retirer : il est refusé ici plutôt que d'émettre
+    un message non conforme.
+    """
+    identifiers = [
+        repetition.strip()
+        for value in prior_patient_identifiers
+        for repetition in str(value or "").split("~")
+        if repetition.strip()
+    ]
+    if not identifiers:
+        raise ValueError("MRG-1 requiert au moins un identifiant patient antérieur pour A40/A47")
+    if any("|" in value or "\r" in value or "\n" in value for value in identifiers):
+        raise ValueError("Les identifiants MRG-1 doivent être des valeurs CX, sans séparateur de segment ou de champ")
+    if prior_patient_name and any(char in prior_patient_name for char in "|\r\n"):
+        raise ValueError("MRG-7 ne doit pas contenir de séparateur de segment ou de champ")
+
+    # Garder les champs intermédiaires vides afin que le nom soit sans ambiguïté
+    # en MRG-7, conformément à HL7 v2.5.
+    return f"MRG|{'~'.join(identifiers)}||||||{prior_patient_name or ''}"
+
+
 def build_pv1_segment(
     dossier: Dossier,
     venue: Optional[Venue] = None,
@@ -485,6 +516,8 @@ def generate_adt_message(
     control_id: Optional[str] = None,
     timestamp: Optional[datetime] = None,
     endpoint: Optional[SystemEndpoint] = None,
+    mrg_prior_identifiers: Optional[List[str]] = None,
+    mrg_prior_name: Optional[str] = None,
 ) -> str:
     """
     Génère un message ADT complet.
@@ -500,6 +533,8 @@ def generate_adt_message(
         namespaces: Dictionnaire des namespaces disponibles
         control_id: ID de contrôle (généré si absent)
         timestamp: Date/heure du message (maintenant si absent)
+        mrg_prior_identifiers: Identifiants antérieurs (MRG-1) pour A40/A47
+        mrg_prior_name: Nom antérieur (MRG-7), utile pour A40
     
     Returns:
         Message HL7 PAM complet
@@ -507,6 +542,7 @@ def generate_adt_message(
     Raises:
         ValueError: Si les segments obligatoires selon le profil IHE PAM FR ne peuvent pas être générés
     """
+    trigger_event = (trigger_event or "").upper()
     if timestamp is None:
         timestamp = datetime.utcnow()
     
@@ -537,24 +573,36 @@ def generate_adt_message(
             f"Fournir un objet Mouvement pour générer ZBE."
         )
     
-    # Messages A40 (fusion) et A47 (changement identifiant) ne sont pas encore supportés
-    # car ils nécessitent le segment MRG
+    # Les transactions d'identité A40/A47 sont des messages PID/MRG : elles ne
+    # décrivent pas un mouvement et ne doivent donc pas embarquer de PV1/ZBE.
+    # EVN est présent afin que le message soit directement exploitable par les
+    # correspondants qui le rendent obligatoire, tout en restant compatible
+    # avec le profil France qui le tolère comme optionnel pour ces événements.
     if trigger_event in {"A40", "A47"}:
-        raise NotImplementedError(
-            f"Le message ADT^{trigger_event} n'est pas encore supporté par le générateur. "
-            f"Ce type de message requiert le segment MRG (Merge Patient Information) qui n'est pas encore implémenté."
-        )
-    
-    # Segments obligatoires
+        mrg = build_mrg_segment(mrg_prior_identifiers or [], mrg_prior_name)
+        segments = [
+            build_msh_segment(
+                message_type=message_type,
+                trigger_event=trigger_event,
+                control_id=control_id,
+                timestamp=timestamp,
+            ),
+            f"EVN|{trigger_event}|{format_datetime(timestamp)}",
+            build_pid_segment(patient, session=session),
+            mrg,
+        ]
+        return normalize_generated_message("\r".join(segments))
+
+    # Segments obligatoires pour les autres transactions.
     segments = [
         build_msh_segment(
             message_type=message_type,
             trigger_event=trigger_event,
             control_id=control_id,
-            timestamp=timestamp
+            timestamp=timestamp,
         ),
         build_pid_segment(patient, session=session),
-    build_pv1_segment(dossier, venue=venue, session=session, trigger_event=trigger_event)
+        build_pv1_segment(dossier, venue=venue, session=session, trigger_event=trigger_event),
     ]
 
     # Ajouter les segments NK1 pour les messages d'identité (A28, A31)
@@ -720,6 +768,62 @@ def generate_update_message(*, endpoint: Optional[SystemEndpoint] = None, **kwar
     if _is_strict_pam(endpoint):
         raise NotImplementedError("generate_update_message (A08) désactivé (mode strict PAM FR per-EJ ou env)")
     return generate_adt_message(trigger_event="A08", endpoint=endpoint, **kwargs)
+
+
+def generate_patient_merge_message(
+    *,
+    patient: Patient,
+    dossier: Dossier,
+    prior_patient_identifiers: List[str],
+    prior_patient_name: Optional[str] = None,
+    session: Optional[Session] = None,
+    control_id: Optional[str] = None,
+    timestamp: Optional[datetime] = None,
+    endpoint: Optional[SystemEndpoint] = None,
+) -> str:
+    """Génère un ADT^A40^ADT_A39 de fusion d'identités.
+
+    ``patient`` est le survivant (PID) et ``prior_patient_identifiers`` décrit
+    l'identité source dans MRG-1.
+    """
+    return generate_adt_message(
+        patient=patient,
+        dossier=dossier,
+        trigger_event="A40",
+        session=session,
+        control_id=control_id,
+        timestamp=timestamp,
+        endpoint=endpoint,
+        mrg_prior_identifiers=prior_patient_identifiers,
+        mrg_prior_name=prior_patient_name,
+    )
+
+
+def generate_patient_identifier_change_message(
+    *,
+    patient: Patient,
+    dossier: Dossier,
+    prior_patient_identifiers: List[str],
+    session: Optional[Session] = None,
+    control_id: Optional[str] = None,
+    timestamp: Optional[datetime] = None,
+    endpoint: Optional[SystemEndpoint] = None,
+) -> str:
+    """Génère un ADT^A47^ADT_A30 de changement d'identifiant patient.
+
+    ``patient`` porte le nouvel identifiant dans PID-3 ; l'ancien identifiant
+    obligatoire est porté dans MRG-1.
+    """
+    return generate_adt_message(
+        patient=patient,
+        dossier=dossier,
+        trigger_event="A47",
+        session=session,
+        control_id=control_id,
+        timestamp=timestamp,
+        endpoint=endpoint,
+        mrg_prior_identifiers=prior_patient_identifiers,
+    )
 
 
 def generate_cancel_admission_message(

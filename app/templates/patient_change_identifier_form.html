@@ -35,13 +35,21 @@
     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ patient.family }} {{ patient.given }}</p>
   </div>
 
-  <form method="post" action="/patients/{{ patient.id }}/change-identifier" class="space-y-6 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+  <div class="bg-cyan-50 dark:bg-cyan-950/30 border-2 border-cyan-200 dark:border-cyan-800 rounded-xl p-4 mb-6 text-sm text-cyan-900 dark:text-cyan-100">
+    <p><strong>Contenu HL7 émis :</strong> le nouvel identifiant sera placé dans <strong>PID-3</strong> ; l'identifiant actuel sera conservé dans <strong>MRG-1</strong> du message <strong>ADT^A47^ADT_A30</strong>.</p>
+    {% if current_identifier %}
+    <p class="mt-2 font-mono text-xs">MRG-1 : {{ current_identifier.value }}^^^{{ current_identifier.system }}^{{ current_identifier_type }}{% if current_identifier.oid %} (OID {{ current_identifier.oid }}){% endif %}</p>
+    {% endif %}
+  </div>
+
+  <form method="post" action="/patients/{{ patient.id }}/change-identifier" class="space-y-6 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm" data-confirm="Confirmer le changement d'identifiant ? L'ancien identifiant sera conservé comme historique et diffusé dans MRG-1." data-confirm-title="Modifier l'identifiant patient" data-confirm-accept="Modifier et émettre A47" data-confirm-variant="warning">
     <div>
       <label for="new_value" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
         Nouvel identifiant <span class="text-red-500">*</span>
       </label>
-      <input type="text" id="new_value" name="new_value" required
+      <input type="text" id="new_value" name="new_value" required data-current-value="{{ patient.identifier }}"
              class="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-slate-100" />
+      <p id="identifier-change-error" class="hidden mt-2 text-sm font-medium text-red-700 dark:text-red-300" role="alert">Le nouvel identifiant doit être différent de l'identifiant actuel.</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,4 +80,23 @@
     </div>
   </form>
 </div>
+<script>
+  (() => {
+    const form = document.querySelector('form[action="/patients/{{ patient.id }}/change-identifier"]');
+    const input = document.getElementById('new_value');
+    const error = document.getElementById('identifier-change-error');
+    const submit = form?.querySelector('button[type="submit"]');
+    const currentValue = input.dataset.currentValue.trim();
+
+    function validateNewIdentifier() {
+      const unchanged = input.value.trim() !== '' && input.value.trim() === currentValue;
+      error.classList.toggle('hidden', !unchanged);
+      submit.disabled = unchanged;
+      submit.classList.toggle('opacity-50', unchanged);
+      submit.classList.toggle('cursor-not-allowed', unchanged);
+    }
+
+    input.addEventListener('input', validateNewIdentifier);
+  })();
+</script>
 {% endblock %}

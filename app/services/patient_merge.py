@@ -33,7 +33,12 @@ from sqlmodel import Session, select
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_identifiers import Identifier
-from app.services.identifier_manager import merge_identifiers, parse_hl7_cx_identifier, create_identifier_from_hl7
+from app.services.identifier_manager import (
+    create_identifier_from_hl7,
+    map_identifier_type_to_hl7_code,
+    merge_identifiers,
+    parse_hl7_cx_identifier,
+)
 
 logger = logging.getLogger("patient_merge")
 
@@ -391,7 +396,7 @@ async def handle_change_patient_identifier(
 def _identifier_to_cx(identifier: Identifier) -> str:
     """Construit une chaîne HL7 CX brute (ID^^^system^type) depuis un Identifier."""
     system = identifier.system or ""
-    type_code = identifier.type.value if identifier.type else ""
+    type_code = map_identifier_type_to_hl7_code(identifier.type) or "PI"
     return f"{identifier.value}^^^{system}^{type_code}"
 
 
@@ -417,6 +422,10 @@ def merge_patients(
         return False, "Patient survivant introuvable"
     if not source_patient:
         return False, "Patient source introuvable"
+    if (source_patient.family or "").startswith("[MERGED]") or (source_patient.identifier or "").startswith("ARCHIVED-"):
+        return False, "Le patient source est déjà archivé à la suite d'une fusion"
+    if (surviving_patient.family or "").startswith("[MERGED]") or (surviving_patient.identifier or "").startswith("ARCHIVED-"):
+        return False, "Le patient survivant ne peut pas être une identité archivée"
 
     try:
         # Capturer les identifiants du patient source AVANT la fusion pour construire MRG-1
@@ -425,7 +434,9 @@ def merge_patients(
         ).all()
         mrg_prior_identifiers = [_identifier_to_cx(i) for i in source_identifiers if i.value]
         if not mrg_prior_identifiers and source_patient.identifier:
-            mrg_prior_identifiers = [source_patient.identifier]
+            mrg_prior_identifiers = [f"{source_patient.identifier}^^^^PI"]
+        if not mrg_prior_identifiers:
+            return False, "La fusion requiert un identifiant source pour renseigner MRG-1"
         mrg_prior_name = (
             f"{source_patient.family}^{source_patient.given}" if source_patient.family else None
         )
@@ -489,19 +500,35 @@ def change_patient_identifier(
     patient = session.get(Patient, patient_id)
     if not patient:
         return False, "Patient introuvable"
+    new_value = (new_value or "").strip()
     if not new_value:
         return False, "Le nouvel identifiant est requis"
 
     try:
         # Capturer l'ancien identifiant principal AVANT modification, pour MRG-1
-        old_value = patient.identifier
+        old_value = (patient.identifier or "").strip()
+        if not old_value:
+            return False, "L'identifiant actuel est requis pour renseigner MRG-1"
+        if old_value == new_value:
+            return False, "Le nouvel identifiant doit être différent de l'identifiant actuel"
+        duplicate_identifier = session.exec(
+            select(Identifier)
+            .where(Identifier.value == new_value)
+            .where(Identifier.status == "active")
+            .where(Identifier.patient_id != patient.id)
+        ).first()
+        if duplicate_identifier:
+            return False, "Ce nouvel identifiant est déjà actif pour un autre patient"
         old_identifier_row = session.exec(
             select(Identifier)
             .where(Identifier.patient_id == patient.id)
             .where(Identifier.value == old_value)
         ).first()
-        old_system = old_identifier_row.system if old_identifier_row else ""
-        mrg_prior_identifiers = [f"{old_value}^^^{old_system}^PI"] if old_value else []
+        mrg_prior_identifiers = (
+            [_identifier_to_cx(old_identifier_row)]
+            if old_identifier_row
+            else [f"{old_value}^^^^PI"]
+        )
 
         # Marquer l'ancien identifiant comme "old" (traçabilité, pas de suppression)
         if old_identifier_row:

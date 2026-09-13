@@ -15,8 +15,10 @@ from app.services.scenario_identity_generator import (
     identity_to_sample_data,
 )
 from app.services.vocabulary_lookup import get_vocabulary_options
+from app.services.identifier_manager import map_identifier_type_to_hl7_code
 from app.utils.flash import flash
 from app.models import Patient, Dossier
+from app.models_identifiers import Identifier
 
 def get_templates(request: Request):
     """Retourne l'instance templates globale avec les filtres enregistrés"""
@@ -213,13 +215,23 @@ def delete_patient(patient_id: int, request: Request, session=Depends(get_sessio
 
 
 @router.get("/merge", response_class=HTMLResponse)
-def merge_patients_form(request: Request, session=Depends(get_session)):
+def merge_patients_form(
+    request: Request,
+    source_patient_id: Optional[int] = None,
+    session=Depends(get_session),
+):
     """Affiche le formulaire de fusion de deux patients (émission A40)."""
-    patients = session.exec(select(Patient).order_by(Patient.family, Patient.given)).all()
+    patients = [
+        patient
+        for patient in session.exec(select(Patient).order_by(Patient.family, Patient.given)).all()
+        if not (patient.family or "").startswith("[MERGED]")
+        and not (patient.identifier or "").startswith("ARCHIVED-")
+    ]
     templates = get_templates(request)
     return templates.TemplateResponse(request, "patient_merge_form.html", {
         "title": "Fusionner deux patients",
         "patients": patients,
+        "source_patient_id": source_patient_id,
     })
 
 
@@ -248,9 +260,21 @@ def change_identifier_form(patient_id: int, request: Request, session=Depends(ge
     templates = get_templates(request)
     if not patient:
         return templates.TemplateResponse(request, "not_found.html", {"title": "Patient introuvable"}, status_code=404)
+    current_identifier = session.exec(
+        select(Identifier)
+        .where(Identifier.patient_id == patient.id)
+        .where(Identifier.value == patient.identifier)
+        .where(Identifier.status == "active")
+    ).first()
     return templates.TemplateResponse(request, "patient_change_identifier_form.html", {
         "title": "Modifier l'identifiant patient",
         "patient": patient,
+        "current_identifier": current_identifier,
+        "current_identifier_type": (
+            map_identifier_type_to_hl7_code(current_identifier.type)
+            if current_identifier
+            else "PI"
+        ) or "PI",
     })
 
 

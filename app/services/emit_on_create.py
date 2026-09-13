@@ -96,6 +96,23 @@ def _c(val):
     return str(val)
 
 
+def _normalize_mrg_prior_identifiers(identifiers: Optional[Sequence[object]]) -> list[str]:
+    """Normalise les répétitions CX destinées à MRG-1.
+
+    La frontière d'émission refuse ainsi une liste vide (ou seulement composée
+    de séparateurs ``~``) avant de construire un A40/A47 impossible à appliquer.
+    """
+    normalized = [
+        repetition.strip()
+        for value in identifiers or []
+        for repetition in str(value or "").split("~")
+        if repetition.strip()
+    ]
+    if any("|" in value or "\r" in value or "\n" in value for value in normalized):
+        raise ValueError("MRG-1 doit contenir des identifiants CX sans séparateur de segment ou de champ")
+    return normalized
+
+
 def _new_message_control_id(seed: object) -> str:
     """Construit un MSH-10 unique sans altérer les identifiants métier.
 
@@ -429,6 +446,16 @@ def generate_pam_hl7(
         else:
             event_type = "A31" if operation == "update" else "A28"
 
+        normalized_mrg_prior_identifiers = _normalize_mrg_prior_identifiers(mrg_prior_identifiers)
+        if event_type in {"A40", "A47"} and not normalized_mrg_prior_identifiers:
+            raise ValueError(
+                f"ADT^{event_type} requiert au moins un identifiant antérieur dans MRG-1"
+            )
+        if event_type == "A40" and mrg_prior_name and any(
+            character in str(mrg_prior_name) for character in "|\r\n"
+        ):
+            raise ValueError("MRG-7 ne doit pas contenir de séparateur de segment ou de champ")
+
         # Build timestamp and control id
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -636,7 +663,7 @@ def generate_pam_hl7(
             # Conforme à l'exemple de la spec IHE PAM France (§4.4.2) : MSH, EVN, PID, MRG (pas de PV1).
             mrg_fields = [""] * 8
             mrg_fields[0] = "MRG"
-            mrg_fields[1] = "~".join(_c_local(p) for p in (mrg_prior_identifiers or []) if p)
+            mrg_fields[1] = "~".join(_c_local(p) for p in normalized_mrg_prior_identifiers)
             if mrg_prior_name:
                 mrg_fields[7] = _c_local(mrg_prior_name)
             mrg = "|".join(mrg_fields)

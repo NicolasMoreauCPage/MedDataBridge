@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from app.services.pam_profile_fr import normalize_generated_message
+from app.services.pam_profile_fr import expected_structure, normalize_generated_message
 
 
 def _format_ts(value: datetime | None) -> str:
@@ -62,9 +62,10 @@ def build_message_for_movement(
     else:
         trigger = msg_type or 'A02'
     
+    msg_structure = expected_structure(trigger) or "ADT_A01"
     msh = (
         "MSH|^~\\&|POC|POC|DST|DST|"
-        f"{when}||ADT^{trigger}|{control_id}|P|2.5^FRA^2.11.1||||||UNICODE UTF-8"
+        f"{when}||ADT^{trigger}^{msg_structure}|{control_id}|P|2.5^FRA^2.11.1||||||UNICODE UTF-8"
     )
 
     # EVN (event type, datetime)
@@ -114,6 +115,18 @@ def build_message_for_movement(
     pid_fields.append(_safe_str(pid_32))  # PID-32
     pid = "|".join(pid_fields)
 
+    # A40/A47 sont des transactions d'identité : PID porte l'identité
+    # survivante/le nouvel identifiant et MRG porte obligatoirement MRG-1. Il
+    # ne s'agit pas d'un mouvement, donc aucun PV1/ZBE ne doit être fabriqué.
+    identity_merge = trigger in {"A40", "A47"}
+    mrg = None
+    if identity_merge:
+        mrg_1 = str(getattr(movement, "merge_identifiers", "") or "").strip()
+        if not mrg_1:
+            raise ValueError(f"ADT^{trigger} requiert MRG-1 (merge_identifiers)")
+        mrg_7 = str(getattr(movement, "previous_name", "") or "").strip()
+        mrg = f"MRG|{mrg_1}||||||{mrg_7}"
+
     # PV1 (champs principaux)
     pv1_2 = getattr(venue, 'patient_class', 'I') or 'I'
     pv1_3 = location or ''
@@ -149,13 +162,6 @@ def build_message_for_movement(
     zbe_9 = getattr(movement, 'nature', 'HMS') or 'HMS'
     zbe = f"ZBE|{_safe_str(zbe_1)}|{_safe_str(zbe_2)}|{_safe_str(zbe_3)}|{_safe_str(zbe_4)}|{_safe_str(zbe_5)}|{_safe_str(zbe_6)}|{_safe_str(zbe_7)}|{_safe_str(zbe_8)}|{_safe_str(zbe_9)}"
 
-    # MRG (fusion, optionnel)
-    mrg = None
-    if hasattr(movement, 'merge_identifiers'):
-        mrg_1 = getattr(movement, 'merge_identifiers', '')
-        mrg_7 = getattr(movement, 'previous_name', '')
-        mrg = f"MRG|{mrg_1}||||||{mrg_7}"
-
     # NK1 (contact, optionnel)
     nk1 = None
     if hasattr(patient, 'contact_name'):
@@ -175,12 +181,15 @@ def build_message_for_movement(
         pd1_fields.append(pd1_12)
         pd1 = "|".join(pd1_fields)
 
-    # Construction finale
-    segments = [msh, evn, pid, pv1, zbe]
-    if mrg:
-        segments.append(mrg)
-    if nk1:
-        segments.append(nk1)
+    # Construction finale : les messages A40/A47 restent limités à la
+    # transaction d'identité, sans contexte de venue artificiel.
+    segments = [msh, evn, pid]
+    if not identity_merge:
+        segments.extend([pv1, zbe])
     if pd1:
         segments.append(pd1)
+    if nk1 and trigger != "A47":
+        segments.append(nk1)
+    if identity_merge:
+        segments.append(mrg)
     return normalize_generated_message("\r".join(segments))

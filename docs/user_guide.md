@@ -177,6 +177,28 @@ dans `data/pam/` et son roundtrip est décrit dans
 python3 scripts/true_roundtrip_cpage.py run
 ```
 
+### Fusion d'identités et changement d'identifiant (A40/A47)
+
+Ces deux opérations portent sur l'identité du patient, pas sur un mouvement.
+Leur émission contient `MSH`, `EVN`, `PID` et `MRG`, sans `PV1` ni `ZBE` ajouté
+artificiellement :
+
+| Opération | Accès IHM | Message | Rôle de `PID-3` | Rôle de `MRG-1` |
+|---|---|---|---|---|
+| Fusion de doublons | `/patients/merge` ou fiche patient → **Fusionner ce patient** | `ADT^A40^ADT_A39` | Identité survivante | Identifiant(s) de l'identité source à archiver |
+| Modification d'identifiant | fiche patient → **Modifier l'identifiant** | `ADT^A47^ADT_A30` | Nouvel identifiant | Ancien identifiant conservé pour le rapprochement |
+
+Pour une fusion, sélectionner d'abord le patient source (il sera archivé),
+puis le patient survivant. L'application réattribue les dossiers, conserve les
+anciens identifiants avec le statut `old`, et émet l'A40 vers les endpoints MLLP
+abonnés. Pour un A47, le nouvel identifiant doit être différent et ne doit pas
+déjà être actif pour un autre patient. La confirmation IHM rappelle le contenu
+du `MRG` avant l'émission.
+
+Un A40 ou A47 sans identifiant antérieur dans `MRG-1` est rejeté à la génération
+comme à la validation : ce contrôle évite une émission que le destinataire ne
+pourrait pas appliquer sans ambiguïté.
+
 ## Endpoints et échanges
 
 Configurer les systèmes dans `/endpoints`, après avoir sélectionné le GHT ou

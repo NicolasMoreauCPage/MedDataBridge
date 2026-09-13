@@ -39,9 +39,9 @@
       </label>
       <select id="source_patient_id" name="source_patient_id" required
               class="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 dark:text-slate-100">
-        <option value="" disabled selected>Sélectionner le patient source...</option>
+        <option value="" disabled{% if not source_patient_id %} selected{% endif %}>Sélectionner le patient source...</option>
         {% for p in patients %}
-        <option value="{{ p.id }}">#{{ p.id }} — {{ p.identifier }} — {{ p.family }} {{ p.given }}{% if p.birth_date %} ({{ p.birth_date }}){% endif %}</option>
+        <option value="{{ p.id }}" data-identifier="{{ p.identifier }}"{% if source_patient_id == p.id %} selected{% endif %}>#{{ p.id }} — {{ p.identifier }} — {{ p.family }} {{ p.given }}{% if p.birth_date %} ({{ p.birth_date }}){% endif %}</option>
         {% endfor %}
       </select>
     </div>
@@ -59,6 +59,13 @@
       </select>
     </div>
 
+    <div id="merge-mrg-preview" class="hidden rounded-xl border-2 border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/30 p-4 text-sm text-cyan-900 dark:text-cyan-100" aria-live="polite">
+      Le message <strong>ADT^A40^ADT_A39</strong> contiendra l'identifiant principal source <code id="merge-source-identifier" class="font-mono"></code>, ainsi que ses autres identifiants actifs, dans <strong>MRG-1</strong> ; l'identité conservée sera dans <strong>PID-3</strong>. Aucun PV1/ZBE ne sera ajouté.
+    </div>
+    <p id="merge-selection-error" class="hidden text-sm font-medium text-red-700 dark:text-red-300" role="alert">
+      Le patient source et le patient survivant doivent être différents.
+    </p>
+
     <div class="flex gap-3 pt-2">
       <button type="submit"
               class="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-rose-600 to-orange-600 text-white hover:from-rose-700 hover:to-orange-700 shadow-md transition-all">
@@ -70,4 +77,30 @@
     </div>
   </form>
 </div>
+<script>
+  (() => {
+    const form = document.querySelector('form[action="/patients/merge"]');
+    const source = document.getElementById('source_patient_id');
+    const survivor = document.getElementById('surviving_patient_id');
+    const preview = document.getElementById('merge-mrg-preview');
+    const sourceIdentifier = document.getElementById('merge-source-identifier');
+    const error = document.getElementById('merge-selection-error');
+    const submit = form?.querySelector('button[type="submit"]');
+
+    function refreshMergeSelection() {
+      const hasBothPatients = Boolean(source.value && survivor.value);
+      const samePatient = hasBothPatients && source.value === survivor.value;
+      sourceIdentifier.textContent = source.options[source.selectedIndex]?.dataset.identifier || '';
+      preview.classList.toggle('hidden', !hasBothPatients || samePatient);
+      error.classList.toggle('hidden', !samePatient);
+      submit.disabled = samePatient;
+      submit.classList.toggle('opacity-50', samePatient);
+      submit.classList.toggle('cursor-not-allowed', samePatient);
+    }
+
+    source.addEventListener('change', refreshMergeSelection);
+    survivor.addEventListener('change', refreshMergeSelection);
+    refreshMergeSelection();
+  })();
+</script>
 {% endblock %}

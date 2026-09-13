@@ -65,27 +65,42 @@
   }
 
   async function loadOperations(){
-    const data = await fetchJSON('/api/metrics/operations');
-    // Build table
-    els.opsTableBody.innerHTML='';
-    const options=['Toutes'];
-    let total=0, totalSuccess=0;
-    Object.entries(data).forEach(([name,m])=>{
-      total += m.count||0; totalSuccess += m.success_count||0;
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${name}</td><td>${m.count||0}</td><td>${m.success_count||0}</td><td>${m.error_count||0}</td><td>${m.count? pct((m.success_count||0)/m.count):'0%'}</td><td>${m.avg_duration?fmt(m.avg_duration):'0.0'}</td><td>${m.min_duration!==undefined&&m.min_duration!==Infinity?fmt(m.min_duration):'0.0'}</td><td>${m.max_duration?fmt(m.max_duration):'0.0'}</td>`;
-      els.opsTableBody.appendChild(tr);
-      options.push(name);
-    });
-    els.opsTotal.textContent = total;
-    els.successRate.textContent = total? pct(totalSuccess/total):'0%';
-    // Populate select once
-    if(!els.opSelect.dataset.filled){
-      options.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;els.opSelect.appendChild(opt);});
-      els.opSelect.dataset.filled='1';
+    try {
+      const data = await fetchJSON('/api/metrics/operations');
+      // Build table
+      els.opsTableBody.innerHTML='';
+      const options=['Toutes'];
+      let total=0, totalSuccess=0;
+      Object.entries(data).forEach(([name,m])=>{
+        total += m.count||0; totalSuccess += m.success_count||0;
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${name}</td><td>${m.count||0}</td><td>${m.success_count||0}</td><td>${m.error_count||0}</td><td>${m.count? pct((m.success_count||0)/m.count):'0%'}</td><td>${m.avg_duration?fmt(m.avg_duration):'0.0'}</td><td>${m.min_duration!==undefined&&m.min_duration!==Infinity?fmt(m.min_duration):'0.0'}</td><td>${m.max_duration?fmt(m.max_duration):'0.0'}</td>`;
+        els.opsTableBody.appendChild(tr);
+        options.push(name);
+      });
+      els.opsTotal.textContent = total;
+      els.successRate.textContent = total? pct(totalSuccess/total):'0%';
+      // Populate select once
+      if(!els.opSelect.dataset.filled){
+        options.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;els.opSelect.appendChild(opt);});
+        els.opSelect.dataset.filled='1';
+      }
+      drawOpChart(data);
+      els.lastUpdated.textContent = new Date().toLocaleTimeString('fr-FR');
+    } catch(e) {
+      els.opsTotal.textContent = '--';
+      els.successRate.textContent = '--';
+      els.opsTableBody.replaceChildren();
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 8;
+      cell.className = 'px-6 py-8 text-center text-slate-500 dark:text-slate-400';
+      cell.textContent = 'Les métriques d’opérations sont temporairement indisponibles.';
+      row.append(cell);
+      els.opsTableBody.append(row);
+      els.lastUpdated.textContent = 'Actualisation impossible';
+      console.warn('Métriques d’opérations indisponibles', e);
     }
-    drawOpChart(data);
-    els.lastUpdated.textContent = new Date().toLocaleTimeString('fr-FR');
   }
 
   function drawOpChart(data){
@@ -124,8 +139,14 @@
       variant: 'danger',
     });
     if (!confirmed) return;
-    await fetch('/api/metrics/operations', {method:'DELETE'});
-    await refreshAll();
+    try {
+      const response = await fetch('/api/metrics/operations', {method:'DELETE'});
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      window.toastSystem?.show?.('Les métriques ont été réinitialisées.', 'success');
+      await refreshAll();
+    } catch (error) {
+      window.toastSystem?.show?.(`Impossible de réinitialiser les métriques : ${error.message}`, 'error');
+    }
   });
   els.opSelect.addEventListener('change', ()=>{loadOperations();});
 

@@ -234,8 +234,11 @@
     }
 
     function confirmAction(options) {
-      const confirm = window.PameliaUi?.confirm || ((settings) => Promise.resolve(window.confirm(settings.message)));
-      return confirm(options);
+      if (!window.PameliaUi?.confirm) {
+        notify("Le dialogue de confirmation n'est pas disponible.", 'error');
+        return Promise.resolve(false);
+      }
+      return window.PameliaUi.confirm(options);
     }
 
     function openInputDialog({ title, description, acceptLabel = 'Ajouter', fields }) {

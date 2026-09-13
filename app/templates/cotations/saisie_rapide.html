@@ -823,6 +823,36 @@
     </div>
 </div>
 
+<dialog id="edit-cotation-dialog" class="w-[min(92vw,36rem)] rounded-2xl p-0 backdrop:bg-slate-950/50">
+    <form id="edit-cotation-form" class="bg-white dark:bg-slate-800 rounded-2xl p-6 space-y-4">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <p class="text-xs uppercase tracking-[.16em] text-slate-500">Modification</p>
+                <h2 id="edit-cotation-title" class="text-xl font-bold text-slate-900 dark:text-slate-100">Acte</h2>
+            </div>
+            <button type="button" onclick="closeEditActe()" class="rounded-lg px-3 py-1 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Fermer">×</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">Date et heure
+                <input id="edit-cotation-date" type="datetime-local" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-900">
+            </label>
+            <label class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="edit-cotation-quantity-label">Quantité</span>
+                <input id="edit-cotation-quantity" type="number" min="0.1" step="0.1" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-900">
+            </label>
+        </div>
+        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200"><span id="edit-cotation-amount-label">Montant</span>
+            <input id="edit-cotation-amount" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-900">
+        </label>
+        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200">Commentaire
+            <textarea id="edit-cotation-comment" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"></textarea>
+        </label>
+        <div class="flex justify-end gap-3 pt-2">
+            <button type="button" onclick="closeEditActe()" class="rounded-lg px-4 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">Annuler</button>
+            <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">Enregistrer</button>
+        </div>
+    </form>
+</dialog>
+
 <!-- Modal Templates -->
 <div id="modal-templates" class="hidden fixed inset-0 z-50 overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
@@ -1564,14 +1594,60 @@ async function runBulkAction(action, label, actes = selectedActePayload()) {
     }
 }
 
-function editActe(type, id) {
-    // TODO: Ouvrir une modale d'édition inline dans le workspace
-    showNotification(`Édition ${type.toUpperCase()} #${id} (TODO)`, 'info');
+let editingActe = null;
+
+async function editActe(type, id) {
+    try {
+        const response = await fetch(`/cotations/api/${encodeURIComponent(type)}/${id}`);
+        const acte = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(acte.detail || 'Impossible de charger cet acte');
+        editingActe = acte;
+        document.getElementById('edit-cotation-title').textContent = `Acte ${acte.type.toUpperCase()} #${acte.id}`;
+        document.getElementById('edit-cotation-date').value = acte.execute_date ? acte.execute_date.slice(0, 16) : '';
+        document.getElementById('edit-cotation-quantity').value = acte.quantity ?? 1;
+        document.getElementById('edit-cotation-amount').value = acte.amount ?? '';
+        document.getElementById('edit-cotation-comment').value = acte.commentaire ?? '';
+        document.getElementById('edit-cotation-quantity-label').textContent = acte.type === 'ngap' ? 'Dénombrement' : 'Quantité';
+        document.getElementById('edit-cotation-amount-label').textContent = ['ucd', 'lpp'].includes(acte.type) ? 'Montant unitaire TTC' : 'Montant total';
+        document.getElementById('edit-cotation-dialog').showModal();
+    } catch (error) {
+        showNotification(`Erreur : ${error.message}`, 'error');
+    }
+}
+
+function closeEditActe() {
+    editingActe = null;
+    document.getElementById('edit-cotation-dialog').close();
 }
 
 function deleteActe(type, id) {
     runBulkAction('delete', 'Supprimer définitivement', [{ type, id }]);
 }
+
+document.getElementById('edit-cotation-form')?.addEventListener('submit', async function(event) {
+    event.preventDefault();
+    if (!editingActe) return;
+    const payload = {
+        execute_date: document.getElementById('edit-cotation-date').value,
+        quantity: Number(document.getElementById('edit-cotation-quantity').value),
+        amount: document.getElementById('edit-cotation-amount').value || null,
+        commentaire: document.getElementById('edit-cotation-comment').value || null,
+    };
+    try {
+        const response = await fetch(`/cotations/api/${editingActe.type}/${editingActe.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) throw new Error(result.detail || 'Modification impossible');
+        closeEditActe();
+        showNotification('Acte modifié avec succès.', 'success');
+        window.setTimeout(() => window.location.reload(), 350);
+    } catch (error) {
+        showNotification(`Erreur : ${error.message}`, 'error');
+    }
+});
 </script>
 
 <style>

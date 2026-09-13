@@ -8,10 +8,12 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import Any, Optional
 import logging
+from datetime import datetime
 
 from app.db import get_session
 from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
 from app.models_vocabulary import VocabularySystem, VocabularyValue
+from app.utils.booleans import as_bool
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,41 @@ COTATION_MODELS: dict[str, tuple[type, str]] = {
     "ucd": (UCDAct, "ucd_act"),
     "lpp": (LPPAct, "lpp_act"),
 }
+
+COTATION_QUANTITY_FIELDS = {"ccam": "quantite", "ngap": "denombrement", "ucd": "quantite", "lpp": "quantite"}
+COTATION_AMOUNT_FIELDS = {
+    "ccam": "montant_total",
+    "ngap": "montant_total",
+    "ucd": "montant_unitaire_facture_ttc",
+    "lpp": "montant_unitaire_facture_ttc",
+}
+
+
+def _get_cotation_or_404(session: Session, acte_type: str, acte_id: int) -> tuple[str, Any]:
+    normalized_type = acte_type.strip().lower()
+    if normalized_type not in COTATION_MODELS:
+        raise HTTPException(status_code=400, detail=f"Type d'acte non pris en charge : {acte_type}")
+    model, _ = COTATION_MODELS[normalized_type]
+    acte = session.get(model, acte_id)
+    if not acte:
+        raise HTTPException(status_code=404, detail=f"Acte {normalized_type.upper()} #{acte_id} introuvable")
+    return normalized_type, acte
+
+
+def _cotation_edit_payload(acte_type: str, acte: Any) -> dict[str, Any]:
+    quantity_field = COTATION_QUANTITY_FIELDS[acte_type]
+    amount_field = COTATION_AMOUNT_FIELDS[acte_type]
+    execute_date = getattr(acte, "execute_date", None)
+    return {
+        "type": acte_type,
+        "id": acte.id,
+        "execute_date": execute_date.isoformat() if execute_date else None,
+        "quantity": getattr(acte, quantity_field, None),
+        "amount": getattr(acte, amount_field, None),
+        "commentaire": getattr(acte, "commentaire", None),
+        "valide": as_bool(getattr(acte, "valide", False)),
+        "facture": as_bool(getattr(acte, "facture", False)),
+    }
 
 
 @router.get("/dossier/{dossier_id}/saisie", response_class=HTMLResponse, name="cotations_saisie_rapide")
@@ -892,3 +929,63 @@ async def bulk_update_cotations(
             "message": f"{len(records)} acte(s) {labels[action]}",
         }
     )
+
+
+@router.get("/api/{acte_type}/{acte_id}", name="get_cotation_for_edit")
+async def get_cotation_for_edit(
+    acte_type: str,
+    acte_id: int,
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    """Retourne les champs communs éditables d'une cotation."""
+
+    normalized_type, acte = _get_cotation_or_404(session, acte_type, acte_id)
+    return JSONResponse(_cotation_edit_payload(normalized_type, acte))
+
+
+@router.patch("/api/{acte_type}/{acte_id}", name="update_cotation")
+async def update_cotation(
+    acte_type: str,
+    acte_id: int,
+    payload: dict[str, Any],
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    """Met à jour les champs transverses sans modifier le code de l'acte."""
+
+    normalized_type, acte = _get_cotation_or_404(session, acte_type, acte_id)
+    quantity_field = COTATION_QUANTITY_FIELDS[normalized_type]
+    amount_field = COTATION_AMOUNT_FIELDS[normalized_type]
+
+    try:
+        if "execute_date" in payload:
+            raw_date = payload["execute_date"]
+            if not isinstance(raw_date, str) or not raw_date.strip():
+                raise ValueError("Date d'exécution invalide")
+            acte.execute_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        if "quantity" in payload:
+            quantity = float(payload["quantity"])
+            if quantity <= 0:
+                raise ValueError("La quantité doit être strictement positive")
+            if normalized_type in {"ccam", "ngap", "lpp"}:
+                if not quantity.is_integer():
+                    raise ValueError("La quantité doit être un nombre entier pour cet acte")
+                quantity = int(quantity)
+            setattr(acte, quantity_field, quantity)
+        if "amount" in payload:
+            amount = payload["amount"]
+            setattr(acte, amount_field, None if amount in (None, "") else float(amount))
+        if "commentaire" in payload:
+            commentaire = payload["commentaire"]
+            if commentaire is not None and not isinstance(commentaire, str):
+                raise ValueError("Commentaire invalide")
+            acte.commentaire = commentaire.strip() if isinstance(commentaire, str) else None
+        if hasattr(acte, "updated_at"):
+            acte.updated_at = datetime.now()
+        session.add(acte)
+        session.commit()
+        session.refresh(acte)
+    except (TypeError, ValueError) as exc:
+        session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return JSONResponse({"success": True, "acte": _cotation_edit_payload(normalized_type, acte)})

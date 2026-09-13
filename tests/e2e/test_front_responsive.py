@@ -43,6 +43,24 @@ async def test_validation_workspace_tabs_are_keyboard_accessible(page):
 
 @pytest.mark.e2e_phase6
 @pytest.mark.asyncio
+async def test_structure_view_tabs_are_keyboard_accessible(page):
+    response = await page.goto("/structure", wait_until="networkidle")
+
+    assert response is not None
+    assert response.status == 200
+    tree = page.locator("#modeTreeBtn")
+    listing = page.locator("#modeListBtn")
+    await tree.focus()
+    await tree.press("ArrowRight")
+
+    assert await listing.get_attribute("aria-selected") == "true"
+    assert not await page.locator("#listView").evaluate(
+        "element => element.classList.contains('hidden')"
+    )
+
+
+@pytest.mark.e2e_phase6
+@pytest.mark.asyncio
 async def test_validation_workspace_keeps_reflow_in_dark_theme(page):
     await page.add_init_script("localStorage.setItem('theme', 'dark')")
     await page.set_viewport_size({"width": 390, "height": 844})

@@ -128,18 +128,18 @@
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-700">
                         <h2 class="font-semibold text-slate-900 dark:text-slate-100">Navigation</h2>
-                        <div class="inline-flex max-w-full flex-wrap rounded-lg border border-slate-200 bg-white text-xs dark:border-slate-700 dark:bg-slate-800">
-                            <button id="modeTreeBtn" type="button" class="px-2.5 py-1 bg-slate-900 text-white">Arbre</button>
-                            <button id="modeListBtn" type="button" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Liste</button>
-                            <button id="modeCardsBtn" type="button" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Cards</button>
+                        <div class="inline-flex max-w-full flex-wrap rounded-lg border border-slate-200 bg-white text-xs dark:border-slate-700 dark:bg-slate-800" role="tablist" aria-label="Mode d'affichage de la structure">
+                            <button id="modeTreeBtn" type="button" role="tab" aria-selected="true" aria-controls="treeView" data-view-mode="tree" class="px-2.5 py-1 bg-slate-900 text-white">Arbre</button>
+                            <button id="modeListBtn" type="button" role="tab" aria-selected="false" aria-controls="listView" data-view-mode="list" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Liste</button>
+                            <button id="modeCardsBtn" type="button" role="tab" aria-selected="false" aria-controls="cardsView" data-view-mode="cards" class="px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">Cartes</button>
                         </div>
                     </div>
                     <!-- Vue arbre -->
-                    <div id="treeView" class="p-4 text-sm">
+                    <div id="treeView" role="tabpanel" aria-labelledby="modeTreeBtn" class="p-4 text-sm">
                         <!-- Chargé dynamiquement -->
                     </div>
                     <!-- Vue liste -->
-                    <div id="listView" class="hidden border-t border-slate-100 p-4 text-xs dark:border-slate-700">
+                    <div id="listView" role="tabpanel" aria-labelledby="modeListBtn" class="hidden border-t border-slate-100 p-4 text-xs dark:border-slate-700">
                       <div class="ui-table-shell">
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                             <thead class="bg-slate-50 dark:bg-slate-700">
@@ -168,7 +168,7 @@
                         </div>
                     </div>
                     <!-- Vue cards -->
-                    <div id="cardsView" class="hidden p-4 text-xs border-t border-slate-100 dark:border-slate-700">
+                    <div id="cardsView" role="tabpanel" aria-labelledby="modeCardsBtn" class="hidden p-4 text-xs border-t border-slate-100 dark:border-slate-700">
                         <div id="cardsViewBody" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     </div>
                 </div>
@@ -268,6 +268,16 @@ function setupEventListeners() {
         treeBtn.addEventListener('click', () => setViewMode('tree'));
         listBtn.addEventListener('click', () => setViewMode('list'));
         cardsBtn.addEventListener('click', () => setViewMode('cards'));
+        const modeButtons = [treeBtn, listBtn, cardsBtn];
+        modeButtons.forEach((button, index) => button.addEventListener('keydown', (event) => {
+            const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+            if (!keys.includes(event.key)) return;
+            event.preventDefault();
+            const targetIndex = event.key === 'Home' ? 0 : event.key === 'End' ? modeButtons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + modeButtons.length) % modeButtons.length;
+            const target = modeButtons[targetIndex];
+            target.focus();
+            setViewMode(target.dataset.viewMode);
+        }));
     }
 
     const listSelectAll = document.getElementById('listSelectAll');
@@ -513,17 +523,21 @@ function setViewMode(mode) {
     treeBtn.classList.remove('bg-slate-900', 'text-white');
     listBtn.classList.remove('bg-slate-900', 'text-white');
     cardsBtn.classList.remove('bg-slate-900', 'text-white');
+    [treeBtn, listBtn, cardsBtn].forEach(button => button.setAttribute('aria-selected', 'false'));
 
     if (mode === 'tree') {
         treeView.classList.remove('hidden');
         treeBtn.classList.add('bg-slate-900', 'text-white');
+        treeBtn.setAttribute('aria-selected', 'true');
     } else if (mode === 'list') {
         listView.classList.remove('hidden');
         listBtn.classList.add('bg-slate-900', 'text-white');
+        listBtn.setAttribute('aria-selected', 'true');
         renderListView();
     } else if (mode === 'cards') {
         cardsView.classList.remove('hidden');
         cardsBtn.classList.add('bg-slate-900', 'text-white');
+        cardsBtn.setAttribute('aria-selected', 'true');
         renderCardsView();
     }
 }

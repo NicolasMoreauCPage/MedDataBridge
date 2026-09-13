@@ -613,7 +613,7 @@
                                         {% for acte in ccam_acts %}
                                         <tr class="hover:bg-emerald-50 transition-colors acte-row" data-type="ccam" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400" value="ccam:{{ acte.id }}" aria-label="Sélectionner l'acte CCAM {{ acte.code_acte }}">
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 text-[10px] font-bold rounded-full">CCAM</span>
@@ -653,7 +653,7 @@
                                         {% for acte in ngap_acts %}
                                         <tr class="hover:bg-blue-50 transition-colors acte-row" data-type="ngap" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400" value="ngap:{{ acte.id }}" aria-label="Sélectionner l'acte NGAP {{ acte.lettre_cle }}">
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded-full">NGAP</span>
@@ -693,7 +693,7 @@
                                         {% for acte in ucd_acts %}
                                         <tr class="hover:bg-amber-50 transition-colors acte-row" data-type="ucd" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-amber-600 dark:text-amber-400 focus:ring-amber-500 dark:focus:ring-amber-400" value="ucd:{{ acte.id }}" aria-label="Sélectionner l'acte UCD {{ acte.code_ucd }}">
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 text-[10px] font-bold rounded-full">UCD</span>
@@ -737,7 +737,7 @@
                                         {% for acte in lpp_acts %}
                                         <tr class="hover:bg-purple-50 transition-colors acte-row" data-type="lpp" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
                                             <td class="px-2 py-1.5">
-                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-purple-600 dark:text-purple-400 focus:ring-purple-500 dark:focus:ring-purple-400" value="{{ acte.id }}">
+                                                <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-purple-600 dark:text-purple-400 focus:ring-purple-500 dark:focus:ring-purple-400" value="lpp:{{ acte.id }}" aria-label="Sélectionner l'acte LPP {{ acte.code_lpp or acte.denomination_libelle }}">
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 text-[10px] font-bold rounded-full">LPP</span>
@@ -800,10 +800,10 @@
                                     <span id="selected-count">0</span> acte(s) sélectionné(s)
                                 </span>
                                 <div class="flex space-x-1">
-                                    <button type="button" onclick="validateSelected()" class="px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">✓</button>
-                                    <button type="button" onclick="factureSelected()" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">📄</button>
-                                    <button type="button" onclick="deleteSelected()" class="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">🗑️</button>
-                                    <button type="button" onclick="deselectAll()" class="px-2 py-1 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 font-medium">Annuler</button>
+                                    <button type="button" onclick="validateSelected()" class="px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium" title="Valider la sélection" aria-label="Valider la sélection">✓</button>
+                                    <button type="button" onclick="factureSelected()" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium" title="Marquer la sélection comme facturée" aria-label="Marquer la sélection comme facturée">📄</button>
+                                    <button type="button" onclick="deleteSelected()" class="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium" title="Supprimer la sélection" aria-label="Supprimer la sélection">🗑️</button>
+                                    <button type="button" onclick="deselectAll()" class="px-2 py-1 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 font-medium" title="Désélectionner">Annuler</button>
                                 </div>
                             </div>
                         </div>
@@ -1553,26 +1553,42 @@ function deselectAll() {
 }
 
 async function validateSelected() {
-    if (selectedActes.size === 0) return;
-    if (confirm(`Valider ${selectedActes.size} acte(s) ?`)) {
-        // TODO: Appel API réel de validation
-        showNotification('Validation en cours (TODO API)...', 'info');
-    }
+    await runBulkAction('validate', 'Valider');
 }
 
 async function factureSelected() {
-    if (selectedActes.size === 0) return;
-    if (confirm(`Facturer ${selectedActes.size} acte(s) ?`)) {
-        // TODO: Appel API réel de facturation
-        showNotification('Facturation en cours (TODO API)...', 'info');
-    }
+    await runBulkAction('invoice', 'Marquer comme facturé');
 }
 
 async function deleteSelected() {
-    if (selectedActes.size === 0) return;
-    if (confirm(`Supprimer définitivement ${selectedActes.size} acte(s) ?`)) {
-        // TODO: Appel API réel de suppression
-        showNotification('Suppression en cours (TODO API)...', 'info');
+    await runBulkAction('delete', 'Supprimer définitivement');
+}
+
+function selectedActePayload() {
+    return [...selectedActes].map(value => {
+        const [type, id] = value.split(':', 2);
+        return { type, id: Number(id) };
+    }).filter(item => item.type && Number.isInteger(item.id) && item.id > 0);
+}
+
+async function runBulkAction(action, label, actes = selectedActePayload()) {
+    if (actes.length === 0) return;
+    if (!confirm(`${label} ${actes.length} acte(s) ?`)) return;
+
+    try {
+        const response = await fetch('/cotations/api/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, actes }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) {
+            throw new Error(result.detail || 'Action impossible');
+        }
+        showNotification(result.message || `${actes.length} acte(s) mis à jour`, 'success');
+        window.setTimeout(() => window.location.reload(), 350);
+    } catch (error) {
+        showNotification(`Erreur : ${error.message}`, 'error');
     }
 }
 
@@ -1582,10 +1598,7 @@ function editActe(type, id) {
 }
 
 function deleteActe(type, id) {
-    if (confirm('Supprimer cet acte ?')) {
-        // TODO: Appel API réel de suppression
-        showNotification(`Suppression ${type.toUpperCase()} #${id} (TODO API)`, 'info');
-    }
+    runBulkAction('delete', 'Supprimer définitivement', [{ type, id }]);
 }
 </script>
 

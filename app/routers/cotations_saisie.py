@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
-from typing import Optional
+from typing import Any, Optional
 import logging
 
 from app.db import get_session
@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/cotations", tags=["cotations-saisie"])
 templates = Jinja2Templates(directory="app/templates")
+
+COTATION_MODELS: dict[str, tuple[type, str]] = {
+    "ccam": (CCAMAct, "ccam_act"),
+    "ngap": (NGAPAct, "ngap_act"),
+    "ucd": (UCDAct, "ucd_act"),
+    "lpp": (LPPAct, "lpp_act"),
+}
 
 
 @router.get("/dossier/{dossier_id}/saisie", response_class=HTMLResponse, name="cotations_saisie_rapide")
@@ -815,3 +822,73 @@ async def create_lpp_acte(
         logger.error(f"Erreur création acte LPP: {e}")
         session.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/api/bulk", name="bulk_update_cotations")
+async def bulk_update_cotations(
+    payload: dict[str, Any],
+    session: Session = Depends(get_session),
+) -> JSONResponse:
+    """Applique une action homogène aux actes sélectionnés dans le workspace.
+
+    Chaque sélection porte son type afin qu'un identifiant CCAM et un
+    identifiant NGAP identiques restent deux actes distincts. Les statuts
+    ``valide`` et ``facture`` sont persistés en booléens.
+    """
+
+    action = str(payload.get("action") or "").strip().lower()
+    items = payload.get("actes")
+    if action not in {"validate", "invoice", "delete"}:
+        raise HTTPException(status_code=400, detail="Action groupée inconnue")
+    if not isinstance(items, list) or not items:
+        raise HTTPException(status_code=400, detail="Sélection d'actes requise")
+
+    records: list[tuple[str, Any]] = []
+    seen: set[tuple[str, int]] = set()
+    for item in items:
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=400, detail="Sélection d'acte invalide")
+        acte_type = str(item.get("type") or "").strip().lower()
+        try:
+            acte_id = int(item.get("id"))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Identifiant d'acte invalide")
+        if acte_type not in COTATION_MODELS:
+            raise HTTPException(status_code=400, detail=f"Type d'acte non pris en charge : {acte_type}")
+        key = (acte_type, acte_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        model, _ = COTATION_MODELS[acte_type]
+        acte = session.get(model, acte_id)
+        if not acte:
+            raise HTTPException(status_code=404, detail=f"Acte {acte_type.upper()} #{acte_id} introuvable")
+        records.append((acte_type, acte))
+
+    try:
+        if action == "validate":
+            for _, acte in records:
+                acte.valide = True
+                session.add(acte)
+        elif action == "invoice":
+            for _, acte in records:
+                acte.facture = True
+                session.add(acte)
+        else:
+            for _, acte in records:
+                session.delete(acte)
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        logger.exception("Erreur action groupée cotations", extra={"action": action})
+        raise HTTPException(status_code=400, detail=f"Action groupée impossible : {exc}")
+
+    labels = {"validate": "validé(s)", "invoice": "facturé(s)", "delete": "supprimé(s)"}
+    return JSONResponse(
+        {
+            "success": True,
+            "action": action,
+            "count": len(records),
+            "message": f"{len(records)} acte(s) {labels[action]}",
+        }
+    )

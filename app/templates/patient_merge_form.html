@@ -32,7 +32,7 @@
     <strong>survivant</strong> et ses identifiants seront marqués comme obsolètes. Cette opération est irréversible.
   </div>
 
-  <form method="post" action="/patients/merge" class="space-y-6 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+  <form method="post" action="/patients/merge" class="space-y-6 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm" data-confirm="Confirmer la fusion ? Cette opération est irréversible." data-confirm-title="Fusionner deux patients" data-confirm-accept="Fusionner et émettre A40" data-confirm-variant="danger">
     <div>
       <label for="source_patient_id" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
         Patient source (sera fusionné/archivé) <span class="text-red-500">*</span>
@@ -61,7 +61,6 @@
 
     <div class="flex gap-3 pt-2">
       <button type="submit"
-              onclick="return confirm('Confirmer la fusion ? Cette opération est irréversible.');"
               class="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-rose-600 to-orange-600 text-white hover:from-rose-700 hover:to-orange-700 shadow-md transition-all">
         Fusionner et émettre A40
       </button>

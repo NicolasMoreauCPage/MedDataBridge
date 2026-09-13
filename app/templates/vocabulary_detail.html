@@ -92,9 +92,9 @@
             {% if action.type == 'link' %}
             <a href="{{ action.url }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium mr-2">{{ action.label }}</a>
             {% elif action.type == 'button' %}
-            <form method="POST" action="{{ action.url }}" class="inline">
-                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-medium mr-2"
-                        onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce système ?')">
+            <form method="POST" action="{{ action.url }}" class="inline"
+                  data-confirm="Êtes-vous sûr de vouloir supprimer ce système ?" data-confirm-title="Supprimer le système" data-confirm-accept="Supprimer" data-confirm-variant="danger">
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-medium mr-2">
                     {{ action.label }}
                 </button>
             </form>

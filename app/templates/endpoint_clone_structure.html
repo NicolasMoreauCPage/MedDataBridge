@@ -47,8 +47,7 @@
                 </div>
                 
                 <form method="POST" action="/endpoints/{{ source.id }}/clone-structure/{{ target.id }}" 
-                      class="inline-flex"
-                      onsubmit="return confirm('Êtes-vous sûr de vouloir cloner la structure vers {{ target.name }} ? Ceci écrasera le contexte existant.')">
+                      class="inline-flex" data-confirm="Êtes-vous sûr de vouloir cloner la structure vers {{ target.name }} ? Ceci écrasera le contexte existant." data-confirm-title="Cloner la structure" data-confirm-accept="Cloner" data-confirm-variant="danger">
                     <button type="submit" 
                             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2">
                         Cloner vers cet endpoint

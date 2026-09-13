@@ -59,8 +59,7 @@
                             </button>
                         </form>
                         <form method="POST" action="/endpoints/{{ endpoint.id }}/mllp/{{ config.id }}/delete" 
-                              class="inline"
-                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce point MLLP ?')">
+                              class="inline" data-confirm="Êtes-vous sûr de vouloir supprimer ce point MLLP ?" data-confirm-title="Supprimer le point MLLP" data-confirm-accept="Supprimer" data-confirm-variant="danger">
                             <button type="submit" class="text-red-600 dark:text-red-400 hover:underline">Supprimer</button>
                         </form>
                     </div>
@@ -105,8 +104,7 @@
                             </button>
                         </form>
                         <form method="POST" action="/endpoints/{{ endpoint.id }}/fhir/{{ config.id }}/delete"
-                              class="inline" 
-                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce point FHIR ?')">
+                              class="inline" data-confirm="Êtes-vous sûr de vouloir supprimer ce point FHIR ?" data-confirm-title="Supprimer le point FHIR" data-confirm-accept="Supprimer" data-confirm-variant="danger">
                             <button type="submit" class="text-red-600 dark:text-red-400 hover:underline">Supprimer</button>
                         </form>
                     </div>

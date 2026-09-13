@@ -34,7 +34,7 @@ async def ccam_dashboard(request: Request):
                 {
                     "method": "GET",
                     "title": "Workspace de cotations",
-                    "url": "/dossiers/{dossier_id}/cotations",
+                    "url": "/cotations/dossier/{dossier_id}/saisie",
                     "description": "Workspace de cotations du dossier",
                 },
             ],

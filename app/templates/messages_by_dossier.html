@@ -179,7 +179,7 @@
       <a href="/messages/dossier/{{ d.dossier_number }}/detail" class="rounded-lg bg-blue-50 px-3 py-2 text-center font-medium text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">Détails</a>
       <a href="/messages/validate-dossier?dossier_number={{ d.dossier_number }}" class="rounded-lg bg-violet-50 px-3 py-2 text-center font-medium text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">Valider</a>
       <a href="/messages/dossier/{{ d.dossier_number }}/export" class="rounded-lg bg-emerald-50 px-3 py-2 text-center font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">Exporter</a>
-      {% if d.dossier_id %}<a href="/dossiers/{{ d.dossier_id }}/cotations" class="cotations-link hidden rounded-lg bg-amber-50 px-3 py-2 text-center font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300" data-dossier-id="{{ d.dossier_id }}"><span class="cotations-label">Cotations</span></a>{% endif %}
+      {% if d.dossier_id %}<a href="/cotations/dossier/{{ d.dossier_id }}/saisie" class="cotations-link hidden rounded-lg bg-amber-50 px-3 py-2 text-center font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300" data-dossier-id="{{ d.dossier_id }}"><span class="cotations-label">Cotations</span></a>{% endif %}
     </div>
     {% endif %}
   </article>
@@ -320,7 +320,7 @@
             </a>
             <!-- Lien cotations - affiché dynamiquement via JavaScript -->
             {% if d.dossier_id %}
-            <a href="/dossiers/{{ d.dossier_id }}/cotations" 
+            <a href="/cotations/dossier/{{ d.dossier_id }}/saisie"
                class="cotations-link inline-flex items-center gap-1 px-2 py-1 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-50 rounded transition hidden"
                title="Voir les cotations"
                data-dossier-id="{{ d.dossier_id }}"

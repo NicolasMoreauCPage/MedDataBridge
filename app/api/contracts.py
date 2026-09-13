@@ -7,11 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.db import get_session
-from app.models import Contract, Dossier
-from app.models_practitioners import MedecinResponsable
+from app.models import Contract
 from app.services.contract_service import ContractService
 
 router = APIRouter(prefix="/api/contracts", tags=["Contrats"])
@@ -90,8 +89,7 @@ class ContractResponse(BaseModel):
     created_at: Optional[date]
     updated_at: Optional[date]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 @router.post("/", response_model=ContractResponse)

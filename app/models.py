@@ -1,6 +1,6 @@
 from typing import Optional, List, TYPE_CHECKING, ForwardRef
 from datetime import date, datetime
-from pydantic import model_validator
+from pydantic import ConfigDict, model_validator
 from sqlalchemy import Column
 from sqlalchemy.types import TypeDecorator, Date as SA_Date
 from enum import Enum
@@ -321,11 +321,10 @@ class Mouvement(SQLModel, table=True):
     venue: Venue = Relationship(back_populates="mouvements")
     identifiers: List["Identifier"] = Relationship(back_populates="mouvement")
 
-    class Config:
-        # Allow extra fields passed by legacy tests/scripts (e.g. date_heure_mouvement,
-        # type_mouvement) so they are retained on the model instance and can be
-        # normalized in DB hooks before persistence.
-        extra = "allow"
+    # Allow extra fields passed by legacy tests/scripts (e.g. date_heure_mouvement,
+    # type_mouvement) so they are retained on the model instance and can be
+    # normalized in DB hooks before persistence.
+    model_config = ConfigDict(extra="allow")
 
     # --- Compatibilité ascendante (anciens champs attendus par tests/anciens templates) ---
     @property

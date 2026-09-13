@@ -73,6 +73,7 @@ RelatedPerson (FHIR R4) :
 from datetime import datetime, date
 from typing import Optional
 from enum import Enum
+from pydantic import ConfigDict
 from sqlmodel import SQLModel, Field, Relationship
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -213,8 +214,7 @@ class PatientContact(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = None
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "patient_id": 1,
                 "sequence": 1,
@@ -226,7 +226,7 @@ class PatientContact(SQLModel, table=True):
                 "contact_role": "EMERGENCY",
                 "is_emergency_contact": True
             }
-        }
+        })
 
 
 class VenueContact(SQLModel, table=True):
@@ -306,8 +306,7 @@ class VenueContact(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: Optional[datetime] = None
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "venue_id": 1,
                 "sequence": 1,
@@ -320,4 +319,4 @@ class VenueContact(SQLModel, table=True):
                 "is_accompanying": True,
                 "contact_reason": "Accompagnant mineur"
             }
-        }
+        })

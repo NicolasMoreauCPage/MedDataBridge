@@ -849,9 +849,9 @@
 
 <script>
 let selectedModificateurs = [];
-let sessionActes = [];
 let currentActeType = null;
 let selectedActes = new Set();
+let saveAndContinue = false;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 's') {
             e.preventDefault();
-            document.getElementById('ccam-form')?.dispatchEvent(new Event('submit'));
+            document.getElementById(`${currentActeType || 'ccam'}-form`)?.requestSubmit();
         }
         if (e.ctrlKey && e.key === 'Enter') {
             e.preventDefault();
@@ -1174,9 +1174,9 @@ function selectCCAM(code, libelle, tarif = null) {
     document.getElementById('ccam-activite').focus();
 }
 
-function resetForm() {
-    if (currentActeType) {
-        document.getElementById(`${currentActeType}-form`).reset();
+function resetForm(type = currentActeType) {
+    if (type) {
+        document.getElementById(`${type}-form`).reset();
         selectedModificateurs = [];
         document.querySelectorAll('.modificateur-btn').forEach(btn => {
             btn.classList.remove('border-emerald-500', 'bg-emerald-500', 'text-white');
@@ -1187,71 +1187,25 @@ function resetForm() {
 }
 
 function saveContinue() {
-    // Enregistrer l'acte actuel
-    // TODO: Appel API
-    
-    // Ajouter à la session
-    sessionActes.push({
-        type: currentActeType,
-        code: document.getElementById('ccam-code').value,
-        date: new Date()
-    });
-    
-    updateSessionSummary();
-    resetForm();
-    
-    // Notification
-    showNotification('Acte enregistré ! Continuez la saisie...', 'success');
-}
-
-function updateSessionSummary() {
-    const summaryDiv = document.getElementById('session-summary');
-    if (sessionActes.length === 0) {
-        summaryDiv.innerHTML = `
-            <div class="text-center py-8 text-slate-400">
-                <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <p class="text-sm">Aucun acte saisi</p>
-            </div>
-        `;
-        document.getElementById('session-actions').classList.add('hidden');
-    } else {
-        const colors = {ccam: 'emerald', ngap: 'blue', ucd: 'amber', lpp: 'purple'};
-        summaryDiv.innerHTML = sessionActes.map((acte, i) => `
-            <div class="flex items-center justify-between p-3 bg-${colors[acte.type]}-50 border border-${colors[acte.type]}-200 rounded-lg">
-                <div>
-                    <div class="font-mono font-bold text-${colors[acte.type]}-900">${acte.code}</div>
-                    <div class="text-xs text-${colors[acte.type]}-700">${acte.type.toUpperCase()}</div>
-                </div>
-                <button onclick="removeActe(${i})" class="text-${colors[acte.type]}-400 hover:text-${colors[acte.type]}-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                </button>
-            </div>
-        `).join('');
-        document.getElementById('session-actions').classList.remove('hidden');
+    const type = currentActeType || 'ccam';
+    const form = document.getElementById(`${type}-form`);
+    if (!form) {
+        showNotification('Sélectionnez un type d’acte avant l’enregistrement.', 'error');
+        return;
     }
+    saveAndContinue = true;
+    form.requestSubmit();
 }
 
-function removeActe(index) {
-    sessionActes.splice(index, 1);
-    updateSessionSummary();
-}
-
-function validateSession() {
-    if (confirm(`Valider ${sessionActes.length} acte(s) ?`)) {
-        // TODO: Appel API pour valider tous les actes
-        showNotification(`${sessionActes.length} acte(s) validé(s) avec succès !`, 'success');
-        sessionActes = [];
-        updateSessionSummary();
-        
-        // Rester sur le workspace et recharger pour mettre à jour la liste
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
+function finishSaved(type, message) {
+    showNotification(message, 'success');
+    resetForm(type);
+    if (saveAndContinue) {
+        saveAndContinue = false;
+        document.getElementById(`${type}-code`)?.focus();
+        return;
     }
+    window.location.reload();
 }
 
 function showTemplates() {
@@ -1290,7 +1244,25 @@ async function useTemplate(templateId) {
                 await searchCCAM(template.code_acte);
                 selectCCAM(template.code_acte, template.nom);
             }
-            // TODO: Ajouter NGAP, UCD, LPP
+            if (templateType === 'ngap') {
+                document.getElementById('ngap-code').value = template.lettre_cle;
+                document.getElementById('ngap-coefficient').value = template.coefficient || 1;
+                document.getElementById('ngap-denombrement').value = template.denombrement || 1;
+                document.getElementById('ngap-libelle-text').textContent = template.nom;
+                document.getElementById('ngap-libelle').classList.remove('hidden');
+            }
+            if (templateType === 'ucd') {
+                document.getElementById('ucd-code').value = template.code_ucd;
+                document.getElementById('ucd-quantite').value = template.quantite || 1;
+                document.getElementById('ucd-libelle-text').textContent = template.nom;
+                document.getElementById('ucd-libelle-extra').textContent = '';
+                document.getElementById('ucd-libelle').classList.remove('hidden');
+            }
+            if (templateType === 'lpp') {
+                document.getElementById('lpp-code').value = template.code_lpp;
+                document.getElementById('lpp-quantite').value = template.quantite || 1;
+                document.getElementById('lpp-libelle').value = template.nom;
+            }
             
             closeModal('modal-templates');
             showNotification(`Template "${template.nom}" chargé`, 'success');
@@ -1353,10 +1325,7 @@ document.getElementById('ccam-form')?.addEventListener('submit', async function(
         });
         
         if (response.ok) {
-            showNotification('Acte CCAM enregistré avec succès !', 'success');
-            resetForm();
-            // Rester sur le workspace et recharger la liste des actes
-            window.location.reload();
+            finishSaved('ccam', 'Acte CCAM enregistré avec succès !');
         } else {
             throw new Error('Erreur lors de l\'enregistrement');
         }
@@ -1387,9 +1356,7 @@ document.getElementById('ngap-form')?.addEventListener('submit', async function(
         });
 
         if (response.ok) {
-            showNotification('Acte NGAP enregistré avec succès !', 'success');
-            resetForm();
-            window.location.reload();
+            finishSaved('ngap', 'Acte NGAP enregistré avec succès !');
         } else {
             const data = await response.json().catch(() => null);
             const msg = data?.detail || "Erreur lors de l'enregistrement";
@@ -1423,9 +1390,7 @@ document.getElementById('ucd-form')?.addEventListener('submit', async function(e
         });
 
         if (response.ok) {
-            showNotification('Acte UCD enregistré avec succès !', 'success');
-            resetForm();
-            window.location.reload();
+            finishSaved('ucd', 'Acte UCD enregistré avec succès !');
         } else {
             const data = await response.json().catch(() => null);
             const msg = data?.detail || "Erreur lors de l'enregistrement";
@@ -1458,9 +1423,7 @@ document.getElementById('lpp-form')?.addEventListener('submit', async function(e
         });
 
         if (response.ok) {
-            showNotification('Acte LPP enregistré avec succès !', 'success');
-            resetForm();
-            window.location.reload();
+            finishSaved('lpp', 'Acte LPP enregistré avec succès !');
         } else {
             const data = await response.json().catch(() => null);
             const msg = data?.detail || "Erreur lors de l'enregistrement";

@@ -5,7 +5,10 @@ Orchestration des fonctionnalités de cotation des actes
 """
 
 import logging
+import time
+from collections import Counter
 from decimal import Decimal
+from threading import Lock
 from xml.etree import ElementTree as ET
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -13,7 +16,7 @@ from uuid import uuid4
 
 from app.hprim_models import (
     HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
-    HprimActeCCAM, HprimActeNGAP, HprimMessageType, HprimAction, HprimVenue,
+    HprimActeCCAM, HprimActeNGAP, HprimMessageType, HprimVenue,
     HprimMontant
 )
 from .hprim_validator import HprimValidator, HprimValidationError
@@ -33,6 +36,13 @@ class HprimService:
     def __init__(self):
         self.validator = HprimValidator()
         self.xml_service = HprimXmlService()
+        self._statistics_lock = Lock()
+        self._validation_statistics = {
+            "validations_total": 0,
+            "erreurs_total": 0,
+            "duree_totale": 0.0,
+            "types_erreur": Counter(),
+        }
 
     def creer_message_actes_ccam(
         self,
@@ -94,7 +104,15 @@ class HprimService:
         Returns:
             Liste des erreurs de validation
         """
-        return self.validator.validate_message_complet(message)
+        started_at = time.perf_counter()
+        errors = self.validator.validate_message_complet(message)
+        duration = time.perf_counter() - started_at
+        with self._statistics_lock:
+            self._validation_statistics["validations_total"] += 1
+            self._validation_statistics["erreurs_total"] += len(errors)
+            self._validation_statistics["duree_totale"] += duration
+            self._validation_statistics["types_erreur"].update(error.code for error in errors)
+        return errors
 
     def generer_xml(self, message: HprimMessage, valider: bool = True) -> str:
         """
@@ -443,10 +461,12 @@ class HprimService:
         Returns:
             Dictionnaire de statistiques
         """
-        # TODO: Implémenter les statistiques
-        return {
-            "validations_total": 0,
-            "erreurs_total": 0,
-            "types_erreur": {},
-            "performance_moyenne": 0.0
-        }
+        with self._statistics_lock:
+            total = self._validation_statistics["validations_total"]
+            total_duration = self._validation_statistics["duree_totale"]
+            return {
+                "validations_total": total,
+                "erreurs_total": self._validation_statistics["erreurs_total"],
+                "types_erreur": dict(self._validation_statistics["types_erreur"]),
+                "performance_moyenne": total_duration / total if total else 0.0,
+            }

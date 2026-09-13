@@ -31,7 +31,7 @@ async def cotation_modern_home(
             return RedirectResponse(url=f"/cotation-modern/dossiers/{dossier_id}/cotation", status_code=303)
     
     # Pas de dossier_id ou dossier non trouvé : afficher le sélecteur
-    return templates.TemplateResponse("cotation_selector.html", {"request": request})
+    return templates.TemplateResponse(request, "cotation_selector.html")
 
 @router.get("/dossiers/{dossier_id}/cotation", response_class=HTMLResponse)
 async def cotation_modern_interface(
@@ -44,6 +44,7 @@ async def cotation_modern_interface(
     dossier = session.get(Dossier, dossier_id)
     if not dossier:
         return templates.TemplateResponse(
+            request,
             "error.html",
             {"request": request, "message": f"Séjour {dossier_id} non trouvé"},
             status_code=404

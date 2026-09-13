@@ -107,7 +107,7 @@ async def structure_interactive_page(
         if hasattr(service, 'unites_fonctionnelles')
     )
     
-    return templates.TemplateResponse("structure_interactive.html", {
+    return templates.TemplateResponse(request, "structure_interactive.html", {
         "request": request,
         "title": "Structure Interactive",
         "egs": egs,

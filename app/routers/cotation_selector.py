@@ -7,7 +7,7 @@ import os
 from app.db import get_session
 from app.models import Dossier, Patient
 from sqlalchemy import func
-from fastapi import HTTPException, status, Request
+from fastapi import HTTPException, status
 from app.auth import decode_token
 
 router = APIRouter(prefix="/cotation-modern", tags=["cotation_selector"])
@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/select", response_class=HTMLResponse)
 def select_dossier(request: Request):
     """Renders the dossier selector UI."""
-    return templates.TemplateResponse("cotation_selector.html", {"request": request})
+    return templates.TemplateResponse(request, "cotation_selector.html")
 
 
 @router.post("/select")
@@ -50,7 +50,7 @@ def search_dossiers(
         token = auth.split(None, 1)[1].strip()
         try:
             # decode_token will raise HTTPException if invalid
-            token_data = decode_token(token)
+            decode_token(token)
         except HTTPException:
             raise
         except Exception:
@@ -95,7 +95,7 @@ def search_dossiers(
         # Otherwise search by name using case-insensitive LIKE on family/given
         pattern_lower = f"%{q.lower()}%"
         base_stmt = select(Dossier, Patient).join(Patient).where(
-            (Patient.family != None) & (
+            Patient.family.is_not(None) & (
                 (func.lower(Patient.family).like(pattern_lower)) | (func.lower(Patient.given).like(pattern_lower))
             )
         )
@@ -104,7 +104,7 @@ def search_dossiers(
 
         # Count total matching
         count_rows = session.exec(select(Dossier).join(Patient).where(
-            (Patient.family != None) & (
+            Patient.family.is_not(None) & (
                 (func.lower(Patient.family).like(pattern_lower)) | (func.lower(Patient.given).like(pattern_lower))
             )
         )).all()

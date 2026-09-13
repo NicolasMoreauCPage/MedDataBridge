@@ -26,6 +26,10 @@
 
   function fmt(ms){return (ms*1000).toFixed(1);} // seconds->ms string
   function pct(v){return (v*100).toFixed(1)+'%';}
+  function destroyChart(chart){
+    if(chart) chart.destroy();
+    return null;
+  }
 
   async function fetchJSON(url){
     const r = await fetch(url);
@@ -46,6 +50,9 @@
       else els.healthStatus.classList.add('text-danger');
     } catch(e){
       els.healthStatus.textContent = 'Indisponible';
+      els.healthOps.textContent = '--';
+      els.healthErrors.textContent = '--';
+      els.opsTracked.textContent = '--';
       els.healthStatus.classList.remove('text-success', 'text-warning');
       els.healthStatus.classList.add('text-danger');
       console.warn('État de santé indisponible', e);
@@ -61,6 +68,9 @@
       drawCacheChart(c.keyspace_hits || 0, c.keyspace_misses || 0);
     } catch(e){
       els.cacheEnabled.textContent = 'Indisponible';
+      els.cacheHitRate.textContent = '--';
+      els.cacheMemory.textContent = '--';
+      cacheChart = destroyChart(cacheChart);
     }
   }
 
@@ -102,6 +112,7 @@
       cell.textContent = 'Les métriques d’opérations sont temporairement indisponibles.';
       row.append(cell);
       els.opsTableBody.append(row);
+      opChart = destroyChart(opChart);
       els.lastUpdated.textContent = 'Actualisation impossible';
       console.warn('Métriques d’opérations indisponibles', e);
     }
@@ -115,13 +126,13 @@
       labels.push(name);
       durations.push(m.avg_duration? (m.avg_duration*1000):0);
     });
-    if(opChart){opChart.destroy();}
+    opChart = destroyChart(opChart);
     const ctx=document.getElementById('chart-operation');
     opChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Durée moyenne (ms)',data:durations,backgroundColor:'#0d6efd'}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});
   }
 
   function drawCacheChart(hits, misses){
-    if(cacheChart){cacheChart.destroy();}
+    cacheChart = destroyChart(cacheChart);
     const ctx=document.getElementById('chart-cache');
     cacheChart=new Chart(ctx,{type:'doughnut',data:{labels:['Succès','Échecs'],datasets:[{data:[hits,misses],backgroundColor:['#198754','#dc3545']}]},options:{cutout:'60%'}});
   }

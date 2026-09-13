@@ -73,17 +73,17 @@
         <div class="flex items-center gap-3">
           <!-- Boutons Export -->
           <div class="flex gap-2">
-            <a href="/api/analytics/export/excel?eg_id={{ eg_id if eg_id else 1 }}&period=30d"
+            <a href="/api/analytics/export/excel?{% if eg_id %}eg_id={{ eg_id }}&amp;{% endif %}period=30d"
                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                title="Exporter en Excel">
               📊 Excel
             </a>
-            <a href="/api/analytics/export/pdf?eg_id={{ eg_id if eg_id else 1 }}&period=30d"
+            <a href="/api/analytics/export/pdf?{% if eg_id %}eg_id={{ eg_id }}&amp;{% endif %}period=30d"
                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                title="Exporter en PDF">
               📄 PDF
             </a>
-            <a href="/api/analytics/export/csv?eg_id={{ eg_id if eg_id else 1 }}&period=30d&export_type=capacity"
+            <a href="/api/analytics/export/csv?{% if eg_id %}eg_id={{ eg_id }}&amp;{% endif %}period=30d&amp;export_type=capacity"
                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                title="Exporter en CSV">
               📝 CSV
@@ -209,6 +209,10 @@ let charts = {};
 
 // Initialisation au chargement
 document.addEventListener('DOMContentLoaded', () => {
+  if (!Number.isInteger(currentEgId)) {
+    showNoGeographicalEntityState();
+    return;
+  }
   ensureChart().then(() => {
     loadAllData();
   }).catch(() => {
@@ -242,6 +246,10 @@ function ensureChart() {
 
 // Charger toutes les données
 async function loadAllData() {
+  if (!Number.isInteger(currentEgId)) {
+    showNoGeographicalEntityState();
+    return;
+  }
   showLoadingState();
   
   try {
@@ -544,7 +552,27 @@ function getValueColor(value, threshold, type) {
 
 // Afficher erreur
 function showError(message) {
-  alert(message);
+  window.toastSystem?.show(message, 'error');
+}
+
+function showNoGeographicalEntityState() {
+  ['occupation-value', 'dms-value', 'rotation-value', 'capacity-value', 'opening-value'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = '—';
+  });
+  const capacityTotal = document.getElementById('capacity-total');
+  if (capacityTotal) capacityTotal.textContent = 'Sélectionnez une EG';
+  const message = 'Sélectionnez une entité géographique pour afficher les indicateurs.';
+  ['capacityByServiceChart', 'umDistributionChart'].forEach(id => {
+    const canvas = document.getElementById(id);
+    if (canvas?.parentElement) canvas.parentElement.textContent = message;
+  });
+  const alerts = document.getElementById('alertsList');
+  if (alerts) alerts.textContent = message;
+  document.querySelectorAll('a[href*="/api/analytics/export/"]').forEach(link => {
+    link.setAttribute('aria-disabled', 'true');
+    link.classList.add('pointer-events-none', 'opacity-50');
+  });
 }
 
 // Mettre à jour les liens d'export selon la période sélectionnée
@@ -556,9 +584,15 @@ function updateExportLinks() {
   const pdfLink = document.querySelector('a[href*="/export/pdf"]');
   const csvLink = document.querySelector('a[href*="/export/csv"]');
   
-  if (excelLink) excelLink.href = `/api/analytics/export/excel?eg_id=${egId}&period=${period}`;
-  if (pdfLink) pdfLink.href = `/api/analytics/export/pdf?eg_id=${egId}&period=${period}`;
-  if (csvLink) csvLink.href = `/api/analytics/export/csv?eg_id=${egId}&period=${period}&export_type=capacity`;
+  const query = new URLSearchParams({ period });
+  if (Number.isInteger(egId)) query.set('eg_id', String(egId));
+  if (excelLink) excelLink.href = `/api/analytics/export/excel?${query}`;
+  if (pdfLink) pdfLink.href = `/api/analytics/export/pdf?${query}`;
+  if (csvLink) {
+    const csvQuery = new URLSearchParams(query);
+    csvQuery.set('export_type', 'capacity');
+    csvLink.href = `/api/analytics/export/csv?${csvQuery}`;
+  }
 }
 
 </script>

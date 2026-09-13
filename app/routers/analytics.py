@@ -1,12 +1,12 @@
 """
 Router pour le module Analytics (Mode Gestionnaire)
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select
 from typing import Optional
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from app.db import get_session
 from app.models import Dossier, Venue
@@ -26,8 +26,6 @@ from app.models_analytics import (
     ComputedAlert,
     AlertType,
     AlertSeverity,
-    OccupationSnapshot,
-    AlertRule
 )
 from app.services.structure_validation import get_occupied_lit_ids
 
@@ -81,15 +79,14 @@ async def analytics_dashboard(
     session: Session = Depends(get_session)
 ):
     """Page du dashboard analytics (Mode Gestionnaire)"""
-    # Si pas d'EG spécifié, prendre le premier disponible
-    if not eg_id:
+    # Priorité à l'EG demandé, puis au contexte actif, enfin à la première EG.
+    if eg_id is None:
+        eg_id = getattr(getattr(request.state, "eg_context", None), "id", None)
+    if eg_id is None:
         first_eg = session.exec(select(EntiteGeographique)).first()
         eg_id = first_eg.id if first_eg else None
     
-    return templates.TemplateResponse("analytics_dashboard.html", {
-        "request": request,
-        "eg_id": eg_id
-    })
+    return templates.TemplateResponse(request, "analytics_dashboard.html", {"eg_id": eg_id})
 
 
 @router.get("/kpis", response_model=KpiResponse)
@@ -116,7 +113,7 @@ def get_kpis(
             period=period
         )
 
-    lit_ids = {l.id for l in lits}
+    lit_ids = {lit.id for lit in lits}
     occupied_lit_ids = get_occupied_lit_ids(session)
     occupied_beds = len(lit_ids & occupied_lit_ids)
     available_beds = total_beds - occupied_beds

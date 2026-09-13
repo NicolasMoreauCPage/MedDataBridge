@@ -1,0 +1,19 @@
+"""Régressions du tableau de bord d'exploitation."""
+
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from app.models_structure import EntiteGeographique
+
+
+def test_analytics_dashboard_uses_the_requested_geographical_entity(client: TestClient, session: Session) -> None:
+    eg = EntiteGeographique(identifier="EG-ANALYTICS", name="EG Analytics")
+    session.add(eg)
+    session.commit()
+    session.refresh(eg)
+
+    response = client.get(f"/structure/analytics?eg_id={eg.id}")
+
+    assert response.status_code == 200
+    assert f"let currentEgId = {eg.id};" in response.text
+    assert f"eg_id={eg.id}&amp;period=30d" in response.text

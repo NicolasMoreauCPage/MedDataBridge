@@ -816,6 +816,7 @@ async def view_entite_geographique(
     ).all()
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/eg_detail.html",
         {
             "request": request,
@@ -835,6 +836,7 @@ async def edit_entite_geographique_form(
         raise HTTPException(status_code=404, detail="Entité géographique non trouvée")
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/eg_edit.html",
         {
             "request": request,
@@ -1027,6 +1029,7 @@ async def view_pole(
         raise HTTPException(status_code=404, detail="Pôle non trouvé")
     services = session.exec(select(Service).where(Service.pole_id == pole_id).order_by(Service.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/pole_detail.html",
         {"request": request, "pole": pole, "services": services},
     )
@@ -1042,6 +1045,7 @@ async def edit_pole_form(
         raise HTTPException(status_code=404, detail="Pôle non trouvé")
     egs = session.exec(select(EntiteGeographique).order_by(EntiteGeographique.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/pole_form.html",
         {"request": request, "pole": pole, "entites_geographiques": egs},
     )
@@ -1242,6 +1246,7 @@ async def view_service(
         raise HTTPException(status_code=404, detail="Service non trouvé")
     ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service_id).order_by(UniteFonctionnelle.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/service_detail.html",
         {"request": request, "service": service, "ufs": ufs, "service_types": LocationServiceType},
     )
@@ -1257,6 +1262,7 @@ async def edit_service_form(
         raise HTTPException(status_code=404, detail="Service non trouvé")
     poles = session.exec(select(Pole).order_by(Pole.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/service_form.html",
         {
             "request": request,
@@ -1341,6 +1347,7 @@ async def list_unites_fonctionnelles(
     service_map = {service.id: service.name for service in services}
 
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/ufs.html",
         {
             "request": request,
@@ -1465,6 +1472,7 @@ async def view_unite_fonctionnelle(
         raise HTTPException(status_code=404, detail="UF non trouvée")
     uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == uf_id).order_by(UniteHebergement.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/uf_detail.html",
         {"request": request, "uf": uf, "uhs": uhs},
     )
@@ -1480,6 +1488,7 @@ async def edit_unite_fonctionnelle_form(
         raise HTTPException(status_code=404, detail="UF non trouvée")
     services = session.exec(select(Service).order_by(Service.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/uf_form.html",
         {"request": request, "uf": uf, "services": services},
     )
@@ -1554,6 +1563,7 @@ async def list_unites_hebergement(
         session.commit()
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/uh.html",
         {
             "request": request,
@@ -1587,6 +1597,7 @@ async def new_unite_hebergement_form(
 ):
     ufs = session.exec(select(UniteFonctionnelle)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/uh_form.html",
         {
             "request": request,
@@ -1625,6 +1636,7 @@ async def view_unite_hebergement(
         session.commit()
     
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/uh_detail.html",
         {
             "request": request,
@@ -1650,6 +1662,7 @@ async def edit_unite_hebergement_form(
     if changed:
         session.commit()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/uh_form.html",
         {
             "request": request,
@@ -1810,6 +1823,7 @@ async def new_chambre_form(
         session.commit()
 
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/chambre_form.html",
         {
             "request": request,
@@ -1832,6 +1846,7 @@ async def view_chambre(
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
     lits = session.exec(select(Lit).where(Lit.chambre_id == chambre_id).order_by(Lit.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/chambre_detail.html",
         {"request": request, "chambre": chambre, "lits": lits},
     )
@@ -1846,6 +1861,7 @@ async def edit_chambre_form(
     if not chambre:
         raise HTTPException(status_code=404, detail="Chambre non trouvée")
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/chambre_form.html",
         {
             "request": request,
@@ -2192,6 +2208,7 @@ async def view_lit(
     if not lit:
         raise HTTPException(status_code=404, detail="Lit non trouvé")
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/lit_detail.html",
         {"request": request, "lit": lit},
     )
@@ -2207,6 +2224,7 @@ async def edit_lit_form(
         raise HTTPException(status_code=404, detail="Lit non trouvé")
     chambres = session.exec(select(Chambre).order_by(Chambre.name)).all()
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/lit_form.html",
         {
             "request": request,
@@ -2292,6 +2310,7 @@ async def structure_availability_search(
             )
 
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "structure/search.html",
         {
             "request": request,

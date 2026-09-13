@@ -309,7 +309,17 @@ function formatSeverity(severity) {
 
 // Initialiser les règles par défaut
 async function initDefaultRules() {
-    if (!confirm('Initialiser les règles par défaut pour l\'EG 1 ?')) return;
+    if (!window.PameliaUi?.confirm) {
+        showAlertConfigNotification("Le dialogue de confirmation n'est pas disponible.", 'error');
+        return;
+    }
+    const confirmed = await window.PameliaUi.confirm({
+        title: 'Initialiser les règles',
+        message: "Initialiser les règles par défaut pour l'EG 1 ?",
+        acceptLabel: 'Initialiser',
+        variant: 'primary',
+    });
+    if (!confirmed) return;
     
     try {
         const response = await fetch('/api/alert-config/rules/init-defaults?eg_id=1', {
@@ -319,11 +329,11 @@ async function initDefaultRules() {
         if (!response.ok) throw new Error('Erreur initialisation');
         
         const result = await response.json();
-        alert(result.message);
+        showAlertConfigNotification(result.message, 'success');
         loadRules();
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de l\'initialisation');
+        showAlertConfigNotification("Erreur lors de l'initialisation.", 'error');
     }
 }
 
@@ -402,10 +412,11 @@ async function saveRule() {
         if (!response.ok) throw new Error('Erreur sauvegarde');
         
         closeModal();
+        showAlertConfigNotification(isEdit ? 'Règle mise à jour.' : 'Règle créée.', 'success');
         loadRules();
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la sauvegarde');
+        showAlertConfigNotification('Erreur lors de la sauvegarde.', 'error');
     }
 }
 
@@ -418,16 +429,27 @@ async function toggleRuleActive(ruleId, newState) {
         
         if (!response.ok) throw new Error('Erreur mise à jour');
         
+        showAlertConfigNotification(newState ? 'Règle activée.' : 'Règle désactivée.', 'success');
         loadRules();
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la mise à jour');
+        showAlertConfigNotification('Erreur lors de la mise à jour.', 'error');
     }
 }
 
 // Supprimer règle
 async function deleteRule(ruleId) {
-    if (!confirm('Supprimer cette règle ?')) return;
+    if (!window.PameliaUi?.confirm) {
+        showAlertConfigNotification("Le dialogue de confirmation n'est pas disponible.", 'error');
+        return;
+    }
+    const confirmed = await window.PameliaUi.confirm({
+        title: 'Supprimer la règle',
+        message: 'Supprimer cette règle ?',
+        acceptLabel: 'Supprimer',
+        variant: 'danger',
+    });
+    if (!confirmed) return;
     
     try {
         const response = await fetch(`/api/alert-config/rules/${ruleId}`, {
@@ -436,11 +458,20 @@ async function deleteRule(ruleId) {
         
         if (!response.ok) throw new Error('Erreur suppression');
         
+        showAlertConfigNotification('Règle supprimée.', 'success');
         loadRules();
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la suppression');
+        showAlertConfigNotification('Erreur lors de la suppression.', 'error');
     }
+}
+
+function showAlertConfigNotification(message, type = 'info') {
+    if (window.toastSystem?.show) {
+        window.toastSystem.show(message, type);
+        return;
+    }
+    console.info(message);
 }
 </script>
 {% endblock %}

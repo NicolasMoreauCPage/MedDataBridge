@@ -77,6 +77,13 @@ Référence : [plan de refonte](PLAN_REFONTE_FRONT_UX_20260913.md)
   première étape, dans le périmètre de l'établissement courant. Il ne demande
   plus d'identifiant technique en fin de parcours et utilise la confirmation
   et les notifications partagées lors de la génération.
+- L'ajout de pôles, services et unités d'hébergement dans cet assistant passe
+  désormais par un dialogue de formulaire accessible ; les suppressions sont
+  confirmées par le dialogue commun. Le chargement asynchrone d'un modèle est
+  également contrôlé avant le passage à l'étape suivante.
+- La génération de structure matérialise réellement la branche hébergement :
+  une UH est rattachée à l'UF choisie, puis ses chambres et lits sont créés et
+  comptés en base. Un lit sans chambre est refusé explicitement.
 
 ## Contrôles réalisés
 

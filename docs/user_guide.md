@@ -100,6 +100,10 @@ services, UF et l'hébergement peuvent être ajustés avant la synthèse et la
 génération. L'EG proposée est limitée à l'établissement courant ; aucun
 identifiant technique ne doit être saisi au dernier moment.
 
+Lorsqu'une unité d'hébergement est ajoutée, choisir son UF de rattachement,
+puis indiquer le nombre de chambres et de lits. L'assistant crée réellement
+ces niveaux dans la base ; un nombre de lits sans chambre est refusé.
+
 ### Patients, dossiers, venues et mouvements
 
 1. Créer ou rechercher le patient dans `/patients`.

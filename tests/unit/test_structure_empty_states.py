@@ -29,3 +29,5 @@ def test_structure_wizard_selects_its_target_eg_before_generation(client, sessio
     assert "Entité géographique cible" in response.text
     assert "ID de l'Entité Géographique cible" not in response.text
     assert "data-step-content=\"1\"" in response.text
+    assert 'id="structure-wizard-input-dialog"' in response.text
+    assert "isTemplateLoading" in response.text

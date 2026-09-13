@@ -311,6 +311,7 @@ class PolePayload(BaseModel):
 class UhPayload(BaseModel):
     """Unité d'Hébergement dans le payload du wizard."""
     name: str
+    uf_ref: Optional[str] = None
     chambres: int = 0
     lits: int = 0
 
@@ -357,7 +358,8 @@ async def apply_structure_template(
         # Extraire les pôles du payload
         poles_data = request.payload.get("poles", [])
 
-        for pole_data in poles_data:
+        created_ufs_by_ref: dict[str, int] = {}
+        for pole_index, pole_data in enumerate(poles_data):
             # Créer le pôle
             pole = Pole(
                 name=pole_data.get("name"),
@@ -371,7 +373,7 @@ async def apply_structure_template(
 
             # Créer les services du pôle
             services_data = pole_data.get("services", [])
-            for service_data in services_data:
+            for service_index, service_data in enumerate(services_data):
                 service = Service(
                     name=service_data.get("name"),
                     short_name=service_data.get("short_name"),
@@ -385,7 +387,7 @@ async def apply_structure_template(
 
                 # Créer les UF du service
                 ufs_data = service_data.get("ufs", [])
-                for uf_data in ufs_data:
+                for uf_index, uf_data in enumerate(ufs_data):
                     uf = UniteFonctionnelle(
                         name=uf_data.get("name"),
                         code_um=uf_data.get("code_um"),
@@ -394,23 +396,55 @@ async def apply_structure_template(
                         status=LocationStatus.ACTIVE
                     )
                     session.add(uf)
+                    session.flush()
+                    created_ufs_by_ref[f"{pole_index}:{service_index}:{uf_index}"] = uf.id
                     created["ufs"] += 1
 
-        # Créer les UH si définies (optionnel)
+        # Une UH appartient à une UF du modèle. Le repère de l'UF est transmis
+        # par l'assistant car ses identifiants SQL viennent tout juste d'être
+        # créés dans cette transaction.
         for uh_data in request.uhs:
+            uf_id = created_ufs_by_ref.get(uh_data.uf_ref or "")
+            if not uf_id:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"L'UF de rattachement de l'unité d'hébergement {uh_data.name} est introuvable",
+                )
+            if uh_data.chambres < 0 or uh_data.lits < 0:
+                raise HTTPException(status_code=422, detail="Le nombre de chambres et de lits ne peut pas être négatif")
+            if uh_data.lits and not uh_data.chambres:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"L'unité d'hébergement {uh_data.name} contient des lits sans chambre",
+                )
             uh = UniteHebergement(
                 name=uh_data.name,
-                entite_geographique_id=eg.id,
+                unite_fonctionnelle_id=uf_id,
                 status=LocationStatus.ACTIVE
             )
             session.add(uh)
             session.flush()
             created["uhs"] += 1
 
-            # Note: La création détaillée des chambres et lits nécessite plus d'inputs
-            # Pour l'instant on comptabilise juste les nombres fournis
-            created["chambres"] += uh_data.chambres
-            created["lits"] += uh_data.lits
+            chambres = []
+            for room_number in range(1, uh_data.chambres + 1):
+                chambre = Chambre(
+                    name=f"{uh_data.name} - Chambre {room_number}",
+                    unite_hebergement_id=uh.id,
+                    status=LocationStatus.ACTIVE,
+                )
+                session.add(chambre)
+                session.flush()
+                chambres.append(chambre)
+                created["chambres"] += 1
+            for bed_number in range(1, uh_data.lits + 1):
+                chambre = chambres[(bed_number - 1) % len(chambres)]
+                session.add(Lit(
+                    name=f"{uh_data.name} - Lit {bed_number}",
+                    chambre_id=chambre.id,
+                    status=LocationStatus.ACTIVE,
+                ))
+                created["lits"] += 1
 
         session.commit()
 
@@ -421,6 +455,10 @@ async def apply_structure_template(
         )
 
     except HTTPException:
+        # Des objets peuvent déjà avoir été ajoutés avant une validation métier
+        # tardive (ex. lits sans chambre) : ne jamais les laisser en attente
+        # dans la session courante.
+        session.rollback()
         raise
     except Exception as e:
         session.rollback()

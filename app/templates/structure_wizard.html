@@ -202,6 +202,18 @@
       Suivant →
     </button>
   </div>
+
+  <dialog id="structure-wizard-input-dialog" aria-labelledby="structure-wizard-input-title" class="w-[min(32rem,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+    <form method="dialog" id="structure-wizard-input-form" class="p-5">
+      <h2 id="structure-wizard-input-title" class="text-lg font-semibold"></h2>
+      <p id="structure-wizard-input-description" class="mt-1 text-sm text-slate-600 dark:text-slate-300"></p>
+      <div id="structure-wizard-input-fields" class="mt-4 space-y-4"></div>
+      <div class="mt-6 flex flex-wrap justify-end gap-2">
+        <button type="submit" value="cancel" formnovalidate class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700">Annuler</button>
+        <button id="structure-wizard-input-accept" type="submit" value="confirm" class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">Ajouter</button>
+      </div>
+    </form>
+  </dialog>
 </div>
 
 <script>
@@ -214,10 +226,70 @@
     const targetEgId = document.getElementById('targetEgId');
     let selectedTemplate = null;
     let templatePayload = null; // Stocke le payload JSON du template sélectionné
+    let isTemplateLoading = false;
     let currentStep = 1;
 
     function notify(message, type = 'info') {
       if (window.toastSystem) window.toastSystem.show(message, type);
+    }
+
+    function confirmAction(options) {
+      const confirm = window.PameliaUi?.confirm || ((settings) => Promise.resolve(window.confirm(settings.message)));
+      return confirm(options);
+    }
+
+    function openInputDialog({ title, description, acceptLabel = 'Ajouter', fields }) {
+      const dialog = document.getElementById('structure-wizard-input-dialog');
+      const form = document.getElementById('structure-wizard-input-form');
+      const fieldContainer = document.getElementById('structure-wizard-input-fields');
+      const titleElement = document.getElementById('structure-wizard-input-title');
+      const descriptionElement = document.getElementById('structure-wizard-input-description');
+      const accept = document.getElementById('structure-wizard-input-accept');
+      if (!dialog || !form || !fieldContainer || !titleElement || !descriptionElement || !accept) {
+        notify('Le formulaire de saisie n’est pas disponible.', 'error');
+        return Promise.resolve(null);
+      }
+      titleElement.textContent = title;
+      descriptionElement.textContent = description || '';
+      accept.textContent = acceptLabel;
+      fieldContainer.replaceChildren();
+      fields.forEach((definition) => {
+        const label = document.createElement('label');
+        label.className = 'block text-sm font-medium';
+        label.textContent = definition.label;
+        const input = document.createElement(definition.type === 'select' ? 'select' : 'input');
+        input.name = definition.name;
+        input.required = Boolean(definition.required);
+        input.className = 'mt-1 w-full rounded-lg border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-900';
+        if (definition.type === 'select') {
+          const placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = definition.placeholder || 'Sélectionner';
+          input.append(placeholder);
+          (definition.options || []).forEach((option) => {
+            const choice = document.createElement('option');
+            choice.value = option.value;
+            choice.textContent = option.label;
+            input.append(choice);
+          });
+        } else {
+          input.type = definition.type || 'text';
+          input.value = definition.value || '';
+          input.placeholder = definition.placeholder || '';
+          if (definition.min !== undefined) input.min = String(definition.min);
+        }
+        label.append(input);
+        fieldContainer.append(label);
+      });
+      dialog.returnValue = '';
+      return new Promise((resolve) => {
+        dialog.addEventListener('close', () => {
+          const values = dialog.returnValue === 'confirm' ? Object.fromEntries(new FormData(form).entries()) : null;
+          resolve(values);
+        }, { once: true });
+        dialog.showModal();
+        fieldContainer.querySelector('input, select')?.focus();
+      });
     }
 
     function updateStepDisplay() {
@@ -271,6 +343,14 @@
         }
         if (currentStep === 1 && !selectedTemplate) {
           notify('Sélectionnez d’abord un modèle de structure.', 'warning');
+          return;
+        }
+        if (currentStep === 1 && isTemplateLoading) {
+          notify('Le modèle sélectionné est en cours de chargement.', 'info');
+          return;
+        }
+        if (currentStep === 1 && !templatePayload) {
+          notify('Le modèle n’a pas pu être chargé. Sélectionnez-en un autre.', 'warning');
           return;
         }
         currentStep += 1;
@@ -331,6 +411,8 @@
             key: card.dataset.template,
           };
           // Charger le payload du template sélectionné
+          isTemplateLoading = true;
+          templatePayload = null;
           loadTemplatePayload(selectedTemplate.id);
           console.log('Template sélectionné :', selectedTemplate);
         });
@@ -350,6 +432,10 @@
       } catch (err) {
         console.error('Erreur chargement payload template', err);
         templatePayload = null;
+        selectedTemplate = null;
+        notify('Impossible de charger ce modèle de structure.', 'error');
+      } finally {
+        isTemplateLoading = false;
       }
     }
 
@@ -449,26 +535,41 @@
       }
     };
 
-    window.removePole = function(poleIndex) {
+    window.removePole = async function(poleIndex) {
       if (templatePayload?.poles) {
-        if (confirm('Supprimer ce pôle et tous ses services ?')) {
-          templatePayload.poles.splice(poleIndex, 1);
-          loadStep2Content();
-        }
+        const confirmed = await confirmAction({
+          title: 'Supprimer le pôle',
+          acceptLabel: 'Supprimer',
+          variant: 'danger',
+          message: 'Supprimer ce pôle et tous ses services du modèle en cours ?',
+        });
+        if (!confirmed) return;
+        templatePayload.poles.splice(poleIndex, 1);
+        loadStep2Content();
       }
     };
 
-    window.removeService = function(poleIndex, serviceIndex) {
+    window.removeService = async function(poleIndex, serviceIndex) {
       if (templatePayload?.poles?.[poleIndex]?.services) {
-        if (confirm('Supprimer ce service ?')) {
-          templatePayload.poles[poleIndex].services.splice(serviceIndex, 1);
-          loadStep2Content();
-        }
+        const confirmed = await confirmAction({
+          title: 'Supprimer le service',
+          acceptLabel: 'Supprimer',
+          variant: 'danger',
+          message: 'Supprimer ce service du modèle en cours ?',
+        });
+        if (!confirmed) return;
+        templatePayload.poles[poleIndex].services.splice(serviceIndex, 1);
+        loadStep2Content();
       }
     };
 
-    window.addServiceToPole = function(poleIndex) {
-      const serviceName = prompt('Nom du nouveau service :');
+    window.addServiceToPole = async function(poleIndex) {
+      const values = await openInputDialog({
+        title: 'Ajouter un service',
+        description: 'Le service sera ajouté au pôle sélectionné.',
+        fields: [{ name: 'name', label: 'Nom du service', required: true, placeholder: 'Ex. Cardiologie' }],
+      });
+      const serviceName = values?.name?.trim();
       if (serviceName && templatePayload?.poles?.[poleIndex]) {
         if (!templatePayload.poles[poleIndex].services) {
           templatePayload.poles[poleIndex].services = [];
@@ -485,10 +586,17 @@
 
     // Gestionnaire du bouton "Ajouter un pôle"
     const addPoleBtn = document.getElementById('addPoleBtn');
-    addPoleBtn?.addEventListener('click', () => {
-      const poleName = prompt('Nom du nouveau pôle :');
+    addPoleBtn?.addEventListener('click', async () => {
+      const values = await openInputDialog({
+        title: 'Ajouter un pôle',
+        description: 'Vous pourrez compléter ses services à l’étape suivante.',
+        fields: [
+          { name: 'name', label: 'Nom du pôle', required: true, placeholder: 'Ex. Pôle médecine' },
+          { name: 'short_name', label: 'Code court', placeholder: 'Ex. MED' },
+        ],
+      });
+      const poleName = values?.name?.trim();
       if (!poleName) return;
-      const poleShortName = prompt('Code court (optionnel) :');
       
       if (!templatePayload) {
         templatePayload = { poles: [] };
@@ -499,7 +607,7 @@
       
       templatePayload.poles.push({
         name: poleName,
-        short_name: poleShortName || '',
+        short_name: values.short_name?.trim() || '',
         type: 'pole',
         services: []
       });
@@ -588,17 +696,37 @@
       }
     };
 
-    window.removeUf = function(poleIndex, serviceIndex, ufIndex) {
+    window.removeUf = async function(poleIndex, serviceIndex, ufIndex) {
       if (templatePayload?.poles?.[poleIndex]?.services?.[serviceIndex]?.ufs) {
-        if (confirm('Supprimer cette UF ?')) {
-          templatePayload.poles[poleIndex].services[serviceIndex].ufs.splice(ufIndex, 1);
-          loadStep3Content();
-        }
+        const confirmed = await confirmAction({
+          title: 'Supprimer l’UF',
+          acceptLabel: 'Supprimer',
+          variant: 'danger',
+          message: 'Supprimer cette unité fonctionnelle du modèle en cours ?',
+        });
+        if (!confirmed) return;
+        templatePayload.poles[poleIndex].services[serviceIndex].ufs.splice(ufIndex, 1);
+        loadStep3Content();
       }
     };
 
     // ============ STEP 4: Hébergement (UH optionnel) ============
     let uhList = [];
+
+    function availableUfOptions() {
+      const options = [];
+      templatePayload?.poles?.forEach((pole, poleIndex) => {
+        pole.services?.forEach((service, serviceIndex) => {
+          service.ufs?.forEach((uf, ufIndex) => {
+            options.push({
+              value: `${poleIndex}:${serviceIndex}:${ufIndex}`,
+              label: `${pole.name || 'Pôle'} › ${service.name || 'Service'} › ${uf.name || `UF ${ufIndex + 1}`}`,
+            });
+          });
+        });
+      });
+      return options;
+    }
 
     function loadStep4Content() {
       const uhsContainer = document.getElementById('uhsContainer');
@@ -627,25 +755,46 @@
     }
 
     const addUhBtn = document.getElementById('addUhBtn');
-    addUhBtn?.addEventListener('click', () => {
-      const uhName = prompt('Nom de l\'Unité d\'Hébergement :');
+    addUhBtn?.addEventListener('click', async () => {
+      const ufOptions = availableUfOptions();
+      if (!ufOptions.length) {
+        notify('Créez d’abord une UF avant d’ajouter une unité d’hébergement.', 'warning');
+        return;
+      }
+      const values = await openInputDialog({
+        title: 'Ajouter une unité d’hébergement',
+        description: 'Les chambres et lits peuvent être complétés ultérieurement.',
+        fields: [
+          { name: 'name', label: 'Nom de l’unité d’hébergement', required: true, placeholder: 'Ex. UH Cardiologie' },
+          { name: 'uf_ref', label: 'Unité fonctionnelle de rattachement', type: 'select', required: true, options: ufOptions },
+          { name: 'chambres', label: 'Nombre de chambres', type: 'number', value: '0', min: 0 },
+          { name: 'lits', label: 'Nombre de lits', type: 'number', value: '0', min: 0 },
+        ],
+      });
+      const uhName = values?.name?.trim();
       if (!uhName) return;
-      const chambresCount = parseInt(prompt('Nombre de chambres (optionnel) :', '0') || '0');
-      const litsCount = parseInt(prompt('Nombre de lits (optionnel) :', '0') || '0');
+      const chambresCount = Number.parseInt(values.chambres || '0', 10) || 0;
+      const litsCount = Number.parseInt(values.lits || '0', 10) || 0;
       
       uhList.push({
         name: uhName,
+        uf_ref: values.uf_ref,
         chambres: chambresCount,
         lits: litsCount
       });
       loadStep4Content();
     });
 
-    window.removeUh = function(index) {
-      if (confirm('Supprimer cette UH ?')) {
-        uhList.splice(index, 1);
-        loadStep4Content();
-      }
+    window.removeUh = async function(index) {
+      const confirmed = await confirmAction({
+        title: 'Supprimer l’unité d’hébergement',
+        acceptLabel: 'Supprimer',
+        variant: 'danger',
+        message: 'Supprimer cette unité d’hébergement du modèle en cours ?',
+      });
+      if (!confirmed) return;
+      uhList.splice(index, 1);
+      loadStep4Content();
     };
 
     // ============ STEP 5: Synthèse ============
@@ -727,7 +876,6 @@
       const totalServices = templatePayload.poles?.reduce((sum, p) => sum + (p.services?.length || 0), 0) || 0;
       const totalUfs = templatePayload.poles?.reduce((sum, p) => sum + p.services?.reduce((s2, svc) => s2 + (svc.ufs?.length || 0), 0), 0) || 0;
 
-      const confirmAction = window.PameliaUi?.confirm || ((options) => Promise.resolve(window.confirm(options.message)));
       const confirmation = await confirmAction({
         title: 'Générer la structure',
         acceptLabel: 'Générer',

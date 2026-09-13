@@ -144,8 +144,11 @@
   async function play(workspace, form, button) {
     const dryRun = form.querySelector("[name='dry_run']")?.checked;
     if (!dryRun) {
-      const confirm = window.PameliaUi?.confirm || ((options) => Promise.resolve(window.confirm(options.message)));
-      const accepted = await confirm({
+      if (!window.PameliaUi?.confirm) {
+        notify("Le dialogue de confirmation n’est pas disponible.", "error");
+        return;
+      }
+      const accepted = await window.PameliaUi.confirm({
         title: "Émettre les messages du modèle",
         acceptLabel: "Émettre",
         variant: "danger",

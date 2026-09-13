@@ -386,13 +386,23 @@ function setupEventListeners() {
   // Bouton reset
   const resetBtn = document.getElementById('resetBtn');
   if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (confirm('Réinitialiser le formulaire et les actes ?')) {
-        actes = [];
-        renderActes();
-        document.getElementById('cotationForm').reset();
-        document.getElementById('xmlPreview').textContent = 'XML généré apparaîtra ici…';
+    resetBtn.addEventListener('click', async () => {
+      if (!window.PameliaUi?.confirm) {
+        showToast('Le dialogue de confirmation n’est pas disponible.', 'error');
+        return;
       }
+      const confirmed = await window.PameliaUi.confirm({
+        title: 'Réinitialiser la cotation',
+        message: 'Réinitialiser le formulaire et les actes ?',
+        acceptLabel: 'Réinitialiser',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+
+      actes = [];
+      renderActes();
+      document.getElementById('cotationForm').reset();
+      document.getElementById('xmlPreview').textContent = 'XML généré apparaîtra ici…';
     });
   }
 

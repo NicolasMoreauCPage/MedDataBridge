@@ -16,7 +16,8 @@
   function openConfirmation(options) {
     const { dialog, title, message, accept } = elements();
     if (!dialog || !title || !message || !accept) {
-      return Promise.resolve(window.confirm(options.message));
+      window.toastSystem?.show?.("Le dialogue de confirmation n’est pas disponible.", "error");
+      return Promise.resolve(false);
     }
 
     title.textContent = options.title || "Confirmer l’action";

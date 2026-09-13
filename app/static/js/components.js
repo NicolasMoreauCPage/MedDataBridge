@@ -233,10 +233,19 @@ class StructureCard {
     console.log('Edit:', entity);
   }
 
-  static onDelete(entity) {
-    if (confirm(`Supprimer ${entity.nom} ?`)) {
-      console.log('Delete:', entity);
+  static async onDelete(entity) {
+    if (!window.PameliaUi?.confirm) {
+      window.toastSystem?.show?.('Le dialogue de confirmation n’est pas disponible.', 'error');
+      return false;
     }
+    const confirmed = await window.PameliaUi.confirm({
+      title: 'Confirmer la suppression',
+      message: `Supprimer ${entity.nom} ?`,
+      acceptLabel: 'Supprimer',
+      variant: 'danger',
+    });
+    if (confirmed) console.log('Delete:', entity);
+    return confirmed;
   }
 }
 

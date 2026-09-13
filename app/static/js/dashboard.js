@@ -101,7 +101,17 @@
 
   els.btnRefresh.addEventListener('click', ()=> refreshAll());
   els.btnReset.addEventListener('click', async ()=>{
-    if(!confirm('Reset all metrics?')) return;
+    if (!window.PameliaUi?.confirm) {
+      window.toastSystem?.show?.('Le dialogue de confirmation n’est pas disponible.', 'error');
+      return;
+    }
+    const confirmed = await window.PameliaUi.confirm({
+      title: 'Réinitialiser les métriques',
+      message: 'Réinitialiser toutes les métriques ?',
+      acceptLabel: 'Réinitialiser',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     await fetch('/api/metrics/operations', {method:'DELETE'});
     await refreshAll();
   });

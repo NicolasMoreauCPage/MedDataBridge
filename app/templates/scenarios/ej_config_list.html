@@ -190,7 +190,17 @@
 
 <script>
 async function deleteConfig(ejId, ejName) {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer la configuration de "${ejName}" ?`)) {
+    if (!window.PameliaUi?.confirm) {
+        showScenarioConfigNotification("Le dialogue de confirmation n'est pas disponible.", 'error');
+        return;
+    }
+    const confirmed = await window.PameliaUi.confirm({
+        title: 'Supprimer la configuration',
+        message: `Êtes-vous sûr de vouloir supprimer la configuration de "${ejName}" ?`,
+        acceptLabel: 'Supprimer',
+        variant: 'danger',
+    });
+    if (!confirmed) {
         return;
     }
     
@@ -200,13 +210,22 @@ async function deleteConfig(ejId, ejName) {
         });
         
         if (response.ok) {
-            window.location.reload();
+            showScenarioConfigNotification('Configuration supprimée.', 'success');
+            window.setTimeout(() => window.location.reload(), 350);
         } else {
-            alert('Erreur lors de la suppression');
+            showScenarioConfigNotification('Erreur lors de la suppression.', 'error');
         }
     } catch (error) {
-        alert('Erreur: ' + error.message);
+        showScenarioConfigNotification(`Erreur : ${error.message}`, 'error');
     }
+}
+
+function showScenarioConfigNotification(message, type = 'info') {
+    if (window.toastSystem?.show) {
+        window.toastSystem.show(message, type);
+        return;
+    }
+    console.info(message);
 }
 </script>
 {% endblock %}

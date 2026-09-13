@@ -80,11 +80,15 @@
       });
       els.opsTotal.textContent = total;
       els.successRate.textContent = total? pct(totalSuccess/total):'0%';
-      // Populate select once
-      if(!els.opSelect.dataset.filled){
-        options.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;els.opSelect.appendChild(opt);});
-        els.opSelect.dataset.filled='1';
-      }
+      const previousSelection = els.opSelect.value;
+      els.opSelect.replaceChildren();
+      options.forEach((optionLabel) => {
+        const option = document.createElement('option');
+        option.value = optionLabel;
+        option.textContent = optionLabel;
+        els.opSelect.appendChild(option);
+      });
+      els.opSelect.value = options.includes(previousSelection) ? previousSelection : 'Toutes';
       drawOpChart(data);
       els.lastUpdated.textContent = new Date().toLocaleTimeString('fr-FR');
     } catch(e) {

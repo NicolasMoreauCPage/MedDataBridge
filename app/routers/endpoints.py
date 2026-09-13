@@ -17,6 +17,7 @@ from app.models_context import (
 from app.models_structure import GHTContext, EntiteJuridique
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.runners import registry
+from app.utils.booleans import as_bool
 from sqlmodel.sql.expression import select as sqlmodel_select
 from sqlalchemy.orm import selectinload
 
@@ -39,7 +40,7 @@ def uses_background_poller(kind: str | None) -> bool:
 def _bool_from_str(v: str | None, default: bool = False) -> bool:
     if v is None:
         return default
-    return str(v).lower() in {"1","true","on","yes","y"}
+    return as_bool(v)
 
 @router.get("/admin", response_class=HTMLResponse)
 def admin_list_endpoints(request: Request, session=Depends(get_session)):

@@ -6,12 +6,11 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
-from typing import List, Optional
+from typing import Optional
 import logging
 
 from app.db import get_session
 from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
-from app.models_practitioners import MedecinResponsable
 from app.models_vocabulary import VocabularySystem, VocabularyValue
 
 logger = logging.getLogger(__name__)
@@ -461,7 +460,7 @@ async def create_ccam_acte(
             montant_total=acte_data.get("montant_total"),
             commentaire=acte_data.get("commentaire"),
             valide=False,  # Par défaut non validé
-            facture=False
+            facture=False,
         )
         
         session.add(acte)
@@ -492,9 +491,6 @@ async def create_ccam_acte(
 """
 Utilitaires pour le calcul automatique des montants de cotations.
 """
-from typing import Optional
-
-
 # Tarifs de base 2024 (à actualiser régulièrement)
 TARIFS_BASE = {
     "ccam": {
@@ -680,7 +676,7 @@ async def create_ngap_acte(
             montant_total=acte_data.get("montant_total"),
             commentaire=acte_data.get("commentaire"),
             valide=False,
-            facture=False
+            facture=False,
         )
         
         session.add(acte)
@@ -737,7 +733,7 @@ async def create_ucd_acte(
             montant_unitaire_facture_ttc=acte_data.get("montant_unitaire_facture_ttc"),
             commentaire=acte_data.get("commentaire"),
             valide=False,
-            facture="non",
+            facture=False,
         )
 
         session.add(acte)
@@ -793,7 +789,7 @@ async def create_lpp_acte(
             quantite=acte_data["quantite"],
             commentaire=acte_data.get("commentaire"),
             valide=False,
-            facture="non",
+            facture=False,
         )
 
         session.add(acte)

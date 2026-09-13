@@ -17,6 +17,7 @@ from app.db import get_session
 from app.models import CCAMAct, Dossier, LPPAct, NGAPAct, Patient, UCDAct
 from app.models.hprim_models import HprimMessage
 from app.services.hprim.hprim_xml import HprimXmlService
+from app.utils.booleans import as_bool
 
 logger = logging.getLogger(__name__)
 
@@ -288,8 +289,8 @@ def _import_one_ccam(session: Session, dossier: Dossier, acte: Any) -> Optional[
         quantite=getattr(acte, "quantite", None) or 1,
         montant_total=_safe_float(getattr(getattr(acte, "montant", None), "valeur", None)),
         commentaire=_safe_text(getattr(acte, "commentaire", None)),
-        valide=bool(getattr(acte, "valide", False)),
-        facture="oui" if getattr(acte, "facture", False) else "non",
+        valide=as_bool(getattr(acte, "valide", False)),
+        facture=as_bool(getattr(acte, "facture", False)),
     )
     session.add(new_act)
     return new_act
@@ -314,8 +315,8 @@ def _import_one_ngap(session: Session, dossier: Dossier, acte: Any) -> Optional[
         execute_date=getattr(acte, "execute_date", None) or datetime.utcnow(),
         montant_total=_safe_float(getattr(getattr(acte, "montant", None), "valeur", None)),
         commentaire=_safe_text(getattr(acte, "commentaire", None)),
-        valide=bool(getattr(acte, "valide", False)),
-        facture="oui" if getattr(acte, "facture", False) else "non",
+        valide=as_bool(getattr(acte, "valide", False)),
+        facture=as_bool(getattr(acte, "facture", False)),
     )
     session.add(new_act)
     return new_act
@@ -350,8 +351,8 @@ def _import_one_ucd(session: Session, dossier: Dossier, acte: Any) -> Optional[U
             getattr(acte, "montant_unitaire_facture_ttc", None) or getattr(acte, "prix_unitaire", None)
         ),
         commentaire=_safe_text(getattr(acte, "commentaire", None)),
-        valide=False,
-        facture="non",
+        valide=as_bool(getattr(acte, "valide", False)),
+        facture=as_bool(getattr(acte, "facture", False)),
     )
     session.add(new_act)
     return new_act
@@ -386,8 +387,8 @@ def _import_one_lpp(session: Session, dossier: Dossier, acte: Any) -> Optional[L
         or 0.0,
         quantite=_safe_int(getattr(acte, "quantite", None)) or 1,
         commentaire=_safe_text(getattr(acte, "commentaire", None)),
-        valide=False,
-        facture="non",
+        valide=as_bool(getattr(acte, "valide", False)),
+        facture=as_bool(getattr(acte, "facture", False)),
     )
     session.add(new_act)
     return new_act

@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 from pydantic import BaseModel
 from datetime import datetime
 from app.models import NGAPAct
+from app.utils.booleans import as_bool
 
 
 class NGAPActCreate(BaseModel):
@@ -96,12 +97,6 @@ class NGAPService:
 
     @staticmethod
     def _as_dict(row: NGAPAct) -> Dict[str, Any]:
-        facture = row.facture
-        facture_bool = (
-            facture
-            if isinstance(facture, bool)
-            else str(facture or "").lower() not in {"", "0", "false", "no", "non"}
-        )
         return {
             "id": row.id,
             "dossier_id": row.dossier_id,
@@ -116,7 +111,7 @@ class NGAPService:
             "montant": row.montant_total,
             "commentaire": row.commentaire,
             "valide": row.valide,
-            "facture": facture_bool,
+            "facture": as_bool(row.facture),
         }
 
     @classmethod
@@ -150,7 +145,7 @@ class NGAPService:
             montant_total=getattr(act, "montant", None),
             commentaire=getattr(act, "commentaire", None),
             valide=False,
-            facture="non",
+            facture=False,
         )
         self.session.add(ngap)
         self.session.commit()

@@ -19,6 +19,7 @@ from sqlmodel import Session, select
 from app.models_qualification import ScenarioTheme, ScenarioThemeAssignment
 from app.models_scenario_review import ScenarioCatalogReview
 from app.models_scenarios import InteropScenario, InteropScenarioStep
+from app.utils.booleans import as_bool
 
 
 SEED_MARKER = "catalog-seed-20260912"
@@ -144,7 +145,7 @@ def apply_catalog_seed(bind: Connection) -> dict[str, int]:
             session.add(ScenarioThemeAssignment(
                 scenario_id=scenario.id,
                 theme_id=theme.id,
-                is_primary=bool(item.get("is_primary", True)),
+                is_primary=as_bool(item.get("is_primary", True)),
                 created_at=datetime.fromisoformat(item["created_at"]),
             ))
             assigned.add((scenario.id, theme.id))

@@ -16,6 +16,7 @@ from app.infrastructure.hl7.parsing.french_extension_parser import (
     parse_zfd, parse_zfa, parse_zfp, parse_zfv, parse_rol_segments,
     ROL_ROLE_ODRP, ROL_ROLE_SUBSTITUTE,
 )
+from app.utils.booleans import as_bool
 
 logger = logging.getLogger(__name__)
 
@@ -1805,7 +1806,7 @@ async def handle_transfer_message(
             nature=zbe_data.get("nature"),
             # Métadonnées ZBE
             action=zbe_data.get("action"),
-            is_historic=bool(zbe_data.get("is_historic")),
+            is_historic=as_bool(zbe_data.get("is_historic")),
             original_trigger=zbe_data.get("original_trigger")
         )
         _apply_zfv_to_mouvement(mouvement, message)
@@ -2101,7 +2102,7 @@ async def handle_discharge_message(
             nature=zbe_data.get("nature"),
             # Métadonnées ZBE
             action=zbe_data.get("action"),
-            is_historic=bool(zbe_data.get("is_historic")),
+            is_historic=as_bool(zbe_data.get("is_historic")),
             original_trigger=zbe_data.get("original_trigger")
         )
         _apply_zfv_to_mouvement(mouvement, message)
@@ -2258,7 +2259,7 @@ async def handle_leave_message(
             nature=zbe_data.get("nature"),
             # Métadonnées ZBE
             action=zbe_data.get("action"),
-            is_historic=bool(zbe_data.get("is_historic")),
+            is_historic=as_bool(zbe_data.get("is_historic")),
             original_trigger=zbe_data.get("original_trigger")
         )
         

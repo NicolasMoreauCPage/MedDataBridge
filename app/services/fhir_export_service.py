@@ -14,6 +14,7 @@ from app.models_structure import (
 )
 from app.models import Mouvement, Patient, Dossier, Venue
 from app.models_contacts import PatientContact, VenueContact
+from app.utils.booleans import as_bool
 
 from app.converters.fhir_converter import (
     FHIRBundle, FHIRReference,
@@ -83,7 +84,7 @@ class FHIRExportService:
             finess_type_code="FINEJ",
             siren=getattr(ej, "siren", None),
             siret=getattr(ej, "siret", None),
-            active=bool(getattr(ej, "is_active", True)),
+            active=as_bool(getattr(ej, "is_active", True)),
         )
         entries.append(self.converter.create_bundle_entry(ej_organization))
         ej_ref = self.converter.create_reference("Organization", ej.finess_ej or ej.identifier or f"EJ-{ej.id}", ej.name)

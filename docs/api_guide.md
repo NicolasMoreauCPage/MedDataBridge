@@ -394,7 +394,7 @@ Exporter scénario en JSON (format import/export)
     "preserve_intervals": true,
     "jitter_min": 1,
     "jitter_max": 5,
-    "jitter_events": true
+    "jitter_events": ["A02", "A03", "A06", "A07", "A08"]
   },
   "steps": [
     {
@@ -655,7 +655,7 @@ Le JSON d'import doit respecter cette structure:
 
   - `jitter_max` (int): Minutes
 
-  - `jitter_events` (bool)
+  - `jitter_events` (string ou liste de strings) : codes d'événements HL7 auxquels appliquer le jitter
 
 **Structure Step**:
 

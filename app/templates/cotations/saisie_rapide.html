@@ -632,7 +632,7 @@
                                                     {% else %}
                                                     <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
-                                                    {% if acte.facture == 'oui' %}
+                                                    {% if acte.facture %}
                                                     <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
@@ -672,7 +672,7 @@
                                                     {% else %}
                                                     <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
-                                                    {% if acte.facture == 'oui' %}
+                                                    {% if acte.facture %}
                                                     <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
@@ -716,7 +716,7 @@
                                                     {% else %}
                                                     <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
-                                                    {% if acte.facture == 'oui' %}
+                                                    {% if acte.facture %}
                                                     <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
@@ -760,7 +760,7 @@
                                                     {% else %}
                                                     <span class="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 text-[10px] font-bold rounded">⏳ Provisoire</span>
                                                     {% endif %}
-                                                    {% if acte.facture == 'oui' %}
+                                                    {% if acte.facture %}
                                                     <span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 text-[10px] font-bold rounded">📄 Facturé</span>
                                                     {% endif %}
                                                 </div>
@@ -1489,7 +1489,7 @@ function applyFilters() {
 
         if (statut === 'valide' && row.dataset.valide !== 'True') show = false;
         if (statut === 'provisoire' && row.dataset.valide === 'True') show = false;
-        if (statut === 'facture' && row.dataset.facture !== 'oui') show = false;
+        if (statut === 'facture' && row.dataset.facture !== 'True') show = false;
 
         const rowDate = row.dataset.date ? new Date(row.dataset.date) : null;
         if (rowDate) {

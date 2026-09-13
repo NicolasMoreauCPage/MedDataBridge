@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.models_structure import GHTContext
+from app.utils.booleans import as_bool
 
 
 class ScenarioImportError(Exception):
@@ -171,10 +172,14 @@ def import_scenario_from_json(
     # Créer scénario
     scenario_name = override_name or json_data["name"]
     
-    # Convertir jitter_events booléen en string pour la base (bug du modèle)
+    # Les événements ciblés sont une liste de codes HL7, jamais un booléen.
     jitter_events = time_config.get("jitter_events")
-    if isinstance(jitter_events, bool):
-        jitter_events = "1" if jitter_events else "0"
+    if isinstance(jitter_events, list):
+        jitter_events = ",".join(str(event).strip() for event in jitter_events if str(event).strip())
+    elif isinstance(jitter_events, bool):
+        raise ScenarioImportError("'time_config.jitter_events' doit être une chaîne ou une liste de codes HL7")
+    elif jitter_events is not None and not isinstance(jitter_events, str):
+        raise ScenarioImportError("'time_config.jitter_events' doit être une chaîne ou une liste de codes HL7")
     
     scenario = InteropScenario(
         key=scenario_key,
@@ -192,7 +197,7 @@ def import_scenario_from_json(
         time_anchor_mode=time_config.get("anchor_mode"),
         time_anchor_days_offset=time_config.get("anchor_days_offset"),
         time_fixed_start_iso=time_config.get("fixed_start_iso"),
-        preserve_intervals=time_config.get("preserve_intervals", True),
+        preserve_intervals=as_bool(time_config.get("preserve_intervals", True)),
         jitter_min_minutes=time_config.get("jitter_min"),
         jitter_max_minutes=time_config.get("jitter_max"),
         apply_jitter_on_events=jitter_events,
@@ -237,7 +242,7 @@ def import_scenario_from_json(
             delay_seconds=step_data.get("delay_seconds", 0),
             payload=step_data["payload"],
             assertions_json=step_data.get("assertions_json"),
-            is_required=step_data.get("is_required", True),
+            is_required=as_bool(step_data.get("is_required", True)),
             route_mode=step_data.get("route_mode", "all_compatible"),
             endpoint_ids_json=json.dumps(step_data.get("endpoint_ids", [])) if step_data.get("route_mode") == "explicit" else None,
             target_system_key=step_data.get("target_system_key"),
@@ -295,5 +300,11 @@ def validate_scenario_json(json_data: dict) -> tuple[bool, Optional[str]]:
             return False, "'anchor_days_offset' doit être un entier ou null"
         if "preserve_intervals" in tc and not isinstance(tc["preserve_intervals"], bool):
             return False, "'preserve_intervals' doit être un booléen"
+        if "jitter_events" in tc and not isinstance(tc["jitter_events"], (str, list, type(None))):
+            return False, "'jitter_events' doit être une chaîne ou une liste de codes HL7"
+
+    for i, step in enumerate(json_data["steps"]):
+        if "is_required" in step and not isinstance(step["is_required"], bool):
+            return False, f"Step {i}: 'is_required' doit être un booléen"
     
     return True, None

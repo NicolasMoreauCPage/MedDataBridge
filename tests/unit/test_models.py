@@ -502,7 +502,7 @@ class TestNGAPAct:
         assert act.execute_date == execute_date
         assert act.facturable is True
         assert act.valide is False
-        assert act.facture == "non"
+        assert act.facture is False
 
     def test_ngap_act_creation_complete(self):
         """Test création d'un acte NGAP complet."""
@@ -519,7 +519,7 @@ class TestNGAPAct:
             commentaire="Acte complexe",
             facturable=True,
             valide=True,
-            facture="non"
+            facture=False
         )
 
         assert act.dossier_id == 1
@@ -533,7 +533,7 @@ class TestNGAPAct:
         assert act.commentaire == "Acte complexe"
         assert act.facturable is True
         assert act.valide is True
-        assert act.facture == "non"
+        assert act.facture is False
 
 
 class TestUCDAct:
@@ -555,6 +555,7 @@ class TestUCDAct:
         assert act.denomination_libelle == "Paracétamol"
         assert act.quantite == 10.0
         assert act.execute_date == execute_date
+        assert act.facture is False
 
     def test_ucd_act_creation_complete(self):
         """Test création d'un acte UCD complet."""
@@ -601,6 +602,7 @@ class TestLPPAct:
         assert act.quantite == 1
         assert act.montant_unitaire_facture_ttc == 500.0
         assert act.execute_date == execute_date
+        assert act.facture is False
 
     def test_lpp_act_creation_complete(self):
         """Test création d'un acte LPP complet."""
@@ -646,7 +648,7 @@ class TestCCAMAct:
         assert act.quantite == 1
         assert act.facturable is True
         assert act.valide is False
-        assert act.facture == "non"
+        assert act.facture is False
 
     def test_ccam_act_creation_complete(self):
         """Test création d'un acte CCAM complet."""
@@ -665,7 +667,7 @@ class TestCCAMAct:
             commentaire="Acte complexe avec modificateurs",
             facturable=True,
             valide=True,
-            facture="non"
+            facture=False
         )
 
         assert act.dossier_id == 1
@@ -680,7 +682,7 @@ class TestCCAMAct:
         assert act.commentaire == "Acte complexe avec modificateurs"
         assert act.facturable is True
         assert act.valide is True
-        assert act.facture == "non"
+        assert act.facture is False
 
 
 class TestContract:

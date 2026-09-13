@@ -1189,7 +1189,7 @@ class HprimXmlService:
         
         facturable = acte_elem.get("facturable", "oui") == "oui"
         valide = acte_elem.get("valide", "non") == "oui"
-        facture = acte_elem.get("facture", "non")
+        facture = acte_elem.get("facture", "non") == "oui"
         gratuit = acte_elem.get("gratuit") == "oui"
         
         # Identifiant
@@ -1280,7 +1280,7 @@ class HprimXmlService:
         
         facturable = acte_elem.get("facturable", "oui") == "oui"
         valide = acte_elem.get("valide", "non") == "oui"
-        facture = acte_elem.get("facture", "non")
+        facture = acte_elem.get("facture", "non") == "oui"
         gratuit = acte_elem.get("gratuit") == "oui"
         liberal = acte_elem.get("liberal") == "oui"
         retrocession = acte_elem.get("retrocession") == "oui"

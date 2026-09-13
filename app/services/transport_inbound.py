@@ -51,6 +51,7 @@ from app.services.nature_mapping import derive_nature
 from app.infrastructure.hl7.validation import validate_transition
 from app.services.vocabulary_translate import map_code
 from app.models_contacts import PatientContact, VenueContact  # NK1 parsing models
+from app.utils.booleans import as_bool
 
 logger = logging.getLogger("transport_inbound")
 
@@ -880,7 +881,7 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
     strict_ej = False
     try:
         if endpoint and getattr(endpoint, "entite_juridique", None):
-            strict_ej = bool(getattr(endpoint.entite_juridique, "strict_pam_fr", False))
+            strict_ej = as_bool(getattr(endpoint.entite_juridique, "strict_pam_fr", False))
         else:
             strict_ej = _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}
     except Exception:
@@ -1159,7 +1160,7 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                             existing_mvt.nature = nature
                         existing_mvt.original_trigger = original_trigger
                         existing_mvt.action = action
-                        existing_mvt.is_historic = bool(is_historic)
+                        existing_mvt.is_historic = as_bool(is_historic)
                         session.add(existing_mvt); session.flush()
                         logger.info("Mouvement mis à jour", extra={"movement_seq": existing_mvt.mouvement_seq})
 

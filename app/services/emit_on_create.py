@@ -22,6 +22,7 @@ from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.pam_validation import validate_pam
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
+from app.utils.booleans import as_bool
 import json
 
 
@@ -1972,7 +1973,7 @@ def emit_to_senders_async(
                         action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
                         facturable=entity.facturable if hasattr(entity, 'facturable') else True,
                         valide=entity.valide if hasattr(entity, 'valide') else False,
-                        facture=entity.facture if hasattr(entity, 'facture') else False
+                        facture=as_bool(getattr(entity, "facture", False))
                     )
                     message.actes_ccam = [hprim_acte]
                     
@@ -1989,7 +1990,7 @@ def emit_to_senders_async(
                         action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
                         facturable=entity.facturable if hasattr(entity, 'facturable') else True,
                         valide=entity.valide if hasattr(entity, 'valide') else False,
-                        facture=entity.facture if hasattr(entity, 'facture') else False
+                        facture=as_bool(getattr(entity, "facture", False))
                     )
                     message.actes_ngap = [hprim_acte]
                 

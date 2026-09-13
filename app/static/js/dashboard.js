@@ -18,6 +18,12 @@
 
   let opChart, cacheChart;
 
+  const statusLabels = {
+    healthy: 'Disponible',
+    degraded: 'Dégradé',
+    unhealthy: 'Indisponible',
+  };
+
   function fmt(ms){return (ms*1000).toFixed(1);} // seconds->ms string
   function pct(v){return (v*100).toFixed(1)+'%';}
 
@@ -30,25 +36,31 @@
   async function loadHealth(){
     try {
       const h = await fetchJSON('/api/metrics/health');
-      els.healthStatus.textContent = h.status;
+      els.healthStatus.textContent = statusLabels[h.status] || h.status || 'Inconnu';
       els.healthOps.textContent = h.total_operations;
       els.healthErrors.textContent = h.total_errors;
       els.opsTracked.textContent = h.operations_tracked;
+      els.healthStatus.classList.remove('text-success', 'text-warning', 'text-danger');
       if(h.status === 'healthy') els.healthStatus.classList.add('text-success');
       else if(h.status === 'degraded') els.healthStatus.classList.add('text-warning');
       else els.healthStatus.classList.add('text-danger');
-    } catch(e){console.warn('Health fail', e);}
+    } catch(e){
+      els.healthStatus.textContent = 'Indisponible';
+      els.healthStatus.classList.remove('text-success', 'text-warning');
+      els.healthStatus.classList.add('text-danger');
+      console.warn('État de santé indisponible', e);
+    }
   }
 
   async function loadCache(){
     try {
       const c = await fetchJSON('/api/cache/stats');
-      els.cacheEnabled.textContent = c.enabled? 'Enabled' : 'Disabled';
+      els.cacheEnabled.textContent = c.enabled ? 'Activé' : 'Désactivé';
       els.cacheHitRate.textContent = (c.hit_rate ?? 0)+'%';
       els.cacheMemory.textContent = c.used_memory || '--';
       drawCacheChart(c.keyspace_hits || 0, c.keyspace_misses || 0);
     } catch(e){
-      els.cacheEnabled.textContent = 'Unavailable';
+      els.cacheEnabled.textContent = 'Indisponible';
     }
   }
 
@@ -56,7 +68,7 @@
     const data = await fetchJSON('/api/metrics/operations');
     // Build table
     els.opsTableBody.innerHTML='';
-    const options=['(All)'];
+    const options=['Toutes'];
     let total=0, totalSuccess=0;
     Object.entries(data).forEach(([name,m])=>{
       total += m.count||0; totalSuccess += m.success_count||0;
@@ -73,26 +85,26 @@
       els.opSelect.dataset.filled='1';
     }
     drawOpChart(data);
-    els.lastUpdated.textContent = 'Last update: '+ new Date().toLocaleTimeString();
+    els.lastUpdated.textContent = new Date().toLocaleTimeString('fr-FR');
   }
 
   function drawOpChart(data){
     const selected = els.opSelect.value;
     let durations=[]; let labels=[];
     Object.entries(data).forEach(([name,m])=>{
-      if(selected && selected!=='(All)' && name!==selected) return;
+      if(selected && selected!=='Toutes' && name!==selected) return;
       labels.push(name);
       durations.push(m.avg_duration? (m.avg_duration*1000):0);
     });
     if(opChart){opChart.destroy();}
     const ctx=document.getElementById('chart-operation');
-    opChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Avg Duration (ms)',data:durations,backgroundColor:'#0d6efd'}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});
+    opChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Durée moyenne (ms)',data:durations,backgroundColor:'#0d6efd'}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});
   }
 
   function drawCacheChart(hits, misses){
     if(cacheChart){cacheChart.destroy();}
     const ctx=document.getElementById('chart-cache');
-    cacheChart=new Chart(ctx,{type:'doughnut',data:{labels:['Hits','Misses'],datasets:[{data:[hits,misses],backgroundColor:['#198754','#dc3545']}]},options:{cutout:'60%'}});
+    cacheChart=new Chart(ctx,{type:'doughnut',data:{labels:['Succès','Échecs'],datasets:[{data:[hits,misses],backgroundColor:['#198754','#dc3545']}]},options:{cutout:'60%'}});
   }
 
   async function refreshAll(){

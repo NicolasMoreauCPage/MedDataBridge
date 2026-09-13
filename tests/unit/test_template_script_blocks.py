@@ -17,6 +17,20 @@ def test_structure_editor_script_is_loaded_only_by_its_workspace(client):
     assert "js/structure-interactive.js" in response.text
 
 
+def test_structure_editor_does_not_advertise_unimplemented_deletion_shortcuts():
+    from pathlib import Path
+
+    script = Path("app/static/js/structure-interactive.js").read_text(encoding="utf-8")
+    template = Path("app/templates/structure_interactive.html").read_text(encoding="utf-8")
+
+    assert "deleteSelected" not in script
+    assert "Delete - à implémenter" not in script
+    assert "prompt(" not in script
+    assert "Del pour supprimer" not in template
+    assert "initNativeDragDrop" in script
+    assert 'id="structure-duplicate-dialog"' in template
+
+
 def test_messages_workspaces_load_their_scoped_script_without_inline_handlers(client):
     for path in ("/messages", "/messages/by-dossier"):
         response = client.get(path)

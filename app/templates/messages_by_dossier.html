@@ -143,8 +143,52 @@
   </div>
 </div>
 
-<!-- Tableau des dossiers -->
-<div class="overflow-x-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+<!-- Cartes mobiles : éviter la lecture d'un tableau horizontal sur petit écran. -->
+<div class="space-y-3 md:hidden">
+  {% if dossiers|length == 0 %}
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">Aucun dossier pour ces filtres.</div>
+  {% else %}
+  {% for d in dossiers %}
+  <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Dossier / NDA</p>
+        <p class="mt-1 break-all font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">{{ d.dossier_number if d.has_dossier_number else 'Non renseigné' }}</p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">IPP : <span class="font-mono">{{ d.ipp if d.ipp else '—' }}</span></p>
+      </div>
+      {% if d.global_status == 'ok' %}
+      <span class="shrink-0 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-200">OK</span>
+      {% elif d.global_status == 'warning' %}
+      <span class="shrink-0 rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900/40 dark:text-orange-200">Avertissement</span>
+      {% else %}
+      <span class="shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-200">Erreur</span>
+      {% endif %}
+    </div>
+    <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+      <div class="rounded-lg bg-slate-50 p-2 dark:bg-slate-700"><span class="block text-slate-500 dark:text-slate-400">Messages</span><span class="font-semibold text-slate-800 dark:text-slate-100">{{ d.message_count }}</span></div>
+      <div class="rounded-lg bg-slate-50 p-2 dark:bg-slate-700"><span class="block text-slate-500 dark:text-slate-400">Dernière activité</span><span class="font-semibold text-slate-800 dark:text-slate-100">{{ d.last_activity.strftime('%d/%m %H:%M') if d.last_activity else '—' }}</span></div>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-1">
+      {% for msg_type in d.message_types[:4] %}
+      <span class="rounded px-2 py-0.5 font-mono text-xs {{ 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200' if msg_type in d.message_types_with_errors else 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200' }}">{{ msg_type }}</span>
+      {% endfor %}
+      {% if d.message_types|length > 4 %}<span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-700 dark:text-slate-300">+{{ d.message_types|length - 4 }}</span>{% endif %}
+    </div>
+    {% if d.has_dossier_number %}
+    <div class="mt-4 grid grid-cols-2 gap-2 text-sm">
+      <a href="/messages/dossier/{{ d.dossier_number }}/detail" class="rounded-lg bg-blue-50 px-3 py-2 text-center font-medium text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">Détails</a>
+      <a href="/messages/validate-dossier?dossier_number={{ d.dossier_number }}" class="rounded-lg bg-violet-50 px-3 py-2 text-center font-medium text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">Valider</a>
+      <a href="/messages/dossier/{{ d.dossier_number }}/export" class="rounded-lg bg-emerald-50 px-3 py-2 text-center font-medium text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">Exporter</a>
+      {% if d.dossier_id %}<a href="/dossiers/{{ d.dossier_id }}/cotations" class="cotations-link hidden rounded-lg bg-amber-50 px-3 py-2 text-center font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-300" data-dossier-id="{{ d.dossier_id }}"><span class="cotations-label">Cotations</span></a>{% endif %}
+    </div>
+    {% endif %}
+  </article>
+  {% endfor %}
+  {% endif %}
+</div>
+
+<!-- Tableau desktop. -->
+<div class="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800 md:block">
   <table class="min-w-full text-sm leading-relaxed">
     <caption class="sr-only">Vue par dossier avec statut global des messages ({{ dossiers|length }} dossier(s))</caption>
     <thead class="bg-slate-50 dark:bg-slate-700">
@@ -275,6 +319,7 @@
               Export
             </a>
             <!-- Lien cotations - affiché dynamiquement via JavaScript -->
+            {% if d.dossier_id %}
             <a href="/dossiers/{{ d.dossier_id }}/cotations" 
                class="cotations-link inline-flex items-center gap-1 px-2 py-1 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-50 rounded transition hidden"
                title="Voir les cotations"
@@ -283,6 +328,7 @@
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               <span class="cotations-label">Cotations</span>
             </a>
+            {% endif %}
             {% else %}
             <span class="text-xs text-slate-400 dark:text-slate-500">NDA absent</span>
             {% endif %}

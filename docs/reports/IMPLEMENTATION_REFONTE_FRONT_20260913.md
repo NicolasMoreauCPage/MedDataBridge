@@ -31,7 +31,8 @@ Référence : [plan de refonte](PLAN_REFONTE_FRONT_UX_20260913.md)
   désormais les exécutions sur `started_at`, champ réellement persisté, au
   lieu d'un champ inexistant.
 - Le shell propose désormais une palette de commandes (bouton ou
-  `Ctrl+K`) pour ouvrir directement les ateliers et leur documentation.
+  `Ctrl+K`) pour ouvrir directement les ateliers et leur documentation. Elle
+  est entièrement navigable au clavier (flèches, Début, Fin et Entrée).
 - Le script d'édition de la structure interactive n'est plus chargé par toutes
   les pages : il est limité à son atelier, avec un test de non-régression.
 - Le catalogue de macros ne définit plus deux fois le même composant modal.
@@ -48,6 +49,21 @@ Référence : [plan de refonte](PLAN_REFONTE_FRONT_UX_20260913.md)
 - Les suppressions de patient, dossier, venue, mouvement et endpoint utilisent
   désormais le dialogue de confirmation commun au lieu des confirmations
   natives du navigateur.
+- L'en-tête permet toujours de choisir ou de changer le contexte de travail,
+  y compris lorsqu'aucun contexte n'est encore sélectionné.
+- Les alertes fermables emploient également le contrôle partagé, sans attribut
+  JavaScript inline.
+- La vue mobile par dossier privilégie des cartes synthétiques. Le lien de
+  cotations n'est présenté que lorsqu'un NDA numérique correspond réellement à
+  un dossier local.
+- L'atelier Structure ne promet plus de suppression non implémentée : ses
+  raccourcis mènent vers des actions réellement disponibles et ses retours
+  utilisent les notifications partagées.
+- Le déplacement de services et d'UF dans l'atelier Structure fonctionne
+  désormais également sans dépendance externe, grâce au glisser-déposer natif
+  du navigateur et à l'API de déplacement existante.
+- La duplication d'un élément de structure demande son nouvel identifiant dans
+  un dialogue accessible, au lieu d'une invite native du navigateur.
 
 ## Contrôles réalisés
 

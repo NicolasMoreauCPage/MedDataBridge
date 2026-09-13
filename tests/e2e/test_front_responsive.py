@@ -71,9 +71,24 @@ async def test_command_palette_opens_with_keyboard_and_filters(page):
     assert await dialog.evaluate("element => element.open")
     search = page.locator("#command-palette-search")
     await search.fill("scénarios")
-    assert await page.get_by_role("link", name="Catalogue des scénarios").is_visible()
+    assert await page.get_by_role("option", name="Catalogue des scénarios").is_visible()
     await page.keyboard.press("Escape")
     assert not await dialog.evaluate("element => element.open")
+
+
+@pytest.mark.e2e_phase6
+@pytest.mark.asyncio
+async def test_command_palette_opens_a_selected_result_with_the_keyboard(page):
+    response = await page.goto("/validation", wait_until="networkidle")
+
+    assert response is not None
+    await page.keyboard.press("Control+k")
+    search = page.locator("#command-palette-search")
+    await search.fill("scénarios")
+    await search.press("ArrowDown")
+    await search.press("Enter")
+    await page.wait_for_url("**/scenarios")
+    assert await page.locator("h1").filter(has_text="Scénarios").count() == 1
 
 
 @pytest.mark.e2e_phase6
@@ -84,3 +99,15 @@ async def test_catalog_loads_the_shared_list_workspace(page):
     assert response is not None
     assert response.status == 200
     assert await page.locator('script[src*="js/list-workspace.js"]').count() == 1
+
+
+@pytest.mark.e2e_phase6
+@pytest.mark.asyncio
+async def test_by_dossier_uses_cards_instead_of_a_table_on_mobile(page):
+    await page.set_viewport_size({"width": 390, "height": 844})
+    response = await page.goto("/messages/by-dossier", wait_until="networkidle")
+
+    assert response is not None
+    assert response.status == 200
+    assert await page.locator(".md\\:hidden article, .md\\:hidden > div").count() >= 1
+    assert not await page.locator("table").is_visible()

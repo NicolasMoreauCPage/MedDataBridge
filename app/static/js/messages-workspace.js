@@ -64,7 +64,9 @@
   }
 
   async function loadCotations() {
-    const links = Array.from(document.querySelectorAll(".cotations-link[data-dossier-id]"));
+    const links = Array.from(document.querySelectorAll(".cotations-link[data-dossier-id]")).filter(
+      (link) => link.offsetParent !== null,
+    );
     const workerCount = Math.min(4, links.length);
     let next = 0;
     const worker = async () => {

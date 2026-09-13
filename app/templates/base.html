@@ -366,6 +366,10 @@
             <a href="/context/clear?kind=dossier" class="ml-1 inline-flex items-center justify-center h-5 w-5 rounded-full hover:bg-accent-alt/20 text-accent-alt" title="Effacer le contexte dossier">&times;</a>
           </div>
         {% endif %}
+        <a href="/context/select" class="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700" title="Choisir ou modifier le contexte de travail">
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18zm0-12v6m3-3H9"/></svg>
+          {% if request.state.ght_context or request.state.ej_context or request.state.eg_context %}Changer le contexte{% else %}Choisir un contexte{% endif %}
+        </a>
       </div>
       <div class="hidden md:flex items-center gap-4 text-xs text-muted">
         {% if request.state.error_message_count is defined and request.state.error_message_count > 0 %}
@@ -695,6 +699,7 @@
           <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">Navigation rapide</p>
           <a href="/" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Tableau de bord</a>
           <a href="/dossiers" class="block rounded-xl px-3 py-2 hover:bg-green-50 font-semibold">Dossiers & Cotation</a>
+          <a href="/context/select" class="block rounded-xl px-3 py-2 hover:bg-violet-50 text-violet-700 dark:text-violet-300">Choisir / changer le contexte</a>
           {% if request.state.ght_context %}
           <a href="/messages" class="block rounded-xl px-3 py-2 hover:bg-blue-50">Messages</a>
           {% endif %}
@@ -1262,17 +1267,17 @@
         <button value="cancel" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Fermer la recherche">×</button>
       </div>
       <label for="command-palette-search" class="sr-only">Rechercher une page ou une action</label>
-      <input id="command-palette-search" type="search" autocomplete="off" placeholder="Scénarios, validation, structure…" class="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700">
+      <input id="command-palette-search" type="search" autocomplete="off" placeholder="Scénarios, validation, structure…" role="combobox" aria-controls="command-palette-results" aria-expanded="true" aria-autocomplete="list" class="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700">
       <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Accès direct aux principaux ateliers. Utilisez Échap pour fermer.</p>
-      <ul class="mt-4 max-h-80 space-y-1 overflow-y-auto" aria-label="Résultats de recherche rapide">
-        <li><a href="/" data-command-item="tableau de bord accueil piloter" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Tableau de bord</span><span class="ml-2 text-xs text-slate-500">Piloter</span></a></li>
-        <li><a href="/validation" data-command-item="validation valider hl7 hprim fhir message" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Valider un message</span><span class="ml-2 text-xs text-slate-500">HL7 / HPRIM</span></a></li>
-        <li><a href="/messages" data-command-item="messages supervision ack rejet" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Superviser les messages</span><span class="ml-2 text-xs text-slate-500">Interopérabilité</span></a></li>
-        <li><a href="/scenarios" data-command-item="scénarios scenario campagne émission jeu" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Catalogue des scénarios</span><span class="ml-2 text-xs text-slate-500">Scénarios</span></a></li>
-        <li><a href="/endpoints" data-command-item="endpoints destination système cible mllp fhir hprim" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Destinations et endpoints</span><span class="ml-2 text-xs text-slate-500">Configurer</span></a></li>
-        <li><a href="/dossiers" data-command-item="dossiers patient venue mouvement données test" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Dossiers et données de test</span><span class="ml-2 text-xs text-slate-500">Données</span></a></li>
-        <li><a href="/structure" data-command-item="structure uf unité fonctionnelle médecin établissement" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Structure et unités</span><span class="ml-2 text-xs text-slate-500">Données</span></a></li>
-        <li><a href="/guide" data-command-item="guide aide documentation utilisateur" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Guide utilisateur</span><span class="ml-2 text-xs text-slate-500">Aide</span></a></li>
+      <ul id="command-palette-results" class="mt-4 max-h-80 space-y-1 overflow-y-auto" role="listbox" aria-label="Résultats de recherche rapide">
+        <li><a id="command-option-dashboard" href="/" role="option" aria-selected="false" data-command-item="tableau de bord accueil piloter" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Tableau de bord</span><span class="ml-2 text-xs text-slate-500">Piloter</span></a></li>
+        <li><a id="command-option-validation" href="/validation" role="option" aria-selected="false" data-command-item="validation valider hl7 hprim fhir message" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Valider un message</span><span class="ml-2 text-xs text-slate-500">HL7 / HPRIM</span></a></li>
+        <li><a id="command-option-messages" href="/messages" role="option" aria-selected="false" data-command-item="messages supervision ack rejet" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Superviser les messages</span><span class="ml-2 text-xs text-slate-500">Interopérabilité</span></a></li>
+        <li><a id="command-option-scenarios" href="/scenarios" role="option" aria-selected="false" data-command-item="scénarios scenario campagne émission jeu" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Catalogue des scénarios</span><span class="ml-2 text-xs text-slate-500">Scénarios</span></a></li>
+        <li><a id="command-option-endpoints" href="/endpoints" role="option" aria-selected="false" data-command-item="endpoints destination système cible mllp fhir hprim" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Destinations et endpoints</span><span class="ml-2 text-xs text-slate-500">Configurer</span></a></li>
+        <li><a id="command-option-dossiers" href="/dossiers" role="option" aria-selected="false" data-command-item="dossiers patient venue mouvement données test" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Dossiers et données de test</span><span class="ml-2 text-xs text-slate-500">Données</span></a></li>
+        <li><a id="command-option-structure" href="/structure" role="option" aria-selected="false" data-command-item="structure uf unité fonctionnelle médecin établissement" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Structure et unités</span><span class="ml-2 text-xs text-slate-500">Données</span></a></li>
+        <li><a id="command-option-guide" href="/guide" role="option" aria-selected="false" data-command-item="guide aide documentation utilisateur" class="block rounded-lg px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-slate-700"><span class="font-medium">Guide utilisateur</span><span class="ml-2 text-xs text-slate-500">Aide</span></a></li>
       </ul>
       <p id="command-palette-empty" hidden class="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-700 dark:text-slate-300">Aucun atelier ne correspond à cette recherche.</p>
     </form>

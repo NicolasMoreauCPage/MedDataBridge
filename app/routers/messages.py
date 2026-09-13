@@ -438,6 +438,28 @@ def list_by_dossier(
     # Trier par dernière activité (plus récent en premier), puis paginer les
     # dossiers et non les messages : un dossier reste donc toujours entier.
     dossiers_list.sort(key=lambda x: x["last_activity"] or datetime.min, reverse=True)
+
+    # Les journaux ne portent pas de clé étrangère vers le dossier. Lorsque le
+    # NDA est notre numéro de dossier numérique, associer une seule fois le
+    # dossier local afin d'exposer les cotations sans produire de lien invalide.
+    dossier_seqs = set()
+    for info in dossiers_list:
+        try:
+            dossier_seqs.add(int(info["dossier_number"]))
+        except (TypeError, ValueError):
+            continue
+    dossier_ids_by_seq = {
+        dossier.dossier_seq: dossier.id
+        for dossier in session.exec(
+            select(Dossier).where(Dossier.dossier_seq.in_(dossier_seqs))
+        ).all()
+    } if dossier_seqs else {}
+    for info in dossiers_list:
+        try:
+            info["dossier_id"] = dossier_ids_by_seq.get(int(info["dossier_number"]))
+        except (TypeError, ValueError):
+            info["dossier_id"] = None
+
     total_count = len(dossiers_list)
     status_counts = {
         status: sum(1 for info in dossiers_list if info["global_status"] == status)

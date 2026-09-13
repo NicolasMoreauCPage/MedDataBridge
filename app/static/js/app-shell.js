@@ -8,6 +8,26 @@
     const emptyState = document.getElementById("command-palette-empty");
     const items = Array.from(document.querySelectorAll("[data-command-item]"));
     if (!dialog || !input) return;
+    let activeIndex = -1;
+
+    const visibleItems = () => items.filter((item) => !item.hidden);
+    const setActiveItem = (index) => {
+      const visible = visibleItems();
+      activeIndex = visible.length ? (index + visible.length) % visible.length : -1;
+      items.forEach((item) => {
+        const selected = item === visible[activeIndex];
+        item.setAttribute("aria-selected", String(selected));
+        item.classList.toggle("bg-violet-50", selected);
+        item.classList.toggle("dark:bg-slate-700", selected);
+      });
+      if (activeIndex >= 0) {
+        const activeItem = visible[activeIndex];
+        input.setAttribute("aria-activedescendant", activeItem.id);
+        activeItem.scrollIntoView({ block: "nearest" });
+      } else {
+        input.removeAttribute("aria-activedescendant");
+      }
+    };
 
     const filter = () => {
       const query = input.value.trim().toLocaleLowerCase("fr");
@@ -18,6 +38,7 @@
         if (matches) count += 1;
       });
       if (emptyState) emptyState.hidden = count !== 0;
+      setActiveItem(0);
     };
 
     const open = () => {
@@ -31,6 +52,25 @@
       trigger.addEventListener("click", open);
     });
     input.addEventListener("input", filter);
+    input.addEventListener("keydown", (event) => {
+      const visible = visibleItems();
+      if (event.key === "ArrowDown" && visible.length) {
+        event.preventDefault();
+        setActiveItem(activeIndex + 1);
+      } else if (event.key === "ArrowUp" && visible.length) {
+        event.preventDefault();
+        setActiveItem(activeIndex - 1);
+      } else if (event.key === "Home" && visible.length) {
+        event.preventDefault();
+        setActiveItem(0);
+      } else if (event.key === "End" && visible.length) {
+        event.preventDefault();
+        setActiveItem(visible.length - 1);
+      } else if (event.key === "Enter" && activeIndex >= 0) {
+        event.preventDefault();
+        visible[activeIndex].click();
+      }
+    });
     dialog.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         event.preventDefault();

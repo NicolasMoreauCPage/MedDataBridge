@@ -63,6 +63,11 @@
     }
   });
 
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-dismiss-alert]");
+    if (trigger) trigger.closest("[role='alert']")?.remove();
+  });
+
   window.PameliaUi = window.PameliaUi || {};
   window.PameliaUi.confirm = openConfirmation;
 })();

@@ -19,7 +19,6 @@ class StructureEditor {
         this.initSelection();
         this.initKeyboardShortcuts();
         this.initDragDrop();
-        console.log('✅ StructureEditor initialized');
     }
     
     // ========================================
@@ -128,7 +127,7 @@ class StructureEditor {
         
         // Validation
         if (!newValue) {
-            alert('La valeur ne peut pas être vide');
+            this.showNotification('La valeur ne peut pas être vide', 'warning');
             input.focus();
             return;
         }
@@ -160,10 +159,7 @@ class StructureEditor {
             this.showSaveIndicator('success', originalElement);
             this.editingElement = null;
             
-            console.log('✅ Saved:', field, '=', newValue);
-            
         } catch (error) {
-            console.error('❌ Save error:', error);
             spinner.remove();
             input.disabled = false;
             input.focus();
@@ -186,12 +182,12 @@ class StructureEditor {
     // ========================================
     
     initDragDrop() {
-        if (typeof window.Sortable !== 'function') {
-            console.info('Glisser-déposer indisponible : la bibliothèque Sortable n’est pas chargée.');
-            return;
-        }
         // Pour chaque liste d'éléments dans l'arbre
         const sortableLists = this.tree.querySelectorAll('[data-sortable]');
+        if (typeof window.Sortable !== 'function') {
+            this.initNativeDragDrop(sortableLists);
+            return;
+        }
         
         sortableLists.forEach(list => {
             new Sortable(list, {
@@ -203,7 +199,7 @@ class StructureEditor {
                 dragClass: 'opacity-50',
                 
                 onStart: (evt) => {
-                    console.log('🎯 Drag start:', evt.item);
+            // L'état visuel est géré par Sortable.
                 },
                 
                 onEnd: async (evt) => {
@@ -212,7 +208,67 @@ class StructureEditor {
             });
         });
         
-        console.log('✅ Drag & drop initialized on', sortableLists.length, 'lists');
+    }
+
+    initNativeDragDrop(sortableLists) {
+        let draggedItem = null;
+        let sourceList = null;
+        let sourceIndex = -1;
+        let didDrop = false;
+
+        const directItems = (list) => Array.from(list.children).filter(
+            (item) => item.dataset.itemId && item.dataset.itemType,
+        );
+        const indexInList = (item, list) => directItems(list).indexOf(item);
+
+        sortableLists.forEach((list) => {
+            directItems(list).forEach((item) => {
+                item.draggable = true;
+                item.dataset.nativeDnd = 'true';
+                item.addEventListener('dragstart', (event) => {
+                    draggedItem = item;
+                    sourceList = list;
+                    sourceIndex = indexInList(item, list);
+                    didDrop = false;
+                    item.classList.add('opacity-50');
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', item.dataset.itemId);
+                });
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('opacity-50');
+                    if (!didDrop && sourceList && sourceIndex >= 0) {
+                        sourceList.insertBefore(item, sourceList.children[sourceIndex] || null);
+                    }
+                    draggedItem = null;
+                    sourceList = null;
+                    sourceIndex = -1;
+                });
+            });
+
+            list.addEventListener('dragover', (event) => {
+                if (!draggedItem) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                const target = event.target.closest('[data-item-id][data-item-type]');
+                if (!target || target.parentElement !== list || target === draggedItem) return;
+                const bounds = target.getBoundingClientRect();
+                list.insertBefore(draggedItem, event.clientY < bounds.top + bounds.height / 2 ? target : target.nextSibling);
+            });
+
+            list.addEventListener('drop', async (event) => {
+                if (!draggedItem || !sourceList) return;
+                event.preventDefault();
+                const newIndex = indexInList(draggedItem, list);
+                didDrop = true;
+                await this.handleDrop({
+                    item: draggedItem,
+                    from: sourceList,
+                    to: list,
+                    oldIndex: sourceIndex,
+                    newIndex,
+                });
+            });
+        });
     }
     
     async handleDrop(evt) {
@@ -223,8 +279,6 @@ class StructureEditor {
         const newParent = evt.to.closest('[data-parent-id]');
         const newParentId = parseInt(newParent.dataset.parentId);
         const newParentType = newParent.dataset.parentType;
-        
-        console.log(`📦 Moving ${itemType} #${itemId} to ${newParentType} #${newParentId}`);
         
         // Indicateur de chargement
         const originalHTML = item.innerHTML;
@@ -254,11 +308,7 @@ class StructureEditor {
             item.innerHTML = originalHTML;
             this.showNotification('✓ Déplacé avec succès', 'success');
             
-            console.log('✅ Moved successfully');
-            
         } catch (error) {
-            console.error('❌ Move error:', error);
-            
             // Annuler le déplacement visuellement
             item.remove();
             evt.from.insertBefore(item, evt.from.children[evt.oldIndex] || null);
@@ -307,12 +357,6 @@ class StructureEditor {
                 }
             }
             
-            // Delete
-            if (e.key === 'Delete' && this.selectedNode) {
-                e.preventDefault();
-                this.deleteSelected();
-            }
-            
             // Escape
             if (e.key === 'Escape') {
                 if (this.editingElement) this.cancelEdit();
@@ -321,14 +365,10 @@ class StructureEditor {
             }
         });
         
-        console.log('✅ Keyboard shortcuts initialized');
-        this.showShortcutsHelp();
     }
     
     createNew() {
-        console.log('🆕 Create new (TODO: ouvrir modal approprié)');
-        // TODO: Ouvrir le modal de création selon le contexte
-        this.showNotification('Ctrl+N - Créer (à implémenter)', 'info');
+        window.location.assign('/structure/wizard');
     }
     
     editSelected() {
@@ -349,7 +389,7 @@ class StructureEditor {
         const itemId = this.selectedNode.dataset.itemId;
         const itemType = this.selectedNode.dataset.itemType;
         
-        const newCode = prompt('Code du duplicata:');
+        const newCode = await this.requestDuplicateCode();
         if (!newCode) return;
         
         try {
@@ -371,25 +411,26 @@ class StructureEditor {
             const data = await response.json();
             this.showNotification('✓ Duplicaté avec succès', 'success');
             
-            // TODO: Rafraîchir l'arbre ou insérer le nouvel élément
             setTimeout(() => location.reload(), 1000);
             
         } catch (error) {
             this.showNotification(`Erreur: ${error.message}`, 'error');
         }
     }
-    
-    deleteSelected() {
-        if (!this.selectedNode) return;
-        
-        const itemName = this.selectedNode.querySelector('[data-field="nom"]')?.textContent || 'cet élément';
-        const confirmed = confirm(`Supprimer "${itemName}" ?\n\n⚠️ Cette action est irréversible.`);
-        
-        if (confirmed) {
-            console.log('🗑️ Delete:', this.selectedNode);
-            // TODO: Implémenter DELETE endpoint
-            this.showNotification('Delete - à implémenter', 'info');
-        }
+
+    requestDuplicateCode() {
+        const dialog = document.getElementById('structure-duplicate-dialog');
+        const input = document.getElementById('structure-duplicate-code');
+        if (!dialog || !input) return Promise.resolve(null);
+
+        input.value = '';
+        dialog.showModal();
+        window.setTimeout(() => input.focus(), 0);
+        return new Promise((resolve) => {
+            dialog.addEventListener('close', () => {
+                resolve(dialog.returnValue === 'confirm' ? input.value.trim() : null);
+            }, { once: true });
+        });
     }
     
     focusSearch() {
@@ -410,34 +451,6 @@ class StructureEditor {
     closeModals() {
         const modals = document.querySelectorAll('.modal, [data-modal]');
         modals.forEach(modal => modal.classList.add('hidden'));
-    }
-    
-    showShortcutsHelp() {
-        // Ajouter un petit panneau d'aide en bas à droite
-        const helpPanel = document.createElement('div');
-        helpPanel.className = 'fixed bottom-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-xs hidden';
-        helpPanel.id = 'shortcuts-help';
-        helpPanel.innerHTML = `
-            <div class="font-bold mb-2">⌨️ Raccourcis clavier</div>
-            <div class="space-y-1 text-gray-600">
-                <div><kbd class="px-1 bg-gray-100 border rounded">Ctrl+N</kbd> Nouveau</div>
-                <div><kbd class="px-1 bg-gray-100 border rounded">Ctrl+E</kbd> Éditer</div>
-                <div><kbd class="px-1 bg-gray-100 border rounded">Ctrl+D</kbd> Dupliquer</div>
-                <div><kbd class="px-1 bg-gray-100 border rounded">Ctrl+F</kbd> Rechercher</div>
-                <div><kbd class="px-1 bg-gray-100 border rounded">Del</kbd> Supprimer</div>
-                <div><kbd class="px-1 bg-gray-100 border rounded">Esc</kbd> Fermer/Annuler</div>
-            </div>
-            <button onclick="this.parentElement.classList.add('hidden')" class="mt-2 text-blue-600 hover:underline">Fermer</button>
-        `;
-        document.body.appendChild(helpPanel);
-        
-        // Bouton pour afficher l'aide
-        const helpBtn = document.createElement('button');
-        helpBtn.className = 'fixed bottom-4 right-4 bg-blue-600 text-white w-10 h-10 rounded-full shadow-lg hover:bg-blue-700';
-        helpBtn.innerHTML = '?';
-        helpBtn.title = 'Raccourcis clavier';
-        helpBtn.onclick = () => helpPanel.classList.toggle('hidden');
-        document.body.appendChild(helpBtn);
     }
     
     // ========================================
@@ -467,30 +480,7 @@ class StructureEditor {
     }
     
     showNotification(message, type = 'info') {
-        const colors = {
-            success: 'bg-green-100 border-green-400 text-green-700',
-            error: 'bg-red-100 border-red-400 text-red-700',
-            warning: 'bg-yellow-100 border-yellow-400 text-yellow-700',
-            info: 'bg-blue-100 border-blue-400 text-blue-700'
-        };
-        
-        const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 border-l-4 p-4 rounded shadow-lg z-50 ${colors[type]}`;
-        notification.innerHTML = `
-            <div class="flex items-center justify-between">
-                <span>${message}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 font-bold">&times;</button>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Auto-remove après 4s
-        setTimeout(() => {
-            notification.style.transition = 'opacity 0.3s';
-            notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 300);
-        }, 4000);
+        window.toastSystem?.show(message, type);
     }
 }
 

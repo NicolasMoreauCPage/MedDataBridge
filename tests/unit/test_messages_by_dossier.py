@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.models import Dossier, Patient
 from app.models_shared import MessageLog
 from app.routers.messages import _extract_ipp_and_dossier, list_by_dossier, list_messages
 
@@ -122,6 +123,36 @@ def test_by_dossier_paginates_complete_dossiers_after_aggregation(isolated_sessi
     assert context["dossier_summary"] == {"total": 26, "ok": 26, "warning": 0, "error": 0}
     assert context["pagination"]["page"] == 2
     assert context["pagination"]["total_pages"] == 2
+
+
+def test_by_dossier_exposes_a_local_dossier_id_only_when_the_nda_matches(isolated_session):
+    patient = Patient(patient_seq=4242, identifier="IPP-4242", family="DUPONT", given="Alice")
+    isolated_session.add(patient)
+    isolated_session.flush()
+    dossier = Dossier(
+        dossier_seq=4242,
+        patient_id=patient.id,
+        admit_time=datetime(2026, 9, 12, 10, 0),
+    )
+    isolated_session.add_all([
+        dossier,
+        MessageLog(
+            direction="in",
+            kind="MLLP",
+            status="processed",
+            message_type="ADT^A01",
+            payload=_hl7_message("IPP-4242", visit_number="4242"),
+            created_at=datetime(2026, 9, 12, 12, 0),
+        ),
+    ])
+    isolated_session.commit()
+
+    context = list_by_dossier(
+        _Request(), isolated_session, endpoint_id=None, date_start=None,
+        date_end=None, direction=None, dossier_status=None, limit=10000,
+    )
+
+    assert context["dossiers"][0]["dossier_id"] == dossier.id
 
 
 def test_messages_filters_an_exact_status_and_groups_negative_ack_statuses(isolated_session):

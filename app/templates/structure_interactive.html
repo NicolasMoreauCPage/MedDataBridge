@@ -37,8 +37,8 @@
         <div class="mt-2 text-sm text-blue-700 dark:text-blue-300 space-y-1">
           <div><strong>Double-clic</strong> sur un nom ou code pour l'éditer directement</div>
           <div><strong>Entrée</strong> pour sauvegarder, <strong>Échap</strong> pour annuler</div>
-          <div><strong>Glissez ⋮⋮</strong> pour déplacer un élément (Services, UF, Lits)</div>
-          <div><strong>Raccourcis :</strong> Ctrl+D pour dupliquer, Del pour supprimer, ? pour l'aide</div>
+          <div><strong>Glissez ⋮⋮</strong> pour déplacer les éléments pris en charge</div>
+          <div><strong>Raccourcis :</strong> Ctrl+N pour le wizard, Ctrl+E pour éditer, Ctrl+D pour dupliquer, Ctrl+F pour rechercher</div>
         </div>
       </div>
     </div>
@@ -282,6 +282,19 @@
   {% endif %}
 
 </div>
+
+<dialog id="structure-duplicate-dialog" class="app-dialog" aria-labelledby="structure-duplicate-title">
+  <form method="dialog" class="p-6">
+    <h2 id="structure-duplicate-title" class="text-lg font-semibold text-slate-900 dark:text-slate-100">Dupliquer un élément de structure</h2>
+    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Choisissez le nouvel identifiant. Le nom pourra ensuite être ajusté par édition directe.</p>
+    <label for="structure-duplicate-code" class="mt-4 block text-sm font-medium text-slate-700 dark:text-slate-200">Nouvel identifiant</label>
+    <input id="structure-duplicate-code" name="code" type="text" required autocomplete="off" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700">
+    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button value="cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">Annuler</button>
+      <button value="confirm" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Dupliquer</button>
+    </div>
+  </form>
+</dialog>
 
 <style>
 /* Animation pour le fade out */

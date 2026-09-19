@@ -18,10 +18,11 @@ Le socle de la refonte est livré :
 - une exécution à blanc est accessible depuis la revue, y compris pour un brouillon, sans jamais autoriser d'émission réelle ;
 - une identité de test commune est saisie une seule fois et injectée dans tous les messages compilés ;
 - des contrôles attendus peuvent être générés par étape sans modifier les assertions JSON expertes ;
+- l'usage du constructeur est maintenant mesuré par actions agrégées (création, validation, prévisualisation et revue), dans le tableau de bord interne et dans Prometheus, sans nom, clé, identifiant ni donnée patient ;
 - le mode expert historique reste disponible pour les ajustements avancés ;
 - une migration et une compatibilité de démarrage local accompagnent le nouvel état `draft` / `ready`.
 
-Reste à réaliser dans les lots suivants : l'instrumentation d'usage et les optimisations issues des retours terrain.
+Reste à réaliser dans les lots suivants : les optimisations issues des retours terrain.
 
 ## 1. Objectif produit
 

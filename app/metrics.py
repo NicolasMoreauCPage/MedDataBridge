@@ -243,6 +243,66 @@ def record_fhir_event(
     )
 
 
+# === Parcours guidé de création de scénarios ===
+# Ces labels sont volontairement fermés. En particulier, ni le nom/la clé du
+# scénario, ni les données d'identité saisies pour les tests ne sont tracés.
+_SCENARIO_AUTHORING_ACTIONS = {
+    "draft_created",
+    "test_data_saved",
+    "routing_saved",
+    "dry_run",
+    "step_added",
+    "step_moved",
+    "step_deleted",
+    "assertions_configured",
+    "validation",
+    "ready",
+    "other",
+}
+_SCENARIO_AUTHORING_SOURCES = {"manual", "template", "duplicate", "import", "not_applicable"}
+
+if Counter is not None:
+    SCENARIO_AUTHORING_TOTAL = Counter(
+        "scenario_authoring_total",
+        "Actions du parcours guidé de création de scénarios",
+        ["action", "source", "result"],
+    )
+else:
+    SCENARIO_AUTHORING_TOTAL = None
+
+
+def record_scenario_authoring_event(
+    action: str,
+    *,
+    source: str = "not_applicable",
+    success: bool = True,
+    duration_seconds: float | None = None,
+) -> None:
+    """Enregistre un événement agrégé du constructeur de scénarios.
+
+    ``action`` et ``source`` sont normalisés sur des listes blanches avant
+    exposition. Cette fonction ne doit recevoir aucune valeur métier libre,
+    notamment pas de nom, clé, identifiant ou donnée patient de test.
+    """
+    action_label = action if action in _SCENARIO_AUTHORING_ACTIONS else "other"
+    source_label = source if source in _SCENARIO_AUTHORING_SOURCES else "not_applicable"
+    result_label = "success" if success else "error"
+
+    if SCENARIO_AUTHORING_TOTAL is not None:
+        SCENARIO_AUTHORING_TOTAL.labels(
+            action=action_label,
+            source=source_label,
+            result=result_label,
+        ).inc()
+
+    ui_metrics.record_operation(
+        operation=f"scenario_authoring_{action_label}",
+        duration=duration_seconds or 0.0,
+        status=result_label,
+        source=source_label,
+    )
+
+
 # Provide a `metrics` object for tests and other modules that import
 # `from app.metrics import metrics`.
 try:

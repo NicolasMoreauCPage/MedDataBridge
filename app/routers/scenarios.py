@@ -81,6 +81,7 @@ from app.services.scenario_authoring import (
     unique_scenario_key,
     validate_authoring,
 )
+from app.metrics import record_scenario_authoring_event
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Glose en langage clair pour les triggers ADT couramment rencontrés dans les
@@ -321,12 +322,14 @@ async def import_scenario(
         else:
             json_text = form_data.get("json_data")
             if not json_text:
+                record_scenario_authoring_event("draft_created", source="import", success=False)
                 flash(request, "Aucune donnée JSON fournie", level="error")
                 return RedirectResponse(url="/scenarios", status_code=303)
             json_data = json.loads(json_text)
         
         is_valid, error_msg = validate_scenario_json(json_data)
         if not is_valid:
+            record_scenario_authoring_event("draft_created", source="import", success=False)
             flash(request, f"JSON invalide: {error_msg}", level="error")
             return RedirectResponse(url="/scenarios", status_code=303)
         
@@ -347,6 +350,7 @@ async def import_scenario(
         })
         session.add(scenario)
         session.commit()
+        record_scenario_authoring_event("draft_created", source="import")
         
         flash(
             request, 
@@ -356,12 +360,15 @@ async def import_scenario(
         return RedirectResponse(url=f"/scenarios/{scenario.id}/authoring", status_code=303)
         
     except json.JSONDecodeError as e:
+        record_scenario_authoring_event("draft_created", source="import", success=False)
         flash(request, f"Erreur de parsing JSON: {str(e)}", level="error")
         return RedirectResponse(url="/scenarios", status_code=303)
     except ScenarioImportError as e:
+        record_scenario_authoring_event("draft_created", source="import", success=False)
         flash(request, f"Erreur d'import: {str(e)}", level="error")
         return RedirectResponse(url="/scenarios", status_code=303)
     except Exception as e:
+        record_scenario_authoring_event("draft_created", source="import", success=False)
         flash(request, f"Erreur inattendue: {str(e)}", level="error")
         return RedirectResponse(url="/scenarios", status_code=303)
 
@@ -843,6 +850,7 @@ def create_scenario(
     """Crée un brouillon via le parcours choisi, puis ouvre sa revue guidée."""
     normalized_name = name.strip()
     if not normalized_name:
+        record_scenario_authoring_event("draft_created", source=creation_mode, success=False)
         flash(request, "Donnez un nom au scénario avant de continuer.", level="error")
         return RedirectResponse(url="/scenarios/new", status_code=303)
     try:
@@ -891,9 +899,11 @@ def create_scenario(
         else:
             raise ValueError("Méthode de création inconnue.")
     except ValueError as exc:
+        record_scenario_authoring_event("draft_created", source=creation_mode, success=False)
         flash(request, str(exc), level="error")
         return RedirectResponse(url="/scenarios/new", status_code=303)
 
+    record_scenario_authoring_event("draft_created", source=creation_mode)
     flash(request, f"Brouillon « {scenario.name} » créé. Vérifiez-le avant de le rendre exécutable.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario.id}/authoring", status_code=303)
 
@@ -970,6 +980,7 @@ def update_guided_scenario_assertions(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scénario introuvable")
     set_guided_assertions(session, scenario=scenario, enabled=validate_each_step)
+    record_scenario_authoring_event("assertions_configured")
     message = "Contrôles de préparation activés pour chaque étape." if validate_each_step else "Contrôles guidés retirés ; les assertions expertes sont conservées."
     flash(request, message, level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
@@ -998,8 +1009,10 @@ def update_guided_scenario_test_data(
             gender=gender,
         )
     except ValueError as exc:
+        record_scenario_authoring_event("test_data_saved", success=False)
         flash(request, str(exc), level="error")
     else:
+        record_scenario_authoring_event("test_data_saved")
         flash(request, "Données de test communes enregistrées pour tout le parcours.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
@@ -1018,8 +1031,10 @@ def update_guided_scenario_routing(
     try:
         set_common_routing(session, scenario=scenario, route_mode=route_mode, endpoint_ids=endpoint_ids)
     except ValueError as exc:
+        record_scenario_authoring_event("routing_saved", success=False)
         flash(request, str(exc), level="error")
     else:
+        record_scenario_authoring_event("routing_saved")
         flash(request, "Routage commun enregistré. Le scénario doit être revu avant exécution.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
@@ -1037,6 +1052,7 @@ async def dry_run_guided_scenario(
         raise HTTPException(status_code=404, detail="Scénario introuvable")
     errors = [issue for issue in validate_authoring(session, scenario) if issue.level == "error"]
     if errors:
+        record_scenario_authoring_event("dry_run", success=False)
         flash(request, errors[0].message, level="error")
         return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
     endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.id.in_(endpoint_ids))).all() if endpoint_ids else []
@@ -1044,8 +1060,10 @@ async def dry_run_guided_scenario(
         play = prepare_scenario_play(session, scenario, endpoints, dry_run=True, allow_inactive=True)
         play = await execute_scenario_play(session, play.id)
     except ScenarioPlayError as exc:
+        record_scenario_authoring_event("dry_run", success=False)
         flash(request, f"Prévisualisation impossible : {exc}", level="error")
         return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
+    record_scenario_authoring_event("dry_run")
     flash(request, "Prévisualisation terminée : aucun message n'a été émis.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}/plays/{play.id}", status_code=303)
 
@@ -1071,8 +1089,10 @@ def add_guided_scenario_step(
             delay_seconds=delay_seconds,
         )
     except ValueError as exc:
+        record_scenario_authoring_event("step_added", success=False)
         flash(request, str(exc), level="error")
     else:
+        record_scenario_authoring_event("step_added")
         flash(request, f"Étape « {step.name} » ajoutée au parcours.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
@@ -1090,6 +1110,7 @@ def move_guided_scenario_step(
     if not scenario or not step or step.scenario_id != scenario_id:
         raise HTTPException(status_code=404, detail="Étape introuvable")
     if move_guided_step(session, scenario=scenario, step=step, direction=direction):
+        record_scenario_authoring_event("step_moved")
         flash(request, "Ordre du parcours mis à jour.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
@@ -1106,6 +1127,7 @@ def delete_guided_scenario_step(
     if not scenario or not step or step.scenario_id != scenario_id:
         raise HTTPException(status_code=404, detail="Étape introuvable")
     delete_guided_step(session, scenario=scenario, step=step)
+    record_scenario_authoring_event("step_deleted")
     flash(request, "Étape retirée du parcours.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
@@ -1146,8 +1168,10 @@ def validate_scenario_authoring(scenario_id: int, session: Session = Depends(get
     if not scenario:
         raise HTTPException(status_code=404, detail="Scénario introuvable")
     issues = validate_authoring(session, scenario)
+    is_valid = not any(issue.level == "error" for issue in issues)
+    record_scenario_authoring_event("validation", success=is_valid)
     return {
-        "valid": not any(issue.level == "error" for issue in issues),
+        "valid": is_valid,
         "issues": [issue.as_dict() for issue in issues],
     }
 
@@ -1160,8 +1184,10 @@ def ready_scenario_authoring(scenario_id: int, request: Request, session: Sessio
     issues = mark_ready(session, scenario)
     errors = [issue for issue in issues if issue.level == "error"]
     if errors:
+        record_scenario_authoring_event("ready", success=False)
         flash(request, errors[0].message, level="error")
         return RedirectResponse(url=f"/scenarios/{scenario.id}/authoring", status_code=303)
+    record_scenario_authoring_event("ready")
     flash(request, "Scénario prêt : il peut maintenant être exécuté ou complété en mode expert.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
 

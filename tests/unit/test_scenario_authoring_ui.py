@@ -1,5 +1,6 @@
 from sqlmodel import select
 
+import app.metrics as app_metrics
 from app.models_endpoints import SystemEndpoint
 from app.models_scenario_runs import ScenarioPlay
 from app.models_scenarios import InteropScenario, ScenarioTemplate, ScenarioTemplateStep
@@ -32,6 +33,31 @@ def test_new_scenario_page_exposes_guided_authoring_choices(client, session):
     assert template.name in response.text
     assert "data-scenario-builder" in response.text
     assert "js/scenario-builder.js" in response.text
+
+
+def test_authoring_metrics_use_only_aggregated_whitelisted_dimensions(monkeypatch):
+    captured = []
+
+    monkeypatch.setattr(
+        app_metrics.ui_metrics,
+        "record_operation",
+        lambda **kwargs: captured.append(kwargs),
+    )
+
+    app_metrics.record_scenario_authoring_event(
+        "nom du patient Durand",
+        source="Alice Durand",
+        success=False,
+    )
+
+    assert captured == [
+        {
+            "operation": "scenario_authoring_other",
+            "duration": 0.0,
+            "status": "error",
+            "source": "not_applicable",
+        }
+    ]
 
 
 def test_template_creation_redirects_to_review_as_an_inactive_draft(client, session):

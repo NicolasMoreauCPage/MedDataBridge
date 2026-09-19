@@ -812,8 +812,15 @@ def prepare_scenario_play(
     step_id: Optional[int] = None,
     start_order_index: Optional[int] = None,
     error_policy: str = "continue_other_targets",
+    allow_inactive: bool = False,
 ) -> ScenarioPlay:
-    """Create a durable play and its compiled, immutable deliveries."""
+    """Create a durable play and its compiled, immutable deliveries.
+
+    ``allow_inactive`` is reserved for a dry-run produced by the scenario
+    authoring workspace. It never authorizes an actual emission.
+    """
+    if allow_inactive and not dry_run:
+        raise ScenarioPlayError("Un scénario inactif peut uniquement être prévisualisé à blanc.")
     targets = list({endpoint.id: endpoint for endpoint in endpoints if endpoint.id is not None}.values())
     if not targets:
         raise ScenarioPlayError("Sélectionnez au moins un endpoint actif.")
@@ -827,6 +834,7 @@ def prepare_scenario_play(
         f"{endpoint.name}: {result.message}"
         for endpoint in targets
         for result in validate_preconditions(scenario, endpoint)
+        if not (allow_inactive and result.assertion.get("type") == "scenario_active")
         if not result.passed
     ]
     if precondition_failures:

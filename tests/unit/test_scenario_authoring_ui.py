@@ -1,5 +1,6 @@
 from sqlmodel import select
 
+from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import InteropScenario, ScenarioTemplate, ScenarioTemplateStep
 
 
@@ -95,3 +96,27 @@ def test_manual_draft_can_add_a_functional_event_from_its_review(client, session
     assert len(scenario.steps) == 1
     assert scenario.steps[0].name == "Admission du patient"
     assert scenario.steps[0].message_type == "ADT^A01"
+
+
+def test_review_can_dry_run_a_draft_without_activating_it(client, session):
+    client.post(
+        "/scenarios/new",
+        data={"creation_mode": "manual", "name": "Prévisualisation brouillon", "protocol": "HL7"},
+        follow_redirects=False,
+    )
+    scenario = session.exec(select(InteropScenario).where(InteropScenario.name == "Prévisualisation brouillon")).one()
+    client.post(f"/scenarios/{scenario.id}/authoring/steps", data={"event_key": "admission"}, follow_redirects=False)
+    endpoint = SystemEndpoint(name="Fichier de prévisualisation", kind="FILE", role="sender", is_enabled=True)
+    session.add(endpoint)
+    session.commit()
+
+    response = client.post(
+        f"/scenarios/{scenario.id}/authoring/dry-run",
+        data={"endpoint_ids": str(endpoint.id)},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert f"/scenarios/{scenario.id}/plays/" in response.headers["location"]
+    session.refresh(scenario)
+    assert scenario.is_active is False

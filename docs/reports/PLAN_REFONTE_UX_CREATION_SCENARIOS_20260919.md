@@ -15,10 +15,11 @@ Le socle de la refonte est livré :
 - la revue affiche la chronologie, les destinations compatibles, les payloads repliés et les erreurs de préparation ;
 - la chronologie permet maintenant d'ajouter, réordonner ou retirer des événements métier sans saisir de payload ;
 - un routage commun peut être appliqué à tout le parcours, avec filtrage des endpoints incompatibles ;
+- une exécution à blanc est accessible depuis la revue, y compris pour un brouillon, sans jamais autoriser d'émission réelle ;
 - le mode expert historique reste disponible pour les ajustements avancés ;
 - une migration et une compatibilité de démarrage local accompagnent le nouvel état `draft` / `ready`.
 
-Restent à réaliser dans les lots suivants : les données patient communes, l'exécution à blanc depuis la revue, les assertions guidées et l'instrumentation d'usage.
+Restent à réaliser dans les lots suivants : les données patient communes, les assertions guidées et l'instrumentation d'usage.
 
 ## 1. Objectif produit
 

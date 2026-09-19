@@ -973,6 +973,32 @@ def update_guided_scenario_routing(
     return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
 
+@router.post("/{scenario_id}/authoring/dry-run")
+async def dry_run_guided_scenario(
+    scenario_id: int,
+    request: Request,
+    endpoint_ids: list[int] = Form(default=[]),
+    session: Session = Depends(get_session),
+):
+    """Compile et valide le parcours sans écrire dans les transports externes."""
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    errors = [issue for issue in validate_authoring(session, scenario) if issue.level == "error"]
+    if errors:
+        flash(request, errors[0].message, level="error")
+        return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
+    endpoints = session.exec(select(SystemEndpoint).where(SystemEndpoint.id.in_(endpoint_ids))).all() if endpoint_ids else []
+    try:
+        play = prepare_scenario_play(session, scenario, endpoints, dry_run=True, allow_inactive=True)
+        play = await execute_scenario_play(session, play.id)
+    except ScenarioPlayError as exc:
+        flash(request, f"Prévisualisation impossible : {exc}", level="error")
+        return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
+    flash(request, "Prévisualisation terminée : aucun message n'a été émis.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/plays/{play.id}", status_code=303)
+
+
 @router.post("/{scenario_id}/authoring/steps")
 def add_guided_scenario_step(
     scenario_id: int,

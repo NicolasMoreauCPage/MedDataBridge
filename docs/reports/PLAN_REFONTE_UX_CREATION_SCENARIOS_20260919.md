@@ -4,6 +4,20 @@
 **Périmètre :** création, configuration et première validation d'un scénario d'interopérabilité  
 **Hors périmètre :** sécurité, refonte du moteur d'exécution, refonte complète du catalogue de scénarios existants
 
+## État de mise en œuvre — 19 septembre 2026
+
+Le socle de la refonte est livré :
+
+- un assistant en cinq étapes remplace la création initiale vide ;
+- les parcours types existants, la duplication et l'import convergent vers une revue de brouillon ;
+- la clé technique est facultative et proposée automatiquement ;
+- les scénarios créés par l'assistant sont inactifs jusqu'à validation explicite ;
+- la revue affiche la chronologie, les destinations compatibles, les payloads repliés et les erreurs de préparation ;
+- le mode expert historique reste disponible pour les ajustements avancés ;
+- une migration et une compatibilité de démarrage local accompagnent le nouvel état `draft` / `ready`.
+
+Restent à réaliser dans les lots suivants : l'édition visuelle complète des étapes (ajout/réorganisation sans mode expert), les données patient communes, le routage commun par scénario, l'exécution à blanc depuis la revue et l'instrumentation d'usage.
+
 ## 1. Objectif produit
 
 Permettre à un utilisateur métier ou fonctionnel de créer un scénario valide sans devoir connaître immédiatement :

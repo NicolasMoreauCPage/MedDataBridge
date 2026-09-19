@@ -15,6 +15,7 @@ Notes
 
 from sqlmodel import SQLModel, create_engine, Session, select, text
 from sqlalchemy.engine.url import make_url
+from sqlalchemy import inspect
 from typing import Optional
 
 # Import ALL models to ensure tables are registered
@@ -101,9 +102,38 @@ else:
 
     engine = create_engine(settings.database_url, **engine_kwargs)
 
+def _ensure_scenario_authoring_columns() -> None:
+    """Rend le démarrage local compatible avec une base créée avant le wizard.
+
+    Les déploiements appliquent la migration Alembic dédiée. Cette garde
+    idempotente évite néanmoins qu'un lancement local via ``init_db()`` casse
+    sur une base SQLite historique, puisque ``create_all`` n'ajoute pas les
+    colonnes aux tables déjà existantes.
+    """
+    inspector = inspect(engine)
+    if "interopscenario" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("interopscenario")}
+    indexes = {index["name"] for index in inspector.get_indexes("interopscenario")}
+    with engine.begin() as connection:
+        if "authoring_status" not in columns:
+            connection.execute(text(
+                "ALTER TABLE interopscenario "
+                "ADD COLUMN authoring_status VARCHAR NOT NULL DEFAULT 'ready'"
+            ))
+        if "authoring_metadata_json" not in columns:
+            connection.execute(text("ALTER TABLE interopscenario ADD COLUMN authoring_metadata_json TEXT"))
+        if "ix_interopscenario_authoring_status" not in indexes:
+            connection.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_interopscenario_authoring_status "
+                "ON interopscenario (authoring_status)"
+            ))
+
+
 def init_db() -> None:
     """Crée les tables si elles n'existent pas (idempotent)."""
     SQLModel.metadata.create_all(engine)
+    _ensure_scenario_authoring_columns()
     # Optimisations SQLite avancées pour la performance et la robustesse
     try:
         import sqlite3

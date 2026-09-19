@@ -15,8 +15,8 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 from app.models import Dossier
-from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioVersion
-from app.models_structure import GHTContext
+from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate, ScenarioVersion
+from app.models_structure import EntiteJuridique, GHTContext
 from app.services.scenario_runner import ScenarioExecutionError, get_scenario
 from app.services.scenario_capture import capture_dossier_as_scenario
 from app.services.scenario_import import (
@@ -62,6 +62,15 @@ from app.services.scenario_status_service import (
 )
 from app.utils.flash import flash
 from app.services.scenario_realistic_timeplan import suggest_scenario_timing_update
+from app.services.scenario_authoring import (
+    AUTHORING_DRAFT,
+    create_manual_draft,
+    create_template_draft,
+    duplicate_scenario_draft,
+    mark_ready,
+    unique_scenario_key,
+    validate_authoring,
+)
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Glose en langage clair pour les triggers ADT couramment rencontrés dans les
@@ -318,13 +327,23 @@ async def import_scenario(
             override_key=override_key,
             override_name=override_name
         )
+        # Un contenu importé est immédiatement exploitable, mais doit passer
+        # par la même revue que les autres méthodes de création avant émission.
+        scenario.is_active = False
+        scenario.authoring_status = AUTHORING_DRAFT
+        scenario.authoring_metadata_json = json.dumps({
+            "source": "import",
+            "created_at": datetime.utcnow().isoformat(),
+        })
+        session.add(scenario)
+        session.commit()
         
         flash(
             request, 
             f"Scénario '{scenario.name}' importé avec succès ({len(scenario.steps)} étapes)",
             level="success"
         )
-        return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
+        return RedirectResponse(url=f"/scenarios/{scenario.id}/authoring", status_code=303)
         
     except json.JSONDecodeError as e:
         flash(request, f"Erreur de parsing JSON: {str(e)}", level="error")
@@ -752,14 +771,41 @@ async def run_durable_campaign(campaign_id: int, request: Request, dry_run: bool
     return RedirectResponse(url="/scenarios/campaigns", status_code=303)
 
 
-# Route de création "from scratch" (doit être avant /{scenario_id} pour éviter les conflits) :
-# jusqu'ici le seul moyen de créer un scénario était de capturer un dossier existant
-# (capture_from_dossier) ou d'importer un export JSON déjà complet (import_scenario).
+# Routes d'auteur de scénario (doivent être avant /{scenario_id}). Elles réutilisent
+# les modèles et la matérialisation historiques, mais évitent de demander un payload
+# brut ou une clé technique avant d'avoir défini le parcours métier.
+@router.get("/new/key-availability")
+def scenario_key_availability(
+    key: Optional[str] = None,
+    name: Optional[str] = None,
+    session: Session = Depends(get_session),
+):
+    requested = (key or name or "").strip()
+    suggestion = unique_scenario_key(session, requested, name or requested or "scenario")
+    return {
+        "requested_key": requested,
+        "suggested_key": suggestion,
+        "available": bool(requested) and suggestion == requested,
+    }
+
+
 @router.get("/new", response_class=HTMLResponse)
-def new_scenario_form(request: Request):
-    """Formulaire de création d'un scénario vide, à compléter étape par étape."""
+def new_scenario_form(request: Request, session: Session = Depends(get_session)):
+    """Assistant unique : modèle, duplication, import ou mode expert."""
+    templates = session.exec(
+        select(ScenarioTemplate)
+        .where(ScenarioTemplate.is_active.is_(True))
+        .order_by(ScenarioTemplate.category, ScenarioTemplate.name)
+    ).all()
+    source_scenarios = session.exec(
+        select(InteropScenario)
+        .where(InteropScenario.authoring_status != AUTHORING_DRAFT)
+        .order_by(InteropScenario.name)
+    ).all()
     ctx = {
         "request": request,
+        "templates": templates,
+        "source_scenarios": source_scenarios,
         "breadcrumbs": [
             {"label": "Scénarios", "url": "/scenarios"},
             {"label": "Nouveau scénario", "url": "/scenarios/new"},
@@ -771,30 +817,172 @@ def new_scenario_form(request: Request):
 @router.post("/new")
 def create_scenario(
     request: Request,
-    key: str = Form(...),
+    creation_mode: str = Form("manual"),
+    key: Optional[str] = Form(None),
     name: str = Form(...),
     description: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
     protocol: str = Form("HL7"),
+    tags: Optional[str] = Form(None),
+    template_key: Optional[str] = Form(None),
+    source_scenario_id: Optional[int] = Form(None),
+    ipp_prefix: Optional[str] = Form(None),
+    nda_prefix: Optional[str] = Form(None),
     session: Session = Depends(get_session),
 ):
-    """Crée un scénario vide (sans étape), prêt à être complété via /scenarios/{id}/steps."""
-    existing = session.exec(select(InteropScenario).where(InteropScenario.key == key)).first()
-    if existing:
-        flash(request, f"La clé '{key}' est déjà utilisée par le scénario '{existing.name}'", level="error")
+    """Crée un brouillon via le parcours choisi, puis ouvre sa revue guidée."""
+    normalized_name = name.strip()
+    if not normalized_name:
+        flash(request, "Donnez un nom au scénario avant de continuer.", level="error")
+        return RedirectResponse(url="/scenarios/new", status_code=303)
+    try:
+        if creation_mode == "template":
+            template = session.exec(
+                select(ScenarioTemplate).where(ScenarioTemplate.key == (template_key or ""))
+            ).first()
+            if not template or not template.is_active:
+                raise ValueError("Choisissez un modèle de scénario disponible.")
+            active_ej_id = getattr(getattr(request.state, "ej_context", None), "id", None)
+            ej_context = session.get(EntiteJuridique, active_ej_id) if active_ej_id else None
+            scenario = create_template_draft(
+                session,
+                template=template,
+                name=normalized_name,
+                description=description,
+                category=category,
+                requested_key=key,
+                protocol="FHIR" if protocol == "FHIR" else "HL7v2",
+                tags=tags,
+                ej_context=ej_context,
+                ipp_prefix=ipp_prefix,
+                nda_prefix=nda_prefix,
+            )
+        elif creation_mode == "duplicate":
+            source = session.get(InteropScenario, source_scenario_id)
+            if not source:
+                raise ValueError("Choisissez le scénario à dupliquer.")
+            scenario = duplicate_scenario_draft(
+                session,
+                source=source,
+                name=normalized_name,
+                description=description,
+                requested_key=key,
+            )
+        elif creation_mode == "manual":
+            scenario = create_manual_draft(
+                session,
+                name=normalized_name,
+                description=description,
+                category=category,
+                protocol=protocol,
+                requested_key=key,
+                tags=tags,
+            )
+        else:
+            raise ValueError("Méthode de création inconnue.")
+    except ValueError as exc:
+        flash(request, str(exc), level="error")
         return RedirectResponse(url="/scenarios/new", status_code=303)
 
-    scenario = InteropScenario(
-        key=key,
-        name=name,
-        description=description or None,
-        category=category or None,
-        protocol=protocol,
+    flash(request, f"Brouillon « {scenario.name} » créé. Vérifiez-le avant de le rendre exécutable.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario.id}/authoring", status_code=303)
+
+
+@router.get("/{scenario_id}/authoring", response_class=HTMLResponse)
+def scenario_authoring_review(scenario_id: int, request: Request, session: Session = Depends(get_session)):
+    """Revue légère : chronologie, destinations proposées et validation de préparation."""
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    steps = sorted(scenario.steps, key=lambda step: step.order_index)
+    endpoints = session.exec(
+        select(SystemEndpoint)
+        .where(SystemEndpoint.is_enabled.is_(True))
+        .where(SystemEndpoint.role.in_(["sender", "both"]))
+        .order_by(SystemEndpoint.kind, SystemEndpoint.name)
+    ).all()
+    compatible_kinds = {
+        "hl7": {"MLLP", "FILE", "FTP", "SFTP"},
+        "fhir": {"FHIR", "FILE", "FTP", "SFTP"},
+        "json": {"FHIR", "FILE", "FTP", "SFTP"},
+        "xml": {"FILE", "FTP", "SFTP"},
+    }
+    endpoint_counts = {
+        step.id: sum(1 for endpoint in endpoints if (endpoint.kind or "").upper() in compatible_kinds.get(step.message_format.lower(), set()))
+        for step in steps
+    }
+    issues = validate_authoring(session, scenario)
+    return get_templates_with_filters(request).TemplateResponse(
+        request,
+        "scenario_authoring_review.html",
+        {
+            "request": request,
+            "scenario": scenario,
+            "steps": steps,
+            "issues": [issue.as_dict() for issue in issues],
+            "endpoint_counts": endpoint_counts,
+            "breadcrumbs": [
+                {"label": "Scénarios", "url": "/scenarios"},
+                {"label": "Nouveau scénario", "url": "/scenarios/new"},
+                {"label": "Revue", "url": f"/scenarios/{scenario.id}/authoring"},
+            ],
+        },
     )
-    session.add(scenario)
-    session.commit()
-    session.refresh(scenario)
-    flash(request, f"Scénario '{scenario.name}' créé — ajoutez ses étapes ci-dessous", level="success")
+
+
+@router.get("/{scenario_id}/authoring/preview")
+def scenario_authoring_preview(scenario_id: int, session: Session = Depends(get_session)):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    issues = validate_authoring(session, scenario)
+    return {
+        "scenario": {
+            "id": scenario.id,
+            "name": scenario.name,
+            "key": scenario.key,
+            "status": scenario.authoring_status,
+            "step_count": len(scenario.steps),
+        },
+        "valid": not any(issue.level == "error" for issue in issues),
+        "issues": [issue.as_dict() for issue in issues],
+        "steps": [
+            {
+                "id": step.id,
+                "order_index": step.order_index,
+                "name": step.name,
+                "message_type": step.message_type,
+                "message_format": step.message_format,
+                "payload_preview": f"{step.payload[:240]}…" if len(step.payload) > 240 else step.payload,
+            }
+            for step in sorted(scenario.steps, key=lambda item: item.order_index)
+        ],
+    }
+
+
+@router.post("/{scenario_id}/authoring/validate")
+def validate_scenario_authoring(scenario_id: int, session: Session = Depends(get_session)):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    issues = validate_authoring(session, scenario)
+    return {
+        "valid": not any(issue.level == "error" for issue in issues),
+        "issues": [issue.as_dict() for issue in issues],
+    }
+
+
+@router.post("/{scenario_id}/authoring/ready")
+def ready_scenario_authoring(scenario_id: int, request: Request, session: Session = Depends(get_session)):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    issues = mark_ready(session, scenario)
+    errors = [issue for issue in issues if issue.level == "error"]
+    if errors:
+        flash(request, errors[0].message, level="error")
+        return RedirectResponse(url=f"/scenarios/{scenario.id}/authoring", status_code=303)
+    flash(request, "Scénario prêt : il peut maintenant être exécuté ou complété en mode expert.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario.id}", status_code=303)
 
 

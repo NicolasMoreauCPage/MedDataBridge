@@ -40,6 +40,15 @@ class InteropScenario(SQLModel, table=True):
     )
     tags: Optional[str] = None  # liste séparée par virgules
     is_active: bool = Field(default=True, index=True)
+    authoring_status: str = Field(
+        default="ready",
+        index=True,
+        description="État de conception: draft | ready | published | archived",
+    )
+    authoring_metadata_json: Optional[str] = Field(
+        default=None,
+        description="Métadonnées de création guidée (source, template, options), au format JSON.",
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

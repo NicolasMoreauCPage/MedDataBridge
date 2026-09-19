@@ -146,7 +146,8 @@
       <li>• Exportez un scénario existant via le bouton "Exporter JSON" sur sa page de détail</li>
       <li>• Modifiez le JSON si nécessaire (changez les payloads, délais, etc.)</li>
       <li>• Importez-le ici en uploadant le fichier ou en collant le JSON</li>
-      <li>• Le scénario sera recréé avec tous ses steps dans le contexte sélectionné</li>
+      <li>• Le scénario sera recréé avec toutes ses étapes dans le contexte sélectionné</li>
+      <li>• Une revue s'ouvrira ensuite : le scénario reste inactif jusqu'à votre validation</li>
     </ul>
   </div>
 </div>
@@ -191,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 if (response.redirected) {
-                    // Succès - rediriger vers la liste des scénarios
+                    // Succès - ouvrir la revue guidée renvoyée par le serveur.
                     window.location.href = response.url;
                 } else {
                     // Afficher un message de succès et rediriger

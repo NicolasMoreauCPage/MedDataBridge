@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select, or_
@@ -517,7 +517,6 @@ def list_mouvements(
         ej_context = getattr(request.state, "ej_context", None)
         if ej_context and getattr(ej_context, "id", None):
             # Récupérer tous les dossiers de l'EJ
-            from app.models import Dossier
             dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id))]
             if dossier_ids:
                 venue_ids = [v.id for v in session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids)))]
@@ -791,7 +790,6 @@ def new_mouvement(
         stmt = select(Venue).where(Venue.dossier_id == filter_dossier_id).order_by(Venue.venue_seq.asc())
     else:
         # Filtrer les venues qui ont un dossier avec une EJ valide
-        from app.models import Dossier
         stmt = select(Venue).join(Dossier).where(Dossier.entite_juridique_id.is_not(None)).order_by(Venue.venue_seq.asc())
     
     venues = session.exec(stmt).all()
@@ -987,7 +985,6 @@ def new_mouvement(
     # Récupérer l'UF de responsabilité médicale et les UF d'hébergement liées à la venue
         uf_options = []
         try:
-            from app.models_structure import UniteFonctionnelle, UniteHebergement
             uf_ids = set()
 
             # Récupérer l'EJ de la venue sélectionnée pour filtrer les UF
@@ -1090,7 +1087,6 @@ def new_mouvement(
         logging.info("No selected_chambre_id, lit_options will be empty")
 
     # Filtrer les types de mouvement selon le type de venue
-    from app.form_config import MovementType
     from app.movement_type_mapping import from_standard_movement_code, to_standard_movement_code
     all_type_options = MovementType.choices()
     # Mapping dossier_type -> types autorisés (codes HL7)
@@ -2135,8 +2131,6 @@ def get_reasons_for_movement_type(movement_type: str, session=Depends(get_sessio
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
 
 # Edition UF
-from app.models_structure import UniteFonctionnelle
-
 @router.get("/uf/{uf_id}/edit", response_class=HTMLResponse)
 def edit_uf_form(uf_id: int, request: Request, session=Depends(get_session)):
     uf = session.get(UniteFonctionnelle, uf_id)
@@ -2222,6 +2216,5 @@ def patient_search_api(
         for p in patients
     ]
     return {"results": results}
-
 
 

@@ -315,11 +315,10 @@ async function initializeStructure() {
     }
     try {
         // Construire l'URL de l'API
-        let apiUrl = '/api/structure/tree?eg_ids=' + FILTERED_EGS.join(',');
-        // Charger les données
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Erreur lors du chargement de la structure');
-        currentStructure = await response.json();
+        const apiUrl = '/api/structure/tree?eg_ids=' + FILTERED_EGS.join(',');
+        // Charger les données par le client commun (timeout et erreurs unifiés).
+        const { data } = await window.medbridgeHttp.get(apiUrl);
+        currentStructure = data;
 
         // Calculer les statistiques globales
         computeStructureStats();
@@ -645,10 +644,9 @@ function renderKpiCards() {
 // Sélection d'un nœud
 async function selectNode(type, id) {
     try {
-        const response = await fetch(`/api/structure/details/${type}/${id}`);
-        if (!response.ok) throw new Error('Erreur lors du chargement des détails');
-
-        const details = await response.json();
+        const { data: details } = await window.medbridgeHttp.get(
+            `/api/structure/details/${type}/${id}`,
+        );
         selectedNode = { type, id };
 
         // Afficher le panneau de détails et masquer le message initial
@@ -991,221 +989,6 @@ function getTypeLabel(type) {
     return labels[type] || type;
 }
 
-function toggleNode(nodeId, event) {
-    event.stopPropagation();
-    const button = event.currentTarget;
-    const icon = button.querySelector('svg');
-    
-    if (expandedNodes.has(nodeId)) {
-        expandedNodes.delete(nodeId);
-        icon.classList.remove('rotate-90');
-    } else {
-        expandedNodes.add(nodeId);
-        icon.classList.add('rotate-90');
-    }
-    
-    renderStructure();
-}
-
-function expandAll() {
-    document.querySelectorAll('.structure-node').forEach(node => {
-        expandedNodes.add(node.dataset.nodeId);
-    });
-    renderStructure();
-}
-
-function collapseAll() {
-    expandedNodes.clear();
-    renderStructure();
-}
-
-function filterStructure() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const typeFilter = document.getElementById('structureTypeFilter').value;
-    const statusFilter = document.getElementById('statusFilter').value;
-    
-    document.querySelectorAll('.structure-node').forEach(node => {
-        const matches = (
-            (searchTerm === '' || node.textContent.toLowerCase().includes(searchTerm)) &&
-            (typeFilter === '' || node.dataset.type === typeFilter) &&
-            (statusFilter === '' || node.dataset.status === statusFilter)
-        );
-        
-        node.style.display = matches ? '' : 'none';
-        
-        // Si un nœud correspond, montrer aussi ses parents
-        if (matches) {
-            let parent = node;
-            while (parent = document.querySelector(`[data-node-id="${parent.dataset.parent}"]`)) {
-                parent.style.display = '';
-                expandedNodes.add(parent.dataset.nodeId);
-            }
-        }
-    });
-
-    // Mettre à jour les vues tabulaires si actives
-    if (viewMode === 'list') {
-        renderListView();
-    } else if (viewMode === 'cards') {
-        renderCardsView();
-    }
-}
-
-// Gestion de la sélection bulk (mode liste)
-function toggleBulkSelection(type, id) {
-    if (!type || !Number.isInteger(id)) return;
-    const key = `${type}:${id}`;
-    if (bulkSelection.has(key)) {
-        bulkSelection.delete(key);
-    } else {
-        bulkSelection.add(key);
-    }
-    updateBulkBar();
-}
-
-function toggleSelectAll(checked) {
-    const checkboxes = document.querySelectorAll('.list-row-select');
-    bulkSelection.clear();
-    checkboxes.forEach(cb => {
-        cb.checked = checked;
-        if (checked) {
-            const id = Number(cb.dataset.id);
-            if (cb.dataset.type && Number.isInteger(id)) {
-                bulkSelection.add(`${cb.dataset.type}:${id}`);
-            }
-        }
-    });
-    updateBulkBar();
-}
-
-function updateBulkBar() {
-    const bar = document.getElementById('bulkActionsBar');
-    const countEl = document.getElementById('bulkSelectionCount');
-    if (!bar || !countEl) return;
-
-    const count = bulkSelection.size;
-    countEl.textContent = count.toString();
-    if (count > 0) {
-        bar.classList.remove('hidden');
-    } else {
-        bar.classList.add('hidden');
-    }
-}
-
-function clearBulkSelection() {
-    bulkSelection.clear();
-    const listSelectAll = document.getElementById('listSelectAll');
-    if (listSelectAll) listSelectAll.checked = false;
-    document.querySelectorAll('.list-row-select').forEach(cb => {
-        cb.checked = false;
-    });
-    updateBulkBar();
-}
-
-async function applyBulkAction(action) {
-    if (bulkSelection.size === 0) return;
-    const readable = action === 'activate' ? 'activer' : action === 'deactivate' ? 'désactiver' : action;
-    if (!['activate', 'deactivate'].includes(action)) {
-        showError('Action en lot non supportée');
-        return;
-    }
-
-    if (!window.PameliaUi?.confirm) {
-        showError("Le dialogue de confirmation n'est pas disponible.");
-        return;
-    }
-    const confirmed = await window.PameliaUi.confirm({
-        title: `Confirmer l’action en lot`,
-        message: `Voulez-vous vraiment ${readable} ${bulkSelection.size} élément(s) ?`,
-        acceptLabel: readable.charAt(0).toUpperCase() + readable.slice(1),
-        variant: action === 'deactivate' ? 'danger' : 'primary',
-    });
-    if (!confirmed) {
-        return;
-    }
-
-    const items = Array.from(bulkSelection).map(key => {
-        const [type, idStr] = key.split(':');
-        return { type, id: parseInt(idStr, 10) };
-    }).filter(item => !Number.isNaN(item.id));
-
-    if (items.length === 0) {
-        showError('Aucun élément valide à traiter');
-        return;
-    }
-
-    fetch('/api/structure/bulk-action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, items }),
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erreur HTTP');
-            }
-            return response.json();
-        })
-        .then(data => {
-            const msg = `${data.updated || 0} élément(s) mis à jour`;
-            showNotification(msg, 'success');
-            clearBulkSelection();
-            // Recharger la structure pour refléter les nouveaux statuts
-            initializeStructure();
-        })
-        .catch(error => {
-            console.error('Bulk action error', error);
-            showError("Impossible de réaliser l'action en lot");
-        });
-}
-
-function showError(message) {
-    console.error(message);
-    showNotification(message, 'error');
-}
-
-function showNotification(message, type = 'info') {
-    if (window.toastSystem?.show) {
-        window.toastSystem.show(message, type);
-        return;
-    }
-    console.info(message);
-}
-
-// Ouvrir la page d'édition classique pour l'entité sélectionnée
-function editNode(type, id) {
-    if (!type || !id) {
-        return;
-    }
-
-    let url = null;
-    switch (type) {
-        case 'eg':
-            url = `/structure/eg/${id}/edit`;
-            break;
-        case 'pole':
-            url = `/structure/poles/${id}/edit`;
-            break;
-        case 'service':
-            url = `/structure/services/${id}/edit`;
-            break;
-        case 'uf':
-            url = `/structure/ufs/${id}/edit`;
-            break;
-        case 'uh':
-            url = `/structure/chambres/new?uh_id=${id}`;
-            break;
-        case 'chambre':
-            url = `/structure/chambres/${id}/edit`;
-            break;
-        case 'lit':
-            url = `/structure/lits/${id}/edit`;
-            break;
-        default:
-            console.warn('Type non éditable dans cette vue:', type, id);
-            return;
-    }
-
-    window.location.href = url;
-}
 </script>
+<script src="{{ url_for('static', path='js/structure-new-actions.js') }}"></script>
 {% endblock %}

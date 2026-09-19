@@ -9,18 +9,10 @@ et de les exécuter en générant dynamiquement les messages HL7 PAM et les ress
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any, List, TYPE_CHECKING
+from typing import Optional, Dict, Any
 
-from sqlmodel import Field, SQLModel, Relationship, JSON, Column
+from sqlmodel import Field, SQLModel, JSON, Column
 from sqlalchemy import Text
-
-# Import only for type checking to avoid circular imports
-if TYPE_CHECKING:
-    from app.models import Patient, Dossier
-    from app.models_structure import GHTContext
-    from app.models_endpoints import SystemEndpoint
-    from app.models_scenarios import InteropScenario
-
 
 class ScenarioType(str, Enum):
     """Types de scénarios cliniques."""

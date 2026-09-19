@@ -277,12 +277,16 @@ class PAMValidator(HL7Validator):
         is_likely_id = (not field1) or field1.isdigit() or field1.startswith("MVT") or ('^' in field1)
         variant_integration = is_likely_id
         if variant_integration:
-            # Integration-style: identifier in F1, date in F2, action often in F4 (F3 sometimes empty)
+            # Le profil IHE PAM France place l'identifiant en F1, la date en
+            # F2 et l'action en F4. ZBE-3 est réservé et doit donc rester vide
+            # pour les messages normalisés, comme ceux des partenaires CPage.
+            # Certains anciens flux ont néanmoins renseigné F3 : on le garde
+            # comme première source pour rester compatible.
             date_value = fields[2] if len(fields) > 2 else ""
-            # Integration-style: movement code is expected in F3. Tests expect
-            # an error when F3 is empty, so do not Solution de repli to other fields.
-            mvt_code = fields[3] if len(fields) > 3 else ""
-            code_field_label = "F3"
+            mvt_code = (fields[3] if len(fields) > 3 else "") or (
+                fields[4] if len(fields) > 4 else ""
+            )
+            code_field_label = "F3/F4"
             date_field_label = "F2"
         else:
             mvt_code = fields[1] if len(fields) > 1 else ""

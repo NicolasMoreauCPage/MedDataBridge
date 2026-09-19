@@ -334,15 +334,12 @@ class TestValidationIntegration:
 class TestLoggingIntegration:
     """Tests d'intégration du système de logging."""
 
-    @pytest.mark.xfail(
-        reason="app.logging_config n'expose pas de fonction get_logger() (module a évolué depuis l'écriture du test).",
-        strict=False,
-    )
     def test_structured_logging(self, caplog):
         """Test du logging structuré."""
         import logging
         from app.logging_config import get_logger
 
+        caplog.set_level(logging.INFO)
         logger = get_logger("test_module")
 
         # Log avec contexte
@@ -356,13 +353,13 @@ class TestLoggingIntegration:
         assert log_record.message == "Test message"
         assert hasattr(log_record, 'extra_data')
 
-    def test_metrics_logging_integration(self, client, caplog):
-        """Test de l'intégration entre métriques et logging."""
-        # Faire une requête qui génère des métriques
-        client.get("/health")
+    def test_metrics_request_integration(self, client):
+        """A health request exposes the metrics emitted by the middleware."""
+        response = client.get("/health")
 
-        # Vérifier que des logs ont été générés
-        assert len(caplog.records) > 0
+        assert response.status_code == 200
+        assert int(response.headers["X-Request-Count"]) >= 1
+        assert float(response.headers["X-Avg-Duration"]) >= 0
 
 
 class TestHealthCheckIntegration:

@@ -21,13 +21,10 @@
     button.disabled = true;
     button.textContent = "Rejeu…";
     try {
-      const response = await fetch("/messages/" + messageId + "/replay", {
+      const { data } = await window.medbridgeHttp.request("/messages/" + messageId + "/replay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error("Le rejeu a été refusé (HTTP " + response.status + ").");
-
-      const data = await response.json();
       if (data.status !== "success") throw new Error(data.message || "Le rejeu a échoué.");
       if (feedback) feedback.textContent = "Message " + messageId + " rejoué avec succès. Nouvel état : " + data.new_status + ".";
       window.location.reload();
@@ -50,9 +47,7 @@
     const dossierId = link.dataset.dossierId;
     if (!dossierId) return;
     try {
-      const response = await fetch("/api/hprim/interventions/" + dossierId + "/cotations-count");
-      if (!response.ok) return;
-      const data = await response.json();
+      const { data } = await window.medbridgeHttp.get("/api/hprim/interventions/" + dossierId + "/cotations-count");
       if (!data.has_cotations || !data.cotations_count) return;
 
       link.classList.remove("hidden");

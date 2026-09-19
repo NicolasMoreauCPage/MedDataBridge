@@ -10,7 +10,6 @@ from app.db import get_next_sequence
 from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check, parse_hl7_cx_identifier, create_identifier_from_hl7
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.vocabulary_translate import map_code
-from app.services.vocabulary_translate import map_code
 from app.services.medecin_extractor import extract_and_store_medecin_from_pv1
 from app.infrastructure.hl7.parsing.french_extension_parser import (
     parse_zfd, parse_zfa, parse_zfp, parse_zfv, parse_rol_segments,

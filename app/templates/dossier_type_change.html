@@ -108,11 +108,10 @@ document.getElementById('changeTypeForm').addEventListener('submit', async (e) =
     const newType = document.getElementById('newType').value;
     
     try {
-        const response = await fetch(`/dossier-type/{{ dossier.id }}/change?new_type=${newType}`, {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
+        const { data: result } = await window.medbridgeHttp.request(
+            `/dossier-type/{{ dossier.id }}/change?new_type=${newType}`,
+            { method: 'POST' },
+        );
         
         if (result.status === 'error') {
             // Afficher les avertissements
@@ -122,10 +121,10 @@ document.getElementById('changeTypeForm').addEventListener('submit', async (e) =
             // Configuration du bouton de forçage
             document.getElementById('forceChange').onclick = async () => {
                 try {
-                    const forceResponse = await fetch(`/dossier-type/{{ dossier.id }}/change?new_type=${newType}&force=true`, {
-                        method: 'POST'
-                    });
-                    const forceResult = await forceResponse.json();
+                    const { data: forceResult } = await window.medbridgeHttp.request(
+                        `/dossier-type/{{ dossier.id }}/change?new_type=${newType}&force=true`,
+                        { method: 'POST' },
+                    );
                     
                     if (forceResult.status === 'success') {
                         document.getElementById('warningArea').classList.add('hidden');

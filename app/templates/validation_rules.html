@@ -59,9 +59,7 @@
       }
       setBusy(saveButton, true, 'Sauvegarder');
       try {
-        const resp = await fetch('/api/validation-rules', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(parsed)});
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(data.detail || `Erreur HTTP ${resp.status}`);
+        const { data } = await window.medbridgeHttp.post('/api/validation-rules', parsed);
         isDirty = false;
         showStatus(data.message || 'Règles sauvegardées.', 'success');
       } catch (error) {
@@ -87,10 +85,9 @@
       }
       setBusy(reloadButton, true, 'Recharger');
       try {
-        const response = await fetch('/api/validation-rules');
-        const rules = await response.json().catch(() => null);
-        if (!response.ok || !rules || Array.isArray(rules) || typeof rules !== 'object') {
-          throw new Error(`Erreur HTTP ${response.status}`);
+        const { data: rules } = await window.medbridgeHttp.get('/api/validation-rules');
+        if (!rules || Array.isArray(rules) || typeof rules !== 'object') {
+          throw new Error('Format de règles invalide');
         }
         rulesArea.value = JSON.stringify(rules, null, 2);
         isDirty = false;

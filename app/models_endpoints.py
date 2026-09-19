@@ -1,9 +1,10 @@
-from typing import Literal, Optional, List
+from typing import Optional
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 
-from app.models_structure import GHTContext
-from app.models_shared import SystemEndpoint, MessageLog
+# ``MessageLog`` est réexporté pour les imports historiques (dont ``app.db``).
+# Il ne doit pas être retiré par le lint malgré l'absence de référence locale.
+from app.models_shared import SystemEndpoint, MessageLog  # noqa: F401
 
 class MLLPConfig(SQLModel, table=True):
     """Configuration MLLP spécifique à un endpoint"""

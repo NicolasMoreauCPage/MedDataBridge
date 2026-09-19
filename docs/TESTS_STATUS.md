@@ -1,6 +1,6 @@
 # État des tests
 
-Dernière revue documentaire : 12 septembre 2026.
+Dernière revue documentaire : 14 septembre 2026.
 
 Ce document ne fige volontairement ni un nombre global de tests ni une promesse
 de suite intégralement verte : ces chiffres deviennent vite périmés. La CI et
@@ -21,6 +21,44 @@ La liste exacte est exécutée par
 [`interop-conformance.yml`](../.github/workflows/interop-conformance.yml).
 
 ## Exécution locale
+
+La commande rapide par défaut exclut les tests qui demandent un navigateur, une
+pile E2E ou de la charge. Ces catégories sont marquées automatiquement à partir
+de `tests/ui`, `tests/e2e` et `tests/performance` :
+
+```bash
+TESTING=1 PYTHONPATH=. .venv/bin/pytest -q
+npm run check-frontend
+```
+
+Les parcours navigateur restent exécutables séparément :
+
+```bash
+TESTING=1 PYTHONPATH=. .venv/bin/pytest -m ui -q tests/ui
+```
+
+## Validation Compose
+
+Le service applicatif écoute par défaut sur le port local `8000`. Lorsqu'il est
+déjà utilisé, le port peut être choisi sans modifier le fichier Compose :
+
+```bash
+MEDBRIDGE_PORT=8002 docker compose -f docker/docker-compose.yml up -d --build
+curl --fail http://127.0.0.1:8002/health
+docker compose -f docker/docker-compose.yml down
+```
+
+Le démarrage applique les migrations Alembic avant Uvicorn. PostgreSQL et
+Redis restent accessibles au réseau interne Compose ; les données applicatives
+sont conservées dans des volumes nommés.
+
+L'inventaire des opérations publiques est généré depuis l'OpenAPI effectif :
+
+```bash
+PYTHONPATH=. python3 scripts/generate_openapi_inventory.py --output docs/reports/OPENAPI_INVENTORY.md
+```
+
+La campagne ciblée de conformité interopérabilité est :
 
 ```bash
 TESTING=1 PYTHONPATH=. .venv/bin/pytest -q \

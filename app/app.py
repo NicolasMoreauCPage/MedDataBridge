@@ -1,5 +1,3 @@
-# Import ght router first to avoid circular imports
-import app.routers.ght as ght
 """
 Composition de l'application FastAPI (IntegraSanté by CPage)
 
@@ -31,7 +29,7 @@ from sqladmin import Admin, ModelView
 from sqlmodel import select
 
 # Import de la configuration centralisée
-from config.settings import settings
+from config.settings import Settings, settings
 
 from app.middleware.flash import FlashMessageMiddleware
 from app.middleware.ght_context import GHTContextMiddleware
@@ -52,7 +50,9 @@ import asyncio
 from app import runners as runners_module
 
 
-# Import ght router first to avoid circular imports
+# Import the GHT router after loading local configuration. Some of its imports
+# instantiate settings, so importing it before ``load_dotenv()`` made the
+# documented local startup command depend on callers manually sourcing `.env`.
 import app.routers.ght as ght
 
 """Application composition module.
@@ -91,78 +91,88 @@ setup_logging()
 # - `on_message_inbound` est appelé pour chaque message entrant HL7.
 mllp_manager = MLLPManager(session_factory=session_factory, on_message=on_message_inbound)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # En tests, on ne veut pas initialiser la DB de production (medbridge.db) ni démarrer
-    # des serveurs MLLP en arrière-plan. Les tests surchargent l'accès DB via
-    # des overrides, on saute donc init/reload quand TESTING est présent ou PYTEST_RUNNING.
-    import os
-    PYTEST_RUNNING = "PYTEST_CURRENT_TEST" in os.environ
-    testing = settings.testing or PYTEST_RUNNING
-    if not testing:
-        init_db()
+def make_lifespan(runtime_settings: Settings):
+    """Construit un cycle de vie lié à la configuration de cette application."""
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # En tests, on ne veut pas initialiser la DB de production (medbridge.db) ni démarrer
+        # des serveurs MLLP en arrière-plan. Les tests surchargent l'accès DB via
+        # des overrides, on saute donc init/reload quand TESTING est présent ou PYTEST_RUNNING.
+        import os
+        PYTEST_RUNNING = "PYTEST_CURRENT_TEST" in os.environ
+        testing = runtime_settings.testing or PYTEST_RUNNING
+        if not testing:
+            init_db()
         # Provide the running asyncio loop to runners so synchronous handlers
         # can schedule coroutines safely using run_coroutine_threadsafe.
-        try:
-            loop = asyncio.get_running_loop()
-            runners_module.set_event_loop(loop)
-            logging.info("Main asyncio loop registered with runners module")
-        except RuntimeError:
-            logging.getLogger(__name__).warning("No running asyncio loop available to register with runners")
+            try:
+                loop = asyncio.get_running_loop()
+                runners_module.set_event_loop(loop)
+                logging.info("Main asyncio loop registered with runners module")
+            except RuntimeError:
+                logging.getLogger(__name__).warning("No running asyncio loop available to register with runners")
         # Register entity event listeners for automatic message emission
-        register_entity_events()
-        register_structure_entity_events()
-        logging.info("Entity event listeners registered for automatic emission")
+            register_entity_events()
+            register_structure_entity_events()
+            logging.info("Entity event listeners registered for automatic emission")
         # Démarrage idempotent
         # Use an explicit session context manager here instead of consuming
         # the dependency generator with next(get_session()). Calling
         # next(get_session()) leaves the generator open and can cause the
         # underlying context manager to never exit, producing transaction
         # state errors like 'cannot rollback - no transaction is active'.
-        with session_factory() as sess:
+            with session_factory() as sess:
             # Initialiser les vocabulaires si demandé
-            if os.getenv("INIT_VOCAB", "0") in ("1", "true", "True"):
-                from app.vocabularies.init import init_vocabularies
-                init_scenario = False
-                try:
-                    init_vocabularies(sess)
-                    logging.info("Vocabulaires initialisés")
-                except Exception as e:
-                    logging.error(f"Erreur initialisation vocabulaires: {e}")
+                if os.getenv("INIT_VOCAB", "0") in ("1", "true", "True"):
+                    from app.vocabularies.init import init_vocabularies
+                    try:
+                        init_vocabularies(sess)
+                        logging.info("Vocabulaires initialisés")
+                    except Exception as e:
+                        logging.error(f"Erreur initialisation vocabulaires: {e}")
 
             # Démarrer les serveurs MLLP pour tous les endpoints configurés
-            try:
-                await mllp_manager.reload_all(sess)
-                logging.info("Serveurs MLLP démarrés")
-            except Exception as e:
-                logging.error(f"Erreur lors du démarrage des serveurs MLLP: {e}")
-                logging.warning("L'application continue sans les serveurs MLLP")
+                try:
+                    await mllp_manager.reload_all(sess)
+                    logging.info("Serveurs MLLP démarrés")
+                except Exception as e:
+                    logging.error(f"Erreur lors du démarrage des serveurs MLLP: {e}")
+                    logging.warning("L'application continue sans les serveurs MLLP")
         
         # Démarrer le scheduler pour le polling des endpoints FILE
         # Par défaut: 60 secondes (1 minute). Configurable via FILE_POLL_INTERVAL
-        poll_interval = settings.file_poll_interval
-        await start_scheduler(poll_interval)
-        logging.info(f"File endpoint polling started (interval: {poll_interval}s)")
+            poll_interval = runtime_settings.file_poll_interval
+            await start_scheduler(poll_interval)
+            logging.info(f"File endpoint polling started (interval: {poll_interval}s)")
 
-    try:
-        yield
-    finally:
-        if not testing:
-            await stop_scheduler()
-            await mllp_manager.stop_all()
+        try:
+            yield
+        finally:
+            if not testing:
+                await stop_scheduler()
+                await mllp_manager.stop_all()
+    return lifespan
 
 from app.version import get_version
 
-def create_app() -> FastAPI:
+def create_app(runtime_settings: Settings | None = None) -> FastAPI:
+    """Crée une application indépendante à partir de réglages validés."""
+    app_settings = runtime_settings or settings
     app = FastAPI(
-        title=settings.app_name,
-        version=settings.app_version,
-        lifespan=lifespan,
+        title=app_settings.app_name,
+        version=app_settings.app_version,
+        lifespan=make_lifespan(app_settings),
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
-        debug=settings.debug
+        debug=app_settings.debug
     )
+    # Une enveloppe JSON stable pour les erreurs HTTP, de validation et métier.
+    # Elle est enregistrée avant les routes afin que tous les routeurs héritent
+    # du même contrat.
+    from app.utils.error_handling import register_exception_handlers
+    register_exception_handlers(app)
 
     print("\nFastAPI app initialization")
 
@@ -235,7 +245,8 @@ def create_app() -> FastAPI:
     # Stocker dans app.state pour accès dans les routes si besoin
     app.state.templates = templates
     # Store version from settings
-    app.state.version = settings.app_version
+    app.state.version = app_settings.app_version
+    app.state.settings = app_settings
 
     # Servir les fichiers statiques (CSS/JS)
     static_dir = str(Path(__file__).parent / "static")
@@ -260,7 +271,7 @@ def create_app() -> FastAPI:
     # 5. Version middleware
     app.add_middleware(VersionMiddleware)
 
-    session_secret = settings.secret_key
+    session_secret = app_settings.secret_key
     if not session_secret or session_secret == "change-me-in-production":
         session_secret = secrets.token_urlsafe(32)
         logging.getLogger(__name__).warning(
@@ -685,7 +696,7 @@ def create_app() -> FastAPI:
     
     # 10. Debug endpoints: available only in development and tests. They create
     # durable data and must not be exposed by a normal runtime configuration.
-    if settings.debug or settings.testing:
+    if app_settings.debug or app_settings.testing:
         try:
             from app.routers import debug_events
             app.include_router(debug_events.router)

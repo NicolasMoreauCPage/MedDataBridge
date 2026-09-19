@@ -379,9 +379,7 @@
       if (!templateCards) return;
       templateCards.innerHTML = '<div class="col-span-1 text-sm text-slate-500">Chargement des templates…</div>';
       try {
-        const resp = await fetch('/api/structure/templates');
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
+        const { data } = await window.medbridgeHttp.get('/api/structure/templates');
         if (!Array.isArray(data) || data.length === 0) {
           templateCards.innerHTML = '<div class="col-span-1 text-sm text-slate-500">Aucun template disponible pour le moment.</div>';
           return;
@@ -427,9 +425,9 @@
 
     async function loadTemplatePayload(templateId) {
       try {
-        const resp = await fetch(`/api/structure/templates/${templateId}`);
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
+        const { data } = await window.medbridgeHttp.get(
+          `/api/structure/templates/${templateId}`,
+        );
         templatePayload = data.payload ? JSON.parse(data.payload) : null;
         console.log('Payload du template chargé:', templatePayload);
       } catch (err) {
@@ -897,22 +895,14 @@
         generateStructureBtn.disabled = true;
         generateStructureBtn.textContent = '⏳ Génération en cours...';
 
-        const response = await fetch('/api/structure/apply-template', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const { data: result } = await window.medbridgeHttp.post(
+          '/api/structure/apply-template',
+          {
             eg_id: egId,
             payload: templatePayload,
-            uhs: uhList
-          })
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Erreur lors de la création de la structure');
-        }
-
-        const result = await response.json();
+            uhs: uhList,
+          },
+        );
         
         notify(
           `${result.message} — ${result.created_entities.poles} pôle(s), ` +

@@ -19,7 +19,6 @@ from app.services.vocabulary_fhir_fr import (
     create_fr_encounter_discharge_circumstances,
 )
 from app.services.vocabulary_mappings import init_vocabulary_mappings
-from app.models_vocabulary import VocabularySystemType
 
 # --- Nouveaux vocabulaires de centralisation pour éliminer les doublons sémantiques ---
 def create_location_status_vocab() -> List[VocabularySystem]:

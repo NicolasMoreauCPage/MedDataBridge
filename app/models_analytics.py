@@ -3,7 +3,7 @@ Modèles pour le module Analytics (Mode Gestionnaire)
 """
 from datetime import date, datetime
 from typing import Optional
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field
 from enum import Enum
 
 

@@ -8,7 +8,7 @@ accessibles (vocabulaires, métadonnées, résultats de requêtes).
 import json
 import logging
 import os
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from config.settings import settings
 
 logger = logging.getLogger(__name__)

@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, Request, Query
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
-from sqlalchemy.orm import selectinload
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
+
 from app.db import get_session
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.dependencies.ght import require_ght_context
@@ -28,20 +31,59 @@ def _format_datetime(dt) -> str:
     if isinstance(dt, str):
         try:
             dt = datetime.fromisoformat(dt)
-        except:
+        except ValueError:
             return dt
     return dt.strftime("%d/%m/%Y %H:%M")
 
 
-def _get_patient_events(session: Session, patient_id: int) -> List[Dict[str, Any]]:
-    """Get all events for a patient"""
-    events = []
-    
-    # Get patient
+@dataclass
+class TimelineGraph:
+    """Entities used to render a timeline, loaded with bounded query counts."""
+
+    dossiers: List[Dossier]
+    venues: List[Venue]
+    mouvements: List[Mouvement]
+
+
+def _load_timeline_graph(session: Session, dossiers: List[Dossier]) -> TimelineGraph:
+    """Load venues then mouvements in bulk for a list of dossiers.
+
+    The old implementation performed one query per dossier and one query per
+    venue. A patient timeline with *D* dossiers and *V* venues therefore needed
+    ``2 + D + V`` queries before rendering. This helper uses at most two queries
+    after the dossiers have been selected.
+    """
+    dossier_ids = [dossier.id for dossier in dossiers if dossier.id is not None]
+    if not dossier_ids:
+        return TimelineGraph(dossiers=dossiers, venues=[], mouvements=[])
+
+    venues = session.exec(
+        select(Venue).where(Venue.dossier_id.in_(dossier_ids))
+    ).all()
+    venue_ids = [venue.id for venue in venues if venue.id is not None]
+    mouvements = (
+        session.exec(select(Mouvement).where(Mouvement.venue_id.in_(venue_ids))).all()
+        if venue_ids
+        else []
+    )
+    return TimelineGraph(dossiers=dossiers, venues=venues, mouvements=mouvements)
+
+
+def _load_patient_timeline_graph(session: Session, patient_id: int) -> tuple[Patient | None, TimelineGraph]:
+    """Load the patient and all timeline entities without N+1 queries."""
     patient = session.get(Patient, patient_id)
-    if not patient:
-        return events
-    
+    if patient is None:
+        return None, TimelineGraph(dossiers=[], venues=[], mouvements=[])
+    dossiers = session.exec(
+        select(Dossier).where(Dossier.patient_id == patient_id)
+    ).all()
+    return patient, _load_timeline_graph(session, dossiers)
+
+
+def _build_patient_events(patient: Patient, graph: TimelineGraph) -> List[Dict[str, Any]]:
+    """Build patient events from a preloaded timeline graph."""
+    events = []
+
     # Patient creation event
     if patient.birth_date:
         events.append({
@@ -55,10 +97,14 @@ def _get_patient_events(session: Session, patient_id: int) -> List[Dict[str, Any
             "entity_type": "patient"
         })
     
-    # Get all dossiers
-    dossiers = session.exec(select(Dossier).where(Dossier.patient_id == patient_id)).all()
-    
-    for dossier in dossiers:
+    venues_by_dossier: dict[int, list[Venue]] = defaultdict(list)
+    for venue in graph.venues:
+        venues_by_dossier[venue.dossier_id].append(venue)
+    mouvements_by_venue: dict[int, list[Mouvement]] = defaultdict(list)
+    for mouvement in graph.mouvements:
+        mouvements_by_venue[mouvement.venue_id].append(mouvement)
+
+    for dossier in graph.dossiers:
         # Admission event
         if dossier.admit_time:
             events.append({
@@ -72,10 +118,7 @@ def _get_patient_events(session: Session, patient_id: int) -> List[Dict[str, Any
                 "entity_type": "dossier"
             })
         
-        # Get venues for this dossier
-        venues = session.exec(select(Venue).where(Venue.dossier_id == dossier.id)).all()
-        
-        for venue in venues:
+        for venue in venues_by_dossier[dossier.id]:
             # Venue start
             if venue.start_time:
                 events.append({
@@ -89,10 +132,7 @@ def _get_patient_events(session: Session, patient_id: int) -> List[Dict[str, Any
                     "entity_type": "venue"
                 })
             
-            # Get mouvements for this venue
-            mouvements = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
-            
-            for mouv in mouvements:
+            for mouv in mouvements_by_venue[venue.id]:
                 if mouv.when:
                     events.append({
                         "type": "mouvement",
@@ -124,20 +164,26 @@ def _get_patient_events(session: Session, patient_id: int) -> List[Dict[str, Any
     return events
 
 
-def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any]]:
-    """Get all events for a dossier"""
+def _get_patient_events(session: Session, patient_id: int) -> List[Dict[str, Any]]:
+    """Get all events for a patient.
+
+    Kept as a small public helper for existing callers; route handlers should
+    reuse ``_load_patient_timeline_graph`` when they also render entity lists.
+    """
+    patient, graph = _load_patient_timeline_graph(session, patient_id)
+    return _build_patient_events(patient, graph) if patient else []
+
+
+def _build_dossier_events(dossier: Dossier, graph: TimelineGraph) -> List[Dict[str, Any]]:
+    """Build dossier events from a preloaded timeline graph."""
     events = []
-    
-    dossier = session.exec(select(Dossier).where(Dossier.id == dossier_id).options(selectinload(Dossier.venues))).first()
-    if not dossier:
-        return events
     
     # Admission
     if dossier.admit_time:
         # Récupérer l'UF depuis la première venue du dossier
         uf_resp = "N/A"
-        if dossier.venues and dossier.venues[0].uf_responsabilite:
-            uf_resp = dossier.venues[0].uf_responsabilite
+        if graph.venues and graph.venues[0].uf_responsabilite:
+            uf_resp = graph.venues[0].uf_responsabilite
         
         events.append({
             "type": "admission",
@@ -151,9 +197,11 @@ def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any
         })
     
     # Venues
-    venues = session.exec(select(Venue).where(Venue.dossier_id == dossier_id)).all()
-    
-    for venue in venues:
+    mouvements_by_venue: dict[int, list[Mouvement]] = defaultdict(list)
+    for mouvement in graph.mouvements:
+        mouvements_by_venue[mouvement.venue_id].append(mouvement)
+
+    for venue in graph.venues:
         if venue.start_time:
             events.append({
                 "type": "venue",
@@ -166,9 +214,7 @@ def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any
                 "entity_type": "venue"
             })
         
-        # Mouvements
-        mouvements = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
-        for mouv in mouvements:
+        for mouv in mouvements_by_venue[venue.id]:
             if mouv.when:
                 # Simplifier le titre sans movement_type_options
                 title = mouv.movement_type or mouv.trigger_event or "Mouvement"
@@ -198,6 +244,14 @@ def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any
     
     events.sort(key=lambda x: x["datetime"] if isinstance(x["datetime"], datetime) else datetime.now(), reverse=True)
     return events
+
+
+def _get_dossier_events(session: Session, dossier_id: int) -> List[Dict[str, Any]]:
+    """Get all events for a dossier."""
+    dossier = session.get(Dossier, dossier_id)
+    if dossier is None:
+        return []
+    return _build_dossier_events(dossier, _load_timeline_graph(session, [dossier]))
 
 
 def _get_venue_events(session: Session, venue_id: int) -> List[Dict[str, Any]]:
@@ -270,7 +324,7 @@ def patient_timeline(
     session: Session = Depends(get_session)
 ):
     """Timeline view for a patient"""
-    patient = session.get(Patient, patient_id)
+    patient, graph = _load_patient_timeline_graph(session, patient_id)
     if not patient:
         return get_templates_with_filters(request).TemplateResponse(
             request,
@@ -278,7 +332,7 @@ def patient_timeline(
             {"message": "Patient non trouvé"}
         )
     
-    events = _get_patient_events(session, patient_id)
+    events = _build_patient_events(patient, graph)
     
     # Format datetime for display
     for event in events:
@@ -290,17 +344,6 @@ def patient_timeline(
         {"label": "Timeline", "url": f"/timeline/patient/{patient_id}"}
     ]
     
-    # Get all dossiers, venues, mouvements for this patient
-    dossiers = session.exec(select(Dossier).where(Dossier.patient_id == patient_id)).all()
-    venues = []
-    mouvements = []
-    for dossier in dossiers:
-        ds_venues = session.exec(select(Venue).where(Venue.dossier_id == dossier.id)).all()
-        venues.extend(ds_venues)
-        for venue in ds_venues:
-            mvts = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
-            mouvements.extend(mvts)
-
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "timeline.html",
@@ -312,9 +355,9 @@ def patient_timeline(
             "entity_id": patient_id,
             "entity_name": f"{patient.family} {patient.given}",
             "patient": patient,
-            "dossiers": dossiers,
-            "venues": venues,
-            "mouvements": mouvements
+            "dossiers": graph.dossiers,
+            "venues": graph.venues,
+            "mouvements": graph.mouvements,
         }
     )
 
@@ -336,7 +379,8 @@ def dossier_timeline(
     from app.services.vocabulary_lookup import get_vocabulary_options
     movement_type_options = get_vocabulary_options("movement-nature") or []
     
-    events = _get_dossier_events(session, dossier_id)
+    graph = _load_timeline_graph(session, [dossier])
+    events = _build_dossier_events(dossier, graph)
     
     # Format datetime for display
     for event in events:
@@ -354,13 +398,6 @@ def dossier_timeline(
         {"label": "Timeline", "url": f"/timeline/dossier/{dossier_id}"}
     ])
     
-    # Récupérer venues et mouvements liés au dossier
-    venues = session.exec(select(Venue).where(Venue.dossier_id == dossier_id)).all()
-    mouvements = []
-    for venue in venues:
-        mvts = session.exec(select(Mouvement).where(Mouvement.venue_id == venue.id)).all()
-        mouvements.extend(mvts)
-
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "timeline.html",
@@ -372,8 +409,8 @@ def dossier_timeline(
             "entity_id": dossier_id,
             "entity_name": f"Dossier #{dossier.dossier_seq}",
             "dossier": dossier,
-            "venues": venues,
-            "mouvements": mouvements,
+            "venues": graph.venues,
+            "mouvements": graph.mouvements,
             "movement_type_options": movement_type_options
         }
     )

@@ -1,6 +1,5 @@
 from sqlmodel import Session
 
-import time
 import os
 import asyncio
 
@@ -103,6 +102,7 @@ from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import send_mllp
 from app.services.mfn_structure import generate_mfn_message
 from app.services.mfn_organization import generate_mfn_organization_message, generate_mfn_organization_delete
+from app.services.fhir_organization import organization_to_bundle
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,6 @@ def _get_senders(session: Session, ght_context_id=None):
 
 async def _emit_organization_upsert(entity, session: Session, ght_context_id=None) -> None:
     """Émet FHIR Organization vers les endpoints sender."""
-    import time
     from datetime import datetime
     bundle = organization_to_bundle(entity, session, method="PUT")
     fhir_senders, _ = _get_senders(session, ght_context_id=ght_context_id)
@@ -384,7 +383,6 @@ async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session:
 
 
 async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> None:
-    import time
     from datetime import datetime
     from app.services.fhir_export_service import FHIRExportService
 
@@ -486,7 +484,6 @@ async def _emit_fhir_upsert(entity, session: Session, ght_context_id=None) -> No
 
 
 async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
-    import time
     from datetime import datetime
     bundle = {
         "resourceType": "Bundle",
@@ -569,7 +566,6 @@ async def _emit_fhir_delete(entity_id: int, session: Session) -> None:
 
 
 async def _emit_mfn_snapshot(session: Session, ght_context_id=None) -> None:
-    import time
     from datetime import datetime
     mfn = generate_mfn_message(session)
     _, mllp_senders = _get_senders(session, ght_context_id=ght_context_id)

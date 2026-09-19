@@ -87,7 +87,6 @@ def get_dossiers(
     Si les deux sont fournis, EG a la priorité car il est plus spécifique.
     """
     from datetime import datetime, timedelta
-    from app.models import Venue
     from app.models_structure import Chambre, UniteHebergement, UniteFonctionnelle, Service, Pole
     
     query = select(Dossier)

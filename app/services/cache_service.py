@@ -8,6 +8,7 @@ Utilisé pour mettre en cache :
 """
 import json
 import logging
+import os
 from typing import Optional, Any, Dict, List
 from datetime import timedelta
 try:
@@ -18,6 +19,7 @@ except ModuleNotFoundError:  # Redis library not installed; degrade gracefully
     class RedisError(Exception):
         pass
 from app.utils.structured_logging import metrics
+from app.services.cache_config import redis_settings_from_environment
 
 logger = logging.getLogger(__name__)
 
@@ -283,20 +285,14 @@ def get_cache_service() -> CacheService:
     global _cache_instance
     
     if _cache_instance is None:
-        # Configuration depuis variables d'environnement
-        import os
-        
-        redis_host = os.getenv("REDIS_HOST", "localhost")
-        redis_port = int(os.getenv("REDIS_PORT", "6379"))
-        redis_db = int(os.getenv("REDIS_DB", "0"))
-        redis_password = os.getenv("REDIS_PASSWORD")
+        connection = redis_settings_from_environment()
         cache_ttl = int(os.getenv("CACHE_TTL", "3600"))
         
         _cache_instance = CacheService(
-            host=redis_host,
-            port=redis_port,
-            db=redis_db,
-            password=redis_password,
+            host=connection["host"],
+            port=connection["port"],
+            db=connection["db"],
+            password=connection["password"],
             default_ttl=cache_ttl
         )
     

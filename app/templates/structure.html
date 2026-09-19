@@ -169,8 +169,8 @@ async function loadStructureTree() {
         }
     }
     
-    const response = await fetch(url);
-    currentStructure = await response.json();
+    const { data } = await window.medbridgeHttp.get(url);
+    currentStructure = data;
     renderTree();
 }
 
@@ -212,14 +212,10 @@ async function selectNode(type, id) {
     let details = null;
     let error = null;
     try {
-        const response = await fetch(`/api/structure/${type}/${id}`);
-        if (!response.ok) {
-            error = `Erreur API (${response.status}) : ${response.statusText}`;
-        } else {
-            details = await response.json();
-        }
+        const result = await window.medbridgeHttp.get(`/api/structure/${type}/${id}`);
+        details = result.data;
     } catch (e) {
-        error = 'Impossible de charger les détails';
+        error = e.status ? `Erreur API (${e.status}) : ${e.message}` : 'Impossible de charger les détails';
     }
     // Afficher les détails ou l'erreur
     if (error) {
@@ -364,13 +360,13 @@ async function updateBedGrid() {
     const uf = document.getElementById('ufFilter').value;
     const status = document.getElementById('statusFilter').value;
     
-    const response = await fetch(`/api/structure/search/lits-disponibles?${new URLSearchParams({
-        service_type: service,
-        uf_id: uf,
-        status: status
-    })}`);
-    
-    const lits = await response.json();
+    const { data: lits } = await window.medbridgeHttp.get(
+        `/api/structure/search/lits-disponibles?${new URLSearchParams({
+            service_type: service,
+            uf_id: uf,
+            status: status,
+        })}`,
+    );
     
     bedGrid.innerHTML = lits.map(lit => `
         <div class="p-4 border rounded-lg ${getStatusClass(lit.operationalStatus)}">

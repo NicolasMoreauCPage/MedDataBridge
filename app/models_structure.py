@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 
 if TYPE_CHECKING:
+    from app.models import Venue
     from app.models_practitioners import MedecinResponsable
 else:
     # Ensure the MedecinResponsable model is imported and registered in SQLModel
@@ -902,6 +903,5 @@ class BaseLocation(SQLModel):
     activation_date: Optional[str] = None  # DT_ACTVTN
     closing_date: Optional[str] = None  # DT_FRMTR
     deactivation_date: Optional[str] = None  # DT_FN_ACTVTN
-
 
 

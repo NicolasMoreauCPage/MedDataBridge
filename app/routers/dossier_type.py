@@ -28,7 +28,7 @@ async def show_change_type_form(
         raise HTTPException(status_code=404, detail="Dossier non trouvé")
         
     options = get_vocabulary_options("dossier-type") or [
-        {"value": v, "label": l} for v, l in [
+        {"value": value, "label": label} for value, label in [
             ("hospitalise", "Hospitalisé"), ("externe", "Externe"), ("urgence", "Urgence")
         ]
     ]

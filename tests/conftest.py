@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pytest
 
 os.environ.setdefault("TESTING", "1")
@@ -296,12 +297,31 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "unit: Unit tests (fast, isolated)")
     config.addinivalue_line("markers", "integration: Integration tests (slower, test real components)")
     config.addinivalue_line("markers", "ui: UI tests (require browser/playwright)")
+    config.addinivalue_line("markers", "e2e: End-to-end tests (require full application stack)")
     config.addinivalue_line("markers", "api: API endpoint tests")
     config.addinivalue_line("markers", "security: Security-related tests")
     config.addinivalue_line("markers", "performance: Performance tests")
     config.addinivalue_line("markers", "flaky: Tests that may fail intermittently")
     config.addinivalue_line("markers", "slow: Tests that take longer than 30 seconds")
     config.addinivalue_line("markers", "critical: Critical functionality tests")
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items):
+    """Classe les tests coûteux afin que la campagne locale reste hermétique.
+
+    Les dossiers historiques ne portaient pas systématiquement leurs marqueurs.
+    La classification par emplacement rend les jobs rapides prévisibles tout en
+    conservant les suites navigateur et charge exécutables explicitement.
+    """
+    for item in items:
+        parts = Path(str(item.fspath)).parts
+        if "ui" in parts:
+            item.add_marker(pytest.mark.ui)
+        elif "e2e" in parts:
+            item.add_marker(pytest.mark.e2e)
+        elif "performance" in parts:
+            item.add_marker(pytest.mark.performance)
 
 
 @pytest.fixture(scope='function')

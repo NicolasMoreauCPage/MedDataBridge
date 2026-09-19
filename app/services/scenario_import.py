@@ -54,9 +54,17 @@ def split_embedded_messages(
     marker = re.compile(r"(?m)^MSH\|(?=\^~\\&)|^MSH\|(?=<\?xml)|^<\?xml")
     matches = list(marker.finditer(raw))
     if len(matches) <= 1:
-        only_xml = bool(matches and raw[matches[0].start():].startswith(("<?xml", "MSH|<?xml")))
+        # Un préambule libre peut précéder le marqueur XML historique
+        # ``MSH|<?xml``. Il ne fait pas partie du payload HPRIM et doit être
+        # abandonné avant de retirer le préfixe MSH erroné.
+        candidate = raw[matches[0].start():] if matches else raw
+        only_xml = candidate.startswith(("<?xml", "MSH|<?xml"))
         actual_format = "xml" if only_xml else fmt
-        cleaned = re.sub(r"^MSH\|(?=<\?xml)", "", raw) if actual_format == "xml" else raw
+        cleaned = (
+            re.sub(r"^MSH\|(?=<\?xml)", "", candidate)
+            if actual_format == "xml"
+            else raw
+        )
         return [{"payload": cleaned, "message_format": actual_format, "message_type": _message_type(cleaned, actual_format, message_type)}]
 
     messages: list[dict[str, str | None]] = []

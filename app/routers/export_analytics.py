@@ -4,8 +4,8 @@ Export de rapports analytics (Excel, PDF, CSV) pour le Mode Gestionnaire
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
-from datetime import datetime, date, timedelta
-from typing import Optional, Literal
+from datetime import datetime, timedelta
+from typing import Literal
 import io
 import csv
 
@@ -14,18 +14,18 @@ import csv
 # of their heavy dependencies.
 try:
     from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.chart import BarChart, PieChart, Reference
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.chart import BarChart, Reference
 except ModuleNotFoundError:
     Workbook = None
 
 try:
-    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER
 except ModuleNotFoundError:
     SimpleDocTemplate = None
 
@@ -41,7 +41,7 @@ router = APIRouter(prefix="/api/analytics/export", tags=["Analytics Export"])
 def get_kpi_data(session: Session, eg_id: int, period: str):
     """Récupère les données KPIs pour export, à partir des données réelles (même logique que analytics.py)."""
     lits = session.exec(_lits_query_for_eg(eg_id)).all()
-    lit_ids = {l.id for l in lits}
+    lit_ids = {lit.id for lit in lits}
     nb_lits_total = len(lit_ids)
 
     occupied_lit_ids = get_occupied_lit_ids(session)

@@ -5,8 +5,8 @@ from sqlmodel import Session, select, func
 
 from app.db import get_session
 from app.utils.flash import flash
-from app.models_structure import EntiteJuridique, EntiteGeographique, LocationStatus, LocationMode, LocationPhysicalType
-from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
+from app.models_structure import EntiteGeographique, LocationStatus, LocationMode
+from app.models_structure import Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from .helpers import get_context_or_404, get_ej_or_404, get_entite_geo_or_404, templates, resolve_physical_type
 from app.services.structure_tree import build_structure_tree_for_template
 

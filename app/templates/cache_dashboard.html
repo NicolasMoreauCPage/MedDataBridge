@@ -130,14 +130,8 @@
 
         async function fetchMetrics() {
             try {
-                const response = await fetch('/api/metrics/cache');
-
-                if (!response.ok) {
-                    showError(`Failed to fetch metrics: ${response.statusText}`);
-                    return null;
-                }
-
-                return await response.json();
+                const { data } = await window.medbridgeHttp.get('/api/metrics/cache');
+                return data;
             } catch (error) {
                 showError(`Error fetching metrics: ${error.message}`);
                 return null;

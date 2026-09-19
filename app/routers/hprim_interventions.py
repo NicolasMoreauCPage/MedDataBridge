@@ -5,7 +5,7 @@ API routers for HPRIM interventions and cotations management
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 
 from app.db_session_factory import get_session

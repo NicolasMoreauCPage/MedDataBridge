@@ -1,7 +1,6 @@
 # app/routers/interop.py
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from sqlmodel import select
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 

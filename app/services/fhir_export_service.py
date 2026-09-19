@@ -2,18 +2,22 @@
 Service d'export des données vers FHIR.
 """
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict
+from collections import defaultdict
 from sqlmodel import Session, select
-import hashlib
 import os
 
-from app.models_structure import EntiteJuridique, EntiteGeographique
-from app.utils.structured_logging import StructuredLogger, log_operation, metrics
+from app.models_structure import (
+    EntiteJuridique,
+    EntiteGeographique,
+    UFActivity,
+    UniteFonctionnelleActivityLink,
+)
+from app.utils.structured_logging import StructuredLogger, metrics
 from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteActivite, UniteHebergement, Chambre, Lit
 )
 from app.models import Mouvement, Patient, Dossier, Venue
-from app.models_contacts import PatientContact, VenueContact
 from app.utils.booleans import as_bool
 
 from app.converters.fhir_converter import (
@@ -75,6 +79,84 @@ class FHIRExportService:
         
         entries = []
 
+        # Précharge la hiérarchie complète avant de construire le Bundle. Les
+        # anciennes boucles faisaient une requête par parent (EG, pôle, UF,
+        # UH...), ce qui dégradait fortement l'export des gros établissements.
+        geographies = self.session.exec(
+            select(EntiteGeographique).where(
+                EntiteGeographique.entite_juridique_id == ej.id
+            )
+        ).all()
+        geography_ids = [geography.id for geography in geographies]
+        poles = self.session.exec(
+            select(Pole).where(Pole.entite_geo_id.in_(geography_ids))
+        ).all() if geography_ids else []
+        pole_ids = [pole.id for pole in poles]
+        services = self.session.exec(
+            select(Service).where(Service.pole_id.in_(pole_ids))
+        ).all() if pole_ids else []
+        service_ids = [service.id for service in services]
+        functional_units = self.session.exec(
+            select(UniteFonctionnelle).where(
+                UniteFonctionnelle.service_id.in_(service_ids)
+            )
+        ).all() if service_ids else []
+        functional_unit_ids = [unit.id for unit in functional_units]
+        activity_units = self.session.exec(
+            select(UniteActivite).where(
+                UniteActivite.unite_fonctionnelle_id.in_(functional_unit_ids)
+            )
+        ).all() if functional_unit_ids else []
+        accommodation_units = self.session.exec(
+            select(UniteHebergement).where(
+                UniteHebergement.unite_fonctionnelle_id.in_(functional_unit_ids)
+            )
+        ).all() if functional_unit_ids else []
+        accommodation_unit_ids = [unit.id for unit in accommodation_units]
+        rooms = self.session.exec(
+            select(Chambre).where(Chambre.unite_hebergement_id.in_(accommodation_unit_ids))
+        ).all() if accommodation_unit_ids else []
+        room_ids = [room.id for room in rooms]
+        beds = self.session.exec(
+            select(Lit).where(Lit.chambre_id.in_(room_ids))
+        ).all() if room_ids else []
+
+        # Le type d'activité de l'UF est une relation many-to-many distincte
+        # des UAC : la précharger évite également une requête lazy par UF.
+        activity_links = self.session.exec(
+            select(UniteFonctionnelleActivityLink).where(
+                UniteFonctionnelleActivityLink.uf_id.in_(functional_unit_ids)
+            )
+        ).all() if functional_unit_ids else []
+        activity_ids = [link.activity_id for link in activity_links]
+        activities = self.session.exec(
+            select(UFActivity).where(UFActivity.id.in_(activity_ids))
+        ).all() if activity_ids else []
+        activities_by_id = {activity.id: activity for activity in activities}
+
+        def group_by(items, attribute):
+            grouped = defaultdict(list)
+            for item in items:
+                grouped[getattr(item, attribute)].append(item)
+            return grouped
+
+        poles_by_geography = group_by(poles, "entite_geo_id")
+        services_by_pole = group_by(services, "pole_id")
+        functional_units_by_service = group_by(functional_units, "service_id")
+        activity_units_by_functional_unit = group_by(
+            activity_units, "unite_fonctionnelle_id"
+        )
+        accommodation_units_by_functional_unit = group_by(
+            accommodation_units, "unite_fonctionnelle_id"
+        )
+        rooms_by_accommodation_unit = group_by(rooms, "unite_hebergement_id")
+        beds_by_room = group_by(beds, "chambre_id")
+        activities_by_functional_unit = defaultdict(list)
+        for link in activity_links:
+            activity = activities_by_id.get(link.activity_id)
+            if activity:
+                activities_by_functional_unit[link.uf_id].append(activity)
+
         # Organisation (EJ) — FRCoreOrganizationEtablissementProfile (identifier FINEJ)
         ej_organization = self.structure_converter.create_organization_etablissement(
             identifier=ej.identifier or ej.finess_ej or f"EJ-{ej.id}",
@@ -88,14 +170,10 @@ class FHIRExportService:
         )
         entries.append(self.converter.create_bundle_entry(ej_organization))
         ej_ref = self.converter.create_reference("Organization", ej.finess_ej or ej.identifier or f"EJ-{ej.id}", ej.name)
-        org_ref = ej_ref  # conservé pour compat avec export_patients/export_venues
         self._organization_refs[ej.identifier or f"EJ-{ej.id}"] = ej_ref
 
         # Entités géographiques — FRCoreOrganizationEtablissementProfile (identifier FINEG)
-        for eg in self.session.exec(
-            select(EntiteGeographique)
-            .where(EntiteGeographique.entite_juridique_id == ej.id)
-        ).all():
+        for eg in geographies:
             eg_organization = self.structure_converter.create_organization_etablissement(
                 identifier=eg.identifier,
                 name=eg.name,
@@ -110,10 +188,7 @@ class FHIRExportService:
             self._organization_refs[eg.identifier] = eg_ref
 
             # Pôles — Organization générique (FRCore 2.2.0 n'a plus de profil Pôle dédié)
-            for pole in self.session.exec(
-                select(Pole)
-                .where(Pole.entite_geo_id == eg.id)
-            ).all():
+            for pole in poles_by_geography[eg.id]:
                 pole_organization = self.structure_converter.create_organization_generic(
                     identifier=pole.identifier,
                     name=pole.name,
@@ -127,10 +202,7 @@ class FHIRExportService:
                 self._organization_refs[pole.identifier] = pole_ref
 
                 # Services — Organization générique
-                for service in self.session.exec(
-                    select(Service)
-                    .where(Service.pole_id == pole.id)
-                ).all():
+                for service in services_by_pole[pole.id]:
                     service_organization = self.structure_converter.create_organization_generic(
                         identifier=service.identifier,
                         name=service.name,
@@ -144,16 +216,11 @@ class FHIRExportService:
                     self._organization_refs[service.identifier] = service_ref
 
                     # UFs — FRCoreOrganizationUFProfile
-                    for uf in self.session.exec(
-                        select(UniteFonctionnelle)
-                        .where(UniteFonctionnelle.service_id == service.id)
-                    ).all():
-                        type_activite_code = None
-                        try:
-                            if uf.activities:
-                                type_activite_code = uf.activities[0].code
-                        except Exception:
-                            type_activite_code = None
+                    for uf in functional_units_by_service[service.id]:
+                        uf_activities = activities_by_functional_unit[uf.id]
+                        type_activite_code = (
+                            uf_activities[0].code if uf_activities else None
+                        )
                         type_activite_code = type_activite_code or getattr(uf, "uf_type", None)
 
                         uf_organization = self.structure_converter.create_organization_uf(
@@ -168,10 +235,7 @@ class FHIRExportService:
                         self._organization_refs[uf.identifier] = uf_ref
 
                         # UACs — FRCoreOrganizationUACProfile (nouveau en 2.2.0, partOf UF)
-                        for uac in self.session.exec(
-                            select(UniteActivite)
-                            .where(UniteActivite.unite_fonctionnelle_id == uf.id)
-                        ).all():
+                        for uac in activity_units_by_functional_unit[uf.id]:
                             uac_organization = self.structure_converter.create_organization_uac(
                                 identifier=uac.identifier,
                                 name=uac.name,
@@ -186,10 +250,7 @@ class FHIRExportService:
                             )
 
                         # UHs — bascule vers Location (lieu physique), partOf l'Organization UF
-                        for uh in self.session.exec(
-                            select(UniteHebergement)
-                            .where(UniteHebergement.unite_fonctionnelle_id == uf.id)
-                        ).all():
+                        for uh in accommodation_units_by_functional_unit[uf.id]:
                             uh_location = self.structure_converter.create_location(
                                 identifier=uh.identifier,
                                 name=uh.name,
@@ -202,10 +263,7 @@ class FHIRExportService:
                             self._location_refs[uh.identifier] = uh_ref
 
                             # Chambres — Location, type=CHAMB + extension typeChambre
-                            for chambre in self.session.exec(
-                                select(Chambre)
-                                .where(Chambre.unite_hebergement_id == uh.id)
-                            ).all():
+                            for chambre in rooms_by_accommodation_unit[uh.id]:
                                 chambre_location = self.structure_converter.create_location(
                                     identifier=chambre.identifier,
                                     name=chambre.name,
@@ -219,10 +277,7 @@ class FHIRExportService:
                                 self._location_refs[chambre.identifier] = chambre_ref
 
                                 # Lits — Location, type=LIT + extension positionLit
-                                for lit in self.session.exec(
-                                    select(Lit)
-                                    .where(Lit.chambre_id == chambre.id)
-                                ).all():
+                                for lit in beds_by_room[chambre.id]:
                                     lit_location = self.structure_converter.create_location(
                                         identifier=lit.identifier,
                                         name=lit.name,
@@ -351,7 +406,7 @@ class FHIRExportService:
                             {"system": "phone", "value": pc.business_phone, "use": "work"} if pc.business_phone else None,
                         ] if t],
                         "address": {
-                            "line": [l for l in [pc.address_line1, pc.address_line2] if l],
+                            "line": [line for line in [pc.address_line1, pc.address_line2] if line],
                             "city": pc.address_city,
                             "postalCode": pc.address_postalcode,
                             "country": pc.address_country
@@ -498,7 +553,7 @@ class FHIRExportService:
                         {"system": "phone", "value": vc.business_phone, "use": "work"} if vc.business_phone else None,
                     ] if t]
                     address = {
-                        "line": [l for l in [vc.address_line1, vc.address_line2] if l],
+                        "line": [line for line in [vc.address_line1, vc.address_line2] if line],
                         "city": vc.address_city,
                         "postalCode": vc.address_postalcode,
                         "country": vc.address_country

@@ -172,8 +172,7 @@ let refreshInterval;
 
 async function fetchMetrics() {
     try {
-        const response = await fetch('/api/metrics/dashboard');
-        const data = await response.json();
+        const { data } = await window.medbridgeHttp.get('/api/metrics/dashboard');
         updateUI(data);
     } catch (error) {
         console.error('Erreur lors du chargement des métriques:', error);

@@ -7,7 +7,7 @@ Conformément aux spécifications HPRIM XML pour la cotation des actes médicaux
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any
 from enum import Enum
 
 

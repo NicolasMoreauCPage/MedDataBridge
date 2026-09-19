@@ -21,7 +21,7 @@ app/converters/fhir_converter.py). Voir la docstring de app.services.fhir_struct
 pour le détail du périmètre non couvert par cette mise en conformité.
 """
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response, Request
 from sqlmodel import Session, select
 from datetime import datetime
@@ -30,7 +30,7 @@ from app.db import get_session
 from app.services.fhir_structure import process_fhir_location, entity_to_fhir_location
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
-    UniteHebergement, Chambre, Lit, LocationStatus, LocationServiceType
+    UniteHebergement, Chambre, Lit
 )
 
 logger = logging.getLogger(__name__)
@@ -123,31 +123,45 @@ async def search_locations(
             )
 
             if isinstance(parent, EntiteGeographique):
-                poles = session.exec(select(Pole).where(Pole.entite_geo_id == parent.id)).all()
+                poles = session.exec(
+                    select(Pole).where(Pole.entite_geo_id == parent.id).order_by(Pole.id).limit(count)
+                ).all()
                 locations.extend(entity_to_fhir_location(p, session) for p in poles)
                 pole_ids = [p.id for p in poles]
                 if pole_ids:
-                    services = session.exec(select(Service).where(Service.pole_id.in_(pole_ids))).all()
+                    services = session.exec(
+                        select(Service).where(Service.pole_id.in_(pole_ids)).order_by(Service.id).limit(count)
+                    ).all()
                     locations.extend(entity_to_fhir_location(s, session) for s in services)
             elif isinstance(parent, Pole):
-                services = session.exec(select(Service).where(Service.pole_id == parent.id)).all()
+                services = session.exec(
+                    select(Service).where(Service.pole_id == parent.id).order_by(Service.id).limit(count)
+                ).all()
                 locations.extend(entity_to_fhir_location(s, session) for s in services)
             elif isinstance(parent, Service):
-                ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == parent.id)).all()
+                ufs = session.exec(
+                    select(UniteFonctionnelle)
+                    .where(UniteFonctionnelle.service_id == parent.id)
+                    .order_by(UniteFonctionnelle.id)
+                    .limit(count)
+                ).all()
                 locations.extend(entity_to_fhir_location(u, session) for u in ufs)
             elif isinstance(parent, UniteFonctionnelle):
                 uhs = session.exec(
-                    select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == parent.id)
+                    select(UniteHebergement)
+                    .where(UniteHebergement.unite_fonctionnelle_id == parent.id)
+                    .order_by(UniteHebergement.id)
+                    .limit(count)
                 ).all()
                 locations.extend(entity_to_fhir_location(u, session) for u in uhs)
             elif isinstance(parent, UniteHebergement):
                 chambres = session.exec(
-                    select(Chambre).where(Chambre.unite_hebergement_id == parent.id)
+                    select(Chambre).where(Chambre.unite_hebergement_id == parent.id).order_by(Chambre.id).limit(count)
                 ).all()
                 locations.extend(entity_to_fhir_location(c, session) for c in chambres)
             elif isinstance(parent, Chambre):
-                lits = session.exec(select(Lit).where(Lit.chambre_id == parent.id)).all()
-                locations.extend(entity_to_fhir_location(l, session) for l in lits)
+                lits = session.exec(select(Lit).where(Lit.chambre_id == parent.id).order_by(Lit.id).limit(count)).all()
+                locations.extend(entity_to_fhir_location(lit, session) for lit in lits)
 
             locations = locations[:count]
 
@@ -172,7 +186,7 @@ async def search_locations(
                 else:
                     stmt = select(model).where(model.identifier == identifier)
 
-                for entity in session.exec(stmt).all():
+                for entity in session.exec(stmt.order_by(model.id).limit(count)).all():
                     resource = entity_to_fhir_location(entity, session)
                     seen[(model.__name__, entity.id)] = resource
 

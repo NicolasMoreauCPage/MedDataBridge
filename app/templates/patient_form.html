@@ -557,11 +557,7 @@
       regenerateBtn.disabled = true;
       regenerateBtn.textContent = 'Chargement...';
       try {
-        const response = await fetch('/patients/sample-identity');
-        if (!response.ok) {
-          throw new Error('sample identity fetch failed');
-        }
-        const payload = await response.json();
+        const { data: payload } = await window.medbridgeHttp.get('/patients/sample-identity');
         const sample = payload.sample_data || payload;
         applyValues(sample);
         if (statusEl) {

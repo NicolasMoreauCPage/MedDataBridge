@@ -32,7 +32,7 @@ class DependentFieldsManager {
             
             if (dependentSelects.length > 0) {
                 const dependentNames = Array.from(dependentSelects).map(s => s.name).filter(n => n);
-                
+
                 if (dependentNames.length > 0) {
                     deps.set(fieldName, {
                         dependents: dependentNames
@@ -136,12 +136,7 @@ class DependentFieldsManager {
         this.showLoading(field);
 
         try {
-            const response = await fetch(endpoint);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const options = await response.json();
+            const { data: options } = await window.medbridgeHttp.get(endpoint);
             
             // Mettre à jour les options
             this.updateFieldOptions(field, options);
@@ -432,16 +427,16 @@ class FormManager {
         // Look for existing error for THIS specific field using data-for
         const selector = `.error-message[data-for="${field.name}"]`;
         const existing = container.querySelector ? container.querySelector(selector) : null;
+        const errorId = existing?.id || field.dataset.errorId || (
+            (field.id || `field-${field.name || "input"}`).replace(/[^a-zA-Z0-9_-]/g, "-") + "-error"
+        );
         if (!existing) {
             const error = document.createElement('p');
+            error.id = errorId;
             error.className = 'error-message form-error text-sm text-red-600 flex items-center gap-1 mt-1';
             error.setAttribute('data-for', field.name || '');
-            error.innerHTML = `
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                ${message}
-            `;
+            error.setAttribute('role', 'alert');
+            error.textContent = message;
             container.appendChild(error);
         } else {
             // Update existing error message
@@ -449,6 +444,11 @@ class FormManager {
             if (textNode) textNode.textContent = message;
         }
         if (field.classList) field.classList.add('border-red-500', 'ring-red-500');
+        field.setAttribute('aria-invalid', 'true');
+        field.dataset.errorId = errorId;
+        const descriptions = new Set((field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+        descriptions.add(errorId);
+        field.setAttribute('aria-describedby', Array.from(descriptions).join(' '));
     }
 
     clearFieldError(field) {
@@ -459,11 +459,21 @@ class FormManager {
             container = null;
         }
         if (!container) container = field.parentElement || document.body;
-    // Remove error for THIS specific field using data-for
-    const selector = `.error-message[data-for="${field.name}"]`;
-    const error = container && container.querySelector ? container.querySelector(selector) : null;
+        // Remove error for THIS specific field using data-for
+        const selector = `.error-message[data-for="${field.name}"]`;
+        const error = container && container.querySelector ? container.querySelector(selector) : null;
         if (error) error.remove();
         if (field.classList) field.classList.remove('border-red-500', 'ring-red-500');
+        field.removeAttribute('aria-invalid');
+        const errorId = field.dataset.errorId;
+        if (errorId) {
+            const descriptions = (field.getAttribute('aria-describedby') || '')
+                .split(/\s+/)
+                .filter((value) => value && value !== errorId);
+            if (descriptions.length) field.setAttribute('aria-describedby', descriptions.join(' '));
+            else field.removeAttribute('aria-describedby');
+            delete field.dataset.errorId;
+        }
     }
 
     async handleSubmit(event) {
@@ -529,6 +539,7 @@ class FormManager {
                 const firstError = this.form.querySelector('.form-error');
                 if (firstError) {
                     firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    this.form.querySelector('[aria-invalid="true"]')?.focus();
                 }
             }
             return;
@@ -546,21 +557,16 @@ class FormManager {
 
         try {
             const formData = new FormData(this.form);
-            console.debug('Submitting form via fetch to', this.form.action);
+            console.debug('Submitting form via shared HTTP client to', this.form.action);
             // Mark submit-start in a DOM-readable debug element for tests
             this.writeTestDebug('submit-start', { action: this.form.action, download: isDownload });
 
             if (isDownload) {
-                const response = await fetch(this.form.action, {
+                const { response, data: blob } = await window.medbridgeHttp.request(this.form.action, {
                     method: this.form.method,
-                    body: formData
+                    body: formData,
+                    responseType: 'blob',
                 });
-                if (!response.ok) {
-                    const raw = await response.text().catch(() => '');
-                    this.showToast('error', 'Échec du téléchargement');
-                    console.error('Download failed', response.status, raw);
-                    return;
-                }
                 const disposition = response.headers.get('content-disposition') || '';
                 let filename = 'download';
                 const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
@@ -568,7 +574,6 @@ class FormManager {
                     filename = decodeURIComponent(match[1] || match[2]);
                 }
                 const contentType = response.headers.get('content-type') || 'application/octet-stream';
-                const blob = await response.blob();
                 const url = window.URL.createObjectURL(new Blob([blob], { type: contentType }));
                 const a = document.createElement('a');
                 a.href = url;
@@ -580,7 +585,7 @@ class FormManager {
                 this.showToast('success', 'Téléchargement démarré');
                 return;
             } else {
-                const response = await fetch(this.form.action, {
+                const { response, data } = await window.medbridgeHttp.request(this.form.action, {
                     method: this.form.method,
                     body: formData,
                     headers: {
@@ -588,40 +593,30 @@ class FormManager {
                     }
                 });
                 
-                const contentType = response.headers.get('content-type') || '';
-                let data;
-                if (contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    const raw = await response.text();
-                    data = {
-                        ok: response.ok,
-                        message: response.ok ? 'Opération réussie' : 'Erreur lors de l\'enregistrement',
-                        rawResponse: raw
-                    };
-                }
                 console.debug('Fetch response', response.status, data);
 
-                if (response.ok) {
-                    // Use exact same success message as the one expected by the test
-                    this.showToast('success', 'Enregistrement réussi');
-                    
-                    // Delay redirect to ensure toast is visible
-                    if (data.redirect) {
-                        setTimeout(() => {
-                            window.location.href = data.redirect;
-                        }, 1000); // Longer delay for test stability
-                    }
-                } else {
-                    this.showToast('error', data.message || 'Erreur lors de l\'enregistrement');
-                    if (data.errors) {
-                        this.handleServerErrors(data.errors);
-                    }
+                // Use exact same success message as the one expected by the test
+                this.showToast('success', 'Enregistrement réussi');
+
+                // Delay redirect to ensure toast is visible
+                if (data && typeof data === 'object' && data.redirect) {
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000); // Longer delay for test stability
                 }
             }
         } catch (error) {
             console.error('Erreur de soumission:', error);
-            this.showToast('error', 'Erreur technique lors de l\'enregistrement');
+            const details = error?.data;
+            if (!isDownload && details && typeof details === 'object' && details.errors) {
+                this.handleServerErrors(details.errors);
+            }
+            this.showToast(
+                'error',
+                details?.message || details?.detail || (isDownload
+                    ? 'Échec du téléchargement'
+                    : 'Erreur technique lors de l\'enregistrement'),
+            );
         } finally {
             try { submitBtn.disabled = false; } catch(e) {}
             try { submitBtn.removeAttribute('disabled'); } catch(e) {}

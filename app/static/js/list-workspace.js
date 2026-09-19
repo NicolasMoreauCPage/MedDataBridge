@@ -120,17 +120,15 @@
         button.disabled = true;
         button.textContent = "Suppression…";
         try {
-          const response = await fetch(form.action, {
+          const { response } = await window.medbridgeHttp.request(form.action, {
             method: "POST",
             body: new FormData(form),
             headers: { "X-Requested-With": "XMLHttpRequest" },
           });
           if (response.redirected) {
             window.location.assign(response.url);
-          } else if (response.ok) {
-            window.location.reload();
           } else {
-            throw new Error("La suppression a été refusée.");
+            window.location.reload();
           }
         } catch (error) {
           notify(error.message || "Erreur réseau. Veuillez réessayer.", "error");

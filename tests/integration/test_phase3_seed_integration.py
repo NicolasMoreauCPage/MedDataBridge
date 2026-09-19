@@ -25,10 +25,10 @@ def test_validator_import():
     try:
         validator = HL7ImportValidator(mode="LENIENT")
         print('  ✓ Validateur importé avec succès en mode LENIENT')
-        return True
+        assert validator is not None
     except Exception as e:
         print(f'  ✗ Erreur lors de l\'import: {e}')
-        return False
+        pytest.fail(f"Erreur lors de l'import: {e}")
 
 
 def test_seed_imports():
@@ -47,12 +47,12 @@ def test_seed_imports():
         # Vérifier que la fonction de seed peut être importée
         from seed_hl7_scenarios import seed_hl7_scenarios, _save_corrections_report
         print('  ✓ Seed functions importées avec succès')
-        return True
+        assert seed_hl7_scenarios is not None
     except Exception as e:
         print(f'  ✗ Erreur lors de l\'import du seed: {e}')
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"Erreur lors de l'import du seed: {e}")
 
 
 @pytest.mark.xfail(
@@ -94,7 +94,7 @@ def test_validator_functionality():
         return False
 
 
-def test_corrections_report_function():
+def test_corrections_report_function(tmp_path):
     """Test 4: Vérifier que la fonction de rapport fonctionne"""
     print('\n🧪 Test 4: Fonction de rapport de corrections')
     
@@ -113,24 +113,24 @@ def test_corrections_report_function():
         ]
         
         # Appeler la fonction
-        _save_corrections_report(test_log)
+        report_path = tmp_path / 'P3_IMPORT_CORRECTIONS_REPORT.md'
+        _save_corrections_report(test_log, report_path=report_path)
         
         # Vérifier que le fichier a été créé
-        report_path = Path('/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/P3_IMPORT_CORRECTIONS_REPORT.md')
         if report_path.exists():
             print(f'  ✓ Rapport créé: {report_path}')
             content = report_path.read_text()
-            if 'Test Scenario 1' in content and 'A01' in content:
-                print(f'  ✓ Contenu du rapport correct')
-                return True
+            assert 'Test Scenario 1' in content and 'A01' in content
+            print(f'  ✓ Contenu du rapport correct')
+            return
         else:
             print(f'  ✗ Rapport non créé')
-            return False
+            pytest.fail('Le rapport de corrections n’a pas été créé')
     except Exception as e:
         print(f'  ✗ Erreur: {e}')
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f'Erreur lors de la génération du rapport: {e}')
 
 
 def main():

@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Load services on page load
   try {
     serviceSelect.disabled = true;
-    const services = await fetch('/api/location/services').then(r => r.json());
+    const { data: services } = await window.medbridgeHttp.get('/api/location/services');
     services.forEach(s => {
       const option = document.createElement('option');
       option.value = s.id;
@@ -118,7 +118,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     try {
       showLitsMessage('Chargement des UF...');
-      const ufs = await fetch(`/api/location/services/${serviceId}/ufs`).then(r => r.json());
+      const { data: ufs } = await window.medbridgeHttp.get(
+        `/api/location/services/${serviceId}/ufs`,
+      );
       ufs.forEach(uf => {
         const option = document.createElement('option');
         option.value = uf.id;
@@ -144,7 +146,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     try {
       showLitsMessage('Chargement des lits disponibles...');
-      const allLits = await fetch(`/api/location/ufs/${ufId}/available-lits`).then(r => r.json());
+      const { data: allLits } = await window.medbridgeHttp.get(
+        `/api/location/ufs/${ufId}/available-lits`,
+      );
 
       // Render lits grid
       if (allLits.length === 0) {

@@ -11,7 +11,7 @@ Routes:
     GET /api/ej/{ej_id}/structure - API pour récupérer l'arbre de structure
 """
 
-from typing import List, Optional
+from typing import Optional
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
@@ -23,7 +23,7 @@ from app.db import get_session
 from app.models_scenario_config import ScenarioEJConfig
 from app.models_structure import (
     EntiteJuridique, EntiteGeographique, Pole, Service, 
-    UniteFonctionnelle, UniteHebergement
+    UniteFonctionnelle
 )
 
 

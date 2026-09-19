@@ -1431,6 +1431,7 @@ def seed_demo_population(
     from app.models import Patient, Dossier, Venue, Mouvement, DossierType
     from app.db import get_next_sequence
     from app.models_vocabulary import VocabularySystem, VocabularyValue
+    from sqlalchemy import func
     from sqlmodel import select
 
     # Fonction helper pour récupérer une valeur aléatoire depuis un vocabulaire
@@ -1443,7 +1444,7 @@ def seed_demo_population(
             return random.choice(system.values).code
         return None
 
-    existing_count = len(session.exec(select(Patient.id)).all())
+    existing_count = session.exec(select(func.count()).select_from(Patient)).one()
     if existing_count >= target_patients:
         return {"skipped": existing_count, "target": target_patients}
 

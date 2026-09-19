@@ -11,6 +11,8 @@ Ce module gère :
 
 import unittest
 import os
+import subprocess
+import sys
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 from sqlmodel import Session, SQLModel
@@ -47,24 +49,23 @@ class TestDatabaseModule(unittest.TestCase):
 
     def test_engine_configuration_production(self):
         """Test configuration du moteur en mode production."""
-        # Simuler mode production
-        os.environ["TESTING"] = "0"
-
-        # app.db also checks sys.argv for pytest args; mask those to simulate
-        # a non-pytest production environment during this reload.
-        import sys
-        import importlib
-        import app.db
-        original_argv = sys.argv
-        sys.argv = ["app"]
-        try:
-            importlib.reload(app.db)
-            # Vérifier que le moteur utilise un fichier SQLite
-            self.assertIn("medbridge.db", str(app.db.engine.url))
-        finally:
-            sys.argv = original_argv
-            os.environ["TESTING"] = "1"
-            importlib.reload(app.db)
+        # ``settings`` est immuable dès l'import. Un sous-processus vérifie le
+        # vrai chemin de démarrage sans contaminer le moteur SQLite partagé par
+        # la suite de tests.
+        env = os.environ.copy()
+        env.update({"TESTING": "0", "DATABASE_URL": "sqlite:///./data/medbridge.db"})
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; sys.argv = ['app']; import app.db; print(app.db.engine.url)",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        self.assertIn("medbridge.db", result.stdout)
 
     def test_engine_configuration_testing(self):
         """Test configuration du moteur en mode test."""
@@ -100,10 +101,11 @@ class TestDatabaseModule(unittest.TestCase):
             # Vérifier que les tables ont été créées
             mock_create_all.assert_called_once()
 
-            # Vérifier que le mode WAL a été activé (le chemin est normalisé en absolu par init_db)
-            mock_sqlite_connect.assert_called_once_with(os.path.abspath("data/medbridge.db"))
-            mock_conn.execute.assert_any_call("PRAGMA journal_mode=WAL;")
-            mock_conn.close.assert_called_once()
+            # En mémoire, l'initialisation ne doit pas tenter de créer ou de
+            # verrouiller un fichier SQLite local.
+            mock_sqlite_connect.assert_not_called()
+            mock_conn.execute.assert_not_called()
+            mock_conn.close.assert_not_called()
 
             # Vérifier que les templates ont été initialisés
             mock_init_templates.assert_called_once_with(mock_session)
@@ -349,7 +351,7 @@ class TestDatabaseModule(unittest.TestCase):
         mock_session.deleted = []
         mock_session.in_transaction.return_value = True
 
-        with patch('app.models.Dossier', Mock):  # Mock pour éviter l'import
+        with patch('app.db.Dossier', Mock):
             _before_flush(mock_session, mock_flush_context, None)
 
             # Vérifier que dossier_seq a été assigné
@@ -372,7 +374,7 @@ class TestDatabaseModule(unittest.TestCase):
         mock_session.dirty = []
         mock_session.deleted = []
 
-        with patch('app.models.Mouvement', Mock):  # Mock pour éviter l'import
+        with patch('app.db.Mouvement', Mock):
             _before_flush(mock_session, mock_flush_context, None)
 
             # Vérifier que les champs legacy ont été mappés
@@ -393,7 +395,7 @@ class TestDatabaseModule(unittest.TestCase):
         mock_session.dirty = []
         mock_session.deleted = []
 
-        with patch('app.models.Venue', Mock):  # Mock pour éviter l'import
+        with patch('app.db.Venue', Mock):
             _before_flush(mock_session, mock_flush_context, None)
 
             # Vérifier que le champ legacy a été mappé
@@ -444,9 +446,9 @@ class TestDatabaseModule(unittest.TestCase):
         mock_mouvement_query.all.return_value = [mock_mouvement]
         mock_session.exec.side_effect = [mock_venue_query, mock_mouvement_query]
 
-        with patch('app.models.Dossier', Mock), \
-             patch('app.models.Venue', Mock), \
-             patch('app.models.Mouvement', Mock):
+        with patch('app.db.Dossier', Mock), \
+             patch('app.db.Venue', Mock), \
+             patch('app.db.Mouvement', Mock):
 
             Mock.__table__ = Mock()
             Mock.__tablename__ = 'mock'

@@ -112,29 +112,20 @@ document.addEventListener('DOMContentLoaded', function() {
             button.style.opacity = '0.6';
             
             try {
-                const response = await fetch(this.action, {
+                const { data } = await window.medbridgeHttp.request(this.action, {
                     method: 'POST',
                     body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
+
+                // Mettre à jour l'interface localement
+                updateStrictModeUI(ejId, data.strict_pam_fr);
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Mettre à jour l'interface localement
-                    updateStrictModeUI(ejId, data.strict_pam_fr);
-                    
-                    // Mettre à jour le formulaire pour le prochain toggle
-                    const hiddenInput = this.querySelector('input[name="strict_pam_fr"]');
-                    hiddenInput.value = data.strict_pam_fr ? 'false' : 'true';
-                    
-                } else {
-                    console.error('Erreur lors du toggle:', response.status);
-                    // En cas d'erreur, recharger la page
-                    window.location.reload();
-                }
+                // Mettre à jour le formulaire pour le prochain toggle
+                const hiddenInput = this.querySelector('input[name="strict_pam_fr"]');
+                hiddenInput.value = data.strict_pam_fr ? 'false' : 'true';
             } catch (error) {
                 console.error('Erreur réseau:', error);
                 // En cas d'erreur, recharger la page

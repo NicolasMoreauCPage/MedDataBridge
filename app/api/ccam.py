@@ -10,8 +10,6 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.db import get_session
-from app.models import CCAMAct, Dossier
-from app.models_practitioners import MedecinResponsable
 from app.services.ccam_service import CCAMService
 
 router = APIRouter(prefix="/api/ccam", tags=["CCAM"])

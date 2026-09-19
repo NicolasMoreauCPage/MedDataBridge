@@ -9,7 +9,7 @@ from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 
 if TYPE_CHECKING:
-    from app.models import UniteFonctionnelle, Dossier, Mouvement
+    from app.models import CCAMAct, Dossier, LPPAct, Mouvement, NGAPAct, UCDAct, UniteFonctionnelle
 
 
 class MedecinResponsable(SQLModel, table=True):

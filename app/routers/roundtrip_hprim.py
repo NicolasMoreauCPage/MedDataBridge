@@ -5,7 +5,7 @@ from decimal import Decimal
 import json
 from uuid import uuid4
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 from sqlmodel import select

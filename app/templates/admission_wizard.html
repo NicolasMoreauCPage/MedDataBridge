@@ -318,8 +318,9 @@ document.getElementById('service_id').addEventListener('change', async function(
   }
   
   try {
-    const response = await fetch(`/wizard/api/services/${serviceId}/ufs`);
-    const ufs = await response.json();
+    const { data: ufs } = await window.medbridgeHttp.get(
+      `/wizard/api/services/${serviceId}/ufs`,
+    );
     
     let ufHtml = '<option value="">-- Sélectionner une UF --</option>';
     ufs.forEach(uf => {
@@ -339,8 +340,9 @@ document.getElementById('uf_id').addEventListener('change', async function() {
   }
   
   try {
-    const response = await fetch(`/wizard/api/ufs/${ufId}/lits?status=free`);
-    const lits = await response.json();
+    const { data: lits } = await window.medbridgeHttp.get(
+      `/wizard/api/ufs/${ufId}/lits?status=free`,
+    );
     
     if (lits.length === 0) {
       document.getElementById('lit_selector').innerHTML = '<div class="col-span-3 text-red-600 text-sm py-8 text-center">❌ Aucun lit disponible dans cette UF</div>';

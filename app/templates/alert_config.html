@@ -204,10 +204,7 @@ async function loadRules() {
         
         // Note: Le backend ne supporte pas encore tous les filtres, on filtrera côté client
         
-        const response = await fetch('/api/alert-config/rules');
-        if (!response.ok) throw new Error('Erreur chargement règles');
-        
-        let rules = await response.json();
+        let { data: rules } = await window.medbridgeHttp.get('/api/alert-config/rules');
         
         // Filtrage côté client
         if (filterType) {
@@ -322,13 +319,10 @@ async function initDefaultRules() {
     if (!confirmed) return;
     
     try {
-        const response = await fetch('/api/alert-config/rules/init-defaults?eg_id=1', {
-            method: 'POST'
-        });
-        
-        if (!response.ok) throw new Error('Erreur initialisation');
-        
-        const result = await response.json();
+        const { data: result } = await window.medbridgeHttp.request(
+            '/api/alert-config/rules/init-defaults?eg_id=1',
+            { method: 'POST' },
+        );
         showAlertConfigNotification(result.message, 'success');
         loadRules();
     } catch (error) {
@@ -388,28 +382,27 @@ async function saveRule() {
     };
     
     try {
-        let response;
         if (isEdit) {
             // Mise à jour
             const params = new URLSearchParams();
             Object.entries(data).forEach(([key, value]) => {
                 if (value !== null) params.append(key, value);
             });
-            response = await fetch(`/api/alert-config/rules/${ruleId}?${params}`, {
-                method: 'PUT'
-            });
+            await window.medbridgeHttp.request(
+                `/api/alert-config/rules/${ruleId}?${params}`,
+                { method: 'PUT' },
+            );
         } else {
             // Création
             const params = new URLSearchParams();
             Object.entries(data).forEach(([key, value]) => {
                 if (value !== null) params.append(key, value);
             });
-            response = await fetch(`/api/alert-config/rules?${params}`, {
-                method: 'POST'
-            });
+            await window.medbridgeHttp.request(
+                `/api/alert-config/rules?${params}`,
+                { method: 'POST' },
+            );
         }
-        
-        if (!response.ok) throw new Error('Erreur sauvegarde');
         
         closeModal();
         showAlertConfigNotification(isEdit ? 'Règle mise à jour.' : 'Règle créée.', 'success');
@@ -423,11 +416,10 @@ async function saveRule() {
 // Activer/Désactiver règle
 async function toggleRuleActive(ruleId, newState) {
     try {
-        const response = await fetch(`/api/alert-config/rules/${ruleId}?is_active=${newState}`, {
-            method: 'PUT'
-        });
-        
-        if (!response.ok) throw new Error('Erreur mise à jour');
+        await window.medbridgeHttp.request(
+            `/api/alert-config/rules/${ruleId}?is_active=${newState}`,
+            { method: 'PUT' },
+        );
         
         showAlertConfigNotification(newState ? 'Règle activée.' : 'Règle désactivée.', 'success');
         loadRules();
@@ -452,11 +444,9 @@ async function deleteRule(ruleId) {
     if (!confirmed) return;
     
     try {
-        const response = await fetch(`/api/alert-config/rules/${ruleId}`, {
-            method: 'DELETE'
+        await window.medbridgeHttp.request(`/api/alert-config/rules/${ruleId}`, {
+            method: 'DELETE',
         });
-        
-        if (!response.ok) throw new Error('Erreur suppression');
         
         showAlertConfigNotification('Règle supprimée.', 'success');
         loadRules();

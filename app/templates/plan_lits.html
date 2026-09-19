@@ -328,9 +328,9 @@ searchInput.addEventListener('input', (e) => {
     searchResults.innerHTML = `<div class=\"text-sm text-slate-500 p-3\">🔍 Recherche en cours...</div>`;
     searchResults.classList.remove('hidden');
     try {
-      const resp = await fetch(`/mouvements/api/plan-lits/patient-search?q=${encodeURIComponent(query)}`);
-      if (!resp.ok) throw new Error('Erreur API');
-      const data = await resp.json();
+      const { data } = await window.medbridgeHttp.get(
+        `/mouvements/api/plan-lits/patient-search?q=${encodeURIComponent(query)}`,
+      );
       if (data.results && data.results.length > 0) {
         searchResults.innerHTML = data.results.map(p => `
           <div class=\"p-2 hover:bg-emerald-50 rounded cursor-pointer patient-result\" data-patient-id=\"${p.id}\" data-patient-name=\"${p.family} ${p.given || ''}\">
@@ -488,7 +488,7 @@ async function executeDragDropMutation(venueId, targetLitId, litName) {
   params.append('reason', 'Mutation via plan de lits (drag&drop)');
 
   try {
-    const response = await fetch(`/workflow/${venueId}/mouvement`, {
+    await window.medbridgeHttp.request(`/workflow/${venueId}/mouvement`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -497,25 +497,14 @@ async function executeDragDropMutation(venueId, targetLitId, litName) {
       body: params.toString(),
     });
 
-    if (!response.ok) {
-      let message = "Erreur serveur lors de la mutation.";
-      try {
-        const data = await response.json();
-        if (data.detail) {
-          message = data.detail;
-        }
-      } catch (err) {
-        // Réponse non JSON (HTML de redirection, etc.)
-      }
-      showPlanLitsNotification(message, 'error');
-      return;
-    }
-
     // Recharger le plan de lits pour refléter le nouveau placement
     window.location.reload();
   } catch (error) {
     console.error(error);
-    showPlanLitsNotification("Erreur réseau lors de la mutation.", 'error');
+    showPlanLitsNotification(
+      error.data?.detail || error.message || "Erreur réseau lors de la mutation.",
+      'error',
+    );
   }
 }
 

@@ -7,7 +7,7 @@ import logging
 
 from app.db import get_session
 from app.utils.flash import flash
-from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique, IdentifierNamespace
+from app.models_structure import EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_scenario_config import ScenarioEJConfig
 from app.models_shared import SystemEndpoint

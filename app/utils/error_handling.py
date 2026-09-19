@@ -10,6 +10,76 @@ from app.utils.structured_logging import StructuredLogger
 logger = StructuredLogger(__name__)
 
 
+def _correlation_id(request: Request) -> str | None:
+    """Retrouve l'identifiant généré par le middleware de requête."""
+    return getattr(request.state, "correlation_id", None)
+
+
+def _legacy_detail(message: str, details: Optional[Dict[str, Any]]) -> str | list[dict[str, Any]]:
+    """Préserve la forme ``detail`` attendue par les anciens clients FastAPI."""
+    validation_errors = (details or {}).get("errors")
+    if not isinstance(validation_errors, list):
+        return message
+    return [
+        {
+            "loc": str(item.get("field", "")).split(" -> "),
+            "msg": item.get("message", ""),
+            "type": item.get("type", ""),
+        }
+        for item in validation_errors
+        if isinstance(item, dict)
+    ]
+
+
+def _error_content(
+    *,
+    code: str,
+    message: str,
+    details: Optional[Dict[str, Any]] = None,
+    error_type: Optional[str] = None,
+    correlation_id: str | None = None,
+) -> dict:
+    """Enveloppe d'erreur stable pour tous les consommateurs HTTP."""
+    error = {
+        "code": code,
+        "message": message,
+        "details": details or {},
+        "correlation_id": correlation_id,
+    }
+    # ``type`` est conservé durant la transition pour les clients existants.
+    if error_type:
+        error["type"] = error_type
+    # ``detail`` est l'alias historique FastAPI. Le conserver au niveau racine
+    # permet aux écrans et intégrations plus anciens de migrer progressivement
+    # vers ``error.message`` sans casser leur traitement des erreurs.
+    return {"error": error, "detail": _legacy_detail(message, details)}
+
+
+def _error_response(
+    request: Request,
+    *,
+    status_code: int,
+    code: str,
+    message: str,
+    details: Optional[Dict[str, Any]] = None,
+    error_type: Optional[str] = None,
+) -> JSONResponse:
+    correlation_id = _correlation_id(request)
+    response = JSONResponse(
+        status_code=status_code,
+        content=_error_content(
+            code=code,
+            message=message,
+            details=details,
+            error_type=error_type,
+            correlation_id=correlation_id,
+        ),
+    )
+    if correlation_id:
+        response.headers["X-Correlation-ID"] = correlation_id
+    return response
+
+
 class MedBridgeError(Exception):
     """Classe de base pour les erreurs MedDataBridge."""
     
@@ -75,15 +145,13 @@ async def medbridge_exception_handler(
         **exc.details
     )
     
-    return JSONResponse(
+    return _error_response(
+        request,
         status_code=exc.status_code,
-        content={
-            "error": {
-                "type": type(exc).__name__,
-                "message": exc.message,
-                "details": exc.details
-            }
-        }
+        code=type(exc).__name__.replace("Error", "").upper() or "MEDBRIDGE_ERROR",
+        message=exc.message,
+        details=exc.details,
+        error_type=type(exc).__name__,
     )
 
 
@@ -99,14 +167,12 @@ async def http_exception_handler(
         method=request.method
     )
     
-    return JSONResponse(
+    return _error_response(
+        request,
         status_code=exc.status_code,
-        content={
-            "error": {
-                "type": "HTTPException",
-                "message": exc.detail
-            }
-        }
+        code=f"HTTP_{exc.status_code}",
+        message=str(exc.detail),
+        error_type="HTTPException",
     )
 
 
@@ -130,17 +196,13 @@ async def validation_exception_handler(
         errors_count=len(errors)
     )
     
-    return JSONResponse(
+    return _error_response(
+        request,
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "error": {
-                "type": "ValidationError",
-                "message": "Erreur de validation des données",
-                "details": {
-                    "errors": errors
-                }
-            }
-        }
+        code="VALIDATION_ERROR",
+        message="Erreur de validation des données",
+        details={"errors": errors},
+        error_type="ValidationError",
     )
 
 
@@ -157,14 +219,12 @@ async def generic_exception_handler(
         exc_info=True
     )
     
-    return JSONResponse(
+    return _error_response(
+        request,
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error": {
-                "type": "InternalServerError",
-                "message": "Une erreur interne s'est produite"
-            }
-        }
+        code="INTERNAL_ERROR",
+        message="Une erreur interne s'est produite",
+        error_type="InternalServerError",
     )
 
 

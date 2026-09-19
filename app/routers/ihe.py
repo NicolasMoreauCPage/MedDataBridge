@@ -90,11 +90,11 @@ async def pix_query(request: Request, session: Session = Depends(get_session)):
         # Extract message control ID from incoming message
         msg_id = now
         try:
-            msh = next((l for l in msg.split("\r") if l.startswith("MSH")), "")
+            msh = next((line for line in msg.split("\r") if line.startswith("MSH")), "")
             if msh:
                 msg_id = msh.split("|")[9]
-        except:
-            pass
+        except IndexError:
+            logger.warning("PIX query without a usable MSH-10")
             
         rsp = f"MSH|^~\\&|SERVEUR|DOMAINE|CLIENT|DOMAINE|{now}||RSP^K23^RSP_K21|{now}|P|2.5|||NE|AL|FRA|UTF-8||FR\r"
         rsp += f"MSA|AA|{msg_id}\r"
@@ -147,11 +147,11 @@ async def pdq_query(request: Request, session: Session = Depends(get_session)):
         # Extract message control ID from incoming message
         msg_id = now
         try:
-            msh = next((l for l in msg.split("\r") if l.startswith("MSH")), "")
+            msh = next((line for line in msg.split("\r") if line.startswith("MSH")), "")
             if msh:
                 msg_id = msh.split("|")[9]
-        except:
-            pass
+        except IndexError:
+            logger.warning("PDQ query without a usable MSH-10")
             
         rsp = f"MSH|^~\\&|SERVEUR|DOMAINE|CLIENT|DOMAINE|{now}||RSP^K22^RSP_K21|{now}|P|2.5|||NE|AL|FRA|UTF-8||FR\r"
         rsp += f"MSA|AA|{msg_id}\r"

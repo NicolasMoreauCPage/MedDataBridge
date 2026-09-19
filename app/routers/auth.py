@@ -190,7 +190,7 @@ async def refresh_token_endpoint(request: RefreshTokenRequest):
         )
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token invalide ou expiré"
@@ -223,7 +223,7 @@ async def logout(
             blacklist_token(jti, ttl_seconds)
         
         return {"message": "Déconnexion réussie"}
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la déconnexion"

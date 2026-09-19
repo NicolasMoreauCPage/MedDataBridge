@@ -5,6 +5,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 
 
 def _alembic_config(repository_root: Path, database_path: Path) -> Config:
@@ -36,7 +37,7 @@ def test_alembic_upgrade_head_bootstraps_a_fresh_database(tmp_path: Path):
 
     assert {"patient", "interopscenario", "qualificationcampaign", "outboundmessage", "alembic_version"} <= tables
     assert {"qualification_verdict", "assertion_total", "evidence_json"} <= run_columns
-    assert version == "b6d4e2f7a901"
+    assert version == ScriptDirectory.from_config(config).get_current_head()
 
 
 def test_alembic_keeps_incremental_upgrade_for_an_existing_database(tmp_path: Path):

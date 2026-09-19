@@ -14,4 +14,4 @@ def has_segment(message: str, segment_name: str) -> bool:
         True if segment is present, False otherwise
     """
     lines = re.split(r"\r|\n", message)
-    return any(l.startswith(segment_name) for l in lines)
+    return any(line.startswith(segment_name) for line in lines)

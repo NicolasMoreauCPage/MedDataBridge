@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Dict, Optional
 from app.models import Patient
 
@@ -137,64 +138,10 @@ def generate_patient_resource(patient: Patient, forced_identifier_system=None, f
         "birthDate": str(patient.birth_date) if patient.birth_date else None,
         "maritalStatus": {"text": patient.marital_status} if getattr(patient, "marital_status", None) else None,
     }
-    # Charger le dossier pour accès patient et encounter_class
-    dossier = venue.dossier if hasattr(venue, "dossier") else None
-    if not dossier:
-        raise ValueError("Venue must have dossier loaded")
-    
-    # Déterminer encounter_class depuis dossier
-    dossier_type_val = getattr(dossier, "dossier_type", None)
-    if hasattr(dossier_type_val, "value"):
-        dossier_type_val = dossier_type_val.value
-    
-    encounter_class_code = getattr(dossier, "encounter_class", None)
-    if not encounter_class_code:
-        map_by_type = {"hospitalise": "IMP", "externe": "AMB", "urgence": "EMER"}
-        encounter_class_code = map_by_type.get(str(dossier_type_val), "IMP")
-    
-    display_map = {
-        "IMP": "inpatient encounter",
-        "AMB": "ambulatory",
-        "EMER": "emergency"
-    }
-    
-    # Status
-    if venue.discharge_disposition:
-        status = "finished"
-    else:
-        status = "in-progress"
-    
-    # Identifiants
-    identifiers = [{
-        "system": "http://hospital.local/venue-id",
-        "value": str(venue.venue_seq)
-    }]
-    
-    encounter_res = {
-        "resourceType": "Encounter",
-        "id": f"enc-venue-{venue.id}",
-        "meta": {
-            "profile": ["http://interop-sante.fr/fhir/StructureDefinition/fr-encounter"]
-        },
-        "identifier": identifiers,
-        "status": status,
-        "class": {
-            "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-            "code": encounter_class_code,
-            "display": display_map.get(encounter_class_code, "inpatient encounter")
-        },
-        "subject": {"reference": f"Patient/pat-{dossier.patient_id}"},
-        "episodeOfCare": [{"reference": f"EpisodeOfCare/eoc-{dossier.id}"}],
-        "period": {
-            "start": venue.start_time.isoformat() if venue.start_time else None,
-            "end": None  # Sera défini lors de la sortie
-        }
-    }
-
-    
-from typing import Optional
+# Encounter generation belongs to ``fhir_encounters``. The legacy block that
+# followed the Patient return was unreachable and referenced an undefined
+# ``venue`` variable, obscuring real static-analysis failures.
 from sqlmodel import Session
-from datetime import datetime
 from app.services.fhir_encounters import generate_episode_of_care_resource, generate_encounter_resource_for_venue, generate_encounter_resource_for_mouvement
 
 

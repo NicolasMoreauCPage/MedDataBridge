@@ -41,18 +41,12 @@ document.getElementById('scenario-form').addEventListener('submit', async (event
   const feedback = document.getElementById('scenario-feedback');
   feedback.classList.add('hidden');
   try {
-    const response = await fetch('/test-scenario-generator/generate', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
+    const { data: payload } = await window.medbridgeHttp.post('/test-scenario-generator/generate', {
         scenario_type: document.getElementById('scenario-type').value,
         specialty: document.getElementById('specialty').value || null,
         patient_count: Number(document.getElementById('patient-count').value),
         error_injections: document.getElementById('inject-invalid-date').checked ? [{error_type: 'invalid_field', probability: 1}] : [],
-      }),
     });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.detail || 'La génération a échoué.');
     result.classList.remove('hidden');
     document.getElementById('scenario-name').textContent = payload.name;
     document.getElementById('scenario-description').textContent = payload.description;

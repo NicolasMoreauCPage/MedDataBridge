@@ -18,8 +18,6 @@ Notes d'implémentation
 
 from typing import Optional
 from fastapi import Request
-from sqlmodel import select
-from fastapi.responses import RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.db import session_factory

@@ -1,6 +1,6 @@
 """Roundtrip complet de la structure FR Core entre deux bases indépendantes."""
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlmodel import SQLModel, Session, select
 
 # Enregistre tous les modèles SQLModel (y compris les dépendances FK) avant
@@ -64,6 +64,115 @@ def _create_context(engine, with_hierarchy: bool) -> int:
 
         session.commit()
         return ej.id
+
+
+def _create_wide_context(engine) -> int:
+    """Crée assez de branches pour détecter une régression N+1 à l'export."""
+    ej_id = _create_context(engine, with_hierarchy=False)
+    with Session(engine) as session:
+        ej = session.get(EntiteJuridique, ej_id)
+        for geography_index in range(2):
+            geography = EntiteGeographique(
+                name=f"Site {geography_index}",
+                identifier=f"EG-BUDGET-{geography_index}",
+                finess=f"7500001{geography_index:02d}",
+                entite_juridique_id=ej.id,
+            )
+            session.add(geography)
+            session.flush()
+            for pole_index in range(2):
+                pole = Pole(
+                    name=f"Pôle {geography_index}-{pole_index}",
+                    identifier=f"POLE-BUDGET-{geography_index}-{pole_index}",
+                    entite_geo_id=geography.id,
+                )
+                session.add(pole)
+                session.flush()
+                for service_index in range(2):
+                    service = Service(
+                        name=f"Service {geography_index}-{pole_index}-{service_index}",
+                        identifier=(
+                            f"SERV-BUDGET-{geography_index}-{pole_index}-{service_index}"
+                        ),
+                        pole_id=pole.id,
+                    )
+                    session.add(service)
+                    session.flush()
+                    for unit_index in range(2):
+                        functional_unit = UniteFonctionnelle(
+                            name="UF budget",
+                            identifier=(
+                                f"UF-BUDGET-{geography_index}-{pole_index}-"
+                                f"{service_index}-{unit_index}"
+                            ),
+                            service_id=service.id,
+                        )
+                        session.add(functional_unit)
+                        session.flush()
+                        session.add(UniteActivite(
+                            name="UAC budget",
+                            identifier=(
+                                f"UAC-BUDGET-{geography_index}-{pole_index}-"
+                                f"{service_index}-{unit_index}"
+                            ),
+                            unite_fonctionnelle_id=functional_unit.id,
+                        ))
+                        accommodation_unit = UniteHebergement(
+                            name="UH budget",
+                            identifier=(
+                                f"UH-BUDGET-{geography_index}-{pole_index}-"
+                                f"{service_index}-{unit_index}"
+                            ),
+                            unite_fonctionnelle_id=functional_unit.id,
+                        )
+                        session.add(accommodation_unit)
+                        session.flush()
+                        for room_index in range(2):
+                            room = Chambre(
+                                name="Chambre budget",
+                                identifier=(
+                                    f"CH-BUDGET-{geography_index}-{pole_index}-"
+                                    f"{service_index}-{unit_index}-{room_index}"
+                                ),
+                                unite_hebergement_id=accommodation_unit.id,
+                            )
+                            session.add(room)
+                            session.flush()
+                            session.add(Lit(
+                                name="Lit budget",
+                                identifier=(
+                                    f"LIT-BUDGET-{geography_index}-{pole_index}-"
+                                    f"{service_index}-{unit_index}-{room_index}"
+                                ),
+                                chambre_id=room.id,
+                            ))
+        session.commit()
+    return ej_id
+
+
+def test_fhir_structure_export_has_constant_query_budget_for_wide_hierarchy():
+    """Le nombre de SELECT reste borné, quelle que soit la largeur de l'arbre."""
+    engine = create_engine("sqlite://")
+    ej_id = _create_wide_context(engine)
+    statements = []
+
+    def record_statement(_connection, _cursor, statement, *_args):
+        if statement.lstrip().upper().startswith("SELECT"):
+            statements.append(statement)
+
+    with Session(engine) as session:
+        ej = session.get(EntiteJuridique, ej_id)
+        event.listen(engine, "before_cursor_execute", record_statement)
+        try:
+            bundle = FHIRExportService(
+                session, "http://localhost/fhir", enable_cache=False
+            ).export_structure(ej)
+        finally:
+            event.remove(engine, "before_cursor_execute", record_statement)
+
+    # EJ + 2 EG + 4 pôles + 8 services + 16 UF/UAC/UH + 32 chambres + 32 lits.
+    assert len(bundle.entry) == 127
+    assert len(statements) <= 10
 
 
 def test_fhir_structure_roundtrip_between_independent_databases():

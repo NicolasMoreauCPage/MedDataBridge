@@ -75,25 +75,24 @@ else:
     # Configuration avancée du pool de connexions pour SQLite
     from sqlalchemy.pool import StaticPool, QueuePool
 
-    # For non-testing runs, prefer StaticPool for SQLite; during testing use QueuePool
-    pool_class = StaticPool if not testing_flag else QueuePool
-
-    # Préparer les arguments du moteur selon le type de base
+    is_sqlite = "sqlite" in settings.database_url.lower()
+    # Préparer les arguments du moteur selon le type de base. StaticPool est
+    # utile à SQLite local, mais incompatible avec les options de dimensionnement
+    # envoyées à PostgreSQL par le déploiement Compose.
     engine_kwargs = {
         "echo": settings.db_echo,
-        "poolclass": pool_class,
         "pool_pre_ping": True,  # Vérifier les connexions avant utilisation
         "pool_recycle": 3600,  # Recycler les connexions après 1 heure
     }
 
-    # Paramètres de pool seulement pour les bases non-SQLite
-    if "sqlite" not in settings.database_url.lower():
+    if not is_sqlite:
         engine_kwargs.update({
             "pool_size": settings.db_pool_size,
             "max_overflow": settings.db_max_overflow,
             "pool_timeout": settings.db_pool_timeout,
         })
     else:
+        engine_kwargs["poolclass"] = StaticPool if not testing_flag else QueuePool
         # Pour SQLite, paramètres spécifiques
         engine_kwargs["connect_args"] = {
             "check_same_thread": False,  # Permettre l'accès multi-thread pour SQLite
@@ -272,8 +271,6 @@ def _before_flush(session, flush_context, instances):
     sans faire échouer la persistance. Les attributs visés: admit_time, discharge_time,
     start_time, when, created_at, updated_at.
     """
-    from app.models import Dossier, Venue, Mouvement
-
     for obj in list(session.new) + list(session.dirty):
         # Auto-assign a dossier_seq when creating a Dossier without one.
         # Many unit tests create a Dossier without providing dossier_seq; the
@@ -281,17 +278,11 @@ def _before_flush(session, flush_context, instances):
         # commits inside before_flush we increment the Sequence object
         # manually here so the value will be flushed with the current
         # transaction.
-        try:
-            from app.models import Dossier, Sequence
-        except Exception:
-            Dossier = None
-            Sequence = None
-
-        if Dossier is not None and isinstance(obj, Dossier):
+        if isinstance(obj, Dossier):
             # Only assign if absent or falsy
             if getattr(obj, "dossier_seq", None) in (None, 0):
                 # Try to get existing Sequence row; if missing, create it.
-                seq = session.get(Sequence, "dossier") if Sequence is not None else None
+                seq = session.get(Sequence, "dossier")
                 if not seq:
                     seq = Sequence(name="dossier", value=0)
                     session.add(seq)
@@ -301,14 +292,8 @@ def _before_flush(session, flush_context, instances):
                 obj.dossier_seq = seq.value
 
         # Backwards-compat: support legacy field names used in older tests/scripts
-        try:
-            from app.models import Mouvement, Venue
-        except Exception:
-            Mouvement = None
-            Venue = None
-
         # Mouvement legacy fields: date_heure_mouvement -> when, type_mouvement -> movement_type
-        if Mouvement is not None and isinstance(obj, Mouvement):
+        if isinstance(obj, Mouvement):
             # date_heure_mouvement may be provided by older tests
             if getattr(obj, "date_heure_mouvement", None) is not None and getattr(obj, "when", None) is None:
                 try:
@@ -323,7 +308,7 @@ def _before_flush(session, flush_context, instances):
                     pass
 
         # Venue legacy 'statut' -> operational_status
-        if Venue is not None and isinstance(obj, Venue):
+        if isinstance(obj, Venue):
             if getattr(obj, "statut", None) is not None and getattr(obj, "operational_status", None) is None:
                 try:
                     obj.operational_status = getattr(obj, "statut")
@@ -354,7 +339,6 @@ def _before_flush(session, flush_context, instances):
     # ensure its Venue and Mouvement children are also deleted to respect tests' expectations.
     # We perform this here because the DB schema may not have ON DELETE CASCADE in tests
     # (in-memory schemas are created per test), so we emulate cascade to avoid FK errors.
-    from app.models import Dossier, Venue, Mouvement
     deleted = list(session.deleted)
     for obj in deleted:
         if isinstance(obj, Dossier):

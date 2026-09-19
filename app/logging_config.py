@@ -6,6 +6,11 @@ import sys
 from pathlib import Path
 
 
+def get_logger(name: str) -> logging.Logger:
+    """Return an application logger without reconfiguring global handlers."""
+    return logging.getLogger(name)
+
+
 def setup_logging(log_level: str = "INFO", log_file: str | None = None):
     """
     Configure le logging pour l'application.

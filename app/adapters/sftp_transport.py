@@ -3,7 +3,6 @@ try:
 except ModuleNotFoundError:  # Optional dependency: only needed for SFTP endpoints.
     paramiko = None
 import stat
-from pathlib import Path
 from typing import List, Optional
 import logging
 

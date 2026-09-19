@@ -3,6 +3,7 @@ Router pour diagnostiquer le système d'événements d'entités.
 """
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlmodel import Session, select
 from app.db import get_session
 from app.models import Patient
@@ -33,7 +34,8 @@ async def entity_events_status(session: Session = Depends(get_session)):
         select(MessageLog)
         .where(MessageLog.direction == "out")
         .order_by(MessageLog.id.desc())
-    ).all()[:5]
+        .limit(5)
+    ).all()
     
     return {
         "status": "ok" if patient_listeners else "no_listeners",
@@ -76,7 +78,9 @@ async def test_create_patient(session: Session = Depends(get_session)):
     import time
     
     # Count messages before
-    before_count = len(session.exec(select(MessageLog).where(MessageLog.direction == "out")).all())
+    before_count = session.exec(
+        select(func.count()).select_from(MessageLog).where(MessageLog.direction == "out")
+    ).one()
     
     # Create test patient
     patient = Patient(
@@ -95,7 +99,9 @@ async def test_create_patient(session: Session = Depends(get_session)):
     
     # Count messages after
     session.expire_all()
-    after_count = len(session.exec(select(MessageLog).where(MessageLog.direction == "out")).all())
+    after_count = session.exec(
+        select(func.count()).select_from(MessageLog).where(MessageLog.direction == "out")
+    ).one()
     new_messages = after_count - before_count
     
     return {

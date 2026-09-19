@@ -4,11 +4,10 @@ Router pour la visualisation et gestion des cotations (CCAM, NGAP, UCD, LPP)
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session, select
-from typing import Optional
+from sqlmodel import Session
 
 from app.db import get_session
-from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
+from app.models import Dossier
 
 router = APIRouter(prefix="/dossiers", tags=["cotations"])
 templates = Jinja2Templates(directory="app/templates")

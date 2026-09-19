@@ -160,8 +160,9 @@ def test_a28_a04_a03_roundtrip_and_validators(monkeypatch):
         assert 'ZBE9_INVALID' not in codes2, f'A04 must accept the national ZBE-9 value HMS, got {codes2}'
         assert 'ZBE9_INVALID' not in codes3, f'A03 must accept the national ZBE-9 value HMS, got {codes3}'
 
-        # For the scenario validator, we expect workflow errors because A28 is not an initial event
-        # and the transitions A28->A04 and A04->A03 are flagged invalid for this ordered set.
+        # A28 est une transaction d'identité, hors automate de venue. La
+        # séquence A28 → A04 → A03 est donc un parcours valable : A04 ouvre
+        # la venue et A03 la clôture.
         wf_codes = [w.code for w in scen_res.workflow_issues]
-        assert 'WORKFLOW_INVALID_INITIAL' in wf_codes, f'Expected WORKFLOW_INVALID_INITIAL in {wf_codes}'
-        assert any(c == 'WORKFLOW_INVALID_TRANSITION' for c in wf_codes), f'Expected WORKFLOW_INVALID_TRANSITION in {wf_codes}'
+        assert 'WORKFLOW_INVALID_INITIAL' not in wf_codes, wf_codes
+        assert 'WORKFLOW_INVALID_TRANSITION' not in wf_codes, wf_codes

@@ -12,5 +12,11 @@ def test_cotation_modern_nav_link(client):
 def test_cotation_modern_selector_loads_search_workflow(client):
     r = client.get("/cotation-modern/", follow_redirects=False)
     assert r.status_code == 200
-    assert "/cotation-modern/search" in r.text
-    assert "/cotation-modern/dossiers/${d.dossier_id}/cotation" in r.text
+    assert "js/cotation-selector.js" in r.text
+
+    from pathlib import Path
+
+    script = Path("app/static/js/cotation-selector.js").read_text(encoding="utf-8")
+    assert "/cotation-modern/search" in script
+    assert "window.medbridgeHttp" in script
+    assert "AbortController" in script

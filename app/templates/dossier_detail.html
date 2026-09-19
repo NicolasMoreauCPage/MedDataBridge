@@ -485,8 +485,9 @@
   async function loadCotationsCount() {
     try {
       const dossier_id = {{ dossier.id }};
-      const response = await fetch(`/api/hprim/interventions/${dossier_id}/cotations-count`);
-      const data = await response.json();
+      const { data } = await window.medbridgeHttp.get(
+        `/api/hprim/interventions/${dossier_id}/cotations-count`,
+      );
       
       if (data.has_cotations && data.cotations_count > 0) {
         const btn = document.getElementById('view-cotations-btn');

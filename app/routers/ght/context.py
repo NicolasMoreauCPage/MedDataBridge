@@ -72,7 +72,6 @@ async def set_ej_for_ght(
         current_patient_id = request.session.get("patient_id")
         if current_patient_id and not request.session.get("dossier_id"):
             # Si on a un patient mais pas de dossier, vérifier s'il a des dossiers dans la nouvelle EJ
-            from app.models import Dossier
             patient_dossiers_in_ej = session.exec(
                 select(Dossier).where(
                     Dossier.patient_id == current_patient_id,

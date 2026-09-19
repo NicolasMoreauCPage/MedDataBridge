@@ -1,0 +1,203 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+const template = readFileSync(
+  new URL("../../app/templates/structure_search.html", import.meta.url),
+  "utf8",
+);
+
+test("structure search delegates its FHIR request to the shared HTTP client", () => {
+  assert.match(template, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(template, /await fetch\(`\/fhir\/Location/);
+});
+
+test("movement dynamic updates use the shared HTTP client", () => {
+  const source = readFileSync(
+    new URL("../../app/static/js/mouvement_dynamic_updates.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /window\.medbridgeHttp\.get\(endpoint\)/);
+  assert.doesNotMatch(source, /await fetch\(endpoint\)/);
+});
+
+test("interactive structure editing uses the shared HTTP client", () => {
+  const source = readFileSync(
+    new URL("../../app/static/js/structure-interactive.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /window\.medbridgeHttp\.request\(/);
+  assert.match(source, /window\.medbridgeHttp\.post\('\/api\/structure\/move'/);
+  assert.doesNotMatch(source, /await fetch\(/);
+});
+
+test("structure dashboard delegates every API call to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/static/js/structure-new-actions.js", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\(apiUrl\)/);
+  assert.match(source, /window\.medbridgeHttp\.get\(\s*`\/api\/structure\/details/);
+  assert.match(actions, /window\.medbridgeHttp\.post\(\s*'\/api\/structure\/bulk-action'/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+  assert.doesNotMatch(actions, /\bfetch\(/);
+});
+
+test("structure dashboard inline behavior remains valid JavaScript", () => {
+  const source = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
+  const match = source.match(/<script>\s*([\s\S]*?)<\/script>/);
+
+  assert.ok(match, "Le script de comportement structure doit être présent");
+  assert.doesNotThrow(() => new Function(match[1]));
+});
+
+test("structure dashboard delegates its bulk actions to an external page asset", () => {
+  const template = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../../app/static/js/structure-new-actions.js", import.meta.url), "utf8");
+  assert.match(template, /js\/structure-new-actions\.js/);
+  assert.match(actions, /window\.medbridgeHttp\.post\(/);
+  assert.doesNotMatch(actions, /\bfetch\(/);
+});
+
+test("structure wizard delegates template APIs to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\('\/api\/structure\/templates'\)/);
+  assert.match(source, /window\.medbridgeHttp\.get\(\s*`\/api\/structure\/templates\/\$\{templateId\}/);
+  assert.match(source, /window\.medbridgeHttp\.post\(\s*'\/api\/structure\/apply-template'/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("analytics and metrics dashboards delegate their reads to the shared HTTP client", () => {
+  const analytics = readFileSync(new URL("../../app/templates/analytics_dashboard.html", import.meta.url), "utf8");
+  const metrics = readFileSync(new URL("../../app/templates/metrics_dashboard.html", import.meta.url), "utf8");
+  assert.match(analytics, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(analytics, /\bfetch\(/);
+  assert.match(metrics, /window\.medbridgeHttp\.get\('\/api\/metrics\/dashboard'\)/);
+  assert.doesNotMatch(metrics, /\bfetch\(/);
+});
+
+test("admission, patient sample and validation-rule interactions use the shared HTTP client", () => {
+  const admission = readFileSync(new URL("../../app/templates/admission_wizard.html", import.meta.url), "utf8");
+  const patient = readFileSync(new URL("../../app/templates/patient_form.html", import.meta.url), "utf8");
+  const rules = readFileSync(new URL("../../app/templates/validation_rules.html", import.meta.url), "utf8");
+  assert.match(admission, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(admission, /\bfetch\(/);
+  assert.match(patient, /window\.medbridgeHttp\.get\('\/patients\/sample-identity'\)/);
+  assert.doesNotMatch(patient, /\bfetch\('\/patients\/sample-identity'/);
+  assert.match(rules, /window\.medbridgeHttp\.post\('\/api\/validation-rules', parsed\)/);
+  assert.match(rules, /window\.medbridgeHttp\.get\('\/api\/validation-rules'\)/);
+  assert.doesNotMatch(rules, /\bfetch\(/);
+});
+
+test("structure import uses the shared HTTP client while preserving multipart payloads", () => {
+  const source = readFileSync(new URL("../../app/templates/structure_import.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.request\('\/api\/structure\/import\/confirm'/);
+  assert.match(source, /body: formData/);
+  assert.doesNotMatch(source, /\bfetch\('\/api\/structure\/import\/confirm'/);
+});
+
+test("alert configuration delegates reads and mutations to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/alert_config.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\('\/api\/alert-config\/rules'\)/);
+  assert.match(source, /window\.medbridgeHttp\.request\(/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("GHT dashboard delegates supervision reads to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/ght_dashboard.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\('\/api\/endpoints'\)/);
+  assert.match(source, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("bed plan delegates patient search and movement mutation to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/plan_lits.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\(/);
+  assert.match(source, /window\.medbridgeHttp\.request\(`\/workflow\/\$\{venueId\}\/mouvement`/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("dossier type change uses the shared HTTP client for regular and forced changes", () => {
+  const source = readFileSync(new URL("../../app/templates/dossier_type_change.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.request\(/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("location cartography delegates hierarchy reads to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/components/location_cartography.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("isolated dossier, scenario and contact actions use the shared HTTP client", () => {
+  for (const relativePath of [
+    "../../app/templates/dossier_detail.html",
+    "../../app/templates/test_scenario_generator.html",
+    "../../app/templates/scenarios/ej_config_list.html",
+    "../../app/templates/contacts_list.html",
+  ]) {
+    const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
+    assert.match(source, /window\.medbridgeHttp\.(get|post|request)\(/);
+    assert.doesNotMatch(source, /\bfetch\(/);
+  }
+});
+
+test("scenario import and conformity toggle use the shared HTTP client", () => {
+  for (const relativePath of [
+    "../../app/templates/scenario_import.html",
+    "../../app/templates/conformity_home.html",
+  ]) {
+    const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
+    assert.match(source, /window\.medbridgeHttp\.request\(/);
+    assert.doesNotMatch(source, /\bfetch\(/);
+  }
+});
+
+test("rapid cotation workflow delegates searches and mutations to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/cotations/saisie_rapide.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\(/);
+  assert.match(source, /window\.medbridgeHttp\.post\(/);
+  assert.match(source, /window\.medbridgeHttp\.request\(/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("generic form submissions delegate to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/static/js/forms.js", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.request\(this\.form\.action/);
+  assert.doesNotMatch(source, /await fetch\(this\.form\.action/);
+});
+
+test("frontend lint rejects direct await fetch outside the shared client", () => {
+  const source = readFileSync(new URL("../../scripts/lint_frontend.mjs", import.meta.url), "utf8");
+  assert.match(source, /await\\s\+\(\?:window\\\.\)\?fetch/);
+  assert.match(source, /app\/static\/js\/http\.js/);
+});
+
+test("legacy structure view delegates all API calls to the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/structure.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("patient AJAX deletion uses the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/static/js/patients.js", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.request\(form\.action/);
+  assert.doesNotMatch(source, /\bfetch\(form\.action/);
+});
+
+test("scenario template workspace uses the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/static/js/scenario-template-workspace.js", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.post\(/);
+  assert.match(source, /window\.medbridgeHttp\.request\(/);
+  assert.doesNotMatch(source, /\bfetch\(/);
+});
+
+test("movement workflow location autocomplete uses the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/mouvement_workflow.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(source, /await fetch\(`\/api\/mouvements\/location-search/);
+});
+
+test("cache dashboard uses the shared HTTP client", () => {
+  const source = readFileSync(new URL("../../app/templates/cache_dashboard.html", import.meta.url), "utf8");
+  assert.match(source, /window\.medbridgeHttp\.get\('\/api\/metrics\/cache'\)/);
+  assert.doesNotMatch(source, /await fetch\('\/api\/metrics\/cache'\)/);
+});

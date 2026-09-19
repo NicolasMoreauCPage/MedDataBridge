@@ -1020,8 +1020,9 @@ function toggleModificateur(mod) {
 
 async function searchCCAM(query) {
     try {
-        const response = await fetch(`/cotations/api/search/ccam?query=${encodeURIComponent(query)}&limit=10`);
-        const suggestions = await response.json();
+        const { data: suggestions } = await window.medbridgeHttp.get(
+            `/cotations/api/search/ccam?query=${encodeURIComponent(query)}&limit=10`,
+        );
         
         const suggestionsDiv = document.getElementById('ccam-suggestions');
         if (suggestions.length > 0) {
@@ -1051,8 +1052,9 @@ async function searchCCAM(query) {
 
 async function searchNGAP(query) {
     try {
-        const response = await fetch(`/cotations/api/search/ngap?query=${encodeURIComponent(query)}&limit=10`);
-        const suggestions = await response.json();
+        const { data: suggestions } = await window.medbridgeHttp.get(
+            `/cotations/api/search/ngap?query=${encodeURIComponent(query)}&limit=10`,
+        );
 
         const suggestionsDiv = document.getElementById('ngap-suggestions');
         if (suggestions.length > 0) {
@@ -1111,8 +1113,9 @@ function updateNgapMontantFromTarifBase() {
 
 async function searchUCD(query) {
     try {
-        const response = await fetch(`/cotations/api/search/ucd?query=${encodeURIComponent(query)}&limit=10`);
-        const suggestions = await response.json();
+        const { data: suggestions } = await window.medbridgeHttp.get(
+            `/cotations/api/search/ucd?query=${encodeURIComponent(query)}&limit=10`,
+        );
 
         const suggestionsDiv = document.getElementById('ucd-suggestions');
         if (suggestions.length > 0) {
@@ -1159,8 +1162,9 @@ function selectUCD(code_ucd, libelle, dosage, forme, prix) {
 
 async function searchLPP(query) {
     try {
-        const response = await fetch(`/cotations/api/search/lpp?query=${encodeURIComponent(query)}&limit=10`);
-        const suggestions = await response.json();
+        const { data: suggestions } = await window.medbridgeHttp.get(
+            `/cotations/api/search/lpp?query=${encodeURIComponent(query)}&limit=10`,
+        );
 
         const suggestionsDiv = document.getElementById('lpp-suggestions');
         if (suggestions.length > 0) {
@@ -1252,8 +1256,7 @@ function showTemplates() {
 }
 async function useTemplate(templateId) {
     try {
-        const response = await fetch('/cotations/api/templates');
-        const templates = await response.json();
+        const { data: templates } = await window.medbridgeHttp.get('/cotations/api/templates');
         
         // Trouver le template dans tous les types
         let template = null;
@@ -1346,17 +1349,8 @@ document.getElementById('ccam-form')?.addEventListener('submit', async function(
     };
     
     try {
-        const response = await fetch('/cotations/api/ccam', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(formData)
-        });
-        
-        if (response.ok) {
-            finishSaved('ccam', 'Acte CCAM enregistré avec succès !');
-        } else {
-            throw new Error('Erreur lors de l\'enregistrement');
-        }
+        await window.medbridgeHttp.post('/cotations/api/ccam', formData);
+        finishSaved('ccam', 'Acte CCAM enregistré avec succès !');
     } catch (error) {
         showNotification('Erreur: ' + error.message, 'error');
     }
@@ -1377,19 +1371,8 @@ document.getElementById('ngap-form')?.addEventListener('submit', async function(
     };
 
     try {
-        const response = await fetch('/cotations/api/ngap', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(formData)
-        });
-
-        if (response.ok) {
-            finishSaved('ngap', 'Acte NGAP enregistré avec succès !');
-        } else {
-            const data = await response.json().catch(() => null);
-            const msg = data?.detail || "Erreur lors de l'enregistrement";
-            throw new Error(msg);
-        }
+        await window.medbridgeHttp.post('/cotations/api/ngap', formData);
+        finishSaved('ngap', 'Acte NGAP enregistré avec succès !');
     } catch (error) {
         showNotification('Erreur: ' + error.message, 'error');
     }
@@ -1411,19 +1394,8 @@ document.getElementById('ucd-form')?.addEventListener('submit', async function(e
     };
 
     try {
-        const response = await fetch('/cotations/api/ucd', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(formData)
-        });
-
-        if (response.ok) {
-            finishSaved('ucd', 'Acte UCD enregistré avec succès !');
-        } else {
-            const data = await response.json().catch(() => null);
-            const msg = data?.detail || "Erreur lors de l'enregistrement";
-            throw new Error(msg);
-        }
+        await window.medbridgeHttp.post('/cotations/api/ucd', formData);
+        finishSaved('ucd', 'Acte UCD enregistré avec succès !');
     } catch (error) {
         showNotification('Erreur: ' + error.message, 'error');
     }
@@ -1444,19 +1416,8 @@ document.getElementById('lpp-form')?.addEventListener('submit', async function(e
     };
 
     try {
-        const response = await fetch('/cotations/api/lpp', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(formData)
-        });
-
-        if (response.ok) {
-            finishSaved('lpp', 'Acte LPP enregistré avec succès !');
-        } else {
-            const data = await response.json().catch(() => null);
-            const msg = data?.detail || "Erreur lors de l'enregistrement";
-            throw new Error(msg);
-        }
+        await window.medbridgeHttp.post('/cotations/api/lpp', formData);
+        finishSaved('lpp', 'Acte LPP enregistré avec succès !');
     } catch (error) {
         showNotification('Erreur: ' + error.message, 'error');
     }
@@ -1577,13 +1538,8 @@ async function runBulkAction(action, label, actes = selectedActePayload()) {
     if (!confirmed) return;
 
     try {
-        const response = await fetch('/cotations/api/bulk', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, actes }),
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok || !result.success) {
+        const { data: result } = await window.medbridgeHttp.post('/cotations/api/bulk', { action, actes });
+        if (!result.success) {
             throw new Error(result.detail || 'Action impossible');
         }
         showNotification(result.message || `${actes.length} acte(s) mis à jour`, 'success');
@@ -1597,9 +1553,9 @@ let editingActe = null;
 
 async function editActe(type, id) {
     try {
-        const response = await fetch(`/cotations/api/${encodeURIComponent(type)}/${id}`);
-        const acte = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(acte.detail || 'Impossible de charger cet acte');
+        const { data: acte } = await window.medbridgeHttp.get(
+            `/cotations/api/${encodeURIComponent(type)}/${id}`,
+        );
         editingActe = acte;
         document.getElementById('edit-cotation-title').textContent = `Acte ${acte.type.toUpperCase()} #${acte.id}`;
         document.getElementById('edit-cotation-date').value = acte.execute_date ? acte.execute_date.slice(0, 16) : '';
@@ -1633,13 +1589,12 @@ document.getElementById('edit-cotation-form')?.addEventListener('submit', async 
         commentaire: document.getElementById('edit-cotation-comment').value || null,
     };
     try {
-        const response = await fetch(`/cotations/api/${editingActe.type}/${editingActe.id}`, {
+        const { data: result } = await window.medbridgeHttp.request(`/cotations/api/${editingActe.type}/${editingActe.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok || !result.success) throw new Error(result.detail || 'Modification impossible');
+        if (!result.success) throw new Error(result.detail || 'Modification impossible');
         closeEditActe();
         showNotification('Acte modifié avec succès.', 'success');
         window.setTimeout(() => window.location.reload(), 350);

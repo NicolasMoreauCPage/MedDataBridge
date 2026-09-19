@@ -77,7 +77,7 @@ def parse_pv1(message: str) -> dict:
     
     try:
         lines = re.split(r"\r|\n", message)
-        pv1 = next((l for l in lines if l.startswith("PV1")), None)
+        pv1 = next((line for line in lines if line.startswith("PV1")), None)
         if not pv1:
             return out
         

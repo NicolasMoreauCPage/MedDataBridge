@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Script de test des configurations temporelles automatiques pour tous les scénarios."""
 
-import requests
 import json
 import time
+
+import pytest
+import requests
+
+
+pytestmark = pytest.mark.external
 
 BASE_URL = "http://localhost:8000"
 
@@ -18,7 +23,10 @@ def test_scenario_timing_detection():
             print(f"--- Scénario {scenario_id} ---")
             
             # Suggérer la configuration
-            response = requests.post(f"{BASE_URL}/scenarios/{scenario_id}/suggest-realistic-timing")
+            response = requests.post(
+                f"{BASE_URL}/scenarios/{scenario_id}/suggest-realistic-timing",
+                timeout=5,
+            )
             
             if response.status_code == 200:
                 data = response.json()
@@ -55,7 +63,10 @@ def apply_realistic_timing_to_scenario(scenario_id: int):
     try:
         print(f"Application de configuration réaliste au scénario {scenario_id}...")
         
-        response = requests.post(f"{BASE_URL}/scenarios/{scenario_id}/apply-realistic-timing")
+        response = requests.post(
+            f"{BASE_URL}/scenarios/{scenario_id}/apply-realistic-timing",
+            timeout=5,
+        )
         
         if response.status_code == 200:
             data = response.json()

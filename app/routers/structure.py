@@ -33,6 +33,8 @@ LIT_OPERATIONAL_STATUS_OPTIONS = [
     "occupied",
     "maintenance",
 ]
+DEFAULT_API_PAGE_SIZE = 100
+MAX_API_PAGE_SIZE = 250
 
 # Route principale pour les pages web
 
@@ -75,33 +77,18 @@ redirect_router = APIRouter(
 
 @api_router.get("/tree")
 async def get_structure_tree(
+    request: Request,
     session: Session = Depends(get_session),
     ej: Optional[int] = Query(None, description="ID de l'établissement juridique à filtrer"),
     eg_ids: Optional[str] = Query(None, description="Liste d'IDs d'entités géographiques séparés par des virgules")
 ):
-    # Apply scheduled status updates
-    changed = False
-    for model in (Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit):
-        entities = session.exec(select(model)).all()
-        if apply_scheduled_status(entities):
-            changed = True
-    if changed:
-        session.commit()
-    
     # Strict EJ filtering: if EJ context is present, only return EGs for that EJ
     query = select(EntiteGeographique)
     ej_context = ej
-    # Try to get EJ from session if not provided
-    if not ej_context:
-        # Get request from middleware context
-        import inspect
-        request = None
-        for frame in inspect.stack():
-            if "request" in frame.frame.f_locals:
-                request = frame.frame.f_locals["request"]
-                break
-        if request:
-            ej_context = request.session.get("ej_context_id")
+    # La requête est injectée par FastAPI : ne pas parcourir la pile d'appel
+    # pour retrouver implicitement un contexte de session.
+    if ej_context is None:
+        ej_context = request.session.get("ej_context_id")
     eg_id_list = None
     if eg_ids:
         eg_id_list = [int(id_str) for id_str in eg_ids.split(',')]
@@ -121,6 +108,21 @@ async def get_structure_tree(
     # If EJ context is present and no EGs match, Renvoie []
     if (ej_context is not None or eg_id_list) and not egs:
         return []
+    # Les relations nécessaires sont déjà préchargées par ``selectinload``.
+    # Mettre à jour les seuls éléments rendus évite six scans complets de la
+    # base (un par type) pour une consultation filtrée de l'arbre.
+    poles = [pole for eg in egs for pole in eg.poles]
+    services = [service for pole in poles for service in pole.services]
+    ufs = [uf for service in services for uf in service.unites_fonctionnelles]
+    uhs = [uh for uf in ufs for uh in uf.unites_hebergement]
+    chambres = [chambre for uh in uhs for chambre in uh.chambres]
+    lits = [lit for chambre in chambres for lit in chambre.lits]
+    changed = False
+    for entities in (poles, services, ufs, uhs, chambres, lits):
+        if apply_scheduled_status(entities):
+            changed = True
+    if changed:
+        session.commit()
     # Helper pour status effectif
     def get_effective_status_value(entity):
         status_value = getattr(entity, "status", None)
@@ -784,10 +786,15 @@ async def list_entites_geographiques(
 @router.get("/api/eg", response_model=List[EntiteGeographique])
 async def list_entites_geographiques_api(
     session: Session = Depends(get_session),
-    skip: int = 0,
-    limit: int = 100
+    skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
+    limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
-    return session.exec(select(EntiteGeographique).offset(skip).limit(limit)).all()
+    return session.exec(
+        select(EntiteGeographique)
+        .order_by(EntiteGeographique.name, EntiteGeographique.id)
+        .offset(skip)
+        .limit(limit)
+    ).all()
 
 @router.post("/eg", response_model=EntiteGeographique)
 async def create_entite_geographique(
@@ -923,12 +930,14 @@ async def list_poles(
 @router.get("/api/poles", response_model=List[Pole])
 async def list_poles_api(
     session: Session = Depends(get_session),
-    eg_id: Optional[int] = None
+    eg_id: Optional[int] = None,
+    skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
+    limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
     query = select(Pole)
     if eg_id:
         query = query.where(Pole.entite_geo_id == eg_id)
-    poles = session.exec(query).all()
+    poles = session.exec(query.order_by(Pole.name, Pole.id).offset(skip).limit(limit)).all()
     if apply_scheduled_status(poles):
         session.commit()
     return poles
@@ -1132,14 +1141,16 @@ async def list_services(
 async def list_services_api(
     session: Session = Depends(get_session),
     pole_id: Optional[int] = None,
-    service_type: Optional[LocationServiceType] = None
+    service_type: Optional[LocationServiceType] = None,
+    skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
+    limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
     query = select(Service)
     if pole_id:
         query = query.where(Service.pole_id == pole_id)
     if service_type:
         query = query.where(Service.service_type == service_type)
-    services = session.exec(query).all()
+    services = session.exec(query.order_by(Service.name, Service.id).offset(skip).limit(limit)).all()
     if apply_scheduled_status(services):
         session.commit()
     return services
@@ -1367,11 +1378,13 @@ async def list_unites_fonctionnelles(
 async def list_unites_fonctionnelles_api(
     session: Session = Depends(get_session),
     service_id: Optional[int] = None,
+    skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
+    limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
     query = select(UniteFonctionnelle)
     if service_id:
         query = query.where(UniteFonctionnelle.service_id == service_id)
-    ufs = session.exec(query).all()
+    ufs = session.exec(query.order_by(UniteFonctionnelle.name, UniteFonctionnelle.id).offset(skip).limit(limit)).all()
     if apply_scheduled_status(ufs):
         session.commit()
     return ufs
@@ -1581,11 +1594,13 @@ async def list_unites_hebergement(
 async def list_unites_hebergement_api(
     session: Session = Depends(get_session),
     uf_id: Optional[int] = None,
+    skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
+    limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
     query = select(UniteHebergement)
     if uf_id:
         query = query.where(UniteHebergement.unite_fonctionnelle_id == uf_id)
-    uhs = session.exec(query).all()
+    uhs = session.exec(query.order_by(UniteHebergement.name, UniteHebergement.id).offset(skip).limit(limit)).all()
     if apply_scheduled_status(uhs):
         session.commit()
     return uhs
@@ -1938,14 +1953,16 @@ async def delete_chambre(
 async def list_chambres_api(
     session: Session = Depends(get_session),
     uh_id: Optional[int] = None,
-    status: Optional[LocationStatus] = None
+    status: Optional[LocationStatus] = None,
+    skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
+    limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
     query = select(Chambre)
     if uh_id:
         query = query.where(Chambre.unite_hebergement_id == uh_id)
     if status:
         query = query.where(Chambre.status == status)
-    chambres = session.exec(query).all()
+    chambres = session.exec(query.order_by(Chambre.name, Chambre.id).offset(skip).limit(limit)).all()
     if apply_scheduled_status(chambres):
         session.commit()
     return chambres
@@ -2103,14 +2120,16 @@ async def list_lits(
 async def list_lits_api(
     session: Session = Depends(get_session),
     chambre_id: Optional[int] = None,
-    status: Optional[LocationStatus] = None
+    status: Optional[LocationStatus] = None,
+    skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
+    limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
     query = select(Lit)
     if chambre_id:
         query = query.where(Lit.chambre_id == chambre_id)
     if status:
         query = query.where(Lit.status == status)
-    lits = session.exec(query).all()
+    lits = session.exec(query.order_by(Lit.name, Lit.id).offset(skip).limit(limit)).all()
     if apply_scheduled_status(lits):
         session.commit()
     return lits

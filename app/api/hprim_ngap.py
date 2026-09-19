@@ -10,18 +10,15 @@ import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlmodel import select
 
 from app.db import get_session
 from app.models.hprim_models import HprimNGAPAct as StoredHprimNGAPAct, HprimMessage as StoredHprimMessage
-from app.hprim_models import (
-    HprimActeNGAP, HprimPatient, HprimProfessionnel,
-    HprimMessage, HprimMessageType, HprimAction, HprimContexteDossier
-)
-from app.services.hprim import HprimService, HprimValidationError
+from app.hprim_models import HprimPatient, HprimProfessionnel, HprimAction
+from app.services.hprim import HprimValidationError
 from app.api.hprim_ccam import (
     PatientInfo, MedecinInfo, VenueInfo, ReceptionRequest,
     hprim_service
@@ -646,18 +643,19 @@ async def historique_actes_ngap(patient_id: str, limit: int = 50, offset: int = 
     statement = (
         select(StoredHprimNGAPAct)
         .where(StoredHprimNGAPAct.patient_id == patient_id)
-        .where(StoredHprimNGAPAct.deleted == False)
+        .where(StoredHprimNGAPAct.deleted.is_(False))
         .order_by(StoredHprimNGAPAct.execute_date.desc())
         .offset(safe_offset)
         .limit(safe_limit)
     )
     total_statement = (
-        select(StoredHprimNGAPAct)
+        select(func.count())
+        .select_from(StoredHprimNGAPAct)
         .where(StoredHprimNGAPAct.patient_id == patient_id)
-        .where(StoredHprimNGAPAct.deleted == False)
+        .where(StoredHprimNGAPAct.deleted.is_(False))
     )
     acts = list(db.exec(statement).all())
-    total = len(db.exec(total_statement).all())
+    total = db.exec(total_statement).one()
     return {
         "patient_id": patient_id,
         "actes": [_make_ngap_response(item).model_dump(mode="json") for item in acts],

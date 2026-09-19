@@ -362,16 +362,10 @@ async function confirmImport() {
     formData.append('mode', mode);
     
     // Appeler l'endpoint de confirmation
-    const response = await fetch('/api/structure/import/confirm', {
+    const { data: result } = await window.medbridgeHttp.request('/api/structure/import/confirm', {
       method: 'POST',
       body: formData
     });
-    
-    const result = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(result.detail || 'Erreur lors de l\'import');
-    }
     
     if (result.success) {
       // Succès

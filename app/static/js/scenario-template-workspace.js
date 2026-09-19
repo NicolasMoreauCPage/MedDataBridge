@@ -13,14 +13,6 @@
     return element;
   }
 
-  async function responseData(response) {
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.detail || data.message || `Erreur HTTP ${response.status}`);
-    }
-    return data;
-  }
-
   function setBusy(button, busy, label) {
     if (!button) return;
     button.disabled = busy;
@@ -127,11 +119,10 @@
     };
     setBusy(button, true, "📦 Créer un scénario depuis le modèle");
     try {
-      const data = await responseData(await fetch(`/scenarios/templates/${encodeURIComponent(workspace.dataset.templateKey)}/materialize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }));
+      const { data } = await window.medbridgeHttp.post(
+        `/scenarios/templates/${encodeURIComponent(workspace.dataset.templateKey)}/materialize`,
+        payload,
+      );
       renderMaterialization(workspace, data);
       notify("Scénario matérialisé.", "success");
     } catch (error) {
@@ -158,10 +149,10 @@
     }
     setBusy(button, true, "▶️ Exécuter le template");
     try {
-      const data = await responseData(await fetch(`/scenarios/templates/${encodeURIComponent(workspace.dataset.templateKey)}/play`, {
+      const { data } = await window.medbridgeHttp.request(`/scenarios/templates/${encodeURIComponent(workspace.dataset.templateKey)}/play`, {
         method: "POST",
         body: new FormData(form),
-      }));
+      });
       renderPlay(workspace, data);
       notify(dryRun ? "Prévisualisation terminée." : "Exécution terminée.", "success");
     } catch (error) {

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from sqlalchemy import func
 from sqlmodel import Session, select
 from app.db import get_session
 from app.models_structure import EntiteGeographique
@@ -33,7 +34,7 @@ async def structure_search_interface(
     """
     
     # Récupérer quelques stats pour l'interface
-    eg_count = len(session.exec(select(EntiteGeographique)).all())
+    eg_count = session.exec(select(func.count()).select_from(EntiteGeographique)).one()
     
     return templates.TemplateResponse(
         request,

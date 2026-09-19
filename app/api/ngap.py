@@ -3,15 +3,11 @@
 API endpoints pour la gestion des actes NGAP
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime
-from pydantic import BaseModel
+from typing import List
 
 from app.db import get_session
-from app.models import NGAPAct, Dossier
-from app.models_practitioners import MedecinResponsable
 
 from app.services.ngap_service import NGAPService, NGAPActCreate, NGAPActResponse
 

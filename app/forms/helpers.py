@@ -1,7 +1,7 @@
 """
 Helpers pour les formulaires avec vocabulaires
 """
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from sqlmodel import Session, select
 from app.models_vocabulary import VocabularySystem, VocabularyValue
 

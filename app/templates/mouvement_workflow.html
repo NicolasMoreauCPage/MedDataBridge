@@ -503,9 +503,10 @@
 
     async function fetchSuggestions(term) {
       try {
-        const resp = await fetch(`/api/mouvements/location-search?q=${encodeURIComponent(term)}&limit=10`);
-        if (!resp.ok) return [];
-        return await resp.json();
+        const { data } = await window.medbridgeHttp.get(
+          `/api/mouvements/location-search?q=${encodeURIComponent(term)}&limit=10`
+        );
+        return data;
       } catch (e) {
         console.warn('Autocomplete fetch failed', e);
         return [];

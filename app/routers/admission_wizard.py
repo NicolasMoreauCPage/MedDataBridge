@@ -9,12 +9,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select
 
 from app.db import get_session, get_next_sequence
-from app.models import Patient, Dossier, Venue, Mouvement, DossierType
+from app.models import Dossier, Venue, Mouvement, DossierType
 from app.models_structure import Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema
 from app.utils.dossier_helpers import sync_dossier_class
-from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Sexe du formulaire wizard (M/F/O/U) -> valeur administrative Patient.gender
 _GENDER_MAP = {"M": "male", "F": "female", "O": "other", "U": "unknown"}

@@ -9,7 +9,6 @@ from app.routers.endpoints import router as endpoints_router
 from app.routers.transport import router as transport_router
 from app.routers.transport_views import router as transport_views_router
 from app.routers.fhir_inbox import router as fhir_inbox_router
-from app.routers.messages import router as messages_router
 from app.routers.patients import router as patients_router
 from app.routers.dossiers import router as dossiers_router
 from app.routers.venues import router as venues_router
@@ -30,4 +29,3 @@ from app.routers.ihe import router as ihe_router
 from app.routers.docs import router as docs_router
 from app.routers.dossier_type import router as dossier_type_router
 # from app.routers.contracts import router as contracts_router  # Module does not exist
-

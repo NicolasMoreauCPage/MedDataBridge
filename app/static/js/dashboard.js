@@ -32,9 +32,8 @@
   }
 
   async function fetchJSON(url){
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('HTTP '+r.status+' '+url);
-    return r.json();
+    const { data } = await window.medbridgeHttp.get(url);
+    return data;
   }
 
   async function loadHealth(){
@@ -155,8 +154,7 @@
     });
     if (!confirmed) return;
     try {
-      const response = await fetch('/api/metrics/operations', {method:'DELETE'});
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      await window.medbridgeHttp.request('/api/metrics/operations', {method:'DELETE'});
       window.toastSystem?.show?.('Les métriques ont été réinitialisées.', 'success');
       await refreshAll();
     } catch (error) {

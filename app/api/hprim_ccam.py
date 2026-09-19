@@ -13,15 +13,13 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlmodel import select
 
 from app.db import get_session
 from app.models.hprim_models import HprimCCAMAct as StoredHprimCCAMAct, HprimMessage as StoredHprimMessage
-from app.hprim_models import (
-    HprimActeCCAM, HprimPatient, HprimProfessionnel,
-    HprimMessage, HprimMessageType, HprimAction
-)
+from app.hprim_models import HprimPatient, HprimProfessionnel, HprimAction
 from app.services.hprim import HprimService, HprimValidationError
 
 logger = logging.getLogger(__name__)
@@ -743,18 +741,19 @@ async def historique_actes_patient(
         statement = (
             select(StoredHprimCCAMAct)
             .where(StoredHprimCCAMAct.patient_id == patient_id)
-            .where(StoredHprimCCAMAct.deleted == False)
+            .where(StoredHprimCCAMAct.deleted.is_(False))
             .order_by(StoredHprimCCAMAct.date_execution.desc())
             .offset(safe_offset)
             .limit(safe_limit)
         )
         total_statement = (
-            select(StoredHprimCCAMAct)
+            select(func.count())
+            .select_from(StoredHprimCCAMAct)
             .where(StoredHprimCCAMAct.patient_id == patient_id)
-            .where(StoredHprimCCAMAct.deleted == False)
+            .where(StoredHprimCCAMAct.deleted.is_(False))
         )
         paginated = list(db.exec(statement).all())
-        total = len(db.exec(total_statement).all())
+        total = db.exec(total_statement).one()
 
         return {
             "patient_id": patient_id,

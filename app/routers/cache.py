@@ -3,7 +3,7 @@ API de gestion du cache Redis.
 """
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
-from app.services.cache_service import get_cache_service, invalidate_cache
+from app.services.cache_service import get_cache_service
 from app.auth import require_role
 
 router = APIRouter(prefix="/cache", tags=["cache"])

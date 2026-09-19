@@ -5,6 +5,8 @@ Ce module expose:
 - Liste des messages par EJ avec détail validation
 - Vue de comparaison messages
 """
+import json
+
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select, and_
@@ -20,6 +22,17 @@ from app.dependencies.ght import require_ght_context
 
 def get_templates(request: Request):
     return request.app.state.templates
+
+
+def _validation_issues(raw_issues: str | None) -> list[dict]:
+    """Lit les issues JSON historiques sans masquer les erreurs applicatives."""
+    if not raw_issues:
+        return []
+    try:
+        parsed = json.loads(raw_issues)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    return parsed if isinstance(parsed, list) else []
 
 
 router = APIRouter(
@@ -57,18 +70,14 @@ def conformity_home(request: Request, session: Session = Depends(get_session)):
         total = len(messages)
         if total > 0:
             # Calculer taux de validité rapide
-            import json
             valid = 0
             for msg in messages:
                 is_valid = True
                 if msg.pam_validation_issues:
-                    try:
-                        issues = json.loads(msg.pam_validation_issues)
-                        has_error = any(i.get("severity") == "error" for i in issues)
-                        if has_error:
-                            is_valid = False
-                    except:
-                        pass
+                    issues = _validation_issues(msg.pam_validation_issues)
+                    has_error = any(issue.get("severity") == "error" for issue in issues)
+                    if has_error:
+                        is_valid = False
                 if is_valid:
                     valid += 1
             rate = round((valid / total) * 100, 1) if total > 0 else 0
@@ -167,17 +176,15 @@ async def ej_messages(ej_id: int, request: Request, session: Session = Depends(g
         warn_count = 0
         
         if msg.pam_validation_issues:
-            try:
-                issues = json.loads(msg.pam_validation_issues)
-                for issue in issues:
-                    severity = issue.get("severity", "info")
-                    if severity == "error":
-                        error_count += 1
-                        is_valid = False
-                    elif severity == "warn":
-                        warn_count += 1
-            except:
-                pass
+            for issue in _validation_issues(msg.pam_validation_issues):
+                if not isinstance(issue, dict):
+                    continue
+                severity = issue.get("severity", "info")
+                if severity == "error":
+                    error_count += 1
+                    is_valid = False
+                elif severity == "warn":
+                    warn_count += 1
         
         message_list.append({
             "log": msg,
@@ -205,13 +212,7 @@ def message_detail(ej_id: int, message_id: int, request: Request, session: Sessi
         }, status_code=404)
     
     # Parser issues
-    import json
-    issues = []
-    if msg.pam_validation_issues:
-        try:
-            issues = json.loads(msg.pam_validation_issues)
-        except:
-            pass
+    issues = _validation_issues(msg.pam_validation_issues)
     
     # Classifier par sévérité
     errors = [i for i in issues if i.get("severity") == "error"]

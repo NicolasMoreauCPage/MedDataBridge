@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _segment_lines(message: str, seg_id: str) -> List[str]:
     lines = re.split(r"\r|\n", message)
-    return [l for l in lines if l.startswith(seg_id)]
+    return [line for line in lines if line.startswith(seg_id)]
 
 
 def parse_zfd(message: str) -> Optional[dict]:

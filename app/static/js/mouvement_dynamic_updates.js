@@ -57,12 +57,7 @@
    */
   async function fetchOptions(endpoint) {
     try {
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        console.error(`Erreur API: ${response.status} ${response.statusText}`);
-        return [];
-      }
-      const data = await response.json();
+      const { data } = await window.medbridgeHttp.get(endpoint);
       if (data.success) {
         return data.options || [];
       } else {
@@ -153,4 +148,3 @@
     initDynamicUpdates();
   }
 })();
-

@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.textContent = 'Suppression...';
         
         try {
-            const response = await fetch(deleteForm.action, {
+            const { response } = await window.medbridgeHttp.request(deleteForm.action, {
                 method: 'POST',
                 body: new FormData(deleteForm),
                 headers: {

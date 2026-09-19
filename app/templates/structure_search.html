@@ -479,14 +479,11 @@ class AdvancedStructureSearch {
 
       console.log('FHIR search params:', params.toString());
 
-      // Appel API FHIR
-      const response = await fetch(`/fhir/Location?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      const bundle = await response.json();
+      // Appel API FHIR : le client commun gère délai, annulation et enveloppe
+      // d'erreur MedData Bridge de manière identique aux autres espaces.
+      const { data: bundle } = await window.medbridgeHttp.get(
+        `/fhir/Location?${params.toString()}`
+      );
       
       // Traitement des résultats
       this.currentResults = bundle.entry || [];

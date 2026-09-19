@@ -6,7 +6,7 @@ including support for multi-valued fields (names, addresses, phones) per HL7v2.5
 
 from datetime import datetime
 import re
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ def parse_pid(message: str) -> dict:
     
     try:
         lines = re.split(r"\r|\n", message)
-        pid = next((l for l in lines if l.startswith("PID")), None)
+        pid = next((line for line in lines if line.startswith("PID")), None)
         if not pid:
             return out
             
@@ -280,7 +280,7 @@ def parse_pd1(message: str) -> dict:
     out = {"primary_care_provider": None, "religion": None, "language": None}
     try:
         lines = re.split(r"\r|\n", message)
-        pd1 = next((l for l in lines if l.startswith("PD1")), None)
+        pd1 = next((line for line in lines if line.startswith("PD1")), None)
         if not pd1:
             return out
         parts = pd1.split("|")

@@ -64,12 +64,13 @@ def get_scenario_name_from_path(file_path: str) -> str:
     return f"IHE PAM - {name}"
 
 
-def _save_corrections_report(corrections_log: list) -> None:
+def _save_corrections_report(corrections_log: list, report_path: Path | None = None) -> None:
     """Sauvegarde un rapport détaillé des corrections appliquées"""
     if not corrections_log:
         return
     
-    report_path = Path('/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/P3_IMPORT_CORRECTIONS_REPORT.md')
+    report_path = report_path or Path('P3_IMPORT_CORRECTIONS_REPORT.md')
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(report_path, 'w') as f:
         f.write('# Phase 3 - Rapport des Corrections à l\'Import\n\n')

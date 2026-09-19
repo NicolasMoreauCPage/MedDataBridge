@@ -1,7 +1,7 @@
 """
 API REST pour la gestion des actes LPP (Liste des Produits et Prestations).
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlmodel import Session
 from typing import List
 from app.db import get_session

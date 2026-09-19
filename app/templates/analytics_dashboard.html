@@ -275,11 +275,9 @@ function showLoadingState() {
 // Charger les KPIs
 async function loadKPIs() {
   try {
-    const response = await fetch(`/api/analytics/kpis?eg_id=${currentEgId}&period=${currentPeriod}`);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const data = await response.json();
+    const { data } = await window.medbridgeHttp.get(
+      `/api/analytics/kpis?eg_id=${currentEgId}&period=${currentPeriod}`,
+    );
 
     // Taux d'occupation
     document.getElementById('occupation-value').textContent = `${data.occupation_rate}%`;
@@ -335,8 +333,9 @@ function updateTrend(elementId, value) {
 // Charger capacité par service
 async function loadCapacityByService() {
   try {
-    const response = await fetch(`/api/analytics/capacity-by-service?eg_id=${currentEgId}`);
-    const data = await response.json();
+    const { data } = await window.medbridgeHttp.get(
+      `/api/analytics/capacity-by-service?eg_id=${currentEgId}`,
+    );
     
     // Détruire ancien chart si existe
     if (charts.capacityByService) {
@@ -424,8 +423,9 @@ async function loadCapacityByService() {
 // Charger répartition par UM
 async function loadCapacityByUM() {
   try {
-    const response = await fetch(`/api/analytics/capacity-by-um?eg_id=${currentEgId}`);
-    const data = await response.json();
+    const { data } = await window.medbridgeHttp.get(
+      `/api/analytics/capacity-by-um?eg_id=${currentEgId}`,
+    );
     
     // Détruire ancien chart si existe
     if (charts.umDistribution) {
@@ -503,8 +503,7 @@ async function loadAlerts(severity = '') {
     let url = `/api/analytics/alerts?eg_id=${currentEgId}`;
     if (severity) url += `&severity=${severity}`;
     
-    const response = await fetch(url);
-    const alerts = await response.json();
+    const { data: alerts } = await window.medbridgeHttp.get(url);
     
     const alertsList = document.getElementById('alertsList');
     

@@ -138,18 +138,11 @@ class StructureEditor {
         input.disabled = true;
         
         try {
-            const response = await fetch(`/api/structure/${itemType}/${itemId}`, {
+            await window.medbridgeHttp.request(`/api/structure/${itemType}/${itemId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [field]: newValue })
             });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Erreur de sauvegarde');
-            }
-            
-            const data = await response.json();
             
             // Succès - Restaurer l'élément avec nouvelle valeur
             originalElement.textContent = newValue;
@@ -285,24 +278,13 @@ class StructureEditor {
         item.innerHTML = `<span class="text-gray-400">⏳ Déplacement...</span>`;
         
         try {
-            const response = await fetch('/api/structure/move', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    item_type: itemType,
-                    item_id: itemId,
-                    target_type: newParentType,
-                    target_id: newParentId,
-                    position: evt.newIndex
-                })
+            await window.medbridgeHttp.post('/api/structure/move', {
+                item_type: itemType,
+                item_id: itemId,
+                target_type: newParentType,
+                target_id: newParentId,
+                position: evt.newIndex
             });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Erreur de déplacement');
-            }
-            
-            const data = await response.json();
             
             // Restaurer HTML
             item.innerHTML = originalHTML;
@@ -393,22 +375,11 @@ class StructureEditor {
         if (!newCode) return;
         
         try {
-            const response = await fetch('/api/structure/duplicate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    entity_type: itemType,
-                    entity_id: parseInt(itemId),
-                    new_code: newCode
-                })
+            await window.medbridgeHttp.post('/api/structure/duplicate', {
+                entity_type: itemType,
+                entity_id: parseInt(itemId),
+                new_code: newCode
             });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail);
-            }
-            
-            const data = await response.json();
             this.showNotification('✓ Duplicaté avec succès', 'success');
             
             setTimeout(() => location.reload(), 1000);

@@ -16,6 +16,7 @@ mais ne décrivent pas nécessairement l'état courant.
 | API FHIR `Location` | [API_FHIR_STRUCTURE.md](API_FHIR_STRUCTURE.md) | API IHM historique, pas le contrat partenaire FR Core |
 | Outbox persistante | [OUTBOX.md](OUTBOX.md) | Référence d'exploitation |
 | Tests et CI | [TESTS_STATUS.md](TESTS_STATUS.md) | Commandes et périmètre de preuve |
+| Améliorations produit en cours | [audit hors sécurité](reports/AUDIT_AMELIORATIONS_RESTANTES_HORS_SECURITE_20260914.md) | État des lots livrés et dette restante |
 | Guide utilisateur | [user_guide.md](user_guide.md) | Parcours IHM et procédures d'exploitation |
 | Scénarios multi-protocoles | [plan back/front](reports/PLAN_SCENARIOS_MULTI_PROTOCOLES_20260912.md) | Évolutions nécessaires pour un jeu cohérent et multi-endpoints |
 | Qualification scénarios PAM/HPRIM | [plan de reprise de l'ancien outil](reports/PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md) | Catalogue, statuts par cible, rejeu, assertions et campagnes |

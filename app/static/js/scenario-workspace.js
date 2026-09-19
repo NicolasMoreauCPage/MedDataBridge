@@ -10,13 +10,10 @@
     const scenarioId = workspace.dataset.scenarioId;
     if (!scenarioId) return;
     try {
-      const suggestionResponse = await fetch(`/scenarios/${scenarioId}/suggest-realistic-timing`, {
+      const { data: suggestion } = await window.medbridgeHttp.request(`/scenarios/${scenarioId}/suggest-realistic-timing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      if (!suggestionResponse.ok) throw new Error(`Erreur ${suggestionResponse.status}`);
-
-      const suggestion = await suggestionResponse.json();
       const analysis = suggestion.analysis || {};
       const config = suggestion.suggested_config || {};
       const confirmed = await window.PameliaUi.confirm({
@@ -33,12 +30,10 @@
       });
       if (!confirmed) return;
 
-      const applyResponse = await fetch(`/scenarios/${scenarioId}/apply-realistic-timing`, {
+      const { data: result } = await window.medbridgeHttp.request(`/scenarios/${scenarioId}/apply-realistic-timing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      if (!applyResponse.ok) throw new Error(`Erreur ${applyResponse.status}`);
-      const result = await applyResponse.json();
       notify(result.message || "Timing réaliste appliqué.", "success");
       window.setTimeout(() => window.location.reload(), 900);
     } catch (error) {
@@ -60,7 +55,7 @@
       sendButton.disabled = true;
       sendButton.textContent = "Envoi en cours…";
       try {
-        const response = await fetch(form.action, {
+        const { response } = await window.medbridgeHttp.request(form.action, {
           method: "POST",
           body: new FormData(form),
           headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -68,10 +63,6 @@
         if (response.redirected) {
           window.location.assign(response.url);
           return;
-        }
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.detail || `Erreur HTTP ${response.status}`);
         }
         notify("Scénario envoyé avec succès.", "success");
         window.setTimeout(() => window.location.reload(), 900);

@@ -15,12 +15,9 @@ Conforme IHE PAM France:
 """
 
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
-from sqlmodel import Field, Relationship, SQLModel
-
-if TYPE_CHECKING:
-    from app.models_structure import EntiteJuridique, UniteFonctionnelle
+from sqlmodel import Field, SQLModel
 
 
 class ScenarioEJConfig(SQLModel, table=True):

@@ -46,7 +46,6 @@ def _normalize_loc_type(raw: str) -> str:
         "unite fonctionnelle": "UF",
         "unité fonctionnelle": "UF",
         "unite d'hebergement": "UH",
-        "unite d\'hebergement": "UH",
         "unité d'hébergement": "UH",
         "unite d hebergement": "UH",
         "chambre": "R",
@@ -65,9 +64,7 @@ def _normalize_loc_type(raw: str) -> str:
         "l it\f": "B",
         "l it\v": "B",
         "l it\0": "B",
-        "l it\x00": "B",
         "lit\x00": "B",
-        "etbl_grpq": "ETBL_GRPQ",
         "etbl_grpq^^^^": "ETBL_GRPQ",
     }
 
@@ -1041,13 +1038,9 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
         'Pôle': 'PL',
         'Service': 'D',
         'Unite Fonctionnelle': 'UF',
-        'Unite Fonctionnelle': 'UF',
-        'Unite Hebergement': 'UH',
         'Unite Hebergement': 'UH',
         'Chambre': 'R',
         'Lit': 'B',
-        'Unite Fonctionnelle': 'UF',
-        'Unite Fonctionnelle': 'UF',
     }
 
     def _canonical_label(label: str) -> str:

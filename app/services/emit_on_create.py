@@ -11,11 +11,11 @@ from sqlmodel import Session, select
 from sqlalchemy.exc import InterfaceError, OperationalError
 
 from app.models import Patient, Dossier, Venue, Mouvement
-from app.models_endpoints import SystemEndpoint, MessageLog, FHIRConfig
+from app.models_endpoints import SystemEndpoint, MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
-from app.services.fhir import generate_fhir_bundle_for_dossier
-from app.services.fhir_resources import generate_fhir_bundle_for_entity
+from app.services.fhir_emission import build_fhir_targets, generate_fhir, queue_fhir_retry
+from app.services.outbox_service import enqueue_message
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
@@ -23,7 +23,6 @@ from app.services.pam_validation import validate_pam
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
 from app.utils.booleans import as_bool
-import json
 
 
 # Helper pour retry des requêtes SQLite en cas d'erreur de concurrence
@@ -51,7 +50,6 @@ def _run_async(coro):
         loop = asyncio.get_event_loop()
         if loop.is_running():
             # We're already in an async context, create a new loop in a thread
-            import concurrent.futures
             import threading
             result = [None]
             exception = [None]
@@ -436,6 +434,26 @@ def generate_pam_hl7(
             xpn.pop()
         return "^".join(xpn)
 
+    def _build_patient_name(family_val, given_val, middle_val, suffix_val, prefix_val, birth_family_val):
+        """Construit PID-5 sans dupliquer un nom légal identique au nom courant."""
+        birth_family_val = _c_local(birth_family_val) or None
+        is_legal_name = bool(birth_family_val and birth_family_val == family_val)
+        current_type = "L" if is_legal_name else "D" if birth_family_val else None
+        names = []
+        if family_val or given_val or middle_val or prefix_val or suffix_val:
+            names.append(
+                _build_xpn(
+                    family_val, given_val, middle_val, suffix_val, prefix_val, current_type
+                )
+            )
+        if birth_family_val and not is_legal_name:
+            names.append(
+                _build_xpn(
+                    birth_family_val, given_val, middle_val, suffix_val, prefix_val, "L"
+                )
+            )
+        return "~".join(names)
+
     # Patient HL7 PAM branch
     if entity_type == "patient":
         # Determine event type
@@ -484,19 +502,10 @@ def generate_pam_hl7(
         middle = _c_local(_get("middle", None))
         suffix = _c_local(_get("suffix", None)) or None
         prefix = _c_local(_get("prefix", None)) or None
-        names = []
         birth_family = _c_local(_get("birth_family", None)) or None
-        # PID-5: the current name is a usual name (D); the birth name, when
-        # distinct, is carried by its own XPN repetition with type L.  Marking
-        # the current name as L would make an inbound parser overwrite the
-        # actual birth name during a round trip.
-        first_type = "D" if birth_family else None
-        if family or given or middle or prefix or suffix:
-            names.append(_build_xpn(family, given, middle, suffix, prefix, first_type))
-        if birth_family:
-            # mark birth/legal name with type 'L' and preserve prefix/suffix when available
-            names.append(_build_xpn(birth_family, given, middle, suffix, prefix, "L"))
-        name = "~".join(names)
+        name = _build_patient_name(
+            family, given, middle, suffix, prefix, birth_family
+        )
 
         # Birth date
         birth_date_raw = _c_local(_get("birth_date", ""))
@@ -735,18 +744,14 @@ def generate_pam_hl7(
         evn = f"EVN|{event_type}|{admit_time}"
 
         # PID-5 keeps the current and birth names in separate XPN repetitions.
-        birth_family = getattr(patient, 'birth_family', None) if patient else None
-        first_type = "D" if birth_family else None
-        name_field = _build_xpn(family, given, getattr(patient, 'middle', None) if patient else None, getattr(patient, 'suffix', None) if patient else None, getattr(patient, 'prefix', None) if patient else None, first_type)
-        if birth_family:
-            name_field += "~" + _build_xpn(
-                birth_family,
-                given,
-                getattr(patient, 'middle', None) if patient else None,
-                getattr(patient, 'suffix', None) if patient else None,
-                getattr(patient, 'prefix', None) if patient else None,
-                "L",
-            )
+        name_field = _build_patient_name(
+            family,
+            given,
+            getattr(patient, "middle", None) if patient else None,
+            getattr(patient, "suffix", None) if patient else None,
+            getattr(patient, "prefix", None) if patient else None,
+            getattr(patient, "birth_family", None) if patient else None,
+        )
 
         pid_fields = [
             "PID", "1", "", pid3, "", _c_local(name_field), "", birth_date, gender
@@ -1027,25 +1032,14 @@ def generate_pam_hl7(
                 account_number = f"{fallback_value}^^^{fallback_auth}^{fallback_type}"
             
             # Build complete PID segment with PID-18 (Patient Account Number) using indexed fields
-            birth_family = getattr(patient, 'birth_family', None)
-            first_type = "D" if birth_family else None
-            name_field = _build_xpn(
+            name_field = _build_patient_name(
                 family,
                 given,
-                getattr(patient, 'middle', None),
-                getattr(patient, 'suffix', None),
-                getattr(patient, 'prefix', None),
-                first_type,
+                getattr(patient, "middle", None),
+                getattr(patient, "suffix", None),
+                getattr(patient, "prefix", None),
+                getattr(patient, "birth_family", None),
             )
-            if birth_family:
-                name_field += "~" + _build_xpn(
-                    birth_family,
-                    given,
-                    getattr(patient, 'middle', None),
-                    getattr(patient, 'suffix', None),
-                    getattr(patient, 'prefix', None),
-                    "L",
-                )
             pid_fields = [""] * 40
             pid_fields[0] = "PID"
             pid_fields[1] = "1"
@@ -1285,61 +1279,6 @@ def generate_pam_hl7(
     return ""
 
 
-def generate_fhir(
-    entity,
-    entity_type: Literal["patient", "dossier", "venue", "mouvement"],
-    session: Session,
-    forced_identifier_system: str | None = None,
-    forced_identifier_oid: str | None = None,
-):
-    logger.info(f"generate_fhir called with args: {locals()}")
-    """Build a FHIR Bundle for the entity using the new architecture.
-    
-    Architecture:
-    - Patient → Patient resource
-    - Dossier → EpisodeOfCare resource
-    - Venue → Encounter resource
-    - Mouvement → Encounter resource (nested in venue Encounter)
-    """
-    # Use new FHIR resource generator
-    return generate_fhir_bundle_for_entity(entity, entity_type, session)
-
-
-
-def _build_fhir_targets(endpoint: SystemEndpoint) -> Sequence[Tuple[str, str, str | None]]:
-    logger.debug(f"_build_fhir_targets called with endpoint={endpoint}")
-    """Return (base_url, auth_kind, auth_token) tuples for an endpoint."""
-    targets: list[Tuple[str, str, str | None]] = []
-
-    # Prioritise explicit FHIR configs
-    for cfg in getattr(endpoint, "fhir_configs", []) or []:
-        if not isinstance(cfg, FHIRConfig):
-            continue
-        if not cfg.is_enabled or not cfg.base_url:
-            continue
-        targets.append((cfg.base_url, cfg.auth_kind or "none", cfg.auth_token))
-
-    if targets:
-        return targets
-
-    host = (endpoint.host or "").strip()
-    if not host:
-        return targets
-
-    if host.startswith(("http://", "https://")):
-        base_url = host
-        if endpoint.port and ":" not in host.split("//", 1)[1]:
-            base_url = f"{host}:{endpoint.port}"
-    else:
-        scheme = "https" if str(endpoint.port) in {"443", "8443"} else "http"
-        base_url = f"{scheme}://{host}"
-        if endpoint.port:
-            base_url = f"{base_url}:{endpoint.port}"
-
-    targets.append((base_url, "none", None))
-    return targets
-
-
 def emit_to_senders_async(
     entity,
     entity_type: Literal["patient", "dossier", "venue", "mouvement", "ccam_act", "ngap_act", "ucd_act", "lpp_act"],
@@ -1451,7 +1390,9 @@ def emit_to_senders_async(
                 except Exception:
                     control_id = None
                 correlation_id = control_id or correlation_id
-                max_retry = 3
+                # Le chemin de création ne fait qu'une tentative : les reprises
+                # réseau relèvent de l'outbox persistante et de son backoff.
+                max_retry = 1
                 retry = 0
                 while retry < max_retry:
                     status = "generated"
@@ -1559,6 +1500,7 @@ def emit_to_senders_async(
                                 os.replace(tmpf, fname)
                         except Exception:
                             logger.exception('Failed to dump outbound MLLP HL7 to /tmp')
+                        message_log = existing_log
                     else:
                         # Ensure payload is never None (DB NOT NULL constraint)
                         if payload_str is None:
@@ -1592,6 +1534,18 @@ def emit_to_senders_async(
                                 os.replace(tmpf, fname)
                         except Exception:
                             logger.exception('Failed to dump outbound MLLP HL7 to /tmp')
+                        message_log = log
+                    if status == "error":
+                        enqueue_message(
+                            session,
+                            endpoint_id=endpoint.id,
+                            protocol="MLLP",
+                            payload=payload_str,
+                            message_type="HL7",
+                            correlation_id=correlation_id,
+                            source_message_log_id=message_log.id,
+                        )
+                        session.commit()
                     if status in {"sent", "validation_failed"}:
                         break
                     retry += 1
@@ -1618,7 +1572,7 @@ def emit_to_senders_async(
             elif not endpoint.base_url:
                 logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping structure emission")
             else:
-                targets = _build_fhir_targets(endpoint)
+                targets = build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 fhir_payload = generate_fhir(
@@ -1670,9 +1624,11 @@ def emit_to_senders_async(
                     # Import FHIR transport at call time so tests can monkeypatch
                     from app.services.fhir_transport import post_fhir_bundle as _send_fhir
 
+                    fhir_sent = False
+                    message_log = None
                     for base_url, auth_kind, auth_token in targets:
                         retry = 0
-                        max_retry = 3
+                        max_retry = 1
                         while retry < max_retry:
                             status = "generated"
                             ack_payload = ""
@@ -1710,6 +1666,7 @@ def emit_to_senders_async(
                                 existing_log.status = status
                                 existing_log.created_at = datetime.utcnow()
                                 session.commit()
+                                message_log = existing_log
                             else:
                                 if payload_str is None:
                                     logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
@@ -1725,11 +1682,15 @@ def emit_to_senders_async(
                                 )
                                 session.add(log)
                                 session.commit()
+                                message_log = log
                             if status == "sent":
+                                fhir_sent = True
                                 break
                             retry += 1
-                            if retry < max_retry:
-                                time.sleep(60)
+                    if not fhir_sent and message_log is not None:
+                        queue_fhir_retry(
+                            session, endpoint, payload_str, correlation_id, message_log
+                        )
         
         # FHIR identity/movements (Patient/Encounter) - FHIR uniquement
         # Types d'entités compatibles : patient, mouvement, venue
@@ -1739,7 +1700,7 @@ def emit_to_senders_async(
             elif not endpoint.base_url:
                 logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping identity emission")
             else:
-                targets = _build_fhir_targets(endpoint)
+                targets = build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 fhir_payload = generate_fhir(
@@ -1788,9 +1749,11 @@ def emit_to_senders_async(
                     # Import FHIR transport at call time so tests can monkeypatch
                     from app.services.fhir_transport import post_fhir_bundle as _send_fhir
 
+                    fhir_sent = False
+                    message_log = None
                     for base_url, auth_kind, auth_token in targets:
                         retry = 0
-                        max_retry = 3
+                        max_retry = 1
                         while retry < max_retry:
                             status = "generated"
                             ack_payload = ""
@@ -1825,6 +1788,7 @@ def emit_to_senders_async(
                                 existing_log.status = status
                                 existing_log.created_at = datetime.utcnow()
                                 session.commit()
+                                message_log = existing_log
                             else:
                                 if payload_str is None:
                                     logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
@@ -1840,247 +1804,52 @@ def emit_to_senders_async(
                                 )
                                 session.add(log)
                                 session.commit()
+                                message_log = log
                             if status == "sent":
+                                fhir_sent = True
                                 break
                             retry += 1
-                            if retry < max_retry:
-                                time.sleep(60)
+                    if not fhir_sent and message_log is not None:
+                        queue_fhir_retry(
+                            session, endpoint, payload_str, correlation_id, message_log
+                        )
 
         # HPRIM endpoints: emit HPRIM XML messages for cotation (AUTO-TRANSMISSION)
         # HPRIM is used specifically for medical billing/cotation (CCAM, NGAP, UCD, LPP)
         # Auto-transmission enabled for cotation acts (like PAM/FHIR for entities)
         # Types d'entités compatibles : ccam_act, ngap_act, ucd_act, lpp_act
         if endpoint.kind == "HPRIM" and entity_type in ["ccam_act", "ngap_act", "ucd_act", "lpp_act"]:
-            # Filter by act type based on endpoint configuration
-            if entity_type == "ccam_act" and not getattr(endpoint, 'emit_hprim_ccam', False):
-                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for CCAM acts")
-                continue
-            if entity_type == "ngap_act" and not getattr(endpoint, 'emit_hprim_ngap', False):
-                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for NGAP acts")
-                continue
-            if entity_type == "ucd_act" and not getattr(endpoint, 'emit_hprim_ucd', False):
-                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for UCD acts")
-                continue
-            if entity_type == "lpp_act" and not getattr(endpoint, 'emit_hprim_lpp', False):
-                logger.debug(f"[HPRIM] Endpoint {endpoint.id} not configured for LPP acts")
+            from app.services.hprim_emission import is_hprim_enabled
+            if not is_hprim_enabled(endpoint, entity_type):
+                logger.debug("[HPRIM] Endpoint %s not configured for %s", endpoint.id, entity_type)
                 continue
             
-            # Generate HPRIM XML for the cotation act
             try:
-                from app.services.hprim.hprim_xml import HprimXmlService
-                from app.hprim_models import (
-                    HprimMessage, HprimEnteteMessage, HprimPatient, HprimProfessionnel,
-                    HprimActeCCAM, HprimActeNGAP, HprimActeLPP, HprimActeUCD,
-                    HprimCodeLPP, HprimLPP, HprimUCD, HprimMessageType, HprimAction
-                )
-                from app.models import CCAMAct, NGAPAct, UCDAct, LPPAct, Dossier, Patient
-                from app.models_practitioners import MedecinResponsable
-                
-                # Load related dossier and patient
-                dossier = session.get(Dossier, entity.dossier_id)
-                if not dossier:
-                    logger.error(f"[HPRIM] Dossier not found for act {entity.id}")
-                    continue
-                
-                patient = session.get(Patient, dossier.patient_id) if dossier.patient_id else None
-                if not patient:
-                    logger.error(f"[HPRIM] Patient not found for dossier {dossier.id}")
-                    continue
-                
-                # Build HPRIM message
-                entete = HprimEnteteMessage(
-                    message_id=f"COTATION-{entity.id}-{int(datetime.now().timestamp())}",
-                    date_emission=datetime.now(),
-                    emetteur_id=getattr(endpoint, 'sending_app', None) or 'MEDBRIDGE',
-                    emetteur_nom=getattr(endpoint, 'sending_facility', None) or 'MedData Bridge',
-                    destinataire_id=getattr(endpoint, 'receiving_app', None) or 'REMOTE',
-                    destinataire_nom=getattr(endpoint, 'receiving_facility', None) or 'Remote System',
-                    message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES
-                )
-                
-                def _build_hprim_professionnel(medecin: MedecinResponsable | None) -> HprimProfessionnel:
-                    if medecin:
-                        return HprimProfessionnel(
-                            nom=medecin.family_name or "INCONNU",
-                            prenom=medecin.given_name or "",
-                            numero_rpps=medecin.rpps,
-                            numero_adeli=medecin.adeli,
-                            specialite=medecin.specialty,
-                        )
-                    return HprimProfessionnel(nom="INCONNU", prenom="")
-
-                def _normalize_sexe(value: str | None) -> str | None:
-                    if not value:
-                        return None
-                    v = str(value).lower()
-                    if v in {"m", "male", "masculin"}:
-                        return "M"
-                    if v in {"f", "female", "feminin", "féminin"}:
-                        return "F"
-                    return "U"
-
-                patient_identifier = (
-                    getattr(patient, "identifier", None)
-                    or getattr(patient, "nir", None)
-                    or getattr(patient, "ins_c", None)
-                    or str(patient.id)
-                )
-                if getattr(patient, "identifier", None):
-                    patient_ident_clef = "IPP"
-                elif getattr(patient, "nir", None) or getattr(patient, "ins_c", None):
-                    patient_ident_clef = "INS"
-                else:
-                    patient_ident_clef = "ID"
-                date_naissance = getattr(patient, "birth_date", None) or getattr(patient, "date_naissance", None)
-                date_naissance_str = date_naissance.isoformat() if hasattr(date_naissance, "isoformat") else None
-
-                # Build patient info
-                hprim_patient = HprimPatient(
-                    identifiant_id=str(patient_identifier),
-                    identifiant_clef=patient_ident_clef,
-                    nom=getattr(patient, "family", None) or getattr(patient, "nom", None) or "INCONNU",
-                    prenom=getattr(patient, "given", None) or getattr(patient, "prenom", None) or "",
-                    date_naissance=date_naissance_str,
-                    sexe=_normalize_sexe(getattr(patient, "gender", None) or getattr(patient, "sexe", None))
-                )
-
-                # Resolve acteur (professionnel)
-                medecin = None
-                if entity_type == "ccam_act":
-                    medecin = getattr(entity, "executant", None) or getattr(entity, "prescripteur", None)
-                    if medecin is None and getattr(entity, "executant_id", None):
-                        medecin = session.get(MedecinResponsable, entity.executant_id)
-                    if medecin is None and getattr(entity, "prescripteur_id", None):
-                        medecin = session.get(MedecinResponsable, entity.prescripteur_id)
-                elif entity_type == "ngap_act":
-                    medecin = getattr(entity, "prestataire", None)
-                    if medecin is None and getattr(entity, "prestataire_id", None):
-                        medecin = session.get(MedecinResponsable, entity.prestataire_id)
-                elif entity_type == "ucd_act":
-                    medecin = getattr(entity, "prestataire", None) or getattr(entity, "prescripteur", None)
-                    medecin_id = getattr(entity, "prestataire_id", None) or getattr(entity, "prescripteur_id", None)
-                    if medecin is None and medecin_id:
-                        medecin = session.get(MedecinResponsable, medecin_id)
-                elif entity_type == "lpp_act":
-                    medecin = getattr(entity, "prestataire", None)
-                    if medecin is None and getattr(entity, "prestataire_id", None):
-                        medecin = session.get(MedecinResponsable, entity.prestataire_id)
-                acteur = _build_hprim_professionnel(medecin)
-                
-                # Build message based on act type
-                message = HprimMessage(
-                    entete=entete,
-                    patient=hprim_patient,
-                    acteur=acteur,
-                    version="2.4",
-                    acquittement_attendu=True,
-                    identifiant_attendu=True,
-                    realise=True,
-                    interrogation=False
-                )
-                
-                # Add act data based on type
-                if entity_type == "ccam_act" and isinstance(entity, CCAMAct):
-                    from app.hprim_models import HprimModificateur
-                    modificateurs = []
-                    if entity.modificateurs:
-                        for mod_code in entity.modificateurs.split(','):
-                            modificateurs.append(HprimModificateur(code=mod_code.strip()))
-                    
-                    hprim_acte = HprimActeCCAM(
-                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"CCAM-{entity.id}"),
-                        code_acte=entity.code_acte,
-                        code_activite=entity.code_activite,
-                        code_phase=entity.code_phase,
-                        execute_date=entity.execute_date,
-                        executant=acteur,
-                        modificateurs=modificateurs,
-                        quantite=entity.quantite or 1,
-                        execute_heure=getattr(entity, "execute_heure", None),
-                        action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
-                        facturable=entity.facturable if hasattr(entity, 'facturable') else True,
-                        valide=entity.valide if hasattr(entity, 'valide') else False,
-                        facture=as_bool(getattr(entity, "facture", False))
-                    )
-                    message.actes_ccam = [hprim_acte]
-                    
-                elif entity_type == "ngap_act" and isinstance(entity, NGAPAct):
-                    hprim_acte = HprimActeNGAP(
-                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"NGAP-{entity.id}"),
-                        lettre_cle=entity.lettre_cle,
-                        coefficient=Decimal(str(entity.coefficient)),
-                        execute_date=entity.execute_date,
-                        prestataire=acteur,
-                        denombrement=entity.denombrement or 1,
-                        execute_heure=getattr(entity, "execute_heure", None),
-                        position_dentaire=getattr(entity, "position_dentaire", None),
-                        action=HprimAction.CREATION if operation == "insert" else HprimAction.MODIFICATION,
-                        facturable=entity.facturable if hasattr(entity, 'facturable') else True,
-                        valide=entity.valide if hasattr(entity, 'valide') else False,
-                        facture=as_bool(getattr(entity, "facture", False))
-                    )
-                    message.actes_ngap = [hprim_acte]
-                
-                elif entity_type == "ucd_act" and isinstance(entity, UCDAct):
-                    quantite = Decimal(str(entity.quantite or 1))
-                    prix_unitaire = Decimal(str(entity.montant_unitaire_facture_ttc or 0))
-                    message.actes_ucd = HprimActeUCD(
-                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"UCD-{entity.id}"),
-                        ucds=[HprimUCD(
-                            code=entity.code_ucd,
-                            designation=entity.denomination_libelle or entity.code_ucd,
-                            quantite=quantite,
-                            prix_unitaire=prix_unitaire,
-                            montant_total=prix_unitaire * quantite,
-                        )],
-                    )
-
-                elif entity_type == "lpp_act" and isinstance(entity, LPPAct):
-                    if not entity.code_lpp:
-                        raise ValueError("Un code LPP est requis pour l'émission HPRIM")
-                    quantite = entity.quantite or 1
-                    prix_unitaire = Decimal(str(entity.montant_unitaire_facture_ttc or 0))
-                    message.actes_lpp = HprimActeLPP(
-                        identifiant=str(getattr(entity, "identifiant_acte", None) or f"LPP-{entity.id}"),
-                        lpps=[HprimLPP(
-                            code=HprimCodeLPP(code=entity.code_lpp),
-                            prix_unitaire=prix_unitaire,
-                            montant_total=prix_unitaire * quantite,
-                            libelle=entity.denomination_libelle,
-                            quantite=quantite,
-                        )],
-                    )
-                
-                # Generate XML
-                hprim_service = HprimXmlService()
-                hprim_xml = hprim_service.generate_xml(message)
-                
-                logger.info(f"[HPRIM] Generated XML for {entity_type} {entity.id} to endpoint {endpoint.id}")
-                
-                # La génération automatique suit la même outbox durable que
-                # l'API HPRIM et les scénarios : un MessageLog ``pending``
-                # seul n'était jamais traité par le worker.
+                from app.hprim_models import HprimMessageType
                 from app.services.hprim_delivery import queue_hprim_delivery
+                from app.services.hprim_emission import generate_hprim_xml
+
+                generated = generate_hprim_xml(entity, entity_type, session, endpoint, operation)
+                if generated is None:
+                    logger.error("[HPRIM] Missing dossier or patient for act %s", entity.id)
+                    continue
+                hprim_xml, message_id = generated
                 delivery = queue_hprim_delivery(
                     session,
                     xml_content=hprim_xml,
-                    message_id=correlation_id or entete.message_id,
+                    message_id=correlation_id or message_id,
                     message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES.value,
                     endpoint_id=endpoint.id,
                 )
                 session.commit()
                 if delivery is not None:
                     sent_logs.append(delivery.source_log)
-                
                 logger.info(
                     "[HPRIM] Queued %s emission for endpoint %s (outbox #%s)",
                     entity_type, endpoint.id, delivery.outbox.id if delivery else "none",
                 )
-                
-            except Exception as e:
-                logger.error(f"[HPRIM] Error generating/sending message for {entity_type} {entity.id}: {e}")
-                import traceback
-                logger.error(traceback.format_exc())
+            except Exception:
+                logger.exception("[HPRIM] Error generating message for %s %s", entity_type, entity.id)
                 continue
         
         # SFTP outbox: write HL7/FHIR payloads to a remote SFTP if configured

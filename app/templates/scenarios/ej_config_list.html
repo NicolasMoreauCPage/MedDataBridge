@@ -205,16 +205,11 @@ async function deleteConfig(ejId, ejName) {
     }
     
     try {
-        const response = await fetch(`/config/scenario-ej/${ejId}`, {
-            method: 'DELETE'
+        await window.medbridgeHttp.request(`/config/scenario-ej/${ejId}`, {
+            method: 'DELETE',
         });
-        
-        if (response.ok) {
-            showScenarioConfigNotification('Configuration supprimée.', 'success');
-            window.setTimeout(() => window.location.reload(), 350);
-        } else {
-            showScenarioConfigNotification('Erreur lors de la suppression.', 'error');
-        }
+        showScenarioConfigNotification('Configuration supprimée.', 'success');
+        window.setTimeout(() => window.location.reload(), 350);
     } catch (error) {
         showScenarioConfigNotification(`Erreur : ${error.message}`, 'error');
     }

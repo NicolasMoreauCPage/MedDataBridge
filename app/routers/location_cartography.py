@@ -6,10 +6,8 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from app.db import get_session
 from app.models_structure import (
-    Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit, LocationStatus
+    Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 )
-from typing import List
-import json
 
 router = APIRouter(prefix="/api/location", tags=["location"])
 

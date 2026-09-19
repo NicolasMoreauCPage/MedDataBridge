@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             try {
-                const response = await fetch(importForm.action, {
+                const { response } = await window.medbridgeHttp.request(importForm.action, {
                     method: 'POST',
                     body: new FormData(importForm),
                     headers: {
@@ -193,14 +193,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.redirected) {
                     // Succès - rediriger vers la liste des scénarios
                     window.location.href = response.url;
-                } else if (response.ok) {
+                } else {
                     // Afficher un message de succès et rediriger
-                    await response.json().catch(() => ({}));
                     showScenarioImportNotification('Scénario importé avec succès.', 'success');
                     window.setTimeout(() => { window.location.href = '/scenarios'; }, 350);
-                } else {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.detail || `Erreur HTTP ${response.status}`);
                 }
             } catch (error) {
                 console.error('Erreur lors de l\'import:', error);

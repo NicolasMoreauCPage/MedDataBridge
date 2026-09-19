@@ -1,6 +1,9 @@
-from typing import Optional, List
+from typing import TYPE_CHECKING, Optional, List
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from app.models import Dossier, Mouvement, Patient, Venue
 
 class EndpointContext(SQLModel, table=True):
     """

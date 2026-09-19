@@ -10,7 +10,7 @@ from typing import Optional
 from datetime import date
 
 from app.db import get_session
-from app.models import Dossier, Contract
+from app.models import Dossier
 from app.models_practitioners import MedecinResponsable
 from app.services.contract_service import ContractService
 

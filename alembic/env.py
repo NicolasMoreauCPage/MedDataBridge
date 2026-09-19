@@ -28,6 +28,13 @@ from app import models_workflows  # ensure workflow models are registered
 from app import db as _application_model_registry  # noqa: F401
 
 config = context.config
+# Production and Docker provide DATABASE_URL at runtime. Retain the value from
+# alembic.ini for local SQLite development and tests that explicitly override
+# the Alembic configuration.
+configured_url = config.get_main_option("sqlalchemy.url")
+ini_url = config.file_config.get(config.config_ini_section, "sqlalchemy.url")
+if os.getenv("DATABASE_URL") and configured_url == ini_url:
+    config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 

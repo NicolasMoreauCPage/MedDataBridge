@@ -93,9 +93,9 @@
 
     const refresh = async () => {
       try {
-        const response = await fetch("/api/analytics/alerts?eg_id=" + encodeURIComponent(activeEgId) + "&severity=high");
-        if (!response.ok) return;
-        const alerts = await response.json();
+        const { data: alerts } = await window.medbridgeHttp.get(
+          "/api/analytics/alerts?eg_id=" + encodeURIComponent(activeEgId) + "&severity=high",
+        );
         const count = alerts.filter((alert) => alert.severity === "high").length;
         badge.textContent = count ? String(count) : "";
         badge.classList.toggle("hidden", count === 0);

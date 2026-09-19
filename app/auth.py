@@ -8,7 +8,7 @@ Fournit:
 - Rotation de refresh tokens avec blacklist Redis
 """
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status

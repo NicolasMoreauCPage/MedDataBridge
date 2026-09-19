@@ -80,7 +80,7 @@ def parse_zbe(message: str) -> dict:
 
     try:
         lines = re.split(r"\r|\n", message)
-        zbe = next((l for l in lines if l.startswith("ZBE")), None)
+        zbe = next((line for line in lines if line.startswith("ZBE")), None)
         if not zbe:
             return out
         parts = zbe.split("|")

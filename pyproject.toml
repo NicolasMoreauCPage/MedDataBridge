@@ -21,6 +21,11 @@ classifiers = [
 "Homepage" = "https://github.com/whatever/MedData_Bridge"
 "Bug Tracker" = "https://github.com/whatever/MedData_Bridge/issues"
 
+# ``requirements.txt`` is the canonical dependency manifest for local, CI and
+# Docker installations. Keeping dependencies out of package metadata prevents
+# a second, divergent resolver source.
+dependencies = []
+
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 
@@ -31,18 +36,3 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 # Ignorer les scripts de test manuels à la racine
 addopts = "--ignore=test_api_structure.py --ignore=test_endpoint_detail.py --ignore=test_file_polling.py --ignore=test_service_hierarchy.py --ignore=test_service_uf_link.py --ignore=test_template_render.py --ignore=tools/test_injection_complete.py"
-
-[project.dependencies]
-fastapi = "^0.104.1"
-uvicorn = "^0.24.0"
-sqlalchemy = "^2.0.23"
-alembic = "^1.12.1"
-pydantic = "^2.5.0"
-python-multipart = "^0.0.6"
-jinja2 = "^3.1.2"
-python-dotenv = "^1.0.0"
-httpx = "^0.25.2"
-pydantic-settings = "^2.1.0"
-lxml = "^4.9.3"
-xmlschema = "^2.5.0"
-prometheus-client = "^0.20.0"

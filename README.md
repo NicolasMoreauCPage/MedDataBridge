@@ -140,8 +140,12 @@ Ce script importe tous les scénarios (IHE PAM, HPRIM, etc.) dans la base, en é
 - Les tests unitaires et d'intégration se trouvent sous `tests/`. Lancez :
 
 ```bash
-.venv/bin/python3 -m pytest -q
+TESTING=1 PYTHONPATH=. .venv/bin/python3 -m pytest -q
+npm run check-frontend
 ```
+
+La commande pytest rapide exclut les suites UI, E2E et performance. Elles se
+lancent explicitement, par exemple avec `pytest -m ui tests/ui`.
 
 Pour toute question ou besoin d'adaptation (ex: activation/désactivation d'auth pour certains environnements), dites-moi quelle politique vous souhaitez et je l'implémenterai.
 

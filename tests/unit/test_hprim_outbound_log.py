@@ -8,6 +8,14 @@ from app.models import Dossier, Patient, UCDAct
 from app.models_shared import EndpointKind, EndpointRole, MessageLog, SystemEndpoint
 from app.models_outbox import OutboundMessage
 from app.services.emit_on_create import emit_to_senders_async
+from app.services.hprim_emission import is_hprim_enabled
+
+
+def test_hprim_subscription_is_resolved_from_the_act_type():
+    endpoint = SystemEndpoint(name="HPRIM", kind=EndpointKind.HPRIM, role=EndpointRole.SENDER, emit_hprim_ucd=True)
+
+    assert is_hprim_enabled(endpoint, "ucd_act") is True
+    assert is_hprim_enabled(endpoint, "ccam_act") is False
 
 
 def test_hprim_emission_persists_a_valid_message_log_and_outbox_row(session, tmp_path):

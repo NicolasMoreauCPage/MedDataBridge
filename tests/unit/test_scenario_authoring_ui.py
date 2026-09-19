@@ -35,6 +35,20 @@ def test_new_scenario_page_exposes_guided_authoring_choices(client, session):
     assert "js/scenario-builder.js" in response.text
 
 
+def test_new_scenario_page_selects_manual_mode_when_all_templates_are_inactive(client, session):
+    for template in session.exec(select(ScenarioTemplate)).all():
+        template.is_active = False
+        session.add(template)
+    session.commit()
+
+    response = client.get("/scenarios/new")
+
+    assert response.status_code == 200
+    assert 'value="template" disabled' in response.text
+    assert 'value="manual" checked' in response.text
+    assert "La création manuelle est déjà sélectionnée" in response.text
+
+
 def test_authoring_metrics_use_only_aggregated_whitelisted_dimensions(monkeypatch):
     captured = []
 

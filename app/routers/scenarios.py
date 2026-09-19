@@ -81,6 +81,7 @@ from app.services.scenario_authoring import (
     unique_scenario_key,
     validate_authoring,
 )
+from app.services.scenario_template_init import init_scenario_templates
 from app.metrics import record_scenario_authoring_event
 from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
 
@@ -814,6 +815,16 @@ def new_scenario_form(request: Request, session: Session = Depends(get_session))
         .where(ScenarioTemplate.is_active.is_(True))
         .order_by(ScenarioTemplate.category, ScenarioTemplate.name)
     ).all()
+    if not templates and not session.exec(select(ScenarioTemplate.id).limit(1)).first():
+        # Une ancienne base locale peut avoir été créée sans passer par le
+        # lifespan de l'application. On rétablit ici le catalogue standard,
+        # sans réactiver un modèle qu'un administrateur aurait désactivé.
+        init_scenario_templates(session)
+        templates = session.exec(
+            select(ScenarioTemplate)
+            .where(ScenarioTemplate.is_active.is_(True))
+            .order_by(ScenarioTemplate.category, ScenarioTemplate.name)
+        ).all()
     source_scenarios = session.exec(
         select(InteropScenario)
         .where(InteropScenario.authoring_status != AUTHORING_DRAFT)
@@ -822,6 +833,7 @@ def new_scenario_form(request: Request, session: Session = Depends(get_session))
     ctx = {
         "request": request,
         "templates": templates,
+        "templates_available": bool(templates),
         "source_scenarios": source_scenarios,
         "breadcrumbs": [
             {"label": "Scénarios", "url": "/scenarios"},

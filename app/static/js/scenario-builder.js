@@ -10,6 +10,11 @@
     form.querySelectorAll("[data-mode-content]").forEach((element) => {
       const visible = element.dataset.modeContent === mode;
       element.hidden = !visible;
+      // Certaines sections utilisent une classe Tailwind comme `grid`, dont
+      // la règle CSS peut primer sur l'attribut HTML `hidden`. Le style
+      // explicite garantit qu'un mode non choisi ne laisse pas ses champs
+      // désactivés visibles à l'écran.
+      element.style.display = visible ? "" : "none";
       element.querySelectorAll("input, select, textarea").forEach((field) => { field.disabled = !visible; });
     });
     form.querySelectorAll("[data-creation-mode]").forEach((input) => {

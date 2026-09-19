@@ -13,10 +13,12 @@ Le socle de la refonte est livré :
 - la clé technique est facultative et proposée automatiquement ;
 - les scénarios créés par l'assistant sont inactifs jusqu'à validation explicite ;
 - la revue affiche la chronologie, les destinations compatibles, les payloads repliés et les erreurs de préparation ;
+- la chronologie permet maintenant d'ajouter, réordonner ou retirer des événements métier sans saisir de payload ;
+- un routage commun peut être appliqué à tout le parcours, avec filtrage des endpoints incompatibles ;
 - le mode expert historique reste disponible pour les ajustements avancés ;
 - une migration et une compatibilité de démarrage local accompagnent le nouvel état `draft` / `ready`.
 
-Restent à réaliser dans les lots suivants : l'édition visuelle complète des étapes (ajout/réorganisation sans mode expert), les données patient communes, le routage commun par scénario, l'exécution à blanc depuis la revue et l'instrumentation d'usage.
+Restent à réaliser dans les lots suivants : les données patient communes, l'exécution à blanc depuis la revue, les assertions guidées et l'instrumentation d'usage.
 
 ## 1. Objectif produit
 

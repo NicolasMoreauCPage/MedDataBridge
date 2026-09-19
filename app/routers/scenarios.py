@@ -64,10 +64,16 @@ from app.utils.flash import flash
 from app.services.scenario_realistic_timeplan import suggest_scenario_timing_update
 from app.services.scenario_authoring import (
     AUTHORING_DRAFT,
+    add_guided_step,
+    common_compatible_endpoints,
     create_manual_draft,
     create_template_draft,
+    delete_guided_step,
     duplicate_scenario_draft,
+    guided_event_catalog,
     mark_ready,
+    move_guided_step,
+    set_common_routing,
     unique_scenario_key,
     validate_authoring,
 )
@@ -911,6 +917,16 @@ def scenario_authoring_review(scenario_id: int, request: Request, session: Sessi
         step.id: sum(1 for endpoint in endpoints if (endpoint.kind or "").upper() in compatible_kinds.get(step.message_format.lower(), set()))
         for step in steps
     }
+    common_endpoints = common_compatible_endpoints(session, scenario)
+    explicit_ids = {
+        tuple(_json_int_list(step.endpoint_ids_json))
+        for step in steps
+        if step.route_mode == "explicit"
+    }
+    common_routing = {
+        "mode": "explicit" if steps and all(step.route_mode == "explicit" for step in steps) else "all_compatible",
+        "endpoint_ids": list(explicit_ids.pop()) if len(explicit_ids) == 1 else [],
+    }
     issues = validate_authoring(session, scenario)
     return get_templates_with_filters(request).TemplateResponse(
         request,
@@ -921,6 +937,13 @@ def scenario_authoring_review(scenario_id: int, request: Request, session: Sessi
             "steps": steps,
             "issues": [issue.as_dict() for issue in issues],
             "endpoint_counts": endpoint_counts,
+            "common_endpoints": common_endpoints,
+            "common_routing": common_routing,
+            "guided_events": guided_event_catalog(),
+            "available_message_protocols": [
+                {"value": "HL7", "label": "HL7 v2"},
+                {"value": "FHIR", "label": "FHIR R4"},
+            ] if scenario.protocol == "MIXED" else [],
             "breadcrumbs": [
                 {"label": "Scénarios", "url": "/scenarios"},
                 {"label": "Nouveau scénario", "url": "/scenarios/new"},
@@ -928,6 +951,86 @@ def scenario_authoring_review(scenario_id: int, request: Request, session: Sessi
             ],
         },
     )
+
+
+@router.post("/{scenario_id}/authoring/routing")
+def update_guided_scenario_routing(
+    scenario_id: int,
+    request: Request,
+    route_mode: str = Form("all_compatible"),
+    endpoint_ids: list[int] = Form(default=[]),
+    session: Session = Depends(get_session),
+):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    try:
+        set_common_routing(session, scenario=scenario, route_mode=route_mode, endpoint_ids=endpoint_ids)
+    except ValueError as exc:
+        flash(request, str(exc), level="error")
+    else:
+        flash(request, "Routage commun enregistré. Le scénario doit être revu avant exécution.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
+
+
+@router.post("/{scenario_id}/authoring/steps")
+def add_guided_scenario_step(
+    scenario_id: int,
+    request: Request,
+    event_key: str = Form(...),
+    message_protocol: Optional[str] = Form(None),
+    delay_seconds: Optional[int] = Form(None),
+    session: Session = Depends(get_session),
+):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    try:
+        step = add_guided_step(
+            session,
+            scenario=scenario,
+            event_key=event_key,
+            message_protocol=message_protocol,
+            delay_seconds=delay_seconds,
+        )
+    except ValueError as exc:
+        flash(request, str(exc), level="error")
+    else:
+        flash(request, f"Étape « {step.name} » ajoutée au parcours.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
+
+
+@router.post("/{scenario_id}/authoring/steps/{step_id}/move")
+def move_guided_scenario_step(
+    scenario_id: int,
+    step_id: int,
+    request: Request,
+    direction: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    scenario = get_scenario(session, scenario_id)
+    step = session.get(InteropScenarioStep, step_id)
+    if not scenario or not step or step.scenario_id != scenario_id:
+        raise HTTPException(status_code=404, detail="Étape introuvable")
+    if move_guided_step(session, scenario=scenario, step=step, direction=direction):
+        flash(request, "Ordre du parcours mis à jour.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
+
+
+@router.post("/{scenario_id}/authoring/steps/{step_id}/delete")
+def delete_guided_scenario_step(
+    scenario_id: int,
+    step_id: int,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    scenario = get_scenario(session, scenario_id)
+    step = session.get(InteropScenarioStep, step_id)
+    if not scenario or not step or step.scenario_id != scenario_id:
+        raise HTTPException(status_code=404, detail="Étape introuvable")
+    delete_guided_step(session, scenario=scenario, step=step)
+    flash(request, "Étape retirée du parcours.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
 
 @router.get("/{scenario_id}/authoring/preview")

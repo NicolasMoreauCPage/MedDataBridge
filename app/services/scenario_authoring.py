@@ -19,7 +19,11 @@ from sqlmodel import Session, select
 from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate
 from app.models_structure import EntiteJuridique
-from app.services.scenario_template_materializer import MaterializationOptions, materialize_template
+from app.services.scenario_template_materializer import (
+    MaterializationOptions,
+    build_reference_payload,
+    materialize_template,
+)
 
 
 AUTHORING_DRAFT = "draft"
@@ -34,6 +38,60 @@ _ENDPOINT_KINDS_BY_FORMAT = {
     "json": {"FILE", "FTP", "SFTP", "FHIR"},
     "xml": {"FILE", "FTP", "SFTP"},
 }
+
+# Le catalogue est volontairement court : il présente les intentions les plus
+# fréquentes au lieu d'exposer tous les codes ADT. Les experts gardent l'accès
+# aux types de message et payloads libres dans l'espace historique.
+GUIDED_EVENT_CATALOG = (
+    {
+        "key": "admission_planned",
+        "label": "Pré-admission",
+        "description": "Patient attendu avant son admission.",
+        "semantic_event_code": "ADMISSION_PLANNED",
+        "hl7_event_code": "ADT^A05",
+        "default_delay_seconds": 0,
+    },
+    {
+        "key": "admission",
+        "label": "Admission du patient",
+        "description": "Début de l'hospitalisation.",
+        "semantic_event_code": "ADMISSION_CONFIRMED",
+        "hl7_event_code": "ADT^A01",
+        "default_delay_seconds": 0,
+    },
+    {
+        "key": "transfer",
+        "label": "Transfert ou mutation",
+        "description": "Changement de service, unité ou lit.",
+        "semantic_event_code": "TRANSFER_IN",
+        "hl7_event_code": "ADT^A02",
+        "default_delay_seconds": 300,
+    },
+    {
+        "key": "discharge",
+        "label": "Sortie du patient",
+        "description": "Fin de l'hospitalisation.",
+        "semantic_event_code": "DISCHARGE",
+        "hl7_event_code": "ADT^A03",
+        "default_delay_seconds": 3600,
+    },
+    {
+        "key": "identity_create",
+        "label": "Création de l'identité",
+        "description": "Ajout d'une personne dans le système cible.",
+        "semantic_event_code": "IDENTITY_CREATED",
+        "hl7_event_code": "ADT^A28",
+        "default_delay_seconds": 0,
+    },
+    {
+        "key": "identity_update",
+        "label": "Mise à jour de l'identité",
+        "description": "Modification des informations administratives.",
+        "semantic_event_code": "IDENTITY_UPDATED",
+        "hl7_event_code": "ADT^A31",
+        "default_delay_seconds": 0,
+    },
+)
 
 
 @dataclass(frozen=True)
@@ -50,6 +108,95 @@ class AuthoringIssue:
             "message": self.message,
             "step_id": self.step_id,
         }
+
+
+def guided_event_catalog() -> tuple[dict, ...]:
+    """Expose des copies immuables dans l'esprit du catalogue fonctionnel."""
+    return GUIDED_EVENT_CATALOG
+
+
+def _guided_event(event_key: str) -> dict:
+    event = next((item for item in GUIDED_EVENT_CATALOG if item["key"] == event_key), None)
+    if not event:
+        raise ValueError("Événement de parcours inconnu.")
+    return event
+
+
+def _mark_as_edited_draft(scenario: InteropScenario) -> None:
+    scenario.authoring_status = AUTHORING_DRAFT
+    scenario.is_active = False
+    scenario.updated_at = datetime.utcnow()
+
+
+def add_guided_step(
+    session: Session,
+    *,
+    scenario: InteropScenario,
+    event_key: str,
+    message_protocol: Optional[str] = None,
+    delay_seconds: Optional[int] = None,
+) -> InteropScenarioStep:
+    """Ajoute une étape métier générée depuis le catalogue réduit."""
+    event = _guided_event(event_key)
+    protocol = (message_protocol or scenario.protocol or "HL7").upper()
+    if protocol == "MIXED":
+        protocol = "HL7"
+    next_order = max((step.order_index for step in scenario.steps), default=0) + 1
+    payload, message_format, message_type = build_reference_payload(
+        semantic_event_code=event["semantic_event_code"],
+        protocol=protocol,
+        hl7_event_code=event["hl7_event_code"],
+        step_index=next_order,
+    )
+    step = InteropScenarioStep(
+        scenario_id=scenario.id,
+        order_index=next_order,
+        name=event["label"],
+        description=event["description"],
+        message_format=message_format,
+        message_type=message_type,
+        payload=payload,
+        delay_seconds=event["default_delay_seconds"] if delay_seconds is None else max(delay_seconds, 0),
+        is_required=True,
+        route_mode="all_compatible",
+    )
+    _mark_as_edited_draft(scenario)
+    session.add(scenario)
+    session.add(step)
+    session.commit()
+    session.refresh(step)
+    return step
+
+
+def move_guided_step(session: Session, *, scenario: InteropScenario, step: InteropScenarioStep, direction: str) -> bool:
+    """Réordonne une étape sans exposer son index technique à l'interface."""
+    ordered = sorted(scenario.steps, key=lambda item: (item.order_index, item.id or 0))
+    index = next((position for position, item in enumerate(ordered) if item.id == step.id), None)
+    destination = index - 1 if direction == "up" else index + 1 if direction == "down" else None
+    if index is None or destination is None or not 0 <= destination < len(ordered):
+        return False
+    ordered[index], ordered[destination] = ordered[destination], ordered[index]
+    for position, item in enumerate(ordered, start=1):
+        item.order_index = position
+        item.updated_at = datetime.utcnow()
+        session.add(item)
+    _mark_as_edited_draft(scenario)
+    session.add(scenario)
+    session.commit()
+    return True
+
+
+def delete_guided_step(session: Session, *, scenario: InteropScenario, step: InteropScenarioStep) -> None:
+    """Supprime une étape depuis la revue et maintient un ordre dense."""
+    session.delete(step)
+    survivors = [item for item in scenario.steps if item.id != step.id]
+    for position, item in enumerate(sorted(survivors, key=lambda value: (value.order_index, value.id or 0)), start=1):
+        item.order_index = position
+        item.updated_at = datetime.utcnow()
+        session.add(item)
+    _mark_as_edited_draft(scenario)
+    session.add(scenario)
+    session.commit()
 
 
 def slugify_key(value: str) -> str:
@@ -204,6 +351,68 @@ def _compatible_endpoint_count(endpoints: Iterable[SystemEndpoint], message_form
         and endpoint.role in {"sender", "both"}
         and (endpoint.kind or "").upper() in compatible_kinds
     )
+
+
+def _endpoint_is_compatible(endpoint: SystemEndpoint, message_format: str) -> bool:
+    return (
+        endpoint.is_enabled
+        and endpoint.role in {"sender", "both"}
+        and (endpoint.kind or "").upper() in _ENDPOINT_KINDS_BY_FORMAT.get((message_format or "").lower(), set())
+    )
+
+
+def common_compatible_endpoints(session: Session, scenario: InteropScenario) -> list[SystemEndpoint]:
+    """Retourne les destinations utilisables pour toutes les étapes du scénario."""
+    endpoints = session.exec(select(SystemEndpoint).order_by(SystemEndpoint.kind, SystemEndpoint.name)).all()
+    formats = {step.message_format.lower() for step in scenario.steps if step.message_format}
+    if not formats:
+        return [endpoint for endpoint in endpoints if endpoint.is_enabled and endpoint.role in {"sender", "both"}]
+    return [endpoint for endpoint in endpoints if all(_endpoint_is_compatible(endpoint, message_format) for message_format in formats)]
+
+
+def set_common_routing(
+    session: Session,
+    *,
+    scenario: InteropScenario,
+    route_mode: str,
+    endpoint_ids: Iterable[int] = (),
+) -> None:
+    """Applique un routage commun tout en protégeant chaque étape requise."""
+    if route_mode not in {"all_compatible", "explicit"}:
+        raise ValueError("Mode de routage inconnu.")
+    steps = list(scenario.steps)
+    endpoint_ids = sorted(set(endpoint_ids))
+    endpoints_by_id = {
+        endpoint.id: endpoint
+        for endpoint in session.exec(select(SystemEndpoint).where(SystemEndpoint.id.in_(endpoint_ids))).all()
+    } if endpoint_ids else {}
+    if route_mode == "explicit":
+        if not endpoint_ids:
+            raise ValueError("Sélectionnez au moins une destination.")
+        if len(endpoints_by_id) != len(endpoint_ids):
+            raise ValueError("Une destination sélectionnée est introuvable.")
+        unavailable = [endpoint.name for endpoint in endpoints_by_id.values() if not endpoint.is_enabled or endpoint.role not in {"sender", "both"}]
+        if unavailable:
+            raise ValueError(f"Destination non disponible : {', '.join(unavailable)}.")
+        for step in steps:
+            compatible = [endpoint_id for endpoint_id, endpoint in endpoints_by_id.items() if _endpoint_is_compatible(endpoint, step.message_format)]
+            if step.is_required and not compatible:
+                raise ValueError(f"Aucune destination sélectionnée n'est compatible avec « {step.name or f'étape {step.order_index}'} ».")
+            step.route_mode = "explicit"
+            step.endpoint_ids_json = json.dumps(compatible)
+            step.target_system_key = None
+            step.updated_at = datetime.utcnow()
+            session.add(step)
+    else:
+        for step in steps:
+            step.route_mode = "all_compatible"
+            step.endpoint_ids_json = None
+            step.target_system_key = None
+            step.updated_at = datetime.utcnow()
+            session.add(step)
+    _mark_as_edited_draft(scenario)
+    session.add(scenario)
+    session.commit()
 
 
 def validate_authoring(session: Session, scenario: InteropScenario) -> list[AuthoringIssue]:

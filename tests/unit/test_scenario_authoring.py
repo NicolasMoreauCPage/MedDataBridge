@@ -1,13 +1,18 @@
 from sqlmodel import select
 
+from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioTemplate, ScenarioTemplateStep
 from app.services.scenario_authoring import (
     AUTHORING_DRAFT,
     AUTHORING_READY,
+    add_guided_step,
     create_manual_draft,
     create_template_draft,
+    delete_guided_step,
     duplicate_scenario_draft,
     mark_ready,
+    move_guided_step,
+    set_common_routing,
     unique_scenario_key,
     validate_authoring,
 )
@@ -108,3 +113,52 @@ def test_unique_key_normalizes_accents_and_special_characters(session):
     session.commit()
 
     assert unique_scenario_key(session, "Admission déjà !", "ignored") == "admission-deja-2"
+
+
+def test_guided_events_create_playable_steps_and_keep_changes_as_drafts(session):
+    scenario = create_manual_draft(session, name="Parcours guidé", protocol="HL7")
+
+    admission = add_guided_step(session, scenario=scenario, event_key="admission")
+    discharge = add_guided_step(session, scenario=scenario, event_key="discharge", delay_seconds=120)
+
+    assert admission.name == "Admission du patient"
+    assert admission.message_type == "ADT^A01"
+    assert admission.payload.startswith("MSH|^~\\&")
+    assert discharge.delay_seconds == 120
+    assert not [issue for issue in validate_authoring(session, scenario) if issue.level == "error"]
+
+    scenario.authoring_status = AUTHORING_READY
+    scenario.is_active = True
+    session.add(scenario)
+    session.commit()
+    assert move_guided_step(session, scenario=scenario, step=discharge, direction="up") is True
+    session.refresh(scenario)
+    assert scenario.authoring_status == AUTHORING_DRAFT
+    assert scenario.is_active is False
+    assert sorted(scenario.steps, key=lambda item: item.order_index)[0].id == discharge.id
+
+    delete_guided_step(session, scenario=scenario, step=discharge)
+    remaining = session.exec(select(InteropScenarioStep).where(InteropScenarioStep.scenario_id == scenario.id)).all()
+    assert len(remaining) == 1
+    assert remaining[0].order_index == 1
+
+
+def test_common_routing_only_accepts_destinations_compatible_with_every_required_step(session):
+    scenario = create_manual_draft(session, name="Routage guidé", protocol="HL7")
+    add_guided_step(session, scenario=scenario, event_key="admission")
+    endpoint = SystemEndpoint(name="MLLP commun", kind="MLLP", role="sender", is_enabled=True)
+    fhir_endpoint = SystemEndpoint(name="FHIR seulement", kind="FHIR", role="sender", is_enabled=True)
+    session.add_all([endpoint, fhir_endpoint])
+    session.commit()
+
+    set_common_routing(session, scenario=scenario, route_mode="explicit", endpoint_ids=[endpoint.id])
+    session.refresh(scenario)
+    assert scenario.steps[0].route_mode == "explicit"
+    assert scenario.steps[0].endpoint_ids_json == f"[{endpoint.id}]"
+
+    try:
+        set_common_routing(session, scenario=scenario, route_mode="explicit", endpoint_ids=[fhir_endpoint.id])
+    except ValueError as error:
+        assert "compatible" in str(error)
+    else:
+        raise AssertionError("Une destination FHIR ne doit pas être proposée pour une étape HL7.")

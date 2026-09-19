@@ -55,7 +55,7 @@ def test_template_creation_redirects_to_review_as_an_inactive_draft(client, sess
 
     review = client.get(response.headers["location"])
     assert review.status_code == 200
-    assert "Ce scénario est inactif" in review.text
+    assert "Toute modification du parcours rend le scénario inactif" in review.text
     assert "Admission confirmée" in review.text
 
 
@@ -74,3 +74,24 @@ def test_manual_draft_cannot_be_marked_ready_without_steps(client, session):
     session.refresh(scenario)
     assert scenario.is_active is False
     assert scenario.authoring_status == "draft"
+
+
+def test_manual_draft_can_add_a_functional_event_from_its_review(client, session):
+    client.post(
+        "/scenarios/new",
+        data={"creation_mode": "manual", "name": "Parcours sans payload", "protocol": "HL7"},
+        follow_redirects=False,
+    )
+    scenario = session.exec(select(InteropScenario).where(InteropScenario.name == "Parcours sans payload")).one()
+
+    response = client.post(
+        f"/scenarios/{scenario.id}/authoring/steps",
+        data={"event_key": "admission", "delay_seconds": "0"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    session.refresh(scenario)
+    assert len(scenario.steps) == 1
+    assert scenario.steps[0].name == "Admission du patient"
+    assert scenario.steps[0].message_type == "ADT^A01"

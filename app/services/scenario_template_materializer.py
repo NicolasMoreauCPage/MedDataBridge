@@ -500,6 +500,58 @@ def _build_fhir_bundle(semantic: str, ids: dict, ej: Optional[EntiteJuridique]) 
     return json.dumps(bundle, ensure_ascii=False, indent=2)
 
 
+def build_reference_payload(
+    *,
+    semantic_event_code: str,
+    protocol: str,
+    hl7_event_code: Optional[str] = None,
+    step_index: int = 1,
+) -> tuple[str, str, Optional[str]]:
+    """Construit un message de référence pour l'auteur de scénario.
+
+    Le constructeur guidé ne fabrique pas son propre format de message : il
+    délègue à la même génération que la matérialisation des templates. Les
+    identifiants et le contexte sont ensuite remplacés normalement au moment
+    de l'exécution.
+    """
+    normalized_protocol = (protocol or "HL7").upper()
+    if normalized_protocol in {"HL7", "HL7V2"}:
+        if not hl7_event_code:
+            raise ValueError("Cet événement ne peut pas être généré en HL7 v2.")
+        context = ScenarioContext(
+            ipp="00000000",
+            nda="0000000",
+            venue_seq="1",
+            ipp_oid="1.2.250.1.213.1.1.9",
+            nda_oid="1.2.250.1.213.1.1.9",
+            patient_family="SCENARIO",
+            patient_given="Test",
+            patient_dob="19900115",
+            patient_gender="F",
+            admit_datetime=_now_hl7_ts(),
+            facility_code="FAC",
+        )
+        return (
+            _build_hl7_message(
+                event=hl7_event_code,
+                semantic=semantic_event_code,
+                context=context,
+                ej=None,
+                step_index=step_index,
+            ),
+            "hl7",
+            hl7_event_code,
+        )
+    if normalized_protocol == "FHIR":
+        payload = _build_fhir_bundle(
+            semantic_event_code,
+            {"ipp": "00000000", "nda": "0000000", "venue_seq": "1"},
+            None,
+        )
+        return payload, "fhir", "Bundle"
+    raise ValueError("Format de message inconnu : choisir HL7 ou FHIR.")
+
+
 def materialize_template(
     session: Session,
     template: ScenarioTemplate,

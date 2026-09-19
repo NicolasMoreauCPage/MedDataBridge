@@ -1,3 +1,5 @@
+import json
+
 from sqlmodel import select
 
 from app.models_endpoints import SystemEndpoint
@@ -10,9 +12,12 @@ from app.services.scenario_authoring import (
     create_template_draft,
     delete_guided_step,
     duplicate_scenario_draft,
+    guided_assertions_enabled,
     mark_ready,
     move_guided_step,
     set_common_routing,
+    set_common_test_data,
+    set_guided_assertions,
     unique_scenario_key,
     validate_authoring,
 )
@@ -162,3 +167,39 @@ def test_common_routing_only_accepts_destinations_compatible_with_every_required
         assert "compatible" in str(error)
     else:
         raise AssertionError("Une destination FHIR ne doit pas être proposée pour une étape HL7.")
+
+
+def test_common_test_data_is_validated_and_stored_in_authoring_metadata(session):
+    scenario = create_manual_draft(session, name="Données communes")
+
+    saved = set_common_test_data(
+        session,
+        scenario=scenario,
+        family="durand",
+        given="Alice",
+        birth_date="1988-04-12",
+        gender="f",
+    )
+
+    assert saved == {"family": "DURAND", "given": "Alice", "birth_date": "1988-04-12", "gender": "F"}
+    assert json.loads(scenario.authoring_metadata_json)["test_data"] == saved
+    assert scenario.authoring_status == AUTHORING_DRAFT
+
+
+def test_guided_assertions_preserve_expert_controls_and_follow_the_steps(session):
+    scenario = create_manual_draft(session, name="Contrôles guidés")
+    scenario.assertions_json = '[{"type":"run_status","equals":"success"}]'
+    session.add(scenario)
+    session.commit()
+    add_guided_step(session, scenario=scenario, event_key="admission")
+    add_guided_step(session, scenario=scenario, event_key="discharge")
+
+    set_guided_assertions(session, scenario=scenario, enabled=True)
+
+    assertions = json.loads(scenario.assertions_json)
+    assert guided_assertions_enabled(scenario) is True
+    assert {item["type"] for item in assertions} == {"run_status", "step_status"}
+    assert [item["order_index"] for item in assertions if item["type"] == "step_status"] == [1, 2]
+
+    set_guided_assertions(session, scenario=scenario, enabled=False)
+    assert json.loads(scenario.assertions_json) == [{"type": "run_status", "equals": "success"}]

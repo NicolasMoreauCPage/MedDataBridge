@@ -66,14 +66,18 @@ from app.services.scenario_authoring import (
     AUTHORING_DRAFT,
     add_guided_step,
     common_compatible_endpoints,
+    common_test_data,
     create_manual_draft,
     create_template_draft,
     delete_guided_step,
     duplicate_scenario_draft,
     guided_event_catalog,
+    guided_assertions_enabled,
     mark_ready,
     move_guided_step,
     set_common_routing,
+    set_common_test_data,
+    set_guided_assertions,
     unique_scenario_key,
     validate_authoring,
 )
@@ -939,6 +943,8 @@ def scenario_authoring_review(scenario_id: int, request: Request, session: Sessi
             "endpoint_counts": endpoint_counts,
             "common_endpoints": common_endpoints,
             "common_routing": common_routing,
+            "test_data": common_test_data(scenario),
+            "guided_assertions_enabled": guided_assertions_enabled(scenario),
             "guided_events": guided_event_catalog(),
             "available_message_protocols": [
                 {"value": "HL7", "label": "HL7 v2"},
@@ -951,6 +957,51 @@ def scenario_authoring_review(scenario_id: int, request: Request, session: Sessi
             ],
         },
     )
+
+
+@router.post("/{scenario_id}/authoring/assertions")
+def update_guided_scenario_assertions(
+    scenario_id: int,
+    request: Request,
+    validate_each_step: bool = Form(False),
+    session: Session = Depends(get_session),
+):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    set_guided_assertions(session, scenario=scenario, enabled=validate_each_step)
+    message = "Contrôles de préparation activés pour chaque étape." if validate_each_step else "Contrôles guidés retirés ; les assertions expertes sont conservées."
+    flash(request, message, level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
+
+
+@router.post("/{scenario_id}/authoring/test-data")
+def update_guided_scenario_test_data(
+    scenario_id: int,
+    request: Request,
+    family: str = Form(...),
+    given: str = Form(...),
+    birth_date: str = Form(...),
+    gender: str = Form("F"),
+    session: Session = Depends(get_session),
+):
+    scenario = get_scenario(session, scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scénario introuvable")
+    try:
+        set_common_test_data(
+            session,
+            scenario=scenario,
+            family=family,
+            given=given,
+            birth_date=birth_date,
+            gender=gender,
+        )
+    except ValueError as exc:
+        flash(request, str(exc), level="error")
+    else:
+        flash(request, "Données de test communes enregistrées pour tout le parcours.", level="success")
+    return RedirectResponse(url=f"/scenarios/{scenario_id}/authoring", status_code=303)
 
 
 @router.post("/{scenario_id}/authoring/routing")

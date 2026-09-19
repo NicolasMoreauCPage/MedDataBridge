@@ -1,6 +1,7 @@
 from sqlmodel import select
 
 from app.models_endpoints import SystemEndpoint
+from app.models_scenario_runs import ScenarioPlay
 from app.models_scenarios import InteropScenario, ScenarioTemplate, ScenarioTemplateStep
 
 
@@ -105,6 +106,11 @@ def test_review_can_dry_run_a_draft_without_activating_it(client, session):
         follow_redirects=False,
     )
     scenario = session.exec(select(InteropScenario).where(InteropScenario.name == "Prévisualisation brouillon")).one()
+    client.post(
+        f"/scenarios/{scenario.id}/authoring/test-data",
+        data={"family": "Durand", "given": "Alice", "birth_date": "1988-04-12", "gender": "F"},
+        follow_redirects=False,
+    )
     client.post(f"/scenarios/{scenario.id}/authoring/steps", data={"event_key": "admission"}, follow_redirects=False)
     endpoint = SystemEndpoint(name="Fichier de prévisualisation", kind="FILE", role="sender", is_enabled=True)
     session.add(endpoint)
@@ -120,3 +126,6 @@ def test_review_can_dry_run_a_draft_without_activating_it(client, session):
     assert f"/scenarios/{scenario.id}/plays/" in response.headers["location"]
     session.refresh(scenario)
     assert scenario.is_active is False
+    play = session.exec(select(ScenarioPlay).where(ScenarioPlay.scenario_id == scenario.id)).one()
+    assert '"family": "DURAND"' in play.identity_json
+    assert '"given": "Alice"' in play.identity_json

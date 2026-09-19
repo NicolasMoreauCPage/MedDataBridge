@@ -11,7 +11,7 @@ import json
 import re
 import unicodedata
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Iterable, Optional
 
 from sqlmodel import Session, select
@@ -126,6 +126,100 @@ def _mark_as_edited_draft(scenario: InteropScenario) -> None:
     scenario.authoring_status = AUTHORING_DRAFT
     scenario.is_active = False
     scenario.updated_at = datetime.utcnow()
+
+
+def authoring_metadata(scenario: InteropScenario) -> dict:
+    """Lit les métadonnées guidées sans faire échouer un scénario historique."""
+    try:
+        value = json.loads(scenario.authoring_metadata_json or "{}")
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def common_test_data(scenario: InteropScenario) -> dict[str, str]:
+    """Retourne les données communes avec des valeurs de démonstration sûres."""
+    data = authoring_metadata(scenario).get("test_data")
+    data = data if isinstance(data, dict) else {}
+    return {
+        "family": str(data.get("family") or "SCENARIO"),
+        "given": str(data.get("given") or "Test"),
+        "birth_date": str(data.get("birth_date") or "1990-01-15"),
+        "gender": str(data.get("gender") or "F"),
+    }
+
+
+def set_common_test_data(
+    session: Session,
+    *,
+    scenario: InteropScenario,
+    family: str,
+    given: str,
+    birth_date: str,
+    gender: str,
+) -> dict[str, str]:
+    """Enregistre une identité de test commune et la soumet à une validation simple."""
+    normalized = {
+        "family": family.strip().upper(),
+        "given": given.strip(),
+        "birth_date": birth_date.strip(),
+        "gender": gender.strip().upper(),
+    }
+    if not normalized["family"] or not normalized["given"]:
+        raise ValueError("Le nom et le prénom de test sont obligatoires.")
+    try:
+        date.fromisoformat(normalized["birth_date"])
+    except ValueError as exc:
+        raise ValueError("La date de naissance doit être au format AAAA-MM-JJ.") from exc
+    if normalized["gender"] not in {"F", "M", "U"}:
+        raise ValueError("Le sexe administratif doit être F, M ou U.")
+    metadata = authoring_metadata(scenario)
+    metadata["test_data"] = normalized
+    metadata["updated_at"] = datetime.utcnow().isoformat()
+    scenario.authoring_metadata_json = json.dumps(metadata, ensure_ascii=False)
+    _mark_as_edited_draft(scenario)
+    session.add(scenario)
+    session.commit()
+    return normalized
+
+
+def guided_assertions_enabled(scenario: InteropScenario) -> bool:
+    """Indique si les contrôles standard de préparation sont actifs."""
+    try:
+        assertions = json.loads(scenario.assertions_json or "[]")
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return isinstance(assertions, list) and any(item.get("source") == "authoring" for item in assertions if isinstance(item, dict))
+
+
+def set_guided_assertions(session: Session, *, scenario: InteropScenario, enabled: bool) -> None:
+    """Ajoute ou retire les assertions gérées par le constructeur.
+
+    Les assertions JSON créées dans le mode expert sont conservées : seules les
+    entrées marquées ``source=authoring`` sont régénérées.
+    """
+    try:
+        existing = json.loads(scenario.assertions_json or "[]")
+    except (json.JSONDecodeError, TypeError):
+        existing = []
+    if not isinstance(existing, list):
+        existing = []
+    preserved = [item for item in existing if isinstance(item, dict) and item.get("source") != "authoring"]
+    if enabled:
+        preserved.extend(
+            {
+                "type": "step_status",
+                "order_index": step.order_index,
+                "equals": "sent",
+                "source": "authoring",
+                "label": f"Étape {step.order_index} préparée",
+            }
+            for step in sorted(scenario.steps, key=lambda item: item.order_index)
+        )
+    scenario.assertions_json = json.dumps(preserved, ensure_ascii=False) if preserved else None
+    _mark_as_edited_draft(scenario)
+    session.add(scenario)
+    session.commit()
 
 
 def add_guided_step(

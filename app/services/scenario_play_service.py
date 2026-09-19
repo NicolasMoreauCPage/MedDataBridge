@@ -10,7 +10,8 @@ from __future__ import annotations
 import json
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from dataclasses import replace
+from datetime import date, datetime, timedelta
 from typing import Any, Iterable, Optional
 from uuid import uuid4
 
@@ -39,6 +40,27 @@ from app.utils.seq_generator import generate_venue_seq
 
 class ScenarioPlayError(ValueError):
     """Erreur fonctionnelle de préparation ou de livraison d'un jeu."""
+
+
+def _identity_from_authoring_data(scenario: InteropScenario, generated: PatientIdentity) -> PatientIdentity:
+    """Applique l'identité choisie dans l'assistant au jeu compilé.
+
+    Les scénarios historiques et les métadonnées malformées conservent sans
+    interruption la génération aléatoire historique.
+    """
+    try:
+        metadata = json.loads(scenario.authoring_metadata_json or "{}")
+        data = metadata.get("test_data", {}) if isinstance(metadata, dict) else {}
+        if not isinstance(data, dict):
+            return generated
+        family, given = str(data.get("family") or "").strip(), str(data.get("given") or "").strip()
+        birth_date = date.fromisoformat(str(data.get("birth_date") or ""))
+        gender = str(data.get("gender") or "").upper()
+        if not family or not given or gender not in {"F", "M", "U"}:
+            return generated
+        return replace(generated, family=family, given=given, birth_date=birth_date, gender=gender)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return generated
 
 
 def _namespace(session: Session, ght_context_id: Optional[int], kind: str) -> Optional[IdentifierNamespace]:
@@ -847,7 +869,7 @@ def prepare_scenario_play(
     if not source_steps:
         raise ScenarioPlayError("Le scénario ne contient aucune étape à émettre.")
     play_key = f"PLAY-{uuid4().hex[:12].upper()}"
-    identity = generate_patient_identity()
+    identity = _identity_from_authoring_data(scenario, generate_patient_identity())
     context = _identifier_context(session, scenario.ght_context_id, play_key)
     context["patient"] = identity.as_dict()
     context["practitioner"] = _practitioner_context(session)

@@ -177,29 +177,6 @@
         </form>
     </div>
 
-    <!-- Script JavaScript pour auto-extraction de l'OID -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const systemInput = document.getElementById('systemInput');
-            const oidInput = document.getElementById('oidInput');
-            
-            function extractOid() {
-                const system = systemInput.value.trim();
-                if (system.startsWith('urn:oid:')) {
-                    const oid = system.substring(8); // Enlever "urn:oid:"
-                    oidInput.value = oid;
-                } else {
-                    oidInput.value = '';
-                }
-            }
-            
-            // Extraction automatique lors de la saisie
-            systemInput.addEventListener('input', extractOid);
-            systemInput.addEventListener('change', extractOid);
-            
-            // Extraction initiale au chargement
-            extractOid();
-        });
-    </script>
+    <script defer src="{{ url_for('static', path='/js/namespace-form-workspace.js') }}"></script>
 </div>
 {% endblock %}

@@ -514,6 +514,9 @@ l'audit :
   désormais `static/js/patient-identity-actions.js`, qui expose aussi
   `aria-invalid`; l'association patient/venue du contact est isolée dans
   `static/js/contact-form-workspace.js` avec des gardes d'initialisation.
+  Les deux formulaires de namespace partagent aussi
+  `static/js/namespace-form-workspace.js` pour l'extraction d'OID et le choix du
+  mode de préfixe, sans fonction globale ni gestionnaire HTML inline.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

@@ -171,7 +171,6 @@
                 <div>
                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Mode de génération</label>
                     <select name="prefix_mode" id="prefix_mode"
-                            onchange="togglePrefixMode()"
                             class="block w-full rounded-xl border-2 border-slate-300 dark:border-slate-600 px-4 py-3 focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-400 focus:border-amber-500">
                         <option value="fixed" {% if not namespace or namespace.prefix_mode == 'fixed' %}selected{% endif %}>🔢 Préfixe fixe + séquence</option>
                         <option value="range" {% if namespace and namespace.prefix_mode == 'range' %}selected{% endif %}>{{ icon('chart-bar', 'w-4 h-4') }} Plage numérique (min-max)</option>
@@ -191,7 +190,7 @@
                     </p>
                 </div>
 
-                <div id="range_fields" style="display: none;">
+                <div id="range_fields" hidden>
                     <div class="grid md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Valeur minimale</label>
@@ -257,46 +256,5 @@
 </div>
 </div>
 
-<script>
-// Auto-extraction de l'OID depuis l'URI FHIR
-document.addEventListener('DOMContentLoaded', function() {
-    const systemInput = document.getElementById('system');
-    const oidInput = document.getElementById('oid');
-    
-    if (systemInput && oidInput) {
-        systemInput.addEventListener('input', function() {
-            const systemValue = this.value.trim();
-            
-            // Extraire l'OID si l'URI est au format urn:oid:X.Y.Z
-            if (systemValue.startsWith('urn:oid:')) {
-                const extractedOid = systemValue.substring(8); // Enlever "urn:oid:"
-                oidInput.value = extractedOid;
-                oidInput.placeholder = extractedOid;
-            } else if (systemValue === '') {
-                oidInput.value = '';
-                oidInput.placeholder = "Sera extrait automatiquement de l'URI";
-            }
-        });
-    }
-    
-    // Initialiser l'affichage du mode préfixe au chargement
-    togglePrefixMode();
-});
-
-function togglePrefixMode() {
-    const mode = document.getElementById('prefix_mode').value;
-    const patternField = document.getElementById('pattern_field');
-    const rangeFields = document.getElementById('range_fields');
-    
-    if (mode === 'range') {
-        patternField.style.display = 'none';
-        rangeFields.style.display = 'block';
-        document.getElementById('prefix_pattern').required = false;
-    } else {
-        patternField.style.display = 'block';
-        rangeFields.style.display = 'none';
-        document.getElementById('prefix_pattern').required = false;
-    }
-}
-</script>
+<script defer src="{{ url_for('static', path='/js/namespace-form-workspace.js') }}"></script>
 {% endblock %}

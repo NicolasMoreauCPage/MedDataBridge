@@ -149,25 +149,17 @@
   <div class="bg-white dark:bg-slate-800 rounded-lg shadow mt-8">
     <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
       <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">📄 Message HL7 brut</h2>
-      <button onclick="copyMessage()" 
+      <button type="button" id="copyRawMessageBtn"
               class="px-3 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded text-sm transition">
         📋 Copier
       </button>
     </div>
     <div class="p-6">
   <pre id="rawMessage" class="bg-slate-900 text-green-400 p-4 rounded overflow-x-auto text-xs font-mono">{{ message.raw_message|default('', true) }}</pre>
+  <p id="copyRawMessageStatus" class="sr-only" aria-live="polite"></p>
     </div>
   </div>
 </div>
 
-<script>
-function copyMessage() {
-  const text = document.getElementById('rawMessage').innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    window.toastSystem?.show('Message copié dans le presse-papier.', 'success');
-  }).catch(() => {
-    window.toastSystem?.show('Copie impossible : sélectionnez le message puis copiez-le manuellement.', 'error');
-  });
-}
-</script>
+<script defer src="{{ url_for('static', path='js/conformity-message-detail.js') }}"></script>
 {% endblock %}

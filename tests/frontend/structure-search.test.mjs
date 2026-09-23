@@ -256,6 +256,17 @@ test("EJ scenario status delegates its automatic filters", () => {
   assert.match(source, /requestSubmit\(\)/);
 });
 
+test("conformity message copy is delegated and announces its result", () => {
+  const template = readFileSync(new URL("../../app/templates/conformity_message_detail.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/conformity-message-detail.js", import.meta.url), "utf8");
+  assert.match(template, /js\/conformity-message-detail\.js/);
+  assert.match(template, /id="copyRawMessageStatus" class="sr-only" aria-live="polite"/);
+  assert.doesNotMatch(template, /\bonclick=/);
+  assert.match(source, /navigator\.clipboard\.writeText/);
+  assert.match(source, /button\.disabled = true/);
+  assert.match(source, /button\.disabled = false/);
+});
+
 test("scenario import and conformity toggle use the shared HTTP client", () => {
   for (const relativePath of [
     "../../app/templates/scenario_import.html",

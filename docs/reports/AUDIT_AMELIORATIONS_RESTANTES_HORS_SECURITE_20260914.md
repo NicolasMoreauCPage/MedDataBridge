@@ -260,6 +260,9 @@ l'audit :
   d'EJ transporté par attribut de données plutôt que dans un gestionnaire HTML.
   Les filtres de statut des scénarios par EJ délèguent enfin leur soumission
   automatique à `static/js/ej-scenarios-status.js`.
+  La copie du message brut de conformité est isolée dans
+  `static/js/conformity-message-detail.js`, avec annonce de résultat et
+  prévention du double clic pendant l'accès au presse-papier.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

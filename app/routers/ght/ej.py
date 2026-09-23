@@ -231,9 +231,9 @@ def clone_entite_juridique(
         import os
         if os.getenv("TESTING", "0") in ("1", "true", "True"):
             request.session.setdefault("ght_context_id", context.id)
-    except Exception:
+    except Exception as exc:
         # non-fatal: continue even if sessions are unavailable in some test harnesses
-        pass
+        logger.debug("GHT session cleanup skipped", exc_info=exc)
 
     source_ej = get_ej_or_404(session, context, ej_id)
     

@@ -293,6 +293,6 @@ def parse_pd1(message: str) -> dict:
         # PD1-6 = language
         if len(parts) > 6 and parts[6]:
             out["language"] = parts[6]
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     return out

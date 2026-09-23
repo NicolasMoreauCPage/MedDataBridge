@@ -20,6 +20,7 @@ scripts/manual/identity_movement_roundtrip.py et docs/benchmark_zbe_performance.
 répercute PAS sur les messages réellement émis par l'application.
 """
 
+import logging
 from datetime import datetime
 from typing import Optional, Dict, List
 
@@ -32,6 +33,8 @@ from app.models_identifiers import Identifier
 from app.models_structure import IdentifierNamespace
 from sqlmodel import Session, select
 from app.services.pam_profile_fr import normalize_generated_message
+
+logger = logging.getLogger(__name__)
 
 
 def format_datetime(dt: Optional[datetime] = None) -> str:
@@ -496,8 +499,8 @@ def _is_strict_pam(endpoint: Optional[SystemEndpoint]) -> bool:
         try:
             if getattr(endpoint.entite_juridique, "strict_pam_fr", False):
                 return True
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
     import os as _os
     return _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}
 

@@ -1,4 +1,6 @@
 """Router pour l'interface de documentation."""
+import logging
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from pathlib import Path
@@ -7,6 +9,8 @@ from markdown.extensions.toc import TocExtension
 from markdown.extensions.fenced_code import FencedCodeExtension
 from markdown.extensions.tables import TableExtension
 from markdown.extensions.codehilite import CodeHiliteExtension
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/documentation", tags=["documentation"])
 @router.get("/fhir-reception-emission-complete", response_class=HTMLResponse)
@@ -321,9 +325,8 @@ async def search_documentation(request: Request, q: str = ""):
                                     "snippet": snippet,
                                     "matches": len(matching_lines)
                                 })
-                    except Exception:
-                        pass
-    
+                    except Exception as exc:
+                        logger.debug("Optional operation skipped", exc_info=exc)
     return request.app.state.templates.TemplateResponse(
         request,
         "documentation.html",

@@ -16,6 +16,7 @@ Notes d'implémentation
     bannière invitant l'utilisateur à choisir un contexte.
 """
 
+import logging
 from typing import Optional
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -26,6 +27,8 @@ from app.models import Patient, Dossier
 from app.models_endpoints import MessageLog
 from sqlalchemy import select, func
 import os
+
+logger = logging.getLogger(__name__)
 
 
 async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
@@ -82,13 +85,13 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                                         if ej is not None:
                                             request.session[f"ght_{int(plain_gid)}_ej_id"] = int(ej)
                                             request.session["ej_context_id"] = int(ej)
-                                    except Exception:
+                                    except Exception as exc:
                                         # ignore session set failures
-                                        pass
+                                        logger.debug("Session context write skipped", exc_info=exc)
                                     return ctx
-                    except Exception:
+                    except Exception as exc:
                         # parsing failed; fall back to older cookie approach
-                        pass
+                        logger.debug("Signed context cookie parsing failed; using legacy fallback", exc_info=exc)
 
                 if request.cookies.get("medbridge_test"):
                     plain_gid = request.cookies.get("ght_context_id")
@@ -96,8 +99,8 @@ async def get_active_ght_context(request: Request) -> Optional[GHTContext]:
                         with session_factory() as session:
                             ctx = session.get(GHTContext, int(plain_gid))
                             return ctx
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
     except Exception as e:
         logger.error(f"[get_active_ght_context] Error loading context: {e}", exc_info=True)
         pass
@@ -111,8 +114,8 @@ async def get_active_patient_context(request: Request) -> Optional[Patient]:
         if patient_id:
             with session_factory() as session:
                 return session.get(Patient, patient_id)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     return None
 
 
@@ -123,8 +126,8 @@ async def get_active_ej_context(request: Request) -> Optional[EntiteJuridique]:
         if ej_id:
             with session_factory() as session:
                 return session.get(EntiteJuridique, ej_id)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     return None
 
 
@@ -135,8 +138,8 @@ async def get_active_eg_context(request: Request) -> Optional[EntiteGeographique
         if eg_id:
             with session_factory() as session:
                 return session.get(EntiteGeographique, eg_id)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     return None
 
 
@@ -147,8 +150,8 @@ async def get_active_dossier_context(request: Request) -> Optional[Dossier]:
         if dossier_id:
             with session_factory() as session:
                 return session.get(Dossier, dossier_id)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     return None
 
 
@@ -239,8 +242,8 @@ class GHTContextMiddleware(BaseHTTPMiddleware):
                 # Mettre à jour la session pour garder la cohérence
                 try:
                     request.session["ght_context_id"] = ght_ctx.id
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
         # Ajouter le contexte EG si présent
         request.state.eg_context = await get_active_eg_context(request)
         # Si aucun GHT n'est défini mais qu'un EJ est sélectionné, déduire le GHT depuis l'EJ

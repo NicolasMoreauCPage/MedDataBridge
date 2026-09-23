@@ -14,6 +14,7 @@ Hypothèses (POC):
 """
 from __future__ import annotations
 
+import logging
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -25,6 +26,8 @@ from app.models_structure import (
     Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit,
     LocationServiceType, LocationStatus, LocationMode, LocationPhysicalType
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -154,9 +157,7 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
     """Importe le message MFN dans la base pour le GHT donné.
     Retourne un résumé des entités créées/trouvées.
     """
-    print("[MFN-IMPORTER] import_mfn called (print test)")
-    import logging
-    logger = logging.getLogger("app.services.mfn_importer")
+    logger.debug("import_mfn called")
     raw = parse_mfn_message(text)
 
     # Index existants par (type_code, code)

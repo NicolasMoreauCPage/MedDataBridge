@@ -26,7 +26,7 @@ logger = logging.getLogger("mllp")
 TRACE = os.getenv("MLLP_TRACE", "0") in ("1", "true", "True")
 
 START_BLOCK = b"\x0b"  # VT
-END_BLOCK = b"\x1c"    # FS
+END_BLOCK = b"\x1c"  # FS
 CARRIAGE_RETURN = b"\x0d"
 
 
@@ -36,9 +36,16 @@ def _hl7_charset(message: str) -> str:
     Le profil France privilégie ``UNICODE UTF-8``. ISO-8859-15 reste pris en
     charge pour les correspondants historiques ; un MSH-18 absent utilise UTF-8.
     """
-    msh = next((line for line in message.replace("\n", "\r").split("\r") if line.startswith("MSH|")), "")
+    msh = next(
+        (
+            line
+            for line in message.replace("\n", "\r").split("\r")
+            if line.startswith("MSH|")
+        ),
+        "",
+    )
     parts = msh.split("|")
-    declared = (parts[17].strip().upper() if len(parts) > 17 else "")
+    declared = parts[17].strip().upper() if len(parts) > 17 else ""
     if declared in {"8859/15", "ISO-8859-15", "ISO 8859/15"}:
         return "iso-8859-15"
     if declared in {"8859/1", "ISO-8859-1", "ISO 8859/1"}:
@@ -52,7 +59,13 @@ def frame_hl7(message: str) -> bytes:
     Les octets transmis sont cohérents avec MSH-18, au lieu d'annoncer un jeu
     de caractères puis d'envoyer systématiquement de l'UTF-8.
     """
-    return START_BLOCK + message.encode(_hl7_charset(message)) + END_BLOCK + CARRIAGE_RETURN
+    return (
+        START_BLOCK
+        + message.encode(_hl7_charset(message))
+        + END_BLOCK
+        + CARRIAGE_RETURN
+    )
+
 
 def deframe_hl7(stream: bytes) -> List[str]:
     """Extrait les messages HL7 d'un flux de bytes MLLP.
@@ -75,9 +88,10 @@ def deframe_hl7(stream: bytes) -> List[str]:
         probe = payload.decode("latin-1", errors="replace")
         msg = payload.decode(_hl7_charset(probe), errors="replace")
         cr = bytes(buf).find(CARRIAGE_RETURN, end + 1)
-        buf = buf[cr + 1:] if cr >= 0 else buf[end + 1:]
+        buf = buf[cr + 1 :] if cr >= 0 else buf[end + 1 :]
         msgs.append(msg)
     return msgs
+
 
 def parse_msh_fields(message: str) -> dict:
     """Parse rapide de MSH pour extraire quelques champs utiles.
@@ -87,7 +101,9 @@ def parse_msh_fields(message: str) -> dict:
     processing_id, version.
     """
     lines = message.split("\r")
-    msh = next((line for line in lines if line.startswith("MSH")), "MSH|^~\\&|||||||||||||")
+    msh = next(
+        (line for line in lines if line.startswith("MSH")), "MSH|^~\\&|||||||||||||"
+    )
     parts = msh.split("|")
     enc = parts[1] if len(parts) > 1 and parts[1] else "^~\\&"
     msg_type = parts[8] if len(parts) > 8 else ""
@@ -101,9 +117,9 @@ def parse_msh_fields(message: str) -> dict:
         "receiving_app": parts[4] if len(parts) > 4 else "",
         "receiving_facility": parts[5] if len(parts) > 5 else "",
         "datetime": parts[6] if len(parts) > 6 else "",
-    "msg_type": msg_type,
-    "type": msg_type_family,
-    "trigger": trigger,
+        "msg_type": msg_type,
+        "type": msg_type_family,
+        "trigger": trigger,
         "control_id": parts[9] if len(parts) > 9 else "",
         "processing_id": parts[10] if len(parts) > 10 else "P",
         "version": parts[11] if len(parts) > 11 else "2.5",
@@ -111,29 +127,31 @@ def parse_msh_fields(message: str) -> dict:
         "charset": parts[17] if len(parts) > 17 else "",
     }
 
+
 def build_ack(original: str, ack_code: str = "AA", text: str = "") -> str:
     """Construit un ACK HL7 (MSH+MSA et ERR si AE/AR) en réponse à `original`."""
     f = parse_msh_fields(original)
     now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     structure = expected_structure(f["trigger"])
-    msh9 = f"ACK^{f['trigger']}^{structure}" if f["trigger"] and structure else (f"ACK^{f['trigger']}" if f["trigger"] else "ACK")
+    msh9 = (
+        f"ACK^{f['trigger']}^{structure}"
+        if f["trigger"] and structure
+        else (f"ACK^{f['trigger']}" if f["trigger"] else "ACK")
+    )
     country_code = f["country_code"] or "FRA"
     charset = f["charset"] or "UNICODE UTF-8"
-    msh = (
-        "MSH|{enc}|{send_app}|{send_fac}|{recv_app}|{recv_fac}|{ts}||{msh9}|ACK{ts}|{proc}|{ver}|||||{country}|{charset}"
-        .format(
-            enc=f["enc"],
-            send_app=f["receiving_app"],
-            send_fac=f["receiving_facility"],
-            recv_app=f["sending_app"],
-            recv_fac=f["sending_facility"],
-            ts=now,
-            msh9=msh9,
-            proc=f["processing_id"],
-            ver=f["version"],
-            country=country_code,
-            charset=charset,
-        )
+    msh = "MSH|{enc}|{send_app}|{send_fac}|{recv_app}|{recv_fac}|{ts}||{msh9}|ACK{ts}|{proc}|{ver}|||||{country}|{charset}".format(
+        enc=f["enc"],
+        send_app=f["receiving_app"],
+        send_fac=f["receiving_facility"],
+        recv_app=f["sending_app"],
+        recv_fac=f["sending_facility"],
+        ts=now,
+        msh9=msh9,
+        proc=f["processing_id"],
+        ver=f["version"],
+        country=country_code,
+        charset=charset,
     )
     msa = f"MSA|{ack_code}|{f['control_id']}|{text or ''}"
     segs = [msh, msa]
@@ -141,21 +159,24 @@ def build_ack(original: str, ack_code: str = "AA", text: str = "") -> str:
         segs.append(f"ERR|||207^{text or 'Application error'}^HL70357|E")
     return "\r".join(segs) + "\r"
 
+
 def _hexdump(b: bytes, width: int = 16) -> str:
     """Représentation hexadécimale lisible d'un buffer bytes (debug)."""
     lines = []
     for i in range(0, len(b), width):
-        chunk = b[i:i+width]
+        chunk = b[i : i + width]
         hexs = " ".join(f"{x:02x}" for x in chunk)
         text = "".join(chr(x) if 32 <= x < 127 else "." for x in chunk)
-        lines.append(f"{i:04x}  {hexs:<{width*3}}  {text}")
+        lines.append(f"{i:04x}  {hexs:<{width * 3}}  {text}")
     return "\n".join(lines)
 
+
 async def start_mllp_server(
-    host: str, port: int,
+    host: str,
+    port: int,
     on_message: Callable[[str, Session, SystemEndpoint], Awaitable[str]],
     endpoint: SystemEndpoint,
-    session_factory: Callable[[], Session]
+    session_factory: Callable[[], Session],
 ):
     """Démarre un serveur MLLP asyncio.
 
@@ -167,7 +188,7 @@ async def start_mllp_server(
     # Extraire les valeurs de l'endpoint avant le handler pour éviter DetachedInstanceError
     endpoint_name = endpoint.name
     endpoint_id = endpoint.id
-    
+
     async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         peer = writer.get_extra_info("peername")
         logger.info(f"[MLLP] Connect {peer} -> {host}:{port} ({endpoint_name})")
@@ -184,7 +205,10 @@ async def start_mllp_server(
                 end_idx = bytes(buf).find(END_BLOCK)
                 if end_idx >= 0:
                     # ensure CR follows END_BLOCK (may be missing if truncated)
-                    if len(buf) > end_idx + 1 and bytes(buf)[end_idx + 1:end_idx + 2] == CARRIAGE_RETURN:
+                    if (
+                        len(buf) > end_idx + 1
+                        and bytes(buf)[end_idx + 1 : end_idx + 2] == CARRIAGE_RETURN
+                    ):
                         break
 
             data = bytes(buf)
@@ -203,7 +227,9 @@ async def start_mllp_server(
                 for idx, msg in enumerate(messages, 1):
                     f = parse_msh_fields(msg)
                     ctrl = f.get("control_id")
-                    logger.info(f"[MLLP] Frame {idx}/{len(messages)} MSH-10={ctrl or '∅'} MSH-9={f.get('msg_type')}")
+                    logger.info(
+                        f"[MLLP] Frame {idx}/{len(messages)} MSH-10={ctrl or '∅'} MSH-9={f.get('msg_type')}"
+                    )
                     with session_factory() as s:
                         try:
                             # Recharger l'endpoint depuis la session courante pour éviter DetachedInstanceError
@@ -216,15 +242,19 @@ async def start_mllp_server(
                             else:
                                 # sync wrapper returns dict {'status':..., 'ack': '...'} or directly str
                                 if isinstance(res, dict):
-                                    ack = res.get('ack')
+                                    ack = res.get("ack")
                                 else:
                                     ack = res
                             writer.write(frame_hl7(ack))
                             await writer.drain()
                             if TRACE:
-                                logger.debug("[MLLP] TX ACK:\n" + ack.replace("\r", "\\r\n"))
+                                logger.debug(
+                                    "[MLLP] TX ACK:\n" + ack.replace("\r", "\\r\n")
+                                )
                         except Exception as e:
-                            logger.exception(f"[MLLP] Error processing frame {idx}: {e}")
+                            logger.exception(
+                                f"[MLLP] Error processing frame {idx}: {e}"
+                            )
                             ack = build_ack(msg, ack_code="AE", text=str(e)[:80])
                             writer.write(frame_hl7(ack))
                             await writer.drain()
@@ -232,8 +262,8 @@ async def start_mllp_server(
             try:
                 writer.close()
                 await writer.wait_closed()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
             logger.info(f"[MLLP] Disconnect {peer} from {host}:{port}")
 
     try:
@@ -243,6 +273,7 @@ async def start_mllp_server(
     except OSError as e:
         logger.error(f"❌ Cannot bind MLLP {endpoint.name} on {host}:{port} — {e}")
         raise
+
 
 async def send_mllp(host: str, port: int, message: str, timeout: float = 10.0) -> str:
     """Envoie un message HL7 en MLLP et retourne le premier ACK reçu."""

@@ -1,11 +1,14 @@
 """Validation sémantique des transitions A06/A07."""
 from __future__ import annotations
 
+import logging
 from typing import List, Optional
 
 from app.services.mllp import parse_msh_fields
 from app.services.pam_validation_fields import _get_first_segment
 from app.services.pam_validation_models import ValidationIssue, ValidationResult
+
+logger = logging.getLogger(__name__)
 
 def validate_pam_semantics(
     hl7_message: str,
@@ -107,9 +110,8 @@ def validate_pam_semantics(
         if when_str:
             try:
                 when_dt = datetime.strptime(when_str[:14], "%Y%m%d%H%M%S")
-            except Exception:
-                pass
-        
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
         # Query previous movements
         previous_movements = session.exec(
             select(Mouvement)
@@ -213,5 +215,3 @@ def validate_pam_semantics(
     is_valid = not has_error  # Valid only if no errors (considering strict mode)
     
     return ValidationResult(is_valid=is_valid, level=level, event=trigger, message_type="", issues=issues)
-
-

@@ -1,16 +1,17 @@
 from pathlib import Path
+import logging
 import os
 import time
 import random
+
+logger = logging.getLogger(__name__)
 
 
 def _ensure_dir(d: Path):
     try:
         d.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        pass
-
-
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
 def write_atomic_text(target_dir: Path, basename: str, content: str, extension: str = ".hl7") -> Path:
     """Write content to target_dir/basename_<timestamp>-<rand><extension> atomically.
 
@@ -32,9 +33,9 @@ def write_atomic_text(target_dir: Path, basename: str, content: str, extension: 
         fh.flush()
         try:
             os.fsync(fh.fileno())
-        except Exception:
+        except Exception as exc:
             # not fatal on some platforms
-            pass
+            logger.debug("File fsync unsupported", exc_info=exc)
 
     # Atomic replace
     try:
@@ -62,7 +63,7 @@ def write_atomic_text_file(final_path: Path, content: str) -> Path:
         fh.flush()
         try:
             os.fsync(fh.fileno())
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
     os.replace(str(tmp_path), str(final_path))
     return final_path

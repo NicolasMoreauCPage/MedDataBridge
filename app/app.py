@@ -69,6 +69,8 @@ from app.routers import cotation_modern
 
 from app.logging_config import setup_logging
 
+logger = logging.getLogger(__name__)
+
 # Instance unique du manager et publication via app.state
 # - `session_factory` fournit des sessions DB courtes et sûres côté workers.
 # - `on_message_inbound` est appelé pour chaque message entrant HL7.
@@ -159,7 +161,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     from app.utils.error_handling import register_exception_handlers
     register_exception_handlers(app)
 
-    print("\nFastAPI app initialization")
+    logger.info("\nFastAPI app initialization")
 
     # Filtre Jinja2 global pour masquer None ou 'None' par '—'
     def none_to_dash(value):
@@ -350,26 +352,26 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
             """Exposition des métriques Prometheus (scrape)."""
             content = generate_latest()  # default registry
             return Response(content=content, media_type=CONTENT_TYPE_LATEST)
-    except Exception:
+    except Exception as exc:
         # If prometheus_client isn't installed, skip this endpoint
-        pass
+        logger.debug("Prometheus endpoint not registered", exc_info=exc)
 
     # System routes - Tasks API
     app.include_router(tasks.router)
-    print(" - Tasks API router mounted at /api/tasks")
+    logger.info(" - Tasks API router mounted at /api/tasks")
 
     # System Health API
     from app.api import system_health
     app.include_router(system_health.router)
-    print(" - System Health API router mounted at /api")
+    logger.info(" - System Health API router mounted at /api")
 
-    print("\nRegistering routes:")
+    logger.info("\nRegistering routes:")
 
     # 1. Basic UI routes
     
     # 1. Basic UI routes 
     app.include_router(home.router)
-    print(" - Home router mounted at /")
+    logger.info(" - Home router mounted at /")
     
     # 2. Entity and core data routes - all have their own prefixes
     app.include_router(patients.router)
@@ -379,21 +381,21 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     app.include_router(venues.router)
     app.include_router(mouvements.router)
     app.include_router(contacts.router)
-    print(" - Core entity routers mounted with their prefixes")
+    logger.info(" - Core entity routers mounted with their prefixes")
 
     # Register AJAX endpoints for mouvements (no GHT dependency)
     app.include_router(mouvements.ajax_router)
-    print(" - Mouvements AJAX router mounted at /mouvements/api")
+    logger.info(" - Mouvements AJAX router mounted at /mouvements/api")
     
     # API endpoints for dynamic form field loading
     from app.routers import api_structure
     app.include_router(api_structure.router)
-    print(" - API Structure router mounted at /api/mouvements")
+    logger.info(" - API Structure router mounted at /api/mouvements")
     
     # 2b. Timeline views
     from app.routers import timeline
     app.include_router(timeline.router)
-    print(" - Timeline router mounted")
+    logger.info(" - Timeline router mounted")
     
     # 3. Structure management
     app.include_router(structure.redirect_router)  # Redirections singulier->pluriel (AVANT le router principal)
@@ -402,46 +404,46 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     app.include_router(structure_hl7.router)  # Has prefix /structure (legacy MFN helpers)
     app.include_router(fhir_structure.router)  # Has prefix /fhir
     app.include_router(structure_select.router)  # Has prefix /structure
-    print(" - Structure routers mounted")
+    logger.info(" - Structure routers mounted")
     
     # 3b. Analytics (Mode Gestionnaire)
     from app.routers import analytics
     app.include_router(analytics.router)
     app.include_router(analytics.ui_router)
-    print(" - Analytics routers mounted at /api/analytics and /structure/analytics")
+    logger.info(" - Analytics routers mounted at /api/analytics and /structure/analytics")
     
     # 3c. Alert Configuration (Mode Gestionnaire)
     from app.routers import alert_config
     app.include_router(alert_config.router)
     app.include_router(alert_config.ui_router)
-    print(" - Alert config routers mounted at /api/alert-config and /structure/alert-config")
+    logger.info(" - Alert config routers mounted at /api/alert-config and /structure/alert-config")
     
     # 3d. Export Analytics (Mode Gestionnaire)
     from app.routers import export_analytics
     app.include_router(export_analytics.router)
-    print(" - Export analytics router mounted at /api/analytics/export")
+    logger.info(" - Export analytics router mounted at /api/analytics/export")
     
     # 3e. Design System Demo (Phase 5.2)
     from app.routers import design_system
     app.include_router(design_system.router)
-    print(" - Design System demo mounted at /design-system")
+    logger.info(" - Design System demo mounted at /design-system")
     
     # 3f. Structure Search Interface (Phase 5.3)
     from app.routers import structure_search
     app.include_router(structure_search.router)
-    print(" - Structure Search interface mounted at /structure/search")
+    logger.info(" - Structure Search interface mounted at /structure/search")
     
     # 3e. Import/Export Structure Excel
     from app.routers import structure_import_export
     app.include_router(structure_import_export.router)
     app.include_router(structure_import_export.ui_router)
-    print(" - Structure import/export routers mounted at /api/structure/export and /structure/import")
+    logger.info(" - Structure import/export routers mounted at /api/structure/export and /structure/import")
     
     # 3f. Structure Interactive (Phase 5 - Édition inline & drag-drop)
     from app.routers import structure_interactive
     app.include_router(structure_interactive.router)
     app.include_router(structure_interactive.ui_router)
-    print(" - Structure interactive router mounted at /api/structure (PATCH, POST /move) and /structure/interactive")
+    logger.info(" - Structure interactive router mounted at /api/structure (PATCH, POST /move) and /structure/interactive")
     
     # 4. Admin interfaces (mount under /admin so templates/redirects using
     # /admin/ght work as expected)
@@ -449,7 +451,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     app.include_router(admin_gateway.router)
     app.include_router(ght.router, prefix="/admin/ght")
     # Les sub-routers sont inclus dans ght.py, on ne les inclut pas directement ici
-    print(" - Admin routers mounted under /admin/ght")
+    logger.info(" - Admin routers mounted under /admin/ght")
     
     # 5. Integration and transport
     app.include_router(messages.router)
@@ -469,9 +471,9 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(ccam.router)
         app.include_router(hprim_ccam.router)
         app.include_router(hprim_messages_api.router)
-        print(" - HPRIM CCAM router mounted at /ccam")
-        print(" - HPRIM CCAM API router mounted at /api/hprim/actes/ccam")
-        print(" - HPRIM Messages API router mounted at /api/hprim/messages")
+        logger.info(" - HPRIM CCAM router mounted at /ccam")
+        logger.info(" - HPRIM CCAM API router mounted at /api/hprim/actes/ccam")
+        logger.info(" - HPRIM Messages API router mounted at /api/hprim/messages")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM CCAM router not available: {e}")
     
@@ -484,8 +486,8 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         app.include_router(hprim_ngap.router)
         app.include_router(ucd.router)
         app.include_router(ucd_router.router)
-        print(" - HPRIM NGAP router mounted at /api/hprim/actes/ngap")
-        print(" - HPRIM UCD routers mounted")
+        logger.info(" - HPRIM NGAP router mounted at /api/hprim/actes/ngap")
+        logger.info(" - HPRIM UCD routers mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM NGAP/UCD routers not available: {e}")
     
@@ -495,35 +497,35 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         from app.routers import lpp as lpp_router
         app.include_router(lpp.router)
         app.include_router(lpp_router.router)
-        print(" - HPRIM LPP routers mounted")
+        logger.info(" - HPRIM LPP routers mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM LPP routers not available: {e}")
     
     # HPRIM Interventions & Cotations router
     try:
         app.include_router(hprim_interventions.router)
-        print(" - HPRIM Interventions router mounted at /api/hprim/interventions")
+        logger.info(" - HPRIM Interventions router mounted at /api/hprim/interventions")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM Interventions router not available: {e}")
     
     # HPRIM Acquittements router
     try:
         app.include_router(hprim_acquittements.router)
-        print(" - HPRIM Acquittements router mounted at /api/hprim/acquittements")
+        logger.info(" - HPRIM Acquittements router mounted at /api/hprim/acquittements")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM Acquittements router not available: {e}")
     
     # HPRIM Management router (import, dashboard, etc.)
     try:
         app.include_router(hprim_management.router)
-        print(" - HPRIM Management router mounted at /hprim")
+        logger.info(" - HPRIM Management router mounted at /hprim")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM Management router not available: {e}")
     
     # NGAP router (nursing acts)
     try:
         app.include_router(ngap.router)
-        print(" - NGAP router mounted at /ngap")
+        logger.info(" - NGAP router mounted at /ngap")
     except Exception as e:
         logging.getLogger(__name__).warning(f"NGAP router not available: {e}")
     
@@ -531,9 +533,9 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     try:
         app.include_router(cotations.router)
         app.include_router(cotations_saisie.router)
-        print(" - Cotations routers mounted:")
-        print("   • /dossiers/{id}/cotations (liste)")
-        print("   • /cotations/dossier/{id}/saisie (saisie rapide)")
+        logger.info(" - Cotations routers mounted:")
+        logger.info("   • /dossiers/{id}/cotations (liste)")
+        logger.info("   • /cotations/dossier/{id}/saisie (saisie rapide)")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Cotations routers not available: {e}")
     
@@ -543,19 +545,19 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         from app.api import dossiers as dossiers_api
         app.include_router(patients_api.router)
         app.include_router(dossiers_api.router)
-        print(" - REST APIs Patients & Dossiers mounted at /api/patients and /api/dossiers")
+        logger.info(" - REST APIs Patients & Dossiers mounted at /api/patients and /api/dossiers")
     except Exception as e:
         logging.getLogger(__name__).warning(f"REST APIs Patients/Dossiers not available: {e}")
     
     # Roundtrip HPRIM router
     app.include_router(roundtrip_hprim.router)
-    print(" - Roundtrip HPRIM router mounted at /roundtrip-hprim")
+    logger.info(" - Roundtrip HPRIM router mounted at /roundtrip-hprim")
     
     # HPRIM messages cotation router (visualisation et import des actes)
     try:
         from app.routers import hprim_messages
         app.include_router(hprim_messages.router)
-        print(" - HPRIM messages cotation router mounted at /hprim-cotation")
+        logger.info(" - HPRIM messages cotation router mounted at /hprim-cotation")
     except Exception as e:
         logging.getLogger(__name__).warning(f"HPRIM messages cotation router not available: {e}")
     
@@ -564,12 +566,12 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     try:
         from app.routers import cotation_selector
         app.include_router(cotation_selector.router)
-        print(" - Cotation selector router mounted at /cotation-modern/select")
+        logger.info(" - Cotation selector router mounted at /cotation-modern/select")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Cotation selector router not available: {e}")
-    print(" - Cotation moderne router mounted at /cotation-modern")
+    logger.info(" - Cotation moderne router mounted at /cotation-modern")
     
-    print(" - Integration routers mounted")
+    logger.info(" - Integration routers mounted")
     
     # 6. Utilities and workflow
     app.include_router(workflow.router)
@@ -588,12 +590,12 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     app.include_router(interface_testing.ui_router)  # UI des tests d'interfaces
     app.include_router(test_scenario_generator.router)  # API générateur de scénarios
     app.include_router(ui_test_scenarios.router)  # UI générateur de scénarios
-    print(" - Validation and conformity routers mounted")
+    logger.info(" - Validation and conformity routers mounted")
     # Context management (patient/dossier quick set/clear)
     try:
         from app.routers import context
         app.include_router(context.router, prefix="/context", tags=["context"])
-        print(" - Context router mounted")
+        logger.info(" - Context router mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Context router not available: {e}")
     app.include_router(guide.router)
@@ -604,7 +606,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     try:
         from app.routers import scenario_templates
         app.include_router(scenario_templates.router)
-        print(" - Scenario templates router mounted")
+        logger.info(" - Scenario templates router mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Scenario templates router not available: {e}")
     
@@ -612,46 +614,46 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     try:
         from app.routers import scenario_ej_config
         app.include_router(scenario_ej_config.router)
-        print(" - Scenario EJ config router mounted")
+        logger.info(" - Scenario EJ config router mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Scenario EJ config router not available: {e}")
     try:
         from app.routers import scenario_target_profiles
         app.include_router(scenario_target_profiles.router)
-        print(" - Scenario target profiles router mounted")
+        logger.info(" - Scenario target profiles router mounted")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Scenario target profiles router not available: {e}")
     
     app.include_router(scenarios.router)
     
-    print(" - Utility routers mounted")
+    logger.info(" - Utility routers mounted")
     
     # 7. Cache management
     from app.routers import cache
     app.include_router(cache.router, prefix="/api")
-    print(" - Cache router mounted at /api/cache")
+    logger.info(" - Cache router mounted at /api/cache")
     
     # 8. Import endpoints for test Exemple
     from app.routers import import_examples
     app.include_router(import_examples.router)
-    print(" - Import examples router mounted at /import")
+    logger.info(" - Import examples router mounted at /import")
     
     # 7. Authentication
     app.include_router(auth.router)
-    print(" - Authentication router mounted")
+    logger.info(" - Authentication router mounted")
     
     # 7.1. Protected admin endpoints
     from app.routers import admin_protected
     app.include_router(admin_protected.router)
-    print(" - Protected admin router mounted at /api/admin")
+    logger.info(" - Protected admin router mounted at /api/admin")
     
     # 8. FHIR API endpoints
     app.include_router(fhir_export.router)
     app.include_router(fhir_import.router)
     app.include_router(metrics.router)
     app.include_router(metrics.ui_router)
-    print(" - FHIR API routers mounted")
-    print(" - Metrics UI router mounted at /metrics")
+    logger.info(" - FHIR API routers mounted")
+    logger.info(" - Metrics UI router mounted at /metrics")
 
     # 11. Monitoring dashboard (UI)
     try:
@@ -671,13 +673,13 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
             return templates.TemplateResponse(request, "cache_dashboard.html")
 
         app.include_router(dashboard_router)
-        print(" - Monitoring dashboard mounted at /dashboard")
+        logger.info(" - Monitoring dashboard mounted at /dashboard")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Dashboard not available: {e}")
     
     # 9. Lightweight health/version helpers
     app.include_router(health.router)
-    print(" - Health/version helpers mounted")
+    logger.info(" - Health/version helpers mounted")
     
     # 10. Debug endpoints: available only in development and tests. They create
     # durable data and must not be exposed by a normal runtime configuration.
@@ -685,11 +687,11 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         try:
             from app.routers import debug_events
             app.include_router(debug_events.router)
-            print(" - Debug router mounted at /debug")
+            logger.info(" - Debug router mounted at /debug")
         except Exception as e:
             logging.getLogger(__name__).warning(f"Debug router not available: {e}")
     
-    print("All routes registered.")
+    logger.info("All routes registered.")
     
     return app
 
@@ -744,6 +746,6 @@ if not testing:
     # Register all admin views
     register_admin_views(admin)
     
-    print("SQLAdmin interface initialized at /sqladmin")
+    logger.info("SQLAdmin interface initialized at /sqladmin")
 
-print(f"Application ready with {len(app.routes)} routes")
+logger.info(f"Application ready with {len(app.routes)} routes")

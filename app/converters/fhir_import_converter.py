@@ -4,6 +4,7 @@ Convertisseurs FHIR → Models internes pour l'import.
 Ce module fournit les classes pour convertir des ressources FHIR R4
 vers les modèles internes de MedDataBridge.
 """
+import logging
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 from sqlmodel import Session, select
@@ -18,6 +19,8 @@ from app.models import Patient, Dossier, Mouvement, Venue
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_practitioners import MedecinResponsable
 from app.services.medecin_extractor import get_or_create_medecin
+
+logger = logging.getLogger(__name__)
 
 
 class FHIRImportError(Exception):
@@ -1097,4 +1100,9 @@ class FHIRBundleImporter:
             
             if not has_fr_profile:
                 # Ne pas lever d'erreur, juste un avertissement dans les logs
-                print(f"⚠️  Ressource {resource_type} sans profil FRCore. Profils attendus: {expected}, profils trouvés: {profiles}")
+                logger.warning(
+                    "Ressource %s sans profil FRCore. Profils attendus: %s, profils trouvés: %s",
+                    resource_type,
+                    expected,
+                    profiles,
+                )

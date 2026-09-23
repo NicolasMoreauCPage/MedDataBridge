@@ -1,9 +1,13 @@
+import logging
+
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 
 from app.models_shared import SystemEndpoint
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from app.models import Venue
@@ -15,12 +19,12 @@ else:
     # scripts or tests that import structure models directly.
     try:
         import app.models_practitioners  # noqa: F401
-    except Exception:
+    except Exception as exc:
         # If import fails (e.g. during partial test runs), proceed silently;
         # tests that require the practitioners model will still fail later
         # with a clearer error. This defensive import avoids NoReferencedTableError
         # in common create_all() call sites by ensuring the model is registered.
-        pass
+        logger.debug("Practitioner model registry import deferred", exc_info=exc)
 
 
 class StructureTemplateType(str, Enum):
@@ -899,4 +903,3 @@ class BaseLocation(SQLModel):
     activation_date: Optional[str] = None  # DT_ACTVTN
     closing_date: Optional[str] = None  # DT_FRMTR
     deactivation_date: Optional[str] = None  # DT_FN_ACTVTN
-

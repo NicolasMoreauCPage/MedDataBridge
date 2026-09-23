@@ -77,25 +77,25 @@ def _extract_trigger(step: InteropScenarioStep) -> Optional[str]:
 
 def _extract_segment(message: str, segment_name: str) -> Optional[str]:
     """Extrait un segment HL7 du message (ex: 'PID' pour obtenir la ligne PID)."""
-    lines = message.split('\n')
+    lines = message.split("\n")
     for line in lines:
-        if line.startswith(segment_name + '|'):
+        if line.startswith(segment_name + "|"):
             return line
     return None
 
 
 def _replace_segment(message: str, segment_name: str, new_segment: str) -> str:
     """Remplace un segment HL7 dans le message."""
-    lines = message.split('\n')
+    lines = message.split("\n")
     result = []
     replaced = False
     for line in lines:
-        if line.startswith(segment_name + '|') and not replaced:
+        if line.startswith(segment_name + "|") and not replaced:
             result.append(new_segment)
             replaced = True
         else:
             result.append(line)
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 async def _send_hl7_step(
@@ -109,7 +109,7 @@ async def _send_hl7_step(
 ) -> MessageLog:
     """
     Envoie une étape HL7 via MLLP avec remplacement optionnel des identifiants.
-    
+
     Args:
         session: Session de base de données
         step: Étape du scénario à envoyer
@@ -135,8 +135,8 @@ async def _send_hl7_step(
                 ght_context_id = step.scenario.ght_context_id
             if step.scenario and step.scenario.entite_juridique_id:
                 ej_context_id = step.scenario.entite_juridique_id
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         if not ght_context_id:
             ght_context_id = getattr(endpoint, "ght_context_id", None)
         if not ej_context_id:
@@ -155,10 +155,12 @@ async def _send_hl7_step(
 
     if identity_profile:
         try:
-            payload_to_send = apply_patient_identity_to_hl7(payload_to_send, identity_profile)
+            payload_to_send = apply_patient_identity_to_hl7(
+                payload_to_send, identity_profile
+            )
         except Exception as exc:
             logger.warning(f"⚠️ Impossible d'appliquer l'identité générée: {exc}")
-    
+
     # Remplacement des identifiants - TOUJOURS génération de nouveaux identifiants
     generated_ids = {}
     if ght_context_id:
@@ -168,31 +170,31 @@ async def _send_hl7_step(
                 select(IdentifierNamespace).where(
                     IdentifierNamespace.ght_context_id == ght_context_id,
                     IdentifierNamespace.type == "IPP",
-                    IdentifierNamespace.is_active.is_(True)
+                    IdentifierNamespace.is_active.is_(True),
                 )
             ).first()
-            
+
             nda_namespace = session.exec(
                 select(IdentifierNamespace).where(
                     IdentifierNamespace.ght_context_id == ght_context_id,
                     IdentifierNamespace.type == "NDA",
-                    IdentifierNamespace.is_active.is_(True)
+                    IdentifierNamespace.is_active.is_(True),
                 )
             ).first()
-            
+
             venue_namespace = session.exec(
                 select(IdentifierNamespace).where(
                     IdentifierNamespace.ght_context_id == ght_context_id,
                     IdentifierNamespace.type == "VN",
-                    IdentifierNamespace.is_active.is_(True)
+                    IdentifierNamespace.is_active.is_(True),
                 )
             ).first()
-            
+
             # Si namespaces configurés, utiliser le système standard
             if ipp_namespace and nda_namespace:
                 ipp_prefix_override = binding.identifier_prefix_ipp if binding else None
                 nda_prefix_override = binding.identifier_prefix_nda if binding else None
-                
+
                 payload_to_send, generated_ids = replace_identifiers_in_hl7_message(
                     message=payload_to_send,
                     session=session,
@@ -200,76 +202,107 @@ async def _send_hl7_step(
                     nda_namespace=nda_namespace,
                     venue_namespace=venue_namespace,
                     ipp_prefix_override=ipp_prefix_override,
-                    nda_prefix_override=nda_prefix_override
+                    nda_prefix_override=nda_prefix_override,
                 )
-                
+
                 # Mettre à jour le binding avec les identifiants générés (si binding existe)
                 if binding and generated_ids:
-                    binding.generated_ipp = generated_ids.get('ipp')
-                    binding.generated_nda = generated_ids.get('nda')
-                    binding.generated_venue_id = generated_ids.get('venue')
+                    binding.generated_ipp = generated_ids.get("ipp")
+                    binding.generated_nda = generated_ids.get("nda")
+                    binding.generated_venue_id = generated_ids.get("venue")
                     binding.last_execution_at = datetime.utcnow()
                     session.add(binding)
                     session.commit()
-                    
-                logger.info(f"✅ Identifiants générés avec namespaces: IPP={generated_ids.get('ipp')}, NDA={generated_ids.get('nda')}")
-            
+
+                logger.info(
+                    f"✅ Identifiants générés avec namespaces: IPP={generated_ids.get('ipp')}, NDA={generated_ids.get('nda')}"
+                )
+
             # Dans TOUS LES CAS (namespaces ou pas), générer nouveaux identifiants + config EJ
             if True:  # Force toujours la génération
-                logger.info("🔄 Génération systématique de nouveaux identifiants avec config EJ")
-                from app.utils.seq_generator import generate_patient_seq, generate_dossier_seq
-                from app.models_scenario_config import ScenarioEJConfig, get_medecin_for_event, build_xcn_field, get_location_for_event
-                
+                logger.info(
+                    "🔄 Génération systématique de nouveaux identifiants avec config EJ"
+                )
+                from app.utils.seq_generator import (
+                    generate_patient_seq,
+                    generate_dossier_seq,
+                )
+                from app.models_scenario_config import (
+                    ScenarioEJConfig,
+                    get_medecin_for_event,
+                    build_xcn_field,
+                    get_location_for_event,
+                )
+
                 # Récupérer la config EJ
                 ej_config = session.exec(
-                    select(ScenarioEJConfig).where(ScenarioEJConfig.entite_juridique_id == ght_context_id)
+                    select(ScenarioEJConfig).where(
+                        ScenarioEJConfig.entite_juridique_id == ght_context_id
+                    )
                 ).first()
-                
+
                 # Générer NOUVEAUX identifiants IPP/NDA à chaque exécution
                 ipp_value = str(generate_patient_seq())  # Format: "9" + 11 chiffres
                 nda_value = str(generate_dossier_seq())  # Format: "9" + 8 chiffres
-                
+
                 # Extraire le trigger pour déterminer les UF/médecin à utiliser
                 trigger = None
-                msh_line = next((line for line in payload_to_send.split('\n') if line.startswith('MSH')), None)
+                msh_line = next(
+                    (
+                        line
+                        for line in payload_to_send.split("\n")
+                        if line.startswith("MSH")
+                    ),
+                    None,
+                )
                 if msh_line:
-                    msh_fields = msh_line.split('|')
+                    msh_fields = msh_line.split("|")
                     if len(msh_fields) > 9:
-                        trigger = msh_fields[9].split('^')[0] if '^' in msh_fields[9] else msh_fields[9]
-                
+                        trigger = (
+                            msh_fields[9].split("^")[0]
+                            if "^" in msh_fields[9]
+                            else msh_fields[9]
+                        )
+
                 # Remplacer dans PID (identifiants patient)
                 pid_segment = _extract_segment(payload_to_send, "PID")
                 if pid_segment:
                     # PID-3: IPP
                     new_pid = re.sub(
-                        r'^(PID\|[^|]*\|[^|]*\|)([^|]*)(\|)',
-                        fr'\g<1>{ipp_value}^^^1.2.250.1.213.1.1.1\g<3>',
-                        pid_segment
+                        r"^(PID\|[^|]*\|[^|]*\|)([^|]*)(\|)",
+                        rf"\g<1>{ipp_value}^^^1.2.250.1.213.1.1.1\g<3>",
+                        pid_segment,
                     )
                     # PID-18: NDA
-                    fields = new_pid.split('|')
+                    fields = new_pid.split("|")
                     while len(fields) <= 18:
-                        fields.append('')
+                        fields.append("")
                     fields[18] = f"{nda_value}^^^1.2.250.1.213.1.1.9"
-                    new_pid = '|'.join(fields)
+                    new_pid = "|".join(fields)
                     payload_to_send = _replace_segment(payload_to_send, "PID", new_pid)
-                    
-                    generated_ids.update({'ipp': ipp_value, 'nda': nda_value})
-                    logger.info(f"🆔 NOUVEAUX identifiants: IPP={ipp_value}, NDA={nda_value}")
-                
+
+                    generated_ids.update({"ipp": ipp_value, "nda": nda_value})
+                    logger.info(
+                        f"🆔 NOUVEAUX identifiants: IPP={ipp_value}, NDA={nda_value}"
+                    )
+
                 # Remplacer UF et médecin dans PV1 avec config EJ
                 pv1_segment = _extract_segment(payload_to_send, "PV1")
                 if pv1_segment and trigger:
-                    pv1_fields = pv1_segment.split('|')
-                    
+                    pv1_fields = pv1_segment.split("|")
+
                     # PV1-3: Localisation avec UF configurée
                     if ej_config:
-                        location_info = get_location_for_event(ej_config, trigger, session)
+                        location_info = get_location_for_event(
+                            ej_config, trigger, session
+                        )
                         if location_info.get("pv1_3"):
                             if len(pv1_fields) > 3:
                                 pv1_fields[3] = location_info["pv1_3"]
-                                logger.info(f"🏥 UF configurée: {location_info['pv1_3']}")
-                    
+                                logger.info(
+                                    f"🏥 UF configurée: {location_info['pv1_3']}"
+                                )
+
                     # PV1-7: Médecin responsable configuré
                     if ej_config:
                         medecin_info = get_medecin_for_event(ej_config, trigger)
@@ -277,9 +310,11 @@ async def _send_hl7_step(
                             pv1_7 = build_xcn_field(medecin_info)
                             if len(pv1_fields) > 7:
                                 pv1_fields[7] = pv1_7
-                                logger.info(f"👨‍⚕️ Médecin configuré: {medecin_info.get('nom', '')} (RPPS: {medecin_info.get('rpps', '')})")
-                    
-                    new_pv1 = '|'.join(pv1_fields)
+                                logger.info(
+                                    f"👨‍⚕️ Médecin configuré: {medecin_info.get('nom', '')} (RPPS: {medecin_info.get('rpps', '')})"
+                                )
+
+                    new_pv1 = "|".join(pv1_fields)
                     payload_to_send = _replace_segment(payload_to_send, "PV1", new_pv1)
         except Exception as e:
             # Log l'erreur mais continue avec le payload non modifié
@@ -288,10 +323,11 @@ async def _send_hl7_step(
     # Mettre à jour les dates du message si demandé ET pas déjà recalé globalement
     if update_dates and payload_override is None:
         try:
-            payload_to_send = update_hl7_message_dates(payload_to_send, datetime.utcnow())
-        except Exception:
-            pass
-
+            payload_to_send = update_hl7_message_dates(
+                payload_to_send, datetime.utcnow()
+            )
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
     ack_payload = ""
     status = "error"
     try:
@@ -318,7 +354,9 @@ async def _send_hl7_step(
     return log
 
 
-async def _send_fhir_step(session: Session, step: InteropScenarioStep, endpoint: SystemEndpoint) -> MessageLog:
+async def _send_fhir_step(
+    session: Session, step: InteropScenarioStep, endpoint: SystemEndpoint
+) -> MessageLog:
     try:
         payload_obj = json.loads(step.payload)
     except json.JSONDecodeError as exc:
@@ -376,7 +414,7 @@ async def send_step(
 ) -> MessageLog:
     """
     Envoie une étape de scénario au système cible.
-    
+
     Args:
         session: Session de base de données
         step: Étape du scénario à envoyer
@@ -387,7 +425,12 @@ async def send_step(
     """
     trigger = _extract_trigger(step)
 
-    if step.message_format.lower() == "hl7" and trigger and trigger.startswith("Z") and trigger != "Z99":
+    if (
+        step.message_format.lower() == "hl7"
+        and trigger
+        and trigger.startswith("Z")
+        and trigger != "Z99"
+    ):
         log = MessageLog(
             direction="out",
             kind="MLLP",
@@ -469,14 +512,20 @@ async def send_scenario(
             hl7_steps = [s for s in steps if s.message_format.lower() == "hl7"]
             original_messages = [s.payload for s in hl7_steps]
             message_types = [s.message_type for s in hl7_steps]
-            
+
             # Si le scénario n'a pas de configuration temporelle personnalisée,
             # utiliser la détection automatique de workflow réaliste
-            if (scenario.time_anchor_mode is None and 
-                scenario.jitter_min_minutes is None and 
-                scenario.jitter_max_minutes is None):
-                cfg = create_realistic_timeshift_config(original_messages, message_types)
-                print(f"[scenario_runner] Using automatic realistic timeplan for scenario {scenario.name}")
+            if (
+                scenario.time_anchor_mode is None
+                and scenario.jitter_min_minutes is None
+                and scenario.jitter_max_minutes is None
+            ):
+                cfg = create_realistic_timeshift_config(
+                    original_messages, message_types
+                )
+                logger.info(
+                    "Using automatic realistic timeplan for scenario %s", scenario.name
+                )
             else:
                 # Utiliser la configuration manuelle existante
                 cfg = TimeShiftConfig(
@@ -486,15 +535,24 @@ async def send_scenario(
                     preserve_intervals=scenario.preserve_intervals,
                     jitter_min_minutes=scenario.jitter_min_minutes,
                     jitter_max_minutes=scenario.jitter_max_minutes,
-                    jitter_events=[e.strip() for e in (scenario.apply_jitter_on_events or "").split(',') if e.strip()] or None,
+                    jitter_events=[
+                        e.strip()
+                        for e in (scenario.apply_jitter_on_events or "").split(",")
+                        if e.strip()
+                    ]
+                    or None,
                 )
-                print(f"[scenario_runner] Using manual timeplan configuration for scenario {scenario.name}")
-            
+                logger.info(
+                    "Using manual timeplan configuration for scenario %s", scenario.name
+                )
+
             shifted_messages = shift_hl7_scenario(original_messages, cfg)
             for s, new_payload in zip(hl7_steps, shifted_messages):
                 payload_overrides[s.id] = new_payload
         except Exception as e:
-            print(f"[scenario_runner] Timeplan advanced failed: {e}. Fallback per-message update.")
+            logger.warning(
+                "Timeplan advanced failed: %s. Fallback per-message update.", e
+            )
 
     for step in steps:
         start_ts = datetime.utcnow()
@@ -583,7 +641,10 @@ async def send_scenario(
         run.status = "dry_run"
     elif run.error_steps == 0 and run.success_steps == run.total_steps:
         run.status = "success"
-    elif run.error_steps == 0 and (run.success_steps + run.skipped_steps) == run.total_steps:
+    elif (
+        run.error_steps == 0
+        and (run.success_steps + run.skipped_steps) == run.total_steps
+    ):
         run.status = "success"
     elif run.error_steps < run.total_steps:
         run.status = "partial"
@@ -608,7 +669,7 @@ async def execute_scenario_on_endpoint(
     endpoint: SystemEndpoint,
     scenario: InteropScenario,
     steps: List[InteropScenarioStep],
-    session: Session
+    session: Session,
 ) -> dict:
     """Compatibilité historique autour de l'unique runner instrumenté.
 

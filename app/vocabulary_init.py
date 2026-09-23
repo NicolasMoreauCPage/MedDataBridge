@@ -1,6 +1,8 @@
 """
 Initialisation des vocabulaires standards et leurs correspondances
 """
+import logging
+
 from typing import List
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
 from app.services.vocabulary_loader import create_ihe_pam_vocabularies, create_fhir_encounter_vocabularies
@@ -18,6 +20,8 @@ from app.services.vocabulary_fhir_fr import (
     create_fr_encounter_discharge_circumstances,
 )
 from app.services.vocabulary_mappings import init_vocabulary_mappings
+
+logger = logging.getLogger(__name__)
 
 # --- Nouveaux vocabulaires de centralisation pour éliminer les doublons sémantiques ---
 def create_location_status_vocab() -> List[VocabularySystem]:
@@ -412,9 +416,8 @@ def init_vocabularies(session):
                 if state.transient:
                     # Safe to clear raw in-memory collection directly
                     val.__dict__.pop('mappings', None)
-            except Exception:
-                pass
-
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
     for system in all_systems:
         session.add(system)
     

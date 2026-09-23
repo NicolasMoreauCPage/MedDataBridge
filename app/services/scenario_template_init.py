@@ -4,11 +4,15 @@ Ces templates représentent des suites sémantiques d'événements (admission, t
 sortie...) indépendantes de tout contexte concret. Ils peuvent être matérialisés
 à la volée en InteropScenario + Steps adaptés à un GHT / EJ / Patient.
 """
+import logging
+
 from pathlib import Path
 from typing import List
 from sqlmodel import Session, select
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
+
+logger = logging.getLogger(__name__)
 
 # Dossier contenant les extraits XML de référence (IHE hospitSimple)
 HOSPIT_SIMPLE_DIR = Path("Doc/interfaces.integration_src/interfaces.integration/target/classes/data/standalone_nonregr/hospitSimple")
@@ -83,8 +87,8 @@ def init_scenario_templates(session: Session) -> List[ScenarioTemplate]:
         if ihe_base.exists():
             imported = import_all_ihe_pam_scenarios(session, ihe_base)
             templates.extend(imported)
-    except Exception:
+    except Exception as exc:
         # Silencieux si fichiers absents (environnement différent)
-        pass
+        logger.debug("Optional scenario template file unavailable", exc_info=exc)
     
     return templates

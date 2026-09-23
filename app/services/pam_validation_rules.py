@@ -1,10 +1,13 @@
 """Configuration des règles structurelles du validateur IHE PAM."""
 from __future__ import annotations
 
+import logging
 import os
 from typing import Set
 
 from app.services.pam_profile_fr import IDENTITY_EVENTS, MOVEMENT_EVENTS
+
+logger = logging.getLogger(__name__)
 
 # Les listes optionnelles ne sont pas exhaustives : elles servent à l'information
 # et à l'ordre, jamais à interdire les segments HL7 v2.5 prévus par le profil.
@@ -130,6 +133,5 @@ def load_custom_segment_rules(file_path: str | None = None) -> None:
 # Attempt to load custom rules at import time if file exists
 try:
     load_custom_segment_rules()
-except Exception:
-    pass
-
+except Exception as exc:
+    logger.debug("Optional operation skipped", exc_info=exc)

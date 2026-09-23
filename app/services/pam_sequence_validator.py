@@ -15,6 +15,7 @@ Current minimal implementation:
 
 Further enhancements: allowed transition checks, bed reservation/occupation checks.
 """
+import logging
 from typing import Optional, List
 from sqlmodel import select
 
@@ -24,6 +25,8 @@ from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition
 from app.services.identifier_manager import parse_hl7_cx_identifier
 from app.models_identifiers import IdentifierType
 from app.services.pam_i18n import translate_issues_to_fr
+
+logger = logging.getLogger(__name__)
 
 # STRICT_PAM_SEQUENCE is enforced by default (comportement demandé)
 STRICT_PAM_SEQUENCE = True
@@ -96,9 +99,8 @@ def find_mouvement_by_zbe_id(session, zbe_1: str):
             ident = idents[0]
         if ident and getattr(ident, "mouvement_id", None):
             return session.exec(select(Mouvement).where(Mouvement.id == ident.mouvement_id)).first()
-    except Exception:
-        pass
-
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     # Not found
     return None
 
@@ -160,8 +162,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                             f"Referenced movement {getattr(mov, 'mouvement_seq', getattr(mov, 'id', 'unknown'))} is already cancelled",
                             severity="warn"
                         ))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
             # Basic consistency: compare trigger_event if present
             try:
                 if mov.trigger_event and trigger and mov.trigger_event != trigger:
@@ -170,9 +172,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                         f"Referenced movement trigger '{mov.trigger_event}' differs from incoming '{trigger}'",
                         severity="warn"
                     ))
-            except Exception:
-                pass
-            
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
             # ZBE-6 (original trigger) consistency: if provided, compare with referenced movement
             try:
                 zbe_6 = parts[6] if len(parts) > 6 and parts[6] else None
@@ -210,8 +211,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                                         f"ZBE-6 chain: referenced movement trigger '{mov.trigger_event}' differs from ZBE-6 movement trigger '{ref6.trigger_event}'",
                                         severity="warn"
                                     ))
-                            except Exception:
-                                pass
+                            except Exception as exc:
+                                logger.debug("Optional operation skipped", exc_info=exc)
                     else:
                         # Treat ZBE-6 as a trigger label (Axx) and compare to referenced movement trigger
                         try:
@@ -224,8 +225,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                                     f"ZBE-6 original trigger '{zbe_6}' does not match referenced movement trigger '{mov.trigger_event}'",
                                     severity=sev
                                 ))
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            logger.debug("Optional operation skipped", exc_info=exc)
                     # Additional BP6 checks: chain loop detection and chronology
                     try:
                         # Chain loop detection: walk up through ZBE-6 references up to depth 6
@@ -258,9 +259,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                                         break
                             except Exception:
                                 break
-                    except Exception:
-                        pass
-
+                    except Exception as exc:
+                        logger.debug("Optional operation skipped", exc_info=exc)
                     # Chronology: ensure referenced ZBE-6 movement happened before the referenced movement
                     try:
                         if ref6 and mov and getattr(ref6, "when", None) and getattr(mov, "when", None):
@@ -274,11 +274,10 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                                         f"ZBE-6 referenced movement time {ref6.when} is after the referenced movement time {mov.when}",
                                         severity=sev
                                     ))
-                            except Exception:
-                                pass
-                    except Exception:
-                        pass
-
+                            except Exception as exc:
+                                logger.debug("Optional operation skipped", exc_info=exc)
+                    except Exception as exc:
+                        logger.debug("Optional operation skipped", exc_info=exc)
                     # Child-dependency check: if other movements reference this movement, cancelling it may be problematic
                     try:
                         from app.models_identifiers import Identifier
@@ -303,13 +302,13 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                                             break
                                     except Exception:
                                         continue
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.debug("Optional operation skipped", exc_info=exc)
                 else:
                     # no zbe_6 provided — nothing to check here
                     pass
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
             # If referenced movement exists, ensure venue/patient consistency
             try:
                 if mov and ref6:
@@ -325,9 +324,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                             f"ZBE-6 chain: referenced movement venue {r6_venue} differs from referenced movement's venue {mv_venue}",
                             severity=sev
                         ))
-            except Exception:
-                pass
-
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
     # If PV1-19 present, check allowed transitions using last persisted movement for the venue
     pv1_line = _get_first_segment(msg, "PV1")
     if pv1_line:
@@ -375,8 +373,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                                 f"Referenced movement venue {getattr(mov, 'venue_id', None)} does not match PV1-19 venue {venue_seq}",
                                 severity=sev
                             ))
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
             except Exception:
                 # DB lookup failure should not block processing, but warn
                 issues.append(ValidationIssue(
@@ -409,8 +407,8 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                     q = select(Mouvement).where(Mouvement.to_location.contains(f"^{room}^{bed}"))
                     try:
                         q = q.where(Mouvement.is_historic.is_(False))
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.debug("Optional operation skipped", exc_info=exc)
                     candidates = session.exec(q).all()
                     for candidate in candidates:
                         # Skip if candidate refers to the same patient as incoming (moving within patient's own history)
@@ -437,9 +435,9 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                         # one occupant is enough to report
                         break
                     
-        except Exception:
+        except Exception as exc:
             # non-blocking
-            pass
+            logger.debug("Optional PAM sequence enrichment skipped", exc_info=exc)
 
     # Translate messages to French for output
     issues = translate_issues_to_fr(issues)

@@ -1430,9 +1430,9 @@ class _OnMessageInboundCallable:
                     return {"status": "success", "ack": ack}
                 else:
                     return {"status": "error", "ack": ack}
-        except Exception:
+        except Exception as exc:
             # Couldn't submit to running loop (likely same-thread loop); fall through
-            pass
+            logger.debug("Submission to running event loop skipped", exc_info=exc)
 
         # If we reach here the running loop is the same thread's loop. We cannot
         # call asyncio.run() from this thread because it would raise. Instead,

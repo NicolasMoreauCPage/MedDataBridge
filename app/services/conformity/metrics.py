@@ -6,6 +6,7 @@ Ce module fournit des fonctions pour calculer:
 - Évolution temporelle des métriques
 """
 from __future__ import annotations
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from sqlmodel import Session, select, and_
@@ -14,6 +15,8 @@ from collections import Counter
 from app.models_endpoints import MessageLog
 from app.models_structure import EntiteJuridique
 from app.models_shared import SystemEndpoint
+
+logger = logging.getLogger(__name__)
 
 
 def compute_conformity_rate(
@@ -69,8 +72,8 @@ def compute_conformity_rate(
                 has_error = any(i.get("severity") == "error" for i in issues)
                 if not has_error:
                     valid += 1
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
         else:
             valid += 1
     
@@ -130,9 +133,8 @@ def get_recurring_issues(
                         "message": issue.get("message", ""),
                         "severity": issue.get("severity", "info")
                     }
-        except Exception:
-            pass
-    
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
     # Top N
     top_issues = []
     for code, count in issue_counter.most_common(top_n):
@@ -192,9 +194,8 @@ def get_timeline_metrics(
                 has_error = any(i.get("severity") == "error" for i in issues)
                 if has_error:
                     is_valid = False
-            except Exception:
-                pass
-        
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
         if is_valid:
             daily_stats[day]["valid"] += 1
     

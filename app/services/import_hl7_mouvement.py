@@ -1,8 +1,12 @@
 # Import HL7 PAM message and create a Mouvement instance with mapping HL7->métier
+import logging
+
 from app.models import Mouvement
 from app.movement_type_mapping import from_standard_movement_code
 from typing import Optional
 from sqlmodel import select
+
+logger = logging.getLogger(__name__)
 
 def extract_nature_from_hl7(pv1: str, zbe: Optional[str]) -> Optional[str]:
     """
@@ -159,16 +163,15 @@ def import_mouvement_from_hl7(hl7_message: str, venue, session) -> Optional[Mouv
     when_dt = None
     try:
         when_dt = datetime.strptime(when, '%Y%m%d%H%M%S')
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     if not when_dt and pv1:
         pv1_fields = pv1.split('|')
         if len(pv1_fields) > 44 and pv1_fields[44]:
             try:
                 when_dt = datetime.strptime(pv1_fields[44], '%Y%m%d%H%M%S')
-            except Exception:
-                pass
-
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
     # Statut (par défaut 'active')
     status = 'active'
 
@@ -179,16 +182,15 @@ def import_mouvement_from_hl7(hl7_message: str, venue, session) -> Optional[Mouv
         if len(zbe_fields) > 1 and zbe_fields[1]:
             try:
                 mouvement_seq = int(zbe_fields[1])
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
     if mouvement_seq is None and pv1:
         pv1_fields = pv1.split('|')
         if len(pv1_fields) > 19 and pv1_fields[19]:
             try:
                 mouvement_seq = int(pv1_fields[19])
-            except Exception:
-                pass
-
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
     # ✅ NOUVEAU: Extraire la nature (S/H/O/U)
     nature = extract_nature_from_hl7(pv1, zbe)
 

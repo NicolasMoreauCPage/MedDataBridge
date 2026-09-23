@@ -5,10 +5,13 @@ Provides:
 - FileSystemReader: scans inbox directories for message files, processes them alphabetically
 - FileSystemWriter: writes messages to outbox directories
 """
+import logging
 from pathlib import Path
 from typing import List, Optional, Callable
 from datetime import datetime
 from app.utils.atomic_write import write_atomic_text, write_atomic_text_file
+
+logger = logging.getLogger(__name__)
 
 
 class FileSystemReader:
@@ -72,7 +75,7 @@ class FileSystemReader:
             content = file_path.read_text(encoding='utf-8')
             return content, file_path
         except Exception as e:
-            print(f"Error reading {file_path}: {e}")
+            logger.exception("Error reading %s: %s", file_path, e)
             return None
     
     def mark_processed(self, file_path: Path, success: bool = True):
@@ -97,7 +100,7 @@ class FileSystemReader:
                 # Delete file if no archive/error configured
                 file_path.unlink()
         except Exception as e:
-            print(f"Error marking file as processed {file_path}: {e}")
+            logger.exception("Error marking file as processed %s: %s", file_path, e)
     
     def process_all(self, handler: Callable[[str, Path], bool]) -> dict:
         """
@@ -128,7 +131,7 @@ class FileSystemReader:
                     stats["failed"] += 1
                     self.mark_processed(file_path, success=False)
             except Exception as e:
-                print(f"Handler error for {file_path}: {e}")
+                logger.exception("Handler error for %s: %s", file_path, e)
                 stats["failed"] += 1
                 self.mark_processed(file_path, success=False)
         

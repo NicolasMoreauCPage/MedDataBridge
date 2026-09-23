@@ -1,6 +1,7 @@
 """Façade et orchestration du validateur IHE PAM HL7v2."""
 from __future__ import annotations
 
+import logging
 from typing import List
 
 from app.services.mllp import parse_msh_fields
@@ -43,6 +44,8 @@ from app.services.pam_validation_rules import (
     load_custom_segment_rules,
 )
 from app.services.pam_semantic_validation import validate_pam_semantics
+
+logger = logging.getLogger(__name__)
 
 def validate_pam(
     msg: str,
@@ -621,9 +624,8 @@ def validate_pam(
     try:
         from app.services.pam_i18n import translate_issues_to_fr
         issues = translate_issues_to_fr(issues)
-    except Exception:
-        pass
-
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     # Build audit trail if requested
     audit_entry = None
     if include_audit:

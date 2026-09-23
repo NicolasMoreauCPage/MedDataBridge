@@ -209,7 +209,7 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
         session: Session SQLModel
         multi_pass: Si True, fait plusieurs passes pour résoudre les dépendances parent-enfant
     """
-    print("[MFN-IMPORT] process_mfn_message called (print test)")
+    logger.debug("process_mfn_message called")
     logger.info("[MFN-IMPORT] process_mfn_message called")
     logger.debug(f"Message reçu : {message}")
     # Si le message contient \\, remplacer par \
@@ -1074,8 +1074,8 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             ei1 = eg.identifier.split('&', 1)[0]
             if len(ei1) > 16:
                 logger.warning(f"EI-1 for EntiteGeographique {eg.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||ETBL_GRPQ|Etablissement géographique")
         message.extend(add_lch_segments(eg, identifier))
@@ -1115,8 +1115,8 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             ei1 = service.identifier.split('&', 1)[0]
             if len(ei1) > 16:
                 logger.warning(f"EI-1 for Service {service.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||D|Service")
         message.extend(add_lch_segments(service, identifier))
@@ -1175,8 +1175,8 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             ei1 = pole.identifier.split('&', 1)[0]
             if len(ei1) > 16:
                 logger.warning(f"EI-1 for Pole {pole.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||P|Pôle")
         message.extend(add_lch_segments(pole, identifier))
@@ -1193,8 +1193,8 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             ei1 = uf.identifier.split('&', 1)[0]
             if len(ei1) > 16:
                 logger.warning(f"EI-1 for UF {uf.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||UF|Unité fonctionnelle")
         message.extend(add_lch_segments(uf, identifier))
@@ -1213,8 +1213,8 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             ei1 = uh.identifier.split('&', 1)[0]
             if len(ei1) > 16:
                 logger.warning(f"EI-1 for UH {uh.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||UH|Unité d'hébergement")
         message.extend(add_lch_segments(uh, identifier))
@@ -1231,8 +1231,8 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             ei1 = chambre.identifier.split('&', 1)[0]
             if len(ei1) > 16:
                 logger.warning(f"EI-1 for Chambre {chambre.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||R|Chambre")
         message.extend(add_lch_segments(chambre, identifier))
@@ -1249,8 +1249,8 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             ei1 = lit.identifier.split('&', 1)[0]
             if len(ei1) > 16:
                 logger.warning(f"EI-1 for Lit {lit.identifier} is longer than 16 chars ({len(ei1)}). See Annex N.")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         message.append(f"MFE|MAD|||{identifier}|PL")
         message.append(f"LOC|{identifier}||B|Lit")
         message.extend(add_lch_segments(lit, identifier))

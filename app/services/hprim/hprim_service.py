@@ -182,8 +182,8 @@ class HprimService:
                         direction="inbound",
                         duration_seconds=_time.time() - start,
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
                 return {
                     "succes": False,
                     "erreur": "Encodage invalide (ISO-8859-1 requis)",
@@ -206,8 +206,8 @@ class HprimService:
                     direction="inbound",
                     duration_seconds=_time.time() - start,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
             # Si XSD KO, on continue l'intégration mais on ajoute le résultat dans le retour
             xsd_result = {
                 "xsd_valid": is_valid_xsd,
@@ -232,8 +232,8 @@ class HprimService:
                         direction="inbound",
                         duration_seconds=_time.time() - start,
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
                 return {
                     "succes": False,
                     "erreur": f"Validation échouée: {len(erreurs)} erreur(s)",
@@ -252,9 +252,8 @@ class HprimService:
                     direction="inbound",
                     duration_seconds=_time.time() - start,
                 )
-            except Exception:
-                pass
-
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
             return {
                 "succes": True,
                 "message": message,
@@ -272,8 +271,8 @@ class HprimService:
                     error_type="processing",
                     direction="inbound",
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Optional operation skipped", exc_info=exc)
             return {
                 "succes": False,
                 "erreur": str(e),

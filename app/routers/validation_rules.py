@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 import json
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/validation-rules", tags=["Validation Rules"])
 ui_router = APIRouter(tags=["Validation Rules UI"])  # will mount at /validation/rules
@@ -40,8 +44,8 @@ async def save_validation_rules(payload: dict):
             from app.services import pam_validation
             if hasattr(pam_validation, "load_custom_segment_rules"):
                 pam_validation.load_custom_segment_rules()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Optional operation skipped", exc_info=exc)
         return {"message": "Règles sauvegardées"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

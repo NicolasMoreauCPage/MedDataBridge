@@ -1,4 +1,6 @@
 """GHT Context CRUD routes"""
+import logging
+
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -12,6 +14,8 @@ from app.models_structure import GHTContext, IdentifierNamespace
 from app.models import Dossier
 from app.utils.flash import flash
 from .helpers import get_context_or_404, get_ej_or_404
+
+logger = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["ght"])
@@ -358,11 +362,11 @@ async def _test_set_session(
                 session.commit()
                 session.refresh(new_ctx)
                 ght_id = new_ctx.id
-            except Exception:
+            except Exception as exc:
                 # If creation fails, continue without raising to avoid
                 # breaking non-test flows; the session setter will simply
                 # not set a valid id.
-                pass
+                logger.debug("Default test GHT context creation skipped", exc_info=exc)
 
     if ght_id is not None:
         try:
@@ -402,11 +406,11 @@ async def _test_set_session(
                 payload["ej_id"] = int(ej_id) if isinstance(ej_id, (int, str)) and str(ej_id).isdigit() else ej_id
             if payload:
                 resp.set_cookie("medbridge_test_data", _json.dumps(payload), path="/", httponly=False, samesite="lax")
-        except Exception:
+        except Exception as exc:
             # Best-effort; do not break test helper on cookie serialization errors
-            pass
-    except Exception:
-        pass
+            logger.debug("Test helper cookie serialization skipped", exc_info=exc)
+    except Exception as exc:
+        logger.debug("Optional operation skipped", exc_info=exc)
     return resp
 
 
@@ -464,9 +468,9 @@ def _test_set_session_get(request: Request, token: str | None = None, ght_id: in
                 session.commit()
                 session.refresh(new_ctx)
                 ght_id = new_ctx.id
-            except Exception:
+            except Exception as exc:
                 # If creation fails, continue without raising
-                pass
+                logger.debug("Default test EJ creation skipped", exc_info=exc)
 
     if ght_id is not None:
         try:
@@ -573,9 +577,9 @@ def _test_set_session_get(request: Request, token: str | None = None, ght_id: in
             resp.set_cookie("ght_context_id", str(ght_id), path="/", httponly=False)
         if ej_id is not None:
             resp.set_cookie("ej_context_id", str(ej_id), path="/", httponly=False)
-    except Exception:
+    except Exception as exc:
         # Best-effort, don't break tests if cookies can't be set
-        pass
+        logger.debug("Test response cookie update skipped", exc_info=exc)
 
     return resp
 

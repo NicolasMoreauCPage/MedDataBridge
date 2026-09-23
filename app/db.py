@@ -14,6 +14,7 @@ Notes
 """
 
 from datetime import datetime
+import logging
 
 from sqlmodel import SQLModel, create_engine, Session, select, text
 from sqlalchemy.engine.url import make_url
@@ -51,6 +52,8 @@ from sqlalchemy.pool import StaticPool
 from config.settings import settings
 import sys
 
+logger = logging.getLogger(__name__)
+
 # Consider we're in testing mode when either the Settings say so or we're
 # running under pytest (common for local test runs launched via
 # `python -m pytest`). This makes SQLModel.metadata.create_all() run for
@@ -71,10 +74,10 @@ if testing_flag:
     # operate without requiring an explicit init_db() call.
     try:
         SQLModel.metadata.create_all(engine)
-    except Exception:
+    except Exception as exc:
         # If schema creation fails for any reason, allow tests to
         # manage their own schema creation as some fixtures do.
-        pass
+        logger.debug("Test schema creation deferred to fixtures", exc_info=exc)
 else:
     # Configuration avancée du pool de connexions pour SQLite
     from sqlalchemy.pool import StaticPool, QueuePool
@@ -233,15 +236,15 @@ def init_db() -> None:
             conn.execute("CREATE VIRTUAL TABLE IF NOT EXISTS patient_fts USING fts5(family, given, content='');")
             # Populate FTS table from existing patients
             conn.execute("INSERT INTO patient_fts(rowid, family, given) SELECT id, family, given FROM patient WHERE id NOT IN (SELECT rowid FROM patient_fts);")
-        except Exception:
+        except Exception as exc:
             # ignore if FTS not available
-            pass
+            logger.debug("SQLite FTS unavailable", exc_info=exc)
 
         conn.commit()
         conn.close()
-        print(f"[INFO] Optimisations SQLite appliquées avec succès sur {sqlite_db_path}")
+        logger.info("Optimisations SQLite appliquées avec succès sur %s", sqlite_db_path)
     except Exception as e:
-        print(f"[WARN] Erreur lors des optimisations SQLite: {e}")
+        logger.warning("Erreur lors des optimisations SQLite: %s", e)
     # Initialisation idempotente des templates de scénarios abstraits (IHE, démo...)
     if init_scenario_templates:
         with Session(engine) as _s:
@@ -352,22 +355,21 @@ def _before_flush(session, flush_context, instances):
             if getattr(obj, "date_heure_mouvement", None) is not None and getattr(obj, "when", None) is None:
                 try:
                     obj.when = getattr(obj, "date_heure_mouvement")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
             # type_mouvement -> movement_type
             if getattr(obj, "type_mouvement", None) is not None and getattr(obj, "movement_type", None) is None:
                 try:
                     obj.movement_type = getattr(obj, "type_mouvement")
-                except Exception:
-                    pass
-
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
         # Venue legacy 'statut' -> operational_status
         if isinstance(obj, Venue):
             if getattr(obj, "statut", None) is not None and getattr(obj, "operational_status", None) is None:
                 try:
                     obj.operational_status = getattr(obj, "statut")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
         # handle a few common datetime-like attributes
         for attr in ("admit_time", "discharge_time", "start_time", "when", "created_at", "updated_at"):
             if hasattr(obj, attr):
@@ -382,9 +384,8 @@ def _before_flush(session, flush_context, instances):
             if isinstance(tags_val, (list, tuple)):
                 try:
                     setattr(obj, "tags", ",".join(str(x) for x in tags_val))
-                except Exception:
-                    pass
-
+                except Exception as exc:
+                    logger.debug("Optional operation skipped", exc_info=exc)
                 # Map legacy finess_eg -> finess for EntiteGeographique
                 if isinstance(obj, EntiteGeographique):
                     if getattr(obj, "finess", None) in (None, "") and getattr(obj, "finess_eg", None):
@@ -452,6 +453,6 @@ def optimize_db_connection():
         with engine.connect() as conn:
             # Test de la connexion
             conn.execute(text("SELECT 1"))
-            print("[INFO] Connexion à la base de données optimisée")
+            logger.info("Connexion à la base de données optimisée")
     except Exception as e:
-        print(f"[WARN] Erreur lors de l'optimisation de la connexion DB: {e}")
+        logger.warning("Erreur lors de l'optimisation de la connexion DB: %s", e)

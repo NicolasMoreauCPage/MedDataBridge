@@ -12,7 +12,7 @@ from app.models_structure import (
     UniteFonctionnelle,
     UniteHebergement,
 )
-from app.services.bed_plan import build_bed_plan
+from app.services.bed_plan import build_bed_plan, search_bed_plan_patients
 
 
 def test_bed_plan_route_renders_the_service_projection(client):
@@ -140,3 +140,45 @@ def test_bed_plan_status_filter_keeps_only_matching_beds(session):
     beds = plan["structure"][service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][room.id]["lits"]
     assert [bed["name"] for bed in beds] == ["Lit libre"]
     assert plan["stats"]["total"] == 1
+
+
+def test_bed_plan_patient_search_is_bounded_and_has_a_stable_projection(session, client):
+    patient = Patient(
+        patient_seq=9501,
+        identifier="IPP-SEARCH-9501",
+        family="MARTIN",
+        given="Zoé",
+    )
+    session.add(patient)
+    session.flush()
+    dossier = Dossier(
+        dossier_seq=9501,
+        patient_id=patient.id,
+        admit_time=datetime.now(timezone.utc),
+    )
+    session.add(dossier)
+    session.flush()
+    session.add(
+        Venue(
+            venue_seq=9501,
+            dossier_id=dossier.id,
+            start_time=datetime.now(timezone.utc),
+        )
+    )
+    session.commit()
+
+    results = search_bed_plan_patients(session, query="mart", limit=1)
+
+    assert results == [
+        {
+            "id": patient.id,
+            "identifier": "IPP-SEARCH-9501",
+            "family": "MARTIN",
+            "given": "Zoé",
+            "birth_date": None,
+            "gender": None,
+        }
+    ]
+    response = client.get("/mouvements/api/plan-lits/patient-search?q=mart&limit=1")
+    assert response.status_code == 200
+    assert response.json() == {"results": results}

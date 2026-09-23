@@ -3,6 +3,7 @@
 from collections import defaultdict
 from typing import Any
 
+from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from app.models import Dossier, Mouvement, Patient, Venue
@@ -15,6 +16,42 @@ from app.models_structure import (
     UniteFonctionnelle,
     UniteHebergement,
 )
+
+
+def search_bed_plan_patients(
+    session: Session,
+    *,
+    query: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Recherche bornée des patients ayant au moins une venue."""
+
+    patients = session.exec(
+        select(Patient)
+        .join(Dossier)
+        .join(Venue)
+        .where(
+            or_(
+                Patient.family.ilike(f"%{query}%"),
+                Patient.given.ilike(f"%{query}%"),
+                Patient.identifier.ilike(f"%{query}%"),
+            )
+        )
+        .distinct()
+        .order_by(Patient.family, Patient.given, Patient.id)
+        .limit(limit)
+    ).all()
+    return [
+        {
+            "id": patient.id,
+            "identifier": patient.identifier,
+            "family": patient.family,
+            "given": patient.given,
+            "birth_date": str(patient.birth_date) if patient.birth_date else None,
+            "gender": patient.gender,
+        }
+        for patient in patients
+    ]
 
 
 def _locations_query(
@@ -291,4 +328,4 @@ def build_bed_plan(
     }
 
 
-__all__ = ["build_bed_plan"]
+__all__ = ["build_bed_plan", "search_bed_plan_patients"]

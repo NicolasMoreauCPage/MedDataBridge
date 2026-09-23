@@ -1,19 +1,17 @@
 from fastapi import APIRouter, Depends, Request, Form, Query, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi import Request as FastAPIRequest
-from sqlmodel import select, or_
 from datetime import datetime
 from typing import Optional
 from urllib.parse import quote_plus
 from app.db import get_session
-from app.models import Venue, Dossier, Patient
 from app.models_structure import UniteFonctionnelle
 from app.services.emit_on_create import emit_to_senders
 from app.services.bed_assignment import (
     BedAssignmentError,
     assign_patient_to_bed as assign_patient_to_bed_use_case,
 )
-from app.services.bed_plan import build_bed_plan
+from app.services.bed_plan import build_bed_plan, search_bed_plan_patients
 from app.services.movement_listing import (
     MovementListContextError,
     build_movement_list_view,
@@ -531,30 +529,6 @@ def patient_search_api(
     session=Depends(get_session),
 ):
     """API endpoint for patient autocomplete/search in plan-lits assignment popup."""
-    query = (
-        select(Patient)
-        .join(Dossier)
-        .join(Venue)
-        .where(
-            or_(
-                Patient.family.ilike(f"%{q}%"),
-                Patient.given.ilike(f"%{q}%"),
-                Patient.identifier.ilike(f"%{q}%")
-            )
-        )
-        .distinct()
-        .limit(limit)
-    )
-    patients = session.exec(query).all()
-    results = [
-        {
-            "id": p.id,
-            "identifier": p.identifier,
-            "family": p.family,
-            "given": p.given,
-            "birth_date": str(p.birth_date) if p.birth_date else None,
-            "gender": p.gender,
-        }
-        for p in patients
-    ]
-    return {"results": results}
+    return {
+        "results": search_bed_plan_patients(session, query=q, limit=limit)
+    }

@@ -207,8 +207,10 @@ l'audit :
   patient préchargé ; elle est testable sans FastAPI. La projection complète de
   la liste (lignes, badges, filtres, actions, onglets et fil d'Ariane) appartient
   maintenant à `movement_listing.py` et possède ses propres tests unitaires. Le
-  routeur mouvements ne conserve que l'appel des cas d'usage et le rendu, et
-  passe de 2 215 à 560 lignes.
+  moteur de recherche patient du plan de lits a également rejoint `bed_plan.py`,
+  avec tri stable, limite SQL et projection testée. Le routeur mouvements ne
+  conserve que l'appel des cas d'usage et le rendu, et passe de 2 215 à 534
+  lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

@@ -211,7 +211,9 @@ l'audit :
   lignes générées dynamiquement. Le plan de lits isole désormais sa recherche
   patient, son affectation, ses transferts et son glisser-déposer dans
   `static/js/plan-lits-workspace.js` ; ses boutons utilisent des attributs de
-  données et la délégation d'événements.
+  données et la délégation d'événements. Le tableau de cache isole ses
+  métriques et son graphique dans `static/js/cache-dashboard-workspace.js` ;
+  le bouton d'actualisation est désormais réellement raccordé à son identifiant.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

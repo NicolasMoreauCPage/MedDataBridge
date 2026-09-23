@@ -291,7 +291,13 @@ test("movement workflow location autocomplete uses the shared HTTP client", () =
 });
 
 test("cache dashboard uses the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/cache_dashboard.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/cache_dashboard.html", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../../app/static/js/cache-dashboard-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /js\/cache-dashboard-workspace\.js/);
+  assert.doesNotMatch(template, /onclick=/);
   assert.match(source, /window\.medbridgeHttp\.get\('\/api\/metrics\/cache'\)/);
   assert.doesNotMatch(source, /await fetch\('\/api\/metrics\/cache'\)/);
 });

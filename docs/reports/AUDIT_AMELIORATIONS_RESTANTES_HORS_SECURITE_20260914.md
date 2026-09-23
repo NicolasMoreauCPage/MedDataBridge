@@ -414,8 +414,11 @@ l'audit :
   partagent enfin `static/js/structure-list-filters.js` : les paramètres sont
   décrits dans le HTML, les filtres clavier et listes sont délégués, et les
   gestionnaires inline dupliqués ont disparu.
-  L'extraction des autres grands
-  écrans cotation classique reste à poursuivre.
+  L'inventaire courant ne conserve plus que huit templates avec JavaScript
+  exécutable embarqué. Les deux reliquats applicatifs dominants sont la saisie
+  rapide de cotations (596 lignes) et le workflow de mouvements (358 lignes) ;
+  les six autres concernent le shell, un composant partagé ou des pages de
+  documentation/démonstration.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
   supprimés. La commande `npm run inventory-assets` contrôle désormais les

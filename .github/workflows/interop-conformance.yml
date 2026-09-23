@@ -61,11 +61,11 @@ jobs:
           python -m pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      - name: Run WCAG AA accessibility checks
+      - name: Run browser accessibility and quality checks
         env:
           TESTING: "1"
           PYTHONPATH: .
-        run: python -m pytest tests/e2e/test_accessibility_axe.py -q
+        run: python -m pytest tests/e2e/test_accessibility_axe.py tests/e2e/test_frontend_quality.py -q
 
   conformance:
     runs-on: ubuntu-latest

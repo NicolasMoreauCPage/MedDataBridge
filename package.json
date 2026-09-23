@@ -87,8 +87,9 @@
     "build-css-prod": "tailwindcss -i ./app/static/css/main.css -o ./app/static/css/output.css --minify",
     "lint": "node scripts/lint_frontend.mjs",
     "inventory-assets": "node scripts/inventory_frontend_assets.mjs",
+    "check-budgets": "node scripts/check_frontend_budgets.mjs",
     "test": "node --test tests/frontend/*.test.mjs",
-    "check-frontend": "npm run lint && npm test && npm run inventory-assets && npm run build-css-prod"
+    "check-frontend": "npm run lint && npm test && npm run inventory-assets && npm run build-css-prod && npm run check-budgets"
   },
   "keywords": [],
   "author": "",

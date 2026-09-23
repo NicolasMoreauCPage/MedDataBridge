@@ -358,8 +358,12 @@ l'audit :
   son tour ce client pour ses mutations groupées.
 - **FE-06 :** `npm run lint`, `npm test` et `npm run check-frontend` sont
   disponibles et exécutés dans un job CI frontend. Ils vérifient la syntaxe,
-  le client HTTP et la génération CSS; l'extension graduelle des tests aux
-  modules extraits reste à faire.
+  le client HTTP, la génération CSS et les budgets de taille. Les assets
+  applicatifs sont limités à 400 Ko au total et 64 Ko par fichier, le CSS
+  généré à 200 Ko, tandis que les bibliothèques minifiées disposent d'un budget
+  séparé. Le job navigateur échoue aussi si un parcours prioritaire produit une
+  erreur console ou `pageerror`; les modules HTTP, builder, recherches et
+  formulaires possèdent des tests frontend ciblés.
 - **FE-04/FE-05 :** le gestionnaire partagé de formulaires associe désormais
   les erreurs au champ, annonce leur apparition et place le focus sur le
   premier champ invalide. La couverture axe/RGAA complète et les revues

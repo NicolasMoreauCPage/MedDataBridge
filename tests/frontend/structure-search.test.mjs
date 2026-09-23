@@ -424,8 +424,21 @@ test("accessibility browser checks use Axe on the priority workspaces", () => {
   assert.match(source, /critical.*,.*serious|serious.*,.*critical/s);
   assert.match(source, /\/scenarios\/new/);
   assert.match(source, /\/structure\/wizard/);
-  assert.match(workflow, /Run WCAG AA accessibility checks/);
+  assert.match(workflow, /Run browser accessibility and quality checks/);
   assert.match(workflow, /test_accessibility_axe\.py/);
+});
+
+test("frontend quality gates include asset budgets and browser error checks", () => {
+  const packageJson = readFileSync(new URL("../../package.json", import.meta.url), "utf8");
+  const budget = readFileSync(new URL("../../scripts/check_frontend_budgets.mjs", import.meta.url), "utf8");
+  const browserTest = readFileSync(new URL("../e2e/test_frontend_quality.py", import.meta.url), "utf8");
+  assert.match(packageJson, /"check-budgets"/);
+  assert.match(packageJson, /check-frontend.*check-budgets/);
+  assert.match(budget, /MAX_CSS_BYTES/);
+  assert.match(budget, /MAX_PRODUCT_JS_BYTES/);
+  assert.match(budget, /MAX_PRODUCT_ASSET_BYTES/);
+  assert.match(browserTest, /pageerror/);
+  assert.match(browserTest, /message\.type == "error"/);
 });
 
 test("legacy structure view delegates all API calls to the shared HTTP client", () => {

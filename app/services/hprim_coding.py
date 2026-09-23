@@ -4,7 +4,7 @@ Ce service implémente le standard HPRIM (Hospital - Patient - Résumé d'Interv
 pour le codage et l'échange d'actes médicaux selon les spécifications françaises.
 """
 
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional
 from datetime import datetime, date
 from dataclasses import dataclass, field
 from enum import Enum

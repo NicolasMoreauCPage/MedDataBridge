@@ -14,7 +14,7 @@ from __future__ import annotations
 import random
 import threading
 from typing import Optional, Tuple
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select
 
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace

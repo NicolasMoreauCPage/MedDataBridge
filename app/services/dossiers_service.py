@@ -3,11 +3,9 @@ from datetime import datetime
 from typing import List, Optional
 from sqlmodel import Session, select
 from pydantic import BaseModel
-from sqlalchemy.orm import attributes, selectinload
 
 from app.models import Dossier, Patient, Venue, DossierType
-from app.models_identifiers import IdentifierType
-from app.models_structure import IdentifierNamespace, UniteFonctionnelle, Service, Pole, EntiteGeographique
+from app.models_structure import UniteFonctionnelle, Service, Pole, EntiteGeographique
 from app.db import get_next_sequence
 
 logger = logging.getLogger(__name__)

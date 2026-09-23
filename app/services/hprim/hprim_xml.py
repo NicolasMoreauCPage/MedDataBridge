@@ -8,8 +8,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
-from pathlib import Path
+from typing import Any, List, Optional
 import logging
 
 from app.hprim_models import (
@@ -17,7 +16,7 @@ from app.hprim_models import (
     HprimActeCCAM, HprimActeNGAP, HprimVenue, HprimModificateur,
     HprimMontant, HprimPriseCharge, HprimMessageType, HprimAction,
     HprimCivilite, HprimActeLPP, HprimActeUCD, HprimLPP, HprimUCD,
-    HprimIntervention, HprimAcquittement, HprimReponse, HprimTypeActe
+    HprimAcquittement, HprimReponse, HprimTypeActe
 )
 
 logger = logging.getLogger(__name__)

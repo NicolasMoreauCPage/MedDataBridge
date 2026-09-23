@@ -3,7 +3,6 @@ logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
-from decimal import Decimal
 from pathlib import Path
 from typing import Literal, Optional, Sequence, Tuple
 
@@ -22,7 +21,6 @@ from app.services.outbox_service import enqueue_message
 from app.services.pam_validation import validate_pam
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
-from app.utils.booleans import as_bool
 
 
 # Helper pour retry des requêtes SQLite en cas d'erreur de concurrence

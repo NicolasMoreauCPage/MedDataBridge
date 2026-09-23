@@ -76,6 +76,31 @@
     [name, key].forEach((field) => field?.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(check, 250); }));
   }
 
+  function bindUnsavedChanges(form) {
+    const status = form.querySelector("[data-builder-dirty-status]");
+    const cancel = form.querySelector("[data-builder-cancel]");
+    let dirty = false;
+    const setDirty = (value) => {
+      dirty = value;
+      if (status) status.hidden = !value;
+    };
+    const markDirty = (event) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) setDirty(true);
+    };
+    form.addEventListener("input", markDirty);
+    form.addEventListener("change", markDirty);
+    cancel?.addEventListener("click", (event) => {
+      if (!dirty || window.confirm("Quitter sans enregistrer les modifications ?")) return;
+      event.preventDefault();
+    });
+    window.addEventListener("beforeunload", (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
+    return { markClean: () => setDirty(false) };
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     const root = document.querySelector("[data-scenario-builder]");
     const form = root?.querySelector("[data-builder-form]");
@@ -85,6 +110,7 @@
     const previous = form.querySelector("[data-builder-previous]");
     const next = form.querySelector("[data-builder-next]");
     const submit = form.querySelector("[data-builder-submit]");
+    const unsavedChanges = bindUnsavedChanges(form);
     const show = (step) => {
       current = Math.min(5, Math.max(1, step));
       panels.forEach((panel) => { panel.hidden = Number(panel.dataset.builderPanel) !== current; });
@@ -100,7 +126,7 @@
     root.querySelectorAll("[data-builder-go]").forEach((button) => button.addEventListener("click", () => { const target = Number(button.dataset.builderGo); if (target <= current || validateStep(form, current)) show(target); }));
     previous.addEventListener("click", () => show(current - 1));
     next.addEventListener("click", () => { if (validateStep(form, current)) show(current + 1); });
-    form.addEventListener("submit", (event) => { if (![2, 3].every((step) => validateStep(form, step))) { event.preventDefault(); return; } submit.disabled = true; submit.textContent = "Création du brouillon…"; });
+    form.addEventListener("submit", (event) => { if (![2, 3].every((step) => validateStep(form, step))) { event.preventDefault(); return; } unsavedChanges.markClean(); submit.disabled = true; submit.textContent = "Création du brouillon…"; });
     bindKeySuggestion(form); updateModeContent(form); show(1);
   });
 })();

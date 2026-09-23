@@ -33,6 +33,8 @@ def test_new_scenario_page_exposes_guided_authoring_choices(client, session):
     assert template.name in response.text
     assert "data-scenario-builder" in response.text
     assert "js/scenario-builder.js" in response.text
+    assert "data-no-ajax" in response.text
+    assert "data-builder-dirty-status" in response.text
 
 
 def test_new_scenario_page_selects_manual_mode_when_all_templates_are_inactive(client, session):

@@ -8,3 +8,9 @@ test("scenario builder hides non-selected mode sections even when they use a lay
   assert.match(source, /element\.hidden = !visible/);
   assert.match(source, /element\.style\.display = visible \? "" : "none"/);
 });
+
+test("scenario builder warns before abandoning unsaved input and preserves native form redirects", () => {
+  assert.match(source, /function bindUnsavedChanges\(form\)/);
+  assert.match(source, /Quitter sans enregistrer les modifications/);
+  assert.match(source, /beforeunload/);
+});

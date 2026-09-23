@@ -19,7 +19,7 @@
     {% endfor %}
   </ol>
 
-  <form method="post" action="/scenarios/new" class="mt-6" data-builder-form novalidate>
+  <form method="post" action="/scenarios/new" class="mt-6" data-builder-form data-no-ajax novalidate>
     <section data-builder-panel="1" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 md:p-7">
       <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Comment souhaitez-vous commencer ?</h2>
       <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Un modèle fournit les événements et des messages de référence cohérents.</p>
@@ -58,7 +58,7 @@
 
     <section data-builder-panel="5" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800 md:p-7"><h2 class="text-xl font-semibold text-slate-900 dark:text-white">Vérifiez avant de créer le brouillon</h2><div class="mt-5 rounded-xl bg-slate-50 p-5 dark:bg-slate-900" data-builder-summary aria-live="polite"></div><p class="mt-5 text-sm text-slate-600 dark:text-slate-300">Le scénario restera inactif. La page suivante présente sa chronologie, les éventuels problèmes et l'action pour le rendre exécutable.</p></section>
 
-    <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 dark:border-slate-700"><a href="/scenarios" class="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200">Quitter</a><div class="flex gap-3"><button type="button" data-builder-previous class="hidden rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100">Précédent</button><button type="button" data-builder-next class="rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Continuer</button><button type="submit" data-builder-submit class="hidden rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Créer le brouillon</button></div></div>
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 dark:border-slate-700"><div class="flex items-center gap-3"><a href="/scenarios" data-builder-cancel class="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200">Quitter</a><span data-builder-dirty-status role="status" aria-live="polite" hidden class="text-sm font-medium text-amber-700 dark:text-amber-300">Modifications non enregistrées</span></div><div class="flex gap-3"><button type="button" data-builder-previous class="hidden rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100">Précédent</button><button type="button" data-builder-next class="rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Continuer</button><button type="submit" data-builder-submit class="hidden rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Créer le brouillon</button></div></div>
   </form>
 </main>
 {% endblock %}

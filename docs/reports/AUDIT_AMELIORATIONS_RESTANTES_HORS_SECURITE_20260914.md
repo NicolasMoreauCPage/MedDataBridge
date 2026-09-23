@@ -236,6 +236,8 @@ l'audit :
   le bouton d'actualisation est désormais réellement raccordé à son identifiant.
   L'assistant de structure délègue maintenant toutes ses étapes, sa validation,
   ses modèles et sa génération à `static/js/structure-wizard-workspace.js`.
+  Les actions générées de ses pôles, services, UF et UH y sont maintenant
+  déléguées à deux listeners de workspace, sans attributs inline.
   Le tableau principal de structure délègue également son arbre, ses vues,
   recherches et détails à `static/js/structure-dashboard-workspace.js` ; son
   asset d'actions chargé ensuite est différé afin de préserver cet ordre. Le

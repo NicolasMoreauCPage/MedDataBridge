@@ -347,19 +347,19 @@
                            value="${pole.name}"
                            data-structure-field="pole:${poleIndex}"
                            class="text-sm font-semibold text-slate-900 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-0.5 transition-all"
-                           onchange="updatePoleName(${poleIndex}, this.value)" />
+                           data-wizard-action="update-pole-name" data-pole-index="${poleIndex}" />
                   </div>
                   <div class="text-xs text-slate-500 mt-0.5">
                     <input type="text" 
                            value="${pole.short_name || ''}"
                            placeholder="Code court"
                            class="w-24 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-1 py-0.5 text-xs transition-all"
-                           onchange="updatePoleShortName(${poleIndex}, this.value)" />
+                           data-wizard-action="update-pole-short-name" data-pole-index="${poleIndex}" />
                     • ${pole.services?.length || 0} service(s)
                   </div>
                 </div>
               </div>
-              <button type="button" class="text-xs text-red-600 hover:text-red-800" onclick="removePole(${poleIndex})">
+              <button type="button" class="text-xs text-red-600 hover:text-red-800" data-wizard-action="remove-pole" data-pole-index="${poleIndex}">
                 🗑️ Supprimer
               </button>
             </div>
@@ -371,16 +371,16 @@
                          value="${svc.name}"
                          data-structure-field="service:${poleIndex}:${svcIndex}"
                          class="flex-1 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-0.5 text-xs transition-all"
-                         onchange="updateServiceName(${poleIndex}, ${svcIndex}, this.value)" />
+                         data-wizard-action="update-service-name" data-pole-index="${poleIndex}" data-service-index="${svcIndex}" />
                   <span class="text-slate-400">(${svc.ufs?.length || 0} UF)</span>
-                  <button type="button" class="text-red-500 hover:text-red-700" onclick="removeService(${poleIndex}, ${svcIndex})">
+                  <button type="button" class="text-red-500 hover:text-red-700" data-wizard-action="remove-service" data-pole-index="${poleIndex}" data-service-index="${svcIndex}">
                     🗑️
                   </button>
                 </div>
               `).join('')}
               <button type="button" 
                       class="ml-4 mt-2 text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      onclick="addServiceToPole(${poleIndex})">
+                      data-wizard-action="add-service" data-pole-index="${poleIndex}">
                 <span>➕</span> Ajouter un service
               </button>
             </div>
@@ -507,7 +507,7 @@
                 <span class="text-sm font-semibold text-slate-900">${pole.name} › ${service.name}</span>
                 <span class="ml-2 text-xs text-slate-500">(${ufs.length} UF)</span>
               </div>
-              <button type="button" class="text-xs text-indigo-600 hover:text-indigo-800" onclick="addUfToService(${poleIndex}, ${serviceIndex})">
+              <button type="button" class="text-xs text-indigo-600 hover:text-indigo-800" data-wizard-action="add-uf" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}">
                 + Ajouter UF
               </button>
             </div>
@@ -518,18 +518,18 @@
                   <input type="text" value="${uf.name || ''}" placeholder="Nom UF" 
                          data-structure-field="uf:${poleIndex}:${serviceIndex}:${ufIndex}"
                          class="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
-                         onchange="updateUfName(${poleIndex}, ${serviceIndex}, ${ufIndex}, this.value)" />
+                         data-wizard-action="update-uf-name" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}" data-uf-index="${ufIndex}" />
                   <input type="text" value="${uf.code_um || ''}" placeholder="Code UM" 
                          class="w-24 border border-slate-300 rounded px-2 py-1 text-xs"
-                         onchange="updateUfCodeUm(${poleIndex}, ${serviceIndex}, ${ufIndex}, this.value)" />
+                         data-wizard-action="update-uf-code" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}" data-uf-index="${ufIndex}" />
                   <select class="border border-slate-300 rounded px-2 py-1 text-xs"
-                          onchange="updateUfType(${poleIndex}, ${serviceIndex}, ${ufIndex}, this.value)">
+                          data-wizard-action="update-uf-type" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}" data-uf-index="${ufIndex}">
                     <option value="mco" ${uf.type === 'mco' ? 'selected' : ''}>MCO</option>
                     <option value="ssr" ${uf.type === 'ssr' ? 'selected' : ''}>SSR</option>
                     <option value="psy" ${uf.type === 'psy' ? 'selected' : ''}>PSY</option>
                     <option value="had" ${uf.type === 'had' ? 'selected' : ''}>HAD</option>
                   </select>
-                  <button type="button" class="text-red-500 hover:text-red-700" onclick="removeUf(${poleIndex}, ${serviceIndex}, ${ufIndex})">🗑️</button>
+                  <button type="button" class="text-red-500 hover:text-red-700" data-wizard-action="remove-uf" data-pole-index="${poleIndex}" data-service-index="${serviceIndex}" data-uf-index="${ufIndex}">🗑️</button>
                 </div>
               `).join('')}
             </div>
@@ -621,7 +621,7 @@
               <span class="text-sm font-semibold text-slate-900">${uh.name}</span>
               <span class="ml-2 text-xs text-slate-500">(${uh.chambres || 0} chambres, ${uh.lits || 0} lits)</span>
             </div>
-            <button type="button" class="text-xs text-red-600 hover:text-red-800" onclick="removeUh(${index})">🗑️</button>
+            <button type="button" class="text-xs text-red-600 hover:text-red-800" data-wizard-action="remove-uh" data-uh-index="${index}">🗑️</button>
           </div>
         `;
         uhsContainer.appendChild(uhCard);
@@ -806,7 +806,37 @@
       }
     });
 
+    wizardContent?.addEventListener('change', (event) => {
+      const field = event.target.closest('[data-wizard-action]');
+      const action = field?.dataset.wizardAction;
+      const poleIndex = Number.parseInt(field?.dataset.poleIndex || '', 10);
+      const serviceIndex = Number.parseInt(field?.dataset.serviceIndex || '', 10);
+      const ufIndex = Number.parseInt(field?.dataset.ufIndex || '', 10);
+
+      if (action === 'update-pole-name') window.updatePoleName(poleIndex, field.value);
+      if (action === 'update-pole-short-name') window.updatePoleShortName(poleIndex, field.value);
+      if (action === 'update-service-name') window.updateServiceName(poleIndex, serviceIndex, field.value);
+      if (action === 'update-uf-name') window.updateUfName(poleIndex, serviceIndex, ufIndex, field.value);
+      if (action === 'update-uf-code') window.updateUfCodeUm(poleIndex, serviceIndex, ufIndex, field.value);
+      if (action === 'update-uf-type') window.updateUfType(poleIndex, serviceIndex, ufIndex, field.value);
+    });
+
+    wizardContent?.addEventListener('click', (event) => {
+      const actionButton = event.target.closest('[data-wizard-action]');
+      const action = actionButton?.dataset.wizardAction;
+      const poleIndex = Number.parseInt(actionButton?.dataset.poleIndex || '', 10);
+      const serviceIndex = Number.parseInt(actionButton?.dataset.serviceIndex || '', 10);
+      const ufIndex = Number.parseInt(actionButton?.dataset.ufIndex || '', 10);
+      const uhIndex = Number.parseInt(actionButton?.dataset.uhIndex || '', 10);
+
+      if (action === 'remove-pole') window.removePole(poleIndex);
+      if (action === 'remove-service') window.removeService(poleIndex, serviceIndex);
+      if (action === 'add-service') window.addServiceToPole(poleIndex);
+      if (action === 'add-uf') window.addUfToService(poleIndex, serviceIndex);
+      if (action === 'remove-uf') window.removeUf(poleIndex, serviceIndex, ufIndex);
+      if (action === 'remove-uh') window.removeUh(uhIndex);
+    });
+
     updateStepDisplay();
     loadTemplates();
   });
-

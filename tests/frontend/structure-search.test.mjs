@@ -77,6 +77,14 @@ test("structure wizard keeps only the latest template request and blocks navigat
   assert.match(source, /Chargement du modèle…/);
 });
 
+test("structure wizard delegates generated field and row actions", () => {
+  const source = readFileSync(new URL("../../app/static/js/structure-wizard-workspace.js", import.meta.url), "utf8");
+  assert.match(source, /data-wizard-action="remove-pole"/);
+  assert.match(source, /wizardContent\?\.addEventListener\('change'/);
+  assert.match(source, /wizardContent\?\.addEventListener\('click'/);
+  assert.doesNotMatch(source, /onclick=|onchange=/);
+});
+
 test("structure wizard prevents an empty structure from reaching generation", () => {
   const source = readFileSync(new URL("../../app/static/js/structure-wizard-workspace.js", import.meta.url), "utf8");
   assert.match(source, /function getStructureValidationError\(/);

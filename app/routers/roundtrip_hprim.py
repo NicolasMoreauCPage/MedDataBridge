@@ -296,7 +296,7 @@ async def reintegrate_hprim_xml(file: UploadFile = File(...), db: Session = Depe
     )
     actes_count = _persist_exchange_acts(db, message)
     db.commit()
-    response = await recevoir_actes_ccam(ReceptionRequest(xml_content=xml_content, validate_only=False), db)
+    response = recevoir_actes_ccam(ReceptionRequest(xml_content=xml_content, validate_only=False), db)
     return {
         "status": "ok" if response.succes else "error",
         "filename": file.filename,

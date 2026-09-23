@@ -15,7 +15,7 @@ class HprimInterventionService:
     def __init__(self, session: Session):
         self.session = session
 
-    async def get_dossier_cotations_count(self, dossier_id: int) -> int:
+    def get_dossier_cotations_count(self, dossier_id: int) -> int:
         """Récupère le nombre de cotations liées à un dossier"""
         dossier = self.session.get(Dossier, dossier_id)
         if not dossier:
@@ -28,20 +28,20 @@ class HprimInterventionService:
         count += len(dossier.ucd_acts) if dossier.ucd_acts else 0
         return count
 
-    async def update_dossier_cotations_flags(self, dossier_id: int) -> bool:
+    def update_dossier_cotations_flags(self, dossier_id: int) -> bool:
         """Met à jour les flags has_cotations et cotations_count du dossier"""
         dossier = self.session.get(Dossier, dossier_id)
         if not dossier:
             return False
 
-        count = await self.get_dossier_cotations_count(dossier_id)
+        count = self.get_dossier_cotations_count(dossier_id)
         dossier.has_cotations = count > 0
         dossier.cotations_count = count
         self.session.add(dossier)
         self.session.commit()
         return True
 
-    async def create_intervention(
+    def create_intervention(
         self,
         dossier_id: int,
         identifiant: str,
@@ -70,13 +70,11 @@ class HprimInterventionService:
             self.session.rollback()
             raise Exception(f"Erreur lors de la création de l'intervention: {str(e)}")
 
-    async def create_intervention_from_hprim(
-        self,
-        hprim_intervention: HprimIntervention,
-        dossier_id: int
+    def create_intervention_from_hprim(
+        self, hprim_intervention: HprimIntervention, dossier_id: int
     ) -> Optional[Intervention]:
         """Crée et persiste une intervention à partir d'un modèle HPRIM déjà parsé (message XML entrant)."""
-        return await self.create_intervention(
+        return self.create_intervention(
             dossier_id=dossier_id,
             identifiant=hprim_intervention.identifiant,
             libelle=hprim_intervention.libelle,
@@ -86,10 +84,8 @@ class HprimInterventionService:
             statut=hprim_intervention.statut,
         )
 
-    async def link_cotation_to_intervention(
-        self,
-        intervention_id: int,
-        cotation: HprimCotation
+    def link_cotation_to_intervention(
+        self, intervention_id: int, cotation: HprimCotation
     ) -> bool:
         """
         Lie une cotation à une intervention existante en rattachant les actes CCAM/NGAP/LPP/UCD
@@ -109,8 +105,18 @@ class HprimInterventionService:
 
         linked = 0
         for acte_model, actes in (
-            (CCAMAct, [cotation.actes_ccam] if not isinstance(cotation.actes_ccam, list) else cotation.actes_ccam),
-            (NGAPAct, [cotation.actes_ngap] if not isinstance(cotation.actes_ngap, list) else cotation.actes_ngap),
+            (
+                CCAMAct,
+                [cotation.actes_ccam]
+                if not isinstance(cotation.actes_ccam, list)
+                else cotation.actes_ccam,
+            ),
+            (
+                NGAPAct,
+                [cotation.actes_ngap]
+                if not isinstance(cotation.actes_ngap, list)
+                else cotation.actes_ngap,
+            ),
             (LPPAct, [cotation.actes_lpp] if cotation.actes_lpp else []),
             (UCDAct, [cotation.actes_ucd] if cotation.actes_ucd else []),
         ):
@@ -134,7 +140,7 @@ class HprimInterventionService:
         self.session.commit()
         return linked > 0
 
-    async def get_interventions_for_dossier(self, dossier_id: int) -> List[Intervention]:
+    def get_interventions_for_dossier(self, dossier_id: int) -> List[Intervention]:
         """Récupère toutes les interventions d'un dossier"""
         return self.session.exec(
             select(Intervention)
@@ -142,7 +148,9 @@ class HprimInterventionService:
             .order_by(Intervention.date_intervention.desc())
         ).all()
 
-    async def get_cotations_for_intervention(self, intervention_id: int) -> List[HprimCotation]:
+    def get_cotations_for_intervention(
+        self, intervention_id: int
+    ) -> List[HprimCotation]:
         """
         Récupère la cotation regroupant les actes CCAM/NGAP/LPP/UCD réellement rattachés
         (colonne `intervention_id`) à cette intervention.
@@ -151,19 +159,29 @@ class HprimInterventionService:
         if not intervention:
             return []
 
-        ccam_acts = self.session.exec(select(CCAMAct).where(CCAMAct.intervention_id == intervention_id)).all()
-        ngap_acts = self.session.exec(select(NGAPAct).where(NGAPAct.intervention_id == intervention_id)).all()
-        lpp_acts = self.session.exec(select(LPPAct).where(LPPAct.intervention_id == intervention_id)).all()
-        ucd_acts = self.session.exec(select(UCDAct).where(UCDAct.intervention_id == intervention_id)).all()
+        ccam_acts = self.session.exec(
+            select(CCAMAct).where(CCAMAct.intervention_id == intervention_id)
+        ).all()
+        ngap_acts = self.session.exec(
+            select(NGAPAct).where(NGAPAct.intervention_id == intervention_id)
+        ).all()
+        lpp_acts = self.session.exec(
+            select(LPPAct).where(LPPAct.intervention_id == intervention_id)
+        ).all()
+        ucd_acts = self.session.exec(
+            select(UCDAct).where(UCDAct.intervention_id == intervention_id)
+        ).all()
 
-        return [HprimCotation(
-            cotation_id=f"intervention-{intervention_id}",
-            intervention_id=str(intervention_id),
-            actes_ccam=ccam_acts,
-            actes_ngap=ngap_acts,
-            actes_lpp=lpp_acts[0] if lpp_acts else None,
-            actes_ucd=ucd_acts[0] if ucd_acts else None,
-            date_creation=intervention.created_at,
-            date_modification=intervention.updated_at,
-            statut=intervention.statut,
-        )]
+        return [
+            HprimCotation(
+                cotation_id=f"intervention-{intervention_id}",
+                intervention_id=str(intervention_id),
+                actes_ccam=ccam_acts,
+                actes_ngap=ngap_acts,
+                actes_lpp=lpp_acts[0] if lpp_acts else None,
+                actes_ucd=ucd_acts[0] if ucd_acts else None,
+                date_creation=intervention.created_at,
+                date_modification=intervention.updated_at,
+                statut=intervention.statut,
+            )
+        ]

@@ -18,7 +18,10 @@ from sqlalchemy.orm import Session
 from sqlmodel import select
 
 from app.db import get_session
-from app.models.hprim_models import HprimCCAMAct as StoredHprimCCAMAct, HprimMessage as StoredHprimMessage
+from app.models.hprim_models import (
+    HprimCCAMAct as StoredHprimCCAMAct,
+    HprimMessage as StoredHprimMessage,
+)
 from app.hprim_models import HprimPatient, HprimProfessionnel, HprimAction
 from app.services.hprim import HprimService, HprimValidationError
 
@@ -30,32 +33,44 @@ router = APIRouter(prefix="/api/hprim/actes/ccam", tags=["HPRIM CCAM"])
 # Modèles Pydantic pour les requêtes/réponses API
 class ActeCCAMRequest(BaseModel):
     """Requête pour créer un acte CCAM"""
+
     code_acte: str = Field(..., description="Code CCAM (AAAA999)")
     code_activite: str = Field(..., description="Code activité (01-99)")
     code_phase: str = Field(..., description="Code phase (00-99)")
     executant_rpps: str = Field(..., description="RPPS du médecin exécutant")
     date_execution: datetime = Field(..., description="Date d'exécution")
     quantite: int = Field(1, description="Quantité", ge=1)
-    modificateurs: List[str] = Field(default_factory=list, description="Modificateurs (A-Z, 0-9)")
+    modificateurs: List[str] = Field(
+        default_factory=list, description="Modificateurs (A-Z, 0-9)"
+    )
     montant: Optional[float] = Field(None, description="Montant en euros")
     commentaire: Optional[str] = Field(None, description="Commentaire")
 
+
 class PatientInfo(BaseModel):
     """Informations patient pour HPRIM"""
+
     identifiant_id: str = Field(..., description="ID patient")
     identifiant_clef: str = Field(..., description="Clé patient")
     nom: str = Field(..., description="Nom")
     prenom: str = Field(..., description="Prénom")
-    date_naissance: Optional[str] = Field(None, description="Date naissance (YYYY-MM-DD)")
+    date_naissance: Optional[str] = Field(
+        None, description="Date naissance (YYYY-MM-DD)"
+    )
     sexe: Optional[str] = Field(None, description="Sexe")
     # Identifiants HPRIM optionnels
     numero_identifiant_sante: Optional[str] = Field(None, description="Numéro INS")
-    numero_identifiant_patient: Optional[str] = Field(None, description="Numéro IPP/NDA")
-    autorite_affectation: Optional[str] = Field(None, description="Autorité d'affectation (L/M/N/ISO/DNS/UUID)")
+    numero_identifiant_patient: Optional[str] = Field(
+        None, description="Numéro IPP/NDA"
+    )
+    autorite_affectation: Optional[str] = Field(
+        None, description="Autorité d'affectation (L/M/N/ISO/DNS/UUID)"
+    )
 
 
 class MedecinInfo(BaseModel):
     """Informations médecin pour HPRIM"""
+
     nom: str = Field(..., description="Nom")
     prenom: str = Field(..., description="Prénom")
     numero_rpps: Optional[str] = Field(None, description="RPPS (11 chiffres)")
@@ -65,15 +80,19 @@ class MedecinInfo(BaseModel):
 
 class VenueInfo(BaseModel):
     """Informations de venue/structure pour HPRIM"""
+
     identifiant: str = Field(..., description="Identifiant de la venue")
     libelle: str = Field(..., description="Libellé de la venue")
     numero_finess: Optional[str] = Field(None, description="FINESS (9 chiffres)")
     numero_adeli: Optional[str] = Field(None, description="ADELI de l'établissement")
-    autorite_affectation: Optional[str] = Field(None, description="Autorité d'affectation (L/M/N/ISO/DNS/UUID)")
+    autorite_affectation: Optional[str] = Field(
+        None, description="Autorité d'affectation (L/M/N/ISO/DNS/UUID)"
+    )
 
 
 class EmissionRequest(BaseModel):
     """Requête d'émission d'actes CCAM"""
+
     emetteur_id: str = Field(..., description="ID émetteur (FINESS)")
     emetteur_nom: str = Field(..., description="Nom émetteur")
     destinataire_id: str = Field(..., description="ID destinataire (FINESS)")
@@ -83,11 +102,14 @@ class EmissionRequest(BaseModel):
     venue: Optional[VenueInfo] = Field(None, description="Informations de venue")
     actes: List[ActeCCAMRequest] = Field(..., description="Liste des actes CCAM")
     message_id: Optional[str] = Field(None, description="ID du message (auto-généré)")
-    endpoint_id: Optional[int] = Field(None, description="Endpoint HPRIM/FILE/FTP/SFTP de destination")
+    endpoint_id: Optional[int] = Field(
+        None, description="Endpoint HPRIM/FILE/FTP/SFTP de destination"
+    )
 
 
 class ActeCCAMResponse(BaseModel):
     """Réponse pour un acte CCAM"""
+
     id: str
     code_acte: str
     code_activite: str
@@ -103,8 +125,10 @@ class ActeCCAMResponse(BaseModel):
     valide: bool
     facture: bool
 
+
 class MessageHPRIMResponse(BaseModel):
     """Réponse pour un message HPRIM"""
+
     message_id: str
     type_message: str
     xml_content: str
@@ -115,14 +139,19 @@ class MessageHPRIMResponse(BaseModel):
     endpoint_id: Optional[int] = None
     outbox_id: Optional[int] = None
 
+
 class ReceptionRequest(BaseModel):
     """Requête de réception d'actes CCAM"""
+
     xml_content: str = Field(..., description="Contenu XML HPRIM reçu")
-    validate_only: bool = Field(False, description="Validation uniquement (pas de stockage)")
+    validate_only: bool = Field(
+        False, description="Validation uniquement (pas de stockage)"
+    )
 
 
 class ReceptionResponse(BaseModel):
     """Réponse de réception d'actes CCAM"""
+
     succes: bool
     message_id: Optional[str] = None
     actes_recus: List[ActeCCAMResponse] = Field(default_factory=list)
@@ -146,8 +175,7 @@ def _join_modificateurs(values: List[str]) -> str:
 
 def _serialize_validation_errors(errors: List[HprimValidationError]) -> str:
     payload = [
-        {"code": err.code, "message": err.message, "field": err.field}
-        for err in errors
+        {"code": err.code, "message": err.message, "field": err.field} for err in errors
     ]
     return json.dumps(payload, ensure_ascii=False)
 
@@ -207,7 +235,11 @@ def _persist_message(
     stored.source = source
     stored.xml_content = xml_content
     stored.xml_size = len(xml_content)
-    stored.validation_errors = _serialize_validation_errors(validation_errors or []) if validation_errors else None
+    stored.validation_errors = (
+        _serialize_validation_errors(validation_errors or [])
+        if validation_errors
+        else None
+    )
     stored.updated_at = datetime.utcnow()
     db.add(stored)
     return stored
@@ -261,7 +293,7 @@ def _persist_acte_record(
 
 
 @router.post("", response_model=ActeCCAMResponse)
-async def creer_acte_ccam(
+def creer_acte_ccam(
     acte: ActeCCAMRequest,
     patient_id: Optional[str] = None,
     db: Session = Depends(get_session),
@@ -297,10 +329,7 @@ async def creer_acte_ccam(
 
 
 @router.post("/emission", response_model=MessageHPRIMResponse)
-async def emettre_actes_ccam(
-    request: EmissionRequest,
-    db: Session = Depends(get_session)
-):
+def emettre_actes_ccam(request: EmissionRequest, db: Session = Depends(get_session)):
     """
     Émettre des actes CCAM vers un destinataire HPRIM
 
@@ -308,19 +337,28 @@ async def emettre_actes_ccam(
     via le protocole HPRIM XML.
     """
     try:
-        logger.info(f"Émission actes CCAM: {len(request.actes)} actes vers {request.destinataire_id}")
+        logger.info(
+            f"Émission actes CCAM: {len(request.actes)} actes vers {request.destinataire_id}"
+        )
 
         # Convertir les données de requête en objets HPRIM
         from app.hprim_models import (
-            HprimIdentifiantAdministrationPatient, HprimNumeroIdentifiantSante,
-            HprimNumeroIdentifiantPatients, HprimNumeroIdentifiantPatient,
-            HprimAutoriteAffectation, AutoriteAffectation, HprimVenue,
-            HprimEntiteJuridique
+            HprimIdentifiantAdministrationPatient,
+            HprimNumeroIdentifiantSante,
+            HprimNumeroIdentifiantPatients,
+            HprimNumeroIdentifiantPatient,
+            HprimAutoriteAffectation,
+            AutoriteAffectation,
+            HprimVenue,
+            HprimEntiteJuridique,
         )
 
         # Créer les identifiants patient si fournis
         identifiant_admin_patient = None
-        if request.patient.numero_identifiant_sante or request.patient.numero_identifiant_patient:
+        if (
+            request.patient.numero_identifiant_sante
+            or request.patient.numero_identifiant_patient
+        ):
             numero_identifiant_sante = None
             if request.patient.numero_identifiant_sante:
                 numero_identifiant_sante = HprimNumeroIdentifiantSante(
@@ -328,14 +366,19 @@ async def emettre_actes_ccam(
                 )
 
             numero_identifiant_patients = None
-            if request.patient.numero_identifiant_patient and request.patient.autorite_affectation:
+            if (
+                request.patient.numero_identifiant_patient
+                and request.patient.autorite_affectation
+            ):
                 autorite = HprimAutoriteAffectation(
                     nom=request.patient.autorite_affectation,
-                    type_autorite=AutoriteAffectation(request.patient.autorite_affectation)
+                    type_autorite=AutoriteAffectation(
+                        request.patient.autorite_affectation
+                    ),
                 )
                 numero_patient = HprimNumeroIdentifiantPatient(
                     identifiant=request.patient.numero_identifiant_patient,
-                    autorite=autorite
+                    autorite=autorite,
                 )
                 numero_identifiant_patients = HprimNumeroIdentifiantPatients(
                     numero_identifiant_patient=[numero_patient]
@@ -344,7 +387,7 @@ async def emettre_actes_ccam(
             if numero_identifiant_sante or numero_identifiant_patients:
                 identifiant_admin_patient = HprimIdentifiantAdministrationPatient(
                     numero_identifiant_sante=numero_identifiant_sante,
-                    numero_identifiant_patients=numero_identifiant_patients
+                    numero_identifiant_patients=numero_identifiant_patients,
                 )
 
         patient = HprimPatient(
@@ -354,7 +397,7 @@ async def emettre_actes_ccam(
             prenom=request.patient.prenom,
             date_naissance=request.patient.date_naissance,
             sexe=request.patient.sexe,
-            identifiant_administration_patient=identifiant_admin_patient
+            identifiant_administration_patient=identifiant_admin_patient,
         )
 
         acteur = HprimProfessionnel(
@@ -362,7 +405,7 @@ async def emettre_actes_ccam(
             prenom=request.acteur.prenom,
             numero_rpps=request.acteur.numero_rpps,
             numero_adeli=request.acteur.numero_adeli,
-            specialite=request.acteur.specialite
+            specialite=request.acteur.specialite,
         )
 
         # Créer la venue si fournie
@@ -373,13 +416,13 @@ async def emettre_actes_ccam(
                 entite_juridique = HprimEntiteJuridique(
                     libelle=request.venue.libelle,
                     numero_finess=request.venue.numero_finess,
-                    numero_adeli=request.venue.numero_adeli
+                    numero_adeli=request.venue.numero_adeli,
                 )
 
             venue = HprimVenue(
                 identifiant=request.venue.identifiant,
                 libelle=request.venue.libelle,
-                entite_juridique=entite_juridique
+                entite_juridique=entite_juridique,
             )
 
         # Créer les actes CCAM
@@ -394,7 +437,7 @@ async def emettre_actes_ccam(
                 date_execution=acte_req.date_execution,
                 quantite=acte_req.quantite,
                 modificateurs=acte_req.modificateurs,
-                montant=acte_req.montant
+                montant=acte_req.montant,
             )
             actes.append(acte)
 
@@ -408,7 +451,7 @@ async def emettre_actes_ccam(
             acteur=acteur,
             actes=actes,
             venue=venue,
-            message_id=request.message_id
+            message_id=request.message_id,
         )
 
         # Valider le message
@@ -427,7 +470,9 @@ async def emettre_actes_ccam(
 
         # Générer le XML
         xml_content = hprim_service.generer_xml(message, valider=False)
-        xsd_ok, xsd_errors = hprim_service.validate_generated_xml(xml_content, message.entete.message_type)
+        xsd_ok, xsd_errors = hprim_service.validate_generated_xml(
+            xml_content, message.entete.message_type
+        )
         if not xsd_ok:
             raise HTTPException(
                 status_code=400,
@@ -502,7 +547,9 @@ async def emettre_actes_ccam(
             outbox_id=delivery.outbox.id if delivery else None,
         )
 
-        logger.info(f"Message HPRIM généré: {message.entete.message_id} ({len(xml_content)} caractères)")
+        logger.info(
+            f"Message HPRIM généré: {message.entete.message_id} ({len(xml_content)} caractères)"
+        )
         return response
 
     except HTTPException:
@@ -516,10 +563,7 @@ async def emettre_actes_ccam(
 
 
 @router.post("/reception", response_model=ReceptionResponse)
-async def recevoir_actes_ccam(
-    request: ReceptionRequest,
-    db: Session = Depends(get_session)
-):
+def recevoir_actes_ccam(request: ReceptionRequest, db: Session = Depends(get_session)):
     """
     Recevoir des actes CCAM depuis un partenaire HPRIM
 
@@ -535,7 +579,7 @@ async def recevoir_actes_ccam(
         if not result["succes"]:
             return ReceptionResponse(
                 succes=False,
-                erreurs_traitement=[result.get("erreur", "Erreur inconnue")]
+                erreurs_traitement=[result.get("erreur", "Erreur inconnue")],
             )
 
         # Extraire les actes du message
@@ -557,7 +601,7 @@ async def recevoir_actes_ccam(
                 action=acte.action.value,
                 facturable=acte.facturable,
                 valide=acte.valide,
-                facture=acte.facture
+                facture=acte.facture,
             )
             actes_recus.append(acte_response)
 
@@ -599,24 +643,18 @@ async def recevoir_actes_ccam(
             db.commit()
 
         return ReceptionResponse(
-            succes=True,
-            message_id=message.entete.message_id,
-            actes_recus=actes_recus
+            succes=True, message_id=message.entete.message_id, actes_recus=actes_recus
         )
 
     except Exception as e:
         logger.error(f"Erreur réception actes CCAM: {e}")
         return ReceptionResponse(
-            succes=False,
-            erreurs_traitement=[f"Erreur de traitement: {str(e)}"]
+            succes=False, erreurs_traitement=[f"Erreur de traitement: {str(e)}"]
         )
 
 
 @router.get("/{acte_id}", response_model=ActeCCAMResponse)
-async def consulter_acte_ccam(
-    acte_id: str,
-    db: Session = Depends(get_session)
-):
+def consulter_acte_ccam(acte_id: str, db: Session = Depends(get_session)):
     """
     Consulter un acte CCAM par son ID
 
@@ -639,10 +677,8 @@ async def consulter_acte_ccam(
 
 
 @router.put("/{acte_id}", response_model=ActeCCAMResponse)
-async def modifier_acte_ccam(
-    acte_id: str,
-    acte_update: ActeCCAMRequest,
-    db: Session = Depends(get_session)
+def modifier_acte_ccam(
+    acte_id: str, acte_update: ActeCCAMRequest, db: Session = Depends(get_session)
 ):
     """
     Modifier un acte CCAM existant
@@ -688,10 +724,7 @@ async def modifier_acte_ccam(
 
 
 @router.delete("/{acte_id}")
-async def supprimer_acte_ccam(
-    acte_id: str,
-    db: Session = Depends(get_session)
-):
+def supprimer_acte_ccam(acte_id: str, db: Session = Depends(get_session)):
     """
     Supprimer un acte CCAM
 
@@ -723,11 +756,11 @@ async def supprimer_acte_ccam(
 
 
 @router.get("/patient/{patient_id}/historique")
-async def historique_actes_patient(
+def historique_actes_patient(
     patient_id: str,
     limit: int = 50,
     offset: int = 0,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_session),
 ):
     """
     Récupérer l'historique des actes CCAM pour un patient
@@ -757,7 +790,9 @@ async def historique_actes_patient(
 
         return {
             "patient_id": patient_id,
-            "actes": [_make_acte_response(item).model_dump(mode="json") for item in paginated],
+            "actes": [
+                _make_acte_response(item).model_dump(mode="json") for item in paginated
+            ],
             "total": total,
             "limit": safe_limit,
             "offset": safe_offset,
@@ -777,12 +812,14 @@ async def page_cotation_actes():
     """
     try:
         # Lire le fichier HTML
-        html_file_path = Path(__file__).parent.parent / "templates" / "hprim_cotation.html"
+        html_file_path = (
+            Path(__file__).parent.parent / "templates" / "hprim_cotation.html"
+        )
 
         if not html_file_path.exists():
             raise HTTPException(status_code=404, detail="Page de cotation non trouvée")
 
-        with open(html_file_path, 'r', encoding='utf-8') as f:
+        with open(html_file_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
         return HTMLResponse(content=html_content, status_code=200)

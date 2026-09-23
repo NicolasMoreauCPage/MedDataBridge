@@ -16,12 +16,18 @@ from sqlalchemy.orm import Session
 from sqlmodel import select
 
 from app.db import get_session
-from app.models.hprim_models import HprimNGAPAct as StoredHprimNGAPAct, HprimMessage as StoredHprimMessage
+from app.models.hprim_models import (
+    HprimNGAPAct as StoredHprimNGAPAct,
+    HprimMessage as StoredHprimMessage,
+)
 from app.hprim_models import HprimPatient, HprimProfessionnel, HprimAction
 from app.services.hprim import HprimValidationError
 from app.api.hprim_ccam import (
-    PatientInfo, MedecinInfo, VenueInfo, ReceptionRequest,
-    hprim_service
+    PatientInfo,
+    MedecinInfo,
+    VenueInfo,
+    ReceptionRequest,
+    hprim_service,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,21 +38,29 @@ router = APIRouter(prefix="/api/hprim/actes/ngap", tags=["HPRIM NGAP"])
 # Modèles Pydantic pour les requêtes/réponses API
 class ActeNGAPRequest(BaseModel):
     """Requête pour créer un acte NGAP"""
+
     lettre_cle: str = Field(..., description="Lettre-clé NGAP (A-Z)")
     coefficient: float = Field(..., description="Coefficient", gt=0)
     execute_date: datetime = Field(..., description="Date d'exécution")
     denombrement: Optional[int] = Field(None, description="Dénombrement")
-    position_dentaire: Optional[str] = Field(None, description="Position dentaire (ex: 11, 12, 21-28)")
+    position_dentaire: Optional[str] = Field(
+        None, description="Position dentaire (ex: 11, 12, 21-28)"
+    )
     execute_heure: Optional[str] = Field(None, description="Heure d'exécution")
     numero_seance: Optional[int] = Field(None, description="Numéro de séance")
-    nabms: List[int] = Field(default_factory=list, description="NABM (Nomenclature des Actes Bucco-dentaires)")
+    nabms: List[int] = Field(
+        default_factory=list,
+        description="NABM (Nomenclature des Actes Bucco-dentaires)",
+    )
     minor_major: Optional[str] = Field(None, description="Mineur/Majeur")
     montant: Optional[float] = Field(None, description="Montant en euros")
     commentaire: Optional[str] = Field(None, description="Commentaire")
     bhn_phns: Optional[Dict[str, Any]] = Field(None, description="BHN/PHNS")
 
+
 class NGAPInfo(BaseModel):
     """Informations NGAP pour HPRIM"""
+
     lettre_cle: str = Field(..., description="Lettre-clé")
     coefficient: float = Field(..., description="Coefficient")
     position_dentaire: Optional[str] = Field(None, description="Position dentaire")
@@ -54,6 +68,7 @@ class NGAPInfo(BaseModel):
 
 class EmissionNGAPRequest(BaseModel):
     """Requête d'émission d'actes NGAP"""
+
     emetteur_id: str = Field(..., description="ID émetteur (FINESS)")
     emetteur_nom: str = Field(..., description="Nom émetteur")
     destinataire_id: str = Field(..., description="ID destinataire (FINESS)")
@@ -64,11 +79,14 @@ class EmissionNGAPRequest(BaseModel):
     actes: List[ActeNGAPRequest] = Field(..., description="Liste des actes NGAP")
     dossier_id: Optional[str] = Field(None, description="ID du dossier médical")
     message_id: Optional[str] = Field(None, description="ID du message (auto-généré)")
-    endpoint_id: Optional[int] = Field(None, description="Endpoint HPRIM/FILE/FTP/SFTP de destination")
+    endpoint_id: Optional[int] = Field(
+        None, description="Endpoint HPRIM/FILE/FTP/SFTP de destination"
+    )
 
 
 class ActeNGAPResponse(BaseModel):
     """Réponse pour un acte NGAP"""
+
     id: str
     lettre_cle: str
     coefficient: float
@@ -86,8 +104,10 @@ class ActeNGAPResponse(BaseModel):
     valide: bool
     facture: bool
 
+
 class MessageNGAPResponse(BaseModel):
     """Réponse pour un message NGAP"""
+
     message_id: str
     type_message: str
     xml_content: str
@@ -99,6 +119,7 @@ class MessageNGAPResponse(BaseModel):
     delivery_status: str = Field(default="validated")
     endpoint_id: Optional[int] = None
     outbox_id: Optional[int] = None
+
 
 class ReceptionNGAPResponse(BaseModel):
     succes: bool
@@ -127,10 +148,13 @@ def _join_nabms(values: List[int]) -> str:
 
 
 def _serialize_validation_errors(errors: List[HprimValidationError]) -> str:
-    return json.dumps([
-        {"code": err.code, "message": err.message, "field": err.field}
-        for err in errors
-    ], ensure_ascii=False)
+    return json.dumps(
+        [
+            {"code": err.code, "message": err.message, "field": err.field}
+            for err in errors
+        ],
+        ensure_ascii=False,
+    )
 
 
 def _make_ngap_response(record: StoredHprimNGAPAct) -> ActeNGAPResponse:
@@ -170,7 +194,9 @@ def _persist_message(
 ) -> StoredHprimMessage:
     stored = db.get(StoredHprimMessage, message_id)
     if not stored:
-        stored = StoredHprimMessage(message_id=message_id, type_message=type_message, direction=direction)
+        stored = StoredHprimMessage(
+            message_id=message_id, type_message=type_message, direction=direction
+        )
 
     stored.type_message = type_message
     stored.direction = direction
@@ -182,7 +208,11 @@ def _persist_message(
     stored.source = source
     stored.xml_content = xml_content
     stored.xml_size = len(xml_content)
-    stored.validation_errors = _serialize_validation_errors(validation_errors or []) if validation_errors else None
+    stored.validation_errors = (
+        _serialize_validation_errors(validation_errors or [])
+        if validation_errors
+        else None
+    )
     stored.updated_at = datetime.utcnow()
     db.add(stored)
     return stored
@@ -240,7 +270,7 @@ def _persist_ngap_record(
 
 
 @router.post("", response_model=ActeNGAPResponse)
-async def creer_acte_ngap(
+def creer_acte_ngap(
     acte: ActeNGAPRequest,
     patient_id: Optional[str] = None,
     db: Session = Depends(get_session),
@@ -277,9 +307,8 @@ async def creer_acte_ngap(
 
 
 @router.post("/emission", response_model=MessageNGAPResponse)
-async def emettre_actes_ngap(
-    request: EmissionNGAPRequest,
-    db: Session = Depends(get_session)
+def emettre_actes_ngap(
+    request: EmissionNGAPRequest, db: Session = Depends(get_session)
 ):
     """
     Émettre des actes NGAP vers un destinataire HPRIM
@@ -288,19 +317,28 @@ async def emettre_actes_ngap(
     via le protocole HPRIM XML.
     """
     try:
-        logger.info(f"Émission actes NGAP: {len(request.actes)} actes vers {request.destinataire_id}")
+        logger.info(
+            f"Émission actes NGAP: {len(request.actes)} actes vers {request.destinataire_id}"
+        )
 
         # Convertir les données de requête en objets HPRIM
         from app.hprim_models import (
-            HprimIdentifiantAdministrationPatient, HprimNumeroIdentifiantSante,
-            HprimNumeroIdentifiantPatients, HprimNumeroIdentifiantPatient,
-            HprimAutoriteAffectation, AutoriteAffectation, HprimVenue,
-            HprimEntiteJuridique
+            HprimIdentifiantAdministrationPatient,
+            HprimNumeroIdentifiantSante,
+            HprimNumeroIdentifiantPatients,
+            HprimNumeroIdentifiantPatient,
+            HprimAutoriteAffectation,
+            AutoriteAffectation,
+            HprimVenue,
+            HprimEntiteJuridique,
         )
 
         # Créer les identifiants patient si fournis
         identifiant_admin_patient = None
-        if request.patient.numero_identifiant_sante or request.patient.numero_identifiant_patient:
+        if (
+            request.patient.numero_identifiant_sante
+            or request.patient.numero_identifiant_patient
+        ):
             numero_identifiant_sante = None
             if request.patient.numero_identifiant_sante:
                 numero_identifiant_sante = HprimNumeroIdentifiantSante(
@@ -308,14 +346,19 @@ async def emettre_actes_ngap(
                 )
 
             numero_identifiant_patients = None
-            if request.patient.numero_identifiant_patient and request.patient.autorite_affectation:
+            if (
+                request.patient.numero_identifiant_patient
+                and request.patient.autorite_affectation
+            ):
                 autorite = HprimAutoriteAffectation(
                     nom=request.patient.autorite_affectation,
-                    type_autorite=AutoriteAffectation(request.patient.autorite_affectation)
+                    type_autorite=AutoriteAffectation(
+                        request.patient.autorite_affectation
+                    ),
                 )
                 numero_patient = HprimNumeroIdentifiantPatient(
                     identifiant=request.patient.numero_identifiant_patient,
-                    autorite=autorite
+                    autorite=autorite,
                 )
                 numero_identifiant_patients = HprimNumeroIdentifiantPatients(
                     numero_identifiant_patient=[numero_patient]
@@ -324,7 +367,7 @@ async def emettre_actes_ngap(
             if numero_identifiant_sante or numero_identifiant_patients:
                 identifiant_admin_patient = HprimIdentifiantAdministrationPatient(
                     numero_identifiant_sante=numero_identifiant_sante,
-                    numero_identifiant_patients=numero_identifiant_patients
+                    numero_identifiant_patients=numero_identifiant_patients,
                 )
 
         patient = HprimPatient(
@@ -334,7 +377,7 @@ async def emettre_actes_ngap(
             prenom=request.patient.prenom,
             date_naissance=request.patient.date_naissance,
             sexe=request.patient.sexe,
-            identifiant_administration_patient=identifiant_admin_patient
+            identifiant_administration_patient=identifiant_admin_patient,
         )
 
         acteur = HprimProfessionnel(
@@ -342,7 +385,7 @@ async def emettre_actes_ngap(
             prenom=request.acteur.prenom,
             numero_rpps=request.acteur.numero_rpps,
             numero_adeli=request.acteur.numero_adeli,
-            specialite=request.acteur.specialite
+            specialite=request.acteur.specialite,
         )
 
         # Créer la venue si fournie
@@ -353,13 +396,13 @@ async def emettre_actes_ngap(
                 entite_juridique = HprimEntiteJuridique(
                     libelle=request.venue.libelle,
                     numero_finess=request.venue.numero_finess,
-                    numero_adeli=request.venue.numero_adeli
+                    numero_adeli=request.venue.numero_adeli,
                 )
 
             venue = HprimVenue(
                 identifiant=request.venue.identifiant,
                 libelle=request.venue.libelle,
-                entite_juridique=entite_juridique
+                entite_juridique=entite_juridique,
             )
 
         # Créer les actes NGAP
@@ -378,7 +421,7 @@ async def emettre_actes_ngap(
                 minor_major=acte_req.minor_major,
                 montant=acte_req.montant,
                 commentaire=acte_req.commentaire,
-                bhn_phns=acte_req.bhn_phns
+                bhn_phns=acte_req.bhn_phns,
             )
             actes.append(acte)
 
@@ -393,7 +436,7 @@ async def emettre_actes_ngap(
             actes=actes,
             venue=venue,
             dossier_id=request.dossier_id,
-            message_id=request.message_id
+            message_id=request.message_id,
         )
 
         # Valider le message
@@ -412,7 +455,9 @@ async def emettre_actes_ngap(
 
         # Générer le XML
         xml_content = hprim_service.generer_xml(message, valider=False)
-        xsd_ok, xsd_errors = hprim_service.validate_generated_xml(xml_content, message.entete.message_type)
+        xsd_ok, xsd_errors = hprim_service.validate_generated_xml(
+            xml_content, message.entete.message_type
+        )
         if not xsd_ok:
             raise HTTPException(
                 status_code=400,
@@ -489,7 +534,9 @@ async def emettre_actes_ngap(
             outbox_id=delivery.outbox.id if delivery else None,
         )
 
-        logger.info(f"Message NGAP généré: {message.entete.message_id} ({len(xml_content)} caractères)")
+        logger.info(
+            f"Message NGAP généré: {message.entete.message_id} ({len(xml_content)} caractères)"
+        )
         return response
 
     except HTTPException:
@@ -503,10 +550,7 @@ async def emettre_actes_ngap(
 
 
 @router.post("/reception", response_model=ReceptionNGAPResponse)
-async def recevoir_actes_ngap(
-    request: ReceptionRequest,
-    db: Session = Depends(get_session)
-):
+def recevoir_actes_ngap(request: ReceptionRequest, db: Session = Depends(get_session)):
     """
     Recevoir des actes NGAP d'un émetteur HPRIM
 
@@ -583,7 +627,7 @@ async def recevoir_actes_ngap(
 
 
 @router.get("/{acte_id}", response_model=ActeNGAPResponse)
-async def consulter_acte_ngap(acte_id: str, db: Session = Depends(get_session)):
+def consulter_acte_ngap(acte_id: str, db: Session = Depends(get_session)):
     acte = db.get(StoredHprimNGAPAct, acte_id)
     if not acte or acte.deleted:
         raise HTTPException(status_code=404, detail="Acte NGAP introuvable")
@@ -591,7 +635,9 @@ async def consulter_acte_ngap(acte_id: str, db: Session = Depends(get_session)):
 
 
 @router.put("/{acte_id}", response_model=ActeNGAPResponse)
-async def modifier_acte_ngap(acte_id: str, acte_update: ActeNGAPRequest, db: Session = Depends(get_session)):
+def modifier_acte_ngap(
+    acte_id: str, acte_update: ActeNGAPRequest, db: Session = Depends(get_session)
+):
     existing = db.get(StoredHprimNGAPAct, acte_id)
     if not existing or existing.deleted:
         raise HTTPException(status_code=404, detail="Acte NGAP introuvable")
@@ -623,7 +669,7 @@ async def modifier_acte_ngap(acte_id: str, acte_update: ActeNGAPRequest, db: Ses
 
 
 @router.delete("/{acte_id}")
-async def supprimer_acte_ngap(acte_id: str, db: Session = Depends(get_session)):
+def supprimer_acte_ngap(acte_id: str, db: Session = Depends(get_session)):
     existing = db.get(StoredHprimNGAPAct, acte_id)
     if not existing or existing.deleted:
         raise HTTPException(status_code=404, detail="Acte NGAP introuvable")
@@ -633,11 +679,20 @@ async def supprimer_acte_ngap(acte_id: str, db: Session = Depends(get_session)):
     existing.updated_at = datetime.utcnow()
     db.add(existing)
     db.commit()
-    return {"status": "deleted", "acte_id": acte_id, "deleted_at": datetime.utcnow().isoformat()}
+    return {
+        "status": "deleted",
+        "acte_id": acte_id,
+        "deleted_at": datetime.utcnow().isoformat(),
+    }
 
 
 @router.get("/patient/{patient_id}/historique")
-async def historique_actes_ngap(patient_id: str, limit: int = 50, offset: int = 0, db: Session = Depends(get_session)):
+def historique_actes_ngap(
+    patient_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_session),
+):
     safe_limit = max(1, min(limit, 200))
     safe_offset = max(0, offset)
     statement = (

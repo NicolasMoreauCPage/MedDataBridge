@@ -49,12 +49,15 @@ class TestUCDPerformance:
             response_time = end_time - start_time
 
             # Temps de réponse devrait être inférieur à 1s pour les routes UI
-            assert response_time < 1.0, f"Route {route} trop lente: {response_time:.3f}s"
+            assert response_time < 1.0, (
+                f"Route {route} trop lente: {response_time:.3f}s"
+            )
             assert response.status_code in [200, 302, 404]
 
     @pytest.mark.asyncio
     async def test_ucd_concurrent_requests(self, client):
         """Test requêtes concurrentes UCD"""
+
         async def make_request():
             return client.get("/api/ucd/dossier/1")
 
@@ -88,7 +91,9 @@ class TestUCDPerformance:
         memory_increase = final_memory - initial_memory
 
         # L'augmentation de mémoire devrait être limitée (< 50MB)
-        assert memory_increase < 50, f"Augmentation mémoire excessive: {memory_increase:.2f}MB"
+        assert memory_increase < 50, (
+            f"Augmentation mémoire excessive: {memory_increase:.2f}MB"
+        )
 
 
 class TestLPPPerformance:
@@ -123,12 +128,15 @@ class TestLPPPerformance:
             response_time = end_time - start_time
 
             # Temps de réponse devrait être inférieur à 1s pour les routes UI
-            assert response_time < 1.0, f"Route {route} trop lente: {response_time:.3f}s"
+            assert response_time < 1.0, (
+                f"Route {route} trop lente: {response_time:.3f}s"
+            )
             assert response.status_code in [200, 302, 404]
 
     @pytest.mark.asyncio
     async def test_lpp_concurrent_requests(self, client):
         """Test requêtes concurrentes LPP"""
+
         async def make_request():
             return client.get("/api/lpp/dossier/1")
 
@@ -162,7 +170,9 @@ class TestLPPPerformance:
         memory_increase = final_memory - initial_memory
 
         # L'augmentation de mémoire devrait être limitée (< 50MB)
-        assert memory_increase < 50, f"Augmentation mémoire excessive: {memory_increase:.2f}MB"
+        assert memory_increase < 50, (
+            f"Augmentation mémoire excessive: {memory_increase:.2f}MB"
+        )
 
 
 class TestUCDLPPPerformanceComparison:
@@ -202,14 +212,19 @@ class TestUCDLPPPerformanceComparison:
         avg_lpp = sum(times_lpp) / len(times_lpp)
 
         ratio = max(avg_ucd, avg_lpp) / min(avg_ucd, avg_lpp)
-        assert ratio < 1.2, f"Performances trop différentes: UCD={avg_ucd:.3f}s, LPP={avg_lpp:.3f}s"
+        assert ratio < 1.2, (
+            f"Performances trop différentes: UCD={avg_ucd:.3f}s, LPP={avg_lpp:.3f}s"
+        )
 
     def test_ucd_lpp_concurrent_performance(self, client):
         """Test performances concurrentes comparées"""
+
         def test_concurrent(route, num_requests=20):
             start_time = time.time()
             with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [executor.submit(client.get, route) for _ in range(num_requests)]
+                futures = [
+                    executor.submit(client.get, route) for _ in range(num_requests)
+                ]
                 responses = [f.result() for f in futures]
             end_time = time.time()
 
@@ -224,7 +239,9 @@ class TestUCDLPPPerformanceComparison:
 
         # Les performances concurrentes devraient être similaires
         ratio = max(time_ucd, time_lpp) / min(time_ucd, time_lpp)
-        assert ratio < 1.5, f"Performances concurrentes différentes: UCD={time_ucd:.3f}s, LPP={time_lpp:.3f}s"
+        assert ratio < 1.5, (
+            f"Performances concurrentes différentes: UCD={time_ucd:.3f}s, LPP={time_lpp:.3f}s"
+        )
 
     def test_ucd_lpp_memory_efficiency(self, client):
         """Test efficacité mémoire comparée"""
@@ -243,8 +260,12 @@ class TestUCDLPPPerformanceComparison:
         lpp_memory = process.memory_info().rss / 1024 / 1024 - initial_memory
 
         # L'utilisation mémoire devrait être similaire
-        ratio = max(ucd_memory, lpp_memory) / max(min(ucd_memory, lpp_memory), 0.1)  # éviter division par zéro
-        assert ratio < 2.0, f"Utilisation mémoire différente: UCD={ucd_memory:.2f}MB, LPP={lpp_memory:.2f}MB"
+        ratio = max(ucd_memory, lpp_memory) / max(
+            min(ucd_memory, lpp_memory), 0.1
+        )  # éviter division par zéro
+        assert ratio < 2.0, (
+            f"Utilisation mémoire différente: UCD={ucd_memory:.2f}MB, LPP={lpp_memory:.2f}MB"
+        )
 
 
 class TestUCDLPPLoadTesting:
@@ -277,7 +298,9 @@ class TestUCDLPPLoadTesting:
         success_rate = success_count / num_requests
 
         assert success_rate > 0.95, f"Taux de succès trop faible: {success_rate:.2%}"
-        assert total_time < 30, f"Test de charge trop lent: {total_time:.2f}s pour {num_requests} requêtes"
+        assert total_time < 30, (
+            f"Test de charge trop lent: {total_time:.2f}s pour {num_requests} requêtes"
+        )
 
     @pytest.mark.slow
     def test_lpp_high_load(self, client):
@@ -301,31 +324,38 @@ class TestUCDLPPLoadTesting:
         success_rate = success_count / num_requests
 
         assert success_rate > 0.95, f"Taux de succès trop faible: {success_rate:.2%}"
-        assert total_time < 30, f"Test de charge trop lent: {total_time:.2f}s pour {num_requests} requêtes"
+        assert total_time < 30, (
+            f"Test de charge trop lent: {total_time:.2f}s pour {num_requests} requêtes"
+        )
 
     @pytest.mark.slow
-    async def test_ucd_bulk_acts_creation(self, session: Session, sample_ght):
+    def test_ucd_bulk_acts_creation(self, session: Session, sample_ght):
         """Test création en masse d'actes UCD (1000+ actes)"""
         from app.services.patients_service import PatientCreateSchema, create_patient
-        from app.services.dossiers_service import DossierCreateSchema, create_dossier_with_pre_admit_venue
+        from app.services.dossiers_service import (
+            DossierCreateSchema,
+            create_dossier_with_pre_admit_venue,
+        )
         from app.services.ucd_service import UCDService
         from app.schemas.ucd import UCDActCreate
         from datetime import datetime
 
         # Créer un patient et dossier de test
         patient_data = PatientCreateSchema(
-            family="BulkTest",
-            given="Patient",
-            birth_date="1980-01-01"
+            family="BulkTest", given="Patient", birth_date="1980-01-01"
         )
-        patient = create_patient(session=session, patient_data=patient_data, ght_context_id=sample_ght.id)
+        patient = create_patient(
+            session=session, patient_data=patient_data, ght_context_id=sample_ght.id
+        )
 
         dossier_data = DossierCreateSchema(
             uf_responsabilite="UF001",
             dossier_type="hospitalise",
-            admit_time=datetime.now()
+            admit_time=datetime.now(),
         )
-        dossier = create_dossier_with_pre_admit_venue(session=session, dossier_data=dossier_data, patient=patient)
+        dossier = create_dossier_with_pre_admit_venue(
+            session=session, dossier_data=dossier_data, patient=patient
+        )
 
         # Mesurer la création de 1000 actes UCD
         ucd_service = UCDService(session)
@@ -342,9 +372,9 @@ class TestUCDLPPLoadTesting:
                 montant_total=10.0 + i * 0.01,
                 execute_date=datetime.now(),
                 prestataire_id="PREST001",
-                commentaire=f"Test acte {i}"
+                commentaire=f"Test acte {i}",
             )
-            act = await ucd_service.create_act(act_data)
+            act = ucd_service.create_act(act_data)
             created_acts.append(act)
 
         end_time = time.time()
@@ -352,14 +382,18 @@ class TestUCDLPPLoadTesting:
 
         # Vérifications
         assert len(created_acts) == 1000
-        assert creation_time < 60, f"Création de 1000 actes trop lente: {creation_time:.2f}s"
+        assert creation_time < 60, (
+            f"Création de 1000 actes trop lente: {creation_time:.2f}s"
+        )
         assert all(act.id is not None for act in created_acts)
 
         # Test récupération des actes créés
         start_time = time.time()
-        retrieved_acts = await ucd_service.get_acts_by_dossier(dossier.id)
+        retrieved_acts = ucd_service.get_acts_by_dossier(dossier.id)
         end_time = time.time()
         retrieval_time = end_time - start_time
 
         assert len(retrieved_acts) == 1000
-        assert retrieval_time < 5, f"Récupération de 1000 actes trop lente: {retrieval_time:.2f}s"
+        assert retrieval_time < 5, (
+            f"Récupération de 1000 actes trop lente: {retrieval_time:.2f}s"
+        )

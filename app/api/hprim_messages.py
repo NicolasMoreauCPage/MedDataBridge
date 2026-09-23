@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/hprim/messages", tags=["HPRIM Messages"])
 
 
 @router.get("")
-async def list_hprim_messages(
+def list_hprim_messages(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     status: Optional[str] = None,
@@ -42,7 +42,7 @@ async def list_hprim_messages(
         )
 
     all_items = list(db.exec(statement.order_by(HprimMessage.created_at.desc())).all())
-    items = all_items[offset:offset + limit]
+    items = all_items[offset : offset + limit]
 
     return {
         "items": [
@@ -67,7 +67,7 @@ async def list_hprim_messages(
 
 
 @router.get("/{message_id}")
-async def get_hprim_message_detail(message_id: str, db: Session = Depends(get_session)):
+def get_hprim_message_detail(message_id: str, db: Session = Depends(get_session)):
     item = db.get(HprimMessage, message_id)
     if not item:
         raise HTTPException(status_code=404, detail="Message HPRIM introuvable")

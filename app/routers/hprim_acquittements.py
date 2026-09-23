@@ -13,27 +13,26 @@ router = APIRouter(prefix="/api/hprim/acquittements", tags=["HPRIM Acquittements
 
 
 @router.post("/process")
-async def process_acquittement(
-    acquittement_data: Dict[str, Any],
-    session: Session = Depends(get_session)
+def process_acquittement(
+    acquittement_data: Dict[str, Any], session: Session = Depends(get_session)
 ) -> dict:
     """
     Traite un message d'acquittement reçu du serveur HPRIM
-    
+
     Conformément à la spec msgAcquittementsServeurActes2_4.xsd
     """
     try:
         service = HprimAcquittementService(session)
-        acquittement = await service.process_acquittement(acquittement_data)
-        
+        acquittement = service.process_acquittement(acquittement_data)
+
         if not acquittement:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to process acquittement"
+                detail="Failed to process acquittement",
             )
-        
-        reponses_actes = acquittement_data.get('reponses_actes', [])
-        reponses_interventions = acquittement_data.get('reponses_interventions', [])
+
+        reponses_actes = acquittement_data.get("reponses_actes", [])
+        reponses_interventions = acquittement_data.get("reponses_interventions", [])
         return {
             "status": "success",
             "id": acquittement.id,
@@ -43,53 +42,49 @@ async def process_acquittement(
             "reponses_count": {
                 "actes": len(reponses_actes),
                 "interventions": len(reponses_interventions),
-            }
+            },
         }
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @router.get("/{message_id}/status")
-async def get_acquittement_status(
-    message_id: str,
-    session: Session = Depends(get_session)
+def get_acquittement_status(
+    message_id: str, session: Session = Depends(get_session)
 ) -> dict:
     """
     Récupère le statut d'un acquittement par son ID de message original
     """
     try:
         service = HprimAcquittementService(session)
-        status_summary = await service.get_acquittement_status_summary(message_id)
-        
+        status_summary = service.get_acquittement_status_summary(message_id)
+
         if not status_summary:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No acquittement found for message {message_id}"
+                detail=f"No acquittement found for message {message_id}",
             )
-        
+
         return status_summary
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @router.get("/")
-async def list_recent_acquittements(
-    limit: int = 50,
-    session: Session = Depends(get_session)
+def list_recent_acquittements(
+    limit: int = 50, session: Session = Depends(get_session)
 ) -> dict:
     """
     Liste les acquittements récents
     """
     service = HprimAcquittementService(session)
-    acquittements = await service.list_recent_acquittements(limit=limit)
+    acquittements = service.list_recent_acquittements(limit=limit)
 
     return {
         "acquittements": [
@@ -101,5 +96,5 @@ async def list_recent_acquittements(
             }
             for a in acquittements
         ],
-        "count": len(acquittements)
+        "count": len(acquittements),
     }

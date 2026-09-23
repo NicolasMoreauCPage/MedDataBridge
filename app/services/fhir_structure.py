@@ -669,7 +669,13 @@ def entity_to_fhir_location(entity: Any, session: Session) -> Dict[Any, Any]:
                         "valueCode": code
                     })
         except Exception:
-            pass
+            # Les activités UF enrichissent la ressource mais l'ancien champ
+            # ``uf_type`` reste une solution de repli compatible.
+            logger.debug(
+                "Unable to export optional UF activities entity_id=%s",
+                getattr(entity, "id", None),
+                exc_info=True,
+            )
 
         # Solution de repli sur l'ancien champ simple uf_type si aucune activité liée
         if not uf_extensions and getattr(entity, "uf_type", None):

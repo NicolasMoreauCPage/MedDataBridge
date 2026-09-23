@@ -424,8 +424,15 @@ class FHIRExportService:
                         ] if pc.contact_role else None
                     }
                     contacts_payload.append(contact_entry)
-            except Exception:
-                pass
+            except Exception as exc:
+                # Les contacts sont facultatifs pour l'export du patient : ne
+                # pas perdre la ressource principale, mais rendre l'omission
+                # exploitable dans les logs structurés.
+                self.logger.warning(
+                    "FHIR patient contacts omitted during export",
+                    patient_id=patient.id,
+                    error_type=type(exc).__name__,
+                )
 
             fhir_patient = self.patient_converter.create_patient(
                 patient_identifier,
@@ -592,8 +599,13 @@ class FHIRExportService:
                             }
                         ] if vc.contact_role else None
                     })
-            except Exception:
-                pass
+            except Exception as exc:
+                # Même règle pour les participants facultatifs d'une venue.
+                self.logger.warning(
+                    "FHIR venue contacts omitted during export",
+                    venue_id=venue.id,
+                    error_type=type(exc).__name__,
+                )
 
             encounter = self.encounter_converter.create_encounter(
                 venue_id,

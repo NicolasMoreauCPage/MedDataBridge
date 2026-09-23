@@ -108,7 +108,10 @@ l'audit :
   persistée comme avertissement avant la poursuite contrôlée du traitement. La
   compilation HL7 des jeux de scénarios ne tente plus non plus une transformation
   requérant un endpoint encore inconnu : cet appel incomplet était masqué par
-  une capture large et ne pouvait produire aucun effet fiable.
+  une capture large et ne pouvait produire aucun effet fiable. Les enrichissements
+  FHIR facultatifs (contacts patient/venue et activités d'UF) restent tolérants
+  aux données historiques incomplètes, mais leur omission est désormais
+  explicitement signalée sans empêcher l'export de la ressource principale.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

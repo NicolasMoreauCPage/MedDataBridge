@@ -84,6 +84,15 @@ test("structure wizard prevents an empty structure from reaching generation", ()
   assert.match(source, /data-structure-field="uf:\$\{poleIndex\}/);
 });
 
+test("structure wizard announces its active step to assistive technologies", () => {
+  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  assert.match(source, /aria-label="Progression de la création de structure"/);
+  assert.match(source, /id="wizardProgressStatus" class="sr-only" aria-live="polite"/);
+  assert.match(source, /stepEl\.setAttribute\('aria-current', 'step'\)/);
+  assert.match(source, /Étape \$\{currentStep\} sur \$\{steps\.length\}/);
+  assert.match(source, /aria-controls="wizardContent"/);
+});
+
 test("analytics and metrics dashboards delegate their reads to the shared HTTP client", () => {
   const analytics = readFileSync(new URL("../../app/templates/analytics_dashboard.html", import.meta.url), "utf8");
   const metrics = readFileSync(new URL("../../app/templates/metrics_dashboard.html", import.meta.url), "utf8");

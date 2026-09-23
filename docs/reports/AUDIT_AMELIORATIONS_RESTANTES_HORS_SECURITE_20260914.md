@@ -237,7 +237,10 @@ l'audit :
 - **FE-04/FE-05 :** le gestionnaire partagé de formulaires associe désormais
   les erreurs au champ, annonce leur apparition et place le focus sur le
   premier champ invalide. La couverture axe/RGAA complète et les revues
-  clavier des écrans prioritaires restent à planifier.
+  clavier des écrans prioritaires restent à planifier. Le wizard structure
+  annonce à présent son étape active via une région live et marque celle-ci
+  avec `aria-current`, afin de rendre sa progression intelligible au lecteur
+  d'écran.
 
 ## Backlog priorisé
 

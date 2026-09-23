@@ -62,9 +62,9 @@
   </section>
 
   <!-- Barre de progression -->
-  <nav class="mb-6">
+  <nav class="mb-6" aria-label="Progression de la création de structure">
     <ol class="flex items-center text-xs sm:text-sm text-slate-600 dark:text-slate-300" id="wizardSteps">
-      <li class="flex items-center mr-4" data-step="1">
+      <li class="flex items-center mr-4" data-step="1" aria-current="step">
         <span class="w-6 h-6 flex items-center justify-center rounded-full bg-indigo-600 text-white text-xs font-semibold mr-2 transition-colors">1</span>
         <span>Template & établissement</span>
       </li>
@@ -85,6 +85,7 @@
         <span>Synthèse</span>
       </li>
     </ol>
+    <p id="wizardProgressStatus" class="sr-only" aria-live="polite"></p>
   </nav>
 
   <!-- Contenu des étapes (squelette Phase 2) -->
@@ -195,10 +196,10 @@
 
   <!-- Boutons de navigation wizard -->
   <div class="mt-4 flex items-center justify-between">
-    <button type="button" id="wizardPrev" class="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-40 disabled:hover:bg-white transition-colors">
+    <button type="button" id="wizardPrev" aria-controls="wizardContent" class="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-40 disabled:hover:bg-white transition-colors">
       ← Précédent
     </button>
-    <button type="button" id="wizardNext" class="px-4 py-1.5 rounded-md bg-indigo-600 text-sm text-white hover:bg-indigo-700 shadow-sm hover:shadow-md transition-all">
+    <button type="button" id="wizardNext" aria-controls="wizardContent" class="px-4 py-1.5 rounded-md bg-indigo-600 text-sm text-white hover:bg-indigo-700 shadow-sm hover:shadow-md transition-all">
       Suivant →
     </button>
   </div>
@@ -224,6 +225,7 @@
     const nextBtn = document.getElementById('wizardNext');
     const templateCards = document.getElementById('templateCards');
     const targetEgId = document.getElementById('targetEgId');
+    const progressStatus = document.getElementById('wizardProgressStatus');
     let selectedTemplate = null;
     let templatePayload = null; // Stocke le payload JSON du template sélectionné
     let isTemplateLoading = false;
@@ -300,11 +302,13 @@
       steps.forEach(stepEl => {
         const step = Number(stepEl.dataset.step);
         if (step === currentStep) {
+          stepEl.setAttribute('aria-current', 'step');
           stepEl.classList.remove('opacity-60');
           const badge = stepEl.querySelector('span');
           badge.classList.remove('bg-slate-200', 'text-slate-700');
           badge.classList.add('bg-indigo-600', 'text-white');
         } else {
+          stepEl.removeAttribute('aria-current');
           stepEl.classList.add('opacity-60');
           const badge = stepEl.querySelector('span');
           badge.classList.remove('bg-indigo-600', 'text-white');
@@ -315,6 +319,12 @@
         const step = Number(contentEl.dataset.stepContent);
         contentEl.classList.toggle('hidden', step !== currentStep);
       });
+      const activeHeading = contents.find(
+        (contentEl) => Number(contentEl.dataset.stepContent) === currentStep,
+      )?.querySelector('h2')?.textContent?.trim();
+      if (progressStatus && activeHeading) {
+        progressStatus.textContent = `Étape ${currentStep} sur ${steps.length} : ${activeHeading}`;
+      }
       prevBtn.disabled = currentStep === 1;
       nextBtn.disabled = currentStep === 1 && isTemplateLoading;
       nextBtn.textContent = currentStep === 5

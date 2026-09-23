@@ -6,6 +6,7 @@ from app.routers import location_cartography
 from app.routers import interface_testing
 from app.routers import structure
 from app.routers import lpp, ucd
+from app.models_structure import Service
 
 
 def test_sqlmodel_cartography_routes_are_sync():
@@ -37,3 +38,20 @@ def test_sqlmodel_structure_template_routes_are_sync():
 def test_sqlmodel_coding_dashboards_are_sync():
     assert not inspect.iscoroutinefunction(ucd.ucd_dashboard)
     assert not inspect.iscoroutinefunction(lpp.lpp_dashboard)
+
+
+def test_services_catalog_honors_its_page_contract(client, session):
+    session.add_all(
+        [
+            Service(name="Cartographie pagination A"),
+            Service(name="Cartographie pagination B"),
+        ]
+    )
+    session.commit()
+
+    response = client.get("/api/location/services?limit=1&offset=0")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert int(response.headers["X-Total-Count"]) >= 2
+    assert client.get("/api/location/services?limit=501").status_code == 422

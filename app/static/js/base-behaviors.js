@@ -23,7 +23,7 @@
 
       // Keep aria-expanded synchronized and support keyboard navigation on desktop mega-menus.
       document.querySelectorAll('nav[aria-label="Navigation principale"] li.group').forEach((item) => {
-        const trigger = item.querySelector('button[aria-haspopup="menu"]');
+        const trigger = item.querySelector('button[aria-controls^="menu-"]');
         if (!trigger) return;
 
         const getFocusableItems = () => {

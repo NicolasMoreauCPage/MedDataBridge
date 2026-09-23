@@ -18,6 +18,8 @@ Seules les règles Axe portant les tags `wcag2a` et `wcag2aa` sont évaluées. U
 violation d'impact `critical` ou `serious` échoue le job. Le même test vérifie
 que le premier élément atteint au clavier possède un focus visible.
 
+Dernière exécution complète : **23 septembre 2026 — 6 contrôles réussis**.
+
 Exécution locale :
 
 ```bash

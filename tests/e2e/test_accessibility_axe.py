@@ -69,10 +69,15 @@ async def test_priority_workspaces_expose_a_visible_keyboard_focus(page, path: s
           const style = getComputedStyle(element);
           return {
             tag: element?.tagName,
+            id: element?.id || null,
+            className: element?.className || null,
             outline: style.outlineStyle !== 'none' && style.outlineWidth !== '0px',
             boxShadow: style.boxShadow !== 'none',
           };
         }"""
     )
     assert focus["tag"] in {"A", "BUTTON", "INPUT", "SELECT", "TEXTAREA"}
-    assert focus["outline"] or focus["boxShadow"], "Le focus clavier doit rester visuellement perceptible."
+    assert focus["outline"] or focus["boxShadow"], (
+        "Le focus clavier doit rester visuellement perceptible : "
+        f"{focus['tag']}#{focus['id']} ({focus['className']})."
+    )

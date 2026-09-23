@@ -518,8 +518,7 @@ l'audit :
   formulaires possèdent des tests frontend ciblés.
 - **FE-04/FE-05 :** le gestionnaire partagé de formulaires associe désormais
   les erreurs au champ, annonce leur apparition et place le focus sur le
-  premier champ invalide. La couverture axe/RGAA complète et les revues
-  clavier des écrans prioritaires restent à planifier. Le wizard structure
+  premier champ invalide. Le wizard structure
   annonce à présent son étape active via une région live et marque celle-ci
   avec `aria-current`, afin de rendre sa progression intelligible au lecteur
   d'écran. La modale de suppression des contacts possède maintenant un rôle
@@ -534,6 +533,10 @@ l'audit :
   de scénario, wizard de structure et validation selon WCAG 2.1 AA ; toute
   violation critique ou sérieuse échoue le job navigateur de CI. Une checklist
   de revue clavier et des annonces dynamiques complète ce contrôle automatisé.
+  La campagne réelle du 23 septembre 2026 passe ses six contrôles. Elle a permis
+  de corriger la sémantique ARIA des deux navigations principales, le contraste
+  des identifiants de modèles de structure et de rendre l'indicateur de focus
+  global prioritaire sur les anciennes classes supprimant l'outline.
   La suppression d'une UH ou d'une chambre partage maintenant une seule modale
   déléguée : fermeture Échap, restitution du focus et ciblage de l'action via
   attribut de données sont couverts par un test frontend.

@@ -252,7 +252,7 @@
           btn.innerHTML = `
             <div class="text-sm font-semibold text-slate-900 mb-1">${emoji} ${tpl.name}</div>
             <p class="text-xs text-slate-600 mb-1">${tpl.description || 'Template de structure hospitalière.'}</p>
-            <p class="text-[11px] text-slate-400">ID template : ${tpl.key}</p>
+            <p class="text-[11px] text-slate-600 dark:text-slate-300">ID template : ${tpl.key}</p>
           `;
           templateCards.appendChild(btn);
         }

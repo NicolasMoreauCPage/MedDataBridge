@@ -324,10 +324,16 @@ test("message detail delegates payload copy with JSON bootstrap data", () => {
 
 test("scenario import and conformity toggle use the shared HTTP client", () => {
   const scenarioImport = readFileSync(new URL("../../app/templates/scenario_import.html", import.meta.url), "utf8");
+  const scenarioImportWorkspace = readFileSync(
+    new URL("../../app/static/js/scenario-import-workspace.js", import.meta.url),
+    "utf8",
+  );
   const conformity = readFileSync(new URL("../../app/templates/conformity_home.html", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../../app/static/js/conformity-home-workspace.js", import.meta.url), "utf8");
-  assert.match(scenarioImport, /window\.medbridgeHttp\.request\(/);
+  assert.match(scenarioImport, /js\/scenario-import-workspace\.js/);
+  assert.doesNotMatch(scenarioImport, /window\.medbridgeHttp\./);
   assert.doesNotMatch(scenarioImport, /\bfetch\(/);
+  assert.match(scenarioImportWorkspace, /window\.medbridgeHttp\.request\(/);
   assert.match(conformity, /js\/conformity-home-workspace\.js/);
   assert.doesNotMatch(conformity, /window\.medbridgeHttp\./);
   assert.match(workspace, /window\.medbridgeHttp\.request\(/);

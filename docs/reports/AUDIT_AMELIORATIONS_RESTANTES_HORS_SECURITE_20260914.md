@@ -524,6 +524,9 @@ l'audit :
   `static/js/dossier-type-change-workspace.js`; les avertissements sont rendus
   par nœuds DOM, le forçage réutilise le même chemin et les erreurs deviennent
   visibles via le système de toast.
+  L'import de scénario quitte aussi le template pour
+  `static/js/scenario-import-workspace.js`, tout en conservant l'envoi
+  multipart, la redirection vers la revue et la remise en état après erreur.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

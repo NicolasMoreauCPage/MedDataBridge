@@ -152,64 +152,6 @@
   </div>
 </div>
 
-<script>
-// Gestion de l'import asynchrone de scénario
-function showScenarioImportNotification(message, type = 'info') {
-    if (window.toastSystem?.show) {
-        window.toastSystem.show(message, type);
-        return;
-    }
-    console.info(message);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const importForm = document.getElementById('import-scenario-form');
-    const importBtn = document.getElementById('import-scenario-btn');
-    
-    if (importForm && importBtn) {
-        importForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const originalText = importBtn.textContent;
-            const originalDisabled = importBtn.disabled;
-            
-            // Désactiver le bouton et changer le texte
-            importBtn.disabled = true;
-            importBtn.innerHTML = `
-                <svg class="w-4 h-4 animate-spin mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-                Import en cours...
-            `;
-            
-            try {
-                const { response } = await window.medbridgeHttp.request(importForm.action, {
-                    method: 'POST',
-                    body: new FormData(importForm),
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                if (response.redirected) {
-                    // Succès - ouvrir la revue guidée renvoyée par le serveur.
-                    window.location.href = response.url;
-                } else {
-                    // Afficher un message de succès et rediriger
-                    showScenarioImportNotification('Scénario importé avec succès.', 'success');
-                    window.setTimeout(() => { window.location.href = '/scenarios'; }, 350);
-                }
-            } catch (error) {
-                console.error('Erreur lors de l\'import:', error);
-                showScenarioImportNotification(`Erreur lors de l’import du scénario : ${error.message}`, 'error');
-                
-                // Restaurer le bouton
-                importBtn.disabled = originalDisabled;
-                importBtn.textContent = originalText;
-            }
-        });
-    }
-});
-</script>
+<script defer src="{{ url_for('static', path='/js/scenario-import-workspace.js') }}"></script>
 
 {% endblock %}

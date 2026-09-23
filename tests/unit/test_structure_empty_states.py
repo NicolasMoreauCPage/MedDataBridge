@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 
 # The `client` fixture seeds one sample entity of each structure type as a side effect
 # of its GHT-context bootstrap (visiting /admin/ght/{id}), so a `q` filter guaranteed
@@ -30,4 +31,5 @@ def test_structure_wizard_selects_its_target_eg_before_generation(client, sessio
     assert "ID de l'Entité Géographique cible" not in response.text
     assert "data-step-content=\"1\"" in response.text
     assert 'id="structure-wizard-input-dialog"' in response.text
-    assert "isTemplateLoading" in response.text
+    assert "js/structure-wizard-workspace.js" in response.text
+    assert "isTemplateLoading" in Path("app/static/js/structure-wizard-workspace.js").read_text(encoding="utf-8")

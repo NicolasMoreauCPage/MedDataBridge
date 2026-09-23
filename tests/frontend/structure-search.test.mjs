@@ -54,7 +54,7 @@ test("structure dashboard delegates its bulk actions to an external page asset",
 });
 
 test("structure wizard delegates template APIs to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/structure-wizard-workspace.js", import.meta.url), "utf8");
   assert.match(source, /window\.medbridgeHttp\.get\('\/api\/structure\/templates'\)/);
   assert.match(source, /window\.medbridgeHttp\.get\(\s*`\/api\/structure\/templates\/\$\{templateId\}/);
   assert.match(source, /window\.medbridgeHttp\.post\(\s*'\/api\/structure\/apply-template'/);
@@ -62,7 +62,7 @@ test("structure wizard delegates template APIs to the shared HTTP client", () =>
 });
 
 test("structure wizard keeps only the latest template request and blocks navigation while loading", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/structure-wizard-workspace.js", import.meta.url), "utf8");
   assert.match(source, /let templateRequestToken = 0/);
   assert.match(source, /const requestToken = \+\+templateRequestToken/);
   assert.match(source, /if \(requestToken !== templateRequestToken\) return/);
@@ -71,7 +71,7 @@ test("structure wizard keeps only the latest template request and blocks navigat
 });
 
 test("structure wizard prevents an empty structure from reaching generation", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/structure-wizard-workspace.js", import.meta.url), "utf8");
   assert.match(source, /function getStructureValidationError\(/);
   assert.match(source, /Ajoutez et nommez au moins un pôle avant de poursuivre/);
   assert.match(source, /Nommez le service \$\{serviceIndex \+ 1\}/);
@@ -81,17 +81,20 @@ test("structure wizard prevents an empty structure from reaching generation", ()
 });
 
 test("structure wizard announces its active step to assistive technologies", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
-  assert.match(source, /aria-label="Progression de la création de structure"/);
-  assert.match(source, /id="wizardProgressStatus" class="sr-only" aria-live="polite"/);
+  const template = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/structure-wizard-workspace.js", import.meta.url), "utf8");
+  assert.match(template, /js\/structure-wizard-workspace\.js/);
+  assert.match(template, /aria-label="Progression de la création de structure"/);
+  assert.match(template, /id="wizardProgressStatus" class="sr-only" aria-live="polite"/);
+  assert.match(template, /aria-controls="wizardContent"/);
   assert.match(source, /stepEl\.setAttribute\('aria-current', 'step'\)/);
   assert.match(source, /Étape \$\{currentStep\} sur \$\{steps\.length\}/);
-  assert.match(source, /aria-controls="wizardContent"/);
 });
 
 test("structure wizard warns before losing unsaved changes", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
-  assert.match(source, /id="wizardDirtyStatus"/);
+  const template = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/structure-wizard-workspace.js", import.meta.url), "utf8");
+  assert.match(template, /id="wizardDirtyStatus"/);
   assert.match(source, /function markDirty\(\)/);
   assert.match(source, /window\.addEventListener\('beforeunload'/);
   assert.match(source, /clearDirty\(\);\s*window\.location\.href = '\/structure'/);

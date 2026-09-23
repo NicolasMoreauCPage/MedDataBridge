@@ -214,6 +214,8 @@ l'audit :
   données et la délégation d'événements. Le tableau de cache isole ses
   métriques et son graphique dans `static/js/cache-dashboard-workspace.js` ;
   le bouton d'actualisation est désormais réellement raccordé à son identifiant.
+  L'assistant de structure délègue maintenant toutes ses étapes, sa validation,
+  ses modèles et sa génération à `static/js/structure-wizard-workspace.js`.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

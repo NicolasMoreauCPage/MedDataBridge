@@ -358,7 +358,9 @@ l'audit :
   avec `aria-current`, afin de rendre sa progression intelligible au lecteur
   d'écran. La modale de suppression des contacts possède maintenant un rôle
   de dialogue, une étiquette, une fermeture Échap et une restitution du focus
-  à son déclencheur.
+  à son déclencheur. Le créateur de scénarios marque aussi ses prérequis
+  invalides avec `aria-invalid` et déplace le focus vers le titre de chaque
+  étape lors de la navigation.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

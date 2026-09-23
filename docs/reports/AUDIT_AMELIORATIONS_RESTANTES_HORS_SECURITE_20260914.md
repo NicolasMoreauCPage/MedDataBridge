@@ -184,6 +184,8 @@ l'audit :
   progressivement par domaine. Les huit routes de cartographie de lieux ont
   été traitées de la même façon, sans changer leur contrat JSON; les deux
   lectures de détail de qualification d'interfaces sont également synchrones.
+  La liste des templates de structure est maintenant triée, bornée à 500 et
+  exécutée hors boucle async; son détail suit le même modèle synchrone.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés

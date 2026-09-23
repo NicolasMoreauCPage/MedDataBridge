@@ -232,14 +232,18 @@ class StructureTemplateOut(BaseModel):
 
 
 @api_router.get("/templates", response_model=List[StructureTemplateOut])
-async def list_structure_templates(session: Session = Depends(get_session)):
+def list_structure_templates(session: Session = Depends(get_session)):
     """Retourne la liste des templates de structure disponibles pour le wizard.
 
     Implémentation minimaliste : on lit les templates en base si présents,
     sinon on renvoie un petit set de templates par défaut (non persistés)
     pour garder le wizard pleinement fonctionnel même sans seed initial.
     """
-    templates = session.exec(select(StructureTemplate)).all()
+    templates = session.exec(
+        select(StructureTemplate)
+        .order_by(StructureTemplate.key)
+        .limit(500)
+    ).all()
     items: List[StructureTemplateOut] = []
 
     if templates:
@@ -265,7 +269,7 @@ async def list_structure_templates(session: Session = Depends(get_session)):
 
 
 @api_router.get("/templates/{template_id}")
-async def get_structure_template(template_id: int, session: Session = Depends(get_session)):
+def get_structure_template(template_id: int, session: Session = Depends(get_session)):
     """Retourne le détail complet d'un template, y compris son payload JSON.
 
     Utilisé par le wizard à l'étape 2 pour charger la structure du template choisi.

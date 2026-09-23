@@ -4,6 +4,7 @@ import inspect
 
 from app.routers import location_cartography
 from app.routers import interface_testing
+from app.routers import structure
 
 
 def test_sqlmodel_cartography_routes_are_sync():
@@ -25,3 +26,8 @@ def test_sqlmodel_qualification_detail_routes_are_sync():
     """Les lectures de détail n'ont pas d'opération asynchrone à attendre."""
     assert not inspect.iscoroutinefunction(interface_testing.qualification_run_detail)
     assert not inspect.iscoroutinefunction(interface_testing.campaign_run_detail)
+
+
+def test_sqlmodel_structure_template_routes_are_sync():
+    assert not inspect.iscoroutinefunction(structure.list_structure_templates)
+    assert not inspect.iscoroutinefunction(structure.get_structure_template)

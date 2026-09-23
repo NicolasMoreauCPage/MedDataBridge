@@ -510,6 +510,10 @@ l'audit :
   La suppression d'une UH ou d'une chambre partage maintenant une seule modale
   déléguée : fermeture Échap, restitution du focus et ciblage de l'action via
   attribut de données sont couverts par un test frontend.
+  Les contrôles de changement d'identifiant et de fusion patient partagent
+  désormais `static/js/patient-identity-actions.js`, qui expose aussi
+  `aria-invalid`; l'association patient/venue du contact est isolée dans
+  `static/js/contact-form-workspace.js` avec des gardes d'initialisation.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

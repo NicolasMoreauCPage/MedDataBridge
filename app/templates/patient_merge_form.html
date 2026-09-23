@@ -32,7 +32,7 @@
     <strong>survivant</strong> et ses identifiants seront marqués comme obsolètes. Cette opération est irréversible.
   </div>
 
-  <form method="post" action="/patients/merge" class="space-y-6 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm" data-confirm="Confirmer la fusion ? Cette opération est irréversible." data-confirm-title="Fusionner deux patients" data-confirm-accept="Fusionner et émettre A40" data-confirm-variant="danger">
+  <form method="post" action="/patients/merge" class="space-y-6 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm" data-patient-merge data-confirm="Confirmer la fusion ? Cette opération est irréversible." data-confirm-title="Fusionner deux patients" data-confirm-accept="Fusionner et émettre A40" data-confirm-variant="danger">
     <div>
       <label for="source_patient_id" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
         Patient source (sera fusionné/archivé) <span class="text-red-500">*</span>
@@ -77,30 +77,5 @@
     </div>
   </form>
 </div>
-<script>
-  (() => {
-    const form = document.querySelector('form[action="/patients/merge"]');
-    const source = document.getElementById('source_patient_id');
-    const survivor = document.getElementById('surviving_patient_id');
-    const preview = document.getElementById('merge-mrg-preview');
-    const sourceIdentifier = document.getElementById('merge-source-identifier');
-    const error = document.getElementById('merge-selection-error');
-    const submit = form?.querySelector('button[type="submit"]');
-
-    function refreshMergeSelection() {
-      const hasBothPatients = Boolean(source.value && survivor.value);
-      const samePatient = hasBothPatients && source.value === survivor.value;
-      sourceIdentifier.textContent = source.options[source.selectedIndex]?.dataset.identifier || '';
-      preview.classList.toggle('hidden', !hasBothPatients || samePatient);
-      error.classList.toggle('hidden', !samePatient);
-      submit.disabled = samePatient;
-      submit.classList.toggle('opacity-50', samePatient);
-      submit.classList.toggle('cursor-not-allowed', samePatient);
-    }
-
-    source.addEventListener('change', refreshMergeSelection);
-    survivor.addEventListener('change', refreshMergeSelection);
-    refreshMergeSelection();
-  })();
-</script>
+<script defer src="{{ url_for('static', path='/js/patient-identity-actions.js') }}"></script>
 {% endblock %}

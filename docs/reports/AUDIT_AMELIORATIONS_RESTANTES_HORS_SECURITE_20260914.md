@@ -190,8 +190,10 @@ l'audit :
   chambre. La soumission est elle aussi isolée dans `movement_creation.py` :
   chronologie, transitions et cohérence UH/chambre/lit sont validées avant la
   transaction, la localisation complète est conservée et la venue courante est
-  actualisée. Le routeur mouvements ne conserve que la présentation et passe
-  de 2 215 à 1 291 lignes.
+  actualisée. La projection de la fiche détail rejoint `movement_details.py` :
+  UF médicale et de soins sont chargées ensemble, et UH, chambre et lit sont
+  tous résolus depuis la localisation structurée. Le routeur mouvements ne
+  conserve que la présentation et passe de 2 215 à 1 216 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

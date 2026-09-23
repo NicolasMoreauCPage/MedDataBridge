@@ -24,6 +24,7 @@ from app.services.movement_creation import (
     MovementCreationError,
     create_patient_movement,
 )
+from app.services.movement_details import MovementDetailsError, load_movement_details
 from app.dependencies.ght import require_ght_context
 
 
@@ -500,110 +501,34 @@ def create_mouvement(
 @router.get("/{mouvement_id}", response_class=HTMLResponse)
 def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_session)):
     require_ght_context(request)
-    m = session.get(Mouvement, mouvement_id)
-    if not m:
-        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-    
-    # Récupérer les informations enrichies pour l'affichage
-    from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre
-    
-    # UF Responsable
-    uf_responsable_label = None
-    if m.uf_responsabilite:
-        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == m.uf_responsabilite)).first()
-        if uf_obj:
-            uf_responsable_label = uf_obj.short_name if getattr(uf_obj, 'short_name', None) and uf_obj.short_name and uf_obj.short_name.strip() else uf_obj.name
-    
-    # UF Soins
-    uf_soins_label = m.uf_soins_label
-    if not uf_soins_label and m.uf_soins_code:
-        uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == m.uf_soins_code)).first()
-        if uf_obj:
-            uf_soins_label = uf_obj.short_name if getattr(uf_obj, 'short_name', None) and uf_obj.short_name and uf_obj.short_name.strip() else uf_obj.name
-    
-    # UF Hébergement depuis la location (différents formats possibles)
-    uf_hebergement_label = None
-    chambre_info = None
-    lit_info = None
-    if m.location:
-        location_str = str(m.location).strip()
-        
-        # Format 1: "UH-identifier^chambre-identifier" (ex: "UH-696915001750^6969150017507011")
-        if '^' in location_str:
-            parts = location_str.split('^', 1)
-            uh_part = parts[0].strip()
-            chambre_part = parts[1].strip() if len(parts) > 1 else ""
-            
-            # Extraire l'identifier UH (peut être "UH-ident" ou juste "ident")
-            uh_identifier = uh_part
-            if not uh_part.startswith('UH-'):
-                uh_identifier = f'UH-{uh_part}'  # Ajouter le préfixe si manquant
-            
-            uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == uh_identifier)).first()
-            if uh_obj and uh_obj.unite_fonctionnelle:
-                uf_hebergement_label = uh_obj.unite_fonctionnelle.short_name if getattr(uh_obj.unite_fonctionnelle, 'short_name', None) and uh_obj.unite_fonctionnelle.short_name and uh_obj.unite_fonctionnelle.short_name.strip() else uh_obj.unite_fonctionnelle.name
-            
-            # Chambre
-            if chambre_part:
-                chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == chambre_part)).first()
-                if chambre_obj:
-                    chambre_info = chambre_obj.name if chambre_obj.name else chambre_obj.identifier
-        
-        # Format 2: Format avec tirets "UF-UFIDENT-CHAMBRE-LIT" (ancien format)
-        elif '-' in location_str and len(location_str.split('-')) >= 3:
-            location_parts = location_str.split('-')
-            if len(location_parts) >= 3:
-                chambre_identifier = location_parts[2]
-                chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == chambre_identifier)).first()
-                if chambre_obj:
-                    chambre_info = chambre_obj.name if chambre_obj.name else chambre_obj.identifier
-                    if len(location_parts) >= 4:
-                        lit_identifier = location_parts[3]
-                        lit_info = f"Lit {lit_identifier}"
-        
-        # Format 3: Référence directe à une chambre
-        else:
-            # Essayer de trouver directement comme chambre
-            chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == location_str)).first()
-            if chambre_obj:
-                chambre_info = chambre_obj.name if chambre_obj.name else chambre_obj.identifier
-                # Si la chambre a une UH, récupérer l'UF
-                if chambre_obj.unite_hebergement and chambre_obj.unite_hebergement.unite_fonctionnelle:
-                    uf_hebergement_label = chambre_obj.unite_hebergement.unite_fonctionnelle.short_name if getattr(chambre_obj.unite_hebergement.unite_fonctionnelle, 'short_name', None) and chambre_obj.unite_hebergement.unite_fonctionnelle.short_name and chambre_obj.unite_hebergement.unite_fonctionnelle.short_name.strip() else chambre_obj.unite_hebergement.unite_fonctionnelle.name
-    
-    # Type avec libellé
-    type_badge = get_type_badge(getattr(m, 'movement_type', None))
-    status_badge = get_status_badge(getattr(m, 'status', 'pending'))
-    from app.services.vocabulary_lookup import get_vocabulary_options
-    movement_type_options = get_vocabulary_options("movement-nature") or []
-    
-    # Déterminer le libellé du type
-    type_label = None
-    if m.movement_type and movement_type_options:
-        for opt in movement_type_options:
-            if opt.get('value') == m.movement_type:
-                type_label = opt.get('label')
-                break
-    if not type_label:
-        # Solution de repli vers le badge ou le code
-        type_label = m.movement_type or "Non spécifié"
-    
+    try:
+        details = load_movement_details(session, mouvement_id)
+    except MovementDetailsError:
+        return get_templates_with_filters(request).TemplateResponse(
+            request,
+            "not_found.html",
+            {"title": "Mouvement introuvable"},
+            status_code=404,
+        )
+
+    movement = details.movement
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "mouvement_detail.html",
         {
-            "mouvement": m,
-            "type_badge": type_badge,
-            "status_badge": status_badge,
-            "type_label": type_label,
-            "uf_responsable_label": uf_responsable_label,
-            "uf_soins_label": uf_soins_label,
-            "uf_hebergement_label": uf_hebergement_label,
-            "chambre_info": chambre_info,
-            "lit_info": lit_info,
-            "movement_type_options": movement_type_options
-        }
+            "mouvement": movement,
+            "type_badge": get_type_badge(movement.movement_type),
+            "status_badge": get_status_badge(movement.status or "pending"),
+            "type_label": details.type_label,
+            "uf_responsable_label": details.uf_responsable_label,
+            "uf_soins_label": details.uf_soins_label,
+            "uf_hebergement_label": details.uf_hebergement_label,
+            "chambre_info": details.chambre_info,
+            "lit_info": details.lit_info,
+            "movement_type_options": details.movement_type_options,
+        },
     )
+
 
 
 @router.get("/{mouvement_id}/edit", response_class=HTMLResponse)

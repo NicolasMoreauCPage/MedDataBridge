@@ -6,16 +6,15 @@ from typing import Literal, Optional
 
 from sqlmodel import Session, select
 
-from app.models import Patient, Dossier, Venue, Mouvement
+from app.models import Dossier, Mouvement, Patient, Venue
 from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
-from app.models_structure import IdentifierNamespace
 from app.services.fhir_emission import emit_fhir_payload, generate_fhir
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
-from app.services.identifier_manager import map_identifier_type_to_hl7_code
+from app.services.pam_identifiers import build_pid3_identifiers
 from app.services.pam_emission import (
     emit_outbound_pam_attempt,
     validate_outbound_pam,
@@ -27,174 +26,10 @@ from app.services.pam_emission_primitives import (
     clean_hl7_value as _c,
     new_message_control_id as _new_message_control_id,
     normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
-    safe_query as _safe_query,
 )
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
 
 logger = logging.getLogger(__name__)
-
-
-def build_pid3_identifiers(
-    patient: Patient,
-    session: Session,
-    forced_system: str | None = None,
-    forced_oid: str | None = None,
-) -> str:
-    def _auth(system: str | None, oid: str | None) -> str:
-        system = (system or "").strip()
-        oid = (oid or "").strip()
-        return f"{system}&{oid}&ISO" if system and oid else system
-
-    identifiers = []
-    logger.info(f"build_pid3_identifiers called with args: {locals()}")
-
-    # Support both model instances and snapshot dicts
-    is_dict = isinstance(patient, dict)
-
-    def _get(attr, default=None):
-        return (patient.get(attr, default) if is_dict else getattr(patient, attr, default))
-
-    # L'identifiant métier porté par Patient.identifier est celui qui a servi à
-    # résoudre le patient à l'entrée (souvent l'IPP du partenaire). Il doit
-    # figurer en première répétition de PID-3 : le récepteur l'utilise comme
-    # identifiant principal. L'identifiant technique local est ajouté ensuite.
-    # L'ordre inverse cassait un roundtrip inter-GHT en faisant de l'ID local
-    # de l'émetteur l'identifiant principal du destinataire.
-    primary_identifier_value = _c(_get("identifier", None))
-    if primary_identifier_value:
-        primary_identifier = None
-        try:
-            patient_id = _get("id")
-            if patient_id:
-                primary_identifier = _safe_query(
-                    session,
-                    select(Identifier)
-                    .where(Identifier.patient_id == patient_id)
-                    .where(Identifier.value == primary_identifier_value)
-                    .where(Identifier.status == "active"),
-                )
-        except Exception:
-            logger.exception("Error resolving the primary PID-3 identifier")
-        if primary_identifier:
-            authority = _auth(primary_identifier.system, getattr(primary_identifier, "oid", None))
-            type_code = map_identifier_type_to_hl7_code(primary_identifier.type)
-            identifiers.append(f"{primary_identifier_value}^^^{authority}^{type_code}")
-        else:
-            authority = _auth(forced_system, forced_oid) or "HOSP"
-            identifiers.append(f"{primary_identifier_value}^^^{authority}^PI")
-
-    # Priority: include internal IPP identifier (patient_seq or id) using IdentifierNamespace of type 'IPP' when available
-    internal_identifier_value = None
-    try:
-        internal_id_val = _get("patient_seq") or _get("id")
-        # Ne pas ajouter un second identifiant technique quand PID-3 porte
-        # déjà l'identifiant métier. Sinon un destinataire qui connaît notre
-        # namespace local peut sélectionner ce second identifiant comme
-        # principal, malgré l'ordre de PID-3, et rompre la conservation d'IPP.
-        if internal_id_val and not primary_identifier_value:
-            ipp_ns = None
-            ej_id = _get('entite_juridique_id')
-            if ej_id:
-                ipp_ns = _safe_query(
-                    session,
-                    select(IdentifierNamespace)
-                    .where(IdentifierNamespace.entite_juridique_id == ej_id)
-                    .where(IdentifierNamespace.type == "IPP")
-                    .where(IdentifierNamespace.is_active.is_(True))
-                )
-            auth = None
-            if ipp_ns:
-                auth = _auth(ipp_ns.system, ipp_ns.oid)
-            elif forced_system or forced_oid:
-                auth = _auth(forced_system, forced_oid)
-            if auth:
-                internal_identifier_value = _c(str(internal_id_val))
-                identifiers.append(f"{internal_identifier_value}^^^{auth}^PI")
-    except Exception:
-        logger.exception("Error while resolving IPP namespace for internal identifier")
-
-    # 2. External ID si présent - chercher dans Identifier pour avoir system/oid
-    external_id_clean = _c(_get("external_id", None))
-    if external_id_clean:  # Only add if not empty after sanitization
-        # Chercher si cet external_id est dans la table Identifier
-        pid = _get('id')
-        ext_ident = _safe_query(
-            session,
-            select(Identifier)
-            .where(Identifier.patient_id == pid)
-            .where(Identifier.value == external_id_clean)
-            .where(Identifier.status == "active")
-        )
-        if ext_ident:
-            ident_type = map_identifier_type_to_hl7_code(ext_ident.type)
-            identifiers.append(
-                f"{_c(ext_ident.value)}^^^{_auth(ext_ident.system, ext_ident.oid)}^{ident_type}"
-            )
-        else:
-            identifiers.append(f"{external_id_clean}^^^{_auth('EXTERNAL', None)}^PI")
-
-    # 3. INS/NIR : l'identifiant national est déclaré avec son autorité et le
-    # type INS (et non NH, réservé à un ancien codage local).
-    nir_clean = _c(_get("nir", None))
-    if nir_clean:
-        identifiers.append(f"{nir_clean}^^^ASIP-SANTE&1.2.250.1.213.1.4.8&ISO^INS")
-
-    # 4. Tous les autres identifiants actifs
-    already_added_values = set()
-    pid_val = _get('id')
-    if pid_val:
-        already_added_values.add(str(pid_val))
-    if internal_identifier_value:
-        already_added_values.add(internal_identifier_value)
-    if primary_identifier_value:
-        already_added_values.add(primary_identifier_value)
-    ext_val = _get('external_id')
-    if ext_val:
-        already_added_values.add(ext_val)
-    nir_val = _get('nir')
-    if nir_val:
-        already_added_values.add(nir_val)
-
-    # Load identifiers from DB if we have a model (or if snapshot didn't include identifiers)
-    id_list = None
-    if is_dict:
-        id_list = patient.get('identifiers') or []
-    else:
-        if not getattr(patient, 'identifiers', None):
-            id_list = session.exec(select(Identifier).where(Identifier.patient_id == pid_val)).all()
-        else:
-            id_list = getattr(patient, 'identifiers')
-
-    for ident in id_list or []:
-        # ident may be dict (from snapshot) or model
-        if isinstance(ident, dict):
-            status = ident.get('status')
-            value = ident.get('value')
-            system = ident.get('system')
-            oid = ident.get('oid')
-            typ = ident.get('type')
-        else:
-            status = getattr(ident, 'status', None)
-            value = getattr(ident, 'value', None)
-            system = getattr(ident, 'system', None)
-            oid = getattr(ident, 'oid', None)
-            typ = getattr(ident, 'type', None)
-        if status == 'active' and value not in already_added_values:
-            identifiers.append(f"{_c(value)}^^^{_auth(system, oid)}^{map_identifier_type_to_hl7_code(typ)}")
-            already_added_values.add(_c(value))
-
-    # As a last resort, ensure PID-3 is populated with an internal identifier so PAM validators accept the payload.
-    if not identifiers:
-        try:
-            fallback_val = _get("patient_seq") or _get("id")
-            if fallback_val:
-                auth = _auth(forced_system, forced_oid) or "HOSP"
-                internal_identifier_value = _c(str(fallback_val))
-                identifiers.append(f"{internal_identifier_value}^^^{auth}^PI")
-        except Exception:
-            logger.exception("Failed to build fallback PID-3 identifier")
-
-    return "~".join(identifiers) if identifiers else ""
 
 
 def generate_pam_hl7(

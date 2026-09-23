@@ -15,13 +15,13 @@ Le socle métier principal est déjà avancé : IHE PAM, HPRIM XML, MFN, FHIR/FR
 Core, outbox et scénarios multi-destinations disposent de preuves ciblées. Il
 n'est pas nécessaire de réécrire le produit ni de changer de framework.
 
-Les travaux restants les plus importants concernent désormais la fiabilité de
+Au moment de l'audit, les travaux les plus importants concernaient la fiabilité de
 démarrage et de déploiement, la remise en état de la suite de tests générale,
 la réduction des très gros modules, la maîtrise des erreurs et de la
 performance, puis la consolidation du frontend. Les améliorations purement
 cosmétiques passent après ces chantiers.
 
-Les trois priorités immédiates sont :
+Les trois priorités initiales étaient :
 
 1. rendre le démarrage, l'installation et le conteneur reproductibles ;
 2. rendre la suite de tests générale hermétique et exploitable en CI ;
@@ -77,7 +77,7 @@ Les nombres ci-dessus sont des indicateurs de priorisation, pas des objectifs à
 réduire mécaniquement à zéro. Certains imports signalés par Ruff servent par
 exemple à enregistrer les modèles SQLModel.
 
-## Avancement de mise en œuvre — 14 septembre 2026
+## Avancement de mise en œuvre — du 14 au 24 septembre 2026
 
 Les premières tranches des lots BE-05, BE-06 et BE-07 ont été livrées après
 l'audit :

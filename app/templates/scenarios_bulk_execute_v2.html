@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/scenarios-bulk-execute.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="max-w-7xl mx-auto py-6 px-4">
   <!-- Breadcrumb -->
@@ -18,7 +22,7 @@
         <h1 class="text-3xl font-bold mb-2">Exécution en masse de scénarios</h1>
         <p class="text-blue-100">
           {% if ej_name %}
-          Entité Juridique: <strong>{{ ej_name }}</strong> 
+          Entité Juridique: <strong>{{ ej_name }}</strong>
           {% else %}
           <strong>⚠️ Aucune Entité Juridique sélectionnée</strong>
           {% endif %}
@@ -55,7 +59,7 @@
     <div class="flex gap-2 flex-wrap mb-6">
       <span class="text-sm text-slate-600 dark:text-slate-300 font-medium self-center">Filtrer par statut:</span>
       {% for opt in filter_options %}
-      <a href="/scenarios/bulk-execute?filter_status={{ opt.value or '' }}" 
+      <a href="/scenarios/bulk-execute?filter_status={{ opt.value or '' }}"
          class="px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ 'bg-blue-100 text-blue-700 dark:text-blue-300 border-blue-300' if filter_status == opt.value else 'bg-slate-100 text-slate-600 dark:text-slate-300 hover:bg-slate-200' }}">
         {{ opt.label }}
       </a>
@@ -86,7 +90,7 @@
 
     <!-- Layout à deux colonnes -->
     <div class="grid lg:grid-cols-3 gap-6">
-      
+
       <!-- Colonne 1: Sélection endpoint (25%) -->
       <div class="lg:col-span-1">
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-full flex flex-col">
@@ -227,12 +231,12 @@
                   <span>{{ cat_name }}</span>
                   <span class="text-slate-500 dark:text-slate-400 font-normal">{{ cat_items|length }}</span>
                 </div>
-                
+
                 <div class="divide-y divide-slate-50">
                   {% for scenario, status in cat_items %}
                   <label class="flex items-start gap-3 px-5 py-3 hover:bg-blue-50/30 cursor-pointer transition-colors group">
                     <input type="checkbox" name="scenario_ids" value="{{ scenario.id }}" class="scenario-checkbox w-4 h-4 mt-1 text-blue-600 dark:text-blue-400 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 flex-shrink-0">
-                    
+
                     <div class="flex-1 min-w-0">
                       <!-- Nom et protocole -->
                       <div class="flex items-center gap-2 mb-1">
@@ -308,9 +312,5 @@
 
 <script defer src="{{ url_for('static', path='js/scenarios-bulk-execute-workspace.js') }}"></script>
 
-<style>
-#bulkExecuteForm input[type="radio"]:checked + * {
-  @apply ring-2 ring-blue-300;
-}
-</style>
+
 {% endblock %}

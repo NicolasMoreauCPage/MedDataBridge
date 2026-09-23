@@ -3,68 +3,12 @@
 {% block title %}Design System Hospitalier{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/design-system.css') }}">
-<style>
-  .demo-section {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .demo-section-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .demo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-  }
-
-  .demo-color-swatch {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 8px;
-    background: var(--color-gray-50);
-  }
-
-  .demo-color-box {
-    width: 48px;
-    height: 48px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .demo-color-info {
-    flex: 1;
-  }
-
-  .demo-color-name {
-    font-weight: 600;
-    color: #374151;
-  }
-
-  .demo-color-code {
-    font-size: 12px;
-    color: #6b7280;
-    font-family: monospace;
-  }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', path='css/design-system-demo.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="design-system-container container" style="max-width: 1400px; margin: 0 auto; padding: 24px;">
-  
+
   <!-- Header -->
   <div class="design-system-header" style="margin-bottom: 32px;">
     <h1 style="font-size: 32px; font-weight: 700; color: #111827; margin-bottom: 8px;">
@@ -196,7 +140,7 @@
   <div class="tab-content" id="tab-occupation">
     <div class="demo-section">
       <div class="demo-section-title">📊 Indicateurs d'Occupation</div>
-      
+
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Badges</h3>
       <div class="flex flex-wrap gap-2" style="margin-bottom: 32px;">
         <span class="badge-occupation low">35% Disponible</span>
@@ -215,7 +159,7 @@
   <div class="tab-content" id="tab-buttons">
     <div class="demo-section">
       <div class="demo-section-title">🔘 Boutons</div>
-      
+
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Tailles</h3>
       <div class="flex flex-wrap gap-2" style="margin-bottom: 32px;">
         <button class="btn btn-primary btn-sm">Petit</button>
@@ -238,7 +182,7 @@
   <div class="tab-content" id="tab-forms">
     <div class="demo-section">
       <div class="demo-section-title">📋 Formulaires</div>
-      
+
       <div style="max-width: 600px;">
         <div class="form-group">
           <label class="form-label">Nom du service</label>
@@ -277,7 +221,7 @@
 
     <div class="demo-section">
       <div class="demo-section-title">🔍 Composants de Recherche et Filtres</div>
-      
+
       <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">Recherche</h3>
       <div id="search-demo" style="max-width: 600px; margin-bottom: 32px;"></div>
 
@@ -290,7 +234,7 @@
   <div class="tab-content" id="tab-notifications">
     <div class="demo-section">
       <div class="demo-section-title">🔔 Notifications</div>
-      
+
       <p style="margin-bottom: 16px; color: #6b7280;">
         Cliquez sur les boutons pour tester les différents types de notifications :
       </p>

@@ -510,9 +510,10 @@ l'audit :
 - **FE-06 :** `npm run lint`, `npm test` et `npm run check-frontend` sont
   disponibles et exécutés dans un job CI frontend. Ils vérifient la syntaxe,
   le client HTTP, la génération CSS et les budgets de taille. Les assets
-  applicatifs sont limités à 420 Ko au total et 64 Ko par fichier, le CSS
-  généré à 200 Ko, tandis que les bibliothèques minifiées disposent d'un budget
-  séparé. Le job navigateur échoue aussi si un parcours prioritaire produit une
+  applicatifs sont limités à 420 Ko au total et 64 Ko par fichier, le bundle CSS
+  généré à 200 Ko et l'ensemble des feuilles produit à 240 Ko, tandis que les
+  bibliothèques minifiées disposent d'un budget séparé. Le job navigateur
+  échoue aussi si un parcours prioritaire produit une
   erreur console ou `pageerror`; les modules HTTP, builder, recherches et
   formulaires possèdent des tests frontend ciblés.
 - **FE-04/FE-05 :** le gestionnaire partagé de formulaires associe désormais
@@ -572,9 +573,12 @@ l'audit :
   `alert-config-*`, `structure-import-*`, `hprim-*`) : leurs variantes ne se
   propagent plus à d'autres écrans. Le catalogue
   `CATALOGUE_DESIGN_SYSTEM.md` fixe désormais l'implémentation recommandée des
-  formulaires, tableaux, badges, toasts, modales et états vides. Un lint et un
-  test frontend interdisent tout nouveau bloc `<style>` local, en maintenant
-  une liste explicite des sept exceptions historiques restant à migrer. Les
+  formulaires, tableaux, badges, toasts, modales et états vides. Les sept
+  dernières exceptions (`base`, documentation, démonstration du design system,
+  patient, exécution groupée de scénarios et deux vues structure) disposent
+  désormais de feuilles dédiées chargées via les blocs de tête du layout. Un
+  test frontend interdit maintenant tout nouveau bloc `<style>` local sans
+  liste d'exemption. Les
   deux pages de démonstration (`/styleguide` et `/design-system`) sont
   documentées comme références internes et ne sont plus proposées dans la
   navigation métier. Les contrôles navigateur existants couvrent le reflow

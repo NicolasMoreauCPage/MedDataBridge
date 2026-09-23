@@ -481,6 +481,7 @@ test("frontend quality gates include asset budgets and browser error checks", ()
   assert.match(packageJson, /"check-budgets"/);
   assert.match(packageJson, /check-frontend.*check-budgets/);
   assert.match(budget, /MAX_CSS_BYTES/);
+  assert.match(budget, /MAX_PRODUCT_CSS_BYTES/);
   assert.match(budget, /MAX_PRODUCT_JS_BYTES/);
   assert.match(budget, /MAX_PRODUCT_ASSET_BYTES/);
   assert.match(browserTest, /pageerror/);

@@ -1,0 +1,256 @@
+/* Variables CSS essentielles pour le dark mode et branding */
+    :root {
+      --color-bg: #f8fafc; /* slate-50 - page background */
+      --color-surface: #ffffff; /* card backgrounds */
+      --color-border: #e2e8f0; /* slate-200 - borders */
+      --color-text: #1f2937; /* slate-800 - primary text */
+      --color-muted: #64748b; /* slate-500 - secondary text */
+      --color-accent: #6d28d9; /* violet-700 - primary accent */
+      --color-accent-alt: #db2777; /* pink-600 - secondary accent */
+      --color-success: #10b981; /* green-500 - success states */
+      --color-warning: #f59e0b; /* amber-500 - warning states */
+      --color-danger: #ef4444; /* red-500 - error states */
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f172a; /* slate-900 */
+        --color-surface: #1e293b; /* slate-800 */
+        --color-border: #334155; /* slate-700 */
+        --color-text: #f1f5f9; /* slate-100 */
+        --color-muted: #94a3b8; /* slate-400 */
+        --color-accent: #a78bfa; /* violet-400 */
+        --color-accent-alt: #f472b6; /* pink-400 */
+      }
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #0f172a;
+      --color-surface: #1e293b;
+      --color-border: #334155;
+      --color-text: #f1f5f9;
+      --color-muted: #94a3b8;
+      --color-accent: #a78bfa;
+      --color-accent-alt: #f472b6;
+    }
+
+    /* Classes utilitaires pour les couleurs accent */
+    .text-accent { color: var(--color-accent); }
+    .bg-accent { background-color: var(--color-accent); }
+    .text-accent-alt { color: var(--color-accent-alt); }
+    .bg-accent-alt { background-color: var(--color-accent-alt); }
+    .from-accent { --tw-gradient-from: var(--color-accent); --tw-gradient-stops: var(--color-accent), var(--tw-gradient-to, rgba(37, 99, 235, 0)); }
+    .to-accent-alt { --tw-gradient-to: var(--color-accent-alt); }
+    /* Classes utilitaires thème - adaptées dark/light via CSS vars */
+    .surface { background: var(--color-surface); }
+    .bg-surface { background: var(--color-surface); }
+    .border-theme { border-color: var(--color-border); }
+    .text-theme { color: var(--color-text); }
+    .text-muted { color: var(--color-muted); }
+    .text-primary { color: var(--color-accent); }
+    .text-success { color: var(--color-success); }
+    .text-warning { color: var(--color-warning); }
+    .text-danger { color: var(--color-danger); }
+
+    /* Styles de base - maintenant minimalistes */
+    body {
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: #f8fafc; /* slate-50 */
+      background-image: radial-gradient(circle at 92% 0%, rgba(168, 85, 247, 0.12), transparent 34%), radial-gradient(circle at 0% 100%, rgba(236, 72, 153, 0.09), transparent 40%);
+      color: #1f2937; /* slate-800 */
+    }
+
+    h1, h2, h3, .font-sans {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: -0.01em;
+    }
+    
+    /* Dark mode styles */
+    .dark body {
+      background-color: #0f172a; /* slate-900 */
+      background-image: radial-gradient(circle at 90% 0%, rgba(167, 139, 250, 0.14), transparent 35%), radial-gradient(circle at 0% 100%, rgba(244, 114, 182, 0.1), transparent 40%);
+      color: #f1f5f9; /* slate-100 */
+    }
+    
+    /* Smooth transitions globales */
+    * { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Cards avec hover élégant */
+    .card-hover {
+      transition: all 200ms ease-in-out;
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* Buttons avec feedback */
+    button:not(:disabled):active {
+      transform: scale(0.98);
+    }
+    
+    /* Focus visible pour accessibilité */
+    *:focus-visible {
+      outline: 2px solid #7c3aed;
+      outline-offset: 2px;
+    }
+
+    .pamelia-brand {
+      color: #24113f;
+      letter-spacing: -0.04em;
+    }
+    .pamelia-brand-mark {
+      display: grid;
+      place-items: center;
+      width: 2.65rem;
+      height: 2.65rem;
+      border-radius: 1rem;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.08em;
+      background: linear-gradient(135deg, #6d28d9, #db2777);
+      box-shadow: 0 8px 18px rgba(109, 40, 217, 0.25);
+    }
+    .pamelia-brand-subtitle {
+      display: block;
+      margin-top: -0.1rem;
+      color: #7c3aed;
+      font-size: 0.61rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    html.dark .pamelia-brand { color: #f5f3ff; }
+    html.dark .pamelia-brand-subtitle { color: #c4b5fd; }
+
+    /* Optimisations responsive pour animations */
+    @media (max-width: 768px) {
+      /* Réduire les animations complexes sur mobile pour performance */
+      .card-hover {
+        transition: none;
+      }
+      .card-hover:active {
+        transform: scale(0.98);
+      }
+      
+      /* Désactiver les animations de hover sur mobile */
+      @media (hover: none) {
+        .card-hover:hover {
+          transform: none;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+    
+    /* Optimisations pour écrans tactiles */
+    @media (hover: none) and (pointer: coarse) {
+      /* Réduire les délais d'animation pour feedback tactile immédiat */
+      .animate-fade-in,
+      .animate-slide-up,
+      .animate-scale-in,
+      .animate-bounce-in {
+        animation-duration: 0.2s;
+      }
+      
+      /* Feedback tactile pour les boutons */
+      button:not(:disabled):active,
+      a[role="button"]:active,
+      .card-hover:active {
+        transform: scale(0.96);
+        transition: transform 0.1s ease-out;
+      }
+    }
+    
+    /* Préférences utilisateur : réduire les animations */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* =====================================================
+       DARK MODE — overrides globaux pour toutes les pages
+       Couvre les classes Tailwind hardcodées (bg-white,
+       text-slate-900, border-slate-200, bg-gray-50, etc.)
+       sans avoir à modifier chaque template individuellement.
+       ===================================================== */
+    html.dark .bg-white {
+      background-color: #1e293b !important; /* slate-800 */
+    }
+    html.dark .bg-gray-50,
+    html.dark .bg-slate-50 {
+      background-color: #0f172a !important; /* slate-900 */
+    }
+    html.dark .bg-gray-100,
+    html.dark .bg-slate-100 {
+      background-color: #1e293b !important;
+    }
+    html.dark .bg-gray-200,
+    html.dark .bg-slate-200 {
+      background-color: #334155 !important;
+    }
+    /* Card borders */
+    html.dark .border-slate-200,
+    html.dark .border-gray-200 {
+      border-color: #334155 !important; /* slate-700 */
+    }
+    html.dark .border-slate-100,
+    html.dark .border-gray-100 {
+      border-color: #1e293b !important;
+    }
+    /* Primary text */
+    html.dark .text-slate-900,
+    html.dark .text-gray-900 {
+      color: #f1f5f9 !important; /* slate-100 */
+    }
+    html.dark .text-slate-800,
+    html.dark .text-gray-800 {
+      color: #e2e8f0 !important; /* slate-200 */
+    }
+    html.dark .text-slate-700,
+    html.dark .text-gray-700 {
+      color: #cbd5e1 !important; /* slate-300 */
+    }
+    html.dark .text-slate-600,
+    html.dark .text-gray-600 {
+      color: #94a3b8 !important; /* slate-400 */
+    }
+    html.dark .text-slate-500,
+    html.dark .text-gray-500 {
+      color: #64748b !important; /* slate-500 */
+    }
+    /* Table/list row alternation */
+    html.dark .bg-slate-50.hover\:bg-slate-100:hover,
+    html.dark tbody tr:hover {
+      background-color: #1e293b !important;
+    }
+    /* Dividers */
+    html.dark hr {
+      border-color: #334155;
+    }
+    /* Input backgrounds */
+    html.dark .input-field,
+    html.dark input[type="text"],
+    html.dark input[type="email"],
+    html.dark input[type="date"],
+    html.dark input[type="password"],
+    html.dark input[type="number"],
+    html.dark select,
+    html.dark textarea {
+      background-color: #1e293b !important;
+      border-color: #475569 !important;
+      color: #e2e8f0 !important;
+    }
+    /* Summary (details/accordion) headers */
+    html.dark details > summary {
+      background-color: #1e293b;
+      border-color: #334155;
+    }

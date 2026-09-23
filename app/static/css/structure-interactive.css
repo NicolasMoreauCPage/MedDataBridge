@@ -1,0 +1,37 @@
+/* Animation pour le fade out */
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.animate-fade-out {
+  animation: fadeOut 2s ease-in-out;
+}
+
+/* Style pour l'input inline */
+.inline-edit-input {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* Amélioration du drag handle */
+.drag-handle {
+  user-select: none;
+  -webkit-user-select: none;
+  transition: all 0.2s;
+}
+
+.drag-handle:active {
+  cursor: grabbing !important;
+}
+
+/* Style pour les éléments en cours de drag */
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-chosen {
+  background: rgba(59, 130, 246, 0.1) !important;
+}

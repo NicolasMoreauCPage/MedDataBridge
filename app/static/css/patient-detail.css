@@ -1,0 +1,11 @@
+details summary::-webkit-details-marker { display: none; }
+    details summary::before {
+      content: '▶';
+      display: inline-block;
+      margin-right: 0.5rem;
+      transition: transform 0.2s ease;
+      font-size: 0.75rem;
+    }
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }

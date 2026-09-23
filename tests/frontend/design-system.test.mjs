@@ -4,15 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 const root = new URL("../../app/templates/", import.meta.url);
-const allowedLegacyStyleBlocks = new Set([
-  "base.html",
-  "design_system_demo.html",
-  "documentation.html",
-  "patient_detail.html",
-  "scenarios_bulk_execute_v2.html",
-  "structure_interactive.html",
-  "structure_search.html",
-]);
+const allowedLegacyStyleBlocks = new Set();
 
 function collectTemplates(directory, prefix = "") {
   return readdirSync(directory).flatMap((entry) => {
@@ -30,6 +22,25 @@ test("new templates cannot introduce local style blocks", () => {
     /<style(?:\s[^>]*)?>/i.test(readFileSync(join(templateDirectory, relative), "utf8")),
   );
   assert.deepEqual(styledTemplates.sort(), [...allowedLegacyStyleBlocks].sort());
+});
+
+test("page-specific stylesheets are rendered through the base head blocks", () => {
+  const base = readFileSync(new URL("../../app/templates/base.html", import.meta.url), "utf8");
+  assert.match(base, /block extra_css/);
+  assert.match(base, /block extra_head/);
+
+  const pages = [
+    ["design_system_demo.html", "design-system-demo.css"],
+    ["documentation.html", "documentation.css"],
+    ["patient_detail.html", "patient-detail.css"],
+    ["scenarios_bulk_execute_v2.html", "scenarios-bulk-execute.css"],
+    ["structure_interactive.html", "structure-interactive.css"],
+    ["structure_search.html", "structure-search.css"],
+  ];
+  pages.forEach(([templateName, stylesheet]) => {
+    const template = readFileSync(new URL(templateName, root), "utf8");
+    assert.match(template, new RegExp(stylesheet.replace(".", "\\.")));
+  });
 });
 
 test("migrated workspaces use prefixed design-system components", () => {

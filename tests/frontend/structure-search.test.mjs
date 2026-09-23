@@ -334,6 +334,24 @@ test("rapid cotation workflow delegates searches and mutations to the shared HTT
   assert.doesNotMatch(history, /\bfetch\(/);
 });
 
+test("autocomplete searches cancel obsolete requests and expose retry feedback", () => {
+  const cotations = readFileSync(new URL("../../app/templates/cotations/saisie_rapide.html", import.meta.url), "utf8");
+  const planLits = readFileSync(new URL("../../app/static/js/plan-lits-workspace.js", import.meta.url), "utf8");
+  const mouvement = readFileSync(new URL("../../app/templates/mouvement_workflow.html", import.meta.url), "utf8");
+  assert.match(cotations, /const cotationSearchControllers = new Map\(\)/);
+  assert.match(cotations, /new AbortController\(\)/);
+  assert.match(cotations, /showCotationSearchLoading/);
+  assert.match(cotations, /showCotationSearchError/);
+  assert.match(cotations, /Réessayer/);
+  assert.match(planLits, /patientSearchController\?\.abort\(\)/);
+  assert.match(planLits, /signal: controller\.signal/);
+  assert.match(planLits, /data-retry-patient-search/);
+  assert.match(mouvement, /locationSearchController\?\.abort\(\)/);
+  assert.match(mouvement, /signal: controller\.signal/);
+  assert.match(mouvement, /data-retry-location-search/);
+  assert.match(mouvement, /Recherche en cours…/);
+});
+
 test("legacy cotation list uses real bulk mutations and a dedicated workspace asset", () => {
   const template = readFileSync(new URL("../../app/templates/cotations/liste.html", import.meta.url), "utf8");
   const source = readFileSync(new URL("../../app/static/js/cotations-list-workspace.js", import.meta.url), "utf8");

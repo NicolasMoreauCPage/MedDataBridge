@@ -492,6 +492,7 @@
   if (bedSearch) {
     const suggestionsBox = document.getElementById('bed-suggestions');
     const litIdInput = document.getElementById('lit-id-input');
+    let locationSearchController = null;
 
     function debounce(fn, delay) {
       let t;
@@ -502,14 +503,24 @@
     }
 
     async function fetchSuggestions(term) {
+      locationSearchController?.abort();
+      const controller = new AbortController();
+      locationSearchController = controller;
       try {
         const { data } = await window.medbridgeHttp.get(
-          `/api/mouvements/location-search?q=${encodeURIComponent(term)}&limit=10`
+          `/api/mouvements/location-search?q=${encodeURIComponent(term)}&limit=10`,
+          { signal: controller.signal },
         );
+        if (locationSearchController !== controller) return null;
         return data;
       } catch (e) {
+        if (controller.signal.aborted) return null;
         console.warn('Autocomplete fetch failed', e);
-        return [];
+        suggestionsBox.innerHTML = '<div class="flex items-center justify-between gap-3 px-3 py-2 text-sm text-red-600" role="alert">Recherche indisponible.<button type="button" data-retry-location-search class="rounded border border-red-300 px-2 py-1 font-medium hover:bg-red-50">Réessayer</button></div>';
+        suggestionsBox.classList.remove('hidden');
+        return null;
+      } finally {
+        if (locationSearchController === controller) locationSearchController = null;
       }
     }
 
@@ -552,6 +563,8 @@
     const doSearch = debounce(async (e) => {
       const term = e.target.value.trim();
       if (!term) {
+        locationSearchController?.abort();
+        locationSearchController = null;
         // restore full list
         document.querySelectorAll('.service-group').forEach(sg => { sg.style.display = ''; sg.querySelectorAll('.chambre-group, .uf-group').forEach(n => n.style.display=''); });
         suggestionsBox.classList.add('hidden');
@@ -559,6 +572,8 @@
       }
 
       if (term.length < 3) {
+        locationSearchController?.abort();
+        locationSearchController = null;
         // fallback to local DOM filter for short terms
         document.querySelectorAll('.service-group').forEach((serviceGroup) => {
           let serviceHasMatch = false;
@@ -602,11 +617,19 @@
       }
 
       // remote lookup
+      suggestionsBox.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500" aria-live="polite">Recherche en cours…</div>';
+      suggestionsBox.classList.remove('hidden');
       const items = await fetchSuggestions(term);
+      if (items === null) return;
       renderSuggestions(items);
     }, 250);
 
     bedSearch.addEventListener('input', doSearch);
+    suggestionsBox.addEventListener('click', (event) => {
+      if (event.target.closest('[data-retry-location-search]')) {
+        doSearch({ target: bedSearch });
+      }
+    });
   }
   
   // Validation function

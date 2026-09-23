@@ -15,6 +15,7 @@ function closeAssignModal() {
 
 // Recherche patient (autocomplete via API)
 let searchTimeout;
+let patientSearchController = null;
 const searchInput = document.getElementById('patient-search');
 const searchResults = document.getElementById('search-results');
 const confirmAssignBtn = document.getElementById('confirm-assign');
@@ -27,6 +28,8 @@ searchInput.addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
   const query = e.target.value.trim();
   if (query.length < 2) {
+    patientSearchController?.abort();
+    patientSearchController = null;
     searchResults.classList.add('hidden');
     searchResults.innerHTML = '';
     confirmAssignBtn.disabled = true;
@@ -34,12 +37,17 @@ searchInput.addEventListener('input', (e) => {
     return;
   }
   searchTimeout = setTimeout(async () => {
+    patientSearchController?.abort();
+    const controller = new AbortController();
+    patientSearchController = controller;
     searchResults.innerHTML = `<div class=\"text-sm text-slate-500 p-3\">🔍 Recherche en cours...</div>`;
     searchResults.classList.remove('hidden');
     try {
       const { data } = await window.medbridgeHttp.get(
         `/mouvements/api/plan-lits/patient-search?q=${encodeURIComponent(query)}`,
+        { signal: controller.signal },
       );
+      if (patientSearchController !== controller) return;
       if (data.results && data.results.length > 0) {
         searchResults.innerHTML = data.results.map(p => `
           <div class=\"p-2 hover:bg-emerald-50 rounded cursor-pointer patient-result\" data-patient-id=\"${p.id}\" data-patient-name=\"${p.family} ${p.given || ''}\">
@@ -65,11 +73,20 @@ searchInput.addEventListener('input', (e) => {
         selectedPatientIdInput.value = '';
       }
     } catch (err) {
-      searchResults.innerHTML = `<div class=\"text-sm text-red-500 p-3\">Erreur lors de la recherche</div>`;
+      if (controller.signal.aborted) return;
+      searchResults.innerHTML = `<div class=\"flex items-center justify-between gap-3 text-sm text-red-600 p-3\" role=\"alert\">Recherche indisponible.<button type=\"button\" data-retry-patient-search class=\"rounded border border-red-300 px-2 py-1 font-medium hover:bg-red-50\">Réessayer</button></div>`;
       confirmAssignBtn.disabled = true;
       selectedPatientIdInput.value = '';
+    } finally {
+      if (patientSearchController === controller) patientSearchController = null;
     }
   }, 300);
+});
+
+searchResults.addEventListener('click', (event) => {
+  if (event.target.closest('[data-retry-patient-search]')) {
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
 });
 
 function showPlanLitsNotification(message, type = 'info') {

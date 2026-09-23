@@ -348,6 +348,10 @@ l'audit :
   La suppression AJAX d'un patient l'utilise aussi et rend enfin son erreur
   visible, de même que la matérialisation et l'exécution de modèles de
   scénarios et l'autocomplétion de localisation du workflow de mouvements.
+  Les recherches rapides de cotations, de patients du plan de lits et de
+  localisations annulent désormais leur requête précédente. Elles affichent
+  leur chargement, ne laissent pas une réponse obsolète remplacer la saisie
+  courante et proposent une action explicite de réessai en cas d'indisponibilité.
   Le tableau de cache l'utilise également. Des tests frontend empêchent le
   retour à `fetch` direct : la seule occurrence restante est le transport
   interne de `static/js/http.js`. La liste historique de cotations utilise à

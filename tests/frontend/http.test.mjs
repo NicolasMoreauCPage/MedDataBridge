@@ -70,3 +70,19 @@ test("request can preserve a binary download payload", async () => {
   const { data } = await client.request("/export", { responseType: "blob" });
   assert.equal(await data.text(), "archive");
 });
+
+test("a caller can cancel an obsolete request", async () => {
+  let aborted = false;
+  const client = loadClient((_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener("abort", () => {
+      aborted = true;
+      reject(options.signal.reason);
+    }, { once: true });
+  }));
+  const controller = new AbortController();
+  const request = client.get("/search", { signal: controller.signal });
+  controller.abort(new DOMException("Nouvelle recherche", "AbortError"));
+
+  await assert.rejects(request, (error) => error.name === "AbortError");
+  assert.equal(aborted, true);
+});

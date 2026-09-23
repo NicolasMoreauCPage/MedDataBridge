@@ -850,6 +850,45 @@
 let selectedModificateurs = [];
 let currentActeType = null;
 let saveAndContinue = false;
+const cotationSearchControllers = new Map();
+
+function abortCotationSearch(type) {
+    cotationSearchControllers.get(type)?.abort();
+    cotationSearchControllers.delete(type);
+}
+
+async function loadCotationSuggestions(type, url) {
+    abortCotationSearch(type);
+    const controller = new AbortController();
+    cotationSearchControllers.set(type, controller);
+    try {
+        const { data } = await window.medbridgeHttp.get(url, { signal: controller.signal });
+        return cotationSearchControllers.get(type) === controller ? data : null;
+    } finally {
+        if (cotationSearchControllers.get(type) === controller) {
+            cotationSearchControllers.delete(type);
+        }
+    }
+}
+
+function showCotationSearchLoading(type) {
+    const suggestions = document.getElementById(`${type}-suggestions`);
+    suggestions.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500" aria-live="polite">Recherche en cours…</div>';
+    suggestions.classList.remove('hidden');
+}
+
+function retryCotationSearch(type) {
+    const input = document.getElementById(`${type}-code`);
+    const query = input?.value?.trim();
+    if (!query) return;
+    ({ ccam: searchCCAM, ngap: searchNGAP, ucd: searchUCD, lpp: searchLPP }[type])?.(query);
+}
+
+function showCotationSearchError(type) {
+    const suggestions = document.getElementById(`${type}-suggestions`);
+    suggestions.innerHTML = `<div class="flex items-center justify-between gap-3 px-4 py-3 text-sm text-red-700" role="alert">Recherche indisponible.<button type="button" class="rounded border border-red-300 px-2 py-1 font-medium hover:bg-red-50" onclick="retryCotationSearch('${type}')">Réessayer</button></div>`;
+    suggestions.classList.remove('hidden');
+}
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
@@ -889,6 +928,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (value.length >= 3) {
             searchCCAM(value);
         } else {
+            abortCotationSearch('ccam');
             document.getElementById('ccam-suggestions').classList.add('hidden');
         }
     });
@@ -899,6 +939,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (value.length >= 1) {
             searchNGAP(value);
         } else {
+            abortCotationSearch('ngap');
             document.getElementById('ngap-suggestions').classList.add('hidden');
         }
     });
@@ -909,6 +950,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (value.length >= 3) {
             searchUCD(value);
         } else {
+            abortCotationSearch('ucd');
             document.getElementById('ucd-suggestions').classList.add('hidden');
         }
     });
@@ -919,6 +961,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (value.length >= 2) {
             searchLPP(value);
         } else {
+            abortCotationSearch('lpp');
             document.getElementById('lpp-suggestions').classList.add('hidden');
         }
     });
@@ -978,10 +1021,12 @@ function toggleModificateur(mod) {
 }
 
 async function searchCCAM(query) {
+    showCotationSearchLoading('ccam');
     try {
-        const { data: suggestions } = await window.medbridgeHttp.get(
+        const suggestions = await loadCotationSuggestions('ccam',
             `/cotations/api/search/ccam?query=${encodeURIComponent(query)}&limit=10`,
         );
+        if (suggestions === null) return;
         
         const suggestionsDiv = document.getElementById('ccam-suggestions');
         if (suggestions.length > 0) {
@@ -1005,15 +1050,19 @@ async function searchCCAM(query) {
             suggestionsDiv.classList.remove('hidden');
         }
     } catch (error) {
+        if (error.name === 'AbortError') return;
         console.error('Erreur recherche CCAM:', error);
+        showCotationSearchError('ccam');
     }
 }
 
 async function searchNGAP(query) {
+    showCotationSearchLoading('ngap');
     try {
-        const { data: suggestions } = await window.medbridgeHttp.get(
+        const suggestions = await loadCotationSuggestions('ngap',
             `/cotations/api/search/ngap?query=${encodeURIComponent(query)}&limit=10`,
         );
+        if (suggestions === null) return;
 
         const suggestionsDiv = document.getElementById('ngap-suggestions');
         if (suggestions.length > 0) {
@@ -1037,7 +1086,9 @@ async function searchNGAP(query) {
             suggestionsDiv.classList.remove('hidden');
         }
     } catch (error) {
+        if (error.name === 'AbortError') return;
         console.error('Erreur recherche NGAP:', error);
+        showCotationSearchError('ngap');
     }
 }
 
@@ -1071,10 +1122,12 @@ function updateNgapMontantFromTarifBase() {
 }
 
 async function searchUCD(query) {
+    showCotationSearchLoading('ucd');
     try {
-        const { data: suggestions } = await window.medbridgeHttp.get(
+        const suggestions = await loadCotationSuggestions('ucd',
             `/cotations/api/search/ucd?query=${encodeURIComponent(query)}&limit=10`,
         );
+        if (suggestions === null) return;
 
         const suggestionsDiv = document.getElementById('ucd-suggestions');
         if (suggestions.length > 0) {
@@ -1099,7 +1152,9 @@ async function searchUCD(query) {
             suggestionsDiv.classList.remove('hidden');
         }
     } catch (error) {
+        if (error.name === 'AbortError') return;
         console.error('Erreur recherche UCD:', error);
+        showCotationSearchError('ucd');
     }
 }
 
@@ -1120,10 +1175,12 @@ function selectUCD(code_ucd, libelle, dosage, forme, prix) {
 }
 
 async function searchLPP(query) {
+    showCotationSearchLoading('lpp');
     try {
-        const { data: suggestions } = await window.medbridgeHttp.get(
+        const suggestions = await loadCotationSuggestions('lpp',
             `/cotations/api/search/lpp?query=${encodeURIComponent(query)}&limit=10`,
         );
+        if (suggestions === null) return;
 
         const suggestionsDiv = document.getElementById('lpp-suggestions');
         if (suggestions.length > 0) {
@@ -1147,7 +1204,9 @@ async function searchLPP(query) {
             suggestionsDiv.classList.remove('hidden');
         }
     } catch (error) {
+        if (error.name === 'AbortError') return;
         console.error('Erreur recherche LPP:', error);
+        showCotationSearchError('lpp');
     }
 }
 

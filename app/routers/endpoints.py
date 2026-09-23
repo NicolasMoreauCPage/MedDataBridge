@@ -386,7 +386,8 @@ def create_endpoint(
             e.linked_endpoint_id = int(linked_endpoint_id)
         except Exception:
             pass
-    session.add(e); session.commit()
+    session.add(e)
+    session.commit()
     session.refresh(e)  # Get the assigned ID
     
     # Démarrer automatiquement l'endpoint s'il est activé
@@ -556,7 +557,8 @@ def update_endpoint(
     e.pam_profile = "IHE_PAM_FR" if pam_profile != "IHE_PAM_FR" else pam_profile
     e.updated_at = datetime.now(timezone.utc)
 
-    session.add(e); session.commit()
+    session.add(e)
+    session.commit()
     
     # Démarrer automatiquement l'endpoint s'il est maintenant activé et pas déjà en cours
     if e.is_enabled and e.kind == "MLLP" and e.role == "receiver":
@@ -578,7 +580,8 @@ def delete_endpoint(endpoint_id: int, session=Depends(get_session)):
     # stop si en cours d'exécution
     if endpoint_id in set(registry.running_ids()):
         registry.stop(e, session)
-    session.delete(e); session.commit()
+    session.delete(e)
+    session.commit()
     return RedirectResponse(url="/endpoints", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/{endpoint_id}/start")
@@ -587,7 +590,8 @@ def start_endpoint(endpoint_id: int, session=Depends(get_session)):
     if not e:
         raise HTTPException(404, "Endpoint not found")
     if endpoint_id not in set(registry.running_ids()):
-        registry.start(e, session); session.commit()
+        registry.start(e, session)
+        session.commit()
     return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/{endpoint_id}/stop")
@@ -596,7 +600,8 @@ def stop_endpoint(endpoint_id: int, session=Depends(get_session)):
     if not e:
         raise HTTPException(404, "Endpoint not found")
     if endpoint_id in set(registry.running_ids()):
-        registry.stop(e, session); session.commit()
+        registry.stop(e, session)
+        session.commit()
     return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post("/{endpoint_id}/restart")
@@ -606,7 +611,8 @@ def restart_endpoint(endpoint_id: int, session=Depends(get_session)):
         raise HTTPException(404, "Endpoint not found")
     if endpoint_id in set(registry.running_ids()):
         registry.stop(e, session)
-    registry.start(e, session); session.commit()
+    registry.start(e, session)
+    session.commit()
     return RedirectResponse(url=f"/endpoints/{endpoint_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 @router.get("/{endpoint_id}/clone-structure", response_class=HTMLResponse)

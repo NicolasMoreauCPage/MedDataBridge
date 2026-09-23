@@ -65,7 +65,9 @@ def _find_timestamps(message: str) -> List[Tuple[str, datetime, Tuple[int, int]]
     results = []
     for m in timestamp_pattern.finditer(message):
         try:
-            year = int(m.group(1)); month = int(m.group(2)); day = int(m.group(3))
+            year = int(m.group(1))
+            month = int(m.group(2))
+            day = int(m.group(3))
             hour = int(m.group(4)) if m.group(4) else 0
             minute = int(m.group(5)) if m.group(5) else 0
             second = int(m.group(6)) if m.group(6) else 0

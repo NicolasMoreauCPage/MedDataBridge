@@ -183,9 +183,12 @@ async def export_all(
     
     # Exporter toutes les données
     import time as _time
-    _s1 = _time.time(); structure_bundle = service.export_structure(ej)
-    _s2 = _time.time(); patients_bundle = service.export_patients(ej)
-    _s3 = _time.time(); venues_bundle = service.export_venues(ej)
+    _s1 = _time.time()
+    structure_bundle = service.export_structure(ej)
+    _s2 = _time.time()
+    patients_bundle = service.export_patients(ej)
+    _s3 = _time.time()
+    venues_bundle = service.export_venues(ej)
     try:
         from app.metrics import record_fhir_event
         record_fhir_event("outbound", "structure", "export", True, 200, _time.time() - _s1)

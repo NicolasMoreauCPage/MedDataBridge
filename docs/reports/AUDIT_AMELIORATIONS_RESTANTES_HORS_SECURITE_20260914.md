@@ -247,6 +247,8 @@ l'audit :
   loaders à `static/js/base-behaviors.js`, chargé avant les workspaces de page.
   La fermeture des toasts générés est elle aussi déléguée à un unique listener,
   sans gestionnaire HTML inline.
+  L'exécution groupée de scénarios isole enfin ses compteurs, sa sélection et
+  son contrôle tout/aucun dans `static/js/scenarios-bulk-execute-workspace.js`.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

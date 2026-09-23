@@ -336,3 +336,17 @@ test("application shell delegates generated toast dismissal", () => {
   assert.match(source, /closest\('\[data-toast-dismiss\]'\)/);
   assert.doesNotMatch(source, /onclick="toastSystem\.dismiss/);
 });
+
+test("bulk scenario execution uses a dedicated workspace for its selection controls", () => {
+  const template = readFileSync(new URL("../../app/templates/scenarios_bulk_execute_v2.html", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../../app/static/js/scenarios-bulk-execute-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /js\/scenarios-bulk-execute-workspace\.js/);
+  assert.doesNotMatch(template, /<script>([\s\S]*?)<\/script>/);
+  assert.doesNotMatch(template, /\bonclick=|\bonchange=/);
+  assert.match(source, /toggleAllScenariosBtn/);
+  assert.match(source, /addEventListener\("click", toggleAllScenarios\)/);
+  assert.match(source, /addEventListener\("change", updateSelectedCount\)/);
+});

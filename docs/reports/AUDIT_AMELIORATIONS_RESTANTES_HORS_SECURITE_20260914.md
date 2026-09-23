@@ -101,7 +101,10 @@ l'audit :
   traçabilité des payloads et l'envoi durable à l'outbox y sont maintenant
   testables isolément. L'émetteur historique ne garde pour PAM que la
   génération et le choix du destinataire ; l'extraction de la génération reste
-  à poursuivre.
+  à poursuivre. La sélection des endpoints éligibles (global, EJ ou GHT) et
+  son court retry de contention SQLite sont maintenant isolés dans
+  `emission_endpoints.py`, sans transport ni attente de livraison dans
+  l'orchestrateur.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

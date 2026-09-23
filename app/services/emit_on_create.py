@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from sqlalchemy.exc import InterfaceError, OperationalError
 
 from app.models import Patient, Dossier, Venue, Mouvement
-from app.models_endpoints import SystemEndpoint, MessageLog
+from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
 from app.services.fhir_emission import build_fhir_targets, generate_fhir, queue_fhir_retry
@@ -23,6 +23,7 @@ from app.services.pam_emission import (
     emit_outbound_pam_attempt,
     validate_outbound_pam,
 )
+from app.services.emission_endpoints import list_eligible_sender_endpoints
 
 logger = logging.getLogger(__name__)
 
@@ -1291,46 +1292,7 @@ def emit_to_senders_async(
 ) -> None:
     """Emit HL7/FHIR/HPRIM notifications for newly created or updated entities and acts."""
 
-    # Retry logic for SQLite concurrency errors
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            endpoints = session.exec(
-                select(SystemEndpoint)
-                .where(SystemEndpoint.role.in_(["sender", "both"]))
-                .where(SystemEndpoint.is_enabled.is_(True))
-            ).all()
-            break  # Success, exit retry loop
-        except Exception as e:
-            error_msg = str(e).lower()
-            if attempt < max_retries - 1 and ("locked" in error_msg or "out of sequence" in error_msg):
-                session.rollback()
-                time.sleep(0.1 * (2 ** attempt))  # Exponential backoff
-                continue
-            else:
-                # Not a retriable error or max retries reached
-                raise
-    # Filter endpoints: include endpoints that are global (no EJ/GHT set),
-    # or those explicitly tied to the entity's EJ or GHT context.
-    # This lets tests (and simple setups) create endpoints without EJ/GHT
-    # and have them receive emissions.
-    entity_ej_id = getattr(entity, "entite_juridique_id", None)
-    entity_ght_id = getattr(entity, "ght_context_id", None)
-    filtered_endpoints = []
-    for ep in endpoints:
-        # Global endpoint (no explicit owner) receives all emissions
-        if getattr(ep, "entite_juridique_id", None) is None and getattr(ep, "ght_context_id", None) is None:
-            filtered_endpoints.append(ep)
-            continue
-        # Endpoint tied to same EJ
-        if entity_ej_id is not None and getattr(ep, "entite_juridique_id", None) == entity_ej_id:
-            filtered_endpoints.append(ep)
-            continue
-        # Endpoint tied to same GHT
-        if entity_ght_id is not None and getattr(ep, "ght_context_id", None) == entity_ght_id:
-            filtered_endpoints.append(ep)
-            continue
-    endpoints = filtered_endpoints
+    endpoints = list_eligible_sender_endpoints(session, entity)
     sent_logs: list[MessageLog] = []
     base_correlation_id = getattr(entity, "correlation_id", None)
 

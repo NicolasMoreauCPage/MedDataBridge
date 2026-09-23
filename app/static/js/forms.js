@@ -165,6 +165,7 @@ class DependentFieldsManager {
         });
 
         field.disabled = options.length === 0;
+        this.clearFieldError(field);
     }
 
     /**
@@ -174,6 +175,7 @@ class DependentFieldsManager {
         field.innerHTML = '<option value="">-- Sélectionner --</option>';
         field.value = '';
         field.disabled = false;
+        this.clearFieldError(field);
     }
 
     /**
@@ -217,6 +219,31 @@ class DependentFieldsManager {
         console.error(message);
         field.innerHTML = `<option value="">❌ ${message}</option>`;
         field.disabled = true;
+        field.setAttribute('aria-invalid', 'true');
+        const errorId = `${field.id || field.name || 'dependent-field'}-load-error`;
+        let error = document.getElementById(errorId);
+        if (!error) {
+            error = document.createElement('p');
+            error.id = errorId;
+            error.className = 'form-error mt-1 text-sm text-red-600';
+            error.setAttribute('role', 'alert');
+            field.insertAdjacentElement('afterend', error);
+        }
+        error.textContent = message;
+        const descriptions = new Set((field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+        descriptions.add(errorId);
+        field.setAttribute('aria-describedby', Array.from(descriptions).join(' '));
+    }
+
+    clearFieldError(field) {
+        const errorId = `${field.id || field.name || 'dependent-field'}-load-error`;
+        document.getElementById(errorId)?.remove();
+        const descriptions = (field.getAttribute('aria-describedby') || '')
+            .split(/\s+/)
+            .filter((description) => description && description !== errorId);
+        if (descriptions.length) field.setAttribute('aria-describedby', descriptions.join(' '));
+        else field.removeAttribute('aria-describedby');
+        field.removeAttribute('aria-invalid');
     }
 }
 

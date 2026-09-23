@@ -199,6 +199,9 @@ test("generic form submissions delegate to the shared HTTP client", () => {
   const source = readFileSync(new URL("../../app/static/js/forms.js", import.meta.url), "utf8");
   assert.match(source, /window\.medbridgeHttp\.request\(this\.form\.action/);
   assert.doesNotMatch(source, /await fetch\(this\.form\.action/);
+  assert.match(source, /class DependentFieldsManager/);
+  assert.match(source, /field\.setAttribute\('aria-invalid', 'true'\)/);
+  assert.match(source, /error\.setAttribute\('role', 'alert'\)/);
 });
 
 test("frontend lint rejects direct await fetch outside the shared client", () => {

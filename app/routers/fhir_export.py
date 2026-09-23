@@ -1,7 +1,6 @@
 """API REST pour l'export FHIR."""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
-from typing import Optional
 from app.db import get_session
 from app.models_structure import EntiteJuridique
 from app.metrics import record_fhir_event_safely
@@ -100,8 +99,8 @@ async def export_patients(
 @router.get("/export/venues/{ej_id}", response_model=dict)
 async def export_venues(
     ej_id: int,
-    limit: Optional[int] = Query(None, description="Nombre maximum de venues à exporter"),
-    offset: Optional[int] = Query(0, description="Nombre de venues à sauter"),
+    limit: int = Query(100, ge=1, le=500, description="Nombre maximum de venues à exporter"),
+    offset: int = Query(0, ge=0, description="Nombre de venues à sauter"),
     session: Session = Depends(get_session)
 ):
     """

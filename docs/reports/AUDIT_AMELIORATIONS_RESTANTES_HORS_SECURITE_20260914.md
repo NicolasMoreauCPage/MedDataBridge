@@ -169,10 +169,13 @@ l'audit :
   préchargé. Les historiques HPRIM CCAM et NGAP calculent aussi leur total par
   `COUNT(*)`, sans matérialiser tous les actes d'un patient. Les recherches
   FHIR `Location` par parent ou identifiant bornent et trient désormais aussi
-  leurs lectures avant de convertir les ressources. L'export FHIR des patients
-  applique maintenant réellement son contrat `limit`/`offset` côté SQL (borne
-  de 500), retourne le total du jeu et isole chaque page dans le cache; les
-  exports de venues et les objectifs p50/p95 restent à compléter.
+  leurs lectures avant de convertir les ressources. Les exports FHIR des
+  patients et des venues appliquent maintenant réellement leur contrat
+  `limit`/`offset` côté SQL (borne de 500), retournent le total du jeu et
+  isolent chaque page dans le cache. Les venues préchargent dossier, patient,
+  contacts et identifiants, puis lisent mouvements et lieux physiques par lots;
+  un test borne cette page à sept `SELECT`. Les objectifs p50/p95 restent à
+  compléter.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés

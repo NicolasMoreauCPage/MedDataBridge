@@ -6,6 +6,7 @@ from typing import Dict
 from collections import defaultdict
 from sqlmodel import Session, select
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 import os
 
 from app.models_structure import (
@@ -494,13 +495,21 @@ class FHIRExportService:
         
         return bundle
     
-    def export_venues(self, ej: EntiteJuridique) -> FHIRBundle:
-        """Exporte les venues d'un établissement en FHIR."""
+    def export_venues(
+        self,
+        ej: EntiteJuridique,
+        *,
+        limit: int | None = 100,
+        offset: int = 0,
+    ) -> FHIRBundle:
+        """Exporte une page bornée de venues d'un établissement en FHIR."""
         import time
         start_time = time.time()
+        page_limit = min(max(int(limit or 100), 1), 500)
+        page_offset = max(int(offset), 0)
         
         # Vérifier le cache
-        cache_key = f"fhir:export:venues:ej:{ej.id}"
+        cache_key = f"fhir:export:venues:ej:{ej.id}:offset:{page_offset}:limit:{page_limit}"
         if self.cache and self.enable_cache:
             cached = self.cache.get(cache_key)
             if cached:
@@ -513,14 +522,44 @@ class FHIRExportService:
         # Venues - find all venues linked to UFs in this EJ
         venues_qs = (
             select(Venue)
+            .options(
+                selectinload(Venue.dossier).selectinload(Dossier.patient),
+                selectinload(Venue.identifiers),
+                selectinload(Venue.contacts),
+            )
             .join(UniteFonctionnelle, UniteFonctionnelle.identifier == Venue.uf_responsabilite)
             .join(Service, Service.id == UniteFonctionnelle.service_id)
             .join(Pole, Pole.id == Service.pole_id)
             .join(EntiteGeographique, EntiteGeographique.id == Pole.entite_geo_id)
             .where(EntiteGeographique.entite_juridique_id == ej.id)
         )
+        total = int(
+            self.session.exec(select(func.count()).select_from(venues_qs.subquery())).one()
+        )
+        venues = self.session.exec(
+            venues_qs.order_by(Venue.id).offset(page_offset).limit(page_limit)
+        ).all()
+        venue_ids = [venue.id for venue in venues if venue.id is not None]
+        movements_by_venue: dict[int, list[Mouvement]] = defaultdict(list)
+        if venue_ids:
+            for mouvement in self.session.exec(
+                select(Mouvement)
+                .where(Mouvement.venue_id.in_(venue_ids))
+                .order_by(Mouvement.venue_id, Mouvement.when)
+            ).all():
+                movements_by_venue[mouvement.venue_id].append(mouvement)
+        lit_ids = [venue.lit_id for venue in venues if getattr(venue, "lit_id", None)]
+        lits_by_id = {
+            lit.id: lit
+            for lit in self.session.exec(select(Lit).where(Lit.id.in_(lit_ids))).all()
+        } if lit_ids else {}
+        chambre_ids = [venue.chambre_id for venue in venues if getattr(venue, "chambre_id", None)]
+        chambres_by_id = {
+            chambre.id: chambre
+            for chambre in self.session.exec(select(Chambre).where(Chambre.id.in_(chambre_ids))).all()
+        } if chambre_ids else {}
         
-        for venue in self.session.exec(venues_qs).all():
+        for venue in venues:
             if not venue.dossier or not venue.dossier.patient:
                 continue
             
@@ -528,11 +567,7 @@ class FHIRExportService:
             patient = venue.dossier.patient
             
             # Dates du séjour
-            mouvements = self.session.exec(
-                select(Mouvement)
-                .where(Mouvement.venue_id == venue.id)
-                .order_by(Mouvement.when)
-            ).all()
+            mouvements = movements_by_venue.get(venue.id, [])
             
             start_date = None
             end_date = None
@@ -554,11 +589,11 @@ class FHIRExportService:
             # Lieu physique le plus précis disponible → Encounter.location (Lit > Chambre)
             location_ref = None
             if getattr(venue, "lit_id", None):
-                lit_obj = self.session.get(Lit, venue.lit_id)
+                lit_obj = lits_by_id.get(venue.lit_id)
                 if lit_obj:
                     location_ref = self.converter.create_reference("Location", lit_obj.identifier, lit_obj.name)
             if not location_ref and getattr(venue, "chambre_id", None):
-                chambre_obj = self.session.get(Chambre, venue.chambre_id)
+                chambre_obj = chambres_by_id.get(venue.chambre_id)
                 if chambre_obj:
                     location_ref = self.converter.create_reference("Location", chambre_obj.identifier, chambre_obj.name)
 
@@ -569,6 +604,12 @@ class FHIRExportService:
                 break
             if not venue_id:
                 venue_id = str(venue.venue_seq)
+            patient_identifier = patient.identifier or f"PAT-{patient.id}"
+            patient_ref = self._patient_refs.get(patient_identifier) or self.converter.create_reference(
+                "Patient",
+                patient_identifier,
+                f"{patient.family} {patient.given}",
+            )
                 
             # Créer l'encounter
             # Build RelatedPerson resources and Encounter.participant entries from VenueContact
@@ -596,7 +637,7 @@ class FHIRExportService:
                     period = self.encounter_converter.converter.create_period(vc.start_datetime, vc.end_datetime) if (vc.start_datetime or vc.end_datetime) else None
                     related_person = self.encounter_converter.create_related_person(
                         rp_id,
-                        self._patient_refs[patient.identifier],
+                        patient_ref,
                         vc.relationship_code,
                         vc.relationship_display or vc.relationship_code,
                         name,
@@ -637,7 +678,7 @@ class FHIRExportService:
 
             encounter = self.encounter_converter.create_encounter(
                 venue_id,
-                self._patient_refs[patient.identifier],
+                patient_ref,
                 status,
                 start_date,
                 end_date,
@@ -649,7 +690,12 @@ class FHIRExportService:
             # Append related persons to bundle after encounter
             entries.extend(related_person_entries)
         
-        bundle = FHIRBundle(type='collection', entry=entries)
+        bundle = FHIRBundle(
+            type="collection",
+            entry=entries,
+            total=total,
+            meta={"offset": page_offset, "limit": page_limit},
+        )
         
         # Mise en cache (TTL très court car venues changent en temps réel)
         if self.cache and self.enable_cache:

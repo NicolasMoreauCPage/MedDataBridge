@@ -414,11 +414,17 @@ l'audit :
   partagent enfin `static/js/structure-list-filters.js` : les paramètres sont
   décrits dans le HTML, les filtres clavier et listes sont délégués, et les
   gestionnaires inline dupliqués ont disparu.
-  L'inventaire courant ne conserve plus que huit templates avec JavaScript
-  exécutable embarqué. Les deux reliquats applicatifs dominants sont la saisie
-  rapide de cotations (596 lignes) et le workflow de mouvements (358 lignes) ;
-  les six autres concernent le shell, un composant partagé ou des pages de
-  documentation/démonstration.
+  La saisie rapide de cotations délègue maintenant ses 596 lignes de logique à
+  `static/js/cotation-entry-workspace.js`. L'identifiant du dossier transite
+  par un attribut `data-*`, les recherches et les quatre créations restent sur
+  le client HTTP partagé, et les actions statiques comme dynamiques utilisent
+  une délégation d'événements sans gestionnaire `onclick` embarqué. Le bouton
+  Historique, auparavant relié à une fonction absente, amène désormais le
+  clavier et la vue sur la liste des cotations.
+  L'inventaire courant ne conserve plus que sept templates avec JavaScript
+  exécutable embarqué. Le dernier reliquat applicatif dominant est le workflow
+  de mouvements (358 lignes) ; les six autres concernent le shell, un composant
+  partagé ou des pages de documentation/démonstration.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
   supprimés. La commande `npm run inventory-assets` contrôle désormais les

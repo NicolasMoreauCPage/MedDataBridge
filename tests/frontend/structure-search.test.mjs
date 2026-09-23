@@ -348,25 +348,31 @@ test("scenario import and conformity toggle use the shared HTTP client", () => {
 
 test("rapid cotation workflow delegates searches and mutations to the shared HTTP client", () => {
   const template = readFileSync(new URL("../../app/templates/cotations/saisie_rapide.html", import.meta.url), "utf8");
+  const entry = readFileSync(new URL("../../app/static/js/cotation-entry-workspace.js", import.meta.url), "utf8");
   const history = readFileSync(new URL("../../app/static/js/cotations-history-workspace.js", import.meta.url), "utf8");
+  assert.match(template, /js\/cotation-entry-workspace\.js/);
   assert.match(template, /js\/cotations-history-workspace\.js/);
+  assert.match(template, /data-cotation-entry data-dossier-id="\{\{ dossier\.id \}\}"/);
   assert.match(template, /data-cotations-history-workspace/);
   assert.doesNotMatch(template, /<style>/);
-  assert.match(template, /window\.medbridgeHttp\.get\(/);
-  assert.match(template, /window\.medbridgeHttp\.post\(/);
+  assert.doesNotMatch(template, /<script>([\s\S]*?)<\/script>/);
+  assert.doesNotMatch(template, /\bonclick=/);
+  assert.match(entry, /window\.medbridgeHttp\.get\(/);
+  assert.match(entry, /window\.medbridgeHttp\.post\(/);
   ["ccam", "ngap", "ucd", "lpp"].forEach((type) => {
-    assert.match(template, new RegExp(`medbridgeHttp\\.post\\\('/cotations/api/${type}'`));
+    assert.match(entry, new RegExp(`medbridgeHttp\\.post\\\('/cotations/api/${type}'`));
   });
-  assert.doesNotMatch(template, /succès de simulation|simulation locale/i);
+  assert.doesNotMatch(entry, /onclick=/);
+  assert.doesNotMatch(entry, /succès de simulation|simulation locale/i);
   assert.match(history, /window\.medbridgeHttp\.post\("\/cotations\/api\/bulk"/);
   assert.match(history, /window\.medbridgeHttp\.request\(/);
   assert.match(history, /window\.PameliaUi\.confirm/);
-  assert.doesNotMatch(template, /\bfetch\(/);
+  assert.doesNotMatch(entry, /\bfetch\(/);
   assert.doesNotMatch(history, /\bfetch\(/);
 });
 
 test("autocomplete searches cancel obsolete requests and expose retry feedback", () => {
-  const cotations = readFileSync(new URL("../../app/templates/cotations/saisie_rapide.html", import.meta.url), "utf8");
+  const cotations = readFileSync(new URL("../../app/static/js/cotation-entry-workspace.js", import.meta.url), "utf8");
   const planLits = readFileSync(new URL("../../app/static/js/plan-lits-workspace.js", import.meta.url), "utf8");
   const mouvement = readFileSync(new URL("../../app/templates/mouvement_workflow.html", import.meta.url), "utf8");
   assert.match(cotations, /const cotationSearchControllers = new Map\(\)/);

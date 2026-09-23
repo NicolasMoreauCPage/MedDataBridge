@@ -1,31 +1,17 @@
-# Guide d'intégration – Nouvelle IHM Cotation HPRIM (UX/UI Pro)
+# Guide d'intégration — workspace de cotation
 
-## 1. Fichiers créés
+Statut : actif — vérifié le 23 septembre 2026.
 
-- `app/templates/hprim_cotation_modern.html` : nouveau template HTML moderne, responsive, accessible, mobile-first.
-- `app/static/js/cotationForm.js` : gestion dynamique des actes, modals, résumé, feedback utilisateur.
+La seule saisie opérationnelle est le workspace persistant :
+`/cotations/dossier/{dossier_id}/saisie`, rendu par
+`app/templates/cotations/saisie_rapide.html` et ses assets dédiés.
 
-## 2. Pour tester la nouvelle IHM
+Les entrées historiques `/cotation-modern/...` redirigent vers ce même
+parcours. L'ancien prototype `hprim_cotation_modern.html` et son JavaScript de
+simulation ont été retirés : aucune action utilisateur ne doit afficher un
+succès local sans persistance confirmée.
 
-1. Ajouter une route Flask/FastAPI pour servir le template `hprim_cotation_modern.html` (exemple : `/cotation-modern`).
-2. S'assurer que le JS est servi depuis `/static/js/cotationForm.js`.
-3. Ouvrir `/cotation-modern` dans le navigateur.
-
-## 3. Points d'attention
-
-- L'ancien template (`hprim_cotation.html`) n'est pas modifié : migration progressive possible.
-- Le JS est découplé, facile à maintenir et à étendre (ajout de recherche d'actes, drag & drop, feedback API…).
-- Les styles utilisent Tailwind CSS : vérifier la présence du CDN ou intégrer Tailwind dans le pipeline si besoin.
-- Les toasts, modals, résumé dynamique sont inclus.
-- Accessibilité : labels explicites, focus visible, navigation clavier, contrastes respectés.
-
-## 4. Prochaines étapes possibles
-
-- Brancher les appels API réels (valider/émettre, preview XML…)
-- Ajouter la recherche d'actes (autocomplete)
-- Ajouter des tests UI automatisés (Playwright, Cypress…)
-- Recueillir le feedback utilisateurs métiers
-
----
-
-Pour toute adaptation ou extension, modifier le template ou le JS dédié. Pour une migration totale, remplacer l'ancien template dans la navigation principale.
+Pour vérifier le parcours, créez ou choisissez un séjour, ouvrez sa saisie de
+cotations, enregistrez un acte, puis contrôlez qu'il réapparaît dans la liste
+du même workspace. Les actions de masse et l'export reposent également sur les
+API persistantes de ce parcours.

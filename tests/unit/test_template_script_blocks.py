@@ -54,23 +54,6 @@ def test_contacts_list_modal_and_script_render(client, session):
     assert "Gestion des suppressions asynchrones" in resp.text
 
 
-def test_hprim_cotation_modern_uses_shared_toast_system(client, session):
-    from app.models import Patient, Dossier
-    from datetime import datetime, timezone
-    p = Patient(patient_seq=1, identifier="IPP900", family="X", given="Y")
-    session.add(p)
-    session.flush()
-    d = Dossier(dossier_seq=1, patient_id=p.id, admit_time=datetime.now(timezone.utc))
-    session.add(d)
-    session.commit()
-    session.refresh(d)
-    resp = client.get(f"/cotation-modern/dossiers/{d.id}/cotation")
-    assert resp.status_code == 200
-    assert "window.toastSystem?.show" in resp.text
-    assert 'id="toastStack"' not in resp.text
-    assert resp.text.count('id="toast-container"') == 1
-
-
 def test_qualification_dashboard_renders_with_the_test_bench_entrypoint(client):
     resp = client.get("/ui/interface-testing")
 

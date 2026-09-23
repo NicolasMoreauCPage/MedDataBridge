@@ -266,7 +266,10 @@ l'audit :
   facturation et suppression de cette liste ne reposent plus sur un délai local
   : ils confirment l'action via le dialogue applicatif, appellent l'API groupée
   puis rechargent les données persistées. L'export télécharge effectivement un
-  CSV des lignes filtrées.
+  CSV des lignes filtrées. Le prototype historique
+  `hprim_cotation_modern.html`, non routé et porteur d'actions locales simulées,
+  a aussi été supprimé ; `/cotation-modern/...` redirige déjà vers l'unique
+  workspace persistant et le guide d'intégration a été aligné sur ce parcours.
 - **FE-03 :** `static/js/http.js` centralise timeout, annulation, parsing et
   erreurs HTTP. Les parcours cotation, listes, scénarios, messages et tableau
   de bord l'utilisent désormais; la recherche de structure passe également par

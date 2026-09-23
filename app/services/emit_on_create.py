@@ -10,6 +10,7 @@ from app.models import Dossier, Mouvement, Patient, Venue
 from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.fhir_emission import emit_fhir_payload, generate_fhir
+from app.services.hl7_fields import build_patient_name, build_xad
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
@@ -63,46 +64,6 @@ def generate_pam_hl7(
         # reuse outer _c sanitizer
         return _c(v)
 
-    # Reusable XPN builder for all branches (family^given^middle^suffix^prefix^degree^type)
-    def _build_xpn(family_val, given_val, middle_val=None, suffix_val=None, prefix_val=None, type_code=None):
-        xpn = ["", "", "", "", "", "", ""]
-        if family_val:
-            xpn[0] = family_val
-        if given_val:
-            xpn[1] = given_val
-        if middle_val:
-            xpn[2] = middle_val
-        if suffix_val:
-            xpn[3] = suffix_val
-        if prefix_val:
-            xpn[4] = prefix_val
-        if type_code:
-            xpn[6] = type_code
-        # Trim trailing empty components
-        while xpn and xpn[-1] == "":
-            xpn.pop()
-        return "^".join(xpn)
-
-    def _build_patient_name(family_val, given_val, middle_val, suffix_val, prefix_val, birth_family_val):
-        """Construit PID-5 sans dupliquer un nom légal identique au nom courant."""
-        birth_family_val = _c_local(birth_family_val) or None
-        is_legal_name = bool(birth_family_val and birth_family_val == family_val)
-        current_type = "L" if is_legal_name else "D" if birth_family_val else None
-        names = []
-        if family_val or given_val or middle_val or prefix_val or suffix_val:
-            names.append(
-                _build_xpn(
-                    family_val, given_val, middle_val, suffix_val, prefix_val, current_type
-                )
-            )
-        if birth_family_val and not is_legal_name:
-            names.append(
-                _build_xpn(
-                    birth_family_val, given_val, middle_val, suffix_val, prefix_val, "L"
-                )
-            )
-        return "~".join(names)
-
     # Patient HL7 PAM branch
     if entity_type == "patient":
         # Determine event type
@@ -152,7 +113,7 @@ def generate_pam_hl7(
         suffix = _c_local(_get("suffix", None)) or None
         prefix = _c_local(_get("prefix", None)) or None
         birth_family = _c_local(_get("birth_family", None)) or None
-        name = _build_patient_name(
+        name = build_patient_name(
             family, given, middle, suffix, prefix, birth_family
         )
 
@@ -171,17 +132,6 @@ def generate_pam_hl7(
         }
         gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
 
-        # Addresses
-        # Addresses: build XAD repetitions but only include repetitions with meaningful content
-        def _build_xad(street, other, city, state, postal, country, addr_type=None):
-            parts = [street or "", other or "", city or "", state or "", postal or "", country or ""]
-            if addr_type:
-                parts.append(addr_type)
-            # Trim trailing empty components
-            while parts and parts[-1] == "":
-                parts.pop()
-            return "^".join(parts) if parts else ""
-
         addresses = []
         street = _c_local(_get("address", None))
         city = _c_local(_get("city", None))
@@ -190,7 +140,7 @@ def generate_pam_hl7(
         country = _c_local(_get("country", None))
         # Only add home address repetition if at least one meaningful field exists
         if any([street, city, state, postal, country]):
-            addresses.append(_build_xad(street, "", city, state, postal, country, "H"))
+            addresses.append(build_xad(street, "", city, state, postal, country, "H"))
 
         birth_street = _c_local(_get("birth_address", None))
         birth_city = _c_local(_get("birth_city", None))
@@ -198,7 +148,7 @@ def generate_pam_hl7(
         birth_postal = _c_local(_get("birth_postal_code", None))
         birth_country = _c_local(_get("birth_country", None))
         if any([birth_street, birth_city, birth_state, birth_postal, birth_country]):
-            addresses.append(_build_xad(birth_street, "", birth_city, birth_state, birth_postal, birth_country, "BIR"))
+            addresses.append(build_xad(birth_street, "", birth_city, birth_state, birth_postal, birth_country, "BIR"))
 
         patient_address = "~".join(addresses)
 
@@ -393,7 +343,7 @@ def generate_pam_hl7(
         evn = f"EVN|{event_type}|{admit_time}"
 
         # PID-5 keeps the current and birth names in separate XPN repetitions.
-        name_field = _build_patient_name(
+        name_field = build_patient_name(
             family,
             given,
             getattr(patient, "middle", None) if patient else None,
@@ -681,7 +631,7 @@ def generate_pam_hl7(
                 account_number = f"{fallback_value}^^^{fallback_auth}^{fallback_type}"
             
             # Build complete PID segment with PID-18 (Patient Account Number) using indexed fields
-            name_field = _build_patient_name(
+            name_field = build_patient_name(
                 family,
                 given,
                 getattr(patient, "middle", None),

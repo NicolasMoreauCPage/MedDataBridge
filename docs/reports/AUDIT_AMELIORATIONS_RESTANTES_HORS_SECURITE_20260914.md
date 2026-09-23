@@ -527,6 +527,8 @@ l'audit :
   L'import de scénario quitte aussi le template pour
   `static/js/scenario-import-workspace.js`, tout en conservant l'envoi
   multipart, la redirection vers la revue et la remise en état après erreur.
+  La configuration EJ des scénarios externalise également l'ouverture
+  temporaire des listes d'UF dans `static/js/scenario-ej-config-form.js`.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet
@@ -543,7 +545,7 @@ l'audit :
   `CATALOGUE_DESIGN_SYSTEM.md` fixe désormais l'implémentation recommandée des
   formulaires, tableaux, badges, toasts, modales et états vides. Un lint et un
   test frontend interdisent tout nouveau bloc `<style>` local, en maintenant
-  une liste explicite des huit exceptions historiques restant à migrer. Les
+  une liste explicite des sept exceptions historiques restant à migrer. Les
   deux pages de démonstration (`/styleguide` et `/design-system`) sont
   documentées comme références internes et ne sont plus proposées dans la
   navigation métier. Les contrôles navigateur existants couvrent le reflow

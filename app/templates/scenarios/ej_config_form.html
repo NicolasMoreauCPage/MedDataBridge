@@ -3,7 +3,7 @@
 {% block title %}Configuration scénarios - {{ ej.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="scenario-ej-config max-w-7xl mx-auto px-4 py-6">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
@@ -527,37 +527,5 @@
     </form>
 </div>
 
-<script>
-// Amélioration UX: filtrage des selects avec recherche
-document.addEventListener('DOMContentLoaded', function() {
-    // Si Select2 ou similar est disponible, l'utiliser
-    const selects = document.querySelectorAll('.uf-select');
-    selects.forEach(select => {
-        // Ajouter un comportement de recherche basique si pas de librairie externe
-        select.addEventListener('focus', function() {
-            this.size = Math.min(10, this.options.length);
-        });
-        select.addEventListener('blur', function() {
-            this.size = 1;
-        });
-        select.addEventListener('change', function() {
-            this.size = 1;
-            this.blur();
-        });
-    });
-});
-</script>
-
-<style>
-/* Style pour les selects avec recherche */
-.uf-select {
-    max-height: 300px;
-}
-.uf-select option {
-    padding: 8px 12px;
-}
-.uf-select option:hover {
-    background-color: #EBF5FF;
-}
-</style>
+<script defer src="{{ url_for('static', path='/js/scenario-ej-config-form.js') }}"></script>
 {% endblock %}

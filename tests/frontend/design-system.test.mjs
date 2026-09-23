@@ -9,7 +9,6 @@ const allowedLegacyStyleBlocks = new Set([
   "design_system_demo.html",
   "documentation.html",
   "patient_detail.html",
-  "scenarios/ej_config_form.html",
   "scenarios_bulk_execute_v2.html",
   "structure_interactive.html",
   "structure_search.html",

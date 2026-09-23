@@ -163,6 +163,11 @@ l'audit :
   ou d'échec sont enfin isolés dans `file_endpoint_emission.py`. Le service
   `emit_on_create.py` est ainsi passé de 2 340 à 232 lignes. Les campagnes
   unitaires et d'intégration isolées passent après cette dernière extraction.
+  Le chargement, la mise à jour des statuts programmés et la projection JSON de
+  l'arbre hospitalier ont ensuite quitté `routers/structure.py` pour le service
+  `structure_tree.py`. La route ne conserve que la lecture du contexte et des
+  filtres ; le service est couvert directement sur une hiérarchie complète et
+  sur le filtrage strict sans résultat. Le routeur passe de 2 640 à 2 515 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

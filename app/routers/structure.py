@@ -14,6 +14,7 @@ from app.services.structure_schedule import (
     form_datetime_to_hl7,
     hl7_to_form_datetime,
 )
+from app.services.structure_tree import build_structure_tree
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
@@ -107,139 +108,13 @@ async def get_structure_tree(
     ej: Optional[int] = Query(None, description="ID de l'établissement juridique à filtrer"),
     eg_ids: Optional[str] = Query(None, description="Liste d'IDs d'entités géographiques séparés par des virgules")
 ):
-    # Strict EJ filtering: if EJ context is present, only return EGs for that EJ
-    query = select(EntiteGeographique)
     ej_context = ej
     # La requête est injectée par FastAPI : ne pas parcourir la pile d'appel
     # pour retrouver implicitement un contexte de session.
     if ej_context is None:
         ej_context = request.session.get("ej_context_id")
-    eg_id_list = None
-    if eg_ids:
-        eg_id_list = [int(id_str) for id_str in eg_ids.split(',')]
-        query = query.where(EntiteGeographique.id.in_(eg_id_list))
-    elif ej_context is not None:
-        query = query.where(EntiteGeographique.entite_juridique_id == ej_context)
-    # If strict EJ filtering is requested and no EGs match, Renvoie empty list
-    # (prevents Solution de repli to all EGs)
-    query = (query
-        .options(selectinload(EntiteGeographique.poles)
-            .selectinload(Pole.services)
-            .selectinload(Service.unites_fonctionnelles)
-            .selectinload(UniteFonctionnelle.unites_hebergement)
-            .selectinload(UniteHebergement.chambres)
-            .selectinload(Chambre.lits)))
-    egs = session.exec(query).all()
-    # If EJ context is present and no EGs match, Renvoie []
-    if (ej_context is not None or eg_id_list) and not egs:
-        return []
-    # Les relations nécessaires sont déjà préchargées par ``selectinload``.
-    # Mettre à jour les seuls éléments rendus évite six scans complets de la
-    # base (un par type) pour une consultation filtrée de l'arbre.
-    poles = [pole for eg in egs for pole in eg.poles]
-    services = [service for pole in poles for service in pole.services]
-    ufs = [uf for service in services for uf in service.unites_fonctionnelles]
-    uhs = [uh for uf in ufs for uh in uf.unites_hebergement]
-    chambres = [chambre for uh in uhs for chambre in uh.chambres]
-    lits = [lit for chambre in chambres for lit in chambre.lits]
-    changed = False
-    for entities in (poles, services, ufs, uhs, chambres, lits):
-        if apply_scheduled_status(entities):
-            changed = True
-    if changed:
-        session.commit()
-    # Helper pour status effectif
-    def get_effective_status_value(entity):
-        status_value = getattr(entity, "status", None)
-        if hasattr(entity, "get_effective_status"):
-            try:
-                status_value = entity.get_effective_status()
-            except Exception:
-                status_value = getattr(entity, "status", None)
-        if isinstance(status_value, LocationStatus):
-            status_value = status_value.value
-        return status_value or "active"
-
-    # Build tree structure
-    tree = []
-    for eg in egs:
-        eg_node = {
-            "id": eg.id,
-            "name": eg.name,
-            "type": "eg",
-            "status": get_effective_status_value(eg),
-            "poles": [],
-            "services": [],
-            "ufs": [],
-            "unites_hebergement": [],
-            "chambres": [],
-            "lits": []
-        }
-        for pole in eg.poles:
-            pole_node = {
-                "id": pole.id,
-                "name": pole.name,
-                "type": "pole",
-                "status": get_effective_status_value(pole),
-                "services": [],
-                "ufs": [],
-                "unites_hebergement": [],
-                "chambres": [],
-                "lits": []
-            }
-            for service in pole.services:
-                service_node = {
-                    "id": service.id,
-                    "name": service.name,
-                    "type": "service",
-                    "status": get_effective_status_value(service),
-                    "ufs": [],
-                    "unites_hebergement": [],
-                    "chambres": [],
-                    "lits": []
-                }
-                for uf in service.unites_fonctionnelles:
-                    uf_node = {
-                        "id": uf.id,
-                        "name": uf.name,
-                        "type": "uf",
-                        "status": get_effective_status_value(uf),
-                        "unites_hebergement": [],
-                        "chambres": [],
-                        "lits": []
-                    }
-                    for uh in uf.unites_hebergement:
-                        uh_node = {
-                            "id": uh.id,
-                            "name": uh.name,
-                            "type": "uh",
-                            "status": get_effective_status_value(uh),
-                            "chambres": [],
-                            "lits": []
-                        }
-                        for chambre in uh.chambres:
-                            chambre_node = {
-                                "id": chambre.id,
-                                "name": chambre.name,
-                                "type": "chambre",
-                                "status": get_effective_status_value(chambre),
-                                "lits": []
-                            }
-                            for lit in chambre.lits:
-                                lit_node = {
-                                    "id": lit.id,
-                                    "name": lit.name,
-                                    "type": "lit",
-                                    "status": get_effective_status_value(lit),
-                                }
-                                chambre_node["lits"].append(lit_node)
-                            uh_node["chambres"].append(chambre_node)
-                        uf_node["unites_hebergement"].append(uh_node)
-                    service_node["ufs"].append(uf_node)
-                pole_node["services"].append(service_node)
-            eg_node["poles"].append(pole_node)
-        tree.append(eg_node)
-    return tree
+    eg_id_list = [int(id_str) for id_str in eg_ids.split(",")] if eg_ids else None
+    return build_structure_tree(session, ej_context=ej_context, eg_ids=eg_id_list)
 
 
 class StructureTemplateOut(BaseModel):

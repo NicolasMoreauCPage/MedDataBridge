@@ -185,14 +185,21 @@ l'audit :
   corresponde toujours à une structure effectivement créée. Ce contrôle couvre
   également les services, UF et unités d'hébergement fournis par un modèle
   édité. Le wizard interrompt désormais la navigation dès l'étape contenant le
-  nom manquant, au lieu de ne le signaler qu'à la génération. L'extraction des grands écrans cotation classique reste à
-  poursuivre.
+  nom manquant, au lieu de ne le signaler qu'à la génération. La liste
+  historique de cotations délègue désormais ses filtres, sa sélection et ses
+  actions à `static/js/cotations-list-workspace.js`; son script métier embarqué
+  et ses gestionnaires inline ont été retirés. L'extraction des autres grands
+  écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
   supprimés. La commande `npm run inventory-assets` contrôle désormais les
   références aux scripts statiques dans les templates. Elle a permis de retirer
   deux doublons historiques du workflow mouvements ; l'inventaire actuel ne
-  signale plus aucun script JavaScript orphelin.
+  signale plus aucun script JavaScript orphelin. Les boutons de validation,
+  facturation et suppression de cette liste ne reposent plus sur un délai local
+  : ils confirment l'action via le dialogue applicatif, appellent l'API groupée
+  puis rechargent les données persistées. L'export télécharge effectivement un
+  CSV des lignes filtrées.
 - **FE-03 :** `static/js/http.js` centralise timeout, annulation, parsing et
   erreurs HTTP. Les parcours cotation, listes, scénarios, messages et tableau
   de bord l'utilisent désormais; la recherche de structure passe également par
@@ -234,7 +241,8 @@ l'audit :
   scénarios et l'autocomplétion de localisation du workflow de mouvements.
   Le tableau de cache l'utilise également. Des tests frontend empêchent le
   retour à `fetch` direct : la seule occurrence restante est le transport
-  interne de `static/js/http.js`.
+  interne de `static/js/http.js`. La liste historique de cotations utilise à
+  son tour ce client pour ses mutations groupées.
 - **FE-06 :** `npm run lint`, `npm test` et `npm run check-frontend` sont
   disponibles et exécutés dans un job CI frontend. Ils vérifient la syntaxe,
   le client HTTP et la génération CSS; l'extension graduelle des tests aux

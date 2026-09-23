@@ -186,6 +186,19 @@ test("rapid cotation workflow delegates searches and mutations to the shared HTT
   assert.doesNotMatch(source, /\bfetch\(/);
 });
 
+test("legacy cotation list uses real bulk mutations and a dedicated workspace asset", () => {
+  const template = readFileSync(new URL("../../app/templates/cotations/liste.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/cotations-list-workspace.js", import.meta.url), "utf8");
+  assert.match(template, /data-cotations-list/);
+  assert.match(template, /js\/cotations-list-workspace\.js/);
+  assert.doesNotMatch(template, /\bonclick=/);
+  assert.doesNotMatch(template, /simulation UI/);
+  assert.match(source, /window\.medbridgeHttp\.post\("\/cotations\/api\/bulk"/);
+  assert.match(source, /URL\.createObjectURL/);
+  assert.match(source, /window\.PameliaUi\.confirm/);
+  assert.doesNotMatch(source, /simulation UI/);
+});
+
 test("generic form submissions delegate to the shared HTTP client", () => {
   const source = readFileSync(new URL("../../app/static/js/forms.js", import.meta.url), "utf8");
   assert.match(source, /window\.medbridgeHttp\.request\(this\.form\.action/);

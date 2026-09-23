@@ -12,7 +12,6 @@ LEGACY_OR_COMPONENT_TEMPLATES = {
     Path("home.html"),
     Path("macros/ui.html"),
     Path("hprim_cotation_modern.html"),  # écran historique non routé.
-    Path("cotations/liste.html"),  # remplacé par le workspace de saisie rapide.
     Path("components/cotations_inline.html"),  # composant historique non inclus.
 }
 NATIVE_DIALOG_PATTERN = re.compile(r"(?<![.\w])(?:alert|confirm)\s*\(")

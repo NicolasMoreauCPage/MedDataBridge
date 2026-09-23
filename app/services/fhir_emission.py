@@ -10,12 +10,14 @@ import concurrent.futures
 import inspect
 import json
 import logging
+import time
 from datetime import datetime
 from typing import Callable, Literal, Sequence
 
 from sqlmodel import Session, select
 
 from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
+from app.metrics import record_outbound_delivery
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.outbox_service import enqueue_message
 
@@ -175,10 +177,11 @@ def emit_fhir_payload(
     hors de l'orchestrateur multi-protocole. Le Bundle sérialisé est le même
     dans le journal et dans l'outbox durable.
     """
+    started_at = time.monotonic()
     payload_text = json.dumps(payload, default=str)
     targets = build_fhir_targets(endpoint)
     if not targets:
-        return _upsert_fhir_log(
+        message_log = _upsert_fhir_log(
             session,
             endpoint=endpoint,
             correlation_id=correlation_id,
@@ -186,6 +189,20 @@ def emit_fhir_payload(
             acknowledgment="Endpoint FHIR non configuré",
             status="error",
         )
+        logger.warning(
+            "FHIR outbound delivery skipped because no target is configured endpoint=%s correlation_id=%s",
+            endpoint.id,
+            correlation_id,
+        )
+        record_outbound_delivery(
+            protocol="FHIR",
+            status="error",
+            duration_seconds=time.monotonic() - started_at,
+            endpoint_id=endpoint.id,
+            correlation_id=correlation_id,
+            error_type="MISSING_TARGET",
+        )
+        return message_log
 
     if sender is None:
         from app.services.fhir_transport import post_fhir_bundle
@@ -194,15 +211,33 @@ def emit_fhir_payload(
 
     last_log: MessageLog | None = None
     for base_url, auth_kind, auth_token in targets:
+        started_at = time.monotonic()
+        error_type: str | None = None
         try:
             status_code, response_body = _resolve_transport_result(
                 sender(base_url, payload, auth_kind=auth_kind, auth_token=auth_token)
             )
             status = "sent" if 200 <= status_code < 300 else "error"
             acknowledgment = json.dumps(response_body or {}, default=str)
+            if status == "error":
+                error_type = "HTTP_STATUS"
+                logger.warning(
+                    "FHIR outbound delivery returned a non-success status endpoint=%s correlation_id=%s status_code=%s",
+                    endpoint.id,
+                    correlation_id,
+                    status_code,
+                )
         except Exception as exc:
             status = "error"
             acknowledgment = str(exc)
+            error_type = type(exc).__name__
+            logger.warning(
+                "FHIR outbound delivery failed endpoint=%s correlation_id=%s error_type=%s",
+                endpoint.id,
+                correlation_id,
+                error_type,
+                exc_info=True,
+            )
 
         last_log = _upsert_fhir_log(
             session,
@@ -211,6 +246,14 @@ def emit_fhir_payload(
             payload=payload_text,
             acknowledgment=acknowledgment,
             status=status,
+        )
+        record_outbound_delivery(
+            protocol="FHIR",
+            status=status,
+            duration_seconds=time.monotonic() - started_at,
+            endpoint_id=endpoint.id,
+            correlation_id=correlation_id,
+            error_type=error_type,
         )
         if status == "sent":
             return last_log

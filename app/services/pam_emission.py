@@ -18,6 +18,7 @@ from typing import Callable
 from sqlmodel import Session, select
 
 from app.models_endpoints import MessageLog
+from app.metrics import record_outbound_delivery
 from app.services.outbox_service import enqueue_message
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ def validate_outbound_pam(
             first_error=first_error,
         )
     except Exception:
+        logger.exception("PAM outbound validation failed; delivery remains eligible for retry")
         return PamValidationOutcome(
             status="warn",
             issues=json.dumps(
@@ -87,6 +89,7 @@ def send_outbound_pam(
     payload: str,
     *,
     message_type: str = "ADT^unknown",
+    correlation_id: str | None = None,
     sender: Callable[[str, int, str], object] | None = None,
 ) -> tuple[str, str]:
     """Envoie un PAM sur MLLP et traduit son ACK en statut de livraison."""
@@ -105,11 +108,25 @@ def send_outbound_pam(
             None,
         )
         if not msa_line:
+            logger.warning(
+                "PAM outbound acknowledgement has no MSA endpoint=%s:%s correlation_id=%s",
+                host,
+                port,
+                correlation_id,
+            )
             return "error", "[ACK MLLP sans segment MSA]"
         parts = msa_line.split("|")
         ack_code = parts[1] if len(parts) > 1 else ""
         return ("error" if ack_code in {"AE", "AR"} else "sent"), acknowledgment
     except Exception as exc:
+        logger.warning(
+            "PAM outbound transport failed endpoint=%s:%s correlation_id=%s error_type=%s",
+            host,
+            port,
+            correlation_id,
+            type(exc).__name__,
+            exc_info=True,
+        )
         return "error", str(exc)
     finally:
         try:
@@ -200,6 +217,7 @@ def emit_outbound_pam_attempt(
 ) -> tuple[MessageLog, str]:
     """Exécute une tentative PAM et délègue les reprises réseau à l'outbox."""
     payload = payload or "[Emission error: HL7 message missing]"
+    started_at = time.monotonic()
     validation = validate_outbound_pam(payload)
     status = "generated"
     acknowledgment = ""
@@ -213,6 +231,7 @@ def emit_outbound_pam_attempt(
             getattr(endpoint, "port"),
             payload,
             message_type=message_type,
+            correlation_id=correlation_id,
         )
 
     message_log = upsert_outbound_pam_log(
@@ -226,6 +245,14 @@ def emit_outbound_pam_attempt(
         validation_issues=validation.issues,
     )
     dump_outbound_pam_payload(payload, entity_id)
+    record_outbound_delivery(
+        protocol="MLLP",
+        status=status,
+        duration_seconds=time.monotonic() - started_at,
+        endpoint_id=getattr(endpoint, "id", None),
+        correlation_id=correlation_id,
+        error_type=("VALIDATION" if status == "validation_failed" else None),
+    )
     if status == "error":
         enqueue_message(
             session,

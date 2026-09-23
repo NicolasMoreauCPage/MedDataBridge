@@ -87,7 +87,13 @@ l'audit :
   émissions PAM sur MLLP suivent désormais la même règle : une tentative
   immédiate, puis mise en outbox durable avec le backoff du worker, sans attente
   synchrone entre plusieurs essais. La normalisation générale des exceptions
-  demeure à faire.
+  demeure à faire. Chaque tentative sortante FHIR, PAM/MLLP et HPRIM est
+  maintenant journalisée avec sa corrélation et mesurée par protocole, résultat
+  et type d'erreur (sans labels Prometheus à forte cardinalité). Les erreurs
+  explicites de cible FHIR absente, réponse HTTP non réussie, ACK MLLP absent,
+  échec de transport, validation PAM et contexte HPRIM manquant sont ainsi
+  visibles dans le tableau de bord et les logs, tout en conservant l'outbox pour
+  les reprises réseau.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

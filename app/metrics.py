@@ -243,6 +243,57 @@ def record_fhir_event(
     )
 
 
+# === Livraisons sortantes ===
+# Les labels restent volontairement à faible cardinalité : les détails de
+# corrélation et d'endpoint sont conservés par les logs et le journal, pas dans
+# les séries Prometheus.
+if Counter is not None:
+    OUTBOUND_DELIVERY_TOTAL = Counter(
+        "medbridge_outbound_delivery_total",
+        "Tentatives de livraison sortante par protocole et résultat",
+        ["protocol", "status", "error_type"],
+    )
+    OUTBOUND_DELIVERY_DURATION_SECONDS = Histogram(
+        "medbridge_outbound_delivery_duration_seconds",
+        "Durée des tentatives de livraison sortante",
+        ["protocol"],
+        buckets=(0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30),
+    )
+else:
+    OUTBOUND_DELIVERY_TOTAL = None
+    OUTBOUND_DELIVERY_DURATION_SECONDS = None
+
+
+def record_outbound_delivery(
+    *,
+    protocol: str,
+    status: str,
+    duration_seconds: float,
+    endpoint_id: object | None = None,
+    correlation_id: str | None = None,
+    error_type: str | None = None,
+) -> None:
+    """Mesure une tentative sortante et conserve son contexte de diagnostic."""
+    protocol_label = protocol.upper() or "UNKNOWN"
+    result = "success" if status == "sent" else "error"
+    error_label = error_type or ("none" if result == "success" else "unknown")
+    if OUTBOUND_DELIVERY_TOTAL is not None:
+        OUTBOUND_DELIVERY_TOTAL.labels(
+            protocol=protocol_label,
+            status=result,
+            error_type=error_label,
+        ).inc()
+        OUTBOUND_DELIVERY_DURATION_SECONDS.labels(protocol=protocol_label).observe(duration_seconds)
+    ui_metrics.record_operation(
+        operation=f"outbound_delivery_{protocol_label.lower()}",
+        duration=duration_seconds,
+        status=result,
+        endpoint_id=endpoint_id,
+        correlation_id=correlation_id,
+        error_type=error_label,
+    )
+
+
 # === Parcours guidé de création de scénarios ===
 # Ces labels sont volontairement fermés. En particulier, ni le nom/la clé du
 # scénario, ni les données d'identité saisies pour les tests ne sont tracés.

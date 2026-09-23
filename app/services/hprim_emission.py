@@ -8,6 +8,7 @@ la livraison à l'outbox durable.
 from datetime import datetime
 from decimal import Decimal
 import logging
+import time
 from typing import Literal
 
 from sqlmodel import Session
@@ -30,6 +31,7 @@ from app.hprim_models import (
 )
 from app.models import CCAMAct, Dossier, LPPAct, NGAPAct, Patient, UCDAct
 from app.models_practitioners import MedecinResponsable
+from app.metrics import record_outbound_delivery
 from app.services.hprim.hprim_xml import HprimXmlService
 from app.utils.booleans import as_bool
 
@@ -199,9 +201,18 @@ def emit_hprim_act(
         logger.debug("[HPRIM] Endpoint %s not configured for %s", endpoint.id, entity_type)
         return None
 
+    started_at = time.monotonic()
     generated = generate_hprim_xml(entity, entity_type, session, endpoint, operation)
     if generated is None:
         logger.error("[HPRIM] Missing dossier or patient for act %s", getattr(entity, "id", "unknown"))
+        record_outbound_delivery(
+            protocol="HPRIM",
+            status="error",
+            duration_seconds=time.monotonic() - started_at,
+            endpoint_id=endpoint.id,
+            correlation_id=correlation_id,
+            error_type="MISSING_CONTEXT",
+        )
         return None
 
     from app.services.hprim_delivery import queue_hprim_delivery
@@ -221,6 +232,13 @@ def emit_hprim_act(
             entity_type,
             endpoint.id,
             delivery.outbox.id,
+        )
+        record_outbound_delivery(
+            protocol="HPRIM",
+            status="sent",
+            duration_seconds=time.monotonic() - started_at,
+            endpoint_id=endpoint.id,
+            correlation_id=correlation_id or message_id,
         )
         return delivery.source_log
     return None

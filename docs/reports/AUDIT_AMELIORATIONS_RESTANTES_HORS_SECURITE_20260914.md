@@ -96,9 +96,10 @@ l'audit :
   branche PAM est désormais amorcée : sa persistance de payload MLLP pour
   diagnostic et la mise à jour du journal sortant MLLP sont isolées dans
   `pam_emission.py`, en conservant la déduplication par corrélation et la
-  reprise d'un échec en attente. Le transport MLLP (résolution d'une
-  coroutine, interprétation de l'ACK et métrique) y est également extrait.
-  La génération et l'orchestration de bout en bout restent à poursuivre.
+  reprise d'un échec en attente. La validation sortante, le transport MLLP
+  (résolution d'une coroutine, interprétation de l'ACK et métrique) et la
+  traçabilité des payloads y sont maintenant testables isolément. La
+  génération et l'orchestration de bout en bout restent à poursuivre.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

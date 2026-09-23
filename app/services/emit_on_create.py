@@ -17,13 +17,13 @@ from app.services.outbox_service import enqueue_message
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
-from app.services.pam_validation import validate_pam
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
 from app.services.pam_emission import (
     dump_outbound_pam_payload,
     send_outbound_pam,
     upsert_outbound_pam_log,
+    validate_outbound_pam,
 )
 
 logger = logging.getLogger(__name__)
@@ -1401,17 +1401,13 @@ def emit_to_senders_async(
                 while retry < max_retry:
                     status = "generated"
                     ack_payload = ""
-                    try:
-                        val = validate_pam(hl7_message, direction="out")
-                        pam_status = val.level
-                        pam_issues = json.dumps([i.__dict__ for i in val.issues], ensure_ascii=False)
-                    except Exception:
-                        pam_status = "warn"
-                        pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
+                    validation = validate_outbound_pam(hl7_message)
+                    pam_status = validation.status
+                    pam_issues = validation.issues
                     try:
                         if pam_status == "fail":
                             status = "validation_failed"
-                            first_issue = next((issue.message for issue in val.issues if issue.severity == "error"), "Message PAM sortant non conforme")
+                            first_issue = validation.first_error or "Message PAM sortant non conforme"
                             ack_payload = f"[Emission bloquée : {first_issue}]"
                         elif endpoint.host and endpoint.port:
                             status, ack_payload = send_outbound_pam(
@@ -1915,13 +1911,9 @@ def emit_to_senders_async(
     if not endpoints:
         # No sender configured: store generated payloads for audit trail.
         hl7_message = generate_pam_hl7(entity, entity_type, session)
-        try:
-            val = validate_pam(hl7_message, direction="out")
-            pam_status = val.level
-            pam_issues = json.dumps([i.__dict__ for i in val.issues], ensure_ascii=False)
-        except Exception:
-            pam_status = "warn"
-            pam_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
+        validation = validate_outbound_pam(hl7_message)
+        pam_status = validation.status
+        pam_issues = validation.issues
         fhir_payload = generate_fhir(entity, entity_type, session)
         log1 = MessageLog(
             direction="out",

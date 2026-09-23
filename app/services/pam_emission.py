@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import inspect
+import json
 import logging
 import os
 import random
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
@@ -18,6 +20,50 @@ from sqlmodel import Session, select
 from app.models_endpoints import MessageLog
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class PamValidationOutcome:
+    """Résultat sérialisable de la validation d'un PAM sortant."""
+
+    status: str
+    issues: str
+    first_error: str | None = None
+
+
+def validate_outbound_pam(
+    payload: str,
+    *,
+    validator: Callable[..., object] | None = None,
+) -> PamValidationOutcome:
+    """Valide un payload sortant sans laisser une erreur interne bloquer l'émission."""
+    if validator is None:
+        from app.services.pam_validation import validate_pam
+
+        validator = validate_pam
+    try:
+        result = validator(payload, direction="out")
+        issues = list(getattr(result, "issues", []))
+        first_error = next(
+            (getattr(issue, "message", None) for issue in issues if getattr(issue, "severity", None) == "error"),
+            None,
+        )
+        return PamValidationOutcome(
+            status=getattr(result, "level", "warn"),
+            issues=json.dumps(
+                [getattr(issue, "__dict__", {}) for issue in issues],
+                ensure_ascii=False,
+            ),
+            first_error=first_error,
+        )
+    except Exception:
+        return PamValidationOutcome(
+            status="warn",
+            issues=json.dumps(
+                [{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}],
+                ensure_ascii=False,
+            ),
+        )
 
 
 def _resolve_transport_result(result: object) -> object:

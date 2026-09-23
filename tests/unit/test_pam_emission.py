@@ -1,8 +1,11 @@
+from types import SimpleNamespace
+
 from app.models_endpoints import MessageLog, SystemEndpoint
 from app.services.pam_emission import (
     dump_outbound_pam_payload,
     send_outbound_pam,
     upsert_outbound_pam_log,
+    validate_outbound_pam,
 )
 
 
@@ -46,3 +49,28 @@ def test_outbound_pam_transport_marks_ack_without_msa_as_an_error():
 
     assert status == "error"
     assert acknowledgment == "[ACK MLLP sans segment MSA]"
+
+
+def test_outbound_pam_validation_keeps_first_functional_error():
+    result = SimpleNamespace(
+        level="fail",
+        issues=[
+            SimpleNamespace(severity="warn", message="Avertissement"),
+            SimpleNamespace(severity="error", message="Champ PID-3 absent"),
+        ],
+    )
+
+    outcome = validate_outbound_pam("payload", validator=lambda *_args, **_kwargs: result)
+
+    assert outcome.status == "fail"
+    assert outcome.first_error == "Champ PID-3 absent"
+    assert "PID-3" in outcome.issues
+
+
+def test_outbound_pam_validation_degrades_to_warning_when_validator_fails():
+    outcome = validate_outbound_pam(
+        "payload", validator=lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError())
+    )
+
+    assert outcome.status == "warn"
+    assert "VALIDATOR_ERROR" in outcome.issues

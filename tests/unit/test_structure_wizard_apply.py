@@ -1,6 +1,21 @@
+from types import SimpleNamespace
+
+import pytest
 from sqlmodel import select
 
-from app.models_structure import Chambre, EntiteGeographique, Lit, UniteFonctionnelle, UniteHebergement
+from app.models_structure import (
+    Chambre,
+    EntiteGeographique,
+    Lit,
+    Pole,
+    Service,
+    UniteFonctionnelle,
+    UniteHebergement,
+)
+from app.services.structure_template_application import (
+    StructureTemplateValidationError,
+    apply_structure_template,
+)
 
 
 def test_structure_wizard_creates_the_real_hosting_hierarchy(client, session):
@@ -37,10 +52,16 @@ def test_structure_wizard_creates_the_real_hosting_hierarchy(client, session):
         "lits": 3,
     }
     uf = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.name == "UF test")).one()
+    service = session.exec(select(Service).where(Service.name == "Service test")).one()
+    pole = session.exec(select(Pole).where(Pole.name == "Pôle test")).one()
     uh = session.exec(select(UniteHebergement).where(UniteHebergement.name == "UH test")).one()
     chambres = session.exec(select(Chambre).where(Chambre.unite_hebergement_id == uh.id)).all()
     lits = session.exec(select(Lit).join(Chambre).where(Chambre.unite_hebergement_id == uh.id)).all()
 
+    assert pole.entite_geo_id == eg.id
+    assert service.pole_id == pole.id
+    assert uf.service_id == service.id
+    assert uf.um_code == "UF-TEST"
     assert uh.unite_fonctionnelle_id == uf.id
     assert len(chambres) == 2
     assert len(lits) == 3
@@ -102,3 +123,35 @@ def test_structure_wizard_rejects_unnamed_nested_entities(client, session):
 
         assert response.status_code == 422
         assert expected_message in response.json()["detail"]
+
+
+def test_structure_template_service_validates_before_writing(session):
+    eg = EntiteGeographique(name="EG transaction")
+    session.add(eg)
+    session.commit()
+
+    with pytest.raises(StructureTemplateValidationError, match="lits sans chambre"):
+        apply_structure_template(
+            session,
+            eg_id=eg.id,
+            payload={
+                "poles": [
+                    {
+                        "name": "Pôle transaction",
+                        "services": [
+                            {"name": "Service", "ufs": [{"name": "UF"}]}
+                        ],
+                    }
+                ]
+            },
+            hosting_units=[
+                SimpleNamespace(
+                    name="UH invalide",
+                    uf_ref="0:0:0",
+                    chambres=0,
+                    lits=1,
+                )
+            ],
+        )
+
+    assert session.exec(select(Pole).where(Pole.name == "Pôle transaction")).first() is None

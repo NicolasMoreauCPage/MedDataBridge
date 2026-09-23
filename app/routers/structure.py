@@ -15,6 +15,11 @@ from app.services.structure_schedule import (
     hl7_to_form_datetime,
 )
 from app.services.structure_tree import build_structure_tree
+from app.services.structure_template_application import (
+    StructureTemplateTargetNotFoundError,
+    StructureTemplateValidationError,
+    apply_structure_template as apply_structure_template_use_case,
+)
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
@@ -247,176 +252,28 @@ async def apply_structure_template(
     modifié par l'utilisateur dans le wizard. Associe le tout à l'EG ciblée.
     """
     try:
-        # Vérifier que l'EG existe
-        eg = session.get(EntiteGeographique, request.eg_id)
-        if not eg:
-            raise HTTPException(status_code=404, detail=f"EntiteGeographique {request.eg_id} introuvable")
-
-        created = {
-            "poles": 0,
-            "services": 0,
-            "ufs": 0,
-            "uhs": 0,
-            "chambres": 0,
-            "lits": 0
-        }
-
-        # Extraire les pôles du payload
-        poles_data = request.payload.get("poles", [])
-        if not isinstance(poles_data, list) or not poles_data:
-            raise HTTPException(
-                status_code=422,
-                detail="La structure à générer doit contenir au moins un pôle.",
-            )
-        for pole_index, pole_data in enumerate(poles_data, start=1):
-            pole_name = pole_data.get("name") if isinstance(pole_data, dict) else None
-            if not isinstance(pole_name, str) or not pole_name.strip():
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Le pôle {pole_index} doit avoir un nom.",
-                )
-            services_data = pole_data.get("services", [])
-            if not isinstance(services_data, list):
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Les services du pôle {pole_index} sont invalides.",
-                )
-            for service_index, service_data in enumerate(services_data, start=1):
-                service_name = service_data.get("name") if isinstance(service_data, dict) else None
-                if not isinstance(service_name, str) or not service_name.strip():
-                    raise HTTPException(
-                        status_code=422,
-                        detail=f"Le service {service_index} du pôle {pole_index} doit avoir un nom.",
-                    )
-                ufs_data = service_data.get("ufs", [])
-                if not isinstance(ufs_data, list):
-                    raise HTTPException(
-                        status_code=422,
-                        detail=f"Les UF du service {service_index} du pôle {pole_index} sont invalides.",
-                    )
-                for uf_index, uf_data in enumerate(ufs_data, start=1):
-                    uf_name = uf_data.get("name") if isinstance(uf_data, dict) else None
-                    if not isinstance(uf_name, str) or not uf_name.strip():
-                        raise HTTPException(
-                            status_code=422,
-                            detail=(
-                                f"L'UF {uf_index} du service {service_index} "
-                                f"du pôle {pole_index} doit avoir un nom."
-                            ),
-                        )
-        for uh_index, uh_data in enumerate(request.uhs, start=1):
-            if not uh_data.name.strip():
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"L'unité d'hébergement {uh_index} doit avoir un nom.",
-                )
-
-        created_ufs_by_ref: dict[str, int] = {}
-        for pole_index, pole_data in enumerate(poles_data):
-            # Créer le pôle
-            pole = Pole(
-                name=pole_data.get("name"),
-                short_name=pole_data.get("short_name"),
-                entite_geographique_id=eg.id,
-                status=LocationStatus.ACTIVE
-            )
-            session.add(pole)
-            session.flush()  # Pour obtenir l'ID
-            created["poles"] += 1
-
-            # Créer les services du pôle
-            services_data = pole_data.get("services", [])
-            for service_index, service_data in enumerate(services_data):
-                service = Service(
-                    name=service_data.get("name"),
-                    short_name=service_data.get("short_name"),
-                    pole_id=pole.id,
-                    entite_geographique_id=eg.id,
-                    status=LocationStatus.ACTIVE
-                )
-                session.add(service)
-                session.flush()
-                created["services"] += 1
-
-                # Créer les UF du service
-                ufs_data = service_data.get("ufs", [])
-                for uf_index, uf_data in enumerate(ufs_data):
-                    uf = UniteFonctionnelle(
-                        name=uf_data.get("name"),
-                        code_um=uf_data.get("code_um"),
-                        service_id=service.id,
-                        entite_geographique_id=eg.id,
-                        status=LocationStatus.ACTIVE
-                    )
-                    session.add(uf)
-                    session.flush()
-                    created_ufs_by_ref[f"{pole_index}:{service_index}:{uf_index}"] = uf.id
-                    created["ufs"] += 1
-
-        # Une UH appartient à une UF du modèle. Le repère de l'UF est transmis
-        # par l'assistant car ses identifiants SQL viennent tout juste d'être
-        # créés dans cette transaction.
-        for uh_data in request.uhs:
-            uf_id = created_ufs_by_ref.get(uh_data.uf_ref or "")
-            if not uf_id:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"L'UF de rattachement de l'unité d'hébergement {uh_data.name} est introuvable",
-                )
-            if uh_data.chambres < 0 or uh_data.lits < 0:
-                raise HTTPException(status_code=422, detail="Le nombre de chambres et de lits ne peut pas être négatif")
-            if uh_data.lits and not uh_data.chambres:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"L'unité d'hébergement {uh_data.name} contient des lits sans chambre",
-                )
-            uh = UniteHebergement(
-                name=uh_data.name,
-                unite_fonctionnelle_id=uf_id,
-                status=LocationStatus.ACTIVE
-            )
-            session.add(uh)
-            session.flush()
-            created["uhs"] += 1
-
-            chambres = []
-            for room_number in range(1, uh_data.chambres + 1):
-                chambre = Chambre(
-                    name=f"{uh_data.name} - Chambre {room_number}",
-                    unite_hebergement_id=uh.id,
-                    status=LocationStatus.ACTIVE,
-                )
-                session.add(chambre)
-                session.flush()
-                chambres.append(chambre)
-                created["chambres"] += 1
-            for bed_number in range(1, uh_data.lits + 1):
-                chambre = chambres[(bed_number - 1) % len(chambres)]
-                session.add(Lit(
-                    name=f"{uh_data.name} - Lit {bed_number}",
-                    chambre_id=chambre.id,
-                    status=LocationStatus.ACTIVE,
-                ))
-                created["lits"] += 1
-
-        session.commit()
-
-        return ApplyTemplateResponse(
-            success=True,
-            message=f"Structure créée avec succès pour {eg.name}",
-            created_entities=created
+        target_name, created = apply_structure_template_use_case(
+            session,
+            eg_id=request.eg_id,
+            payload=request.payload,
+            hosting_units=request.uhs,
         )
+    except StructureTemplateTargetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except StructureTemplateValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Erreur lors de l'application du template")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la création de la structure: {exc}",
+        ) from exc
 
-    except HTTPException:
-        # Des objets peuvent déjà avoir été ajoutés avant une validation métier
-        # tardive (ex. lits sans chambre) : ne jamais les laisser en attente
-        # dans la session courante.
-        session.rollback()
-        raise
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Erreur lors de l'application du template: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la création de la structure: {str(e)}")
+    return ApplyTemplateResponse(
+        success=True,
+        message=f"Structure créée avec succès pour {target_name}",
+        created_entities=created,
+    )
 
 @api_router.get("/details/{type}/{id}")
 async def get_structure_details(

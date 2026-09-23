@@ -26,7 +26,7 @@ from app.services.pam_emission_primitives import (
     normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
 )
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
-from app.services.pam_movement_events import detect_nature_transition
+from app.services.pam_movement_events import select_movement_event
 from app.services.zbe_fields import build_xon_unit, derive_zbe_nature
 
 logger = logging.getLogger(__name__)
@@ -413,47 +413,7 @@ def generate_pam_hl7(
 
         return normalize_generated_message("\r".join([msh, evn, pid, pv1, zbe]))
     if entity_type == "mouvement":
-        # Utiliser le mapping métier <-> HL7 pour déterminer le code HL7 à partir du type métier
-        from app.movement_type_mapping import to_standard_movement_code
-        
-        # Priority 1: Use explicit trigger_event if provided
-        trigger_event = getattr(entity, "trigger_event", None)
-        if trigger_event:
-            event_code = trigger_event
-            msg_type = f"ADT^{trigger_event}"
-        else:
-            # Priority 1.5: Auto-detect A06/A07 based on movement history
-            a0607_code, _prev = detect_nature_transition(session, entity, operation)
-            if a0607_code:
-                event_code = a0607_code
-                msg_type = f"ADT^{a0607_code}"
-            else:
-                # Priority 2: Use movement_type mapping
-                metier_type = getattr(entity, "movement_type", None)
-                hl7_code = to_standard_movement_code(metier_type, "hl7")
-                
-                if hl7_code:
-                    msg_type = hl7_code
-                    event_code = hl7_code.split("^")[1] if "^" in hl7_code else "A99"
-                else:
-                    # Priority 3: Use operation to determine event
-                    action = getattr(entity, "action", None)
-                    if action == "CANCEL":
-                        original_trigger = getattr(entity, "original_trigger", None)
-                        cancel_events = {
-                            "A01": "A11", "A04": "A11", "A03": "A13",
-                            "A02": "A12", "A05": "A38", "A15": "A26",
-                            "A21": "A52", "A22": "A53", "A54": "A55",
-                            "A06": "A07", "A07": "A06",
-                        }
-                        event_code = cancel_events.get(original_trigger, "A12")
-                        msg_type = f"ADT^{event_code}"
-                    elif operation == "update":
-                        event_code = "Z99"  # Generic/Custom event for modifications
-                        msg_type = "ADT^Z99"
-                    else:
-                        event_code = "A01"  # Admit Patient for new movements (default)
-                        msg_type = "ADT^A01"
+        event_code = select_movement_event(session, entity, operation)
         
         # Get venue and patient info
         # Explicitly load venue if not already loaded

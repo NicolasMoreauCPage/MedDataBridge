@@ -51,6 +51,16 @@ test("structure dashboard workspace remains valid JavaScript", () => {
   assert.doesNotThrow(() => new Function(source));
 });
 
+test("structure dashboard delegates its generated tree actions", () => {
+  const source = readFileSync(
+    new URL("../../app/static/js/structure-dashboard-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /data-structure-action="select-node"/);
+  assert.match(source, /closest\('\[data-structure-action\]'\)/);
+  assert.doesNotMatch(source, /onclick=/);
+});
+
 test("structure dashboard delegates its bulk actions to an external page asset", () => {
   const template = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
   const actions = readFileSync(new URL("../../app/static/js/structure-new-actions.js", import.meta.url), "utf8");

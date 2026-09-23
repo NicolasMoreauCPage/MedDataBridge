@@ -79,6 +79,23 @@ function setupEventListeners() {
         if (!control) return;
         selectNode(control.dataset.type, Number(control.dataset.id));
     });
+
+    document.addEventListener('click', (event) => {
+        const control = event.target.closest('[data-structure-action]');
+        const action = control?.dataset.structureAction;
+        if (!action) return;
+
+        const id = Number(control.dataset.nodeId);
+        if (action === 'select-node' && control.dataset.nodeType && Number.isInteger(id)) {
+            selectNode(control.dataset.nodeType, id);
+        }
+        if (action === 'toggle-node') {
+            toggleNode(control.dataset.treeNodeId, event);
+        }
+        if (action === 'edit-node' && control.dataset.nodeType && Number.isInteger(id)) {
+            editNode(control.dataset.nodeType, id);
+        }
+    });
 }
 
 // Initialisation de la structure
@@ -156,10 +173,10 @@ function renderNode(node, level = 0, parentId = null) {
         <div class="structure-node" data-node-id="${nodeId}" data-type="${node.type}" data-status="${node.status || ''}" data-parent="${parentId || ''}">
             <div class="flex items-center gap-2 py-1 px-2 rounded hover:bg-slate-50 cursor-pointer" 
                  style="padding-left: ${padding + 8}px"
-                 onclick="selectNode('${node.type}', ${node.id})">
+                 data-structure-action="select-node" data-node-type="${node.type}" data-node-id="${node.id}">
                 ${hasChildren ? `
-                    <button class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-slate-600"
-                            onclick="toggleNode('${nodeId}', event)">
+                    <button type="button" class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-slate-600"
+                            data-structure-action="toggle-node" data-tree-node-id="${nodeId}">
                         <svg class="w-3 h-3 transform transition-transform ${expandedNodes.has(nodeId) ? 'rotate-90' : ''}"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -464,7 +481,7 @@ function renderDetails(details) {
             pathEl.innerHTML = path.map((node, index) => `
                 <button type="button"
                         class="inline-flex items-center text-xs text-slate-500 hover:text-blue-600"
-                        onclick="event.stopPropagation(); selectNode('${node.type}', ${node.id})">
+                        data-structure-action="select-node" data-node-type="${node.type}" data-node-id="${node.id}">
                     ${node.name || getTypeLabel(node.type)}
                 </button>
             `).join('<span class="mx-1 text-slate-400">/</span>');
@@ -477,7 +494,7 @@ function renderDetails(details) {
     
     // Actions
     const actionsHtml = `
-        <button onclick="editNode('${details.type}', ${details.id})" 
+        <button type="button" data-structure-action="edit-node" data-node-type="${details.type}" data-node-id="${details.id}"
                 class="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800">
             Modifier
         </button>
@@ -739,7 +756,7 @@ function renderChildrenSection(title, items) {
                             <p class="font-medium text-slate-900">${item.name}</p>
                             <p class="text-xs text-slate-500">${item.identifier || ''}</p>
                         </div>
-                        <button onclick="selectNode('${item.type}', ${item.id})"
+                        <button type="button" data-structure-action="select-node" data-node-type="${item.type}" data-node-id="${item.id}"
                                 class="text-blue-600 hover:text-blue-800">
                             Voir
                         </button>
@@ -763,5 +780,3 @@ function getTypeLabel(type) {
     };
     return labels[type] || type;
 }
-
-

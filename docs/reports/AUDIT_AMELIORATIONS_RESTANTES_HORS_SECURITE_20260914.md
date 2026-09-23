@@ -240,7 +240,9 @@ l'audit :
   déléguées à deux listeners de workspace, sans attributs inline.
   Le tableau principal de structure délègue également son arbre, ses vues,
   recherches et détails à `static/js/structure-dashboard-workspace.js` ; son
-  asset d'actions chargé ensuite est différé afin de préserver cet ordre. Le
+  asset d'actions chargé ensuite est différé afin de préserver cet ordre. Les
+  nœuds, actions, chemins et enfants générés par le tableau utilisent aussi
+  une délégation d'événements au lieu de gestionnaires inline. Le
   shell applicatif délègue enfin navigation, raccourcis, thèmes, toasts et
   loaders à `static/js/base-behaviors.js`, chargé avant les workspaces de page.
   La fermeture des toasts générés est elle aussi déléguée à un unique listener,

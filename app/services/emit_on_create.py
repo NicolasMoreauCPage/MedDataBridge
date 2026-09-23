@@ -2,7 +2,7 @@ import logging
 import asyncio
 import json
 from pathlib import Path
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional
 
 from sqlmodel import Session, select
 
@@ -29,6 +29,7 @@ from app.services.pam_emission_primitives import (
     normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
     safe_query as _safe_query,
 )
+from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
 
 logger = logging.getLogger(__name__)
 
@@ -194,37 +195,6 @@ def build_pid3_identifiers(
             logger.exception("Failed to build fallback PID-3 identifier")
 
     return "~".join(identifiers) if identifiers else ""
-
-
-def _resolve_namespace_authority(
-    session: Session, entite_juridique_id: int | None, ns_type: str, forced_system: str | None = None, forced_oid: str | None = None
-) -> Tuple[str, str]:
-    """Return (authority, type_code) for a namespace of given type.
-    authority is formatted as 'system&oid&ISO' when both present, or system when only system present.
-    type_code is the namespace.type (e.g. 'IPP','NDA','VN','MVT').
-    Falls back to forced_system/forced_oid or ('HOSP', ns_type).
-    """
-    def _auth(system: str | None, oid: str | None) -> str:
-        system = (system or "").strip()
-        oid = (oid or "").strip()
-        return f"{system}&{oid}&ISO" if system and oid else system or ""
-
-    if entite_juridique_id:
-        try:
-            ns = session.exec(
-                select(IdentifierNamespace)
-                .where(IdentifierNamespace.entite_juridique_id == entite_juridique_id)
-                .where(IdentifierNamespace.type == ns_type)
-                .where(IdentifierNamespace.is_active.is_(True))
-            ).first()
-            if ns:
-                return (_auth(ns.system, ns.oid), ns.type or ns_type)
-        except Exception:
-            logger.exception("Error resolving IdentifierNamespace for type %s and ej=%s", ns_type, entite_juridique_id)
-
-    # Solution de repli to forced values or defaults
-    auth = _auth(forced_system, forced_oid) or (forced_system or "HOSP")
-    return (auth, ns_type)
 
 
 def generate_pam_hl7(

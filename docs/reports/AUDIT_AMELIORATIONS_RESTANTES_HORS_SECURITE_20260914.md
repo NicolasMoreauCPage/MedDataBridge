@@ -201,8 +201,10 @@ l'audit :
   conservé pour les fixtures SQLite jetables. Le catalogue de qualification
   n'est plus injecté ni par Alembic ni au bootstrap d'une base vide :
   `scripts/setup/seed_scenario_catalog.py` le charge explicitement et de façon
-  idempotente après migration. Le bootstrap historique d'une base Alembic
-  totalement vide reste à remplacer par une baseline DDL versionnée.
+  idempotente après migration. Les scripts de seed général et de scénarios
+  d'interopération invoquent désormais eux aussi `migrate_database()` plutôt
+  que `create_all()`. Le bootstrap historique d'une base Alembic totalement
+  vide reste à remplacer par une baseline DDL versionnée.
 - **BE-07 :** les familles Ruff bloquantes `F821`, `F823`, `F601` et `F811`
   sont à zéro dans `app/` et sont imposées par la CI. Le nettoyage progressif
   des 121 alertes restantes (principalement imports et imports tardifs)

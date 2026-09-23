@@ -13,19 +13,18 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from datetime import datetime
 
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, select
 
-from app.db import engine
-from app.models import Dossier, Patient, Venue
-from app.models_scenarios import InteropScenario, ScenarioBinding
+from app.db import engine, migrate_database
+from app.models_scenarios import InteropScenario
 from app.models_structure import GHTContext
 from app.services.scenario_loader import discover_hl7_files, load_hl7_files
 
 
 def ensure_schema() -> None:
-    SQLModel.metadata.create_all(engine)
+    """Applique les migrations avant l'import des scénarios de démonstration."""
+    migrate_database(str(engine.url))
 
 
 def get_or_create_demo_ght(session: Session) -> GHTContext:
@@ -45,16 +44,9 @@ def get_or_create_demo_ght(session: Session) -> GHTContext:
     return ght
 
 
-def ensure_demo_dataset(session: Session, ght: GHTContext) -> int:
-    """Crée des patients/dossiers de démonstration liés à chaque scénario importé."""
-    created = 0
-    scenarios = session.exec(select(InteropScenario).order_by(InteropScenario.id)).all()
-    # Suppression : l'injection de patients/dossiers/venues de démonstration est désormais assurée par init_demo_movements.py
-    # Cette fonction ne crée plus de données obsolètes.
-
-    if created:
-        session.commit()
-    return created
+def ensure_demo_dataset(_session: Session, _ght: GHTContext) -> int:
+    """Conserve le contrat historique sans créer de données implicites."""
+    return 0
 
 
 def main() -> int:

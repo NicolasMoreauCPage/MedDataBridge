@@ -18,9 +18,10 @@ from app.models_identifiers import IdentifierSystem
 DATABASE_URL = "sqlite:///./medbridge.db"
 
 def create_db_and_tables(engine):
-    """Crée la base de données et les tables."""
-    from app.models import SQLModel
-    SQLModel.metadata.create_all(engine)
+    """Met le schéma cible à jour avant l'injection des données de démo."""
+    from app.db import migrate_database
+
+    migrate_database(str(engine.url))
 
 def seed_structure(session: Session):
     """Crée la structure organisationnelle complète."""

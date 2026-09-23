@@ -1386,7 +1386,7 @@ def generate_mfn_message_for_entity(session: Session, entity) -> str:
             msg.append(f"LOC|{identifier}||UNK|{cls_name}")
             msg.extend(add_lch(entity, identifier))
 
-    except Exception as e:
+    except Exception:
         # If anything goes wrong, fall back to full snapshot to preserve behaviour
         logger.exception("generate_mfn_message_for_entity failed building minimal MFN, falling back to full snapshot")
         return generate_mfn_message(session)

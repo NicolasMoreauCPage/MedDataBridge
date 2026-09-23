@@ -83,7 +83,7 @@ def init_scenario_templates(session: Session) -> List[ScenarioTemplate]:
         if ihe_base.exists():
             imported = import_all_ihe_pam_scenarios(session, ihe_base)
             templates.extend(imported)
-    except Exception as e:
+    except Exception:
         # Silencieux si fichiers absents (environnement différent)
         pass
     

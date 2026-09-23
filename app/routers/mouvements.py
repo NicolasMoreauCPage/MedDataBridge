@@ -1040,7 +1040,7 @@ def new_mouvement(
             for uf in ufs:
                 label = uf.short_name if getattr(uf, 'short_name', None) and uf.short_name and uf.short_name.strip() else uf.name
                 uf_options.append({"value": uf.identifier, "label": label})
-        except Exception as e:
+        except Exception:
             uf_options = []
 
     # Récupérer les UH pour l'UF pré-remplie

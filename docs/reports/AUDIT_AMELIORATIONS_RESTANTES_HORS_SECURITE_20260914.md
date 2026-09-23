@@ -202,8 +202,10 @@ l'audit :
   préparation a également rejoint `movement_form_context.py` : le graphe
   venue/dossier/patient est préchargé et les UF/UH sont obtenues par requêtes
   groupées plutôt que par boucles imbriquées. Les listes dépendantes historiques
-  sont enfin isolées dans `movement_options.py`. Le routeur mouvements ne
-  conserve que la présentation et passe de 2 215 à 769 lignes.
+  sont enfin isolées dans `movement_options.py`. La suppression est portée par
+  `movement_deletion.py`, avec notification sortante injectée et contexte
+  patient préchargé ; elle est testable sans FastAPI. Le routeur mouvements ne
+  conserve que la présentation et passe de 2 215 à 776 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

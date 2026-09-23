@@ -232,8 +232,15 @@ test("bed plan delegates patient search and movement mutation to the shared HTTP
 });
 
 test("dossier type change uses the shared HTTP client for regular and forced changes", () => {
-  const source = readFileSync(new URL("../../app/templates/dossier_type_change.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/dossier_type_change.html", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../../app/static/js/dossier-type-change-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /js\/dossier-type-change-workspace\.js/);
+  assert.doesNotMatch(template, /window\.medbridgeHttp\./);
   assert.match(source, /window\.medbridgeHttp\.request\(/);
+  assert.match(source, /params\.set\("force", "true"\)/);
   assert.doesNotMatch(source, /\bfetch\(/);
 });
 

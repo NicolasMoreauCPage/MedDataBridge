@@ -520,6 +520,10 @@ l'audit :
   Le détail d'endpoint et le détail GHT externalisent à leur tour le filtrage
   EJ/GHT et le clonage de structure. La modale de clonage restaure le focus et
   accepte Échap sans exposer de fonction globale.
+  Le changement de type de dossier est maintenant entièrement porté par
+  `static/js/dossier-type-change-workspace.js`; les avertissements sont rendus
+  par nœuds DOM, le forçage réutilise le même chemin et les erreurs deviennent
+  visibles via le système de toast.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

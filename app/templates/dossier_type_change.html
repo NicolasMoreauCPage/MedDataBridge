@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-6">
+<div class="max-w-7xl mx-auto px-4 py-6" data-dossier-type-change data-dossier-id="{{ dossier.id }}">
   <!-- Breadcrumb -->
   <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-6">
     <a href="/" class="hover:text-blue-600 transition-colors">🏠 Accueil</a>
@@ -102,49 +102,5 @@
     </div>
 </div>
 
-<script>
-document.getElementById('changeTypeForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const newType = document.getElementById('newType').value;
-    
-    try {
-        const { data: result } = await window.medbridgeHttp.request(
-            `/dossier-type/{{ dossier.id }}/change?new_type=${newType}`,
-            { method: 'POST' },
-        );
-        
-        if (result.status === 'error') {
-            // Afficher les avertissements
-            document.getElementById('warningArea').classList.remove('hidden');
-            document.getElementById('warningMessages').innerHTML = result.warnings.map(w => `<p>${w}</p>`).join('');
-            
-            // Configuration du bouton de forçage
-            document.getElementById('forceChange').onclick = async () => {
-                try {
-                    const { data: forceResult } = await window.medbridgeHttp.request(
-                        `/dossier-type/{{ dossier.id }}/change?new_type=${newType}&force=true`,
-                        { method: 'POST' },
-                    );
-                    
-                    if (forceResult.status === 'success') {
-                        document.getElementById('warningArea').classList.add('hidden');
-                        document.getElementById('successArea').classList.remove('hidden');
-                        setTimeout(() => window.location.href = '/dossiers/{{ dossier.id }}', 2000);
-                    }
-                } catch (error) {
-                    console.error('Erreur lors du forçage:', error);
-                }
-            };
-        } else if (result.status === 'success') {
-            // Afficher le succès
-            document.getElementById('successArea').classList.remove('hidden');
-            document.getElementById('warningArea').classList.add('hidden');
-            // Redirection après 2 secondes
-            setTimeout(() => window.location.href = '/dossiers/{{ dossier.id }}', 2000);
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-    }
-});
-</script>
+<script defer src="{{ url_for('static', path='/js/dossier-type-change-workspace.js') }}"></script>
 {% endblock %}

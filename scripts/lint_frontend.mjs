@@ -44,5 +44,28 @@ for (const file of [...files, ...templates]) {
   }
 }
 
+// Les styles de page doivent vivre dans les feuilles partagées. Les blocs
+// historiques restent explicitement recensés jusqu'à leur migration ; cette
+// liste empêche qu'un nouveau template en ajoute un silencieusement.
+const legacyTemplateStyleAllowlist = new Set([
+  "app/templates/base.html",
+  "app/templates/design_system_demo.html",
+  "app/templates/documentation.html",
+  "app/templates/endpoint_detail.html",
+  "app/templates/patient_detail.html",
+  "app/templates/scenarios/ej_config_form.html",
+  "app/templates/scenarios_bulk_execute_v2.html",
+  "app/templates/structure_interactive.html",
+  "app/templates/structure_search.html",
+]);
+
+for (const template of templates) {
+  if (!/<style(?:\s[^>]*)?>/i.test(readFileSync(template, "utf8"))) continue;
+  const relativeTemplate = template.replace(`${resolve(".")}/`, "");
+  if (legacyTemplateStyleAllowlist.has(relativeTemplate)) continue;
+  failed = true;
+  process.stderr.write(`Bloc <style> local non autorisé : ${relativeTemplate}\n`);
+}
+
 if (failed) process.exitCode = 1;
 else console.log(`Syntaxe JavaScript vérifiée : ${files.length} fichiers ; client HTTP contrôlé dans ${templates.length} templates.`);

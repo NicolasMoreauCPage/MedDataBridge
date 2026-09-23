@@ -3,29 +3,8 @@
 {% block title %}Dossiers Cotations HPRIM - PAMélia{% endblock %}
 
 {% block content %}
-<style>
-  .dossiers-shell {
-    background: radial-gradient(circle at 12% 0%, #d1fae5 0%, #f8fafc 42%, #ecfeff 100%);
-  }
-
-  .glass-hero {
-    background: linear-gradient(130deg, #14532d 0%, #047857 48%, #0e7490 100%);
-    box-shadow: 0 16px 32px rgba(4, 120, 87, 0.28);
-  }
-
-  .pane {
-    background: #fff;
-    border: 1px solid #d8dee8;
-    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
-  }
-
-  .table-row:hover {
-    background: #ecfeff;
-  }
-</style>
-
-<div class="dossiers-shell container mx-auto px-4 py-6 rounded-2xl">
-  <section class="glass-hero rounded-3xl p-6 text-white mb-6">
+<div class="hprim-dossiers-shell container mx-auto px-4 py-6 rounded-2xl">
+  <section class="hprim-dossiers-hero rounded-3xl p-6 text-white mb-6">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
         <p class="uppercase text-xs tracking-[0.2em] text-cyan-100 mb-2">Regroupement des cotations</p>
@@ -39,7 +18,7 @@
   </section>
 
   {% if dossiers %}
-  <section class="pane rounded-2xl overflow-hidden">
+  <section class="hprim-dossiers-panel rounded-2xl overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
         <thead class="bg-slate-900 text-slate-100">
@@ -53,7 +32,7 @@
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
           {% for dossier in dossiers %}
-          <tr class="table-row transition-colors">
+          <tr class="hprim-dossiers-row transition-colors">
             <td class="px-6 py-4 text-sm">
               <span class="font-mono font-semibold text-slate-900 dark:text-slate-100">{{ dossier.nda }}</span>
             </td>
@@ -85,7 +64,7 @@
     </div>
   </section>
   {% else %}
-  <section class="pane rounded-2xl p-10 text-center">
+  <section class="hprim-dossiers-panel rounded-2xl p-10 text-center">
     <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Aucun dossier regroupé</h2>
     <p class="text-slate-600 dark:text-slate-300">La vue se remplira dès réception de messages de cotation exploitables.</p>
   </section>

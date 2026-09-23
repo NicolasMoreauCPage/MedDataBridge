@@ -3,54 +3,10 @@
 {% block title %}Configuration des Alertes - Mode Gestionnaire{% endblock %}
 
 {% block extra_head %}
-<style>
-    .alert-config-container {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    .rule-card {
-        transition: all 0.2s;
-        border-left: 4px solid transparent;
-    }
-    
-    .rule-card.high {
-        border-left-color: #EF4444;
-    }
-    
-    .rule-card.medium {
-        border-left-color: #F59E0B;
-    }
-    
-    .rule-card.low {
-        border-left-color: #3B82F6;
-    }
-    
-    .rule-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-    
-    .badge-active {
-        background-color: #10B981;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-    }
-    
-    .badge-inactive {
-        background-color: #6B7280;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="alert-config-container p-6" data-alert-config>
+<div class="alert-config-shell p-6" data-alert-config>
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <div>

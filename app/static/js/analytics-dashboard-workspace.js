@@ -69,7 +69,7 @@ async function loadAllData() {
 
 // Afficher état de chargement
 function showLoadingState() {
-  document.querySelectorAll('.kpi-card').forEach(card => {
+  document.querySelectorAll('.analytics-kpi-card').forEach(card => {
     card.classList.add('loading');
   });
 }
@@ -110,7 +110,7 @@ async function loadKPIs() {
   } finally {
     // Toujours retirer le loading state, même en cas d'erreur, pour éviter que les cartes
     // restent bloquées en animation de chargement indéfiniment.
-    document.querySelectorAll('.kpi-card').forEach(card => {
+    document.querySelectorAll('.analytics-kpi-card').forEach(card => {
       card.classList.remove('loading');
     });
   }
@@ -128,7 +128,7 @@ function updateTrend(elementId, value) {
   const arrow = isPositive ? '↗' : '↘';
   const sign = isPositive ? '+' : '';
   
-  element.className = `kpi-trend ${isPositive ? 'positive' : 'negative'}`;
+  element.className = `analytics-kpi-trend ${isPositive ? 'positive' : 'negative'}`;
   element.textContent = `${arrow} ${sign}${value.toFixed(1)}%`;
 }
 
@@ -322,7 +322,7 @@ async function loadAlerts(severity = '') {
       }[alert.severity];
       
       return `
-        <div class="alert-item ${alert.severity}">
+        <div class="analytics-alert-item ${alert.severity}">
           <div class="text-2xl">${severityIcon}</div>
           <div class="flex-1">
             <div class="font-semibold text-slate-800 mb-1">${alert.entity_name}</div>
@@ -395,5 +395,4 @@ function updateExportLinks() {
     csvLink.href = `/api/analytics/export/csv?${csvQuery}`;
   }
 }
-
 

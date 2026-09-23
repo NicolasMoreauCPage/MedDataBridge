@@ -3,47 +3,6 @@
 {% block extra_head %}
 <!-- Chart.js, servi localement pour que le tableau de bord reste utilisable en réseau isolé. -->
 <script src="{{ url_for('static', path='js/chart.umd.min.js') }}"></script>
-<style>
-  .kpi-card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col gap-3 transition-all duration-200 hover:shadow-md;
-  }
-  .kpi-card.loading {
-    @apply animate-pulse;
-  }
-  .kpi-header {
-    @apply flex items-center justify-between;
-  }
-  .kpi-icon {
-    @apply text-3xl;
-  }
-  .kpi-value {
-    @apply text-4xl font-bold;
-  }
-  .kpi-trend {
-    @apply text-sm font-medium flex items-center gap-1;
-  }
-  .kpi-trend.positive {
-    @apply text-green-600;
-  }
-  .kpi-trend.negative {
-    @apply text-red-600;
-  }
-  .chart-container {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
-  }
-  .alert-item {
-    @apply bg-white rounded-lg border p-4 flex items-start gap-3 transition-all duration-200 hover:shadow-md;
-  }
-  .alert-item.high {
-    @apply border-red-300 bg-red-50;
-  }
-  .alert-item.medium {
-    @apply border-yellow-300 bg-yellow-50;
-  }
-  .alert-item.low {
-    @apply border-blue-300 bg-blue-50;
-  }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -106,52 +65,52 @@
   <!-- KPIs Grid -->
   <div class="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
     <!-- KPI 1: Taux d'occupation -->
-    <div class="kpi-card" id="kpi-occupation">
-      <div class="kpi-header">
+    <div class="analytics-kpi-card" id="kpi-occupation">
+      <div class="analytics-kpi-header">
         <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Taux d'occupation</span>
-        <span class="kpi-icon">🔵</span>
+        <span class="analytics-kpi-icon">🔵</span>
       </div>
-      <div class="kpi-value text-blue-600 dark:text-blue-400" id="occupation-value">—</div>
-      <div class="kpi-trend" id="occupation-trend"></div>
+      <div class="analytics-kpi-value text-blue-600 dark:text-blue-400" id="occupation-value">—</div>
+      <div class="analytics-kpi-trend" id="occupation-trend"></div>
     </div>
 
     <!-- KPI 2: DMS -->
-    <div class="kpi-card" id="kpi-dms">
-      <div class="kpi-header">
+    <div class="analytics-kpi-card" id="kpi-dms">
+      <div class="analytics-kpi-header">
         <span class="text-sm font-medium text-slate-600 dark:text-slate-300">DMS (jours)</span>
-        <span class="kpi-icon">🟢</span>
+        <span class="analytics-kpi-icon">🟢</span>
       </div>
-      <div class="kpi-value text-green-600 dark:text-green-400" id="dms-value">—</div>
-      <div class="kpi-trend" id="dms-trend"></div>
+      <div class="analytics-kpi-value text-green-600 dark:text-green-400" id="dms-value">—</div>
+      <div class="analytics-kpi-trend" id="dms-trend"></div>
     </div>
 
     <!-- KPI 3: Taux de rotation -->
-    <div class="kpi-card" id="kpi-rotation">
-      <div class="kpi-header">
+    <div class="analytics-kpi-card" id="kpi-rotation">
+      <div class="analytics-kpi-header">
         <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Rotation</span>
-        <span class="kpi-icon">🟣</span>
+        <span class="analytics-kpi-icon">🟣</span>
       </div>
-      <div class="kpi-value text-purple-600 dark:text-purple-400" id="rotation-value">—</div>
-      <div class="kpi-trend" id="rotation-trend"></div>
+      <div class="analytics-kpi-value text-purple-600 dark:text-purple-400" id="rotation-value">—</div>
+      <div class="analytics-kpi-trend" id="rotation-trend"></div>
     </div>
 
     <!-- KPI 4: Capacité disponible -->
-    <div class="kpi-card" id="kpi-capacity">
-      <div class="kpi-header">
+    <div class="analytics-kpi-card" id="kpi-capacity">
+      <div class="analytics-kpi-header">
         <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Lits disponibles</span>
-        <span class="kpi-icon">🟡</span>
+        <span class="analytics-kpi-icon">🟡</span>
       </div>
-      <div class="kpi-value text-yellow-600 dark:text-yellow-400" id="capacity-value">—</div>
+      <div class="analytics-kpi-value text-yellow-600 dark:text-yellow-400" id="capacity-value">—</div>
       <div class="text-sm text-slate-500 dark:text-slate-400" id="capacity-total">sur —</div>
     </div>
 
     <!-- KPI 5: Taux d'ouverture -->
-    <div class="kpi-card" id="kpi-opening">
-      <div class="kpi-header">
+    <div class="analytics-kpi-card" id="kpi-opening">
+      <div class="analytics-kpi-header">
         <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Taux d'ouverture</span>
-        <span class="kpi-icon">🔶</span>
+        <span class="analytics-kpi-icon">🔶</span>
       </div>
-      <div class="kpi-value text-orange-600 dark:text-orange-400" id="opening-value">—</div>
+      <div class="analytics-kpi-value text-orange-600 dark:text-orange-400" id="opening-value">—</div>
       <div class="text-sm text-slate-500 dark:text-slate-400">lits ouverts</div>
     </div>
   </div>
@@ -159,7 +118,7 @@
   <!-- Charts Section -->
   <div class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Chart 1: Capacité par service -->
-    <div class="chart-container">
+    <div class="analytics-chart-container">
       <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">📊 Capacité par service</h3>
       <div class="relative" style="height: 400px;">
         <canvas id="capacityByServiceChart"></canvas>
@@ -167,7 +126,7 @@
     </div>
 
     <!-- Chart 2: Répartition par type UM -->
-    <div class="chart-container">
+    <div class="analytics-chart-container">
       <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">🥧 Répartition par type UM</h3>
       <div class="relative" style="height: 400px;">
         <canvas id="umDistributionChart"></canvas>

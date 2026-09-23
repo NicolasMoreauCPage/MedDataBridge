@@ -3,33 +3,8 @@
 {% block title %}Détail Message HPRIM - PAMélia{% endblock %}
 
 {% block content %}
-<style>
-  .detail-shell {
-    --line: #d8dee8;
-    --panel: #ffffff;
-    --ink: #0f172a;
-    --hero: linear-gradient(130deg, #134e4a 0%, #0f766e 45%, #155e75 100%);
-    background: radial-gradient(circle at 10% 0%, #d1fae5 0%, #f8fafc 40%, #ecfeff 100%);
-  }
-
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-  }
-
-  .act-table thead {
-    background: #0f172a;
-    color: #e2e8f0;
-  }
-
-  .act-table tbody tr:hover {
-    background: #f0fdfa;
-  }
-</style>
-
-<div class="detail-shell container mx-auto px-4 py-6 rounded-2xl">
-  <section class="rounded-3xl p-6 text-white mb-6" style="background: var(--hero); box-shadow: 0 16px 30px rgba(15, 118, 110, 0.25);">
+<div class="hprim-message-shell container mx-auto px-4 py-6 rounded-2xl">
+  <section class="hprim-message-hero rounded-3xl p-6 text-white mb-6">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
         <p class="text-cyan-100 text-xs tracking-[0.2em] uppercase mb-2">Message HPRIM</p>
@@ -42,7 +17,7 @@
     </div>
   </section>
 
-  <section class="panel rounded-2xl p-5 mb-5">
+  <section class="hprim-message-panel rounded-2xl p-5 mb-5">
     <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">Contexte message</h2>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
       <div>
@@ -65,18 +40,18 @@
   </section>
 
   {% if success_message %}
-  <div class="panel rounded-2xl p-4 mb-4 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200">{{ success_message }}</div>
+  <div class="hprim-message-panel rounded-2xl p-4 mb-4 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200">{{ success_message }}</div>
   {% endif %}
 
   {% if error %}
-  <div class="panel rounded-2xl p-5 mb-5 border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30">
+  <div class="hprim-message-panel rounded-2xl p-5 mb-5 border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30">
     <h2 class="text-lg font-bold text-rose-800 dark:text-rose-200 mb-2">Erreur de parsing</h2>
     <p class="text-rose-700 dark:text-rose-300">{{ error }}</p>
   </div>
   {% else %}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
       {% if patient_info %}
-      <section class="panel rounded-2xl p-5">
+      <section class="hprim-message-panel rounded-2xl p-5">
         <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3">Patient</h2>
         <div class="space-y-2 text-sm">
           <p><span class="text-slate-500 dark:text-slate-400">Identifiant:</span> <span class="font-mono">{{ patient_info.identifiant or 'N/A' }}</span></p>
@@ -88,7 +63,7 @@
       {% endif %}
 
       {% if venue_info or dossier %}
-      <section class="panel rounded-2xl p-5">
+      <section class="hprim-message-panel rounded-2xl p-5">
         <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3">Séjour</h2>
         <div class="space-y-2 text-sm">
           <p><span class="text-slate-500 dark:text-slate-400">NDA:</span> <span class="font-mono">{{ venue_info.identifiant if venue_info else (dossier.dossier_seq if dossier else 'N/A') }}</span></p>
@@ -104,7 +79,7 @@
 
     {% macro render_act_table(title, icon, import_url, headers, rows, key_map) %}
     {% if rows %}
-    <section class="panel rounded-2xl p-5 mb-5">
+    <section class="hprim-message-panel rounded-2xl p-5 mb-5">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
         <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ icon }} {{ title }} ({{ rows|length }})</h2>
         <form method="POST" action="{{ import_url }}">
@@ -112,7 +87,7 @@
         </form>
       </div>
       <div class="overflow-x-auto">
-        <table class="act-table min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+        <table class="hprim-message-act-table min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
           <thead>
             <tr>
               {% for h in headers %}
@@ -151,13 +126,13 @@
     {{ render_act_table('Actes LPP', '🔧', '/hprim-cotation/message/' ~ message.message_id ~ '/import-lpp', ['Code', 'Libellé', 'Quantité', 'Montant'], lpp_actes, ['code', 'libelle', 'quantite', 'montant']) }}
 
     {% if not ccam_actes and not ngap_actes and not ucd_actes and not lpp_actes %}
-    <section class="panel rounded-2xl p-8 text-center mb-5">
+    <section class="hprim-message-panel rounded-2xl p-8 text-center mb-5">
       <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Aucun acte détecté</h2>
       <p class="text-slate-600 dark:text-slate-300">Le message ne contient pas de lignes importables CCAM/NGAP/UCD/LPP.</p>
     </section>
     {% endif %}
 
-    <section class="panel rounded-2xl p-5">
+    <section class="hprim-message-panel rounded-2xl p-5">
       <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3">Archive XML</h2>
       <pre class="bg-slate-950 text-slate-100 rounded-xl p-4 overflow-x-auto text-xs whitespace-pre-wrap">{{ message.xml_content }}</pre>
     </section>

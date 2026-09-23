@@ -3,62 +3,14 @@
 {% block title %}Messages HPRIM Cotation - PAMélia{% endblock %}
 
 {% block content %}
-<style>
-  .cotation-shell {
-    --ink: #0f172a;
-    --muted: #475569;
-    --line: #d8dee8;
-    --accent: #0f766e;
-    --accent-soft: #ccfbf1;
-    --panel: #ffffff;
-    --bg: radial-gradient(circle at 10% 5%, #d1fae5 0%, #f8fafc 35%, #ecfeff 100%);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
-  }
-
-  .hero-panel {
-    background: linear-gradient(120deg, #115e59 0%, #0f766e 45%, #0e7490 100%);
-    box-shadow: 0 16px 32px rgba(15, 118, 110, 0.28);
-  }
-
-  .metric-card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-  }
-
-  .filter-panel,
-  .table-shell {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
-  }
-
-  .status-chip {
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-
-  .row-hover:hover {
-    background: #f0fdfa;
-  }
-
-  @media (max-width: 768px) {
-    .compact-stack {
-      display: grid;
-      gap: 0.75rem;
-    }
-  }
-</style>
-
-<div class="cotation-shell max-w-7xl mx-auto px-4 py-6 rounded-2xl">
+<div class="hprim-messages-shell max-w-7xl mx-auto px-4 py-6 rounded-2xl">
   <nav class="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300 mb-5" aria-label="Fil d'ariane">
     <a href="/" class="hover:text-teal-700 transition-colors">Accueil</a>
     <span>/</span>
     <span class="text-slate-900 dark:text-slate-100 font-semibold">Messages HPRIM Cotation</span>
   </nav>
 
-  <section class="hero-panel rounded-3xl p-7 text-white mb-7">
+  <section class="hprim-messages-hero rounded-3xl p-7 text-white mb-7">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
       <div>
         <p class="uppercase tracking-[0.2em] text-xs text-cyan-100 mb-2">Pilotage Cotations</p>
@@ -72,22 +24,22 @@
   </section>
 
   <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
-    <article class="metric-card rounded-2xl p-5">
+    <article class="hprim-messages-metric rounded-2xl p-5">
       <p class="text-sm text-slate-600 dark:text-slate-300">Messages total</p>
       <p class="text-4xl font-bold text-slate-900 dark:text-slate-100 mt-2">{{ stats.total }}</p>
     </article>
-    <article class="metric-card rounded-2xl p-5">
+    <article class="hprim-messages-metric rounded-2xl p-5">
       <p class="text-sm text-slate-600 dark:text-slate-300">Reçus</p>
       <p class="text-4xl font-bold text-emerald-700 dark:text-emerald-300 mt-2">{{ stats.received }}</p>
     </article>
-    <article class="metric-card rounded-2xl p-5">
+    <article class="hprim-messages-metric rounded-2xl p-5">
       <p class="text-sm text-slate-600 dark:text-slate-300">Erreurs</p>
       <p class="text-4xl font-bold text-rose-700 dark:text-rose-300 mt-2">{{ stats.error }}</p>
     </article>
   </section>
 
-  <section class="filter-panel rounded-2xl p-5 mb-6">
-    <form method="get" class="grid grid-cols-1 lg:grid-cols-[2fr_1fr_auto_auto] gap-3 items-end compact-stack">
+  <section class="hprim-messages-panel rounded-2xl p-5 mb-6">
+    <form method="get" class="grid grid-cols-1 lg:grid-cols-[2fr_1fr_auto_auto] gap-3 items-end hprim-messages-compact-stack">
       <label class="block">
         <span class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Recherche</span>
         <input type="text" name="search" value="{{ search_term or '' }}" placeholder="Message ID, patient, fichier, XML"
@@ -112,7 +64,7 @@
     </form>
   </section>
 
-  <section class="table-shell rounded-2xl overflow-hidden">
+  <section class="hprim-messages-panel rounded-2xl overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
         <thead class="bg-slate-900 text-slate-100">
@@ -128,7 +80,7 @@
         <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
           {% if messages %}
             {% for msg in messages %}
-            <tr class="row-hover transition-colors">
+            <tr class="hprim-messages-row transition-colors">
               <td class="px-5 py-4 text-sm font-mono text-slate-900 dark:text-slate-100">{{ msg.message_id }}</td>
               <td class="px-5 py-4 text-sm text-slate-700 dark:text-slate-200">{{ msg.created_at.strftime("%d/%m/%Y %H:%M") if msg.created_at else "N/A" }}</td>
               <td class="px-5 py-4 text-sm">
@@ -136,7 +88,7 @@
                 <p class="text-slate-500 dark:text-slate-400">{{ msg.filename or "Sans fichier" }}</p>
               </td>
               <td class="px-5 py-4">
-                <span class="status-chip inline-flex items-center px-2.5 py-1 rounded-full text-xs
+                <span class="hprim-messages-status inline-flex items-center px-2.5 py-1 rounded-full text-xs
                   {% if msg.status in ['received', 'processed', 'validated'] %}bg-emerald-100 text-emerald-800 dark:text-emerald-200
                   {% elif msg.status == 'error' %}bg-rose-100 text-rose-800 dark:text-rose-200
                   {% elif msg.status == 'stored_with_errors' %}bg-amber-100 text-amber-800 dark:text-amber-200

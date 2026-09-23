@@ -7,29 +7,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/dropzone.min.css">
 <script src="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/dropzone.min.js"></script>
 
-<style>
-  .dropzone {
-    border: 3px dashed #3B82F6;
-    border-radius: 12px;
-    background: #F8FAFC;
-    padding: 40px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-  .dropzone:hover {
-    background: #EFF6FF;
-    border-color: #2563EB;
-  }
-  .dropzone.dz-drag-hover {
-    background: #DBEAFE;
-    border-color: #1D4ED8;
-  }
-  .preview-table {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -126,7 +103,7 @@
   <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 mb-8">
     <h3 class="font-semibold text-slate-900 dark:text-slate-100 mb-4">Fichier Excel</h3>
     <form action="/api/structure/import/excel" 
-          class="dropzone" 
+          class="dropzone structure-import-dropzone"
           id="fileDropzone"
           enctype="multipart/form-data">
       <div class="dz-message" data-dz-message>
@@ -151,7 +128,7 @@
       <span id="previewStats" class="text-sm text-slate-600 dark:text-slate-300"></span>
     </h3>
     
-    <div class="preview-table border rounded-lg overflow-hidden">
+    <div class="structure-import-preview border rounded-lg overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-slate-50 dark:bg-slate-700 sticky top-0">
           <tr>

@@ -15,9 +15,10 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 @router.get("/design-system", response_class=HTMLResponse)
 async def design_system_demo(request: Request):
     """
-    Page de démonstration du Design System Phase 5.2
+    Référence interne de démonstration du Design System Phase 5.2.
     
-    Affiche tous les composants réutilisables :
+    Cette page n'est pas un parcours produit et n'est pas exposée dans la
+    navigation. Elle permet aux développeurs de vérifier les composants :
     - Palette de couleurs par type et niveau hiérarchique
     - Cartes de structure
     - Indicateurs d'occupation

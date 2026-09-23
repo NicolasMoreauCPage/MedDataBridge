@@ -391,6 +391,18 @@ l'audit :
   utilisées ont été supprimées. Les styles des champs et accordéons du
   formulaire patient sont maintenant regroupés dans `forms.css` et strictement
   scopés sous `.patient-form`; le template ne contient plus de bloc de style.
+  Les espaces analytics, configuration d'alertes, import de structure et HPRIM
+  ont rejoint `design-system.css` avec des préfixes de domaine (`analytics-*`,
+  `alert-config-*`, `structure-import-*`, `hprim-*`) : leurs variantes ne se
+  propagent plus à d'autres écrans. Le catalogue
+  `CATALOGUE_DESIGN_SYSTEM.md` fixe désormais l'implémentation recommandée des
+  formulaires, tableaux, badges, toasts, modales et états vides. Un lint et un
+  test frontend interdisent tout nouveau bloc `<style>` local, en maintenant
+  une liste explicite des neuf exceptions historiques restant à migrer. Les
+  deux pages de démonstration (`/styleguide` et `/design-system`) sont
+  documentées comme références internes et ne sont plus proposées dans la
+  navigation métier. Les contrôles navigateur existants couvrent le reflow
+  mobile, le thème sombre et les erreurs JS des ateliers prioritaires.
 
 ## Backlog priorisé
 

@@ -55,12 +55,12 @@ function renderRules(rules) {
     }
     
     container.innerHTML = rules.map(rule => `
-        <div class="rule-card ${rule.severity} bg-white p-4 rounded-lg shadow">
+        <div class="alert-config-rule ${rule.severity} bg-white p-4 rounded-lg shadow">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
                     <div class="flex items-center space-x-2 mb-2">
                         <h3 class="text-lg font-semibold">${formatAlertType(rule.alert_type)}</h3>
-                        <span class="${rule.is_active ? 'badge-active' : 'badge-inactive'}">
+                        <span class="${rule.is_active ? 'alert-config-badge-active' : 'alert-config-badge-inactive'}">
                             ${rule.is_active ? 'Active' : 'Inactive'}
                         </span>
                         <span class="text-sm text-gray-500">

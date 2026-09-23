@@ -172,7 +172,11 @@ l'audit :
   l'inclusion du module. Une première tranche de `structure_new.html` (filtre,
   navigation et traitement en lot) vit désormais dans
   `static/js/structure-new-actions.js`, avec un test d'intégration d'asset.
-  L'extraction des grands écrans structure et cotation classique reste à
+  La vue structure historique délègue aussi son arbre, ses filtres de lits et
+  ses actions d'édition à `static/js/structure-legacy-workspace.js` : le
+  template ne conserve plus de script métier ni de gestionnaire inline. Le
+  module expose des états de chargement et d'erreur, et un test vérifie ce
+  découplage. L'extraction des grands écrans cotation classique reste à
   poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

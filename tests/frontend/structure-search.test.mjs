@@ -172,9 +172,15 @@ test("frontend lint rejects direct await fetch outside the shared client", () =>
 });
 
 test("legacy structure view delegates all API calls to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/structure.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/structure.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/structure-legacy-workspace.js", import.meta.url), "utf8");
+  assert.match(template, /js\/structure-legacy-workspace\.js/);
+  assert.match(template, /data-structure-legacy-workspace/);
+  assert.doesNotMatch(template, /<script>([\s\S]*?)<\/script>/);
+  assert.doesNotMatch(template, /\bonclick=/);
   assert.match(source, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(source, /\bfetch\(/);
+  assert.match(source, /data-structure-action/);
 });
 
 test("patient AJAX deletion uses the shared HTTP client", () => {

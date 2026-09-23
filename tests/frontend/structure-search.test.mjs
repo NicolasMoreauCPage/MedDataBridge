@@ -249,8 +249,10 @@ test("isolated dossier, scenario and contact actions use the shared HTTP client"
     "utf8",
   );
   assert.match(contacts, /js\/contacts-list-workspace\.js/);
+  assert.match(contacts, /role="dialog" aria-modal="true"/);
   assert.doesNotMatch(contacts, /window\.medbridgeHttp\./);
   assert.match(contactsWorkspace, /window\.medbridgeHttp\.request\(/);
+  assert.match(contactsWorkspace, /event\.key === "Escape"/);
   assert.doesNotMatch(contactsWorkspace, /\bfetch\(/);
 });
 

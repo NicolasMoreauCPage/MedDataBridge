@@ -9,10 +9,13 @@
   if (!modal || !modalText || !cancelButton || !confirmButton) return;
 
   let deleteForm = null;
+  let trigger = null;
 
   function closeModal() {
     modal.classList.add("hidden");
     deleteForm = null;
+    trigger?.focus();
+    trigger = null;
   }
 
   document.addEventListener("click", (event) => {
@@ -25,9 +28,17 @@
     modalText.textContent = `Êtes-vous sûr de vouloir supprimer "${itemName}" ?`;
     modal.classList.remove("hidden");
     deleteForm = form;
+    trigger = button;
+    cancelButton.focus();
   });
 
   cancelButton.addEventListener("click", closeModal);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+      event.preventDefault();
+      closeModal();
+    }
+  });
 
   confirmButton.addEventListener("click", async () => {
     if (!deleteForm) return;

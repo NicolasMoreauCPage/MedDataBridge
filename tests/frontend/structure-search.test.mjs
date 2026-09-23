@@ -236,12 +236,20 @@ test("isolated dossier, scenario and contact actions use the shared HTTP client"
   for (const relativePath of [
     "../../app/templates/dossier_detail.html",
     "../../app/templates/test_scenario_generator.html",
-    "../../app/templates/contacts_list.html",
   ]) {
     const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
     assert.match(source, /window\.medbridgeHttp\.(get|post|request)\(/);
     assert.doesNotMatch(source, /\bfetch\(/);
   }
+  const contacts = readFileSync(new URL("../../app/templates/contacts_list.html", import.meta.url), "utf8");
+  const contactsWorkspace = readFileSync(
+    new URL("../../app/static/js/contacts-list-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(contacts, /js\/contacts-list-workspace\.js/);
+  assert.doesNotMatch(contacts, /window\.medbridgeHttp\./);
+  assert.match(contactsWorkspace, /window\.medbridgeHttp\.request\(/);
+  assert.doesNotMatch(contactsWorkspace, /\bfetch\(/);
 });
 
 test("scenario EJ configuration list delegates its deletion action", () => {

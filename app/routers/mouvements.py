@@ -11,6 +11,11 @@ from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier, Patient
 from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services.emit_on_create import emit_to_senders
+from app.services.bed_assignment import (
+    BedAssignmentError,
+    assign_patient_to_bed as assign_patient_to_bed_use_case,
+)
+from app.services.bed_plan import build_bed_plan
 from app.dependencies.ght import require_ght_context
 from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
@@ -44,262 +49,37 @@ def plan_lits(
     hiérarchie de structure (utilisé par les pages de détail eg/pole/service/uf/uh pour afficher
     leur propre plan de lits plutôt qu'une page "bientôt disponible").
     """
-    from app.models_structure import Service, Pole, EntiteGeographique
-
-    # Récupérer les contextes EG et EJ (EG a priorité s'il est défini)
     eg_context = getattr(request.state, "eg_context", None)
     ej_context = getattr(request.state, "ej_context", None)
     eg_id = getattr(eg_context, "id", None) if eg_context else None
-    # Si contexte EJ explicite, l'utiliser quand aucun EG n'est défini
     ej_id = getattr(ej_context, "id", None) if ej_context and not eg_id else None
-    # Fallback potentiel : EJ rattachée à l'EG sélectionnée
-    ej_from_eg_id = getattr(eg_context, "entite_juridique_id", None) if eg_context else None
-
-    def build_query(filter_eg_ids: Optional[list[int]] = None, filter_ej_id: Optional[int] = None):
-        """Construit la requête de base pour le plan de lits, avec filtres."""
-        q = (
-            select(Lit, Chambre, UniteHebergement, UniteFonctionnelle, Service)
-            .select_from(Lit)
-            .join(Lit.chambre)
-            .join(Chambre.unite_hebergement)
-            .join(UniteHebergement.unite_fonctionnelle)
-            .join(UniteFonctionnelle.service)
-            .join(Service.pole)
-        )
-
-        # Filtre par contexte EG (un ou plusieurs sites) ou EJ
-        if filter_eg_ids:
-            q = q.where(Pole.entite_geo_id.in_(filter_eg_ids))
-        elif filter_ej_id:
-            q = q.where(Pole.entite_juridique_id == filter_ej_id)
-
-        # Filtres additionnels (hors statut, géré en mémoire plus bas)
-        if uf_filter:
-            q = q.where(UniteFonctionnelle.identifier == uf_filter)
-        if service_filter:
-            q = q.where(Service.name.ilike(f"%{service_filter}%"))
-
-        # Restriction à une entité précise de la hiérarchie (pages de détail eg/pole/.../uh)
-        if entity_type and entity_id:
-            entity_filters = {
-                "eg": Pole.entite_geo_id == entity_id,
-                "pole": Service.pole_id == entity_id,
-                "service": UniteFonctionnelle.service_id == entity_id,
-                "uf": UniteHebergement.unite_fonctionnelle_id == entity_id,
-                "uh": Chambre.unite_hebergement_id == entity_id,
-                "chambre": Lit.chambre_id == entity_id,
-                "lit": Lit.id == entity_id,
-            }
-            condition = entity_filters.get(entity_type)
-            if condition is not None:
-                q = q.where(condition)
-
-        return q
-
-    # Requête principale en fonction du contexte
-    if entity_type and entity_id:
-        # Une entité précise est demandée explicitement (page de détail structure) : elle
-        # prime sur le contexte GHT/EG/EJ ambiant, qui pourrait ne pas correspondre.
-        query = build_query()
-    elif eg_id:
-        # EG explicite : filtrer sur ce site
-        query = build_query(filter_eg_ids=[eg_id])
-    elif ej_id:
-        # EJ explicite : d'abord essayer les pôles directement rattachés à l'EJ
-        query = build_query(filter_ej_id=ej_id)
-    else:
-        # Aucun contexte EG/EJ spécifique : ne pas filtrer par établissement
-        query = build_query()
-
-    locations = session.exec(query).all()
-
-    # Fallback 1 : si aucun lit pour l'EG sélectionnée, élargir au périmètre EJ associé
-    if not locations and eg_id and ej_from_eg_id:
-        locations = session.exec(build_query(filter_ej_id=ej_from_eg_id)).all()
-
-    # Fallback 2 : si aucun lit pour une EJ explicite, utiliser tous les EG rattachés à cette EJ
-    if not locations and ej_id:
-        eg_ids = [eg.id for eg in session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()]
-        if eg_ids:
-            locations = session.exec(build_query(filter_eg_ids=eg_ids, filter_ej_id=None)).all()
-    
-    # Organiser par service > UF > UH > Chambre > Lits
-    structure = {}
-    for lit, chambre, uh, uf, service in locations:
-        if service.id not in structure:
-            structure[service.id] = {
-                "id": service.id,
-                "name": service.name,
-                "service_type": service.service_type,
-                "ufs": {}
-            }
-        
-        if uf.id not in structure[service.id]["ufs"]:
-            structure[service.id]["ufs"][uf.id] = {
-                "id": uf.id,
-                "name": uf.name,
-                "identifier": uf.identifier,
-                "uhs": {}
-            }
-        
-        if uh.id not in structure[service.id]["ufs"][uf.id]["uhs"]:
-            structure[service.id]["ufs"][uf.id]["uhs"][uh.id] = {
-                "id": uh.id,
-                "name": uh.name,
-                "identifier": uh.identifier,
-                "chambres": {}
-            }
-        
-        if chambre.id not in structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"]:
-            structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id] = {
-                "id": chambre.id,
-                "name": chambre.name,
-                "identifier": chambre.identifier,
-                "lits": []
-            }
-        
-        # Récupérer venue/patient occupant le lit
-        occupant = None
-        # Une venue est active si elle a un lit assigné et que le dernier mouvement n'est pas une sortie
-        venue_actuelle = session.exec(
-            select(Venue, Dossier)
-            .join(Dossier)
-            .where(Venue.lit_id == lit.id)
-            .order_by(Venue.start_time.desc())
-        ).first()
-        
-        if venue_actuelle:
-            venue, dossier = venue_actuelle
-            # Vérifier que la venue est vraiment active (pas de mouvement de sortie)
-            dernier_mouvement = session.exec(
-                select(Mouvement)
-                .where(Mouvement.venue_id == venue.id)
-                .order_by(Mouvement.when.desc())
-            ).first()
-            
-            # Seule une sortie effective (A03 avec date de fin) libère le lit.
-            # A13 annule une sortie et A16 est une sortie prévisionnelle : les traiter
-            # comme une sortie rendait des patients actifs artificiellement "libres".
-            is_active = True
-            if dernier_mouvement:
-                is_discharge = (dernier_mouvement.trigger_event or "") == "A03" or "A03" in (dernier_mouvement.type or "")
-                if is_discharge and dernier_mouvement.end_time:
-                    is_active = False
-            
-            if is_active:
-                session.refresh(dossier, ['patient'])
-                if dossier.patient:
-                    occupant = {
-                        "venue_id": venue.id,
-                        "dossier_id": dossier.id,
-                        "patient_name": f"{dossier.patient.family} {dossier.patient.given}",
-                        "patient_id": dossier.patient.id,
-                        "venue_seq": venue.venue_seq,
-                        "dossier_seq": dossier.dossier_seq
-                    }
-        
-        # Détection conflit : plusieurs venues actives sur le même lit
-        # Pour simplifier, on compte les venues avec ce lit (peut être affiné si nécessaire)
-        conflits_count = session.exec(
-            select(Venue)
-            .where(Venue.lit_id == lit.id)
-        ).all()
-        
-        has_conflict = len(conflits_count) > 1
-
-        # Déterminer un statut "métier" pour l'UI en combinant
-        # l'occupation réelle (venue active) et l'operational_status du lit.
-        if occupant:
-            display_status = "occupied"
-        else:
-            op = (lit.operational_status or "").lower()
-            if op == "occupied":
-                display_status = "occupied"
-            elif op in ("available", "", None):
-                display_status = "free"
-            elif op in ("maintenance", "closed"):
-                display_status = "closed"
-            else:
-                display_status = "unknown"
-
-        # Appliquer le filtre de statut en mémoire
-        if status_filter and display_status != status_filter:
-            continue
-        
-        structure[service.id]["ufs"][uf.id]["uhs"][uh.id]["chambres"][chambre.id]["lits"].append({
-            "id": lit.id,
-            "name": lit.name,
-            "identifier": lit.identifier,
-            "status": display_status,
-            "operational_status": lit.operational_status,
-            "occupant": occupant,
-            "has_conflict": has_conflict,
-            "conflict_count": len(conflits_count) if has_conflict else 0
-        })
-    
-    # Calculer statistiques globales
-    total_lits = sum(
-        len(chambre["lits"])
-        for service in structure.values()
-        for uf in service["ufs"].values()
-        for uh in uf["uhs"].values()
-        for chambre in uh["chambres"].values()
+    plan = build_bed_plan(
+        session,
+        eg_id=eg_id,
+        ej_id=ej_id,
+        ej_from_eg_id=(
+            getattr(eg_context, "entite_juridique_id", None) if eg_context else None
+        ),
+        uf_filter=uf_filter,
+        service_filter=service_filter,
+        status_filter=status_filter,
+        entity_type=entity_type,
+        entity_id=entity_id,
     )
-    
-    lits_libres = sum(
-        1
-        for service in structure.values()
-        for uf in service["ufs"].values()
-        for uh in uf["uhs"].values()
-        for chambre in uh["chambres"].values()
-        for lit in chambre["lits"]
-        if lit["status"] == "free"
-    )
-    
-    lits_occupes = sum(
-        1
-        for service in structure.values()
-        for uf in service["ufs"].values()
-        for uh in uf["uhs"].values()
-        for chambre in uh["chambres"].values()
-        for lit in chambre["lits"]
-        if lit["status"] == "occupied"
-    )
-    
-    taux_occupation = round((lits_occupes / total_lits * 100) if total_lits > 0 else 0, 1)
-    
-    # Récupérer liste des UFs pour filtres
-    all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
-    uf_options = [{"value": uf.identifier, "label": uf.name} for uf in all_ufs]
-    
-    # Récupérer liste des services pour filtres
-    all_services = session.exec(select(Service).order_by(Service.name)).all()
-    service_options = [{"value": service.name, "label": service.name} for service in all_services]
-    
-    ctx = {
+    context = {
         "request": request,
-        "structure": structure,
-        "stats": {
-            "total": total_lits,
-            "libres": lits_libres,
-            "occupes": lits_occupes,
-            "taux_occupation": taux_occupation
-        },
-        "filters": {
-            "uf": uf_filter,
-            "service": service_filter,
-            "status": status_filter
-        },
-        "uf_options": uf_options,
-        "service_options": service_options,
+        **plan,
         "breadcrumbs": [
             {"label": "Accueil", "url": "/"},
             {"label": "Mouvements", "url": "/mouvements"},
-            {"label": "Plan de lits", "url": "/mouvements/plan-lits"}
-        ]
+            {"label": "Plan de lits", "url": "/mouvements/plan-lits"},
+        ],
     }
-    
-    return get_templates_with_filters(request).TemplateResponse(request, "plan_lits.html", ctx)
+    return get_templates_with_filters(request).TemplateResponse(
+        request,
+        "plan_lits.html",
+        context,
+    )
 
 
 @router.post("/plan-lits/assign")
@@ -308,81 +88,23 @@ def assign_patient_to_bed(
     selected_patient_id: int = Form(...),
     session=Depends(get_session),
 ):
-    """Affecte la dernière venue active d'un patient à un lit libre.
-
-    Le plan de lits est une action métier, pas un simple changement visuel :
-    l'affectation met à jour la venue et trace un A02. Les patients proposés par
-    l'autocomplétion ont déjà une venue, ce qui évite de créer une venue incomplète.
-    """
-    lit = session.get(Lit, lit_id)
-    patient = session.get(Patient, selected_patient_id)
-    if not lit or not patient:
+    """Affecte une venue active au lit et émet le transfert créé."""
+    try:
+        result = assign_patient_to_bed_use_case(
+            session,
+            bed_id=lit_id,
+            patient_id=selected_patient_id,
+        )
+    except BedAssignmentError as exc:
         return RedirectResponse(
-            url="/mouvements/plan-lits?error=" + quote_plus("Lit ou patient introuvable."),
+            url="/mouvements/plan-lits?error=" + quote_plus(str(exc)),
             status_code=303,
         )
 
-    def is_active(venue: Venue) -> bool:
-        latest = session.exec(
-            select(Mouvement)
-            .where(Mouvement.venue_id == venue.id)
-            .order_by(Mouvement.when.desc(), Mouvement.id.desc())
-        ).first()
-        if not latest:
-            return True
-        is_discharge = (latest.trigger_event or "") == "A03" or "A03" in (latest.type or "")
-        return not (is_discharge and latest.end_time)
-
-    venues = session.exec(
-        select(Venue)
-        .join(Dossier)
-        .where(Dossier.patient_id == patient.id)
-        .order_by(Venue.start_time.desc(), Venue.id.desc())
-    ).all()
-    venue = next((candidate for candidate in venues if is_active(candidate)), None)
-    if not venue:
-        return RedirectResponse(
-            url="/mouvements/plan-lits?error=" + quote_plus("Ce patient n'a pas de venue active à affecter."),
-            status_code=303,
-        )
-
-    occupants = session.exec(select(Venue).where(Venue.lit_id == lit.id)).all()
-    if any(candidate.id != venue.id and is_active(candidate) for candidate in occupants):
-        return RedirectResponse(
-            url="/mouvements/plan-lits?error=" + quote_plus("Ce lit est déjà occupé. Actualisez le plan avant de recommencer."),
-            status_code=303,
-        )
-
-    if venue.lit_id == lit.id:
-        return RedirectResponse(
-            url="/mouvements/plan-lits?message=" + quote_plus("Le patient occupe déjà ce lit."),
-            status_code=303,
-        )
-
-    previous_location = venue.assigned_location
-    venue.lit_id = lit.id
-    venue.chambre_id = lit.chambre_id
-    venue.assigned_location = lit.name
-    session.add(venue)
-    mouvement = Mouvement(
-        mouvement_seq=get_next_sequence(session, "mouvement"),
-        venue_id=venue.id,
-        entite_juridique_id=venue.entite_juridique_id,
-        type="ADT^A02",
-        trigger_event="A02",
-        movement_type="transfer",
-        when=datetime.utcnow(),
-        from_location=previous_location,
-        to_location=lit.name,
-        location=lit.name,
-        status="completed",
-        action="UPDATE",
-    )
-    session.add(mouvement)
-    session.commit()
-    emit_to_senders(mouvement, "mouvement", session)
+    if result.movement is not None:
+        emit_to_senders(result.movement, "mouvement", session)
     return RedirectResponse(
-        url="/mouvements/plan-lits?message=" + quote_plus(f"{patient.family} {patient.given} a été affecté au lit {lit.name}."),
+        url="/mouvements/plan-lits?message=" + quote_plus(result.message),
         status_code=303,
     )
 

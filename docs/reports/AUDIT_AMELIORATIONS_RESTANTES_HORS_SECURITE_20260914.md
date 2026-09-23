@@ -175,6 +175,11 @@ l'audit :
   métier distinctes pour type inconnu et entité absente ; sa route synchrone ne
   bloque plus la boucle asynchrone avec la session SQLModel. Le routeur passe
   ainsi de 2 640 à 2 283 lignes.
+  Le premier cas d'usage de `routers/mouvements.py` est également isolé dans
+  `bed_assignment.py` : l'affectation au lit, son idempotence et la création du
+  transfert A02 sont testables sans FastAPI. La lecture et la projection du
+  plan complet vivent maintenant dans `bed_plan.py`. Le routeur mouvements ne
+  conserve que le contexte de navigation et passe de 2 215 à 1 937 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.
@@ -214,6 +219,11 @@ l'audit :
   composés d'agrégats SQL, suivent aussi ce modèle synchrone. Les listes et
   l'arbre de cartographie appliquent désormais `limit`/`offset` (1–500), un
   tri stable et l'en-tête `X-Total-Count`, sans changer leurs corps JSON.
+  L'affectation d'un patient depuis le plan de lits charge maintenant les
+  derniers mouvements de toutes les venues candidates en une seule requête,
+  au lieu d'une lecture supplémentaire par venue. Le rendu du plan charge aussi
+  occupants, dossiers, patients et derniers mouvements par lots ; son budget
+  courant est borné à cinq `SELECT`, indépendamment du nombre de lits.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés

@@ -185,7 +185,10 @@ l'audit :
   été traitées de la même façon, sans changer leur contrat JSON; les deux
   lectures de détail de qualification d'interfaces sont également synchrones.
   La liste des templates de structure est maintenant triée, bornée à 500 et
-  exécutée hors boucle async; son détail suit le même modèle synchrone.
+  exécutée hors boucle async; son détail suit le même modèle synchrone. La vue
+  d'historique HPRIM est désormais paginée (1–500), ses totaux et compteurs par
+  direction sont calculés en SQL, et les liens de navigation conservent les
+  filtres; elle et son détail sont synchrones.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés

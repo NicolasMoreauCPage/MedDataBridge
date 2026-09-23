@@ -1,8 +1,10 @@
 import json
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlmodel import select
 
@@ -36,27 +38,72 @@ async def hprim_import_interface(request: Request):
 
 
 @router.get("/messages", summary="Historique des messages HPRIM persistés")
-async def hprim_messages_history(
+def hprim_messages_history(
     request: Request,
     session: Session = Depends(get_session),
     status: str | None = Query(None),
     direction: str | None = Query(None),
     patient_id: str | None = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
 ):
-    query = select(HprimMessage)
+    filters = []
     if status:
-        query = query.where(HprimMessage.status == status)
+        filters.append(HprimMessage.status == status)
     if direction:
-        query = query.where(HprimMessage.direction == direction)
+        filters.append(HprimMessage.direction == direction)
     if patient_id:
-        query = query.where(HprimMessage.patient_id == patient_id)
+        filters.append(HprimMessage.patient_id == patient_id)
 
-    messages = list(session.exec(query.order_by(HprimMessage.created_at.desc())).all())
+    total = session.exec(
+        select(func.count()).select_from(HprimMessage).where(*filters)
+    ).one()
+    messages = list(
+        session.exec(
+            select(HprimMessage)
+            .where(*filters)
+            .order_by(HprimMessage.created_at.desc(), HprimMessage.message_id.desc())
+            .offset(offset)
+            .limit(limit)
+        ).all()
+    )
+    direction_counts = dict(
+        session.exec(
+            select(HprimMessage.direction, func.count())
+            .where(*filters)
+            .group_by(HprimMessage.direction)
+        ).all()
+    )
     stats = {
-        "total": len(messages),
-        "outbound": len([item for item in messages if item.direction == "outbound"]),
-        "inbound": len([item for item in messages if item.direction == "inbound"]),
-        "roundtrip": len([item for item in messages if item.direction == "roundtrip"]),
+        "total": total,
+        "outbound": direction_counts.get("outbound", 0),
+        "inbound": direction_counts.get("inbound", 0),
+        "roundtrip": direction_counts.get("roundtrip", 0),
+    }
+
+    def page_url(target_offset: int) -> str:
+        parameters = {
+            key: value
+            for key, value in {
+                "status": status,
+                "direction": direction,
+                "patient_id": patient_id,
+                "offset": target_offset,
+                "limit": limit,
+            }.items()
+            if value not in (None, "")
+        }
+        return f"{request.url.path}?{urlencode(parameters)}"
+
+    pagination = {
+        "offset": offset,
+        "limit": limit,
+        "first_item": offset + 1 if messages else 0,
+        "last_item": offset + len(messages),
+        "has_previous": offset > 0,
+        "has_next": offset + len(messages) < total,
+        "previous_url": page_url(max(offset - limit, 0)),
+        "next_url": page_url(offset + limit),
     }
     return templates.TemplateResponse(request, "hprim/persistent_messages.html", {
         "request": request,
@@ -66,11 +113,12 @@ async def hprim_messages_history(
         "current_status": status,
         "current_direction": direction,
         "current_patient_id": patient_id,
+        "pagination": pagination,
     })
 
 
 @router.get("/messages/{message_id}", summary="Détail d'un message HPRIM persistant")
-async def hprim_message_detail(request: Request, message_id: str, session: Session = Depends(get_session)):
+def hprim_message_detail(request: Request, message_id: str, session: Session = Depends(get_session)):
     message = session.get(HprimMessage, message_id)
     if not message:
         raise HTTPException(status_code=404, detail="Message HPRIM introuvable")

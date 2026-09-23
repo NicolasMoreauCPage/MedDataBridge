@@ -66,5 +66,22 @@
       </tbody>
     </table>
   </div>
+  <nav class="mt-4 flex flex-wrap items-center justify-between gap-3" aria-label="Pagination de l'historique HPRIM">
+    <p class="text-sm text-slate-600 dark:text-slate-300">
+      {% if pagination.first_item %}
+      Messages {{ pagination.first_item }} à {{ pagination.last_item }} sur {{ stats.total }}
+      {% else %}
+      Aucun message sur {{ stats.total }}
+      {% endif %}
+    </p>
+    <div class="flex gap-2">
+      {% if pagination.has_previous %}
+      <a href="{{ pagination.previous_url }}" class="rounded-lg bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-200">Précédent</a>
+      {% endif %}
+      {% if pagination.has_next %}
+      <a href="{{ pagination.next_url }}" class="rounded-lg bg-sky-600 px-4 py-2 text-sm text-white hover:bg-sky-700">Suivant</a>
+      {% endif %}
+    </div>
+  </nav>
 </div>
 {% endblock %}

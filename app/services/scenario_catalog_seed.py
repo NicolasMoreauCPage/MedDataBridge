@@ -1,8 +1,8 @@
 """Installation idempotente du catalogue de qualification versionné.
 
-Cette ressource est appelée depuis la migration Alembic et lors du bootstrap
-d'une base vide. Elle n'écrase jamais un scénario, une revue ou un thème local
-déjà présent : le catalogue livré reste donc une donnée de référence, pas une
+Cette ressource est appelée par le script de seed explicite, après migration du
+schéma. Elle n'écrase jamais un scénario, une revue ou un thème local déjà
+présent : le catalogue livré reste donc une donnée de référence, pas une
 restauration destructive.
 """
 

@@ -198,9 +198,11 @@ l'audit :
   dans le workflow. Le cycle de vie applicatif hors tests appelle maintenant
   `alembic upgrade head` via `migrate_database()` : il ne crée donc plus son
   schéma à partir des modèles au démarrage. `create_all()` est explicitement
-  conservé pour les fixtures SQLite jetables; les seeds de démonstration et le
-  bootstrap historique d'une base Alembic totalement vide restent les deux
-  derniers éléments à séparer complètement du schéma versionné.
+  conservé pour les fixtures SQLite jetables. Le catalogue de qualification
+  n'est plus injecté ni par Alembic ni au bootstrap d'une base vide :
+  `scripts/setup/seed_scenario_catalog.py` le charge explicitement et de façon
+  idempotente après migration. Le bootstrap historique d'une base Alembic
+  totalement vide reste à remplacer par une baseline DDL versionnée.
 - **BE-07 :** les familles Ruff bloquantes `F821`, `F823`, `F601` et `F811`
   sont à zéro dans `app/` et sont imposées par la CI. Le nettoyage progressif
   des 121 alertes restantes (principalement imports et imports tardifs)

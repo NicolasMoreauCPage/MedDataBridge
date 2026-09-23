@@ -29,6 +29,7 @@ def test_alembic_upgrade_head_bootstraps_a_fresh_database(tmp_path: Path):
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
         }
         version = connection.execute("SELECT version_num FROM alembic_version").fetchone()[0]
+        scenario_count = connection.execute("SELECT COUNT(*) FROM interopscenario").fetchone()[0]
         run_columns = {
             row[1] for row in connection.execute("PRAGMA table_info(scenarioexecutionrun)")
         }
@@ -38,6 +39,7 @@ def test_alembic_upgrade_head_bootstraps_a_fresh_database(tmp_path: Path):
     assert {"patient", "interopscenario", "qualificationcampaign", "outboundmessage", "alembic_version"} <= tables
     assert {"qualification_verdict", "assertion_total", "evidence_json"} <= run_columns
     assert version == ScriptDirectory.from_config(config).get_current_head()
+    assert scenario_count == 0
 
 
 def test_alembic_keeps_incremental_upgrade_for_an_existing_database(tmp_path: Path):

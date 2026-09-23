@@ -9,19 +9,6 @@ from sqlmodel import SQLModel
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from app.models import Patient, Dossier, Venue, Mouvement
-from app.models import Sequence
-from app.models_contacts import PatientContact, VenueContact
-from app.models_endpoints import SystemEndpoint, MessageLog
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
-from app.models_structure import GHTContext, IdentifierNamespace
-from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
-from app.models_identifiers import Identifier
-from app.models_practitioners import MedecinResponsable  # Médecins responsables
-from app import models_scenarios  # ensure scenario models are registered
-from app import models_scenario_runs  # ensure execution trace models are registered
-from app import models_qualification  # ensure qualification campaign models are registered
-from app import models_workflows  # ensure workflow models are registered
 # ``app.db`` est le registre exhaustif réellement utilisé par l'application
 # (modèles HPRIM, contacts, cotations, campagnes, etc.). L'importer ici évite
 # qu'une installation neuve Alembic crée un sous-ensemble de tables.
@@ -66,12 +53,9 @@ def _bootstrap_empty_database(connection) -> bool:
         return False
 
     target_metadata.create_all(connection)
-    # Le schéma historique est créé directement pour les bases complètement
-    # vides ; on applique donc explicitement le jeu de données qui appartient
-    # à la migration tête. Sans cela, une installation neuve aurait un schéma
-    # complet mais aucun catalogue de qualification.
-    from app.services.scenario_catalog_seed import apply_catalog_seed
-    apply_catalog_seed(connection)
+    # Le bootstrap installe exclusivement le schéma. Les jeux de données de
+    # référence sont lancés séparément, après ``alembic upgrade head``, afin
+    # qu'une migration ne crée jamais de données métier implicites.
     connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
     connection.execute(
         text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),

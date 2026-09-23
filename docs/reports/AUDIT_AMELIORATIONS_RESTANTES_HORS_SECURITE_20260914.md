@@ -203,7 +203,10 @@ l'audit :
   le template ne conserve plus de script métier inline. Le tableau Analytics
   délègue à son tour ses KPI, graphiques, alertes et exports à
   `static/js/analytics-dashboard-workspace.js`, avec l'EG de contexte fournie
-  par un attribut `data-*`. L'extraction des autres grands
+  par un attribut `data-*`. L'import de structure est également isolé dans
+  `static/js/structure-import-workspace.js` et ses boutons de confirmation
+  passent par des listeners JavaScript au lieu de gestionnaires inline.
+  L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

@@ -126,7 +126,13 @@ test("admission, patient sample and validation-rule interactions use the shared 
 });
 
 test("structure import uses the shared HTTP client while preserving multipart payloads", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_import.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/structure_import.html", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../../app/static/js/structure-import-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /js\/structure-import-workspace\.js/);
+  assert.doesNotMatch(template, /onclick=/);
   assert.match(source, /window\.medbridgeHttp\.request\('\/api\/structure\/import\/confirm'/);
   assert.match(source, /body: formData/);
   assert.doesNotMatch(source, /\bfetch\('\/api\/structure\/import\/confirm'/);

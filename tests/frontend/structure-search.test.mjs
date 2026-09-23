@@ -311,3 +311,10 @@ test("cache dashboard uses the shared HTTP client", () => {
   assert.match(source, /window\.medbridgeHttp\.get\('\/api\/metrics\/cache'\)/);
   assert.doesNotMatch(source, /await fetch\('\/api\/metrics\/cache'\)/);
 });
+
+test("application shell delegates generated toast dismissal", () => {
+  const source = readFileSync(new URL("../../app/static/js/base-behaviors.js", import.meta.url), "utf8");
+  assert.match(source, /data-toast-dismiss=/);
+  assert.match(source, /closest\('\[data-toast-dismiss\]'\)/);
+  assert.doesNotMatch(source, /onclick="toastSystem\.dismiss/);
+});

@@ -221,6 +221,8 @@ l'audit :
   asset d'actions chargé ensuite est différé afin de préserver cet ordre. Le
   shell applicatif délègue enfin navigation, raccourcis, thèmes, toasts et
   loaders à `static/js/base-behaviors.js`, chargé avant les workspaces de page.
+  La fermeture des toasts générés est elle aussi déléguée à un unique listener,
+  sans gestionnaire HTML inline.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

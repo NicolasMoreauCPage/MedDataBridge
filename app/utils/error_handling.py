@@ -142,6 +142,7 @@ async def medbridge_exception_handler(
         error_type=type(exc).__name__,
         path=request.url.path,
         method=request.method,
+        correlation_id=_correlation_id(request),
         **exc.details
     )
     
@@ -164,7 +165,8 @@ async def http_exception_handler(
         f"HTTP error: {exc.detail}",
         status_code=exc.status_code,
         path=request.url.path,
-        method=request.method
+        method=request.method,
+        correlation_id=_correlation_id(request),
     )
     
     return _error_response(
@@ -193,7 +195,8 @@ async def validation_exception_handler(
         "Validation error",
         path=request.url.path,
         method=request.method,
-        errors_count=len(errors)
+        errors_count=len(errors),
+        correlation_id=_correlation_id(request),
     )
     
     return _error_response(
@@ -216,6 +219,7 @@ async def generic_exception_handler(
         error_type=type(exc).__name__,
         path=request.url.path,
         method=request.method,
+        correlation_id=_correlation_id(request),
         exc_info=True
     )
     

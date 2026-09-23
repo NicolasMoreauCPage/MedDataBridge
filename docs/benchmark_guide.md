@@ -114,7 +114,7 @@ Second run: structural counts unchanged; endpoints updated only; patient + mouve
 
 ## Tools
 
-### 1. Benchmark Script (`tools/benchmark_fhir_exports.py`)
+### 1. Benchmark Script (`scripts/tools/benchmark_fhir_exports.py`)
 
 Comprehensive Python script for benchmarking FHIR export endpoints.
 
@@ -138,27 +138,27 @@ Comprehensive Python script for benchmarking FHIR export endpoints.
 
 # Basic usage (defaults to 10 iterations)
 
-python tools/benchmark_fhir_exports.py --ej-id 1
+python scripts/tools/benchmark_fhir_exports.py --ej-id 1
 
 # Custom iterations
 
-python tools/benchmark_fhir_exports.py --ej-id 1 --iterations 20
+python scripts/tools/benchmark_fhir_exports.py --ej-id 1 --iterations 30
 
 # Specific export types only
 
-python tools/benchmark_fhir_exports.py --ej-id 1 --export-types structure patients
+python scripts/tools/benchmark_fhir_exports.py --ej-id 1 --export-types structure patients
 
 # With authentication
 
-python tools/benchmark_fhir_exports.py --ej-id 1 --auth-token "your-jwt-token"
+python scripts/tools/benchmark_fhir_exports.py --ej-id 1 --auth-token "your-jwt-token"
 
 # Only test cached performance
 
-python tools/benchmark_fhir_exports.py --ej-id 1 --with-cache
+python scripts/tools/benchmark_fhir_exports.py --ej-id 1 --with-cache
 
 # Only test non-cached performance
 
-python tools/benchmark_fhir_exports.py --ej-id 1 --without-cache
+python scripts/tools/benchmark_fhir_exports.py --ej-id 1 --without-cache
 ```
 
 ### 2. Quick Benchmark Runner (`tools/run_benchmark.sh`)

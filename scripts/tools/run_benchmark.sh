@@ -24,7 +24,7 @@ echo ""
 
 # Default parameters
 EJ_ID=${1:-1}
-ITERATIONS=${2:-10}
+ITERATIONS=${2:-30}
 
 echo "Parameters:"
 echo "  EJ ID: $EJ_ID"
@@ -32,7 +32,7 @@ echo "  Iterations: $ITERATIONS"
 echo ""
 
 # Run benchmark
-python3 tools/benchmark_fhir_exports.py \
+python3 scripts/tools/benchmark_fhir_exports.py \
     --ej-id "$EJ_ID" \
     --iterations "$ITERATIONS" \
     --with-cache \

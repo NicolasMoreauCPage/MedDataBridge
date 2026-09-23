@@ -174,8 +174,10 @@ l'audit :
   `limit`/`offset` côté SQL (borne de 500), retournent le total du jeu et
   isolent chaque page dans le cache. Les venues préchargent dossier, patient,
   contacts et identifiants, puis lisent mouvements et lieux physiques par lots;
-  un test borne cette page à sept `SELECT`. Les objectifs p50/p95 restent à
-  compléter.
+  un test borne cette page à sept `SELECT`. Les objectifs p50/p95 sont
+  désormais publiés avec leur protocole de qualification PostgreSQL dans
+  `docs/PERFORMANCE_SLO.md`; l'outil d'export FHIR mesure p50 et p95 sur les
+  routes effectives et une taille de page déclarée.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés

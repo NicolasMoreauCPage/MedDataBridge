@@ -8,23 +8,25 @@ Measures:
 - Throughput (exports per second)
 
 Usage:
-    python tools/benchmark_fhir_exports.py --iterations 10 --with-cache --without-cache
+    python scripts/tools/benchmark_fhir_exports.py --iterations 30 --with-cache --without-cache
 """
 import sys
 import time
 import json
 import argparse
+import math
 import statistics
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional
 import requests
 from dataclasses import dataclass, asdict
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root to path, even when the script is launched outside the repo.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.services.cache_service import get_cache_service
+from app.services.cache_service import get_cache_service  # noqa: E402
 
 
 @dataclass
@@ -49,6 +51,7 @@ class BenchmarkSummary:
     max_time_ms: float
     mean_time_ms: float
     median_time_ms: float
+    p95_time_ms: float
     stddev_ms: float
     total_time_s: float
     throughput_per_sec: float
@@ -60,6 +63,23 @@ class BenchmarkSummary:
         if baseline.mean_time_ms == 0:
             return 0.0
         return ((baseline.mean_time_ms - self.mean_time_ms) / baseline.mean_time_ms) * 100
+
+
+def percentile(values: List[float], percentile_rank: float) -> float:
+    """Calcule un percentile par interpolation linéaire, sans dépendance externe."""
+    if not values:
+        raise ValueError("Cannot calculate a percentile from an empty collection")
+    if not 0 <= percentile_rank <= 100:
+        raise ValueError("Percentile rank must be between 0 and 100")
+
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * (percentile_rank / 100)
+    lower_index = math.floor(position)
+    upper_index = math.ceil(position)
+    if lower_index == upper_index:
+        return ordered[lower_index]
+    lower_weight = upper_index - position
+    return ordered[lower_index] * lower_weight + ordered[upper_index] * (1 - lower_weight)
 
 
 class FHIRExportBenchmark:
@@ -105,7 +125,8 @@ class FHIRExportBenchmark:
         export_type: str, 
         ej_id: int, 
         iterations: int = 10,
-        cache_enabled: bool = True
+        cache_enabled: bool = True,
+        page_limit: int = 500,
     ) -> List[BenchmarkResult]:
         """
         Benchmark a specific export type.
@@ -115,14 +136,15 @@ class FHIRExportBenchmark:
             ej_id: Entité juridique ID
             iterations: Number of iterations to run
             cache_enabled: Whether cache should be enabled
+            page_limit: Size of the page for patient and venue exports (1-500)
         
         Returns:
             List of benchmark results
         """
         endpoint_map = {
-            "structure": f"/api/fhir/export/structure/ej/{ej_id}",
-            "patients": f"/api/fhir/export/patients/ej/{ej_id}",
-            "venues": f"/api/fhir/export/venues/ej/{ej_id}"
+            "structure": f"/api/fhir/export/structure/{ej_id}",
+            "patients": f"/api/fhir/export/patients/{ej_id}",
+            "venues": f"/api/fhir/export/venues/{ej_id}",
         }
         
         if export_type not in endpoint_map:
@@ -130,16 +152,17 @@ class FHIRExportBenchmark:
         
         endpoint = endpoint_map[export_type]
         url = f"{self.base_url}{endpoint}"
+        params = {"limit": page_limit, "offset": 0} if export_type != "structure" else None
         
         # Clear cache if testing non-cached performance
         if not cache_enabled and self.cache.enabled:
             self.cache.flush_all()
-            print(f"  ℹ️  Cache cleared for non-cached benchmark")
+            print("  ℹ️  Cache cleared for non-cached benchmark")
         
         # Warmup request (not counted)
-        print(f"  🔥 Warmup request...")
+        print("  🔥 Warmup request...")
         try:
-            requests.get(url, headers=self._get_headers(), timeout=30)
+            requests.get(url, headers=self._get_headers(), params=params, timeout=30)
         except Exception as e:
             print(f"  ⚠️  Warmup failed: {e}")
         
@@ -155,7 +178,7 @@ class FHIRExportBenchmark:
             start_time = time.perf_counter()
             
             try:
-                response = requests.get(url, headers=self._get_headers(), timeout=60)
+                response = requests.get(url, headers=self._get_headers(), params=params, timeout=60)
                 end_time = time.perf_counter()
                 
                 response_time_ms = (end_time - start_time) * 1000
@@ -230,6 +253,7 @@ class FHIRExportBenchmark:
             max_time_ms=max(times),
             mean_time_ms=statistics.mean(times),
             median_time_ms=statistics.median(times),
+            p95_time_ms=percentile(times, 95),
             stddev_ms=statistics.stdev(times) if len(times) > 1 else 0.0,
             total_time_s=total_time_s,
             throughput_per_sec=throughput,
@@ -279,6 +303,7 @@ class FHIRExportBenchmark:
                     f"  Iterations: {cached_summary.iterations}",
                     f"  Mean Response Time: {cached_summary.mean_time_ms:.2f} ms",
                     f"  Median Response Time: {cached_summary.median_time_ms:.2f} ms",
+                    f"  P95 Response Time: {cached_summary.p95_time_ms:.2f} ms",
                     f"  Min/Max: {cached_summary.min_time_ms:.2f} / {cached_summary.max_time_ms:.2f} ms",
                     f"  Std Dev: {cached_summary.stddev_ms:.2f} ms",
                     f"  Throughput: {cached_summary.throughput_per_sec:.2f} req/sec",
@@ -293,6 +318,7 @@ class FHIRExportBenchmark:
                     f"  Iterations: {non_cached_summary.iterations}",
                     f"  Mean Response Time: {non_cached_summary.mean_time_ms:.2f} ms",
                     f"  Median Response Time: {non_cached_summary.median_time_ms:.2f} ms",
+                    f"  P95 Response Time: {non_cached_summary.p95_time_ms:.2f} ms",
                     f"  Min/Max: {non_cached_summary.min_time_ms:.2f} / {non_cached_summary.max_time_ms:.2f} ms",
                     f"  Std Dev: {non_cached_summary.stddev_ms:.2f} ms",
                     f"  Throughput: {non_cached_summary.throughput_per_sec:.2f} req/sec",
@@ -387,7 +413,8 @@ def main():
     parser = argparse.ArgumentParser(description="Benchmark FHIR export performance")
     parser.add_argument("--base-url", default="http://localhost:8000", help="Base URL of the API")
     parser.add_argument("--ej-id", type=int, default=1, help="Entité Juridique ID to test")
-    parser.add_argument("--iterations", type=int, default=10, help="Number of iterations per benchmark")
+    parser.add_argument("--iterations", type=int, default=30, help="Number of iterations per benchmark (minimum: 2)")
+    parser.add_argument("--page-limit", type=int, default=500, choices=range(1, 501), metavar="1..500", help="Page size for patients and venues")
     parser.add_argument("--with-cache", action="store_true", help="Benchmark with cache enabled")
     parser.add_argument("--without-cache", action="store_true", help="Benchmark without cache")
     parser.add_argument("--export-types", nargs="+", default=["structure", "patients", "venues"],
@@ -396,6 +423,8 @@ def main():
     parser.add_argument("--auth-token", help="Authentication token (if required)")
     
     args = parser.parse_args()
+    if args.iterations < 2:
+        parser.error("--iterations must be at least 2 to calculate a meaningful p50/p95")
     
     # Default to both if neither specified
     if not args.with_cache and not args.without_cache:
@@ -411,6 +440,7 @@ def main():
     print(f"Base URL: {args.base_url}")
     print(f"EJ ID: {args.ej_id}")
     print(f"Iterations: {args.iterations}")
+    print(f"Page limit: {args.page_limit} (patients and venues)")
     print(f"Export Types: {', '.join(args.export_types)}")
     print(f"Benchmarks: {'WITH CACHE' if args.with_cache else ''} {'WITHOUT CACHE' if args.without_cache else ''}")
     print("=" * 80)
@@ -430,7 +460,8 @@ def main():
                 export_type=export_type,
                 ej_id=args.ej_id,
                 iterations=args.iterations,
-                cache_enabled=True
+                cache_enabled=True,
+                page_limit=args.page_limit,
             )
             summary = benchmark.summarize_results(results)
             all_summaries.append(summary)
@@ -442,7 +473,8 @@ def main():
                 export_type=export_type,
                 ej_id=args.ej_id,
                 iterations=args.iterations,
-                cache_enabled=False
+                cache_enabled=False,
+                page_limit=args.page_limit,
             )
             summary = benchmark.summarize_results(results)
             all_summaries.append(summary)

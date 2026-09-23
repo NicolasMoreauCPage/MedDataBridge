@@ -112,7 +112,7 @@ async def update_service(request: Request, context_id: int, ej_id: int, eg_id: i
 # --- UFs ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/new")
 async def new_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
-    context, entite, geo, pole, service = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id)
+    context, entite, geo, _pole, service = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id)
     fields = uf_form_fields()
     action_url = request.url.path
     cancel_url = f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}" # Should probably go to service detail
@@ -120,7 +120,7 @@ async def new_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int,
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/new")
 async def create_uf(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
-    context, entite, geo, pole, service = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id)
+    context, entite, geo, _pole, service = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id)
     form_data = await request.form()
     uf = UniteFonctionnelle(
         identifier=form_data.get("identifier"), name=form_data.get("name"),
@@ -172,7 +172,7 @@ async def update_uf(request: Request, context_id: int, ej_id: int, eg_id: int, p
 # --- UHs ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/new")
 async def new_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
-    context, entite, geo, pole, service, uf = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id)
+    context, entite, geo, _pole, _service, uf = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id)
     fields = uh_form_fields()
     action_url = request.url.path
     cancel_url = f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}"
@@ -180,7 +180,7 @@ async def new_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int,
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/new")
 async def create_uh(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
-    context, entite, geo, pole, service, uf = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id)
+    context, entite, geo, _pole, _service, uf = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id)
     form_data = await request.form()
     uh = UniteHebergement(
         identifier=form_data.get("identifier"), name=form_data.get("name"),
@@ -234,7 +234,7 @@ async def update_uh(request: Request, context_id: int, ej_id: int, eg_id: int, p
 # --- CHAMBRES ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/new")
 async def new_chambre_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
-    context, entite, geo, pole, service, uf, uh = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id), get_uh_or_404(session, uf_id, uh_id)
+    context, entite, geo, _pole, _service, _uf, uh = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id), get_uh_or_404(session, uf_id, uh_id)
     fields = chambre_form_fields()
     action_url = request.url.path
     cancel_url = f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}"
@@ -242,7 +242,7 @@ async def new_chambre_form(request: Request, context_id: int, ej_id: int, eg_id:
 
 @router.post("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/new")
 async def create_chambre(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
-    context, entite, geo, pole, service, uf, uh = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id), get_uh_or_404(session, uf_id, uh_id)
+    context, entite, geo, _pole, _service, _uf, uh = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id), get_uh_or_404(session, uf_id, uh_id)
     form_data = await request.form()
     chambre = Chambre(
         identifier=form_data.get("identifier"), name=form_data.get("name"),

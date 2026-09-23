@@ -252,7 +252,7 @@ async def handle_merge_patient(
             ).all()
             
             # Fusionner (garder les actifs du survivant, ajouter les "old" du source)
-            merged_ids = merge_identifiers(
+            merge_identifiers(
                 existing=surviving_identifiers,
                 new=source_identifiers,
                 keep_inactive=True

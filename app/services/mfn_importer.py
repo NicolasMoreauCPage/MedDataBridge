@@ -114,7 +114,6 @@ def parse_mfn_message(text: str) -> List[RawEntity]:
         elif seg == "LRL" and current is not None:
             # LRL|composite|||RELAT^...^L||PARENT_COMPOSITE
             # fields[4] contient RELAT^...^L, fields[6] contient le composite parent
-            relation = fields[4] if len(fields) > 4 else ""
             parent_comp = fields[6] if len(fields) > 6 else ""
             import logging
             logger = logging.getLogger("app.services.mfn_importer")

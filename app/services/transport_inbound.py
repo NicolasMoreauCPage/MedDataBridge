@@ -80,7 +80,7 @@ def _parse_patient_identifiers(pid_segment: str) -> List[Tuple[str, str, str]]:
             
             # Parser le CX pour extraire value, system, type
             cx_parts = cx.split("^")
-            value = cx_parts[0] if len(cx_parts) > 0 else ""
+            _value = cx_parts[0] if len(cx_parts) > 0 else ""
             system = cx_parts[3] if len(cx_parts) > 3 else ""
             type_code = cx_parts[4] if len(cx_parts) > 4 else "PI"  # Par défaut Patient Internal
             
@@ -1081,7 +1081,6 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
             is_historic = zbe_data.get("is_historic")
             nature = derive_nature(trigger, zbe_data.get("nature"))
 
-            modification_processed = False
             if action in {"UPDATE", "CANCEL"}:
                 movement_id = zbe_data.get("movement_id")
                 admission_triggers = {"A01", "A04", "A05", "A06", "A07"}

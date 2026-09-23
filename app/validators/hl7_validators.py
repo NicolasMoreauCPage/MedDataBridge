@@ -270,7 +270,6 @@ class PAMValidator(HL7Validator):
         # - Format intégration: champ 1 contient un ID numérique ou vide
         #   -> ZBE|ID|date||UF (ex: "1", "MVT001", "") - code en champ 3 (souvent vide)
         field1 = fields[1] if len(fields) > 1 else ""
-        field3 = fields[3] if len(fields) > 3 else ""
         # Heuristique: format intégration si field1 est vide OU numérique
         # OU contient un identifiant composé (contient '^')
         # OU commence par "MVT" (patterns: "", "1", "2", "MVT001", "12565061^CPAGE^...")

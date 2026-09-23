@@ -342,7 +342,6 @@ async def _emit_mfn_organization_delete(entity_id: int, finess_ej: str, session:
     mfn = generate_mfn_organization_delete(entity_id, finess_ej)
     _, mllp_senders = _get_senders(session)
     for endpoint in mllp_senders:
-        correlation_id = None  # MFN delete may not have entity.correlation_id
         with session.no_autoflush:
             ack = ""
             status = "generated"
@@ -570,7 +569,6 @@ async def _emit_mfn_snapshot(session: Session, ght_context_id=None) -> None:
     mfn = generate_mfn_message(session)
     _, mllp_senders = _get_senders(session, ght_context_id=ght_context_id)
     for endpoint in mllp_senders:
-        correlation_id = None  # MFN snapshot may not have correlation_id
         # Try to deduplicate by endpoint and message_type
         existing_log = session.exec(
             select(MessageLog)

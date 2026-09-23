@@ -128,7 +128,7 @@ def import_legacy_catalog(session: Session, path: str | Path | list[dict[str, An
                 .order_by(InteropScenario.id.desc())
             ).first()
         root_key, root_name, theme_key, theme_name = _theme_for(item)
-        parent = ensure_theme(session, root_key, root_name)
+        ensure_theme(session, root_key, root_name)
         theme = ensure_theme(session, theme_key, theme_name, parent_key=root_key)
         sources = [{"key": value.get("key"), "source_path": value.get("source_path"), "name": value.get("name")} for value in variants]
         if not scenario:

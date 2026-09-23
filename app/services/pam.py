@@ -985,12 +985,12 @@ async def handle_admission_message(
                     elif isinstance(_res, dict):
                         identifiers_list = _res.get('identifiers', [])
                         main_id_value = _res.get('main_identifier') or _res.get('main')
-                        external_id_value = _res.get('external_id') or _res.get('external')
+                        _external_id_value = _res.get('external_id') or _res.get('external')
                     else:
-                        identifiers_list, main_id_value, external_id_value = [], None, None
+                        identifiers_list, main_id_value, _external_id_value = [], None, None
                 except Exception as _e:
                     logger.warning(f"[pam] Failed to classify identifiers (soft): {_e}")
-                    identifiers_list, main_id_value, external_id_value = [], None, None
+                    identifiers_list, main_id_value, _external_id_value = [], None, None
                 identifier = main_id_value or (identifiers[0][0] if identifiers else None)  # identifiers[0][0] = value
             except Exception as e:
                 logger.warning(f"[pam] Failed to classify identifiers: {e}")
@@ -998,8 +998,6 @@ async def handle_admission_message(
         logger.debug(f"[pam][admission] Resolved identifier={identifier} (identifiers_count={len(identifiers)})")
 
         # Nom / prénom
-        family = pid_data.get("family") or ""
-        given = pid_data.get("given") or ""
 
         # Create or update patient
         reused_patient = None
@@ -1023,12 +1021,12 @@ async def handle_admission_message(
                         elif isinstance(_res, dict):
                             identifiers_list = _res.get('identifiers', [])
                             main_id_value = _res.get('main_identifier') or _res.get('main')
-                            external_id_value = _res.get('external_id') or _res.get('external')
+                            _external_id_value = _res.get('external_id') or _res.get('external')
                         else:
-                            identifiers_list, main_id_value, external_id_value = [], None, None
+                            identifiers_list, main_id_value, _external_id_value = [], None, None
                     except Exception as _e:
                         logger.warning(f"[pam] Failed to classify identifiers (soft): {_e}")
-                        identifiers_list, main_id_value, external_id_value = [], None, None
+                        identifiers_list, main_id_value, _external_id_value = [], None, None
                     for ident in identifiers_list:
                         ident.patient_id = existing.id
                         exists_dup = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
@@ -1074,18 +1072,18 @@ async def handle_admission_message(
                 try:
                     _res = create_identifiers_from_hl7_with_namespace_check(identifiers, "patient", session, ej_id)
                     if isinstance(_res, (list, tuple)) and len(_res) == 3:
-                        identifiers_list, main_id_value, external_id_value = _res
+                        identifiers_list, main_id_value, _external_id_value = _res
                     elif isinstance(_res, list):
-                        identifiers_list, main_id_value, external_id_value = _res, None, None
+                        identifiers_list, main_id_value, _external_id_value = _res, None, None
                     elif isinstance(_res, dict):
                         identifiers_list = _res.get('identifiers', [])
                         main_id_value = _res.get('main_identifier') or _res.get('main')
-                        external_id_value = _res.get('external_id') or _res.get('external')
+                        _external_id_value = _res.get('external_id') or _res.get('external')
                     else:
-                        identifiers_list, main_id_value, external_id_value = [], None, None
+                        identifiers_list, main_id_value, _external_id_value = [], None, None
                 except Exception as _e:
                     logger.warning(f"[pam] Failed to classify identifiers (soft): {_e}")
-                    identifiers_list, main_id_value, external_id_value = [], None, None
+                    identifiers_list, main_id_value, _external_id_value = [], None, None
                 for ident in identifiers_list:
                     ident.patient_id = patient.id
                     exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()

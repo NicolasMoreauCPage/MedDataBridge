@@ -844,7 +844,6 @@ def new_mouvement(
     prefill_from_location = None
     prefill_to_location = None
     prefill_reason = None
-    prefill_movement_reason = None
 
     # Pré-remplir les champs depuis le dernier mouvement si il existe
     last_movement = None
@@ -900,7 +899,6 @@ def new_mouvement(
             if last_movement.location:
                 location_parts = last_movement.location.split('-')
                 if len(location_parts) >= 4:
-                    lit_part = location_parts[3]
                     # Pour le lit, on utilise l'ID de la chambre comme approximation
                     if selected_chambre_id:
                         selected_lit_id = selected_chambre_id
@@ -910,7 +908,6 @@ def new_mouvement(
             prefill_from_location = last_movement.from_location
             prefill_to_location = last_movement.to_location
             prefill_reason = last_movement.reason
-            prefill_movement_reason = last_movement.movement_reason
         else:
             logging.info(f"No previous movements found for venue {prefill_venue_id}, using venue defaults")
             # Pas de mouvement précédent, utiliser les valeurs par défaut de la venue
@@ -2216,5 +2213,3 @@ def patient_search_api(
         for p in patients
     ]
     return {"results": results}
-
-

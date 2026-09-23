@@ -55,9 +55,9 @@ def find_mouvement_by_zbe_id(session, zbe_1: str):
 
     # Try parse as CX identifier (value, system, oid, type_code)
     try:
-        value, system, authority_oid, type_code = parse_hl7_cx_identifier(zbe_1)
+        value, system, authority_oid, _type_code = parse_hl7_cx_identifier(zbe_1)
     except Exception:
-        value, system, authority_oid, type_code = (zbe_1, "", None, None)
+        value, system, authority_oid, _type_code = (zbe_1, "", None, None)
 
     # First attempt: if value is integer, try mouvement_seq or id
     try:

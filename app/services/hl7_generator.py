@@ -553,7 +553,6 @@ def generate_adt_message(
     # Triggers considérés comme mouvement (requièrent segment ZBE) selon IHE PAM FR.
     # Les messages d'identité pure (A08 update identité, A28 new patient, A31 update patient, A40/A47 merges/identifier changes)
     # ne doivent PAS exiger ZBE.
-    identity_only_triggers = {"A08", "A28", "A31", "A40", "A47"}
     movement_triggers = {"A01", "A02", "A03", "A04", "A05", "A06", "A07",
                          "A11", "A12", "A13", "A21", "A22", "A23", "A38",
                          "A52", "A53", "A54", "A55"}

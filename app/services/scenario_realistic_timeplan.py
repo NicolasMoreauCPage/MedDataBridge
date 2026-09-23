@@ -154,7 +154,6 @@ def detect_workflow_type(event_sequence: List[str]) -> str:
     # Analyse des patterns d'événements
     has_admission = "A01" in event_sequence or "A14" in event_sequence or "A28" in event_sequence
     has_consultation = "A05" in event_sequence or "A04" in event_sequence
-    has_discharge = "A03" in event_sequence or "A16" in event_sequence
     has_transfers = event_sequence.count("A02") > 1 or "A06" in event_sequence or "A07" in event_sequence
     
     # Consultation seulement (pas d'admission)

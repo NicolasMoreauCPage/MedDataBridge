@@ -17,7 +17,6 @@ from datetime import datetime, timezone
 import re
 from typing import Dict, List, Optional, Tuple
 import logging
-import os
 
 from sqlmodel import Session, select
 
@@ -28,29 +27,18 @@ import json
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_identifiers import Identifier, IdentifierType
 from app.db import get_next_sequence
-from app.services.emit_on_create import emit_to_senders
-from app.services.identifier_manager import (
-    create_identifier_from_hl7,
-    merge_identifiers,
-    get_main_identifier
-)
 from app.services.message_router import IHEMessageRouter
-from app.state_transitions import is_valid_transition, assert_transition
 
 # Import parsing functions from infrastructure layer (Phase 1 extraction)
 from app.infrastructure.hl7.parsing import (
     parse_pid,
-    parse_pd1,
     parse_pv1,
     parse_zbe,
-    parse_mrg,
     has_segment,
-    parse_patient_identifiers,
 )
 from app.services.nature_mapping import derive_nature
 # Import validation functions from infrastructure layer (Phase 1 extraction)
 from app.infrastructure.hl7.validation import validate_transition
-from app.services.vocabulary_translate import map_code
 from app.models_contacts import PatientContact, VenueContact  # NK1 parsing models
 from app.utils.booleans import as_bool
 

@@ -61,7 +61,7 @@ sécurité.
 | Templates avec script embarqué | 65 | code peu réutilisable et difficile à tester |
 | Gestionnaires HTML inline | environ 170 | comportement fortement couplé au markup |
 | Appels `fetch` | 1, dans `static/js/http.js` | transport réseau centralisé |
-| Anomalies Ruff sur `app/` | 155 | dette de qualité non bloquante en CI |
+| Anomalies Ruff sur `app/` | 144 | dette de qualité non bloquante en CI |
 | `except Exception` | environ 547 | erreurs trop largement interceptées |
 | Exceptions suivies de `pass` | environ 218 | diagnostics ou échecs potentiellement masqués |
 | Appels `print` dans `app/` | environ 82 | journalisation non homogène |
@@ -118,9 +118,9 @@ l'audit :
   migrations reste à faire.
 - **BE-07 :** les familles Ruff bloquantes `F821`, `F823`, `F601` et `F811`
   sont à zéro dans `app/` et sont imposées par la CI. Le nettoyage progressif
-  des 155 alertes restantes (principalement imports et imports tardifs)
+  des 144 alertes restantes (principalement imports et imports tardifs)
   variables inutilisées) demeure un chantier distinct ; aucun correctif global
-  automatique n'a été appliqué. La CI impose aussi une baseline globale à 155
+  automatique n'a été appliqué. La CI impose aussi une baseline globale à 144
   anomalies : toute nouvelle alerte échoue désormais avant fusion. Les deux
   derniers lots ont supprimé 27 variables locales inutilisées et les 26 noms
   locaux ambigus, sans supprimer les validations hiérarchiques qui les
@@ -144,6 +144,8 @@ l'audit :
   de types effectives, avec ses régressions de routeur exécutées.
   Les branches d’émission structure et PAM ainsi que le seed de structure ont
   aussi été allégés de six imports sans effet, avec les tests MFN et PAM.
+  Le pipeline de réception HL7 ne conserve plus onze parseurs, transitions ou
+  helpers non appelés, validé par ses 49 tests unitaires MLLP.
 - **BE-08 :** les gestionnaires d'erreurs communs sont maintenant enregistrés
   dans l'application. Les erreurs HTTP, de validation et métier retournent la
   même enveloppe (`code`, `message`, `details`, `correlation_id`) et propagent

@@ -262,8 +262,14 @@ test("isolated dossier, scenario and contact actions use the shared HTTP client"
   assert.doesNotMatch(dossierWorkspace, /\bfetch\(/);
 
   const generator = readFileSync(new URL("../../app/templates/test_scenario_generator.html", import.meta.url), "utf8");
-  assert.match(generator, /window\.medbridgeHttp\.(get|post|request)\(/);
-  assert.doesNotMatch(generator, /\bfetch\(/);
+  const generatorWorkspace = readFileSync(
+    new URL("../../app/static/js/test-scenario-generator-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(generator, /js\/test-scenario-generator-workspace\.js/);
+  assert.doesNotMatch(generator, /window\.medbridgeHttp\./);
+  assert.match(generatorWorkspace, /window\.medbridgeHttp\.post\(/);
+  assert.doesNotMatch(generatorWorkspace, /\bfetch\(/);
   const contacts = readFileSync(new URL("../../app/templates/contacts_list.html", import.meta.url), "utf8");
   const contactsWorkspace = readFileSync(
     new URL("../../app/static/js/contacts-list-workspace.js", import.meta.url),

@@ -529,6 +529,9 @@ l'audit :
   multipart, la redirection vers la revue et la remise en état après erreur.
   La configuration EJ des scénarios externalise également l'ouverture
   temporaire des listes d'UF dans `static/js/scenario-ej-config-form.js`.
+  Le générateur de scénarios de test délègue enfin génération, copie et
+  téléchargement à `static/js/test-scenario-generator-workspace.js`, sans
+  callbacks affectés dynamiquement dans le template.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

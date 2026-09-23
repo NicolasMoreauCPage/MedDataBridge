@@ -28,3 +28,14 @@ def test_outbound_delivery_metrics_keep_dimensions_low_cardinality(monkeypatch):
             "error_type": "HTTP_STATUS",
         }
     ]
+
+
+def test_safe_fhir_metric_logs_its_optional_failure(monkeypatch, caplog):
+    def unavailable(**_kwargs):
+        raise RuntimeError("metrics unavailable")
+
+    monkeypatch.setattr(app_metrics, "record_fhir_event", unavailable)
+
+    app_metrics.record_fhir_event_safely("inbound", "patient", "import", False, 500)
+
+    assert "FHIR metric recording failed" in caplog.text

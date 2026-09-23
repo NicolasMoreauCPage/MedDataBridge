@@ -4,6 +4,7 @@ from sqlmodel import Session
 from typing import Optional
 from app.db import get_session
 from app.models_structure import EntiteJuridique
+from app.metrics import record_fhir_event_safely
 from app.services.fhir_export_service import FHIRExportService
 
 
@@ -47,12 +48,7 @@ async def export_structure(
     import time as _time
     _start = _time.time()
     bundle = service.export_structure(ej)
-    # Metrics outbound
-    try:
-        from app.metrics import record_fhir_event
-        record_fhir_event("outbound", "structure", "export", True, 200, _time.time() - _start)
-    except Exception:
-        pass
+    record_fhir_event_safely("outbound", "structure", "export", True, 200, _time.time() - _start)
     return bundle.model_dump()
 
 
@@ -97,11 +93,7 @@ async def export_patients(
     import time as _time
     _start = _time.time()
     bundle = service.export_patients(ej)
-    try:
-        from app.metrics import record_fhir_event
-        record_fhir_event("outbound", "patient", "export", True, 200, _time.time() - _start)
-    except Exception:
-        pass
+    record_fhir_event_safely("outbound", "patient", "export", True, 200, _time.time() - _start)
     return bundle.model_dump()
 
 
@@ -142,11 +134,7 @@ async def export_venues(
     import time as _time
     _start = _time.time()
     bundle = service.export_venues(ej, limit=limit, offset=offset)
-    try:
-        from app.metrics import record_fhir_event
-        record_fhir_event("outbound", "encounter", "export", True, 200, _time.time() - _start)
-    except Exception:
-        pass
+    record_fhir_event_safely("outbound", "encounter", "export", True, 200, _time.time() - _start)
     return bundle.model_dump()
 
 
@@ -189,13 +177,9 @@ async def export_all(
     patients_bundle = service.export_patients(ej)
     _s3 = _time.time()
     venues_bundle = service.export_venues(ej)
-    try:
-        from app.metrics import record_fhir_event
-        record_fhir_event("outbound", "structure", "export", True, 200, _time.time() - _s1)
-        record_fhir_event("outbound", "patient", "export", True, 200, _time.time() - _s2)
-        record_fhir_event("outbound", "encounter", "export", True, 200, _time.time() - _s3)
-    except Exception:
-        pass
+    record_fhir_event_safely("outbound", "structure", "export", True, 200, _time.time() - _s1)
+    record_fhir_event_safely("outbound", "patient", "export", True, 200, _time.time() - _s2)
+    record_fhir_event_safely("outbound", "encounter", "export", True, 200, _time.time() - _s3)
     
     return {
         "structure": structure_bundle.model_dump(),

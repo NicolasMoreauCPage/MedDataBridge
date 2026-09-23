@@ -7,6 +7,7 @@ et conserve le middleware léger existant pour les requêtes HTTP.
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 import time
+import logging
 
 # Prometheus client (optionnel mais recommandé)
 try:
@@ -17,6 +18,9 @@ except Exception:  # pragma: no cover - fallback si prom client non installé
 
 # Pont vers le collecteur UI existant
 from app.utils.structured_logging import metrics as ui_metrics
+
+
+logger = logging.getLogger(__name__)
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
@@ -241,6 +245,39 @@ def record_fhir_event(
         action=(action or "unknown").lower(),
         status_code=status_code,
     )
+
+
+def record_fhir_event_safely(
+    direction: str,
+    resource: str,
+    action: str,
+    success: bool,
+    status_code: int | None = None,
+    duration_seconds: float | None = None,
+) -> None:
+    """Enregistre une métrique FHIR sans masquer une panne d'observabilité.
+
+    La métrique est annexe à l'import/export HTTP : une panne Prometheus ou du
+    collecteur UI ne doit pas faire échouer l'échange métier. Elle est toutefois
+    explicitement signalée afin de ne plus transformer ce cas en ``except: pass``.
+    """
+    try:
+        record_fhir_event(
+            direction=direction,
+            resource=resource,
+            action=action,
+            success=success,
+            status_code=status_code,
+            duration_seconds=duration_seconds,
+        )
+    except Exception:
+        logger.warning(
+            "FHIR metric recording failed direction=%s resource=%s action=%s",
+            direction,
+            resource,
+            action,
+            exc_info=True,
+        )
 
 
 # === Livraisons sortantes ===

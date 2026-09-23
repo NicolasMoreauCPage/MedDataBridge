@@ -93,7 +93,10 @@ l'audit :
   explicites de cible FHIR absente, réponse HTTP non réussie, ACK MLLP absent,
   échec de transport, validation PAM et contexte HPRIM manquant sont ainsi
   visibles dans le tableau de bord et les logs, tout en conservant l'outbox pour
-  les reprises réseau.
+  les reprises réseau. Les routes d'import et d'export FHIR ne contiennent plus
+  de capture silencieuse autour des métriques : ce chemin facultatif est
+  centralisé, explicitement averti s'il échoue et ne peut pas interrompre le
+  traitement métier ; les erreurs d'import sont journalisées avec leur pile.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

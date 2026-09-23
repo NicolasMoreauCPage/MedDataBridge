@@ -1,9 +1,11 @@
 """API REST pour l'import FHIR."""
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from sqlmodel import Session
 from typing import Dict, Any
 from app.db import get_session
 from app.models_structure import EntiteJuridique
+from app.metrics import record_fhir_event_safely
 from app.converters.fhir_import_converter import (
     FHIRBundleImporter,
     FHIRToPatientConverter,
@@ -17,6 +19,7 @@ from app.services.fhir_profile_validator import FHIRProfileValidator
 
 
 router = APIRouter(prefix="/api/fhir", tags=["FHIR Import"])
+logger = logging.getLogger(__name__)
 
 
 def _verify_ej_access(request: Request, session: Session, ej_id: int) -> None:
@@ -116,19 +119,14 @@ async def import_bundle(
         _start = _time.time()
         importer = FHIRBundleImporter(session, ej)
         result = importer.import_bundle(bundle)
-        # Metrics
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event(
-                direction="inbound",
-                resource="bundle",
-                action="import",
-                success=not result["errors"],
-                status_code=200 if not result["errors"] else 206,
-                duration_seconds=_time.time() - _start,
-            )
-        except Exception:
-            pass
+        record_fhir_event_safely(
+            direction="inbound",
+            resource="bundle",
+            action="import",
+            success=not result["errors"],
+            status_code=200 if not result["errors"] else 206,
+            duration_seconds=_time.time() - _start,
+        )
 
         return ImportResult(
             status="success" if not result["errors"] else "partial",
@@ -138,18 +136,12 @@ async def import_bundle(
             errors=[f"{e['resourceType']}: {e['error']}" for e in result["errors"]]
         )
     except FHIRImportError as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "bundle", "import", False, 400)
-        except Exception:
-            pass
+        logger.warning("FHIR bundle import rejected: %s", e)
+        record_fhir_event_safely("inbound", "bundle", "import", False, 400)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "bundle", "import", False, 500)
-        except Exception:
-            pass
+        logger.exception("FHIR bundle import failed")
+        record_fhir_event_safely("inbound", "bundle", "import", False, 500)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'import: {str(e)}")
 
 
@@ -194,12 +186,7 @@ async def import_patient(
         _start = _time.time()
         converter = FHIRToPatientConverter(session, ej)
         patient_obj = converter.convert_patient(patient)
-        # Metrics
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "patient", "import", True, 200, _time.time() - _start)
-        except Exception:
-            pass
+        record_fhir_event_safely("inbound", "patient", "import", True, 200, _time.time() - _start)
 
         return ImportResult(
             status="success",
@@ -208,18 +195,12 @@ async def import_patient(
             resources_updated=0
         )
     except FHIRImportError as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "patient", "import", False, 400)
-        except Exception:
-            pass
+        logger.warning("FHIR patient import rejected: %s", e)
+        record_fhir_event_safely("inbound", "patient", "import", False, 400)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "patient", "import", False, 500)
-        except Exception:
-            pass
+        logger.exception("FHIR patient import failed")
+        record_fhir_event_safely("inbound", "patient", "import", False, 500)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'import: {str(e)}")
 
 
@@ -264,12 +245,7 @@ async def import_location(
         _start = _time.time()
         converter = FHIRToLocationConverter(session, ej)
         location_obj = converter.convert_location(location)
-        # Metrics
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "location", "import", True, 200, _time.time() - _start)
-        except Exception:
-            pass
+        record_fhir_event_safely("inbound", "location", "import", True, 200, _time.time() - _start)
 
         return ImportResult(
             status="success",
@@ -278,18 +254,12 @@ async def import_location(
             resources_updated=0
         )
     except FHIRImportError as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "location", "import", False, 400)
-        except Exception:
-            pass
+        logger.warning("FHIR location import rejected: %s", e)
+        record_fhir_event_safely("inbound", "location", "import", False, 400)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "location", "import", False, 500)
-        except Exception:
-            pass
+        logger.exception("FHIR location import failed")
+        record_fhir_event_safely("inbound", "location", "import", False, 500)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'import: {str(e)}")
 
 
@@ -333,11 +303,7 @@ async def import_organization(
         _start = _time.time()
         converter = FHIRToOrganizationConverter(session, ej)
         organization_obj = converter.convert_organization(organization)
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "organization", "import", True, 200, _time.time() - _start)
-        except Exception:
-            pass
+        record_fhir_event_safely("inbound", "organization", "import", True, 200, _time.time() - _start)
 
         return ImportResult(
             status="success",
@@ -346,18 +312,12 @@ async def import_organization(
             resources_updated=0
         )
     except FHIRImportError as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "organization", "import", False, 400)
-        except Exception:
-            pass
+        logger.warning("FHIR organization import rejected: %s", e)
+        record_fhir_event_safely("inbound", "organization", "import", False, 400)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "organization", "import", False, 500)
-        except Exception:
-            pass
+        logger.exception("FHIR organization import failed")
+        record_fhir_event_safely("inbound", "organization", "import", False, 500)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'import: {str(e)}")
 
 
@@ -402,12 +362,7 @@ async def import_encounter(
         _start = _time.time()
         converter = FHIRToEncounterConverter(session)
         mouvement = converter.convert_encounter(encounter)
-        # Metrics
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "encounter", "import", True, 200, _time.time() - _start)
-        except Exception:
-            pass
+        record_fhir_event_safely("inbound", "encounter", "import", True, 200, _time.time() - _start)
 
         return ImportResult(
             status="success",
@@ -416,18 +371,12 @@ async def import_encounter(
             resources_updated=0
         )
     except FHIRImportError as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "encounter", "import", False, 400)
-        except Exception:
-            pass
+        logger.warning("FHIR encounter import rejected: %s", e)
+        record_fhir_event_safely("inbound", "encounter", "import", False, 400)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        try:
-            from app.metrics import record_fhir_event
-            record_fhir_event("inbound", "encounter", "import", False, 500)
-        except Exception:
-            pass
+        logger.exception("FHIR encounter import failed")
+        record_fhir_event_safely("inbound", "encounter", "import", False, 500)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'import: {str(e)}")
 
 

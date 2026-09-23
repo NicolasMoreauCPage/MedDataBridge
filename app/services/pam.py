@@ -981,7 +981,7 @@ async def handle_admission_message(
                     if isinstance(_res, (list, tuple)) and len(_res) == 3:
                         identifiers_list, main_id_value, external_id_value = _res
                     elif isinstance(_res, list):
-                        identifiers_list, main_id_value, external_id_value = _res, None, None
+                        identifiers_list, main_id_value, _external_id_value = _res, None, None
                     elif isinstance(_res, dict):
                         identifiers_list = _res.get('identifiers', [])
                         main_id_value = _res.get('main_identifier') or _res.get('main')
@@ -1015,9 +1015,9 @@ async def handle_admission_message(
                     try:
                         _res = create_identifiers_from_hl7_with_namespace_check(identifiers, "patient", session, ej_id)
                         if isinstance(_res, (list, tuple)) and len(_res) == 3:
-                            identifiers_list, main_id_value, external_id_value = _res
+                            identifiers_list, main_id_value, _external_id_value = _res
                         elif isinstance(_res, list):
-                            identifiers_list, main_id_value, external_id_value = _res, None, None
+                            identifiers_list, main_id_value, _external_id_value = _res, None, None
                         elif isinstance(_res, dict):
                             identifiers_list = _res.get('identifiers', [])
                             main_id_value = _res.get('main_identifier') or _res.get('main')

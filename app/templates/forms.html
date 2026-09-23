@@ -138,68 +138,7 @@
   {% endif %}
 </div>
 
-<!-- Inline quick-init: ensure a FormManager is attached to this form as soon as possible.
-     This acts as a small race-free fallback when the external forms.js is loaded
-     dynamically or deferred. It will try to instantiate FormManager if available,
-     otherwise poll briefly. This keeps the main logic in forms.js but avoids
-     the case where a submit happens before handlers are attached. -->
-<script>
-  (function(){
-    try {
-      const form = document.querySelector('form[role="form"]');
-      if (!form) return;
-      const tryAttach = () => {
-        if (form.manager) return true;
-        if (window.FormManager) {
-          try {
-            form.manager = new FormManager(form);
-            form.setAttribute('data-forms-manager', '1');
-            if (form.classList && form.classList.contains('has-state-transitions')) {
-              if (window.StateTransitionManager && typeof window.StateTransitionManager.setupTransitionValidation === 'function') {
-                window.StateTransitionManager.setupTransitionValidation(form);
-              }
-            }
-            return true;
-          } catch (e) {
-            console.error('Failed to attach FormManager inline fallback', e);
-            return false;
-          }
-        }
-        return false;
-      };
-
-      if (!tryAttach()) {
-        // Poll briefly for the external script to define FormManager
-        let attempts = 0;
-        const interval = setInterval(() => {
-          attempts += 1;
-          if (tryAttach() || attempts > 10) {
-            clearInterval(interval);
-          }
-        }, 50);
-      }
-    } catch (e) {
-      console.error('Inline form init error', e);
-    }
-  })();
-</script>
-
-<!-- Load state transitions manager first -->
-<script src="/static/js/state_transitions.js"></script>
-<!-- Load forms.js with cache-busting -->
-<script>
-  (function() {
-    try {
-      var scriptUrl = "/static/js/forms.js" + "?v=" + Date.now();
-      var s = document.createElement('script');
-      s.src = scriptUrl;
-      s.defer = true;
-      document.head.appendChild(s);
-      console.debug('Loaded forms.js with cache-bust:', scriptUrl);
-    } catch (e) {
-      console.error('Failed to dynamically load forms.js', e);
-    }
-  })();
-</script>
+<script defer src="{{ url_for('static', path='js/state_transitions.js') }}"></script>
+<script defer src="{{ url_for('static', path='js/forms.js') }}"></script>
 
 {% endblock %}

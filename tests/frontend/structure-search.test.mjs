@@ -353,6 +353,13 @@ test("generic form submissions delegate to the shared HTTP client", () => {
   assert.match(source, /error\.setAttribute\('role', 'alert'\)/);
 });
 
+test("generic forms load their managers in a deterministic deferred order", () => {
+  const template = readFileSync(new URL("../../app/templates/forms.html", import.meta.url), "utf8");
+  assert.match(template, /js\/state_transitions\.js/);
+  assert.match(template, /js\/forms\.js/);
+  assert.doesNotMatch(template, /Inline quick-init|document\.createElement\('script'\)/);
+});
+
 test("frontend lint rejects direct await fetch outside the shared client", () => {
   const source = readFileSync(new URL("../../scripts/lint_frontend.mjs", import.meta.url), "utf8");
   assert.match(source, /await\\s\+\(\?:window\\\.\)\?fetch/);

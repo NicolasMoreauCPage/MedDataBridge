@@ -255,6 +255,9 @@ l'audit :
   Le détail de cotations délègue ses onglets à
   `static/js/dossier-cotations-tabs.js` et fournit désormais les rôles ARIA,
   états et raccourcis fléchés, Accueil et Fin attendus pour cette navigation.
+  La liste de configuration EJ des scénarios isole aussi sa suppression dans
+  `static/js/scenario-ej-config-list.js`, avec délégation d'événement et nom
+  d'EJ transporté par attribut de données plutôt que dans un gestionnaire HTML.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

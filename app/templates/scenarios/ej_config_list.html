@@ -148,7 +148,7 @@
                             <i class="fas fa-edit mr-1"></i>Configurer
                         </a>
                         {% if item.has_config %}
-                        <button onclick="deleteConfig({{ item.ej.id }}, '{{ item.ej.name }}')" 
+                        <button type="button" data-delete-scenario-ej-config data-ej-id="{{ item.ej.id }}" data-ej-name="{{ item.ej.name }}"
                                 class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
                             <i class="fas fa-trash mr-1"></i>Supprimer
                         </button>
@@ -188,39 +188,5 @@
     </div>
 </div>
 
-<script>
-async function deleteConfig(ejId, ejName) {
-    if (!window.PameliaUi?.confirm) {
-        showScenarioConfigNotification("Le dialogue de confirmation n'est pas disponible.", 'error');
-        return;
-    }
-    const confirmed = await window.PameliaUi.confirm({
-        title: 'Supprimer la configuration',
-        message: `Êtes-vous sûr de vouloir supprimer la configuration de "${ejName}" ?`,
-        acceptLabel: 'Supprimer',
-        variant: 'danger',
-    });
-    if (!confirmed) {
-        return;
-    }
-    
-    try {
-        await window.medbridgeHttp.request(`/config/scenario-ej/${ejId}`, {
-            method: 'DELETE',
-        });
-        showScenarioConfigNotification('Configuration supprimée.', 'success');
-        window.setTimeout(() => window.location.reload(), 350);
-    } catch (error) {
-        showScenarioConfigNotification(`Erreur : ${error.message}`, 'error');
-    }
-}
-
-function showScenarioConfigNotification(message, type = 'info') {
-    if (window.toastSystem?.show) {
-        window.toastSystem.show(message, type);
-        return;
-    }
-    console.info(message);
-}
-</script>
+<script defer src="{{ url_for('static', path='js/scenario-ej-config-list.js') }}"></script>
 {% endblock %}

@@ -3,12 +3,16 @@
 Analyse les fichiers XML / HL7 dans Doc/interfaces.integration_src/ et crée
 des ScenarioTemplate réutilisables.
 """
+import logging
 import re
 from pathlib import Path
 from typing import List, Tuple, Optional
 from sqlmodel import Session, select
 
 from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep
+
+
+logger = logging.getLogger(__name__)
 
 
 # Mapping événement HL7 -> semantic_event_code + narrative
@@ -63,8 +67,10 @@ def _scan_hl7_files(base_dir: Path) -> List[Tuple[Path, List[Tuple[str, str]]]]:
             events = _extract_hl7_events(content)
             if events:
                 results.append((fpath, events))
-        except Exception:
-            pass
+        except OSError:
+            # Le catalogue reste utilisable si une archive historique est
+            # illisible, mais l'opérateur doit pouvoir identifier le fichier.
+            logger.warning("Unable to scan IHE scenario source path=%s", fpath, exc_info=True)
     return results
 
 

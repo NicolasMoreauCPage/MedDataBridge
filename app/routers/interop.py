@@ -1,10 +1,13 @@
 # app/routers/interop.py
+import logging
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 
 router = APIRouter(prefix="/interop", tags=["interop"])
+logger = logging.getLogger(__name__)
 
 @router.post("/mllp/start/{endpoint_id}")
 async def start_endpoint(endpoint_id: int, request: Request, session=Depends(get_session)):
@@ -36,6 +39,8 @@ def mllp_status(request: Request):
             s = srv.sockets[0]
             host, port = s.getsockname()[:2]
             bindings.append({"endpoint_id": eid, "host": host, "port": port})
-        except Exception:
-            pass
+        except (AttributeError, IndexError, OSError):
+            # Une socket peut disparaître pendant un reload; le serveur reste
+            # visible comme actif mais son binding est momentanément absent.
+            logger.debug("MLLP binding unavailable endpoint_id=%s", eid, exc_info=True)
     return {"running_ids": running, "bindings": bindings}

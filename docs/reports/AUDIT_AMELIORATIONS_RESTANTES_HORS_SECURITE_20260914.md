@@ -116,7 +116,10 @@ l'audit :
   code de statut exploitable pour la décision de reprise de l'outbox. Les
   formulaires d'endpoint valident également leurs références GHT, EJ et endpoint
   lié : une valeur incorrecte retourne désormais une erreur 422 explicite au
-  lieu d'être ignorée ou de provoquer une erreur interne.
+  lieu d'être ignorée ou de provoquer une erreur interne. Les diagnostics
+  optionnels d'exploitation suivent la même règle : une archive de scénario IHE
+  illisible et une socket MLLP momentanément indisponible sont signalées, sans
+  empêcher l'exploration du catalogue ni le statut des autres serveurs.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

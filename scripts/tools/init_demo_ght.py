@@ -1,6 +1,8 @@
-"""Script pour initialiser le GHT de démo avec ses espaces de noms"""
+"""Script pour initialiser le GHT de démo avec ses espaces de noms."""
+import argparse
 import sys
 from pathlib import Path
+from sqlalchemy import text
 
 # Ajouter le répertoire parent au path pour pouvoir importer app
 parent_dir = str(Path(__file__).resolve().parent.parent)
@@ -8,13 +10,16 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 from sqlmodel import Session, select, SQLModel
-from app.db import engine
+from app.db import engine, migrate_database
 from app.models_structure import GHTContext, IdentifierNamespace
 
-def init_demo_ght():
-    # Drop et recréer la base
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+def init_demo_ght(reset: bool = False):
+    """Initialise les données de démo, sans effacer la base par défaut."""
+    if reset:
+        SQLModel.metadata.drop_all(engine)
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+    migrate_database(str(engine.url))
     
     with Session(engine) as session:
         # Vérifier si le GHT existe déjà
@@ -85,4 +90,6 @@ def init_demo_ght():
         print("Configuration terminée")
 
 if __name__ == "__main__":
-    init_demo_ght()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--reset", action="store_true", help="Supprime les données avant l'initialisation")
+    init_demo_ght(reset=parser.parse_args().reset)

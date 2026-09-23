@@ -7,16 +7,16 @@ parent_dir = str(Path(__file__).resolve().parent.parent)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from sqlmodel import Session, select, SQLModel
-from app.db import engine
-from app.models_structure import GHTContext, IdentifierNamespace
+from sqlmodel import Session, select  # noqa: E402
+from app.db import engine, migrate_database  # noqa: E402
+from app.models_structure import GHTContext, IdentifierNamespace  # noqa: E402
 
 def init_complete_demo():
     """Initialise une base complète avec un seul GHT contenant tout"""
     
-    # Créer les tables
-    print("Création des tables...")
-    SQLModel.metadata.create_all(engine)
+    # Migrer le schéma avant le seed
+    print("Migration du schéma...")
+    migrate_database(str(engine.url))
     
     with Session(engine) as session:
         # Chercher ou créer le GHT unique
@@ -106,7 +106,7 @@ def init_complete_demo():
         session.commit()
         
         print("\n" + "="*60)
-        print(f"Configuration terminée !")
+        print("Configuration terminée !")
         print(f"GHT: {ght.name} (id={ght.id}, code={ght.code})")
         print(f"Namespaces: {len(namespaces_config)} configurés")
         print("="*60)

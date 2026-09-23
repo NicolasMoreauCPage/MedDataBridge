@@ -14,8 +14,9 @@ import argparse
 import json
 from pathlib import Path
 from datetime import datetime, timedelta
+from sqlalchemy import text
 from sqlmodel import Session, SQLModel, select
-from app.db import engine, get_next_sequence
+from app.db import engine, get_next_sequence, migrate_database
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
@@ -67,7 +68,9 @@ def main():
     # Réinitialisation optionnelle
     if args.reset:
         SQLModel.metadata.drop_all(engine)
-        SQLModel.metadata.create_all(engine)
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+    migrate_database(str(engine.url))
 
     out_dir = Path("tools/output/fhir_demo_bundles")
     out_dir.mkdir(parents=True, exist_ok=True)

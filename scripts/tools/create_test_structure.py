@@ -6,9 +6,9 @@ from __future__ import annotations
 import argparse
 from typing import Optional
 
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, select
 
-from app.db import engine
+from app.db import engine, migrate_database
 from app.models_structure import GHTContext
 from app.services.structure_seed import DEMO_STRUCTURE, ensure_demo_structure
 
@@ -53,7 +53,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    SQLModel.metadata.create_all(engine)
+    migrate_database(str(engine.url))
 
     with Session(engine) as session:
         context = _ensure_context(session, context_id=args.context_id, context_code=args.context_code)

@@ -9,6 +9,11 @@ SCRIPTS = (
     ROOT / "scripts/tools/init_interop_scenarios.py",
     ROOT / "scripts/tools/init_all.py",
     ROOT / "scripts/maintenance/init_db.py",
+    ROOT / "scripts/tools/create_test_structure.py",
+    ROOT / "scripts/tools/init_complete_demo.py",
+    ROOT / "scripts/tools/init_demo_movements.py",
+    ROOT / "scripts/tools/init_demo_ght.py",
+    ROOT / "scripts/tools/reset_db.py",
 )
 
 

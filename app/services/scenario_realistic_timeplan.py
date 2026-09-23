@@ -4,7 +4,6 @@ Ce module analyse la séquence des événements HL7 dans un scénario et configu
 automatiquement des intervalles temporels réalistes basés sur les workflows hospitaliers typiques.
 """
 from typing import List, Optional, Tuple, Dict
-from datetime import timedelta
 from dataclasses import dataclass
 
 from app.services.scenario_timeplan import TimeShiftConfig

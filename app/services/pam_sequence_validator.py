@@ -17,8 +17,6 @@ Further enhancements: allowed transition checks, bed reservation/occupation chec
 """
 from typing import Optional, List
 from sqlmodel import select
-from dataclasses import asdict
-import os
 
 from app.services.pam_validation import ValidationIssue, ValidationResult
 from app.services.mllp import parse_msh_fields

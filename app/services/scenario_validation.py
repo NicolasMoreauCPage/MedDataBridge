@@ -18,7 +18,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from datetime import datetime
 
 from app.services.pam_validation import validate_pam, ValidationResult, ValidationIssue

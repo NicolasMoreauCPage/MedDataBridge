@@ -6,7 +6,6 @@ des interfaces d'interopérabilité (latence, taux de succès, etc.).
 
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
-import time
 import statistics
 from collections import defaultdict
 from dataclasses import dataclass

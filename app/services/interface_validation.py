@@ -4,7 +4,7 @@ Ce service fournit des fonctionnalités de validation HL7 PAM
 pour les tests d'interfaces GAM/GAP.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from dataclasses import dataclass
 import re
 

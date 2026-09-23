@@ -1,5 +1,4 @@
 from typing import List
-from dataclasses import asdict
 from app.services.pam_validation import ValidationIssue
 
 # Mapping code -> French message template. Use {detail} for contextual parts.

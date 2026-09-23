@@ -70,7 +70,7 @@ jobs:
           # redéfinitions ambiguës : elles restent bloquantes sur tout le code.
           ruff check app --select F821,F823,F601,F811
           # La dette historique non critique ne peut pas augmenter entre lots.
-          python scripts/check_ruff_baseline.py --max-errors 312
+          python scripts/check_ruff_baseline.py --max-errors 304
           ruff check \
             app/services/outbox_service.py \
             app/services/scenario_output_validation.py \

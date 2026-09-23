@@ -4,7 +4,7 @@ Permet de déterminer rapidement si un scénario a reçu un ACK positif (AA)
 lors de son dernier envoi sur une EJ donnée.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional
 from sqlmodel import Session, select, func, and_
 

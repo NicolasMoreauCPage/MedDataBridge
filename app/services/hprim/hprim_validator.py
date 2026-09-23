@@ -318,7 +318,7 @@ class HprimValidator:
                         f"Date naissance invalide: {patient.date_naissance} (format YYYY-MM-DD attendu)",
                         "date_naissance"
                     ))
-            except:
+            except Exception:
                 errors.append(HprimValidationError(
                     "PATIENT_NAISS_002",
                     f"Date naissance invalide: {patient.date_naissance}",

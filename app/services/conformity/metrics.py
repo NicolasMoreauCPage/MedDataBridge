@@ -69,7 +69,7 @@ def compute_conformity_rate(
                 has_error = any(i.get("severity") == "error" for i in issues)
                 if not has_error:
                     valid += 1
-            except:
+            except Exception:
                 pass
         else:
             valid += 1
@@ -130,7 +130,7 @@ def get_recurring_issues(
                         "message": issue.get("message", ""),
                         "severity": issue.get("severity", "info")
                     }
-        except:
+        except Exception:
             pass
     
     # Top N
@@ -192,7 +192,7 @@ def get_timeline_metrics(
                 has_error = any(i.get("severity") == "error" for i in issues)
                 if has_error:
                     is_valid = False
-            except:
+            except Exception:
                 pass
         
         if is_valid:

@@ -112,7 +112,7 @@ class PAMValidator:
                 field_num = parts[1]
                 return field_num in segment and segment[field_num]
             return False
-        except:
+        except Exception:
             return False
 
     def _is_valid_hl7_date(self, date_str: str) -> bool:

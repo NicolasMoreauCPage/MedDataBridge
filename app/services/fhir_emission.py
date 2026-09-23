@@ -17,7 +17,7 @@ from typing import Callable, Literal, Sequence
 from sqlmodel import Session, select
 
 from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
-from app.metrics import record_outbound_delivery
+from app.metrics import record_outbound_delivery_safely
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.outbox_service import enqueue_message
 
@@ -194,7 +194,7 @@ def emit_fhir_payload(
             endpoint.id,
             correlation_id,
         )
-        record_outbound_delivery(
+        record_outbound_delivery_safely(
             protocol="FHIR",
             status="error",
             duration_seconds=time.monotonic() - started_at,
@@ -247,7 +247,7 @@ def emit_fhir_payload(
             acknowledgment=acknowledgment,
             status=status,
         )
-        record_outbound_delivery(
+        record_outbound_delivery_safely(
             protocol="FHIR",
             status=status,
             duration_seconds=time.monotonic() - started_at,

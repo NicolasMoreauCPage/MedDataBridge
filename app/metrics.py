@@ -331,6 +331,19 @@ def record_outbound_delivery(
     )
 
 
+def record_outbound_delivery_safely(**kwargs: object) -> None:
+    """Trace une livraison sans laisser l'observabilité bloquer son transport."""
+    try:
+        record_outbound_delivery(**kwargs)
+    except Exception:
+        logger.warning(
+            "Outbound delivery metric recording failed protocol=%s status=%s",
+            kwargs.get("protocol", "unknown"),
+            kwargs.get("status", "unknown"),
+            exc_info=True,
+        )
+
+
 # === Parcours guidé de création de scénarios ===
 # Ces labels sont volontairement fermés. En particulier, ni le nom/la clé du
 # scénario, ni les données d'identité saisies pour les tests ne sont tracés.

@@ -18,7 +18,7 @@ from typing import Callable
 from sqlmodel import Session, select
 
 from app.models_endpoints import MessageLog
-from app.metrics import record_outbound_delivery
+from app.metrics import record_outbound_delivery_safely
 from app.services.outbox_service import enqueue_message
 
 logger = logging.getLogger(__name__)
@@ -245,7 +245,7 @@ def emit_outbound_pam_attempt(
         validation_issues=validation.issues,
     )
     dump_outbound_pam_payload(payload, entity_id)
-    record_outbound_delivery(
+    record_outbound_delivery_safely(
         protocol="MLLP",
         status=status,
         duration_seconds=time.monotonic() - started_at,

@@ -6,7 +6,9 @@ afin de ne pas imposer de processus supplémentaire sur les installations LAN.
 
 import asyncio
 import json
+import logging
 import re
+import time
 from datetime import datetime, timedelta
 from ftplib import FTP
 from io import BytesIO
@@ -17,9 +19,13 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
+from app.metrics import record_outbound_delivery_safely
 from app.models_outbox import OutboundMessage
 from app.services.fhir_transport import post_fhir_bundle
 from app.services.mllp import send_mllp
+
+
+logger = logging.getLogger(__name__)
 
 
 def _outbox_suffix(message_type: Optional[str]) -> str:
@@ -135,12 +141,15 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
         raise ValueError("Message d'outbox introuvable")
     if row.status == "sent":
         return row
+    started_at = time.monotonic()
     now, ack, http_status = datetime.utcnow(), "", None
     endpoint = session.get(SystemEndpoint, row.endpoint_id)
+    protocol = row.protocol.upper()
+    delivery_status = "error"
+    error_type: str | None = None
     try:
         if not endpoint or not endpoint.is_enabled:
             raise ValueError("Endpoint indisponible ou désactivé")
-        protocol = row.protocol.upper()
         if protocol == "MLLP":
             if not endpoint.host or not endpoint.port:
                 raise ValueError("Endpoint MLLP incomplet (host/port)")
@@ -207,7 +216,9 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
                 delivery.response_payload, delivery.error_message = ack, None
                 delivery.finished_at, delivery.updated_at = now, now
                 session.add(delivery)
+        delivery_status = "sent"
     except Exception as exc:  # Evidence is retained even after the final attempt.
+        error_type = type(exc).__name__
         row.attempts += 1
         row.last_error, row.response_payload = str(exc)[:1000], ack or None
         row.status = "failed" if row.attempts >= row.max_attempts else "retry"
@@ -230,10 +241,28 @@ async def process_outbox_message(session: Session, outbox_id: int) -> OutboundMe
                 delivery.status, delivery.error_message = ("error" if row.status == "failed" else "retry"), row.last_error
                 delivery.response_payload, delivery.finished_at, delivery.updated_at = row.response_payload, now, now
                 session.add(delivery)
+        logger.warning(
+            "Outbox delivery failed outbox_id=%s endpoint=%s protocol=%s correlation_id=%s attempt=%s error_type=%s",
+            row.id,
+            row.endpoint_id,
+            protocol,
+            row.correlation_id,
+            row.attempts,
+            error_type,
+            exc_info=True,
+        )
     row.updated_at = now
     session.add(row)
     session.commit()
     session.refresh(row)
+    record_outbound_delivery_safely(
+        protocol=protocol,
+        status=delivery_status,
+        duration_seconds=time.monotonic() - started_at,
+        endpoint_id=row.endpoint_id,
+        correlation_id=row.correlation_id,
+        error_type=error_type,
+    )
     return row
 
 

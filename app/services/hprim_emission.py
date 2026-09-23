@@ -31,7 +31,7 @@ from app.hprim_models import (
 )
 from app.models import CCAMAct, Dossier, LPPAct, NGAPAct, Patient, UCDAct
 from app.models_practitioners import MedecinResponsable
-from app.metrics import record_outbound_delivery
+from app.metrics import record_outbound_delivery_safely
 from app.services.hprim.hprim_xml import HprimXmlService
 from app.utils.booleans import as_bool
 
@@ -205,7 +205,7 @@ def emit_hprim_act(
     generated = generate_hprim_xml(entity, entity_type, session, endpoint, operation)
     if generated is None:
         logger.error("[HPRIM] Missing dossier or patient for act %s", getattr(entity, "id", "unknown"))
-        record_outbound_delivery(
+        record_outbound_delivery_safely(
             protocol="HPRIM",
             status="error",
             duration_seconds=time.monotonic() - started_at,
@@ -233,7 +233,7 @@ def emit_hprim_act(
             endpoint.id,
             delivery.outbox.id,
         )
-        record_outbound_delivery(
+        record_outbound_delivery_safely(
             protocol="HPRIM",
             status="sent",
             duration_seconds=time.monotonic() - started_at,

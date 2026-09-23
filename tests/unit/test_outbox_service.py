@@ -9,6 +9,7 @@ from app.services.outbox_service import (
     _delivery_ack_code,
     enqueue_failed_message_logs,
     outbox_stats,
+    process_outbox_message,
     process_due_messages,
     retry_now,
 )
@@ -38,6 +39,39 @@ def test_outbox_stats_exposes_backlog_and_terminal_failures(session):
     assert stats["counts"]["pending"] == 1
     assert stats["counts"]["failed"] == 1
     assert stats["due"] == 1
+
+
+@pytest.mark.asyncio
+async def test_outbox_delivery_records_the_actual_transport_attempt(session, tmp_path, monkeypatch):
+    endpoint = SystemEndpoint(name="Fichier", kind="FILE", role="sender", outbox_path=str(tmp_path))
+    session.add(endpoint)
+    session.commit()
+    row = OutboundMessage(
+        endpoint_id=endpoint.id,
+        protocol="FILE",
+        payload="MSH|^~\\&|MEDBRIDGE",
+        correlation_id="outbox-metric-42",
+    )
+    session.add(row)
+    session.commit()
+    attempts = []
+    monkeypatch.setattr(
+        "app.services.outbox_service.record_outbound_delivery_safely",
+        lambda **kwargs: attempts.append(kwargs),
+    )
+
+    processed = await process_outbox_message(session, row.id)
+
+    assert processed.status == "sent"
+    assert len(attempts) == 1
+    assert attempts[0]["duration_seconds"] >= 0
+    assert {key: value for key, value in attempts[0].items() if key != "duration_seconds"} == {
+        "protocol": "FILE",
+        "status": "sent",
+        "endpoint_id": endpoint.id,
+        "correlation_id": "outbox-metric-42",
+        "error_type": None,
+    }
 
 
 @pytest.mark.asyncio

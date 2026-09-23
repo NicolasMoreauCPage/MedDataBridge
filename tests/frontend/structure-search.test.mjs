@@ -244,14 +244,19 @@ test("location cartography delegates hierarchy reads to the shared HTTP client",
 });
 
 test("isolated dossier, scenario and contact actions use the shared HTTP client", () => {
-  for (const relativePath of [
-    "../../app/templates/dossier_detail.html",
-    "../../app/templates/test_scenario_generator.html",
-  ]) {
-    const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
-    assert.match(source, /window\.medbridgeHttp\.(get|post|request)\(/);
-    assert.doesNotMatch(source, /\bfetch\(/);
-  }
+  const dossier = readFileSync(new URL("../../app/templates/dossier_detail.html", import.meta.url), "utf8");
+  const dossierWorkspace = readFileSync(
+    new URL("../../app/static/js/dossier-detail-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(dossier, /js\/dossier-detail-workspace\.js/);
+  assert.doesNotMatch(dossier, /window\.medbridgeHttp\./);
+  assert.match(dossierWorkspace, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(dossierWorkspace, /\bfetch\(/);
+
+  const generator = readFileSync(new URL("../../app/templates/test_scenario_generator.html", import.meta.url), "utf8");
+  assert.match(generator, /window\.medbridgeHttp\.(get|post|request)\(/);
+  assert.doesNotMatch(generator, /\bfetch\(/);
   const contacts = readFileSync(new URL("../../app/templates/contacts_list.html", import.meta.url), "utf8");
   const contactsWorkspace = readFileSync(
     new URL("../../app/static/js/contacts-list-workspace.js", import.meta.url),

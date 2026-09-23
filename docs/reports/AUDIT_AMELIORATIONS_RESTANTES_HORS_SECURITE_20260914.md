@@ -404,6 +404,9 @@ l'audit :
   que sur l'étape concernée, annonce ses chargements et erreurs, et délègue la
   sélection des lits avec un état `aria-pressed` au lieu de recréer des
   listeners pour chaque résultat.
+  Le détail dossier charge désormais son compteur de cotations depuis
+  `static/js/dossier-detail-workspace.js`, avec l'identifiant transmis par un
+  attribut `data-*` et des gardes explicites sur les éléments facultatifs.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

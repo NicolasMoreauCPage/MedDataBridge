@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "macros/ui.html" as ui %}
 {% block content %}
-<div class="max-w-7xl mx-auto py-8 px-4 space-y-6">
+<div class="max-w-7xl mx-auto py-8 px-4 space-y-6" data-dossier-detail data-dossier-id="{{ dossier.id }}">
   <!-- Breadcrumb - Style Moderne -->
   <nav class="flex items-center gap-2 text-sm" aria-label="Fil d'ariane dossier">
     <a href="/" class="text-slate-600 dark:text-slate-300 hover:text-indigo-600 font-medium transition-all duration-300 hover:scale-105">Accueil</a>
@@ -480,44 +480,5 @@
   </div>
 </div>
 
-<script>
-  // Charger le nombre de cotations du dossier
-  async function loadCotationsCount() {
-    try {
-      const dossier_id = {{ dossier.id }};
-      const { data } = await window.medbridgeHttp.get(
-        `/api/hprim/interventions/${dossier_id}/cotations-count`,
-      );
-      
-      if (data.has_cotations && data.cotations_count > 0) {
-        const btn = document.getElementById('view-cotations-btn');
-        const badge = document.getElementById('cotations-badge');
-        const label = document.getElementById('cotations-label');
-        
-        // Afficher le bouton
-        btn.classList.remove('hidden');
-        
-        // Mettre à jour le badge avec le nombre
-        badge.textContent = data.cotations_count;
-        
-        // Optionnel: mettre à jour le label
-        if (data.cotations_count === 1) {
-          label.textContent = 'Voir la cotation';
-        } else {
-          label.textContent = `Voir les ${data.cotations_count} cotations`;
-        }
-      }
-    } catch (error) {
-      console.warn('Erreur lors du chargement du nombre de cotations:', error);
-      // Ne pas afficher le bouton en cas d'erreur
-    }
-  }
-  
-  // Charger les cotations au chargement de la page
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadCotationsCount);
-  } else {
-    loadCotationsCount();
-  }
-</script>
+<script defer src="{{ url_for('static', path='/js/dossier-detail-workspace.js') }}"></script>
 {% endblock %}

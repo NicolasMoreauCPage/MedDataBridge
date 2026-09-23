@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/location", tags=["location"])
 
 
 @router.get("/services")
-async def get_services(session: Session = Depends(get_session)):
+def get_services(session: Session = Depends(get_session)):
     """Get all services with summary info"""
     services = session.exec(select(Service)).all()
     return [
@@ -28,7 +28,7 @@ async def get_services(session: Session = Depends(get_session)):
 
 
 @router.get("/services/{service_id}/ufs")
-async def get_service_ufs(service_id: int, session: Session = Depends(get_session)):
+def get_service_ufs(service_id: int, session: Session = Depends(get_session)):
     """Get UFs for a specific service"""
     ufs = session.exec(
         select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service_id)
@@ -45,7 +45,7 @@ async def get_service_ufs(service_id: int, session: Session = Depends(get_sessio
 
 
 @router.get("/ufs/{uf_id}/hebergement")
-async def get_uf_hebergement(uf_id: int, session: Session = Depends(get_session)):
+def get_uf_hebergement(uf_id: int, session: Session = Depends(get_session)):
     """Get Unités d'Hébergement for a specific UF"""
     uhs = session.exec(
         select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == uf_id)
@@ -61,7 +61,7 @@ async def get_uf_hebergement(uf_id: int, session: Session = Depends(get_session)
 
 
 @router.get("/hebergement/{uh_id}/chambres")
-async def get_uh_chambres(uh_id: int, session: Session = Depends(get_session)):
+def get_uh_chambres(uh_id: int, session: Session = Depends(get_session)):
     """Get Chambres for a specific Unité d'Hébergement"""
     # Some UHs might not have chambres directly - handle flattened structures
     chambres = session.exec(
@@ -79,7 +79,7 @@ async def get_uh_chambres(uh_id: int, session: Session = Depends(get_session)):
 
 
 @router.get("/ufs/{uf_id}/available-lits")
-async def get_uf_available_lits(uf_id: int, session: Session = Depends(get_session)):
+def get_uf_available_lits(uf_id: int, session: Session = Depends(get_session)):
     """Get all available beds for an UF in one call (UH/Chambre/Lit flattened)."""
     uhs = session.exec(
         select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == uf_id)
@@ -139,7 +139,7 @@ async def get_uf_available_lits(uf_id: int, session: Session = Depends(get_sessi
 
 
 @router.get("/chambres/{chambre_id}/lits")
-async def get_chambre_lits(chambre_id: int, status: str = "free", session: Session = Depends(get_session)):
+def get_chambre_lits(chambre_id: int, status: str = "free", session: Session = Depends(get_session)):
     """Get Lits for a specific Chambre with status filtering"""
     query = select(Lit).where(Lit.chambre_id == chambre_id)
     
@@ -168,7 +168,7 @@ async def get_chambre_lits(chambre_id: int, status: str = "free", session: Sessi
 
 
 @router.get("/lit/{lit_id}")
-async def get_lit_details(lit_id: int, session: Session = Depends(get_session)):
+def get_lit_details(lit_id: int, session: Session = Depends(get_session)):
     """Get full details about a specific lit including its location hierarchy"""
     lit = session.get(Lit, lit_id)
     if not lit:
@@ -213,7 +213,7 @@ async def get_lit_details(lit_id: int, session: Session = Depends(get_session)):
 
 
 @router.get("/hierarchy")
-async def get_hierarchy_tree(session: Session = Depends(get_session)):
+def get_hierarchy_tree(session: Session = Depends(get_session)):
     """Get the complete location hierarchy tree for cartographic display"""
     services = session.exec(select(Service)).all()
 

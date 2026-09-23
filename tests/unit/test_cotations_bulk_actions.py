@@ -59,6 +59,100 @@ def test_bulk_actions_reject_unknown_cotation_type(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+def test_rapid_entry_creates_and_rereads_every_cotation_type(client: TestClient, session: Session) -> None:
+    """Le succès de la saisie rapide correspond à un acte réellement persisté.
+
+    Les quatre formulaires de la page utilisent des routes distinctes. Ce test
+    couvre leur contrat commun : création, identifiant retourné puis relecture
+    par l'API du workspace et dans la base de données.
+    """
+
+    dossier = _dossier(session)
+    execute_date = "2026-03-04T14:30:00"
+    entries = [
+        (
+            "ccam",
+            CCAMAct,
+            {
+                "dossier_id": dossier.id,
+                "code_acte": "HBMD001",
+                "code_activite": "01",
+                "code_phase": "01",
+                "execute_date": execute_date,
+                "quantite": 2,
+                "montant_total": 70.28,
+                "commentaire": "Saisie rapide CCAM",
+            },
+            "code_acte",
+            "HBMD001",
+        ),
+        (
+            "ngap",
+            NGAPAct,
+            {
+                "dossier_id": dossier.id,
+                "lettre_cle": "AMI",
+                "coefficient": 2,
+                "denombrement": 3,
+                "execute_date": execute_date,
+                "montant_total": 21.0,
+                "commentaire": "Saisie rapide NGAP",
+            },
+            "lettre_cle",
+            "AMI",
+        ),
+        (
+            "ucd",
+            UCDAct,
+            {
+                "dossier_id": dossier.id,
+                "code_ucd": "3400935001324",
+                "denomination_libelle": "Produit UCD de test",
+                "quantite": 2,
+                "montant_unitaire_facture_ttc": 5.5,
+                "execute_date": execute_date,
+                "commentaire": "Saisie rapide UCD",
+            },
+            "code_ucd",
+            "3400935001324",
+        ),
+        (
+            "lpp",
+            LPPAct,
+            {
+                "dossier_id": dossier.id,
+                "code_lpp": "1234567890123",
+                "denomination_libelle": "Dispositif LPP de test",
+                "quantite": 1,
+                "montant_unitaire_facture_ttc": 12.5,
+                "execute_date": execute_date,
+                "commentaire": "Saisie rapide LPP",
+            },
+            "code_lpp",
+            "1234567890123",
+        ),
+    ]
+
+    for acte_type, model, payload, code_field, expected_code in entries:
+        created = client.post(f"/cotations/api/{acte_type}", json=payload)
+        assert created.status_code == 200
+        body = created.json()
+        assert body["success"] is True
+        acte_id = body["acte_id"]
+
+        reread = client.get(f"/cotations/api/{acte_type}/{acte_id}")
+        assert reread.status_code == 200
+        assert reread.json()["type"] == acte_type
+        assert reread.json()["id"] == acte_id
+        assert reread.json()["commentaire"] == payload["commentaire"]
+
+        session.expire_all()
+        stored = session.get(model, acte_id)
+        assert stored is not None
+        assert stored.dossier_id == dossier.id
+        assert getattr(stored, code_field) == expected_code
+
+
 def test_cotation_common_fields_can_be_read_and_edited_for_every_type(client: TestClient, session: Session) -> None:
     """L'édition du workspace couvre les champs communs des quatre nomenclatures."""
 

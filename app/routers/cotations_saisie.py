@@ -36,6 +36,25 @@ COTATION_AMOUNT_FIELDS = {
 }
 
 
+def _parse_execute_date(value: Any) -> datetime:
+    """Convertit la date ISO fournie par les formulaires en ``datetime``.
+
+    Les endpoints de saisie rapide reçoivent un dictionnaire JSON afin de
+    rester compatibles avec les quatre nomenclatures. Sans cette conversion,
+    SQLAlchemy refuse la chaîne ``datetime-local`` envoyée par le navigateur
+    au moment du commit.
+    """
+
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("Date d'exécution obligatoire")
+    try:
+        return datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("Date d'exécution invalide") from exc
+
+
 def _get_cotation_or_404(session: Session, acte_type: str, acte_id: int) -> tuple[str, Any]:
     normalized_type = acte_type.strip().lower()
     if normalized_type not in COTATION_MODELS:
@@ -498,7 +517,7 @@ async def create_ccam_acte(
             code_acte=acte_data["code_acte"],
             code_activite=acte_data["code_activite"],
             code_phase=acte_data["code_phase"],
-            execute_date=acte_data["execute_date"],
+            execute_date=_parse_execute_date(acte_data.get("execute_date")),
             modificateurs=acte_data.get("modificateurs"),
             quantite=acte_data.get("quantite", 1),
             montant_total=acte_data.get("montant_total"),
@@ -716,7 +735,7 @@ async def create_ngap_acte(
             lettre_cle=acte_data["lettre_cle"],
             coefficient=acte_data.get("coefficient", 1.0),
             denombrement=acte_data.get("denombrement", 1),
-            execute_date=acte_data["execute_date"],
+            execute_date=_parse_execute_date(acte_data.get("execute_date")),
             montant_total=acte_data.get("montant_total"),
             commentaire=acte_data.get("commentaire"),
             valide=False,
@@ -772,7 +791,7 @@ async def create_ucd_acte(
             denomination_libelle=acte_data["denomination_libelle"],
             denomination_dosage=acte_data.get("denomination_dosage"),
             denomination_forme=acte_data.get("denomination_forme"),
-            execute_date=acte_data["execute_date"],
+            execute_date=_parse_execute_date(acte_data.get("execute_date")),
             quantite=quantite,
             montant_unitaire_facture_ttc=acte_data.get("montant_unitaire_facture_ttc"),
             commentaire=acte_data.get("commentaire"),
@@ -826,7 +845,7 @@ async def create_lpp_acte(
 
         acte = LPPAct(
             dossier_id=acte_data["dossier_id"],
-            execute_date=acte_data["execute_date"],
+            execute_date=_parse_execute_date(acte_data.get("execute_date")),
             code_lpp=acte_data.get("code_lpp"),
             denomination_libelle=acte_data["denomination_libelle"],
             montant_unitaire_facture_ttc=acte_data["montant_unitaire_facture_ttc"],

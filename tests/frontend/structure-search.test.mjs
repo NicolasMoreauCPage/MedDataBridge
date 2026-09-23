@@ -323,6 +323,10 @@ test("rapid cotation workflow delegates searches and mutations to the shared HTT
   assert.doesNotMatch(template, /<style>/);
   assert.match(template, /window\.medbridgeHttp\.get\(/);
   assert.match(template, /window\.medbridgeHttp\.post\(/);
+  ["ccam", "ngap", "ucd", "lpp"].forEach((type) => {
+    assert.match(template, new RegExp(`medbridgeHttp\\.post\\\('/cotations/api/${type}'`));
+  });
+  assert.doesNotMatch(template, /succès de simulation|simulation locale/i);
   assert.match(history, /window\.medbridgeHttp\.post\("\/cotations\/api\/bulk"/);
   assert.match(history, /window\.medbridgeHttp\.request\(/);
   assert.match(history, /window\.PameliaUi\.confirm/);

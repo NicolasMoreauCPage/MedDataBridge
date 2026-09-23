@@ -306,7 +306,9 @@ l'audit :
   workspace persistant et le guide d'intégration a été aligné sur ce parcours.
   Le composant non inclus `components/cotations_inline.html`, qui ne manipulait
   lui aussi que des données locales, a été supprimé avec son exemption de
-  garde-fou.
+  garde-fou. La saisie rapide convertit désormais les dates ISO des formulaires
+  avant persistance ; un test crée puis relit un acte CCAM, NGAP, UCD et LPP,
+  afin qu'un succès affiché corresponde obligatoirement à une sauvegarde réelle.
 - **FE-03 :** `static/js/http.js` centralise timeout, annulation, parsing et
   erreurs HTTP. Les parcours cotation, listes, scénarios, messages et tableau
   de bord l'utilisent désormais; la recherche de structure passe également par

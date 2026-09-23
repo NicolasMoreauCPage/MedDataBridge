@@ -119,7 +119,9 @@ l'audit :
   lieu d'être ignorée ou de provoquer une erreur interne. Les diagnostics
   optionnels d'exploitation suivent la même règle : une archive de scénario IHE
   illisible et une socket MLLP momentanément indisponible sont signalées, sans
-  empêcher l'exploration du catalogue ni le statut des autres serveurs.
+  empêcher l'exploration du catalogue ni le statut des autres serveurs. Les
+  filtres de dates des venues sont également validés : une saisie invalide
+  retourne une erreur 422 plutôt que d'élargir silencieusement la liste.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

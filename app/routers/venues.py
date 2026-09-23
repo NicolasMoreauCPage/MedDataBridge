@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, Request, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import select
 from datetime import datetime, timedelta
 from app.db import get_session, peek_next_sequence
+from app.dependencies.ght import require_ght_context
 from app.models import Venue, Dossier, Mouvement
+from app.services import venues_service
+from app.services.venues_service import VenueCreateSchema
+from app.utils.flash import flash
 from sqlmodel import select as sqlm_select
 
 
@@ -22,12 +26,6 @@ def _compute_venue_status(mouvements) -> dict:
     if mouvements:
         return {"label": "Actif", "color": "cyan", "closed": False}
     return {"label": "Nouveau", "color": "slate", "closed": False}
-from app.dependencies.ght import require_ght_context
-from app.services import venues_service
-from app.services.venues_service import VenueCreateSchema
-from app.utils.flash import flash
-
-
 def get_templates_with_filters(request: FastAPIRequest):
     """Retourne l'instance templates globale avec les filtres enregistrés"""
     return request.app.state.templates
@@ -37,6 +35,23 @@ router = APIRouter(
     tags=["venues"],
     dependencies=[Depends(require_ght_context)],
 )
+
+
+def _parse_venue_filter_date(value: str | None, field_name: str) -> datetime | None:
+    """Valide une date de filtre sans élargir silencieusement la liste."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        try:
+            # Autoriser un format complet ISO (datetime-local).
+            return datetime.fromisoformat(value)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Le filtre {field_name} doit être une date ISO 8601 valide.",
+            ) from exc
 
 @router.get("", response_class=HTMLResponse)
 def list_venues(
@@ -82,20 +97,8 @@ def list_venues(
         query = query.where(Venue.assigned_location.ilike(f"%{location}%"))
 
     # Filtres de période (début de venue)
-    def _parse_date(value: str | None):
-        if not value:
-            return None
-        try:
-            return datetime.strptime(value, "%Y-%m-%d")
-        except ValueError:
-            try:
-                # Autoriser un format complet ISO (datetime-local)
-                return datetime.fromisoformat(value)
-            except Exception:
-                return None
-
-    start_from_dt = _parse_date(start_from)
-    start_to_dt = _parse_date(start_to)
+    start_from_dt = _parse_venue_filter_date(start_from, "start_from")
+    start_to_dt = _parse_venue_filter_date(start_to, "start_to")
     if start_from_dt:
         query = query.where(Venue.start_time >= start_from_dt)
     if start_to_dt:

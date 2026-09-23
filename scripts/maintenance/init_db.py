@@ -811,21 +811,15 @@ def main():
         DB_PATH.unlink()
         print("✓ Base supprimée\n")
 
-    # 1. Schéma (tables)
+    # 1. Schéma (migrations)
     print("=" * 60)
-    print("ÉTAPE 1/4 : Création du schéma (tables)")
+    print("ÉTAPE 1/4 : Migration du schéma")
     print("=" * 60)
     try:
         from app.db import engine
-        from app import models  # Importe tous les modèles pour SQLModel.metadata
-        from app import models_scenarios
-        from app import models_workflows
-        from app import models_shared
-        from app import models_structure
-        from sqlmodel import SQLModel
+        from app.db import migrate_database
 
-        # Créer les tables manuellement sans déclencher l'import automatique des templates
-        SQLModel.metadata.create_all(engine)
+        migrate_database(str(engine.url))
 
         # Activer WAL pour SQLite
         import sqlite3
@@ -833,7 +827,7 @@ def main():
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.close()
 
-        print("✓ Tables créées\n")
+        print("✓ Schéma migré\n")
     except Exception as e:
         print(f"✗ Échec création tables: {e}")
         sys.exit(1)

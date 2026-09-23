@@ -13,7 +13,8 @@ Ce script :
 """
 
 from sqlmodel import Session, select, SQLModel
-from app.db import engine
+from sqlalchemy import text
+from app.db import engine, migrate_database
 from app.models_structure import GHTContext, IdentifierNamespace
 from app.models_shared import SystemEndpoint
 # Ajout des imports manquants
@@ -522,13 +523,17 @@ def main():
     print("INITIALISATION COMPLÈTE DE LA BASE DE DONNÉES DE DÉMONSTRATION")
     print("="*70)
     
-    # Étape 1: Créer/recréer les tables
-    print("\n[1/5] Création des tables de la base de données...")
+    # Étape 1: Migrer le schéma de la base de données
+    print("\n[1/5] Migration du schéma de la base de données...")
     if args.reset:
         print("  ⚠️  Mode RESET: Suppression de toutes les données existantes")
         SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
-    print("  ✓ Tables créées")
+        # ``alembic_version`` n'appartient pas aux modèles SQLModel. La retirer
+        # évite de marquer une base vide comme déjà à jour.
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+    migrate_database(str(engine.url))
+    print("  ✓ Schéma migré")
     
     with Session(engine) as session:
         # Étape 2: Créer le GHT et les namespaces

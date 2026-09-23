@@ -1,9 +1,6 @@
 from typing import Tuple, List, Dict
 from sqlmodel import Session
-from app.models_structure import (
-    EntiteGeographique, Pole, Service, UniteFonctionnelle,
-    UniteHebergement, Chambre, Lit, LocationStatus,
-)
+from app.models_structure import EntiteGeographique, LocationStatus
 
 
 def build_structure_tree_for_template(session: Session, eg: EntiteGeographique) -> Tuple[List[dict], Dict[str,int], int]:

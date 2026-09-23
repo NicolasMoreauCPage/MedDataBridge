@@ -99,7 +99,10 @@ l'audit :
   traitement métier ; les erreurs d'import sont journalisées avec leur pile.
   Le worker d'outbox trace également chaque tentative réelle (transport,
   corrélation, durée, résultat et type d'erreur) après sa persistance, y compris
-  lorsque celle-ci est planifiée pour une nouvelle tentative.
+  lorsque celle-ci est planifiée pour une nouvelle tentative. Les vues de
+  journaux ne masquent plus non plus une saisie de filtre invalide : leurs dates
+  ISO et identifiants d'endpoint sont validés et retournent une erreur 422
+  explicite avant toute recherche.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

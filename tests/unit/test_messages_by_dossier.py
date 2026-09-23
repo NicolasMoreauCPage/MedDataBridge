@@ -2,6 +2,9 @@ from datetime import datetime
 
 from app.models import Dossier, Patient
 from app.models_shared import MessageLog
+import pytest
+from fastapi import HTTPException
+
 from app.routers.messages import _extract_ipp_and_dossier, list_by_dossier, list_messages
 
 
@@ -176,3 +179,39 @@ def test_messages_filters_an_exact_status_and_groups_negative_ack_statuses(isola
         direction=None, limit=100,
     )
     assert [message.status for message in errors_context["messages"]] == ["ack_error"]
+
+
+def test_messages_rejects_an_invalid_date_filter_instead_of_ignoring_it(isolated_session):
+    with pytest.raises(HTTPException) as raised:
+        list_messages(
+            _Request(),
+            isolated_session,
+            endpoint_id=None,
+            date_start="not-a-date",
+            date_end=None,
+            neg_ack_only=False,
+            status=None,
+            kind=None,
+            direction=None,
+        )
+
+    assert raised.value.status_code == 422
+    assert raised.value.detail == "Le filtre date_start doit être une date ISO 8601 valide."
+
+
+def test_messages_rejects_an_invalid_endpoint_filter_instead_of_ignoring_it(isolated_session):
+    with pytest.raises(HTTPException) as raised:
+        list_messages(
+            _Request(),
+            isolated_session,
+            endpoint_id="not-an-id",
+            date_start=None,
+            date_end=None,
+            neg_ack_only=False,
+            status=None,
+            kind=None,
+            direction=None,
+        )
+
+    assert raised.value.status_code == 422
+    assert raised.value.detail == "Le filtre endpoint_id doit être un entier valide."

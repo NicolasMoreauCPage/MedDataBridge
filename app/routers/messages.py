@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Query, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, Form
 from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlmodel import Session, select, col
 from datetime import datetime
@@ -36,6 +36,32 @@ def get_templates_with_filters(request: Request):
 logger = logging.getLogger("routers.messages")
 
 NEG_STATUSES = {"ack_error", "error"}  # ajuste selon ton usage
+
+
+def _parse_filter_datetime(value: str, field_name: str) -> datetime:
+    """Parse une date de filtre sans élargir une recherche sur erreur de saisie."""
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        logger.warning("Invalid message date filter field=%s value=%r", field_name, value)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Le filtre {field_name} doit être une date ISO 8601 valide.",
+        ) from exc
+
+
+def _parse_optional_endpoint_id(value: str | None) -> int | None:
+    """Valide un identifiant d'endpoint facultatif avant de filtrer les logs."""
+    if not value or not value.strip():
+        return None
+    try:
+        return int(value)
+    except ValueError as exc:
+        logger.warning("Invalid message endpoint filter value=%r", value)
+        raise HTTPException(
+            status_code=422,
+            detail="Le filtre endpoint_id doit être un entier valide.",
+        ) from exc
 
 
 def _extract_ipp_and_dossier(payload: str) -> tuple[str, str]:
@@ -100,29 +126,16 @@ def list_messages(
     stmt = select(MessageLog)
 
     # Convertir endpoint_id en int si présent et non vide
-    endpoint_id_int = None
-    if endpoint_id and endpoint_id.strip():
-        try:
-            endpoint_id_int = int(endpoint_id)
-        except ValueError:
-            pass
+    endpoint_id_int = _parse_optional_endpoint_id(endpoint_id)
     
     if endpoint_id_int:
         stmt = stmt.where(MessageLog.endpoint_id == endpoint_id_int)
 
     if date_start:
-        try:
-            ds = datetime.fromisoformat(date_start)
-            stmt = stmt.where(MessageLog.created_at >= ds)
-        except Exception:
-            pass
+        stmt = stmt.where(MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start"))
 
     if date_end:
-        try:
-            de = datetime.fromisoformat(date_end)
-            stmt = stmt.where(MessageLog.created_at <= de)
-        except Exception:
-            pass
+        stmt = stmt.where(MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end"))
 
     if neg_ack_only or status == "error":
         stmt = stmt.where(col(MessageLog.status).in_(NEG_STATUSES))
@@ -213,29 +226,16 @@ def list_rejections(
     )
 
     # Convertir endpoint_id en int si présent et non vide
-    endpoint_id_int = None
-    if endpoint_id and endpoint_id.strip():
-        try:
-            endpoint_id_int = int(endpoint_id)
-        except ValueError:
-            pass
+    endpoint_id_int = _parse_optional_endpoint_id(endpoint_id)
 
     if endpoint_id_int:
         stmt = stmt.where(MessageLog.endpoint_id == endpoint_id_int)
     if kind in ("MLLP", "FHIR", "HPRIM"):
         stmt = stmt.where(MessageLog.kind == kind)
     if date_start:
-        try:
-            ds = datetime.fromisoformat(date_start)
-            stmt = stmt.where(MessageLog.created_at >= ds)
-        except Exception:
-            pass
+        stmt = stmt.where(MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start"))
     if date_end:
-        try:
-            de = datetime.fromisoformat(date_end)
-            stmt = stmt.where(MessageLog.created_at <= de)
-        except Exception:
-            pass
+        stmt = stmt.where(MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end"))
 
     logs = session.exec(stmt.limit(limit)).all()
 
@@ -311,29 +311,16 @@ def list_by_dossier(
     stmt = select(MessageLog).where(MessageLog.kind == "MLLP")
     
     # Convertir endpoint_id en int si présent et non vide
-    endpoint_id_int = None
-    if endpoint_id and endpoint_id.strip():
-        try:
-            endpoint_id_int = int(endpoint_id)
-        except ValueError:
-            pass
+    endpoint_id_int = _parse_optional_endpoint_id(endpoint_id)
     
     if endpoint_id_int:
         stmt = stmt.where(MessageLog.endpoint_id == endpoint_id_int)
     if direction in ("in", "out"):
         stmt = stmt.where(MessageLog.direction == direction)
     if date_start:
-        try:
-            ds = datetime.fromisoformat(date_start)
-            stmt = stmt.where(MessageLog.created_at >= ds)
-        except Exception:
-            pass
+        stmt = stmt.where(MessageLog.created_at >= _parse_filter_datetime(date_start, "date_start"))
     if date_end:
-        try:
-            de = datetime.fromisoformat(date_end)
-            stmt = stmt.where(MessageLog.created_at <= de)
-        except Exception:
-            pass
+        stmt = stmt.where(MessageLog.created_at <= _parse_filter_datetime(date_end, "date_end"))
     
     stmt = stmt.order_by(MessageLog.created_at.desc()).limit(limit)
     logs = session.exec(stmt).all()

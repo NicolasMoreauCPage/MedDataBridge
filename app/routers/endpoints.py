@@ -8,7 +8,6 @@ import logging
 
 from app.db import get_session
 
-logger = logging.getLogger(__name__)
 from app.models_endpoints import SystemEndpoint
 from app.models_context import (
     EndpointContext, PatientContextMapping, DossierContextMapping,
@@ -20,6 +19,9 @@ from app.runners import registry
 from app.utils.booleans import as_bool
 from sqlmodel.sql.expression import select as sqlmodel_select
 from sqlalchemy.orm import selectinload
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -41,6 +43,20 @@ def _bool_from_str(v: str | None, default: bool = False) -> bool:
     if v is None:
         return default
     return as_bool(v)
+
+
+def _parse_optional_form_id(value: str | None, field_name: str) -> int | None:
+    """Valide les identifiants facultatifs soumis par le formulaire endpoint."""
+    if not value or not value.strip():
+        return None
+    try:
+        return int(value)
+    except ValueError as exc:
+        logger.warning("Invalid endpoint form identifier field=%s value=%r", field_name, value)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Le champ {field_name} doit être un entier valide.",
+        ) from exc
 
 @router.get("/admin", response_class=HTMLResponse)
 def admin_list_endpoints(request: Request, session=Depends(get_session)):
@@ -327,8 +343,8 @@ def create_endpoint(
         error_path,
         file_extensions,
     )
-    ght_id = int(ght_context_id) if ght_context_id and str(ght_context_id).strip() else None
-    ej_id = int(entite_juridique_id) if entite_juridique_id and str(entite_juridique_id).strip() else None
+    ght_id = _parse_optional_form_id(ght_context_id, "ght_context_id")
+    ej_id = _parse_optional_form_id(entite_juridique_id, "entite_juridique_id")
     # Fall back to active contexts if not provided by form (e.g., hidden by context)
     if not ght_id:
         gctx = getattr(request.state, 'ght_context', None)
@@ -381,11 +397,7 @@ def create_endpoint(
         pam_profile="IHE_PAM_FR" if pam_profile != "IHE_PAM_FR" else pam_profile,
     )
     # linked endpoint (anti-rebond)
-    if linked_endpoint_id and str(linked_endpoint_id).strip():
-        try:
-            e.linked_endpoint_id = int(linked_endpoint_id)
-        except Exception:
-            pass
+    e.linked_endpoint_id = _parse_optional_form_id(linked_endpoint_id, "linked_endpoint_id")
     session.add(e)
     session.commit()
     session.refresh(e)  # Get the assigned ID

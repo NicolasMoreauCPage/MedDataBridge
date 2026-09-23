@@ -113,7 +113,10 @@ l'audit :
   aux données historiques incomplètes, mais leur omission est désormais
   explicitement signalée sans empêcher l'export de la ressource principale. Le
   transport FHIR signale enfin les corps HTTP non JSON tout en gardant leur
-  code de statut exploitable pour la décision de reprise de l'outbox.
+  code de statut exploitable pour la décision de reprise de l'outbox. Les
+  formulaires d'endpoint valident également leurs références GHT, EJ et endpoint
+  lié : une valeur incorrecte retourne désormais une erreur 422 explicite au
+  lieu d'être ignorée ou de provoquer une erreur interne.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

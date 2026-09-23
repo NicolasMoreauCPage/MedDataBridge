@@ -104,7 +104,10 @@ l'audit :
   à poursuivre. La sélection des endpoints éligibles (global, EJ ou GHT) et
   son court retry de contention SQLite sont maintenant isolés dans
   `emission_endpoints.py`, sans transport ni attente de livraison dans
-  l'orchestrateur.
+  l'orchestrateur. La livraison FHIR (cibles, transport unique, journal de
+  corrélation et remise à l'outbox) est également réunie dans
+  `fhir_emission.py`; les branches identité et structure ne dupliquent plus
+  cette logique et l'ancien exécuteur asynchrone local a disparu.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

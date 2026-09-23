@@ -5,10 +5,15 @@ persiste la reprise. L'appel HTTP reste volontairement au niveau de
 ``emit_on_create`` pour préserver les points de monkeypatch des tests.
 """
 
+import asyncio
+import concurrent.futures
+import inspect
+import json
 import logging
-from typing import Literal, Sequence
+from datetime import datetime
+from typing import Callable, Literal, Sequence
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
@@ -94,3 +99,122 @@ def queue_fhir_retry(
         queued.id,
         correlation_id,
     )
+
+
+def _resolve_transport_result(result: object) -> object:
+    """Résout un transport FHIR asynchrone, même depuis une boucle active."""
+    if not inspect.iscoroutine(result):
+        return result
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(result)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, result).result(timeout=12)
+
+
+def _upsert_fhir_log(
+    session: Session,
+    *,
+    endpoint: SystemEndpoint,
+    correlation_id: str | None,
+    payload: str,
+    acknowledgment: str,
+    status: str,
+) -> MessageLog:
+    """Conserve un seul journal FHIR par corrélation ou reprise ouverte."""
+    if correlation_id:
+        existing = session.exec(
+            select(MessageLog)
+            .where(MessageLog.endpoint_id == endpoint.id)
+            .where(MessageLog.direction == "out")
+            .where(MessageLog.correlation_id == correlation_id)
+        ).first()
+    else:
+        existing = session.exec(
+            select(MessageLog)
+            .where(MessageLog.endpoint_id == endpoint.id)
+            .where(MessageLog.kind == "FHIR")
+            .where(MessageLog.status.in_(["error", "pending"]))
+            .order_by(MessageLog.created_at.desc())
+        ).first()
+
+    if existing:
+        existing.payload = payload
+        existing.ack_payload = acknowledgment
+        existing.status = status
+        existing.created_at = datetime.utcnow()
+        log = existing
+    else:
+        log = MessageLog(
+            direction="out",
+            kind="FHIR",
+            endpoint_id=endpoint.id,
+            payload=payload,
+            ack_payload=acknowledgment,
+            status=status,
+            correlation_id=correlation_id,
+        )
+        session.add(log)
+    session.commit()
+    return log
+
+
+def emit_fhir_payload(
+    session: Session,
+    *,
+    endpoint: SystemEndpoint,
+    payload: object,
+    correlation_id: str | None,
+    sender: Callable[..., object] | None = None,
+) -> MessageLog:
+    """Livre un Bundle FHIR une fois puis délègue les reprises à l'outbox.
+
+    La génération, le journal, le transport et la reprise sont ainsi regroupés
+    hors de l'orchestrateur multi-protocole. Le Bundle sérialisé est le même
+    dans le journal et dans l'outbox durable.
+    """
+    payload_text = json.dumps(payload, default=str)
+    targets = build_fhir_targets(endpoint)
+    if not targets:
+        return _upsert_fhir_log(
+            session,
+            endpoint=endpoint,
+            correlation_id=correlation_id,
+            payload=payload_text,
+            acknowledgment="Endpoint FHIR non configuré",
+            status="error",
+        )
+
+    if sender is None:
+        from app.services.fhir_transport import post_fhir_bundle
+
+        sender = post_fhir_bundle
+
+    last_log: MessageLog | None = None
+    for base_url, auth_kind, auth_token in targets:
+        try:
+            status_code, response_body = _resolve_transport_result(
+                sender(base_url, payload, auth_kind=auth_kind, auth_token=auth_token)
+            )
+            status = "sent" if 200 <= status_code < 300 else "error"
+            acknowledgment = json.dumps(response_body or {}, default=str)
+        except Exception as exc:
+            status = "error"
+            acknowledgment = str(exc)
+
+        last_log = _upsert_fhir_log(
+            session,
+            endpoint=endpoint,
+            correlation_id=correlation_id,
+            payload=payload_text,
+            acknowledgment=acknowledgment,
+            status=status,
+        )
+        if status == "sent":
+            return last_log
+
+    if last_log is not None:
+        queue_fhir_retry(session, endpoint, payload_text, correlation_id, last_log)
+    return last_log

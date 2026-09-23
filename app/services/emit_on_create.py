@@ -2,7 +2,6 @@ import logging
 import asyncio
 import json
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional, Sequence, Tuple
 
@@ -13,7 +12,7 @@ from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
-from app.services.fhir_emission import build_fhir_targets, generate_fhir, queue_fhir_retry
+from app.services.fhir_emission import emit_fhir_payload, generate_fhir
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
@@ -44,44 +43,6 @@ def _safe_query(session: Session, statement, max_retries=3):
             if attempt == max_retries - 1:
                 return None
     return None
-
-
-# Helper function to run async functions synchronously in a thread context
-def _run_async(coro):
-    """Run an async coroutine synchronously, handling existing event loops."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # We're already in an async context, create a new loop in a thread
-            import threading
-            result = [None]
-            exception = [None]
-            
-            def run_in_new_loop():
-                try:
-                    new_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(new_loop)
-                    result[0] = new_loop.run_until_complete(coro)
-                    new_loop.close()
-                except Exception as e:
-                    exception[0] = e
-            
-            thread = threading.Thread(target=run_in_new_loop)
-            thread.start()
-            thread.join()
-            if exception[0]:
-                raise exception[0]
-            return result[0]
-        else:
-            return loop.run_until_complete(coro)
-    except RuntimeError:
-        # No event loop exists, create one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(coro)
-        finally:
-            loop.close()
 
 
 # Global sanitization helper: coerce None / 'None' / whitespace-only to ''
@@ -1381,7 +1342,6 @@ def emit_to_senders_async(
             elif not endpoint.base_url:
                 logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping structure emission")
             else:
-                targets = build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 fhir_payload = generate_fhir(
@@ -1391,115 +1351,12 @@ def emit_to_senders_async(
                     forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
                     forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
                 )
-                if not targets:
-                    payload_str = json.dumps(fhir_payload, default=str)
-                    if correlation_id:
-                        existing_log = session.exec(
-                            select(MessageLog)
-                            .where(MessageLog.endpoint_id == endpoint.id)
-                            .where(MessageLog.direction == "out")
-                            .where(MessageLog.correlation_id == correlation_id)
-                        ).first()
-                    else:
-                        existing_log = session.exec(
-                            select(MessageLog)
-                            .where(MessageLog.endpoint_id == endpoint.id)
-                            .where(MessageLog.kind == "FHIR")
-                            .where(MessageLog.status.in_(["error", "pending"]))
-                            .order_by(MessageLog.created_at.desc())
-                        ).first()
-                    if existing_log:
-                        existing_log.payload = payload_str
-                        existing_log.ack_payload = "Endpoint FHIR non configuré"
-                        existing_log.status = "error"
-                        existing_log.created_at = datetime.utcnow()
-                        session.commit()
-                    else:
-                        if payload_str is None:
-                            logger.warning("FHIR MessageLog payload is None for endpoint=%s; coercing to empty string", endpoint.id)
-                        safe_payload = payload_str or ""
-                        log = MessageLog(
-                            direction="out",
-                            kind="FHIR",
-                            endpoint_id=endpoint.id,
-                            payload=safe_payload,
-                            ack_payload="Endpoint FHIR non configuré",
-                            status="error",
-                            correlation_id=correlation_id,
-                        )
-                        session.add(log)
-                        session.commit()
-                else:
-                    # Import FHIR transport at call time so tests can monkeypatch
-                    from app.services.fhir_transport import post_fhir_bundle as _send_fhir
-
-                    fhir_sent = False
-                    message_log = None
-                    for base_url, auth_kind, auth_token in targets:
-                        retry = 0
-                        max_retry = 1
-                        while retry < max_retry:
-                            status = "generated"
-                            ack_payload = ""
-                            payload_str = json.dumps(fhir_payload, default=str)
-                            try:
-                                status_code, response_body = _run_async(_send_fhir(
-                                    base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
-                                ))
-                                status = "sent" if 200 <= status_code < 300 else "error"
-                                ack_payload = json.dumps(response_body or {}, default=str)
-                            except Exception as exc:
-                                status = "error"
-                                ack_payload = str(exc)
-                            if correlation_id:
-                                existing_log = session.exec(
-                                    select(MessageLog)
-                                    .where(MessageLog.endpoint_id == endpoint.id)
-                                    .where(MessageLog.direction == "out")
-                                    .where(MessageLog.correlation_id == correlation_id)
-                                ).first()
-                                if existing_log:
-                                    logger.info(f"[RECEPTION] Updated existing FHIR MessageLog id={existing_log.id} with FHIR payload")
-                            else:
-                                existing_log = session.exec(
-                                    select(MessageLog)
-                                    .where(MessageLog.endpoint_id == endpoint.id)
-                                    .where(MessageLog.kind == "FHIR")
-                                    .where(MessageLog.status.in_(["error", "pending"]))
-                                    .order_by(MessageLog.created_at.desc())
-                                ).first()
-                                logger.info(f"[RECEPTION] Created new FHIR MessageLog for endpoint={endpoint.id}, correlation_id={correlation_id}")
-                            if existing_log:
-                                existing_log.payload = payload_str
-                                existing_log.ack_payload = ack_payload
-                                existing_log.status = status
-                                existing_log.created_at = datetime.utcnow()
-                                session.commit()
-                                message_log = existing_log
-                            else:
-                                if payload_str is None:
-                                    logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
-                                safe_payload = payload_str or ""
-                                log = MessageLog(
-                                    direction="out",
-                                    kind="FHIR",
-                                    endpoint_id=endpoint.id,
-                                    payload=safe_payload,
-                                    ack_payload=ack_payload,
-                                    status=status,
-                                    correlation_id=correlation_id,
-                                )
-                                session.add(log)
-                                session.commit()
-                                message_log = log
-                            if status == "sent":
-                                fhir_sent = True
-                                break
-                            retry += 1
-                    if not fhir_sent and message_log is not None:
-                        queue_fhir_retry(
-                            session, endpoint, payload_str, correlation_id, message_log
-                        )
+                emit_fhir_payload(
+                    session,
+                    endpoint=endpoint,
+                    payload=fhir_payload,
+                    correlation_id=correlation_id,
+                )
         
         # FHIR identity/movements (Patient/Encounter) - FHIR uniquement
         # Types d'entités compatibles : patient, mouvement, venue
@@ -1509,7 +1366,6 @@ def emit_to_senders_async(
             elif not endpoint.base_url:
                 logger.debug(f"[FHIR] Endpoint {endpoint.id} not properly configured (missing base_url) - skipping identity emission")
             else:
-                targets = build_fhir_targets(endpoint)
                 # Prefer using the live model instance for generation when available
                 gen_entity = entity if not isinstance(entity, dict) else (snapshot if snapshot is not None else entity)
                 fhir_payload = generate_fhir(
@@ -1519,109 +1375,12 @@ def emit_to_senders_async(
                     forced_identifier_system=getattr(endpoint, "forced_identifier_system", None),
                     forced_identifier_oid=getattr(endpoint, "forced_identifier_oid", None),
                 )
-                if not targets:
-                    payload_str = json.dumps(fhir_payload, default=str)
-                    if correlation_id:
-                        existing_log = session.exec(
-                            select(MessageLog)
-                            .where(MessageLog.endpoint_id == endpoint.id)
-                            .where(MessageLog.direction == "out")
-                            .where(MessageLog.correlation_id == correlation_id)
-                        ).first()
-                    else:
-                        existing_log = session.exec(
-                            select(MessageLog)
-                            .where(MessageLog.endpoint_id == endpoint.id)
-                            .where(MessageLog.kind == "FHIR")
-                            .where(MessageLog.status.in_(["error", "pending"]))
-                            .order_by(MessageLog.created_at.desc())
-                        ).first()
-                    if existing_log:
-                        existing_log.payload = payload_str
-                        existing_log.ack_payload = "Endpoint FHIR non configuré"
-                        existing_log.status = "error"
-                        existing_log.created_at = datetime.utcnow()
-                        session.commit()
-                    else:
-                        log = MessageLog(
-                            direction="out",
-                            kind="FHIR",
-                            endpoint_id=endpoint.id,
-                            payload=payload_str,
-                            ack_payload="Endpoint FHIR non configuré",
-                            status="error",
-                            correlation_id=correlation_id,
-                        )
-                        session.add(log)
-                        session.commit()
-                else:
-                    # Import FHIR transport at call time so tests can monkeypatch
-                    from app.services.fhir_transport import post_fhir_bundle as _send_fhir
-
-                    fhir_sent = False
-                    message_log = None
-                    for base_url, auth_kind, auth_token in targets:
-                        retry = 0
-                        max_retry = 1
-                        while retry < max_retry:
-                            status = "generated"
-                            ack_payload = ""
-                            payload_str = json.dumps(fhir_payload, default=str)
-                            try:
-                                status_code, response_body = _run_async(_send_fhir(
-                                    base_url, fhir_payload, auth_kind=auth_kind, auth_token=auth_token
-                                ))
-                                status = "sent" if 200 <= status_code < 300 else "error"
-                                ack_payload = json.dumps(response_body or {}, default=str)
-                            except Exception as exc:
-                                status = "error"
-                                ack_payload = str(exc)
-                            if correlation_id:
-                                existing_log = session.exec(
-                                    select(MessageLog)
-                                    .where(MessageLog.endpoint_id == endpoint.id)
-                                    .where(MessageLog.direction == "out")
-                                    .where(MessageLog.correlation_id == correlation_id)
-                                ).first()
-                            else:
-                                existing_log = session.exec(
-                                    select(MessageLog)
-                                    .where(MessageLog.endpoint_id == endpoint.id)
-                                    .where(MessageLog.kind == "FHIR")
-                                    .where(MessageLog.status.in_(["error", "pending"]))
-                                    .order_by(MessageLog.created_at.desc())
-                                ).first()
-                            if existing_log:
-                                existing_log.payload = payload_str
-                                existing_log.ack_payload = ack_payload
-                                existing_log.status = status
-                                existing_log.created_at = datetime.utcnow()
-                                session.commit()
-                                message_log = existing_log
-                            else:
-                                if payload_str is None:
-                                    logger.warning("FHIR MessageLog payload is None for endpoint=%s during send; coercing to empty string", endpoint.id)
-                                safe_payload = payload_str or ""
-                                log = MessageLog(
-                                    direction="out",
-                                    kind="FHIR",
-                                    endpoint_id=endpoint.id,
-                                    payload=safe_payload,
-                                    ack_payload=ack_payload,
-                                    status=status,
-                                    correlation_id=correlation_id,
-                                )
-                                session.add(log)
-                                session.commit()
-                                message_log = log
-                            if status == "sent":
-                                fhir_sent = True
-                                break
-                            retry += 1
-                    if not fhir_sent and message_log is not None:
-                        queue_fhir_retry(
-                            session, endpoint, payload_str, correlation_id, message_log
-                        )
+                emit_fhir_payload(
+                    session,
+                    endpoint=endpoint,
+                    payload=fhir_payload,
+                    correlation_id=correlation_id,
+                )
 
         # HPRIM endpoints: emit HPRIM XML messages for cotation (AUTO-TRANSMISSION)
         # HPRIM is used specifically for medical billing/cotation (CCAM, NGAP, UCD, LPP)

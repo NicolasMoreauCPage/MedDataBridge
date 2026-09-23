@@ -157,15 +157,21 @@ test("admission, patient sample and validation-rule interactions use the shared 
     "utf8",
   );
   const rules = readFileSync(new URL("../../app/templates/validation_rules.html", import.meta.url), "utf8");
+  const rulesWorkspace = readFileSync(
+    new URL("../../app/static/js/validation-rules-workspace.js", import.meta.url),
+    "utf8",
+  );
   assert.match(admission, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(admission, /\bfetch\(/);
   assert.match(patient, /js\/patient-form-workspace\.js/);
   assert.doesNotMatch(patient, /window\.medbridgeHttp\.get\(/);
   assert.match(patientWorkspace, /window\.medbridgeHttp\.get\("\/patients\/sample-identity"\)/);
   assert.doesNotMatch(patientWorkspace, /\bfetch\(/);
-  assert.match(rules, /window\.medbridgeHttp\.post\('\/api\/validation-rules', parsed\)/);
-  assert.match(rules, /window\.medbridgeHttp\.get\('\/api\/validation-rules'\)/);
-  assert.doesNotMatch(rules, /\bfetch\(/);
+  assert.match(rules, /js\/validation-rules-workspace\.js/);
+  assert.doesNotMatch(rules, /window\.medbridgeHttp\./);
+  assert.match(rulesWorkspace, /window\.medbridgeHttp\.post\("\/api\/validation-rules", parsed\)/);
+  assert.match(rulesWorkspace, /window\.medbridgeHttp\.get\("\/api\/validation-rules"\)/);
+  assert.doesNotMatch(rulesWorkspace, /\bfetch\(/);
 });
 
 test("structure import uses the shared HTTP client while preserving multipart payloads", () => {

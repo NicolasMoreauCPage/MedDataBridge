@@ -278,7 +278,9 @@ l'audit :
   fonction métier inline. Le formulaire patient délègue désormais ses sections
   animées et la génération d'identité exemple à
   `static/js/patient-form-workspace.js`; le template ne conserve plus ce
-  comportement métier embarqué.
+  comportement métier embarqué. L'éditeur des règles de validation délègue
+  aussi sa sauvegarde, son rechargement et la protection des modifications non
+  enregistrées à `static/js/validation-rules-workspace.js`.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

@@ -107,7 +107,10 @@ l'audit :
   l'orchestrateur. La livraison FHIR (cibles, transport unique, journal de
   corrélation et remise à l'outbox) est également réunie dans
   `fhir_emission.py`; les branches identité et structure ne dupliquent plus
-  cette logique et l'ancien exécuteur asynchrone local a disparu.
+  cette logique et l'ancien exécuteur asynchrone local a disparu. La branche
+  HPRIM se limite désormais au routage : `hprim_emission.py` construit le XML,
+  crée le journal et remet l'envoi à l'outbox, ce qui rend ces étapes testables
+  sans l'orchestrateur multi-protocole.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

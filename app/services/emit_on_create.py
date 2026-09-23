@@ -23,6 +23,7 @@ from app.services.pam_emission import (
     validate_outbound_pam,
 )
 from app.services.emission_endpoints import list_eligible_sender_endpoints
+from app.services.hprim_emission import emit_hprim_act
 
 logger = logging.getLogger(__name__)
 
@@ -1254,7 +1255,6 @@ def emit_to_senders_async(
     """Emit HL7/FHIR/HPRIM notifications for newly created or updated entities and acts."""
 
     endpoints = list_eligible_sender_endpoints(session, entity)
-    sent_logs: list[MessageLog] = []
     base_correlation_id = getattr(entity, "correlation_id", None)
 
     for endpoint in endpoints:
@@ -1387,34 +1387,14 @@ def emit_to_senders_async(
         # Auto-transmission enabled for cotation acts (like PAM/FHIR for entities)
         # Types d'entités compatibles : ccam_act, ngap_act, ucd_act, lpp_act
         if endpoint.kind == "HPRIM" and entity_type in ["ccam_act", "ngap_act", "ucd_act", "lpp_act"]:
-            from app.services.hprim_emission import is_hprim_enabled
-            if not is_hprim_enabled(endpoint, entity_type):
-                logger.debug("[HPRIM] Endpoint %s not configured for %s", endpoint.id, entity_type)
-                continue
-            
             try:
-                from app.hprim_models import HprimMessageType
-                from app.services.hprim_delivery import queue_hprim_delivery
-                from app.services.hprim_emission import generate_hprim_xml
-
-                generated = generate_hprim_xml(entity, entity_type, session, endpoint, operation)
-                if generated is None:
-                    logger.error("[HPRIM] Missing dossier or patient for act %s", entity.id)
-                    continue
-                hprim_xml, message_id = generated
-                delivery = queue_hprim_delivery(
+                emit_hprim_act(
                     session,
-                    xml_content=hprim_xml,
-                    message_id=correlation_id or message_id,
-                    message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES.value,
-                    endpoint_id=endpoint.id,
-                )
-                session.commit()
-                if delivery is not None:
-                    sent_logs.append(delivery.source_log)
-                logger.info(
-                    "[HPRIM] Queued %s emission for endpoint %s (outbox #%s)",
-                    entity_type, endpoint.id, delivery.outbox.id if delivery else "none",
+                    entity=entity,
+                    entity_type=entity_type,
+                    endpoint=endpoint,
+                    operation=operation,
+                    correlation_id=correlation_id,
                 )
             except Exception:
                 logger.exception("[HPRIM] Error generating message for %s %s", entity_type, entity.id)

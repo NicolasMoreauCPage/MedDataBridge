@@ -7,6 +7,7 @@ la livraison à l'outbox durable.
 
 from datetime import datetime
 from decimal import Decimal
+import logging
 from typing import Literal
 
 from sqlmodel import Session
@@ -34,6 +35,7 @@ from app.utils.booleans import as_bool
 
 
 HprimEntityType = Literal["ccam_act", "ngap_act", "ucd_act", "lpp_act"]
+logger = logging.getLogger(__name__)
 
 
 def is_hprim_enabled(endpoint, entity_type: HprimEntityType) -> bool:
@@ -177,3 +179,48 @@ def generate_hprim_xml(
     else:
         raise ValueError(f"Type d'acte HPRIM incompatible: {entity_type}")
     return HprimXmlService().generate_xml(message), header.message_id
+
+
+def emit_hprim_act(
+    session: Session,
+    *,
+    entity: object,
+    entity_type: HprimEntityType,
+    endpoint: object,
+    operation: str,
+    correlation_id: str | None,
+):
+    """Prépare une cotation HPRIM et la remet à l'outbox durable.
+
+    La livraison fichier, FTP ou HTTP est traitée ultérieurement par le worker;
+    l'orchestrateur multi-protocole ne garde donc que le routage de l'événement.
+    """
+    if not is_hprim_enabled(endpoint, entity_type):
+        logger.debug("[HPRIM] Endpoint %s not configured for %s", endpoint.id, entity_type)
+        return None
+
+    generated = generate_hprim_xml(entity, entity_type, session, endpoint, operation)
+    if generated is None:
+        logger.error("[HPRIM] Missing dossier or patient for act %s", getattr(entity, "id", "unknown"))
+        return None
+
+    from app.services.hprim_delivery import queue_hprim_delivery
+
+    hprim_xml, message_id = generated
+    delivery = queue_hprim_delivery(
+        session,
+        xml_content=hprim_xml,
+        message_id=correlation_id or message_id,
+        message_type=HprimMessageType.EVENEMENTS_SERVEUR_ACTES.value,
+        endpoint_id=endpoint.id,
+    )
+    session.commit()
+    if delivery is not None:
+        logger.info(
+            "[HPRIM] Queued %s emission for endpoint %s (outbox #%s)",
+            entity_type,
+            endpoint.id,
+            delivery.outbox.id,
+        )
+        return delivery.source_log
+    return None

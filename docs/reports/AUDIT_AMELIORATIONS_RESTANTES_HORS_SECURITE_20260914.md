@@ -120,7 +120,7 @@ l'audit :
   sont à zéro dans `app/` et sont imposées par la CI. Le nettoyage progressif
   des 239 alertes restantes (principalement imports, imports tardifs et
   variables inutilisées) demeure un chantier distinct ; aucun correctif global
-  automatique n'a été appliqué. La CI impose aussi une baseline globale à 398
+  automatique n'a été appliqué. La CI impose aussi une baseline globale à 239
   anomalies : toute nouvelle alerte échoue désormais avant fusion. Les deux
   derniers lots ont supprimé 27 variables locales inutilisées et les 26 noms
   locaux ambigus, sans supprimer les validations hiérarchiques qui les
@@ -197,7 +197,10 @@ l'audit :
   et ses gestionnaires inline ont été retirés. Dans la saisie rapide, la tranche
   historique (filtres, sélection, traitement en lot et édition) vit également
   dans `static/js/cotations-history-workspace.js`, avec une délégation
-  d'événements au lieu de gestionnaires inline. L'extraction des autres grands
+  d'événements au lieu de gestionnaires inline. La recherche avancée de
+  structure délègue maintenant sa recherche FHIR, ses filtres, sa pagination,
+  son historique et son export à `static/js/structure-search-workspace.js` ;
+  le template ne conserve plus de script métier inline. L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

@@ -6,10 +6,15 @@ const template = readFileSync(
   new URL("../../app/templates/structure_search.html", import.meta.url),
   "utf8",
 );
+const workspace = readFileSync(
+  new URL("../../app/static/js/structure-search-workspace.js", import.meta.url),
+  "utf8",
+);
 
 test("structure search delegates its FHIR request to the shared HTTP client", () => {
-  assert.match(template, /window\.medbridgeHttp\.get\(/);
-  assert.doesNotMatch(template, /await fetch\(`\/fhir\/Location/);
+  assert.match(template, /js\/structure-search-workspace\.js/);
+  assert.match(workspace, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(workspace, /await fetch\(`\/fhir\/Location/);
 });
 
 test("interactive structure editing uses the shared HTTP client", () => {

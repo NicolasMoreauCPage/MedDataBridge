@@ -253,8 +253,11 @@ l'audit :
   dans l'application. Les erreurs HTTP, de validation et métier retournent la
   même enveloppe (`code`, `message`, `details`, `correlation_id`) et propagent
   `X-Correlation-ID`; les champs historiques `type` et `detail` sont conservés
-  durant la transition. Les exceptions non gérées suivent le même contrat. La
-  pagination et les schémas de sortie dédiés restent à étendre route par route.
+  durant la transition. Les exceptions non gérées suivent le même contrat. Les
+  sept listes JSON historiques de structure ont désormais une pagination
+  bornée homogène et exposent leur cardinalité totale dans `X-Total-Count`,
+  sans rupture de leur corps tableau. Les schémas de sortie dédiés restent à
+  étendre route par route.
 - **DOC-01 :** `scripts/generate_openapi_inventory.py` produit désormais
   l'inventaire Markdown depuis le contrat OpenAPI réellement servi. Les
   documents ne doivent plus recopier un nombre de routes à la main.

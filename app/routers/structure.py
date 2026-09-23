@@ -1,10 +1,11 @@
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional
 from unittest.mock import Mock as MockType
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Form, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from app.db import get_session
@@ -35,6 +36,21 @@ LIT_OPERATIONAL_STATUS_OPTIONS = [
 ]
 DEFAULT_API_PAGE_SIZE = 100
 MAX_API_PAGE_SIZE = 250
+
+
+def _execute_paginated(
+    session: Session,
+    response: Response,
+    query: Any,
+    *,
+    order_by: tuple[Any, ...],
+    skip: int,
+    limit: int,
+):
+    """Exécute une liste paginée en exposant son total sans casser le JSON."""
+    total = session.exec(select(func.count()).select_from(query.subquery())).one()
+    response.headers["X-Total-Count"] = str(total)
+    return session.exec(query.order_by(*order_by).offset(skip).limit(limit)).all()
 
 # Route principale pour les pages web
 
@@ -836,16 +852,19 @@ async def list_entites_geographiques(
 
 @router.get("/api/eg", response_model=List[EntiteGeographique])
 async def list_entites_geographiques_api(
+    response: Response,
     session: Session = Depends(get_session),
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
     limit: int = Query(DEFAULT_API_PAGE_SIZE, ge=1, le=MAX_API_PAGE_SIZE, description="Taille maximale de page"),
 ):
-    return session.exec(
-        select(EntiteGeographique)
-        .order_by(EntiteGeographique.name, EntiteGeographique.id)
-        .offset(skip)
-        .limit(limit)
-    ).all()
+    return _execute_paginated(
+        session,
+        response,
+        select(EntiteGeographique),
+        order_by=(EntiteGeographique.name, EntiteGeographique.id),
+        skip=skip,
+        limit=limit,
+    )
 
 @router.post("/eg", response_model=EntiteGeographique)
 async def create_entite_geographique(
@@ -980,6 +999,7 @@ async def list_poles(
 
 @router.get("/api/poles", response_model=List[Pole])
 async def list_poles_api(
+    response: Response,
     session: Session = Depends(get_session),
     eg_id: Optional[int] = None,
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
@@ -988,7 +1008,14 @@ async def list_poles_api(
     query = select(Pole)
     if eg_id:
         query = query.where(Pole.entite_geo_id == eg_id)
-    poles = session.exec(query.order_by(Pole.name, Pole.id).offset(skip).limit(limit)).all()
+    poles = _execute_paginated(
+        session,
+        response,
+        query,
+        order_by=(Pole.name, Pole.id),
+        skip=skip,
+        limit=limit,
+    )
     if apply_scheduled_status(poles):
         session.commit()
     return poles
@@ -1190,6 +1217,7 @@ async def list_services(
 
 @router.get("/api/services", response_model=List[Service])
 async def list_services_api(
+    response: Response,
     session: Session = Depends(get_session),
     pole_id: Optional[int] = None,
     service_type: Optional[LocationServiceType] = None,
@@ -1201,7 +1229,14 @@ async def list_services_api(
         query = query.where(Service.pole_id == pole_id)
     if service_type:
         query = query.where(Service.service_type == service_type)
-    services = session.exec(query.order_by(Service.name, Service.id).offset(skip).limit(limit)).all()
+    services = _execute_paginated(
+        session,
+        response,
+        query,
+        order_by=(Service.name, Service.id),
+        skip=skip,
+        limit=limit,
+    )
     if apply_scheduled_status(services):
         session.commit()
     return services
@@ -1427,6 +1462,7 @@ async def list_unites_fonctionnelles(
 
 @router.get("/api/ufs", response_model=List[UniteFonctionnelle])
 async def list_unites_fonctionnelles_api(
+    response: Response,
     session: Session = Depends(get_session),
     service_id: Optional[int] = None,
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
@@ -1435,7 +1471,14 @@ async def list_unites_fonctionnelles_api(
     query = select(UniteFonctionnelle)
     if service_id:
         query = query.where(UniteFonctionnelle.service_id == service_id)
-    ufs = session.exec(query.order_by(UniteFonctionnelle.name, UniteFonctionnelle.id).offset(skip).limit(limit)).all()
+    ufs = _execute_paginated(
+        session,
+        response,
+        query,
+        order_by=(UniteFonctionnelle.name, UniteFonctionnelle.id),
+        skip=skip,
+        limit=limit,
+    )
     if apply_scheduled_status(ufs):
         session.commit()
     return ufs
@@ -1643,6 +1686,7 @@ async def list_unites_hebergement(
 
 @router.get("/api/uh", response_model=List[UniteHebergement])
 async def list_unites_hebergement_api(
+    response: Response,
     session: Session = Depends(get_session),
     uf_id: Optional[int] = None,
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
@@ -1651,7 +1695,14 @@ async def list_unites_hebergement_api(
     query = select(UniteHebergement)
     if uf_id:
         query = query.where(UniteHebergement.unite_fonctionnelle_id == uf_id)
-    uhs = session.exec(query.order_by(UniteHebergement.name, UniteHebergement.id).offset(skip).limit(limit)).all()
+    uhs = _execute_paginated(
+        session,
+        response,
+        query,
+        order_by=(UniteHebergement.name, UniteHebergement.id),
+        skip=skip,
+        limit=limit,
+    )
     if apply_scheduled_status(uhs):
         session.commit()
     return uhs
@@ -2002,6 +2053,7 @@ async def delete_chambre(
 
 @api_router.get("/chambres", response_model=List[Chambre])
 async def list_chambres_api(
+    response: Response,
     session: Session = Depends(get_session),
     uh_id: Optional[int] = None,
     status: Optional[LocationStatus] = None,
@@ -2013,7 +2065,14 @@ async def list_chambres_api(
         query = query.where(Chambre.unite_hebergement_id == uh_id)
     if status:
         query = query.where(Chambre.status == status)
-    chambres = session.exec(query.order_by(Chambre.name, Chambre.id).offset(skip).limit(limit)).all()
+    chambres = _execute_paginated(
+        session,
+        response,
+        query,
+        order_by=(Chambre.name, Chambre.id),
+        skip=skip,
+        limit=limit,
+    )
     if apply_scheduled_status(chambres):
         session.commit()
     return chambres
@@ -2169,6 +2228,7 @@ async def list_lits(
 
 @router.get("/api/lits", response_model=List[Lit])
 async def list_lits_api(
+    response: Response,
     session: Session = Depends(get_session),
     chambre_id: Optional[int] = None,
     status: Optional[LocationStatus] = None,
@@ -2180,7 +2240,14 @@ async def list_lits_api(
         query = query.where(Lit.chambre_id == chambre_id)
     if status:
         query = query.where(Lit.status == status)
-    lits = session.exec(query.order_by(Lit.name, Lit.id).offset(skip).limit(limit)).all()
+    lits = _execute_paginated(
+        session,
+        response,
+        query,
+        order_by=(Lit.name, Lit.id),
+        skip=skip,
+        limit=limit,
+    )
     if apply_scheduled_status(lits):
         session.commit()
     return lits

@@ -15,6 +15,7 @@ from app.models_structure import (
 )
 from app.services.movement_form_context import (
     MovementFormContextError,
+    build_edit_movement_form,
     build_new_movement_form,
 )
 
@@ -178,3 +179,42 @@ def test_new_movement_route_renders_standard_event_values(client, session):
     assert response.status_code == 200
     assert 'option value="ADT^A01"' in response.text
     assert 'option value="admission"' not in response.text
+
+
+def test_edit_movement_form_resolves_structure_and_submission_values(session):
+    dossier, venue, uf, uh, chambre, lit = _movement_form_data(session)
+    movement = Mouvement(
+        mouvement_seq=9902,
+        venue_id=venue.id,
+        type="ADT^A01",
+        trigger_event="A01",
+        movement_type="admission",
+        when=datetime(2026, 1, 2, 10, 0),
+        location="UH-FORM^CH-FORM^LIT-FORM",
+        uf_responsabilite=uf.identifier,
+        uf_soins_code=uf.identifier,
+        reason="programmee",
+    )
+    session.add(movement)
+    session.commit()
+
+    context = build_edit_movement_form(
+        session,
+        movement_id=movement.id,
+        ej_context_id=dossier.entite_juridique_id,
+    )
+
+    assert context.title == "Modifier mouvement"
+    assert _field(context, "type")["value"] == "ADT^A01"
+    assert _field(context, "uf_id")["value"] == uf.identifier
+    assert _field(context, "uh_id")["value"] == str(uh.id)
+    assert _field(context, "chambre_id")["value"] == str(chambre.id)
+    assert _field(context, "lit_id")["value"] == str(lit.id)
+    assert _field(context, "reason")["value"] == "programmee"
+
+
+def test_edit_movement_form_reports_unknown_movement(session):
+    with pytest.raises(MovementFormContextError) as error:
+        build_edit_movement_form(session, movement_id=999_999)
+
+    assert error.value.status_code == 404

@@ -517,8 +517,253 @@ def build_new_movement_form(
     )
 
 
+def build_edit_movement_form(
+    session: Session,
+    *,
+    movement_id: int,
+    ej_context_id: int | None = None,
+) -> MovementFormContext:
+    """Construit le formulaire d'édition sans requêtes imbriquées par niveau."""
+
+    movement = session.exec(
+        select(Mouvement)
+        .options(
+            selectinload(Mouvement.venue)
+            .selectinload(Venue.dossier)
+            .selectinload(Dossier.patient)
+        )
+        .where(Mouvement.id == movement_id)
+    ).one_or_none()
+    if movement is None:
+        raise MovementFormContextError(
+            404,
+            "Mouvement introuvable",
+            "Le mouvement demandé n'existe pas.",
+            "/mouvements",
+        )
+
+    venue = movement.venue
+    dossier = venue.dossier if venue else None
+    selected_uf = _selected_uf(session, movement.uf_responsabilite)
+    selected_uh, selected_chambre, selected_lit = _find_location_selection(
+        session, movement.location
+    )
+    if selected_uh is None and selected_chambre is not None:
+        selected_uh = session.get(
+            UniteHebergement, selected_chambre.unite_hebergement_id
+        )
+    if selected_uf is None and selected_uh and selected_uh.unite_fonctionnelle_id:
+        selected_uf = session.get(
+            UniteFonctionnelle, selected_uh.unite_fonctionnelle_id
+        )
+
+    ej_id = ej_context_id or (dossier.entite_juridique_id if dossier else None)
+    ufs = _load_ufs(
+        session,
+        ej_id=ej_id,
+        selected_identifier=movement.uf_responsabilite,
+    )
+    uf_options = [
+        _option(
+            uf.identifier,
+            uf.short_name.strip() if uf.short_name and uf.short_name.strip() else uf.name,
+        )
+        for uf in ufs
+        if uf.identifier
+    ]
+    if selected_uf is not None:
+        uhs = list(
+            session.exec(
+                select(UniteHebergement)
+                .where(UniteHebergement.unite_fonctionnelle_id == selected_uf.id)
+                .order_by(UniteHebergement.name, UniteHebergement.id)
+            ).all()
+        )
+    elif ufs:
+        uhs = list(
+            session.exec(
+                select(UniteHebergement)
+                .where(UniteHebergement.unite_fonctionnelle_id.in_({uf.id for uf in ufs}))
+                .order_by(UniteHebergement.name, UniteHebergement.id)
+            ).all()
+        )
+    else:
+        uhs = []
+    if selected_uh is not None and not any(uh.id == selected_uh.id for uh in uhs):
+        uhs.append(selected_uh)
+
+    chambres = (
+        list(
+            session.exec(
+                select(Chambre)
+                .where(Chambre.unite_hebergement_id == selected_uh.id)
+                .order_by(Chambre.name, Chambre.id)
+            ).all()
+        )
+        if selected_uh is not None
+        else []
+    )
+    lits = (
+        list(
+            session.exec(
+                select(Lit)
+                .where(Lit.chambre_id == selected_chambre.id)
+                .order_by(Lit.name, Lit.id)
+            ).all()
+        )
+        if selected_chambre is not None
+        else []
+    )
+
+    type_value = movement.type or (
+        f"ADT^{movement.trigger_event}" if movement.trigger_event else None
+    )
+    type_options = _movement_type_options(dossier, set(EVENT_METADATA))
+    if type_value and not any(option["value"] == type_value for option in type_options):
+        event = type_value.rsplit("^", 1)[-1]
+        type_options.insert(
+            0,
+            {
+                "value": type_value,
+                "label": type_value,
+                "requires_location": EVENT_METADATA.get(event, (None, False))[1],
+            },
+        )
+
+    venue_label = venue.label if venue and venue.label else f"Venue #{movement.venue_id}"
+    fields = [
+        {
+            "label": "Venue (Séjour) *",
+            "name": "venue_id",
+            "type": "select",
+            "options": [_option(movement.venue_id, venue_label)],
+            "value": str(movement.venue_id),
+            "required": True,
+            "readonly": True,
+            "help": "Venue concernée par ce mouvement",
+        },
+        {
+            "label": "Type de mouvement *",
+            "name": "type",
+            "type": "select",
+            "options": type_options,
+            "value": type_value,
+            "required": True,
+            "help": "Type d'événement PAM",
+        },
+        {
+            "label": "Date et heure *",
+            "name": "when",
+            "type": "datetime-local",
+            "value": movement.when.strftime("%Y-%m-%dT%H:%M") if movement.when else "",
+            "required": True,
+            "help": "Date et heure du mouvement",
+        },
+        {
+            "label": "Unité médicale (UF)",
+            "name": "uf_id",
+            "type": "select",
+            "options": uf_options,
+            "value": movement.uf_responsabilite or "",
+            "help": "Sélectionnez l'UF médicale concernée",
+            "empty_message": "Aucune UF disponible pour l'établissement sélectionné.",
+        },
+        {
+            "label": "Unité de Soins (UF Soins)",
+            "name": "uf_soins_id",
+            "type": "select",
+            "options": uf_options,
+            "value": movement.uf_soins_code or "",
+            "help": "Sélectionnez l'unité de soins",
+            "empty_message": "Aucune UF disponible pour l'établissement sélectionné.",
+        },
+        {
+            "label": "Unité d'Hébergement (UH)",
+            "name": "uh_id",
+            "type": "select",
+            "options": [_option(uh.id, f"{uh.identifier} — {uh.name}") for uh in uhs],
+            "value": str(selected_uh.id) if selected_uh else None,
+            "parent_field": "uf_soins_id",
+            "depends_on": "une UF de Soins",
+            "help": "Sélectionnez l'unité d'hébergement liée à l'UF",
+        },
+        {
+            "label": "Chambre (optionnel)",
+            "name": "chambre_id",
+            "type": "select",
+            "options": [_option(item.id, f"{item.identifier} — {item.name}") for item in chambres],
+            "value": str(selected_chambre.id) if selected_chambre else None,
+            "parent_field": "uh_id",
+            "depends_on": "une UH (Unité d'Hébergement)",
+            "help": "Chambre associée au mouvement",
+        },
+        {
+            "label": "Lit (optionnel)",
+            "name": "lit_id",
+            "type": "select",
+            "options": [_option(item.id, f"{item.identifier} — {item.name}") for item in lits],
+            "value": str(selected_lit.id) if selected_lit else None,
+            "parent_field": "chambre_id",
+            "depends_on": "une Chambre",
+            "help": "Lit associé au mouvement",
+        },
+        {
+            "label": "Depuis (départ)",
+            "name": "from_location",
+            "type": "text",
+            "value": movement.from_location or "",
+            "help": "Pour les transferts : lieu de départ",
+        },
+        {
+            "label": "Vers (arrivée)",
+            "name": "to_location",
+            "type": "text",
+            "value": movement.to_location or "",
+            "help": "Pour les transferts : lieu d'arrivée",
+        },
+        {
+            "label": "Raison / Motif",
+            "name": "reason",
+            "type": "text",
+            "value": movement.reason or "",
+            "help": "Motif du mouvement",
+        },
+        {
+            "label": "Numéro de séquence",
+            "name": "mouvement_seq",
+            "type": "number",
+            "value": movement.mouvement_seq,
+            "readonly": True,
+            "help": "Généré automatiquement",
+        },
+        {
+            "label": "Raison du mouvement",
+            "name": "movement_reason",
+            "type": "text",
+            "value": movement.movement_reason or "",
+            "help": "Raison détaillée du mouvement",
+        },
+        {
+            "label": "Statut du mouvement",
+            "name": "status",
+            "type": "select",
+            "options": MouvementStatus.choices(),
+            "value": movement.status,
+            "readonly": True,
+            "hidden": True,
+            "help": "Indicateur interne, non modifiable.",
+        },
+    ]
+    return MovementFormContext(
+        title="Modifier mouvement",
+        fields=fields,
+        back_url=f"/mouvements?venue_id={movement.venue_id}",
+    )
+
+
 __all__ = [
     "MovementFormContext",
     "MovementFormContextError",
+    "build_edit_movement_form",
     "build_new_movement_form",
 ]

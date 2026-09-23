@@ -18,6 +18,7 @@ from app.services.bed_plan import build_bed_plan
 from app.services.movement_listing import MovementListContextError, load_movement_list
 from app.services.movement_form_context import (
     MovementFormContextError,
+    build_edit_movement_form,
     build_new_movement_form,
 )
 from app.services.movement_creation import (
@@ -534,318 +535,32 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
 
 @router.get("/{mouvement_id}/edit", response_class=HTMLResponse)
 def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_session)):
-    # Temporary: skip GHT context check for testing
-    # if not getattr(request.state, "ght_context", None):
-    #     raise HTTPException(status_code=307, detail="Active GHT context required")
-
-    m = session.get(Mouvement, mouvement_id)
-    if not m:
-        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-
-    # Refresh venue and dossier for context
-    session.refresh(m, ["venue"])
-    if m.venue:
-        session.refresh(m.venue, ["dossier"])
-        if m.venue.dossier:
-            session.refresh(m.venue.dossier, ["patient"])
-
-    # --- Venue options (single, readonly) ---
-    venue_options = []
-    if m.venue:
-        venue_options = [{"value": str(m.venue_id), "label": m.venue.label or f"Venue #{m.venue_id}"}]
-
-    # --- Type options (same as create) ---
-    type_options = [
-        {"value": "ADT^A01", "label": "Admission"},
-        {"value": "ADT^A02", "label": "Transfert"},
-        {"value": "ADT^A03", "label": "Sortie"},
-        {"value": "ADT^A04", "label": "Consultation"},
-    ]
-    type_value = m.type if getattr(m, 'type', None) else (f"ADT^{m.trigger_event}" if getattr(m, 'trigger_event', None) else None)
-
-    # --- UF options (same as create) ---
-    from app.models_structure import Chambre, Lit, UniteFonctionnelle, UniteHebergement
-    uf_options = []
-    selected_uf_identifier = None  # For form value (string identifier)
-    selected_uf_db_id = None      # For database queries (int id)
-    selected_uh_id = None
-    selected_chambre_id = None
-    selected_lit_id = None
-
-    # First, try to get UF from stored values in the movement
-    if getattr(m, 'uf_responsabilite', None):
-        # Find UF by identifier from stored uf_responsabilite
-        uf_resp = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == m.uf_responsabilite)).first()
-        if uf_resp:
-            selected_uf_db_id = uf_resp.id
-            selected_uf_identifier = uf_resp.identifier
-
-    # Always try to extract structure from existing location to complete missing info
-    if m.location:
-        # Parse location like "SERV-A^LIT-101" or "UH-001^CH-001" to extract components
-        parts = m.location.split('^')
-        if len(parts) >= 2:
-            uh_part = parts[0]
-            chambre_part = parts[1] if len(parts) > 1 else None
-            
-            # Try to find chambre by identifier
-            if chambre_part:
-                chambre = session.exec(select(Chambre).where(Chambre.identifier == chambre_part)).first()
-                if chambre:
-                    selected_chambre_id = chambre.id
-                    if len(parts) >= 3 and parts[2]:
-                        lit = session.exec(
-                            select(Lit).where(Lit.identifier == parts[2])
-                        ).first()
-                        selected_lit_id = lit.id if lit else None
-                    selected_uh_id = chambre.unite_hebergement_id
-                    # If we don't have UF from uf_responsabilite, get it from chambre
-                    if not selected_uf_db_id and chambre.unite_hebergement and chambre.unite_hebergement.unite_fonctionnelle:
-                        selected_uf_db_id = chambre.unite_hebergement.unite_fonctionnelle_id
-                        selected_uf_identifier = chambre.unite_hebergement.unite_fonctionnelle.identifier
-                else:
-                    # If chambre not found, try to find UH by identifier
-                    uh = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == uh_part)).first()
-                    if uh:
-                        selected_uh_id = uh.id
-                        # If we don't have UF from uf_responsabilite, get it from UH
-                        if not selected_uf_db_id and uh.unite_fonctionnelle:
-                            selected_uf_db_id = uh.unite_fonctionnelle_id
-                            selected_uf_identifier = uh.unite_fonctionnelle.identifier
-
-    # Get UF options (same logic as create)
     ej_context = getattr(request.state, "ej_context", None)
-    ej_id = getattr(ej_context, "id", None) if ej_context else None
-
-    uf_ids = set()
-    if ej_id:
-        # Récupérer toutes les UF de l'EJ via la hiérarchie EG -> Pole -> Service -> UF
-        from app.models_structure import EntiteGeographique
-        from app.models_structure import Pole, Service
-
-        # EJ -> Entites Geographiques
-        entites_geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()
-
-        for eg in entites_geo:
-            # EG -> Poles
-            poles = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).all()
-
-            for pole in poles:
-                # Pole -> Services
-                services = session.exec(select(Service).where(Service.pole_id == pole.id)).all()
-
-                for service in services:
-                    # Service -> UF
-                    service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
-                    uf_ids.update(uf.id for uf in service_ufs)
-
-    # Solution de repli: utiliser toutes les UF
-    if not uf_ids:
-        all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
-        uf_ids.update(uf.id for uf in all_ufs)
-
-    # Récupérer les objets UF et créer les options
-    ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id.in_(uf_ids))).all()
-    for uf in ufs:
-        label = uf.short_name if getattr(uf, 'short_name', None) and uf.short_name and uf.short_name.strip() else uf.name
-        uf_options.append({"value": uf.identifier, "label": label})
-
-    # --- UH options (for selected UF) ---
-    uh_options = []
-    if selected_uf_db_id:
-        # Load UH for selected UF
-        uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_db_id)).all()
-        for uh in uhs:
-            label = f"{uh.identifier} — {uh.name}"
-            uh_options.append({"value": str(uh.id), "label": label})
-    else:
-        # Load all UH if no UF selected (for edit form convenience)
-        if ej_id:
-            # Charger les UH de l'EJ via la hiérarchie
-            from app.models_structure import EntiteGeographique
-            entites_geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()
-            for eg in entites_geo:
-                poles = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).all()
-                for pole in poles:
-                    services = session.exec(select(Service).where(Service.pole_id == pole.id)).all()
-                    for service in services:
-                        service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
-                        for uf in service_ufs:
-                            uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == uf.id)).all()
-                            for uh in uhs:
-                                label = f"{uh.identifier} — {uh.name}"
-                                uh_options.append({"value": str(uh.id), "label": label})
-        else:
-            # Fallback: charger toutes les UH
-            all_uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
-            for uh in all_uhs:
-                label = f"{uh.identifier} — {uh.name}"
-                uh_options.append({"value": str(uh.id), "label": label})
-
-    # --- Chambre options (for selected UH) ---
-    chambre_options = []
-    if selected_uh_id:
-        chambres = session.exec(select(Chambre).where(Chambre.unite_hebergement_id == selected_uh_id)).all()
-        for chambre in chambres:
-            label = f"{chambre.identifier} — {chambre.name}" if chambre.name else chambre.identifier
-            chambre_options.append({"value": str(chambre.id), "label": label})
-
-    # --- Lit options (for selected chambre) ---
-    lit_options = []
-    if selected_chambre_id:
-        lits = session.exec(
-            select(Lit)
-            .where(Lit.chambre_id == selected_chambre_id)
-            .order_by(Lit.name, Lit.id)
-        ).all()
-        lit_options = [
-            {"value": str(lit.id), "label": f"{lit.identifier} — {lit.name}"}
-            for lit in lits
-        ]
-
-    # --- Build fields (same order and structure as create) ---
-    fields = [
-        {
-            "label": "Venue (Séjour) *",
-            "name": "venue_id",
-            "type": "select",
-            "options": venue_options,
-            "value": str(m.venue_id),
-            "required": True,
-            "readonly": True,
-            "help": "Sélectionnez la venue concernée par ce mouvement"
-        },
-        {
-            "label": "Type de mouvement *",
-            "name": "type",
-            "type": "select",
-            "options": type_options,
-            "value": type_value,
-            "required": True,
-            "help": "Options filtrées selon l'état actuel de la venue et le type de séjour"
-        },
-        {
-            "label": "Date et heure *",
-            "name": "when",
-            "type": "datetime-local",
-            "value": m.when.strftime('%Y-%m-%dT%H:%M') if m.when else '',
-            "required": True,
-            "help": "Date et heure du mouvement"
-        },
-        {
-            "label": "Unité médicale (UF)",
-            "name": "uf_id",
-            "type": "select",
-            "options": uf_options,
-            "value": selected_uf_identifier or '',
-            "help": "Sélectionnez l'UF médicale concernée",
-            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
-        },
-        {
-            "label": "Unité de Soins (UF Soins)",
-            "name": "uf_soins_id",
-            "type": "select",
-            "options": uf_options,  # Même options que l'UF principale
-            "value": getattr(m, 'uf_soins_code', None) or '',
-            "help": "Sélectionnez l'unité de soins (optionnel)",
-            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
-        },
-        {
-            "label": "Unité d'Hébergement (UH)",
-            "name": "uh_id",
-            "type": "select",
-            "options": uh_options,
-            "value": str(selected_uh_id) if selected_uh_id else None,
-            "help": "Sélectionnez l'unité d'hébergement liée à l'UF",
-            "parent_field": "uf_soins_id",
-            "depends_on": "une UF de Soins",
-            "empty_message": "Sélectionnez d'abord une UF de Soins pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
-        },
-        {
-            "label": "Chambre (optionnel)",
-            "name": "chambre_id",
-            "type": "select",
-            "options": chambre_options,
-            "value": str(selected_chambre_id) if selected_chambre_id else None,
-            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée",
-            "parent_field": "uh_id",
-            "depends_on": "une UH (Unité d'Hébergement)",
-            "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
-        },
-        {
-            "label": "Lit (optionnel)",
-            "name": "lit_id",
-            "type": "select",
-            "options": lit_options,
-            "value": str(selected_lit_id) if selected_lit_id else None,
-            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée avec chambre assignée",
-            "parent_field": "chambre_id",
-            "depends_on": "une Chambre",
-            "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."
-        },
-        {
-            "label": "Depuis (départ)",
-            "name": "from_location",
-            "type": "text",
-            "value": getattr(m, 'from_location', None) or '',
-            "help": "Pour les transferts : lieu de départ"
-        },
-        {
-            "label": "Vers (arrivée)",
-            "name": "to_location",
-            "type": "text",
-            "value": getattr(m, 'to_location', None) or '',
-            "help": "Pour les transferts : lieu d'arrivée"
-        },
-        {
-            "label": "Raison / Motif",
-            "name": "reason",
-            "type": "text",
-            "value": getattr(m, 'reason', None) or '',
-            "help": "Motif du mouvement (issu du vocabulaire)"
-        },
-        {
-            "label": "Numéro de séquence",
-            "name": "mouvement_seq",
-            "type": "number",
-            "value": m.mouvement_seq,
-            "readonly": True,
-            "help": "Généré automatiquement - ne modifier que si nécessaire"
-        },
-        {
-            "label": "Raison du mouvement",
-            "name": "movement_reason",
-            "type": "text",
-            "value": getattr(m, 'movement_reason', None) or '',
-            "help": "Raison détaillée du mouvement"
-        },
-        {
-            "label": "Statut du mouvement",
-            "name": "status",
-            "type": "select",
-            "options": [
-                {"value": "active", "label": "Actif"},
-                {"value": "completed", "label": "Terminé"},
-                {"value": "cancelled", "label": "Annulé"},
-                {"value": "pending", "label": "En attente"},
-            ],
-            "value": getattr(m, 'status', None),
-            "readonly": True,
-            "hidden": True,
-            "help": "Indicateur interne, non modifiable."
-        },
-    ]
+    try:
+        form = build_edit_movement_form(
+            session,
+            movement_id=mouvement_id,
+            ej_context_id=getattr(ej_context, "id", None),
+        )
+    except MovementFormContextError:
+        return get_templates_with_filters(request).TemplateResponse(
+            request,
+            "not_found.html",
+            {"title": "Mouvement introuvable"},
+            status_code=404,
+        )
 
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "form.html",
         {
-            "title": "Modifier mouvement",
-            "fields": fields,
+            "title": form.title,
+            "fields": form.fields,
             "action_url": f"/mouvements/{mouvement_id}/edit",
-            "back_url": f"/mouvements?venue_id={m.venue_id}",
-        }
+            "back_url": form.back_url,
+        },
     )
+
 
 
 @router.post("/{mouvement_id}/edit")

@@ -7,12 +7,12 @@ Validation XSD, formats et nomenclatures
 import re
 import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Optional, Tuple
 from xmlschema import XMLSchema, XMLSchemaValidationError
 from lxml import etree
 
 from app.hprim_models import (
-    HprimActeCCAM, HprimActeNGAP, HprimActeLPP, HprimActeUCD,
+    HprimActeCCAM, HprimActeNGAP,
     HprimProfessionnel, HprimPatient, HprimEnteteMessage
 )
 

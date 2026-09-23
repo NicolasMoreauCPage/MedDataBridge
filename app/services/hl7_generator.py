@@ -21,13 +21,12 @@ répercute PAS sur les messages réellement émis par l'application.
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-import os
+from typing import Optional, Dict, List
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_contacts import PatientContact, VenueContact  # NK1 generation for identity & movement messages
 from app.services.nature_mapping import derive_nature
-from app.services.vocabulary_translate import reverse_map_code, map_code
+from app.services.vocabulary_translate import reverse_map_code
 from app.models_shared import SystemEndpoint
 from app.models_identifiers import Identifier
 from app.models_structure import IdentifierNamespace

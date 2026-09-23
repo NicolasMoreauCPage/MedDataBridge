@@ -10,10 +10,9 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, Any
 from pathlib import Path
 from sqlmodel import Session, select
-import asyncio
 
 from app.models_shared import SystemEndpoint, MessageLog
 from app.models_structure import GHTContext

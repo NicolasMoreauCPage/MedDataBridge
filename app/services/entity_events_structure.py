@@ -112,7 +112,6 @@ async def _emit_background(model_name: str, entity_id: int, op: str, metadata: D
     )
     from app.models_structure import EntiteJuridique
     import asyncio
-    import time
 
     model_map = {
         "EntiteJuridique": EntiteJuridique,

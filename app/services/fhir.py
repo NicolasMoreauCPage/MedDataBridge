@@ -24,9 +24,8 @@ Notes d'implémentation:
 from app.models import Dossier
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 from sqlmodel import Session
-from app.services.vocabulary_translate import safe_map
 from app.services.fhir_resources import generate_practitioner_resource, generate_organization_resource
 
 def generate_fhir_bundle_for_dossier(dossier: Dossier, session: Optional[Session] = None) -> dict:

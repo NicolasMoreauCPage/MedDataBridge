@@ -30,7 +30,7 @@ régression sur un chemin d'émission production non couvert par des tests dédi
 Le faire converger vers `StructureToFHIRConverter` est un chantier de suivi.
 """
 import logging
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any
 from sqlmodel import Session, select
 from datetime import datetime
 from app.models_structure import (

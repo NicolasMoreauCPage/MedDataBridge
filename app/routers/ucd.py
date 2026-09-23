@@ -11,7 +11,7 @@ router = APIRouter(prefix="/ucd", tags=["UCD"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def ucd_dashboard(request: Request, session: Session = Depends(get_session)):
+def ucd_dashboard(request: Request, session: Session = Depends(get_session)):
     """Dashboard UCD avec statistiques réelles."""
     templates = request.app.state.templates
 

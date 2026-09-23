@@ -11,7 +11,7 @@ router = APIRouter(prefix="/lpp", tags=["LPP"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def lpp_dashboard(request: Request, session: Session = Depends(get_session)):
+def lpp_dashboard(request: Request, session: Session = Depends(get_session)):
     """Dashboard LPP avec statistiques réelles."""
     templates = request.app.state.templates
 

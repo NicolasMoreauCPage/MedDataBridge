@@ -254,7 +254,7 @@
           <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
             Lit <span class="text-red-500">*</span>
           </label>
-          <div id="lit_selector" class="grid grid-cols-3 gap-3 min-h-24 items-center">
+          <div id="lit_selector" class="grid grid-cols-3 gap-3 min-h-24 items-center" aria-live="polite">
             <div class="col-span-3 text-center text-slate-500 dark:text-slate-400 text-sm py-8">Sélectionnez d'abord un service et une UF</div>
           </div>
           <input type="hidden" name="lit_id" id="lit_id" value="{{ venue.lit_id or '' }}">
@@ -307,75 +307,5 @@
   </form>
 </div>
 
-<script>
-// Dynamically update UF and Lit selectors based on selection
-document.getElementById('service_id').addEventListener('change', async function() {
-  const serviceId = this.value;
-  if (!serviceId) {
-    document.getElementById('uf_id').innerHTML = '<option value="">-- Sélectionner une UF --</option>';
-    document.getElementById('lit_selector').innerHTML = '<div class="col-span-3 text-slate-500 text-sm py-8 text-center">Sélectionnez un service</div>';
-    return;
-  }
-  
-  try {
-    const { data: ufs } = await window.medbridgeHttp.get(
-      `/wizard/api/services/${serviceId}/ufs`,
-    );
-    
-    let ufHtml = '<option value="">-- Sélectionner une UF --</option>';
-    ufs.forEach(uf => {
-      ufHtml += `<option value="${uf.id}">${uf.name}</option>`;
-    });
-    document.getElementById('uf_id').innerHTML = ufHtml;
-  } catch (e) {
-    console.error('Error fetching UFs:', e);
-  }
-});
-
-document.getElementById('uf_id').addEventListener('change', async function() {
-  const ufId = this.value;
-  if (!ufId) {
-    document.getElementById('lit_selector').innerHTML = '<div class="col-span-3 text-slate-500 text-sm py-8 text-center">Sélectionnez une UF</div>';
-    return;
-  }
-  
-  try {
-    const { data: lits } = await window.medbridgeHttp.get(
-      `/wizard/api/ufs/${ufId}/lits?status=free`,
-    );
-    
-    if (lits.length === 0) {
-      document.getElementById('lit_selector').innerHTML = '<div class="col-span-3 text-red-600 text-sm py-8 text-center">❌ Aucun lit disponible dans cette UF</div>';
-      return;
-    }
-    
-    let litHtml = '';
-    lits.forEach(lit => {
-      litHtml += `
-        <button type="button" class="lit-button p-4 border-2 border-green-300 bg-green-50 rounded-xl hover:bg-green-100 hover:border-green-600 transition-all cursor-pointer text-center" data-lit-id="${lit.id}">
-          <div class="font-bold text-lg text-green-700">${lit.name}</div>
-          <div class="text-xs text-green-600">Disponible</div>
-        </button>
-      `;
-    });
-    document.getElementById('lit_selector').innerHTML = litHtml;
-    
-    // Add click handlers
-    document.querySelectorAll('.lit-button').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelectorAll('.lit-button').forEach(b => {
-          b.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-600');
-          b.classList.add('border-green-300', 'bg-green-50');
-        });
-        this.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-600');
-        this.classList.remove('border-green-300', 'bg-green-50');
-        document.getElementById('lit_id').value = this.dataset.litId;
-      });
-    });
-  } catch (e) {
-    console.error('Error fetching lits:', e);
-  }
-});
-</script>
+<script defer src="{{ url_for('static', path='/js/admission-wizard-workspace.js') }}"></script>
 {% endblock %}

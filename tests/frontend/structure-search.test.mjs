@@ -151,6 +151,10 @@ test("analytics and metrics dashboards delegate their reads to the shared HTTP c
 
 test("admission, patient sample and validation-rule interactions use the shared HTTP client", () => {
   const admission = readFileSync(new URL("../../app/templates/admission_wizard.html", import.meta.url), "utf8");
+  const admissionWorkspace = readFileSync(
+    new URL("../../app/static/js/admission-wizard-workspace.js", import.meta.url),
+    "utf8",
+  );
   const patient = readFileSync(new URL("../../app/templates/patient_form.html", import.meta.url), "utf8");
   const patientWorkspace = readFileSync(
     new URL("../../app/static/js/patient-form-workspace.js", import.meta.url),
@@ -161,8 +165,11 @@ test("admission, patient sample and validation-rule interactions use the shared 
     new URL("../../app/static/js/validation-rules-workspace.js", import.meta.url),
     "utf8",
   );
-  assert.match(admission, /window\.medbridgeHttp\.get\(/);
+  assert.match(admission, /js\/admission-wizard-workspace\.js/);
+  assert.doesNotMatch(admission, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(admission, /\bfetch\(/);
+  assert.match(admissionWorkspace, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(admissionWorkspace, /\bfetch\(/);
   assert.match(patient, /js\/patient-form-workspace\.js/);
   assert.match(patient, /class="patient-form space-y-6"/);
   assert.doesNotMatch(patient, /<style>[\s\S]*?\.input-field[\s\S]*?<\/style>/);

@@ -399,6 +399,11 @@ l'audit :
   `static/js/conformity-home-workspace.js`. Le formulaire générique charge
   maintenant `state_transitions.js` puis `forms.js` avec des scripts différés,
   sans bootstrap dynamique ni polling embarqué.
+  L'assistant d'admission délègue aussi le chargement hiérarchique service, UF
+  et lit à `static/js/admission-wizard-workspace.js`. L'asset ne s'initialise
+  que sur l'étape concernée, annonce ses chargements et erreurs, et délègue la
+  sélection des lits avec un état `aria-pressed` au lieu de recréer des
+  listeners pour chaque résultat.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

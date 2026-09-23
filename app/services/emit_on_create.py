@@ -29,7 +29,7 @@ from app.services.pam_namespace import resolve_namespace_authority as _resolve_n
 from app.services.pam_movement_events import message_structure_for_event, select_movement_event
 from app.services.pam_movement_context import load_movement_context
 from app.services.pam_movement_segments import build_movement_pv1
-from app.services.zbe_fields import build_xon_unit, derive_zbe_nature
+from app.services.zbe_fields import build_xon_unit, derive_zbe_nature, movement_action_and_code
 
 logger = logging.getLogger(__name__)
 
@@ -608,10 +608,7 @@ def generate_pam_hl7(
             zbe_id = control_id
         
         # ZBE-4: Action (INSERT, UPDATE, CANCEL)
-        action = getattr(entity, "action", None) or "INSERT"
-        if not action:
-            # Determine action based on event code if not explicitly set
-            action = "UPDATE" if event_code in ["A08", "A31"] else "TRANSFER" if event_code == "A02" else "DISCHARGE" if event_code == "A03" else "INSERT"
+        action, movement_code = movement_action_and_code(entity, event_code)
         
         historic = "N"
         
@@ -633,22 +630,6 @@ def generate_pam_hl7(
         
         # Build ZBE segment respecting official field order. ZBE-3 carries the movement code used
         # by validators, while ZBE-4 still exposes the action indicator expected by downstream feeds.
-        movement_code = getattr(entity, "movement_code", None)
-        if not movement_code:
-            # Map common HL7 events to textual movement codes when no explicit code is provided.
-            event_to_movement = {
-                "A01": "ADMIT",
-                "A02": "TRANSFER",
-                "A03": "DISCHARGE",
-                "A06": "ADMIT",
-                "A07": "TRANSFER",
-                "A11": "TRANSFER",
-                "A12": "DELETE",
-                "A13": "DELETE",
-                "A31": "UPDATE",
-                "Z99": "UPDATE",
-            }
-            movement_code = event_to_movement.get(event_code, action or "INSERT")
         zbe_fields = [
             "ZBE",
             zbe_id,

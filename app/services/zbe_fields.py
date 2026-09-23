@@ -19,3 +19,13 @@ def derive_zbe_nature(event_code: str, nature: str | None) -> str:
     """Retourne une nature ZBE admise, avec repli hospitalisation."""
     result = derive_nature(event_code, nature)
     return result if result in _VALID_NATURES else "H"
+
+
+def movement_action_and_code(entity, event_code: str) -> tuple[str, str]:
+    """Détermine ZBE-3 et ZBE-4 sans dépendance au transport ou à la base."""
+    action = getattr(entity, "action", None) or "INSERT"
+    code = getattr(entity, "movement_code", None) or {
+        "A01": "ADMIT", "A02": "TRANSFER", "A03": "DISCHARGE", "A06": "ADMIT", "A07": "TRANSFER",
+        "A11": "TRANSFER", "A12": "DELETE", "A13": "DELETE", "A31": "UPDATE", "Z99": "UPDATE",
+    }.get(event_code, action)
+    return action, code

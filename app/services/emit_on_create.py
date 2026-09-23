@@ -2101,7 +2101,7 @@ class _EmitToSendersWrapper:
         # caller to await when a loop is present.
         if asyncio.iscoroutine(result):
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
             except RuntimeError:
                 # No running loop: run synchronously
                 return asyncio.run(result)

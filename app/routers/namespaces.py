@@ -380,7 +380,7 @@ async def update_ej_namespace(
     """Mise à jour namespace EJ"""
     context = get_context_or_404(session, ght_id)
 
-    ej = get_ej_or_404(session, context, ej_id)
+    get_ej_or_404(session, context, ej_id)
     
     namespace = session.exec(
         select(IdentifierNamespace)

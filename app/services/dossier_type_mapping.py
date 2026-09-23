@@ -137,7 +137,6 @@ def get_expected_trigger_event(old_type: Optional[str], new_type: Optional[str])
     if old_type == new_type:
         return None
     
-    old_class = dossier_type_to_patient_class(old_type)
     new_class = dossier_type_to_patient_class(new_type)
     
     # Déterminer la transition

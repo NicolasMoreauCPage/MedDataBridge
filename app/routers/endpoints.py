@@ -217,7 +217,6 @@ def new_endpoint(request: Request, session=Depends(get_session)):
     from sqlmodel import select
     # Contexts from request
     ght_ctx = getattr(request.state, 'ght_context', None)
-    ej_ctx = getattr(request.state, 'ej_context', None)
 
     # Récupérer les GHT et EJ disponibles
     ghts = session.exec(select(GHTContext).where(GHTContext.is_active.is_(True))).all()

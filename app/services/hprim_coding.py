@@ -121,7 +121,7 @@ class HprimXmlGenerator:
         self._add_patient_info(patient_elem, message.patient)
 
         # État patient (diagnostics, dépendance, etc.)
-        etat_elem = ET.SubElement(root, "hprim:etat")
+        ET.SubElement(root, "hprim:etat")
         # TODO: Implémenter selon spécifications
 
         return self._prettify_xml(root)

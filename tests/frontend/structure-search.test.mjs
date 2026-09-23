@@ -139,7 +139,13 @@ test("structure import uses the shared HTTP client while preserving multipart pa
 });
 
 test("alert configuration delegates reads and mutations to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/alert_config.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/alert_config.html", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../../app/static/js/alert-config-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /js\/alert-config-workspace\.js/);
+  assert.doesNotMatch(template, /onclick=|onchange=/);
   assert.match(source, /window\.medbridgeHttp\.get\('\/api\/alert-config\/rules'\)/);
   assert.match(source, /window\.medbridgeHttp\.request\(/);
   assert.doesNotMatch(source, /\bfetch\(/);

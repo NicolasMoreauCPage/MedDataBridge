@@ -205,7 +205,10 @@ l'audit :
   `static/js/analytics-dashboard-workspace.js`, avec l'EG de contexte fournie
   par un attribut `data-*`. L'import de structure est également isolé dans
   `static/js/structure-import-workspace.js` et ses boutons de confirmation
-  passent par des listeners JavaScript au lieu de gestionnaires inline.
+  passent par des listeners JavaScript au lieu de gestionnaires inline. La
+  configuration des alertes délègue aussi ses filtres, modales et actions de
+  règles à `static/js/alert-config-workspace.js`, y compris les actions sur
+  lignes générées dynamiquement.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

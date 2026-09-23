@@ -210,7 +210,20 @@ l'audit :
   moteur de recherche patient du plan de lits a également rejoint `bed_plan.py`,
   avec tri stable, limite SQL et projection testée. Le routeur mouvements ne
   conserve que l'appel des cas d'usage et le rendu, et passe de 2 215 à 534
-  lignes.
+  lignes. La tranche finale est désormais livrée. Les données déclaratives du
+  seed de structure sont séparées dans `structure_seed_data.py` et sa
+  persistance idempotente dans `structure_seed_persistence.py`; le service
+  d'orchestration passe de 2 191 à 580 lignes. `pam.py` est devenu une façade de
+  compatibilité de 66 lignes : parsing entrant, corrélation, extensions France,
+  annulations, admissions, transferts et sorties disposent chacun de modules
+  dédiés. `pam_validation.py` ne conserve que l'orchestration de la validation
+  (663 lignes), les règles, diagnostics, validateurs de champs et transitions
+  A06/A07 étant isolés. Enfin, les routes de structure sont réparties entre
+  établissements/pôles, services/UF, UH, chambres/lits et disponibilité autour
+  de routeurs partagés ; la façade historique passe de 2 283 à 580 lignes sans
+  changer les chemins ni les imports publics. Les tests unitaires ciblés de ces
+  modules, la campagne consolidée BE-03 et Ruff sur `app/` passent. **BE-03 est
+  terminé le 24 septembre 2026.**
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.
@@ -750,6 +763,10 @@ tests externes doivent utiliser des doubles locaux ou sortir de la CI standard.
 ### P1 — Backend
 
 #### BE-03 — Découper les modules géants par cas d'usage
+
+**Statut : terminé le 24 septembre 2026.** Les façades historiques sont
+conservées, tandis que les cas d'usage, projections, règles, données
+déclaratives et accès persistants sont testables sans démarrer FastAPI.
 
 **Constat.** Plusieurs fichiers cumulent orchestration, accès aux données,
 validation, transformation, transport et rendu :

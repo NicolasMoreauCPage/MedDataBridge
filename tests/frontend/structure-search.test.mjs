@@ -373,6 +373,25 @@ test("generic form submissions delegate to the shared HTTP client", () => {
   assert.match(source, /class DependentFieldsManager/);
   assert.match(source, /field\.setAttribute\('aria-invalid', 'true'\)/);
   assert.match(source, /error\.setAttribute\('role', 'alert'\)/);
+  assert.match(source, /setupUnsavedChangesGuard/);
+  assert.match(source, /data-form-error-summary/);
+  assert.match(source, /Quitter sans enregistrer les modifications/);
+  assert.match(source, /updateErrorSummary/);
+});
+
+test("priority forms preserve unsaved input and keep their primary action reachable", () => {
+  const patient = readFileSync(new URL("../../app/templates/patient_form.html", import.meta.url), "utf8");
+  const contact = readFileSync(new URL("../../app/templates/contact_form.html", import.meta.url), "utf8");
+  const endpoint = readFileSync(new URL("../../app/templates/endpoint_detail.html", import.meta.url), "utf8");
+  const movement = readFileSync(new URL("../../app/templates/mouvement_workflow.html", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../../app/static/css/forms.css", import.meta.url), "utf8");
+  [patient, contact, endpoint, movement].forEach((template) => {
+    assert.match(template, /data-guard-unsaved/);
+    assert.match(template, /data-form-cancel/);
+    assert.match(template, /data-form-actions/);
+  });
+  assert.match(styles, /\.form-primary-actions/);
+  assert.match(styles, /form\[data-guard-unsaved\]/);
 });
 
 test("generic forms load their managers in a deterministic deferred order", () => {

@@ -295,6 +295,38 @@ textarea.form-input.error {
   animation: fadeIn var(--transition-normal) ease-in both;
 }
 
+.form-dirty-status {
+  margin: 0 0 1rem;
+}
+
+.form-error-summary {
+  margin: 0 0 1rem;
+}
+
+@media (max-width: 767px) {
+  form[data-guard-unsaved] {
+    padding-bottom: 5.5rem;
+  }
+
+  .form-primary-actions {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 40;
+    margin: 0;
+    padding: 0.75rem;
+    background: color-mix(in srgb, var(--color-surface, #fff) 94%, transparent);
+    border-top: 1px solid rgba(148, 163, 184, 0.45);
+    box-shadow: 0 -8px 18px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(8px);
+  }
+
+  .form-primary-actions [type="submit"] {
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+  }
+}
+
 .tooltip-trigger {
   position: relative;
   display: inline-flex;

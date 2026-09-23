@@ -67,7 +67,7 @@
   <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">Sélectionnez le type de mouvement et complétez les informations requises</p>
     </div>
     
-    <form id="movement-form" method="POST" action="/workflow/{{ venue.id }}/mouvement" class="p-6">
+    <form id="movement-form" method="POST" action="/workflow/{{ venue.id }}/mouvement" data-guard-unsaved class="p-6">
       <div class="grid gap-6 lg:grid-cols-2">
         
         <!-- Colonne gauche : Sélection événement -->
@@ -297,8 +297,8 @@
       </div>
 
       <!-- Actions -->
-      <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-        <a href="/venues/{{ venue.id }}" class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+      <div class="form-primary-actions mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between" data-form-actions>
+        <a href="/venues/{{ venue.id }}" data-form-cancel class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
           ← Retour à la venue
         </a>
         <div class="flex gap-3">

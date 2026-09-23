@@ -282,8 +282,14 @@ class FormManager {
     setupEventListeners() {
         if (this.options.validateOnType) {
             this.form.querySelectorAll('input, select, textarea').forEach(field => {
-                field.addEventListener('input', () => this.validateField(field));
-                field.addEventListener('blur', () => this.validateField(field));
+                field.addEventListener('input', () => {
+                    this.validateField(field);
+                    this.updateErrorSummary();
+                });
+                field.addEventListener('blur', () => {
+                    this.validateField(field);
+                    this.updateErrorSummary();
+                });
             });
         }
 
@@ -293,7 +299,108 @@ class FormManager {
             setTimeout(() => familyField.focus(), 0);
         }
 
+        if (this.form.hasAttribute('data-guard-unsaved')) {
+            this.setupUnsavedChangesGuard();
+        }
+
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+    }
+
+    setupUnsavedChangesGuard() {
+        this.isDirty = false;
+        this.dirtyStatus = this.form.querySelector('[data-form-dirty-status]');
+        if (!this.dirtyStatus) {
+            this.dirtyStatus = document.createElement('p');
+            this.dirtyStatus.dataset.formDirtyStatus = 'true';
+            this.dirtyStatus.className = 'form-dirty-status text-sm font-medium text-amber-700 dark:text-amber-300';
+            this.dirtyStatus.setAttribute('role', 'status');
+            this.dirtyStatus.setAttribute('aria-live', 'polite');
+            this.dirtyStatus.hidden = true;
+            this.form.prepend(this.dirtyStatus);
+        }
+        const markDirty = (event) => {
+            const field = event.target;
+            if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
+            if (field.disabled || field.type === 'hidden') return;
+            this.setDirty(true);
+        };
+        this.form.addEventListener('input', markDirty);
+        this.form.addEventListener('change', markDirty);
+        this.form.addEventListener('reset', () => window.requestAnimationFrame(() => this.setDirty(false)));
+        this.form.querySelectorAll('[data-form-cancel]').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                if (!this.isDirty || window.confirm('Quitter sans enregistrer les modifications ?')) return;
+                event.preventDefault();
+            });
+        });
+        window.addEventListener('beforeunload', (event) => {
+            if (!this.isDirty) return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
+    }
+
+    setDirty(isDirty) {
+        if (!this.dirtyStatus) return;
+        this.isDirty = isDirty;
+        this.dirtyStatus.hidden = !isDirty;
+        this.dirtyStatus.textContent = isDirty ? 'Modifications non enregistrées.' : 'Toutes les modifications sont enregistrées.';
+    }
+
+    markClean() {
+        if (this.isDirty) this.setDirty(false);
+    }
+
+    ensureFieldId(field) {
+        if (field.id) return field.id;
+        const formIndex = Math.max(0, Array.from(document.forms).indexOf(this.form));
+        const name = (field.name || 'champ').replace(/[^a-zA-Z0-9_-]/g, '-');
+        field.id = `form-${formIndex}-${name}`;
+        return field.id;
+    }
+
+    ensureErrorSummary() {
+        let summary = this.form.querySelector('[data-form-error-summary]');
+        if (summary) return summary;
+        summary = document.createElement('section');
+        summary.dataset.formErrorSummary = 'true';
+        summary.className = 'form-error-summary rounded-xl border border-red-200 bg-red-50 p-4 text-red-900 dark:border-red-900 dark:bg-red-950/30 dark:text-red-100';
+        summary.setAttribute('role', 'alert');
+        summary.setAttribute('tabindex', '-1');
+        summary.hidden = true;
+        this.form.prepend(summary);
+        return summary;
+    }
+
+    updateErrorSummary() {
+        const invalidFields = Array.from(this.form.querySelectorAll('[aria-invalid="true"]'));
+        const summary = this.ensureErrorSummary();
+        if (!invalidFields.length) {
+            summary.hidden = true;
+            summary.replaceChildren();
+            return;
+        }
+        const title = document.createElement('h2');
+        title.className = 'font-semibold';
+        title.textContent = 'Corrigez les champs signalés avant de continuer.';
+        const list = document.createElement('ul');
+        list.className = 'mt-2 list-disc space-y-1 pl-5 text-sm';
+        invalidFields.forEach((field) => {
+            const item = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `#${this.ensureFieldId(field)}`;
+            link.className = 'underline underline-offset-2 hover:no-underline';
+            link.textContent = field.labels?.[0]?.textContent?.trim() || field.name || 'Champ invalide';
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                field.focus();
+                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+            item.append(link);
+            list.append(item);
+        });
+        summary.replaceChildren(title, list);
+        summary.hidden = false;
     }
 
     setupInitialFocus() {
@@ -563,6 +670,7 @@ class FormManager {
             });
 
             if (this.options.scrollToError) {
+                this.updateErrorSummary();
                 const firstError = this.form.querySelector('.form-error');
                 if (firstError) {
                     firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -624,6 +732,7 @@ class FormManager {
 
                 // Use exact same success message as the one expected by the test
                 this.showToast('success', 'Enregistrement réussi');
+                this.markClean();
 
                 // Delay redirect to ensure toast is visible
                 if (data && typeof data === 'object' && data.redirect) {
@@ -661,6 +770,7 @@ class FormManager {
                 this.showFieldError(field, message);
             }
         });
+        this.updateErrorSummary();
     }
 
     showToast(type, message) {

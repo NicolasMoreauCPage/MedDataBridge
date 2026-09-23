@@ -109,7 +109,7 @@
   </div>
 
   <!-- Formulaire de configuration -->
-  <form method="post" action="{{ action_url or ('/endpoints/' ~ (e.id if e and e.id else '') ~ '/update') }}" class="space-y-6">
+  <form method="post" action="{{ action_url or ('/endpoints/' ~ (e.id if e and e.id else '') ~ '/update') }}" data-guard-unsaved class="space-y-6">
     
     <!-- Section: Configuration générale -->
     <details class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm" open>
@@ -511,7 +511,7 @@
     </details>
 
     <!-- Boutons d'action -->
-    <div class="flex flex-wrap items-center justify-between gap-4 pt-4">
+    <div class="form-primary-actions flex flex-wrap items-center justify-between gap-4 pt-4" data-form-actions>
       <div class="flex gap-3">
         <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -519,7 +519,7 @@
           </svg>
           Enregistrer
         </button>
-        <a href="/endpoints" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 hover:border-slate-300 transition-all">
+        <a href="/endpoints" data-form-cancel class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 hover:border-slate-300 transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
           </svg>

@@ -56,7 +56,7 @@
   </div>
 
   <p id="patient-form-help" class="sr-only">Les champs marqués d'une étoile sont obligatoires.</p>
-  <form method="post" action="{{ action_url }}" class="patient-form space-y-6" data-patient-form="true" aria-describedby="patient-form-help">
+  <form method="post" action="{{ action_url }}" class="patient-form space-y-6" data-patient-form="true" data-guard-unsaved aria-describedby="patient-form-help">
     <div class="form-grid grid gap-4 md:gap-6">
     
     <!-- Section Identité -->
@@ -380,14 +380,14 @@
     </details>
 
     <!-- Boutons d'action -->
-    <div class="flex gap-4 pt-6">
+    <div class="form-primary-actions flex gap-4 pt-6" data-form-actions>
       <button type="submit" class="flex-1 md:flex-initial px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
         Enregistrer le patient
       </button>
-      <a href="/patients" class="px-8 py-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all duration-200 flex items-center justify-center gap-2">
+      <a href="/patients" data-form-cancel class="px-8 py-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all duration-200 flex items-center justify-center gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>

@@ -370,7 +370,11 @@ l'audit :
   de dialogue, une étiquette, une fermeture Échap et une restitution du focus
   à son déclencheur. Le créateur de scénarios marque aussi ses prérequis
   invalides avec `aria-invalid` et déplace le focus vers le titre de chaque
-  étape lors de la navigation.
+  étape lors de la navigation. Les formulaires patient, contact, endpoint et
+  mouvement signalent désormais les modifications non enregistrées, préviennent
+  avant une sortie et affichent un résumé navigable des erreurs. Sur mobile,
+  leur action principale reste collée au bas de l'écran sans masquer le contenu
+  du formulaire.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

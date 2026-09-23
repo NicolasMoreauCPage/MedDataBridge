@@ -374,7 +374,10 @@ l'audit :
   mouvement signalent désormais les modifications non enregistrées, préviennent
   avant une sortie et affichent un résumé navigable des erreurs. Sur mobile,
   leur action principale reste collée au bas de l'écran sans masquer le contenu
-  du formulaire.
+  du formulaire. Axe contrôle maintenant dans Chromium les parcours de création
+  de scénario, wizard de structure et validation selon WCAG 2.1 AA ; toute
+  violation critique ou sérieuse échoue le job navigateur de CI. Une checklist
+  de revue clavier et des annonces dynamiques complète ce contrôle automatisé.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

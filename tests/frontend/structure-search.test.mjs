@@ -415,6 +415,19 @@ test("frontend asset inventory is available for dead-code review", () => {
   assert.match(source, /process\.exitCode = 1/);
 });
 
+test("accessibility browser checks use Axe on the priority workspaces", () => {
+  const source = readFileSync(new URL("../e2e/test_accessibility_axe.py", import.meta.url), "utf8");
+  const workflow = readFileSync(new URL("../../.github/workflows/interop-conformance.yml", import.meta.url), "utf8");
+  assert.match(source, /axe-core/);
+  assert.match(source, /wcag2a/, "Axe must include WCAG A rules");
+  assert.match(source, /wcag2aa/, "Axe must include WCAG AA rules");
+  assert.match(source, /critical.*,.*serious|serious.*,.*critical/s);
+  assert.match(source, /\/scenarios\/new/);
+  assert.match(source, /\/structure\/wizard/);
+  assert.match(workflow, /Run WCAG AA accessibility checks/);
+  assert.match(workflow, /test_accessibility_axe\.py/);
+});
+
 test("legacy structure view delegates all API calls to the shared HTTP client", () => {
   const template = readFileSync(new URL("../../app/templates/structure.html", import.meta.url), "utf8");
   const source = readFileSync(new URL("../../app/static/js/structure-legacy-workspace.js", import.meta.url), "utf8");

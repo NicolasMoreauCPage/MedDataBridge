@@ -40,6 +40,33 @@ jobs:
           npm ci
           npm run check-frontend
 
+  accessibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install browser test dependencies
+        run: |
+          npm ci
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Run WCAG AA accessibility checks
+        env:
+          TESTING: "1"
+          PYTHONPATH: .
+        run: python -m pytest tests/e2e/test_accessibility_axe.py -q
+
   conformance:
     runs-on: ubuntu-latest
     env:

@@ -166,7 +166,9 @@ l'audit :
   campagne `tests/integration` isolée est également verte : les scripts de
   diagnostic qui nécessitent un listener MLLP, des chemins historiques ou une
   base locale sont explicitement classés `external`, et le workflow dossiers
-  utilise l'API SQLModel actuelle.
+  utilise l'API SQLModel actuelle. Une nouvelle exécution complète des deux
+  campagnes, après les lots de qualité livrés le 23 septembre 2026, confirme
+  cette isolation sans échec.
 - **FE-01 :** la logique de recherche de cotation moderne est extraite dans
   `static/js/cotation-selector.js`; le template ne conserve que son markup et
   l'inclusion du module. Une première tranche de `structure_new.html` (filtre,

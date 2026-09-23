@@ -40,4 +40,5 @@ console.log(`Assets JavaScript : ${assets.length}; référencés par les templat
 if (unreferenced.length) {
   console.log("Assets non référencés par un template (peuvent être chargés dynamiquement) :");
   for (const asset of unreferenced) console.log(`- ${asset}`);
+  process.exitCode = 1;
 }

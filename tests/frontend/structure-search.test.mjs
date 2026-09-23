@@ -206,6 +206,7 @@ test("frontend asset inventory is available for dead-code review", () => {
   assert.match(source, /Assets JavaScript/);
   assert.match(source, /Assets non référencés par un template/);
   assert.match(source, /const assetPatterns = \[/);
+  assert.match(source, /process\.exitCode = 1/);
 });
 
 test("legacy structure view delegates all API calls to the shared HTTP client", () => {

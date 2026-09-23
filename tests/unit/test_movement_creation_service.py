@@ -9,6 +9,7 @@ from app.services.movement_creation import (
     MovementCreationError,
     create_patient_movement,
 )
+from app.services.movement_update import update_patient_movement
 
 
 def _creation_context(session):
@@ -154,3 +155,35 @@ def test_create_patient_movement_rejects_invalid_type_and_chronology(session):
             when=venue.start_time - timedelta(minutes=1),
             uh_id=uh.id,
         )
+
+
+def test_update_patient_movement_reuses_location_and_uf_validation(session):
+    venue, uf, uh, chambre, _other_chambre, lit = _creation_context(session)
+    movement = create_patient_movement(
+        session,
+        venue_id=venue.id,
+        type_code="ADT^A01",
+        when=venue.start_time + timedelta(minutes=5),
+        uh_id=uh.id,
+    )
+
+    updated = update_patient_movement(
+        session,
+        movement_id=movement.id,
+        venue_id=venue.id,
+        type_code="ADT^A01",
+        when=movement.when + timedelta(minutes=1),
+        uf_identifier=uf.identifier,
+        uf_soins_identifier=uf.identifier,
+        uh_id=uh.id,
+        chambre_id=chambre.id,
+        lit_id=lit.id,
+        reason="corrige",
+    )
+
+    assert updated.id == movement.id
+    assert updated.location == "UH-CREATE^CH-CREATE^LIT-CREATE"
+    assert updated.to_location == updated.location
+    assert updated.uf_responsabilite == uf.identifier
+    assert updated.uf_soins_code == uf.identifier
+    assert updated.reason == "corrige"

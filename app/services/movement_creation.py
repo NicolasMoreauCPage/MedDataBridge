@@ -19,7 +19,7 @@ class MovementCreationError(ValueError):
         self.status_code = status_code
 
 
-def _event_from_type(type_code: str) -> str:
+def parse_movement_event(type_code: str) -> str:
     parts = type_code.split("^", 1)
     if len(parts) != 2 or parts[0] != "ADT" or not parts[1]:
         raise MovementCreationError(
@@ -28,7 +28,7 @@ def _event_from_type(type_code: str) -> str:
     return parts[1]
 
 
-def _load_location(
+def load_movement_location(
     session: Session,
     *,
     uh_id: int | None,
@@ -71,7 +71,7 @@ def _load_location(
     return uh, chambre, lit
 
 
-def _location_code(
+def format_movement_location(
     uh: UniteHebergement | None,
     chambre: Chambre | None,
     lit: Lit | None,
@@ -110,7 +110,7 @@ def create_patient_movement(
             "La date du mouvement ne peut pas être antérieure au début de la venue."
         )
 
-    trigger_event = _event_from_type(type_code)
+    trigger_event = parse_movement_event(type_code)
     last_movement = session.exec(
         select(Mouvement)
         .where(Mouvement.venue_id == venue_id)
@@ -136,7 +136,7 @@ def create_patient_movement(
             f"L'événement {trigger_event} n'est pas autorisé dans l'état actuel."
         )
 
-    uh, chambre, lit = _load_location(
+    uh, chambre, lit = load_movement_location(
         session,
         uh_id=uh_id,
         chambre_id=chambre_id,
@@ -167,7 +167,7 @@ def create_patient_movement(
 
     if uf is None and uh is not None and uh.unite_fonctionnelle_id:
         uf = session.get(UniteFonctionnelle, uh.unite_fonctionnelle_id)
-    location = _location_code(uh, chambre, lit)
+    location = format_movement_location(uh, chambre, lit)
     movement_type = EVENT_METADATA.get(trigger_event, (None, False))[0]
     movement = Mouvement(
         mouvement_seq=get_next_sequence(session, "mouvement"),
@@ -206,4 +206,10 @@ def create_patient_movement(
     return movement
 
 
-__all__ = ["MovementCreationError", "create_patient_movement"]
+__all__ = [
+    "MovementCreationError",
+    "create_patient_movement",
+    "format_movement_location",
+    "load_movement_location",
+    "parse_movement_event",
+]

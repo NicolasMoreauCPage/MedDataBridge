@@ -93,3 +93,13 @@ def test_movement_detail_route_uses_projection(client, session):
     assert "UF détail" in response.text
     assert "Chambre détail" in response.text
     assert "Lit détail" in response.text
+
+
+def test_movement_edit_route_uses_the_real_bed_identifier(client, session):
+    movement = _detail_context(session)
+
+    response = client.get(f"/mouvements/{movement.id}/edit")
+
+    assert response.status_code == 200
+    assert "LIT-DETAIL — Lit détail" in response.text
+    assert 'value="LIT-DETAIL"' not in response.text

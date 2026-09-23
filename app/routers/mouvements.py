@@ -25,6 +25,7 @@ from app.services.movement_creation import (
     create_patient_movement,
 )
 from app.services.movement_details import MovementDetailsError, load_movement_details
+from app.services.movement_update import update_patient_movement
 from app.dependencies.ght import require_ght_context
 
 
@@ -563,7 +564,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
     type_value = m.type if getattr(m, 'type', None) else (f"ADT^{m.trigger_event}" if getattr(m, 'trigger_event', None) else None)
 
     # --- UF options (same as create) ---
-    from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre
+    from app.models_structure import Chambre, Lit, UniteFonctionnelle, UniteHebergement
     uf_options = []
     selected_uf_identifier = None  # For form value (string identifier)
     selected_uf_db_id = None      # For database queries (int id)
@@ -592,7 +593,11 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
                 chambre = session.exec(select(Chambre).where(Chambre.identifier == chambre_part)).first()
                 if chambre:
                     selected_chambre_id = chambre.id
-                    selected_lit_id = chambre.id  # Assuming lit_id maps to chambre_id for now
+                    if len(parts) >= 3 and parts[2]:
+                        lit = session.exec(
+                            select(Lit).where(Lit.identifier == parts[2])
+                        ).first()
+                        selected_lit_id = lit.id if lit else None
                     selected_uh_id = chambre.unite_hebergement_id
                     # If we don't have UF from uf_responsabilite, get it from chambre
                     if not selected_uf_db_id and chambre.unite_hebergement and chambre.unite_hebergement.unite_fonctionnelle:
@@ -688,11 +693,15 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
     # --- Lit options (for selected chambre) ---
     lit_options = []
     if selected_chambre_id:
-        # For now, assume lit_id maps to chambre_id
-        # In a real implementation, you might have a separate Lit model
-        chambre = session.get(Chambre, selected_chambre_id)
-        if chambre:
-            lit_options.append({"value": str(chambre.id), "label": chambre.identifier})
+        lits = session.exec(
+            select(Lit)
+            .where(Lit.chambre_id == selected_chambre_id)
+            .order_by(Lit.name, Lit.id)
+        ).all()
+        lit_options = [
+            {"value": str(lit.id), "label": f"{lit.identifier} — {lit.name}"}
+            for lit in lits
+        ]
 
     # --- Build fields (same order and structure as create) ---
     fields = [
@@ -858,135 +867,33 @@ def update_mouvement(
     session=Depends(get_session),
     request: Request = None,
 ):
-    m = session.get(Mouvement, mouvement_id)
-    if not m:
-        return get_templates_with_filters(request).TemplateResponse(request, "not_found.html", {"request": request, "title": "Mouvement introuvable"}, status_code=404)
-    
-    # Import required models
-    from app.models_structure import Chambre, UniteHebergement, UniteFonctionnelle
-    
-    # Build location from structure if provided
-    final_location = None
-    uf_responsabilite = None
-    uf_soins_code = None
-    uf_soins_label = None
-    
-    if chambre_id:
-        # Build location from chambre
-        chambre = session.get(Chambre, chambre_id)
-        if chambre:
-            final_location = f"{chambre.unite_hebergement.identifier if chambre.unite_hebergement else 'UH'}^{chambre.identifier}"
-            
-            # Update UF responsabilite from chambre's UH's UF
-            if chambre.unite_hebergement and chambre.unite_hebergement.unite_fonctionnelle:
-                uf_responsabilite = chambre.unite_hebergement.unite_fonctionnelle.identifier
-    elif uh_id:
-        # Build location from UH only
-        uh = session.get(UniteHebergement, uh_id)
-        if uh:
-            final_location = f"{uh.identifier}^"
-            
-            # Update UF responsabilite from UH's UF
-            if uh.unite_fonctionnelle:
-                uf_responsabilite = uh.unite_fonctionnelle.identifier
-    
-    # Handle UF soins if provided
-    if uf_soins_id:
-        uf_soins_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_soins_id)).first()
-        if uf_soins_obj:
-            uf_soins_code = uf_soins_obj.identifier
-            uf_soins_label = uf_soins_obj.short_name if getattr(uf_soins_obj, 'short_name', None) and uf_soins_obj.short_name and uf_soins_obj.short_name.strip() else uf_soins_obj.name
-    
-    # Handle UF responsabilite if provided directly
-    if uf_id:
-        uf_resp_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_id)).first()
-        if uf_resp_obj:
-            uf_responsabilite = uf_resp_obj.identifier
-
-    # Determine event code (A01, A02, ... ) from submitted type for validation
-    trigger_event = None
-    if type:
-        parts = type.split("^", 1)
-        if len(parts) == 2:
-            trigger_event = parts[1]
-
-    # Movement event mapping (same as create_mouvement) to infer location requirements
-    event_mapping = {
-        "A01": ("admission", True),
-        "A02": ("transfer", True),
-        "A03": ("discharge", False),
-        "A04": ("consultation_out", False),
-        "A05": ("preadmission", False),
-        "A06": ("class_change", True),
-        "A07": ("from_consult", True),
-        "A11": ("cancel_admission", False),
-        "A12": ("cancel_transfer", False),
-        "A13": ("cancel_discharge", False),
-        "A21": ("temporary_leave", False),
-        "A22": ("return", True),
-        "A38": ("cancel_preadmission", False),
-    }
-
-    # Enforce location requirement according to mapping (mirror create_mouvement)
-    requires_location = bool(event_mapping.get(trigger_event, (None, False))[1])
-    if requires_location and not (uh_id or chambre_id):
-        raise HTTPException(status_code=400, detail="La localisation est obligatoire pour ce type de mouvement")
-
-    # A02 (Transfert/Mutation) : la destination complète (UH, Chambre, Lit) est OBLIGATOIRE
-    if trigger_event == "A02":
-        if not uh_id:
-            raise HTTPException(status_code=400, detail="Pour un transfert (A02), l'Unité d'Hébergement de destination est obligatoire")
-        if not chambre_id:
-            raise HTTPException(status_code=400, detail="Pour un transfert (A02), la Chambre de destination est obligatoire")
-        if not lit_id:
-            raise HTTPException(status_code=400, detail="Pour un transfert (A02), le Lit de destination est obligatoire")
-    
     try:
-        m.venue_id = venue_id
-        m.type = type
-        # Keep trigger_event in sync with the selected type
-        if type:
-            parts = type.split('^', 1)
-            m.trigger_event = parts[1] if len(parts) == 2 else None
-        else:
-            m.trigger_event = None
-        
-        # Parse datetime, handle empty string
-        if when:
-            m.when = datetime.fromisoformat(when)
-        else:
-            m.when = None
-            
-        m.location = final_location
-        m.from_location = from_location
-        m.to_location = to_location
-        m.reason = reason
-        m.mouvement_seq = mouvement_seq
-        m.movement_reason = movement_reason
-        
-        # Update UF fields
-        m.uf_responsabilite = uf_responsabilite
-        m.uf_soins_code = uf_soins_code
-        m.uf_soins_label = uf_soins_label
-        
-        session.add(m)
-        session.commit()
-        
-        # Refresh with relationships for emit_to_senders
-        session.refresh(m)
-        if m.venue:
-            session.refresh(m.venue, ["dossier"])
-            if m.venue.dossier:
-                session.refresh(m.venue.dossier, ["patient"])
-        
-        emit_to_senders(m, "mouvement", session, operation="update")
-        return RedirectResponse(url="/mouvements", status_code=303)
-    except Exception as e:
-        session.rollback()
-        # Renvoie error to user with proper template
-        from app.middleware.flash import flash
-        flash(request, f"Erreur lors de la modification: {str(e)}", "error")
-        return RedirectResponse(url=f"/mouvements/{mouvement_id}/edit", status_code=303)
+        movement = update_patient_movement(
+            session,
+            movement_id=mouvement_id,
+            venue_id=venue_id,
+            type_code=type,
+            when=datetime.fromisoformat(when),
+            uf_identifier=uf_id,
+            uf_soins_identifier=uf_soins_id,
+            uh_id=uh_id,
+            chambre_id=chambre_id,
+            lit_id=lit_id,
+            from_location=from_location,
+            to_location=to_location,
+            reason=reason,
+            movement_reason=movement_reason,
+        )
+    except (MovementCreationError, ValueError) as exc:
+        status_code = getattr(exc, "status_code", 400)
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
+
+    emit_to_senders(movement, "mouvement", session, operation="update")
+    return RedirectResponse(
+        url=f"/mouvements?venue_id={movement.venue_id}",
+        status_code=303,
+    )
+
 
 
 @router.post("/{mouvement_id}/delete")

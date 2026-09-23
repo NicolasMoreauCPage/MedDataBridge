@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from sqlmodel import Session, select
 
-from app.models import Dossier, Patient, Venue
+from app.models import Dossier
 from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.fhir_emission import emit_fhir_payload, generate_fhir
@@ -27,6 +27,7 @@ from app.services.pam_emission_primitives import (
 )
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
 from app.services.pam_movement_events import message_structure_for_event, select_movement_event
+from app.services.pam_movement_context import load_movement_context
 from app.services.zbe_fields import build_xon_unit, derive_zbe_nature
 
 logger = logging.getLogger(__name__)
@@ -415,24 +416,7 @@ def generate_pam_hl7(
     if entity_type == "mouvement":
         event_code = select_movement_event(session, entity, operation)
         
-        # Get venue and patient info
-        # Explicitly load venue if not already loaded
-        if hasattr(entity, 'venue_id') and entity.venue_id and not getattr(entity, 'venue', None):
-            venue = session.exec(select(Venue).where(Venue.id == entity.venue_id)).first()
-        else:
-            venue = entity.venue if hasattr(entity, 'venue') else None
-        
-        # Load dossier from venue
-        if venue and hasattr(venue, 'dossier_id') and venue.dossier_id and not getattr(venue, 'dossier', None):
-            dossier = session.exec(select(Dossier).where(Dossier.id == venue.dossier_id)).first()
-        else:
-            dossier = venue.dossier if venue and hasattr(venue, 'dossier') else None
-        
-        # Load patient from dossier
-        if dossier and hasattr(dossier, 'patient_id') and dossier.patient_id and not getattr(dossier, 'patient', None):
-            patient = session.exec(select(Patient).where(Patient.id == dossier.patient_id)).first()
-        else:
-            patient = dossier.patient if dossier and hasattr(dossier, 'patient') else None
+        venue, dossier, patient = load_movement_context(session, entity)
         # Build timestamp
         timestamp = entity.when.strftime("%Y%m%d%H%M%S") if entity.when else ""
         # Build MSH segment avec structure de message et version IHE PAM France

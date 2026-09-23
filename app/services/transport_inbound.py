@@ -1148,7 +1148,8 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                             return ack
                     if action == "CANCEL" and existing_mvt:
                         existing_mvt.status = "cancelled"
-                        session.add(existing_mvt); session.flush()
+                        session.add(existing_mvt)
+                        session.flush()
                         logger.info("Mouvement annulé", extra={"movement_seq": existing_mvt.mouvement_seq})
                     elif action == "UPDATE" and existing_mvt:
                         if zbe_data.get("uf_medicale_code"):
@@ -1161,7 +1162,8 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                         existing_mvt.original_trigger = original_trigger
                         existing_mvt.action = action
                         existing_mvt.is_historic = as_bool(is_historic)
-                        session.add(existing_mvt); session.flush()
+                        session.add(existing_mvt)
+                        session.flush()
                         logger.info("Mouvement mis à jour", extra={"movement_seq": existing_mvt.mouvement_seq})
 
             # Historique: si is_historic et timestamp passé, aucune restriction additionnelle ici (déjà validé format) mais log info

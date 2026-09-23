@@ -284,7 +284,7 @@ async def get_uf_lits(
     if status == "free":
         query = query.where(
             Lit.status == "active",
-            (Lit.operational_status == "available") | (Lit.operational_status == None)
+            (Lit.operational_status == "available") | (Lit.operational_status.is_(None))
         )
     
     lits = session.exec(query).all()

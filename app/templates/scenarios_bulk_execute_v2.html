@@ -198,7 +198,7 @@
                   • <strong id="selectedMessages">0</strong> messages
                 </p>
               </div>
-              <button type="button" onclick="toggleAllScenarios()" class="text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 font-medium transition-colors">
+              <button type="button" id="toggleAllScenariosBtn" class="text-xs px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 font-medium transition-colors">
                 Tout / Aucun
               </button>
             </div>
@@ -231,7 +231,7 @@
                 <div class="divide-y divide-slate-50">
                   {% for scenario, status in cat_items %}
                   <label class="flex items-start gap-3 px-5 py-3 hover:bg-blue-50/30 cursor-pointer transition-colors group">
-                    <input type="checkbox" name="scenario_ids" value="{{ scenario.id }}" class="scenario-checkbox w-4 h-4 mt-1 text-blue-600 dark:text-blue-400 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 flex-shrink-0" onchange="updateSelectedCount()">
+                    <input type="checkbox" name="scenario_ids" value="{{ scenario.id }}" class="scenario-checkbox w-4 h-4 mt-1 text-blue-600 dark:text-blue-400 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 flex-shrink-0">
                     
                     <div class="flex-1 min-w-0">
                       <!-- Nom et protocole -->
@@ -418,6 +418,8 @@ function initializePage() {
   scenarioCheckboxes.forEach(cb => {
     cb.addEventListener('change', updateSelectedCount);
   });
+
+  document.getElementById('toggleAllScenariosBtn')?.addEventListener('click', toggleAllScenarios);
 
   const repeatInput = document.getElementById('repeatCount');
   if (repeatInput) {

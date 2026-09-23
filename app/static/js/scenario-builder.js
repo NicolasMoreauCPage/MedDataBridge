@@ -52,10 +52,19 @@
     const mode = selectedMode(form);
     if (step === 2) {
       const name = form.querySelector("[data-builder-name]");
-      if (!name?.value.trim()) { name?.focus(); window.toastSystem?.show?.("Le nom du scénario est obligatoire.", "warning"); return false; }
+      if (!name?.value.trim()) {
+        name?.setAttribute("aria-invalid", "true");
+        name?.focus(); window.toastSystem?.show?.("Le nom du scénario est obligatoire.", "warning"); return false;
+      }
+      name.removeAttribute("aria-invalid");
     }
     if (step === 3 && mode === "template" && !form.querySelector("[data-template-choice]:checked")) { window.toastSystem?.show?.("Choisissez un parcours type.", "warning"); return false; }
-    if (step === 3 && mode === "duplicate" && !form.querySelector("[data-source-scenario]")?.value) { form.querySelector("[data-source-scenario]")?.focus(); window.toastSystem?.show?.("Choisissez le scénario à dupliquer.", "warning"); return false; }
+    if (step === 3 && mode === "duplicate" && !form.querySelector("[data-source-scenario]")?.value) {
+      const source = form.querySelector("[data-source-scenario]");
+      source?.setAttribute("aria-invalid", "true");
+      source?.focus(); window.toastSystem?.show?.("Choisissez le scénario à dupliquer.", "warning"); return false;
+    }
+    form.querySelector("[data-source-scenario]")?.removeAttribute("aria-invalid");
     return true;
   }
 
@@ -121,6 +130,11 @@
       previous.classList.toggle("hidden", current === 1); next.classList.toggle("hidden", current === 5); submit.classList.toggle("hidden", current !== 5);
       if (current === 3 || current === 4) updateModeContent(form);
       if (current === 5) renderSummary(form);
+      const heading = panels.find((panel) => Number(panel.dataset.builderPanel) === current)?.querySelector("h2");
+      if (heading) {
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+      }
     };
     const goTo = (target) => {
       if (target <= current) {

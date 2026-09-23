@@ -20,3 +20,8 @@ test("scenario builder redirects direct navigation to the first missing prerequi
   assert.match(source, /for \(let step = 2; step < target; step \+= 1\)/);
   assert.match(source, /show\(step\);/);
 });
+
+test("scenario builder exposes prerequisite errors and focuses the active step", () => {
+  assert.match(source, /setAttribute\("aria-invalid", "true"\)/);
+  assert.match(source, /heading\.focus\(\{ preventScroll: true \}\)/);
+});

@@ -140,7 +140,10 @@ l'audit :
   `pam_emission.py`, en conservant la déduplication par corrélation et la
   reprise d'un échec en attente. Les snapshots détachés, primitives PAM et la
   construction PID-3 ainsi que les champs HL7 XPN/XAD sont isolés et testables
-  sans FastAPI. La validation sortante, le transport MLLP
+  sans FastAPI. Les règles de mouvement (contexte ORM, choix d'événement et structure
+  ADT, transitions A06/A07, PV1 et ZBE) sont désormais séparés de
+  l'assembleur. Une campagne consolidée de 36 tests d'émission et Ruff couvre
+  cette tranche de découpage. La validation sortante, le transport MLLP
   (résolution d'une coroutine, interprétation de l'ACK et métrique), la
   traçabilité des payloads et l'envoi durable à l'outbox y sont maintenant
   testables isolément. L'émetteur historique ne garde pour PAM que la

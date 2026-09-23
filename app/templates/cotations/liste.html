@@ -3,65 +3,10 @@
 {% block title %}Cotations - {{ dossier.nda }}{% endblock %}
 
 {% block content %}
-<style>
-  .list-shell {
-    font-family: 'Space Grotesk', sans-serif;
-    background: radial-gradient(circle at 10% 0%, #d1fae5 0%, #f8fafc 40%, #ecfeff 100%);
-  }
-
-  .hero {
-    background: linear-gradient(130deg, #134e4a 0%, #0f766e 52%, #0e7490 100%);
-    box-shadow: 0 16px 32px rgba(15, 118, 110, 0.26);
-  }
-
-  .pane {
-    background: #fff;
-    border: 1px solid #d8dee8;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-  }
-
-  .metric {
-    border: 1px solid #d8dee8;
-    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.04);
-  }
-
-  .act-row:hover {
-    background: #ecfeff;
-  }
-
-  .mobile-stack {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  .toast-enter {
-    animation: toast-enter .2s ease-out;
-  }
-
-  @keyframes toast-enter {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .btn-busy {
-    opacity: 0.75;
-    cursor: not-allowed;
-  }
-
-  @media (min-width: 1024px) {
-    .mobile-stack {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-  }
-</style>
-
-<div class="list-shell min-h-screen py-6" data-cotations-list data-dossier-id="{{ dossier.id }}">
+<div class="cotations-list-shell min-h-screen py-6" data-cotations-list data-dossier-id="{{ dossier.id }}">
   <div id="toastStack" class="fixed top-4 right-4 z-[70] space-y-2" aria-live="polite" aria-atomic="true"></div>
   <div class="container mx-auto px-4">
-    <section class="hero rounded-3xl p-6 text-white mb-6">
+    <section class="cotations-list-hero rounded-3xl p-6 text-white mb-6">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div class="flex items-start gap-3">
           <a href="/dossiers/{{ dossier.id }}" class="inline-flex mt-1 p-2 rounded-xl bg-white/15 border border-white/30 hover:bg-white/25" aria-label="Retour dossier">
@@ -78,7 +23,7 @@
           </div>
         </div>
 
-        <div class="mobile-stack">
+        <div class="cotations-list-mobile-stack">
           <a href="/cotations/dossier/{{ dossier.id }}/saisie" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white dark:bg-slate-800 text-teal-800 dark:text-teal-200 font-semibold hover:bg-cyan-50">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -95,7 +40,7 @@
       </div>
     </section>
 
-    <section id="filters-panel" class="hidden pane rounded-2xl p-5 mb-5">
+    <section id="filters-panel" class="hidden cotations-list-pane rounded-2xl p-5 mb-5">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Type d'acte</label>
@@ -132,29 +77,29 @@
     </section>
 
     <section class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <article class="metric bg-white dark:bg-slate-800 rounded-xl p-4">
+      <article class="cotations-list-metric bg-white dark:bg-slate-800 rounded-xl p-4">
         <p class="text-sm text-slate-600 dark:text-slate-300">Actes total</p>
         <p class="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">{{ total_actes }}</p>
       </article>
-      <article class="metric bg-emerald-50 dark:bg-emerald-950/30 rounded-xl p-4 border-emerald-200 dark:border-emerald-800">
+      <article class="cotations-list-metric bg-emerald-50 dark:bg-emerald-950/30 rounded-xl p-4 border-emerald-200 dark:border-emerald-800">
         <p class="text-sm text-emerald-700 dark:text-emerald-300">CCAM</p>
         <p class="text-3xl font-bold text-emerald-900 dark:text-emerald-200 mt-1">{{ ccam_count }}</p>
       </article>
-      <article class="metric bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 border-blue-200 dark:border-blue-800">
+      <article class="cotations-list-metric bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 border-blue-200 dark:border-blue-800">
         <p class="text-sm text-blue-700 dark:text-blue-300">NGAP</p>
         <p class="text-3xl font-bold text-blue-900 dark:text-blue-200 mt-1">{{ ngap_count }}</p>
       </article>
-      <article class="metric bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border-amber-200 dark:border-amber-800">
+      <article class="cotations-list-metric bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border-amber-200 dark:border-amber-800">
         <p class="text-sm text-amber-700 dark:text-amber-300">UCD</p>
         <p class="text-3xl font-bold text-amber-900 dark:text-amber-200 mt-1">{{ ucd_count }}</p>
       </article>
-      <article class="metric bg-purple-50 dark:bg-purple-950/30 rounded-xl p-4 border-purple-200 dark:border-purple-800">
+      <article class="cotations-list-metric bg-purple-50 dark:bg-purple-950/30 rounded-xl p-4 border-purple-200 dark:border-purple-800">
         <p class="text-sm text-purple-700 dark:text-purple-300">LPP</p>
         <p class="text-3xl font-bold text-purple-900 dark:text-purple-200 mt-1">{{ lpp_count }}</p>
       </article>
     </section>
 
-    <section class="pane rounded-2xl overflow-hidden">
+    <section class="cotations-list-pane rounded-2xl overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-slate-900 text-slate-100">
@@ -174,7 +119,7 @@
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-slate-700" id="actes-tbody">
             {% for acte in ccam_acts %}
-            <tr class="act-row transition-colors acte-row" data-type="ccam" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
+            <tr class="cotations-list-row transition-colors acte-row" data-type="ccam" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
               <td class="px-4 py-3">
                 <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400" data-acte-id="{{ acte.id }}" data-acte-type="ccam" aria-label="Sélectionner l'acte CCAM {{ acte.code_acte }}">
               </td>
@@ -210,7 +155,7 @@
             {% endfor %}
 
             {% for acte in ngap_acts %}
-            <tr class="act-row transition-colors acte-row" data-type="ngap" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
+            <tr class="cotations-list-row transition-colors acte-row" data-type="ngap" data-valide="{{ acte.valide }}" data-facture="{{ acte.facture }}" data-date="{{ acte.execute_date }}">
               <td class="px-4 py-3">
                 <input type="checkbox" class="acte-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400" data-acte-id="{{ acte.id }}" data-acte-type="ngap" aria-label="Sélectionner l'acte NGAP {{ acte.lettre_cle }}">
               </td>

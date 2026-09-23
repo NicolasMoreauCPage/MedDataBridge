@@ -191,6 +191,7 @@ test("legacy cotation list uses real bulk mutations and a dedicated workspace as
   const source = readFileSync(new URL("../../app/static/js/cotations-list-workspace.js", import.meta.url), "utf8");
   assert.match(template, /data-cotations-list/);
   assert.match(template, /js\/cotations-list-workspace\.js/);
+  assert.doesNotMatch(template, /<style>/);
   assert.doesNotMatch(template, /\bonclick=/);
   assert.doesNotMatch(template, /simulation UI/);
   assert.match(source, /window\.medbridgeHttp\.post\("\/cotations\/api\/bulk"/);

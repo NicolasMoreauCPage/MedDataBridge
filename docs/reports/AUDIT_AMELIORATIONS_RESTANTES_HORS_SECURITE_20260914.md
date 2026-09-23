@@ -254,6 +254,10 @@ l'audit :
   annonce à présent son étape active via une région live et marque celle-ci
   avec `aria-current`, afin de rendre sa progression intelligible au lecteur
   d'écran.
+- **FE-07 :** les styles de la liste de cotations ont été transférés du
+  template au design system sous des classes préfixées `cotations-list-*`.
+  L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet
+  espace de travail ne peuvent pas modifier involontairement une autre vue.
 
 ## Backlog priorisé
 

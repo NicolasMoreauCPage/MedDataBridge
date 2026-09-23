@@ -56,7 +56,8 @@ def _iso_to_hl7(date_value: str) -> Optional[str]:
         return None
     try:
         dt = datetime.fromisoformat(date_value)
-    except Exception:
+    except ValueError:
+        logger.debug("Invalid ISO date preserved as HL7-compatible token value=%r", date_value)
         return date_value.replace("-", "").replace(":", "").replace("T", "").replace(".", "")
     if dt.hour or dt.minute or dt.second:
         return dt.strftime("%Y%m%d%H%M%S")

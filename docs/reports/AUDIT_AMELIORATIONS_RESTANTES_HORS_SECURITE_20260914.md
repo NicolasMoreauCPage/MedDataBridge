@@ -121,7 +121,10 @@ l'audit :
   illisible et une socket MLLP momentanément indisponible sont signalées, sans
   empêcher l'exploration du catalogue ni le statut des autres serveurs. Les
   filtres de dates des venues sont également validés : une saisie invalide
-  retourne une erreur 422 plutôt que d'élargir silencieusement la liste.
+  retourne une erreur 422 plutôt que d'élargir silencieusement la liste. Un
+  `UPDATE`/`CANCEL` PAM sans ZBE-1 ne peut enfin plus devenir une création en
+  cas d'indisponibilité de la vérification d'historique : l'incident est corrélé
+  et le chemin strict retourne un rejet explicite.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

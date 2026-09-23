@@ -1099,7 +1099,14 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                                 ).first()
                                 has_prior = prior_mvt is not None
                     except Exception:
-                        pass
+                        # Une indisponibilité DB ne doit jamais faire traiter
+                        # un UPDATE/CANCEL comme une création : conserver le
+                        # chemin strict entraîne un ACK de rejet explicite.
+                        has_prior = True
+                        logger.exception(
+                            "Unable to verify prior movement for missing ZBE-1",
+                            extra={"correlation_id": ctrl_id, "trigger": trigger},
+                        )
                     if not has_prior:
                         logger.warning(
                             "UPDATE/CANCEL sans ZBE-1 sur trigger d'admission initiale: traité en INSERT (création mouvement)",

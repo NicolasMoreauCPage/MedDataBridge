@@ -21,7 +21,7 @@ from app.services.outbox_service import enqueue_message
 from app.services.pam_validation import validate_pam
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
-from app.services.pam_emission import dump_outbound_pam_payload
+from app.services.pam_emission import dump_outbound_pam_payload, upsert_outbound_pam_log
 
 
 # Helper pour retry des requêtes SQLite en cas d'erreur de concurrence
@@ -1463,51 +1463,12 @@ def emit_to_senders_async(
                         status = "error"
                         ack_payload = str(exc)
                     payload_str = hl7_message if hl7_message else "[Emission error: HL7 message missing]"
-                    if correlation_id:
-                        existing_log = session.exec(
-                            select(MessageLog)
-                            .where(MessageLog.endpoint_id == endpoint.id)
-                            .where(MessageLog.direction == "out")
-                            .where(MessageLog.correlation_id == correlation_id)
-                        ).first()
-                    else:
-                        existing_log = session.exec(
-                            select(MessageLog)
-                            .where(MessageLog.endpoint_id == endpoint.id)
-                            .where(MessageLog.kind == "MLLP")
-                            .where(MessageLog.status.in_(["error", "pending"]))
-                            .order_by(MessageLog.created_at.desc())
-                        ).first()
-                    if existing_log:
-                        existing_log.payload = payload_str
-                        existing_log.ack_payload = ack_payload or ""
-                        existing_log.status = status
-                        existing_log.pam_validation_status = pam_status
-                        existing_log.pam_validation_issues = pam_issues
-                        existing_log.created_at = datetime.utcnow()
-                        session.commit()
-                        dump_outbound_pam_payload(payload_str, getattr(entity, "id", "unknown"))
-                        message_log = existing_log
-                    else:
-                        # Ensure payload is never None (DB NOT NULL constraint)
-                        if payload_str is None:
-                            logger.warning("MessageLog payload is None for endpoint=%s; coercing to empty string", endpoint.id)
-                        safe_payload = payload_str or ""
-                        log = MessageLog(
-                            direction="out",
-                            kind="MLLP",
-                            endpoint_id=endpoint.id,
-                            payload=safe_payload,
-                            ack_payload=ack_payload or "",
-                            status=status,
-                            pam_validation_status=pam_status,
-                            pam_validation_issues=pam_issues,
-                            correlation_id=correlation_id,
-                        )
-                        session.add(log)
-                        session.commit()
-                        dump_outbound_pam_payload(safe_payload, getattr(entity, "id", "unknown"))
-                        message_log = log
+                    message_log = upsert_outbound_pam_log(
+                        session, endpoint_id=endpoint.id, correlation_id=correlation_id,
+                        payload=payload_str, acknowledgment=ack_payload, status=status,
+                        validation_status=pam_status, validation_issues=pam_issues,
+                    )
+                    dump_outbound_pam_payload(payload_str, getattr(entity, "id", "unknown"))
                     if status == "error":
                         enqueue_message(
                             session,

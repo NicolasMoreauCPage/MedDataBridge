@@ -94,7 +94,9 @@ l'audit :
   professionnel et actes CCAM/NGAP/UCD/LPP). L'émetteur conserve
   l'orchestration, l'outbox et les points de monkeypatch de transport ; la
   branche PAM est désormais amorcée : sa persistance de payload MLLP pour
-  diagnostic est isolée dans `pam_emission.py`; génération, transport et
+  diagnostic et la mise à jour du journal sortant MLLP sont isolées dans
+  `pam_emission.py`, en conservant la déduplication par corrélation et la
+  reprise d'un échec en attente. La génération, le transport et leur
   orchestration restent à poursuivre.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test

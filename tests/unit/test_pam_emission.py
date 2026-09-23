@@ -1,4 +1,5 @@
-from app.services.pam_emission import dump_outbound_pam_payload
+from app.models_endpoints import MessageLog, SystemEndpoint
+from app.services.pam_emission import dump_outbound_pam_payload, upsert_outbound_pam_log
 
 
 def test_outbound_pam_payload_dump_is_atomic_and_skips_generated_errors(tmp_path, monkeypatch):
@@ -11,3 +12,16 @@ def test_outbound_pam_payload_dump_is_atomic_and_skips_generated_errors(tmp_path
     assert dumped[0].read_text(encoding="utf-8") == "MSH|^~\\&|SOURCE"
     dump_outbound_pam_payload("[Emission error: missing]", 42)
     assert len(list((tmp_path / "pam").glob("*.hl7"))) == 1
+
+
+def test_outbound_pam_log_is_upserted_by_correlation(session):
+    endpoint = SystemEndpoint(name="PAM log test", kind="MLLP", role="sender")
+    session.add(endpoint)
+    session.commit()
+    session.refresh(endpoint)
+
+    first = upsert_outbound_pam_log(session, endpoint_id=endpoint.id, correlation_id="CTRL-1", payload="first", acknowledgment="AA", status="sent", validation_status="ok", validation_issues="[]")
+    second = upsert_outbound_pam_log(session, endpoint_id=endpoint.id, correlation_id="CTRL-1", payload="second", acknowledgment="AA", status="sent", validation_status="ok", validation_issues="[]")
+
+    assert first.id == second.id
+    assert session.get(MessageLog, first.id).payload == "second"

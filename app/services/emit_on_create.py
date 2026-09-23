@@ -1,7 +1,6 @@
 import logging
 import asyncio
 import json
-from pathlib import Path
 from typing import Literal, Optional
 
 from sqlmodel import Session, select
@@ -16,11 +15,9 @@ from app.services.hl7_fields import build_patient_name, build_xad
 # Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.pam_identifiers import build_pid3_identifiers
-from app.services.pam_emission import (
-    emit_outbound_pam_attempt,
-    validate_outbound_pam,
-)
+from app.services.pam_emission import emit_outbound_pam_attempt
 from app.services.emission_endpoints import list_eligible_sender_endpoints
+from app.services.emission_audit import persist_generated_payloads
 from app.services.emission_snapshot import snapshot_entity as _snapshot_entity
 from app.services.hprim_emission import emit_hprim_act
 from app.services.pam_emission_primitives import (
@@ -1200,60 +1197,7 @@ def emit_to_senders_async(
                     logger.exception("Failed to persist FILE MessageLog after write failure")
 
     if not endpoints:
-        # No sender configured: store generated payloads for audit trail.
-        hl7_message = generate_pam_hl7(entity, entity_type, session)
-        validation = validate_outbound_pam(hl7_message)
-        pam_status = validation.status
-        pam_issues = validation.issues
-        fhir_payload = generate_fhir(entity, entity_type, session)
-        log1 = MessageLog(
-            direction="out",
-            kind="MLLP",
-            endpoint_id=None,
-            payload=hl7_message or "",
-            ack_payload="",
-            status="generated",
-            pam_validation_status=pam_status,
-            pam_validation_issues=pam_issues,
-        )
-        log2 = MessageLog(
-            direction="out",
-            kind="FHIR",
-            endpoint_id=None,
-            payload=json.dumps(fhir_payload, default=str) if fhir_payload is not None else "",
-            ack_payload="",
-            status="generated",
-        )
-        session.add(log1)
-        session.add(log2)
-        session.commit()
-        # Also write generated payloads to /tmp for easier inspection when no senders are configured.
-        try:
-            import os
-            import random
-            base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
-            hl7_out = os.path.join(base, 'pam')
-            fhir_out = os.path.join(base, 'fhir')
-            os.makedirs(hl7_out, exist_ok=True)
-            os.makedirs(fhir_out, exist_ok=True)
-            # HL7 file
-            try:
-                if hl7_message:
-                    from app.utils.atomic_write import write_atomic_text
-                    basename = f"{entity_type}_{getattr(entity,'id','unknown')}"
-                    write_atomic_text(Path(hl7_out), basename, hl7_message, extension='.hl7')
-            except Exception:
-                logger.exception('Failed to write fallback HL7 file to /tmp')
-            # FHIR file
-            try:
-                if fhir_payload is not None:
-                    from app.utils.atomic_write import write_atomic_text
-                    basename = f"fhir_{entity_type}_{getattr(entity,'id','unknown')}"
-                    write_atomic_text(Path(fhir_out), basename, json.dumps(fhir_payload, default=str, ensure_ascii=False), extension='.json')
-            except Exception:
-                logger.exception('Failed to write fallback FHIR file to /tmp')
-        except Exception:
-            logger.exception('Failed to persist fallback files to /tmp')
+        persist_generated_payloads(session, entity, entity_type, generate_pam_hl7, generate_fhir)
 
 
 class _EmitToSendersWrapper:

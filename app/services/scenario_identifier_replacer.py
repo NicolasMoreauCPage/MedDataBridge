@@ -14,7 +14,7 @@ from typing import Optional, Dict, Tuple
 from sqlmodel import Session
 
 from app.models_structure import IdentifierNamespace
-from app.services.identifier_generator import generate_identifier, generate_identifier_set
+from app.services.identifier_generator import generate_identifier_set
 
 
 def _extract_segment(message: str, segment_name: str) -> Optional[str]:

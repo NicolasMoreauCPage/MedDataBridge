@@ -12,13 +12,13 @@ Conformité IHE PAM France:
 - PV1-19: Numéro de venue (NDA)
 - Contexte patient cohérent entre tous les messages d'un scénario
 """
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from dataclasses import dataclass
+from typing import Optional
 from datetime import datetime, timedelta
 from sqlmodel import Session, select
 
-from app.models_scenarios import ScenarioTemplate, ScenarioTemplateStep, InteropScenario, InteropScenarioStep
-from app.models_structure import EntiteJuridique, UniteFonctionnelle
+from app.models_scenarios import ScenarioTemplate, InteropScenario, InteropScenarioStep
+from app.models_structure import EntiteJuridique
 from app.services.identifier_generator import generate_identifier
 from app.models_identifiers import IdentifierType
 from app.models_structure import IdentifierNamespace
@@ -28,7 +28,6 @@ from app.models_scenario_config import (
     get_medecin_for_event,
     get_medecin_traitant,
     build_xcn_field,
-    OID_RPPS
 )
 
 

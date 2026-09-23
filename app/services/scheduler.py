@@ -6,9 +6,6 @@ Runs periodic tasks like scanning file-based endpoints.
 import asyncio
 import logging
 from typing import Optional
-from datetime import datetime
-
-from sqlmodel import Session
 from app.db import session_factory
 from app.services.file_poller import scan_file_endpoints
 from app.services.outbox_service import process_due_messages

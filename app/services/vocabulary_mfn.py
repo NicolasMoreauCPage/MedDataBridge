@@ -1,7 +1,7 @@
 """
 Service de chargement des segments HL7 pour les messages MFN
 """
-from typing import List, Dict
+from typing import List
 from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
 
 def create_mfn_segment_fields() -> List[VocabularySystem]:

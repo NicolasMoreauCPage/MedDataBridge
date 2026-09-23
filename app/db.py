@@ -13,9 +13,11 @@ Notes
     pour éviter des commits imbriqués.
 """
 
+from datetime import datetime
+
 from sqlmodel import SQLModel, create_engine, Session, select, text
 from sqlalchemy.engine.url import make_url
-from sqlalchemy import inspect
+from sqlalchemy import event, inspect
 from pathlib import Path
 from typing import Optional
 
@@ -298,8 +300,6 @@ def get_next_sequence(session: Session, name: str) -> int:
 
 
 # Convert common ISO datetime strings to datetime objects before flush
-from sqlalchemy import event
-from datetime import datetime
 
 def _coerce_datetime_value(v):
     if isinstance(v, str):

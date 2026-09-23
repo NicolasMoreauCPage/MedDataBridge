@@ -1,3 +1,29 @@
+"""Initialisation des vocabulaires standards et leurs correspondances."""
+
+from typing import List
+
+from app.models_vocabulary import VocabularyMapping, VocabularySystem, VocabularySystemType, VocabularyValue
+from app.services.vocabulary_fhir_fr import (
+    create_fr_encounter_discharge_circumstances,
+    create_fr_encounter_hospitalization,
+    create_fr_encounter_priority,
+    create_fr_identity_method_collection,
+    create_fr_location_type,
+    create_fr_organization_type,
+    create_fr_patient_contact_role,
+    create_fr_patient_identity_reliability,
+    create_fr_practitioner_specialty,
+)
+from app.services.vocabulary_ihe_fr import (
+    create_movement_vocabularies,
+    create_patient_location_vocabularies,
+    create_patient_type_vocabularies,
+)
+from app.services.vocabulary_loader import create_fhir_encounter_vocabularies, create_ihe_pam_vocabularies
+from app.services.vocabulary_mappings import init_vocabulary_mappings
+from app.services.vocabulary_mfn import create_mfn_segment_fields
+
+
 def create_semantic_identity_reliability(session) -> list:
     """
     Crée un vocabulaire sémantique pour le statut d'identité (PID-32),
@@ -319,28 +345,6 @@ def create_semantic_patient_class(session) -> list:
         session.add(m)
     session.flush()
     return [semantic_system, hl7_system, fhir_system]
-"""
-Initialisation des vocabulaires standards et leurs correspondances
-"""
-from typing import List
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping, VocabularySystemType
-from app.services.vocabulary_loader import create_ihe_pam_vocabularies, create_fhir_encounter_vocabularies
-from app.services.vocabulary_ihe_fr import create_patient_type_vocabularies, create_patient_location_vocabularies, create_movement_vocabularies
-from app.services.vocabulary_mfn import create_mfn_segment_fields
-from app.services.vocabulary_fhir_fr import (
-    create_fr_practitioner_specialty,
-    create_fr_organization_type,
-    create_fr_location_type,
-    create_fr_patient_contact_role,
-    create_fr_encounter_hospitalization,
-    create_fr_encounter_priority,
-    create_fr_patient_identity_reliability,
-    create_fr_identity_method_collection,
-    create_fr_encounter_discharge_circumstances,
-)
-from app.services.vocabulary_mappings import init_vocabulary_mappings
-
-
 def create_semantic_administrative_gender(session) -> List[VocabularySystem]:
     """
     Crée un vocabulaire sémantique pour le genre administratif,

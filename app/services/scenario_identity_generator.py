@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Utility helpers to build realistic patient identities for scenario runs."""
+
+from __future__ import annotations
 
 import random
 import re

@@ -16,18 +16,15 @@ Points clés
 import logging
 import os
 import secrets
-from datetime import datetime, timezone
-
-# Charger les variables d'environnement depuis .env
-from dotenv import load_dotenv
-load_dotenv()
-
+import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from starlette.middleware.sessions import SessionMiddleware
-from fastapi.staticfiles import StaticFiles
+from datetime import datetime, timezone
 from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin
+from starlette.middleware.sessions import SessionMiddleware
 
 # Import de la configuration centralisée
 from config.settings import Settings, settings
@@ -47,7 +44,6 @@ from app.services.mllp_manager import MLLPManager
 from app.services.entity_events import register_entity_events
 from app.services.entity_events_structure import register_structure_entity_events
 from app.services.scheduler import start_scheduler, stop_scheduler
-import asyncio
 from app import runners as runners_module
 
 
@@ -55,15 +51,6 @@ from app import runners as runners_module
 # instantiate settings, so importing it before ``load_dotenv()`` made the
 # documented local startup command depend on callers manually sourcing `.env`.
 import app.routers.ght as ght
-
-"""Application composition module.
-
-NOTE (Fallback Router Removal): The previous temporary fallback router
-`ght_ej_fallback` guaranteeing `/admin/ght/{context_id}/ej/{ej_id}` has been
-removed now that the main `ght` router consistently loads all routes after the
-import/reload bugfix sequence. If future partial-load regressions occur, prefer
-modularizing `app/routers/ght.py` instead of reintroducing a fallback.
-"""
 
 from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
@@ -80,9 +67,12 @@ from app.routers import menu
 from app.routers import roundtrip_hprim
 from app.routers import cotation_modern
 
-
-# --- PATCH: Logging to file and console, DEBUG level ---
 from app.logging_config import setup_logging
+
+
+# The central settings module loads ``.env`` before the routers are imported.
+# Configure logging only after all module-level imports to keep import order
+# deterministic for CLI, Uvicorn and test entry points.
 setup_logging()
 
 # Instance unique du manager et publication via app.state

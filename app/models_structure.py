@@ -3,6 +3,8 @@ from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 
+from app.models_shared import SystemEndpoint
+
 if TYPE_CHECKING:
     from app.models import Venue
     from app.models_practitioners import MedecinResponsable
@@ -637,12 +639,6 @@ class Lit(SQLModel, table=True):
         return self.gender_usage or (self.chambre.get_effective_gender_usage() if self.chambre else None)
 
 
-from datetime import datetime
-from typing import Optional, List
-from sqlmodel import SQLModel, Field, Relationship
-from enum import Enum
-from app.models_shared import SystemEndpoint
-
 class EntiteJuridique(SQLModel, table=True):
     """Structure juridique (ES_JURIDIQUE) - niveau 1"""
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -903,5 +899,4 @@ class BaseLocation(SQLModel):
     activation_date: Optional[str] = None  # DT_ACTVTN
     closing_date: Optional[str] = None  # DT_FRMTR
     deactivation_date: Optional[str] = None  # DT_FN_ACTVTN
-
 

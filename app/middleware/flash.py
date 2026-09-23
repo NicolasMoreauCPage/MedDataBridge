@@ -1,3 +1,10 @@
+from collections.abc import MutableMapping
+from typing import Any
+
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
+
+
 def flash(request, message, category="info"):
     """Ajoute un message flash à la session utilisateur."""
     session = getattr(request, "session", None)
@@ -5,11 +12,6 @@ def flash(request, message, category="info"):
         messages = session.get("_messages", [])
         messages.append({"message": message, "category": category})
         session["_messages"] = messages
-from collections.abc import MutableMapping
-from typing import Any
-
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class FlashMessageMiddleware(BaseHTTPMiddleware):

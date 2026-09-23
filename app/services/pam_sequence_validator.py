@@ -23,10 +23,10 @@ from app.services.mllp import parse_msh_fields
 from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition
 from app.services.identifier_manager import parse_hl7_cx_identifier
 from app.models_identifiers import IdentifierType
+from app.services.pam_i18n import translate_issues_to_fr
 
 # STRICT_PAM_SEQUENCE is enforced by default (comportement demandé)
 STRICT_PAM_SEQUENCE = True
-from app.services.pam_i18n import translate_issues_to_fr
 
 
 def _field(parts: list, idx: int) -> str:

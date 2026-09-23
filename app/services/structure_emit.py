@@ -1,7 +1,20 @@
-from sqlmodel import Session
-
-import os
 import asyncio
+import json
+import logging
+import os
+from datetime import datetime
+
+from sqlmodel import Session, select
+
+from app.models_endpoints import MessageLog, SystemEndpoint
+from app.services.fhir_organization import organization_to_bundle
+from app.services.fhir_transport import post_fhir_bundle
+from app.services.mfn_organization import (
+    generate_mfn_organization_delete,
+    generate_mfn_organization_message,
+)
+from app.services.mfn_structure import generate_mfn_message
+from app.services.mllp import send_mllp
 
 async def _async_sleep(seconds: float) -> None:
     """Async-aware sleep helper.
@@ -77,32 +90,6 @@ async def _emit_mfn_entity(entity, session: Session, ght_context_id=None) -> Non
                     session.add(log)
                 if retry < max_retry:
                     await _async_sleep(60)
-"""Emission des messages Structure (FHIR Location et HL7 MFN) après modifications.
-
-Cette couche envoie:
-- FHIR: Bundle transaction avec PUT/DELETE Location/{id} vers les endpoints FHIR "sender"
-- HL7: message MFN^M05 (snapshot complet) vers les endpoints MLLP "sender"
-
-Utilisation:
-- await emit_structure_change(entity, session, operation="insert|update")
-- await emit_structure_delete(entity_id, session)
-"""
-
-
-import json
-import logging
-
-from datetime import datetime
-
-from sqlmodel import Session, select
-
-from app.models_endpoints import SystemEndpoint, MessageLog
-from app.services.fhir_transport import post_fhir_bundle
-from app.services.mllp import send_mllp
-from app.services.mfn_structure import generate_mfn_message
-from app.services.mfn_organization import generate_mfn_organization_message, generate_mfn_organization_delete
-from app.services.fhir_organization import organization_to_bundle
-
 logger = logging.getLogger(__name__)
 
 

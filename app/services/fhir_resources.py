@@ -1,6 +1,14 @@
 from datetime import datetime
 from typing import Optional
+
+from sqlmodel import Session
+
 from app.models import Patient
+from app.services.fhir_encounters import (
+    generate_encounter_resource_for_mouvement,
+    generate_encounter_resource_for_venue,
+    generate_episode_of_care_resource,
+)
 
 
 def generate_practitioner_resource(medecin) -> dict:
@@ -138,13 +146,6 @@ def generate_patient_resource(patient: Patient, forced_identifier_system=None, f
         "birthDate": str(patient.birth_date) if patient.birth_date else None,
         "maritalStatus": {"text": patient.marital_status} if getattr(patient, "marital_status", None) else None,
     }
-# Encounter generation belongs to ``fhir_encounters``. The legacy block that
-# followed the Patient return was unreachable and referenced an undefined
-# ``venue`` variable, obscuring real static-analysis failures.
-from sqlmodel import Session
-from app.services.fhir_encounters import generate_episode_of_care_resource, generate_encounter_resource_for_venue, generate_encounter_resource_for_mouvement
-
-
 def generate_fhir_bundle_for_entity(
     entity,
     entity_type: str,

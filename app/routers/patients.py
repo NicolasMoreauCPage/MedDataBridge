@@ -1,13 +1,13 @@
-from sqlmodel import Session
 import logging
-from fastapi import APIRouter, Depends, Request, Form, Body
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
-from sqlmodel import select
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from fastapi import APIRouter, Body, Depends, Form, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from sqlmodel import Session, select
 
 from app.db import get_session
+from app.models import Dossier, Patient
+from app.models_identifiers import Identifier
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema, PatientUpdateSchema
 from app.services.scenario_identity_generator import (
@@ -17,8 +17,6 @@ from app.services.scenario_identity_generator import (
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
 from app.utils.flash import flash
-from app.models import Patient, Dossier
-from app.models_identifiers import Identifier
 
 def get_templates(request: Request):
     """Retourne l'instance templates globale avec les filtres enregistrés"""

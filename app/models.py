@@ -9,6 +9,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from app.models_identifiers import Identifier
 import app.models_contacts
 import app.models_structure  # noqa: F401 - registre des relations ORM
+from app.models_structure import Chambre, Lit
 
 if TYPE_CHECKING:
     from app.models_contacts import PatientContact, VenueContact
@@ -767,7 +768,3 @@ class Contract(SQLModel, table=True):
     description: Optional[str] = Field(default=None, description="Description")
 
     dossier: Dossier = Relationship(back_populates="contracts")
-
-
-# Export models from models_structure for convenience
-from app.models_structure import Chambre, Lit

@@ -96,8 +96,8 @@ jobs:
           # Ces règles correspondent à des erreurs d'exécution ou à des
           # redéfinitions ambiguës : elles restent bloquantes sur tout le code.
           ruff check app --select F821,F823,F601,F811
-          # La dette historique non critique ne peut pas augmenter entre lots.
-          python scripts/check_ruff_baseline.py --max-errors 121
+          # Le nettoyage BE-07 est terminé : toute alerte Ruff dans app/ bloque.
+          python scripts/check_ruff_baseline.py --max-errors 0
           ruff check \
             app/services/outbox_service.py \
             app/services/scenario_output_validation.py \

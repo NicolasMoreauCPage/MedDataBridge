@@ -1,6 +1,10 @@
 from types import SimpleNamespace
 
-from app.services.pam_movement_events import detect_nature_transition, select_movement_event
+from app.services.pam_movement_events import (
+    detect_nature_transition,
+    message_structure_for_event,
+    select_movement_event,
+)
 
 
 class _NoQuerySession:
@@ -23,3 +27,8 @@ def test_event_selection_prioritizes_explicit_and_cancellation_triggers():
 
     assert select_movement_event(_NoQuerySession(), explicit, "insert") == "A02"
     assert select_movement_event(_NoQuerySession(), cancelled, "insert") == "A13"
+
+
+def test_message_structure_follows_event_family():
+    assert message_structure_for_event("A06") == "ADT_A06"
+    assert message_structure_for_event("A99") == "ADT_A99"

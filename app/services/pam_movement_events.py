@@ -51,3 +51,24 @@ def select_movement_event(session: Session, mouvement, operation: str) -> str:
             "A54": "A55", "A06": "A07", "A07": "A06",
         }.get(getattr(mouvement, "original_trigger", None), "A12")
     return "Z99" if operation == "update" else "A01"
+
+
+def message_structure_for_event(event_code: str) -> str:
+    """Retourne la structure ADT IHE PAM France correspondant au déclencheur."""
+    if event_code in {"A01", "A04", "A05", "A08", "A13", "A28", "A31", "Z99"}:
+        return "ADT_A01"
+    if event_code == "A02":
+        return "ADT_A02"
+    if event_code == "A03":
+        return "ADT_A03"
+    if event_code in {"A06", "A07"}:
+        return "ADT_A06"
+    if event_code in {"A09", "A10", "A11"}:
+        return "ADT_A09"
+    if event_code in {"A12", "A15"}:
+        return "ADT_A12"
+    if event_code in {"A21", "A22", "A52", "A53"}:
+        return "ADT_A21"
+    if event_code in {"A38", "A40"}:
+        return "ADT_A38"
+    return f"ADT_{event_code}"

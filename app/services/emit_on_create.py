@@ -26,7 +26,7 @@ from app.services.pam_emission_primitives import (
     normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
 )
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
-from app.services.pam_movement_events import select_movement_event
+from app.services.pam_movement_events import message_structure_for_event, select_movement_event
 from app.services.zbe_fields import build_xon_unit, derive_zbe_nature
 
 logger = logging.getLogger(__name__)
@@ -437,25 +437,7 @@ def generate_pam_hl7(
         timestamp = entity.when.strftime("%Y%m%d%H%M%S") if entity.when else ""
         # Build MSH segment avec structure de message et version IHE PAM France
         control_id = _new_message_control_id(entity.mouvement_seq)
-        # Determine message structure based on event code (IHE PAM France)
-        if event_code in ["A01", "A04", "A05", "A08", "A13", "A28", "A31", "Z99"]:
-            msg_structure = "ADT_A01"
-        elif event_code == "A02":
-            msg_structure = "ADT_A02"
-        elif event_code == "A03":
-            msg_structure = "ADT_A03"
-        elif event_code in ["A06", "A07"]:
-            msg_structure = "ADT_A06"
-        elif event_code in ["A09", "A10", "A11"]:
-            msg_structure = "ADT_A09"
-        elif event_code in ["A12", "A15"]:
-            msg_structure = "ADT_A12"
-        elif event_code in ["A21", "A22", "A52", "A53"]:
-            msg_structure = "ADT_A21"
-        elif event_code in ["A38", "A40"]:
-            msg_structure = "ADT_A38"
-        else:
-            msg_structure = f"ADT_{event_code}"
+        msg_structure = message_structure_for_event(event_code)
         sending_app = msh_sending_app or "POC"
         sending_fac = msh_sending_facility or "HOSP"
         receiving_app = msh_receiving_app or "EXT"

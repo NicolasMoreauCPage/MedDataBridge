@@ -275,7 +275,10 @@ l'audit :
   prévention du double clic pendant l'accès au presse-papier.
   Le détail de message standard suit ce même modèle dans
   `static/js/message-detail.js`, avec bootstrap JSON du payload plutôt qu'une
-  fonction métier inline.
+  fonction métier inline. Le formulaire patient délègue désormais ses sections
+  animées et la génération d'identité exemple à
+  `static/js/patient-form-workspace.js`; le template ne conserve plus ce
+  comportement métier embarqué.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

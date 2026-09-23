@@ -152,11 +152,17 @@ test("analytics and metrics dashboards delegate their reads to the shared HTTP c
 test("admission, patient sample and validation-rule interactions use the shared HTTP client", () => {
   const admission = readFileSync(new URL("../../app/templates/admission_wizard.html", import.meta.url), "utf8");
   const patient = readFileSync(new URL("../../app/templates/patient_form.html", import.meta.url), "utf8");
+  const patientWorkspace = readFileSync(
+    new URL("../../app/static/js/patient-form-workspace.js", import.meta.url),
+    "utf8",
+  );
   const rules = readFileSync(new URL("../../app/templates/validation_rules.html", import.meta.url), "utf8");
   assert.match(admission, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(admission, /\bfetch\(/);
-  assert.match(patient, /window\.medbridgeHttp\.get\('\/patients\/sample-identity'\)/);
-  assert.doesNotMatch(patient, /\bfetch\('\/patients\/sample-identity'/);
+  assert.match(patient, /js\/patient-form-workspace\.js/);
+  assert.doesNotMatch(patient, /window\.medbridgeHttp\.get\(/);
+  assert.match(patientWorkspace, /window\.medbridgeHttp\.get\("\/patients\/sample-identity"\)/);
+  assert.doesNotMatch(patientWorkspace, /\bfetch\(/);
   assert.match(rules, /window\.medbridgeHttp\.post\('\/api\/validation-rules', parsed\)/);
   assert.match(rules, /window\.medbridgeHttp\.get\('\/api\/validation-rules'\)/);
   assert.doesNotMatch(rules, /\bfetch\(/);

@@ -286,7 +286,9 @@ l'audit :
   enfin le rafraîchissement de sa supervision à
   `static/js/ght-dashboard-workspace.js`. La bascule du mode strict PAM de la
   page de conformité est maintenant portée par
-  `static/js/conformity-home-workspace.js`.
+  `static/js/conformity-home-workspace.js`. Le formulaire générique charge
+  maintenant `state_transitions.js` puis `forms.js` avec des scripts différés,
+  sans bootstrap dynamique ni polling embarqué.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

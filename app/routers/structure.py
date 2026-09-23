@@ -359,6 +359,18 @@ async def apply_structure_template(
 
         # Extraire les pôles du payload
         poles_data = request.payload.get("poles", [])
+        if not isinstance(poles_data, list) or not poles_data:
+            raise HTTPException(
+                status_code=422,
+                detail="La structure à générer doit contenir au moins un pôle.",
+            )
+        for pole_index, pole_data in enumerate(poles_data, start=1):
+            pole_name = pole_data.get("name") if isinstance(pole_data, dict) else None
+            if not isinstance(pole_name, str) or not pole_name.strip():
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Le pôle {pole_index} doit avoir un nom.",
+                )
 
         created_ufs_by_ref: dict[str, int] = {}
         for pole_index, pole_data in enumerate(poles_data):

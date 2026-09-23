@@ -74,6 +74,13 @@ test("structure wizard keeps only the latest template request and blocks navigat
   assert.match(source, /Chargement du modèle…/);
 });
 
+test("structure wizard prevents an empty structure from reaching generation", () => {
+  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  assert.match(source, /function hasUsableStructure\(\)/);
+  assert.match(source, /Ajoutez et nommez au moins un pôle avant de poursuivre/);
+  assert.match(source, /Ajoutez et nommez au moins un pôle avant de générer la structure/);
+});
+
 test("analytics and metrics dashboards delegate their reads to the shared HTTP client", () => {
   const analytics = readFileSync(new URL("../../app/templates/analytics_dashboard.html", import.meta.url), "utf8");
   const metrics = readFileSync(new URL("../../app/templates/metrics_dashboard.html", import.meta.url), "utf8");

@@ -178,7 +178,9 @@ l'audit :
   module expose des états de chargement et d'erreur, et un test vérifie ce
   découplage. L'assistant de structure ignore désormais les réponses tardives
   lors d'un changement rapide de modèle et verrouille sa navigation pendant
-  le chargement du modèle sélectionné. L'extraction des grands écrans cotation classique reste à
+  le chargement du modèle sélectionné. Une création vide ou un pôle sans nom
+  sont refusés par le wizard puis par l'API, afin qu'une confirmation de succès
+  corresponde toujours à une structure effectivement créée. L'extraction des grands écrans cotation classique reste à
   poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

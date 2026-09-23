@@ -62,3 +62,22 @@ def test_structure_wizard_rejects_beds_without_a_room(client, session):
     assert session.exec(
         select(UniteHebergement).where(UniteHebergement.name == "UH invalide")
     ).first() is None
+
+
+def test_structure_wizard_rejects_an_empty_or_unnamed_structure(client, session):
+    eg = EntiteGeographique(name="EG Validation Assistant")
+    session.add(eg)
+    session.commit()
+
+    for payload, expected_message in [
+        ({"poles": []}, "au moins un pôle"),
+        ({"poles": [{"name": "  "}]}, "doit avoir un nom"),
+    ]:
+        response = client.post("/api/structure/apply-template", json={
+            "eg_id": eg.id,
+            "payload": payload,
+            "uhs": [],
+        })
+
+        assert response.status_code == 422
+        assert expected_message in response.json()["detail"]

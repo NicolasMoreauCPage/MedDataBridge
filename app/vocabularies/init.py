@@ -831,7 +831,7 @@ def create_scenario_type_vocabularies() -> List[VocabularySystem]:
     hl7_system.values = hl7_values
 
     # Mappings internes -> IHE PAM
-    mappings = [
+    mappings = [  # noqa: F841 - les relations ORM conservent les mappings pour la cascade de session.
         VocabularyMapping(source_value=internal_values[0], target_system=ihe_system, target_code="ADMISSION"),    # ADMISSION -> ADMISSION
         VocabularyMapping(source_value=internal_values[1], target_system=ihe_system, target_code="TRANSFER"),     # TRANSFERT -> TRANSFER
         VocabularyMapping(source_value=internal_values[2], target_system=ihe_system, target_code="DISCHARGE"),    # SORTIE -> DISCHARGE
@@ -896,7 +896,7 @@ def create_action_type_vocabularies() -> List[VocabularySystem]:
     ihe_system.values = ihe_values
 
     # Mappings internes -> IHE PAM
-    mappings = [
+    mappings = [  # noqa: F841 - les relations ORM conservent les mappings pour la cascade de session.
         VocabularyMapping(source_value=internal_values[0], target_system=ihe_system, target_code="CREATE_PATIENT"),    # CREER_PATIENT -> CREATE_PATIENT
         VocabularyMapping(source_value=internal_values[1], target_system=ihe_system, target_code="UPDATE_PATIENT"),    # METTRE_A_JOUR_PATIENT -> UPDATE_PATIENT
         VocabularyMapping(source_value=internal_values[2], target_system=ihe_system, target_code="MERGE_PATIENTS"),    # FUSIONNER_PATIENTS -> MERGE_PATIENTS
@@ -972,7 +972,7 @@ def create_execution_status_vocabularies() -> List[VocabularySystem]:
     fhir_system.values = fhir_values
 
     # Mappings internes -> HL7v2
-    mappings = [
+    mappings = [  # noqa: F841 - les relations ORM conservent les mappings pour la cascade de session.
         VocabularyMapping(source_value=internal_values[0], target_system=hl7_system, target_code="P"),  # EN_ATTENTE -> P
         VocabularyMapping(source_value=internal_values[1], target_system=hl7_system, target_code="I"),  # EN_COURS -> I
         VocabularyMapping(source_value=internal_values[2], target_system=hl7_system, target_code="C"),  # TERMINE -> C
@@ -1025,7 +1025,7 @@ def create_entity_type_vocabularies() -> List[VocabularySystem]:
     fhir_system.values = fhir_values
 
     # Mappings internes -> FHIR ResourceType
-    mappings = [
+    mappings = [  # noqa: F841 - les relations ORM conservent les mappings pour la cascade de session.
         VocabularyMapping(source_value=internal_values[0], target_system=fhir_system, target_code="Patient"),        # PATIENT -> Patient
         VocabularyMapping(source_value=internal_values[1], target_system=fhir_system, target_code="EpisodeOfCare"), # DOSSIER -> EpisodeOfCare
         VocabularyMapping(source_value=internal_values[2], target_system=fhir_system, target_code="Encounter"),      # VENUE -> Encounter
@@ -1080,7 +1080,7 @@ def create_encounter_status() -> List[VocabularySystem]:
     hl7_system.values = hl7_values
     
     # Mappings
-    mappings = [
+    mappings = [  # noqa: F841 - les relations ORM conservent les mappings pour la cascade de session.
         VocabularyMapping(source_value=fhir_values[0], target_system=hl7_system, target_code="P"),  # planned -> P
         VocabularyMapping(source_value=fhir_values[1], target_system=hl7_system, target_code="A"),  # arrived -> A
         VocabularyMapping(source_value=fhir_values[3], target_system=hl7_system, target_code="H"),  # in-progress -> H

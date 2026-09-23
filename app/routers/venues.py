@@ -4,7 +4,7 @@ from fastapi import Request as FastAPIRequest
 from sqlmodel import select
 from datetime import datetime, timedelta
 from app.db import get_session, peek_next_sequence
-from app.models import Venue, Dossier, Patient, Mouvement
+from app.models import Venue, Dossier, Mouvement
 from sqlmodel import select as sqlm_select
 
 
@@ -189,7 +189,7 @@ def new_venue(
     uf_options = []
     dossier = session.get(Dossier, prefill_dossier_id)
     if dossier and dossier.entite_juridique_id:
-        from app.models_structure import EntiteJuridique, UniteFonctionnelle, Service, Pole, EntiteGeographique
+        from app.models_structure import UniteFonctionnelle, Service, Pole, EntiteGeographique
         ufs = session.exec(
             select(UniteFonctionnelle)
             .join(Service, UniteFonctionnelle.service_id == Service.id)

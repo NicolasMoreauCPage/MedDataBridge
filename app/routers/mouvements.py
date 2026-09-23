@@ -12,7 +12,7 @@ from app.models import Mouvement, Venue, Dossier, Patient
 from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.services.emit_on_create import emit_to_senders
 from app.dependencies.ght import require_ght_context
-from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS, SUPPORTED_WORKFLOW_EVENTS
+from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -1562,7 +1562,7 @@ def edit_mouvement(mouvement_id: int, request: Request, session=Depends(get_sess
     type_value = m.type if getattr(m, 'type', None) else (f"ADT^{m.trigger_event}" if getattr(m, 'trigger_event', None) else None)
 
     # --- UF options (same as create) ---
-    from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
+    from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre
     uf_options = []
     selected_uf_identifier = None  # For form value (string identifier)
     selected_uf_db_id = None      # For database queries (int id)

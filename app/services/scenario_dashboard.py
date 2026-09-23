@@ -1,7 +1,7 @@
 """Service d'agrégation statistiques pour dashboard scénarios."""
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from sqlmodel import Session, select, func, and_, or_
+from sqlmodel import Session, select, func
 
 from app.models_scenario_runs import ScenarioExecutionRun, ScenarioExecutionStepLog
 from app.models_scenarios import InteropScenario

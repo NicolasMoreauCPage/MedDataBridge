@@ -6,9 +6,14 @@ Notes SSL
     `REQUESTS_CA_BUNDLE` dans l'environnement.
 """
 
+import logging
+
 import httpx
 from typing import Optional, Tuple
 from app.state_transitions import is_valid_transition
+
+
+logger = logging.getLogger(__name__)
 
 async def post_fhir_bundle(base_url: str, resource_json: dict, auth_kind: str = "none", auth_token: str | None = None) -> Tuple[int, dict]:
     """POST d'une Resource/Bundle FHIR vers `base_url`.
@@ -26,8 +31,15 @@ async def post_fhir_bundle(base_url: str, resource_json: dict, auth_kind: str = 
         out_json = {}
         try:
             out_json = r.json()
-        except Exception:
-            pass
+        except ValueError:
+            # Certains serveurs FHIR renvoient un corps vide ou texte pour un
+            # succès/une erreur HTTP. Le statut reste exploitable par l'outbox.
+            logger.debug(
+                "FHIR endpoint returned a non-JSON response base_url=%s status_code=%s",
+                base_url,
+                r.status_code,
+                exc_info=True,
+            )
         return r.status_code, out_json
 
 def validate_fhir_transition(current_state: Optional[str], event_code: str) -> bool:

@@ -111,7 +111,9 @@ l'audit :
   une capture large et ne pouvait produire aucun effet fiable. Les enrichissements
   FHIR facultatifs (contacts patient/venue et activités d'UF) restent tolérants
   aux données historiques incomplètes, mais leur omission est désormais
-  explicitement signalée sans empêcher l'export de la ressource principale.
+  explicitement signalée sans empêcher l'export de la ressource principale. Le
+  transport FHIR signale enfin les corps HTTP non JSON tout en gardant leur
+  code de statut exploitable pour la décision de reprise de l'outbox.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

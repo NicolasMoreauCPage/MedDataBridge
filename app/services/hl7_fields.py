@@ -3,6 +3,36 @@
 from app.services.pam_emission_primitives import clean_hl7_value
 
 
+def to_hl7_administrative_sex(value: str | None) -> str:
+    """Normalise les valeurs applicatives vers la table HL7 0001 (F/M/U)."""
+    cleaned = clean_hl7_value(value)
+    if not cleaned:
+        return ""
+    return {
+        "m": "M", "male": "M", "f": "F", "female": "F",
+        "o": "U", "other": "U", "u": "U", "unknown": "U",
+        "undifferentiated": "U", "n": "U",
+    }.get(cleaned.lower(), cleaned.upper())
+
+
+def build_adt_header(
+    timestamp: str,
+    event_code: str,
+    message_structure: str,
+    control_id: str,
+    sending_app: str = "POC",
+    sending_facility: str = "HOSP",
+    receiving_app: str = "EXT",
+    receiving_facility: str = "HOSP",
+) -> tuple[str, str]:
+    """Construit les segments MSH et EVN communs aux messages ADT français."""
+    msh = (
+        f"MSH|^~\\&|{sending_app}|{sending_facility}|{receiving_app}|{receiving_facility}|{timestamp}||"
+        f"ADT^{event_code}^{message_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+    )
+    return msh, f"EVN|{event_code}|{timestamp}"
+
+
 def build_xpn(
     family: str | None,
     given: str | None,

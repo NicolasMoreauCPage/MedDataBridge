@@ -9,7 +9,7 @@ from app.models import Dossier, Mouvement, Patient, Venue
 from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.fhir_emission import emit_fhir_payload, generate_fhir
-from app.services.hl7_fields import build_patient_name, build_xad
+from app.services.hl7_fields import build_adt_header, build_patient_name, build_xad, to_hl7_administrative_sex
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
@@ -97,8 +97,10 @@ def generate_pam_hl7(
         sending_fac = msh_sending_facility or "HOSP"
         receiving_app = msh_receiving_app or "EXT"
         receiving_fac = msh_receiving_facility or "HOSP"
-        msh = f"MSH|^~\\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
-        evn = f"EVN|{event_type}|{timestamp}"
+        msh, evn = build_adt_header(
+            timestamp, event_type, msg_structure, control_id,
+            sending_app, sending_fac, receiving_app, receiving_fac,
+        )
 
         # PID-3 identifiers
         pid3 = build_pid3_identifiers(entity, session, forced_system=forced_identifier_system, forced_oid=forced_identifier_oid)
@@ -121,13 +123,7 @@ def generate_pam_hl7(
         # Gender mapping — PID-8 (Sexe) : l'extension nationale IHE FR restreint les valeurs
         # permises à F/M/U (table HL7 0001), pas de code "O" ; "other" est donc mappé sur "U".
         raw_gender = _c_local(_get("gender", ""))
-        gender_map_hl7 = {
-            "m": "M", "male": "M",
-            "f": "F", "female": "F",
-            "o": "U", "other": "U",
-            "u": "U", "unknown": "U", "undifferentiated": "U", "n": "U"
-        }
-        gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
+        gender = to_hl7_administrative_sex(raw_gender)
 
         addresses = []
         street = _c_local(_get("address", None))
@@ -315,13 +311,7 @@ def generate_pam_hl7(
             raw_gender = (patient.gender or "").strip()
             # PID-8 : l'extension nationale IHE FR restreint les valeurs permises à F/M/U
             # (table HL7 0001) ; pas de code "O", "other" est donc mappé sur "U".
-            gender_map_hl7 = {
-                "m": "M", "male": "M",
-                "f": "F", "female": "F",
-                "o": "U", "other": "U",
-                "u": "U", "unknown": "U", "undifferentiated": "U", "n": "U"
-            }
-            gender = gender_map_hl7.get(raw_gender.lower(), raw_gender.upper()) if raw_gender else ""
+            gender = to_hl7_administrative_sex(raw_gender)
         else:
             patient_id = str(dossier.patient_id)
             family = ""
@@ -336,8 +326,7 @@ def generate_pam_hl7(
         pid3 = f"{patient_id}^^^{authority}^PI"
         pid18 = f"{visit_number}^^^{authority}^AN"
 
-        msh = f"MSH|^~\\&|POC|HOSP|EXT|HOSP|{admit_time}||ADT^{event_type}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
-        evn = f"EVN|{event_type}|{admit_time}"
+        msh, evn = build_adt_header(admit_time, event_type, msg_structure, control_id)
 
         # PID-5 keeps the current and birth names in separate XPN repetitions.
         name_field = build_patient_name(
@@ -566,12 +555,18 @@ def generate_pam_hl7(
         receiving_app = msh_receiving_app or "EXT"
         receiving_fac = msh_receiving_facility or "HOSP"
         if event_code == "Z99":
-            msh = rf"MSH|^~\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^Z99^ADT_A01|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+            msh, _ = build_adt_header(
+                timestamp, "Z99", "ADT_A01", control_id,
+                sending_app, sending_fac, receiving_app, receiving_fac,
+            )
         else:
-            msh = rf"MSH|^~\&|{sending_app}|{sending_fac}|{receiving_app}|{receiving_fac}|{timestamp}||ADT^{event_code}^{msg_structure}|{control_id}|P|2.5^FRA^2.11|||||FRA|8859/1"
+            msh, _ = build_adt_header(
+                timestamp, event_code, msg_structure, control_id,
+                sending_app, sending_fac, receiving_app, receiving_fac,
+            )
         
         # Build EVN segment
-        evn = f"EVN|{event_code}|{timestamp}"
+        _, evn = build_adt_header(timestamp, event_code, msg_structure, control_id)
         
         # Build PID segment if we have patient info
         if patient:

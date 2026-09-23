@@ -81,3 +81,24 @@ def test_structure_wizard_rejects_an_empty_or_unnamed_structure(client, session)
 
         assert response.status_code == 422
         assert expected_message in response.json()["detail"]
+
+
+def test_structure_wizard_rejects_unnamed_nested_entities(client, session):
+    eg = EntiteGeographique(name="EG Noms imbriqués")
+    session.add(eg)
+    session.commit()
+
+    invalid_payloads = [
+        ({"poles": [{"name": "Pôle", "services": [{"name": " "}]}]}, [], "Le service"),
+        ({"poles": [{"name": "Pôle", "services": [{"name": "Service", "ufs": [{"name": ""}]}]}]}, [], "L'UF"),
+        ({"poles": [{"name": "Pôle", "services": [{"name": "Service", "ufs": [{"name": "UF"}]}]}]}, [{"name": " ", "uf_ref": "0:0:0"}], "hébergement"),
+    ]
+    for payload, uhs, expected_message in invalid_payloads:
+        response = client.post("/api/structure/apply-template", json={
+            "eg_id": eg.id,
+            "payload": payload,
+            "uhs": uhs,
+        })
+
+        assert response.status_code == 422
+        assert expected_message in response.json()["detail"]

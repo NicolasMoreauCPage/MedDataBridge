@@ -371,6 +371,41 @@ async def apply_structure_template(
                     status_code=422,
                     detail=f"Le pôle {pole_index} doit avoir un nom.",
                 )
+            services_data = pole_data.get("services", [])
+            if not isinstance(services_data, list):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Les services du pôle {pole_index} sont invalides.",
+                )
+            for service_index, service_data in enumerate(services_data, start=1):
+                service_name = service_data.get("name") if isinstance(service_data, dict) else None
+                if not isinstance(service_name, str) or not service_name.strip():
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Le service {service_index} du pôle {pole_index} doit avoir un nom.",
+                    )
+                ufs_data = service_data.get("ufs", [])
+                if not isinstance(ufs_data, list):
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Les UF du service {service_index} du pôle {pole_index} sont invalides.",
+                    )
+                for uf_index, uf_data in enumerate(ufs_data, start=1):
+                    uf_name = uf_data.get("name") if isinstance(uf_data, dict) else None
+                    if not isinstance(uf_name, str) or not uf_name.strip():
+                        raise HTTPException(
+                            status_code=422,
+                            detail=(
+                                f"L'UF {uf_index} du service {service_index} "
+                                f"du pôle {pole_index} doit avoir un nom."
+                            ),
+                        )
+        for uh_index, uh_data in enumerate(request.uhs, start=1):
+            if not uh_data.name.strip():
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"L'unité d'hébergement {uh_index} doit avoir un nom.",
+                )
 
         created_ufs_by_ref: dict[str, int] = {}
         for pole_index, pole_data in enumerate(poles_data):

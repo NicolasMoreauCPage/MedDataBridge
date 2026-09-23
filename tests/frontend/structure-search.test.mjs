@@ -245,7 +245,10 @@ test("dossier type change uses the shared HTTP client for regular and forced cha
 });
 
 test("location cartography delegates hierarchy reads to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/components/location_cartography.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/components/location_cartography.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/location-cartography.js", import.meta.url), "utf8");
+  assert.match(template, /js\/location-cartography\.js/);
+  assert.doesNotMatch(template, /<script>/);
   assert.match(source, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(source, /\bfetch\(/);
 });

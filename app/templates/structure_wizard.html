@@ -203,6 +203,7 @@
       Suivant →
     </button>
   </div>
+  <p id="wizardDirtyStatus" class="mt-2 text-xs text-slate-500 dark:text-slate-400" aria-live="polite">Aucune modification non enregistrée.</p>
 
   <dialog id="structure-wizard-input-dialog" aria-labelledby="structure-wizard-input-title" class="w-[min(32rem,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
     <form method="dialog" id="structure-wizard-input-form" class="p-5">
@@ -226,15 +227,38 @@
     const templateCards = document.getElementById('templateCards');
     const targetEgId = document.getElementById('targetEgId');
     const progressStatus = document.getElementById('wizardProgressStatus');
+    const wizardContent = document.getElementById('wizardContent');
+    const dirtyStatus = document.getElementById('wizardDirtyStatus');
     let selectedTemplate = null;
     let templatePayload = null; // Stocke le payload JSON du template sélectionné
     let isTemplateLoading = false;
     let templateRequestToken = 0;
     let currentStep = 1;
+    let isDirty = false;
 
     function notify(message, type = 'info') {
       if (window.toastSystem) window.toastSystem.show(message, type);
     }
+
+    function markDirty() {
+      if (isDirty) return;
+      isDirty = true;
+      if (dirtyStatus) dirtyStatus.textContent = 'Modifications non enregistrées.';
+    }
+
+    function clearDirty() {
+      isDirty = false;
+      if (dirtyStatus) dirtyStatus.textContent = 'Toutes les modifications sont enregistrées.';
+    }
+
+    window.addEventListener('beforeunload', (event) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    });
+    targetEgId?.addEventListener('change', markDirty);
+    wizardContent?.addEventListener('input', markDirty);
+    wizardContent?.addEventListener('change', markDirty);
 
     function confirmAction(options) {
       if (!window.PameliaUi?.confirm) {
@@ -465,6 +489,7 @@
             id: card.dataset.templateId,
             key: card.dataset.template,
           };
+          markDirty();
           // Charger le payload du template sélectionné
           const requestToken = ++templateRequestToken;
           isTemplateLoading = true;
@@ -991,6 +1016,7 @@
         );
 
         // Rediriger vers le dashboard structure
+        clearDirty();
         window.location.href = '/structure';
 
       } catch (error) {

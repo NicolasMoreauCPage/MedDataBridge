@@ -200,7 +200,10 @@ l'audit :
   d'événements au lieu de gestionnaires inline. La recherche avancée de
   structure délègue maintenant sa recherche FHIR, ses filtres, sa pagination,
   son historique et son export à `static/js/structure-search-workspace.js` ;
-  le template ne conserve plus de script métier inline. L'extraction des autres grands
+  le template ne conserve plus de script métier inline. Le tableau Analytics
+  délègue à son tour ses KPI, graphiques, alertes et exports à
+  `static/js/analytics-dashboard-workspace.js`, avec l'EG de contexte fournie
+  par un attribut `data-*`. L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

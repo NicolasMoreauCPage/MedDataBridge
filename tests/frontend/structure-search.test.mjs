@@ -99,9 +99,15 @@ test("structure wizard warns before losing unsaved changes", () => {
 
 test("analytics and metrics dashboards delegate their reads to the shared HTTP client", () => {
   const analytics = readFileSync(new URL("../../app/templates/analytics_dashboard.html", import.meta.url), "utf8");
+  const analyticsWorkspace = readFileSync(
+    new URL("../../app/static/js/analytics-dashboard-workspace.js", import.meta.url),
+    "utf8",
+  );
   const metrics = readFileSync(new URL("../../app/templates/metrics_dashboard.html", import.meta.url), "utf8");
-  assert.match(analytics, /window\.medbridgeHttp\.get\(/);
-  assert.doesNotMatch(analytics, /\bfetch\(/);
+  assert.match(analytics, /data-analytics-dashboard/);
+  assert.match(analytics, /js\/analytics-dashboard-workspace\.js/);
+  assert.match(analyticsWorkspace, /window\.medbridgeHttp\.get\(/);
+  assert.doesNotMatch(analyticsWorkspace, /\bfetch\(/);
   assert.match(metrics, /window\.medbridgeHttp\.get\('\/api\/metrics\/dashboard'\)/);
   assert.doesNotMatch(metrics, /\bfetch\(/);
 });

@@ -15,5 +15,6 @@ def test_analytics_dashboard_uses_the_requested_geographical_entity(client: Test
     response = client.get(f"/structure/analytics?eg_id={eg.id}")
 
     assert response.status_code == 200
-    assert f"let currentEgId = {eg.id};" in response.text
+    assert f'data-eg-id="{eg.id}"' in response.text
+    assert "js/analytics-dashboard-workspace.js" in response.text
     assert f"eg_id={eg.id}&amp;period=30d" in response.text

@@ -258,6 +258,8 @@ l'audit :
   La liste de configuration EJ des scénarios isole aussi sa suppression dans
   `static/js/scenario-ej-config-list.js`, avec délégation d'événement et nom
   d'EJ transporté par attribut de données plutôt que dans un gestionnaire HTML.
+  Les filtres de statut des scénarios par EJ délèguent enfin leur soumission
+  automatique à `static/js/ej-scenarios-status.js`.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

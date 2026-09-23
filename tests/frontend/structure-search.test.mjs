@@ -247,6 +247,15 @@ test("scenario EJ configuration list delegates its deletion action", () => {
   assert.doesNotMatch(source, /\bfetch\(/);
 });
 
+test("EJ scenario status delegates its automatic filters", () => {
+  const template = readFileSync(new URL("../../app/templates/scenarios/ej_scenarios_status.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/ej-scenarios-status.js", import.meta.url), "utf8");
+  assert.match(template, /js\/ej-scenarios-status\.js/);
+  assert.match(template, /data-ej-scenarios-filter/);
+  assert.doesNotMatch(template, /\bonchange=/);
+  assert.match(source, /requestSubmit\(\)/);
+});
+
 test("scenario import and conformity toggle use the shared HTTP client", () => {
   for (const relativePath of [
     "../../app/templates/scenario_import.html",

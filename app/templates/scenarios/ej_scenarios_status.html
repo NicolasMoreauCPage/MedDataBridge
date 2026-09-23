@@ -36,10 +36,10 @@
 
 {# Sélection EJ #}
 <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm mb-6">
-  <form method="get" class="flex gap-4 items-end">
+  <form method="get" class="flex gap-4 items-end" data-ej-scenarios-filter>
     <div class="flex-1">
       <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Entité Juridique</label>
-      <select name="ej_id" onchange="this.form.submit()" class="w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400">
+      <select name="ej_id" data-auto-submit class="w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-400">
         <option value="">Choisir une EJ...</option>
         {% for ej in ej_list %}
           <option value="{{ ej.id }}" {% if selected_ej_id == ej.id %}selected{% endif %}>
@@ -53,7 +53,7 @@
       <label class="inline-flex items-center gap-2">
         <input type="checkbox" name="only_failed" value="true" 
                {% if only_failed %}checked{% endif %} 
-               onchange="this.form.submit()" 
+               data-auto-submit
                class="rounded border-slate-300 dark:border-slate-600 shadow-sm">
         <span class="text-sm text-slate-700 dark:text-slate-200">Voir seulement les en-cours/erreurs</span>
       </label>
@@ -184,4 +184,5 @@
   {{ empty_state("Sélectionner une Entité Juridique", "Choisissez une EJ pour voir l'état d'exécution de ses scénarios") }}
 {% endif %}
 
+<script defer src="{{ url_for('static', path='js/ej-scenarios-status.js') }}"></script>
 {% endblock %}

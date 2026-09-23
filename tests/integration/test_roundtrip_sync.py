@@ -8,8 +8,14 @@ import time
 import sys
 from pathlib import Path
 
+import pytest
+
 # Ajouter le répertoire parent au path
 sys.path.insert(0, str(Path(__file__).parent))
+
+
+# Vérification manuelle contre un listener MLLP démarré hors de pytest.
+pytestmark = pytest.mark.external
 
 
 def decode_hl7_payload(payload: str) -> str:

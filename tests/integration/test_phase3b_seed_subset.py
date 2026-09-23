@@ -8,6 +8,8 @@ import sys
 import os
 from pathlib import Path
 
+import pytest
+
 # Setup paths
 sys.path.insert(0, '/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge')
 sys.path.insert(0, '/home/nico/Travail/Fhir_MedBridgeData/MedData_Bridge/scripts_manual')
@@ -18,6 +20,10 @@ from sqlmodel import Session, select
 from datetime import datetime
 from hl7_import_validator import HL7ImportValidator, ValidationResult
 from seed_hl7_scenarios import extract_hl7_messages, extract_trigger_from_message, get_scenario_name_from_path, _save_corrections_report
+
+
+# Script de seed historique : chemins absolus et base locale requis.
+pytestmark = pytest.mark.external
 
 
 def test_seed_with_validator_subset():

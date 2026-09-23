@@ -6,14 +6,13 @@ Tests de la gestion des dossiers : création, transitions d'états, validations
 
 import pytest
 from datetime import datetime, timedelta
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from app.models import Patient, Dossier, Venue, Mouvement
+from app.models import Mouvement
 from app.services.patients_service import PatientCreateSchema, create_patient
 from app.services.dossiers_service import DossierCreateSchema, create_dossier_with_pre_admit_venue
 from app.services.venues_service import VenueCreateSchema, create_venue
 from app.services.mouvements_service import MouvementCreateSchema, create_mouvement
-from app.models_structure import GHTContext
 
 
 @pytest.mark.integration
@@ -187,4 +186,7 @@ class TestDossierWorkflowIntegration:
             create_mouvement(session=session, mouvement_data=mouvement_data)
 
         # Vérifier l'historique des mouvements
-        mouvements = session.query(Mouvement).filter(Mouvement.venue_id.in_([v.id for v in venues])).all()
+        mouvements = session.exec(
+            select(Mouvement).where(Mouvement.venue_id.in_([venue.id for venue in venues]))
+        ).all()
+        assert len(mouvements) == len(venues) - 1

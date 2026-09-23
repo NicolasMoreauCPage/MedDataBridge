@@ -8,6 +8,8 @@ import sys
 import socket
 from pathlib import Path
 
+import pytest
+
 # Ajouter le répertoire parent au path
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -16,6 +18,10 @@ from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.models_shared import SystemEndpoint
 from app.services.scenario_runner import send_scenario
 from sqlmodel import Session, select
+
+
+# Vérification manuelle contre un listener MLLP démarré hors de pytest.
+pytestmark = pytest.mark.external
 
 
 def decode_hl7_payload(payload: str) -> str:

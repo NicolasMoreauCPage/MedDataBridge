@@ -5,10 +5,16 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 from app.services.transport_inbound import on_message_inbound_async
 from app.models_shared import MessageLog, SystemEndpoint
 from sqlmodel import Session, select
 from app.db import engine
+
+
+# Script de diagnostic : il requiert un endpoint MLLP et modifie la base locale.
+pytestmark = pytest.mark.external
 
 
 # Sample ADT^A01 message

@@ -260,6 +260,14 @@ l'audit :
   sept schémas de sortie dédiés, alignés par test sur les colonnes historiques,
   et n'exposent donc plus directement leurs modèles ORM. L'extension de cette
   séparation aux autres API historiques reste progressive.
+- **BE-09 :** la publication manuelle d'une version de scénario exige désormais
+  une intention métier, au moins une précondition, une assertion exécutable et
+  un résultat attendu explicite. Les manques sont visibles dès le contrôle
+  préalable et bloquent la publication. Le résultat attendu rejoint aussi
+  l'instantané immuable de version, afin qu'un scénario négatif conserve son
+  contrat de rejet exact dans les preuves ultérieures. L'enrichissement du
+  contenu propre à chaque partenaire reste nécessaire à mesure que leurs
+  contrats sont fournis.
 - **DOC-01 :** `scripts/generate_openapi_inventory.py` produit désormais
   l'inventaire Markdown depuis le contrat OpenAPI réellement servi. Les
   documents ne doivent plus recopier un nombre de routes à la main. Chaque

@@ -22,6 +22,7 @@ def scenario_snapshot(scenario: InteropScenario) -> dict:
         "protocol": scenario.protocol,
         "preconditions_json": scenario.preconditions_json,
         "assertions_json": scenario.assertions_json,
+        "expected_outcome_json": scenario.expected_outcome_json,
         "tags": scenario.tags,
         "steps": [
             {

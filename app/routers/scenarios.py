@@ -49,6 +49,7 @@ from app.services.scenario_qualification_service import (
     assign_theme,
     list_target_states,
     preflight_issues,
+    publication_issues,
     set_target_active,
     theme_tree,
 )
@@ -64,6 +65,7 @@ from app.utils.flash import flash
 from app.services.scenario_realistic_timeplan import suggest_scenario_timing_update
 from app.services.scenario_authoring import (
     AUTHORING_DRAFT,
+    AUTHORING_PUBLISHED,
     add_guided_step,
     common_compatible_endpoints,
     common_test_data,
@@ -1397,7 +1399,18 @@ def publish_scenario_version(
     scenario = session.get(InteropScenario, scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Scénario introuvable")
+    missing = publication_issues(scenario)
+    if missing:
+        flash(
+            request,
+            "Publication impossible : " + " ".join(missing),
+            level="error",
+        )
+        return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)
     version = snapshot_scenario_version(session, scenario, comment=comment or None, publish=True)
+    scenario.authoring_status = AUTHORING_PUBLISHED
+    scenario.updated_at = datetime.utcnow()
+    session.add(scenario)
     session.commit()
     flash(request, f"Version {version.version_number} publiée et figée pour les prochains jeux.", level="success")
     return RedirectResponse(url=f"/scenarios/{scenario_id}", status_code=303)

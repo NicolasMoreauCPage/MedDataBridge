@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -16,6 +17,39 @@ from app.models_scenarios import InteropScenario
 
 
 LEGACY_VARIABLES = re.compile(r"\$[A-Za-z][A-Za-z0-9_]*\$")
+
+
+def _json_value(raw: Optional[str], expected_type: type) -> object | None:
+    try:
+        value = json.loads(raw or "null")
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return value if isinstance(value, expected_type) else None
+
+
+def publication_issues(scenario: InteropScenario) -> list[str]:
+    """Retourne les métadonnées manquantes pour une publication qualifiable."""
+    issues: list[str] = []
+    if not (scenario.functional_comment or "").strip():
+        issues.append("Ajoutez l'intention métier dans le commentaire fonctionnel.")
+
+    preconditions = _json_value(scenario.preconditions_json, list)
+    if not preconditions:
+        issues.append("Définissez au moins une précondition exécutable.")
+
+    scenario_assertions = _json_value(scenario.assertions_json, list) or []
+    step_assertions = [
+        assertion
+        for step in scenario.steps or []
+        for assertion in (_json_value(step.assertions_json, list) or [])
+    ]
+    if not scenario_assertions and not step_assertions:
+        issues.append("Définissez au moins une assertion exécutable.")
+
+    expected_outcome = _json_value(scenario.expected_outcome_json, dict)
+    if not expected_outcome:
+        issues.append("Décrivez explicitement le résultat métier attendu.")
+    return issues
 
 
 def target_key(value: Optional[str]) -> str:
@@ -216,6 +250,10 @@ def preflight_issues(scenario: InteropScenario) -> list[dict[str, str]]:
         issues.append({"level": "error", "message": "Scénario désactivé."})
     if not scenario.functional_comment:
         issues.append({"level": "warning", "message": "Commentaire fonctionnel manquant."})
+    existing_messages = {issue["message"] for issue in issues}
+    for message in publication_issues(scenario):
+        if message not in existing_messages:
+            issues.append({"level": "warning", "message": message})
     for step in scenario.steps or []:
         fmt = (step.message_format or "hl7").lower()
         if fmt in {"hprim", "hprimxml"}:

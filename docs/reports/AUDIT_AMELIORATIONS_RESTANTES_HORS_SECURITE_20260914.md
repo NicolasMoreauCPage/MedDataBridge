@@ -182,7 +182,8 @@ l'audit :
   FastAPI les exécute donc hors de la boucle asynchrone. Les autres routes
   historiques `async` à session synchrone restent à inventorier et convertir
   progressivement par domaine. Les huit routes de cartographie de lieux ont
-  été traitées de la même façon, sans changer leur contrat JSON.
+  été traitées de la même façon, sans changer leur contrat JSON; les deux
+  lectures de détail de qualification d'interfaces sont également synchrones.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés

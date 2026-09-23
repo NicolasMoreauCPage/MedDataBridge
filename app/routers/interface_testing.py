@@ -151,7 +151,7 @@ async def start_qualification_run(
 
 
 @router.get("/qualification/runs/{run_id}")
-async def qualification_run_detail(run_id: int, session: Session = Depends(get_session)) -> dict:
+def qualification_run_detail(run_id: int, session: Session = Depends(get_session)) -> dict:
     run = session.get(ScenarioExecutionRun, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Exécution introuvable")
@@ -221,7 +221,7 @@ async def start_campaign_run(
 
 
 @router.get("/qualification/campaign-runs/{campaign_run_id}")
-async def campaign_run_detail(campaign_run_id: int, session: Session = Depends(get_session)) -> dict:
+def campaign_run_detail(campaign_run_id: int, session: Session = Depends(get_session)) -> dict:
     campaign_run = session.get(QualificationCampaignRun, campaign_run_id)
     if not campaign_run:
         raise HTTPException(status_code=404, detail="Exécution de campagne introuvable")

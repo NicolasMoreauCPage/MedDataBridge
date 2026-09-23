@@ -11,7 +11,8 @@ Objectifs:
 
 from __future__ import annotations
 
-import random, threading
+import random
+import threading
 from typing import Optional, Tuple
 from sqlmodel import Session, select, func
 

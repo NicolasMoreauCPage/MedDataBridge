@@ -10,7 +10,8 @@ from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.pam import generate_pam_messages_for_dossier
 from app.models import Dossier
 
-import asyncio, contextlib
+import asyncio
+import contextlib
 from datetime import datetime
 from typing import Tuple, List, Optional
 from pathlib import Path

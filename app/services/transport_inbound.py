@@ -16,7 +16,8 @@ Transactions & sessions
 from datetime import datetime, timezone
 import re
 from typing import Dict, List, Optional, Tuple
-import logging, os
+import logging
+import os
 
 from sqlmodel import Session, select
 
@@ -1432,7 +1433,8 @@ class _OnMessageInboundCallable:
         # call asyncio.run() from this thread because it would raise. Instead,
         # run the coroutine in a fresh thread where asyncio.run() is allowed.
         try:
-            import threading, queue as _queue
+            import threading
+            import queue as _queue
 
             q = _queue.Queue()
 

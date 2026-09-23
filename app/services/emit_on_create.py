@@ -1411,7 +1411,9 @@ def emit_to_senders_async(
                             ack_payload = f"[Emission bloquée : {first_issue}]"
                         elif endpoint.host and endpoint.port:
                             # call the dynamically imported sender (may be monkeypatched)
-                            import time as _time, asyncio as _asyncio, inspect as _inspect
+                            import time as _time
+                            import asyncio as _asyncio
+                            import inspect as _inspect
                             _start = _time.time()
                             _raw = _send_mllp(endpoint.host, endpoint.port, hl7_message)
                             # _send_mllp is async; handle both coroutine and pre-resolved string
@@ -1487,7 +1489,9 @@ def emit_to_senders_async(
                         session.commit()
                         # Also dump HL7 payload to filesystem for inspection when requested
                         try:
-                            import os, random, time
+                            import os
+                            import random
+                            import time
                             base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
                             out_dir = os.path.join(base, 'pam')
                             os.makedirs(out_dir, exist_ok=True)
@@ -1521,7 +1525,9 @@ def emit_to_senders_async(
                         session.commit()
                         # Dump HL7 payload for inspection
                         try:
-                            import os, random, time
+                            import os
+                            import random
+                            import time
                             base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
                             out_dir = os.path.join(base, 'pam')
                             os.makedirs(out_dir, exist_ok=True)
@@ -2051,7 +2057,9 @@ def emit_to_senders_async(
         session.commit()
         # Also write generated payloads to /tmp for easier inspection when no senders are configured.
         try:
-            import os, random, time
+            import os
+            import random
+            import time
             base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
             hl7_out = os.path.join(base, 'pam')
             fhir_out = os.path.join(base, 'fhir')

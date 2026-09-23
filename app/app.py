@@ -13,7 +13,9 @@ Points clés
 - Les logs MLLP détaillés s'activent avec `MLLP_TRACE=1`.
 """
 
-import logging, os, secrets
+import logging
+import os
+import secrets
 from datetime import datetime, timezone
 
 # Charger les variables d'environnement depuis .env

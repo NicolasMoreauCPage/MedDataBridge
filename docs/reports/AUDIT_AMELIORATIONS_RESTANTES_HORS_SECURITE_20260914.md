@@ -182,7 +182,8 @@ l'audit :
   sont refusés par le wizard puis par l'API, afin qu'une confirmation de succès
   corresponde toujours à une structure effectivement créée. Ce contrôle couvre
   également les services, UF et unités d'hébergement fournis par un modèle
-  édité. L'extraction des grands écrans cotation classique reste à
+  édité. Le wizard interrompt désormais la navigation dès l'étape contenant le
+  nom manquant, au lieu de ne le signaler qu'à la génération. L'extraction des grands écrans cotation classique reste à
   poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

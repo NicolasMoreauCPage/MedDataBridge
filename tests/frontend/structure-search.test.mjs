@@ -76,9 +76,10 @@ test("structure wizard keeps only the latest template request and blocks navigat
 
 test("structure wizard prevents an empty structure from reaching generation", () => {
   const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
-  assert.match(source, /function hasUsableStructure\(\)/);
+  assert.match(source, /function getStructureValidationError\(/);
   assert.match(source, /Ajoutez et nommez au moins un pôle avant de poursuivre/);
-  assert.match(source, /Ajoutez et nommez au moins un pôle avant de générer la structure/);
+  assert.match(source, /Nommez le service \$\{serviceIndex \+ 1\}/);
+  assert.match(source, /Nommez l’UF \$\{ufIndex \+ 1\}/);
 });
 
 test("analytics and metrics dashboards delegate their reads to the shared HTTP client", () => {

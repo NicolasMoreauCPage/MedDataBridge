@@ -324,10 +324,28 @@
           : 'Suivant →';
     }
 
-    function hasUsableStructure() {
-      return Array.isArray(templatePayload?.poles) && templatePayload.poles.some(
-        (pole) => typeof pole?.name === 'string' && pole.name.trim(),
-      );
+    function getStructureValidationError({ includeUfs = true } = {}) {
+      if (!Array.isArray(templatePayload?.poles) || templatePayload.poles.length === 0) {
+        return { step: 2, message: 'Ajoutez et nommez au moins un pôle avant de poursuivre.' };
+      }
+      for (const [poleIndex, pole] of templatePayload.poles.entries()) {
+        if (typeof pole?.name !== 'string' || !pole.name.trim()) {
+          return { step: 2, message: `Nommez le pôle ${poleIndex + 1} avant de poursuivre.` };
+        }
+        if (!Array.isArray(pole.services)) continue;
+        for (const [serviceIndex, service] of pole.services.entries()) {
+          if (typeof service?.name !== 'string' || !service.name.trim()) {
+            return { step: 2, message: `Nommez le service ${serviceIndex + 1} du pôle ${poleIndex + 1}.` };
+          }
+          if (!includeUfs || !Array.isArray(service.ufs)) continue;
+          for (const [ufIndex, uf] of service.ufs.entries()) {
+            if (typeof uf?.name !== 'string' || !uf.name.trim()) {
+              return { step: 3, message: `Nommez l’UF ${ufIndex + 1} du service ${serviceIndex + 1}.` };
+            }
+          }
+        }
+      }
+      return null;
     }
 
     prevBtn.addEventListener('click', () => {
@@ -368,8 +386,13 @@
           notify('Le modèle n’a pas pu être chargé. Sélectionnez-en un autre.', 'warning');
           return;
         }
-        if (currentStep === 2 && !hasUsableStructure()) {
-          notify('Ajoutez et nommez au moins un pôle avant de poursuivre.', 'warning');
+        const validationError = currentStep === 2
+          ? getStructureValidationError({ includeUfs: false })
+          : currentStep === 3
+            ? getStructureValidationError()
+            : null;
+        if (validationError) {
+          notify(validationError.message, 'warning');
           document.getElementById('addPoleBtn')?.focus();
           return;
         }
@@ -890,12 +913,18 @@
 
     const generateStructureBtn = document.getElementById('generateStructureBtn');
     generateStructureBtn?.addEventListener('click', async () => {
-      if (!hasUsableStructure()) {
-        notify('Ajoutez et nommez au moins un pôle avant de générer la structure.', 'warning');
-        currentStep = 2;
+      const validationError = getStructureValidationError();
+      if (validationError) {
+        notify(validationError.message, 'warning');
+        currentStep = validationError.step;
         updateStepDisplay();
-        loadStep2Content();
-        document.getElementById('addPoleBtn')?.focus();
+        if (currentStep === 2) {
+          loadStep2Content();
+          document.getElementById('addPoleBtn')?.focus();
+        } else {
+          loadStep3Content();
+          document.getElementById('ufsContainer')?.focus();
+        }
         return;
       }
 

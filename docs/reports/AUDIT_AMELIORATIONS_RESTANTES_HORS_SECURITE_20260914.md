@@ -208,7 +208,10 @@ l'audit :
   passent par des listeners JavaScript au lieu de gestionnaires inline. La
   configuration des alertes délègue aussi ses filtres, modales et actions de
   règles à `static/js/alert-config-workspace.js`, y compris les actions sur
-  lignes générées dynamiquement.
+  lignes générées dynamiquement. Le plan de lits isole désormais sa recherche
+  patient, son affectation, ses transferts et son glisser-déposer dans
+  `static/js/plan-lits-workspace.js` ; ses boutons utilisent des attributs de
+  données et la délégation d'événements.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

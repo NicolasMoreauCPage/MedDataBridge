@@ -159,7 +159,13 @@ test("GHT dashboard delegates supervision reads to the shared HTTP client", () =
 });
 
 test("bed plan delegates patient search and movement mutation to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/plan_lits.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/plan_lits.html", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../../app/static/js/plan-lits-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /js\/plan-lits-workspace\.js/);
+  assert.doesNotMatch(template, /onclick=/);
   assert.match(source, /window\.medbridgeHttp\.get\(/);
   assert.match(source, /window\.medbridgeHttp\.request\(`\/workflow\/\$\{venueId\}\/mouvement`/);
   assert.doesNotMatch(source, /\bfetch\(/);

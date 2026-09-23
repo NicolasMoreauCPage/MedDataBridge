@@ -507,6 +507,9 @@ l'audit :
   de scénario, wizard de structure et validation selon WCAG 2.1 AA ; toute
   violation critique ou sérieuse échoue le job navigateur de CI. Une checklist
   de revue clavier et des annonces dynamiques complète ce contrôle automatisé.
+  La suppression d'une UH ou d'une chambre partage maintenant une seule modale
+  déléguée : fermeture Échap, restitution du focus et ciblage de l'action via
+  attribut de données sont couverts par un test frontend.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

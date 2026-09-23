@@ -178,9 +178,9 @@
 </div>
 
 <!-- Modal pour cloner une EJ (DaisyUI) -->
-<div id="cloneModal" class="modal">
+<div id="cloneModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="clone-modal-title" data-clone-base="/admin/ght/{{ context.id }}/ej">
     <div class="modal-box">
-        <h3 class="font-bold text-lg">Cloner la structure</h3>
+        <h3 id="clone-modal-title" class="font-bold text-lg">Cloner la structure</h3>
         <form id="cloneForm" method="post" action="" class="py-4">
             <div class="form-control mb-4">
                 <label for="clone_original_name" class="label">
@@ -209,50 +209,11 @@
             </div>
         </form>
         <div class="modal-action">
-            <button type="button" onclick="closeCloneModal()" class="btn btn-hover-lift">Annuler</button>
+            <button type="button" data-close-clone-modal class="btn btn-hover-lift">Annuler</button>
             <button type="submit" form="cloneForm" class="btn btn-primary btn-hover-lift">Cloner la structure</button>
         </div>
     </div>
 </div>
 
-<script>
-// Gestion des boutons de clonage avec event delegation
-document.addEventListener('DOMContentLoaded', function() {
-    // Attacher les événements aux boutons de clonage
-    document.querySelectorAll('.clone-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const ejId = this.getAttribute('data-ej-id');
-            const ejName = this.getAttribute('data-ej-name');
-            const ejFiness = this.getAttribute('data-ej-finess');
-            openCloneModal(ejId, ejName, ejFiness);
-        });
-    });
-
-    // Close modal when clicking outside
-    document.getElementById('cloneModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeCloneModal();
-        }
-    });
-
-    // Close modal on ESC key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('cloneModal').classList.contains('modal-open')) {
-            closeCloneModal();
-        }
-    });
-});
-
-function openCloneModal(ejId, ejName, ejFiness) {
-    document.getElementById('clone_original_name').value = ejName + ' (FINESS: ' + ejFiness + ')';
-    document.getElementById('new_name').value = ejName + ' - Copie';
-    document.getElementById('new_finess_ej').value = '';
-    document.getElementById('cloneForm').action = '/admin/ght/{{ context.id }}/ej/' + ejId + '/clone';
-    document.getElementById('cloneModal').classList.add('modal-open');
-}
-
-function closeCloneModal() {
-    document.getElementById('cloneModal').classList.remove('modal-open');
-}
-</script>
+<script defer src="{{ url_for('static', path='/js/ght-detail-workspace.js') }}"></script>
 {% endblock %}

@@ -517,6 +517,9 @@ l'audit :
   Les deux formulaires de namespace partagent aussi
   `static/js/namespace-form-workspace.js` pour l'extraction d'OID et le choix du
   mode de préfixe, sans fonction globale ni gestionnaire HTML inline.
+  Le détail d'endpoint et le détail GHT externalisent à leur tour le filtrage
+  EJ/GHT et le clonage de structure. La modale de clonage restaure le focus et
+  accepte Échap sans exposer de fonction globale.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet
@@ -533,7 +536,7 @@ l'audit :
   `CATALOGUE_DESIGN_SYSTEM.md` fixe désormais l'implémentation recommandée des
   formulaires, tableaux, badges, toasts, modales et états vides. Un lint et un
   test frontend interdisent tout nouveau bloc `<style>` local, en maintenant
-  une liste explicite des neuf exceptions historiques restant à migrer. Les
+  une liste explicite des huit exceptions historiques restant à migrer. Les
   deux pages de démonstration (`/styleguide` et `/design-system`) sont
   documentées comme références internes et ne sont plus proposées dans la
   navigation métier. Les contrôles navigateur existants couvrent le reflow

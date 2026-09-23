@@ -1,7 +1,7 @@
 ﻿{% extends "base.html" %}
 {% import "macros/ui.html" as ui %}
 {% block content %}
-<div class="max-w-5xl mx-auto py-8 px-4 space-y-8">
+<div class="endpoint-detail max-w-5xl mx-auto py-8 px-4 space-y-8">
   <!-- Breadcrumb -->
   <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
     <a href="/" class="hover:text-blue-600 transition-colors">Accueil</a>
@@ -561,55 +561,6 @@
     </form>
   </div>
 
-  <!-- Script filtrage EJ par GHT -->
-  <script>
-  (function(){
-    try {
-      const ghtSel = document.getElementById('ght_select');
-      const ejSel = document.getElementById('ej_select');
-      if (!ghtSel || !ejSel) return;
-      const filterEJ = () => {
-        const ght = ghtSel.value;
-        const opts = Array.from(ejSel.options);
-        let keep = false;
-        opts.forEach(opt => {
-          if (!opt.value) return;
-          const ok = !ght || (String(opt.dataset.ght||'') === String(ght));
-          opt.hidden = !ok;
-          if (!ok && opt.selected) opt.selected = false;
-          if (ok && opt.selected) keep = true;
-        });
-        if (!keep && ejSel.selectedIndex > 0) ejSel.value = '';
-      };
-      const syncGHTfromEJ = () => {
-        try {
-          if (ghtSel.value) return;
-          const sel = ejSel.options[ejSel.selectedIndex];
-          const g = sel ? sel.dataset.ght : '';
-          if (g) ghtSel.value = String(g);
-        } catch(_) {}
-      };
-      ghtSel.addEventListener('change', filterEJ);
-      ejSel.addEventListener('change', syncGHTfromEJ);
-      syncGHTfromEJ();
-      filterEJ();
-    } catch(e) { console && console.warn && console.warn('filterEJ init failed', e); }
-  })();
-  </script>
-
-  <!-- Styles accordéons -->
-  <style>
-    details summary::-webkit-details-marker { display: none; }
-    details summary::before {
-      content: '▶';
-      display: inline-block;
-      margin-right: 0.5rem;
-      transition: transform 0.2s ease;
-      font-size: 0.75rem;
-    }
-    details[open] summary::before {
-      transform: rotate(90deg);
-    }
-  </style>
+  <script defer src="{{ url_for('static', path='/js/endpoint-detail-workspace.js') }}"></script>
 </div>
 {% endblock %}

@@ -767,6 +767,10 @@
 .hprim-dossiers-panel { background: #fff; border: 1px solid #d8dee8; box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06); }
 .hprim-dossiers-row:hover { background: #ecfeff; }
 
+.endpoint-detail details summary::-webkit-details-marker { display: none; }
+.endpoint-detail details summary::before { content: '▶'; display: inline-block; margin-right: 0.5rem; transition: transform 0.2s ease; font-size: 0.75rem; }
+.endpoint-detail details[open] summary::before { transform: rotate(90deg); }
+
 @media (max-width: 768px) {
   .hprim-messages-compact-stack { display: grid; gap: 0.75rem; }
 }

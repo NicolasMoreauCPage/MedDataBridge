@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from sqlmodel import Session, select
 
-from app.models import Dossier, Mouvement, Patient, Venue
+from app.models import Dossier, Patient, Venue
 from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.fhir_emission import emit_fhir_payload, generate_fhir
@@ -26,6 +26,7 @@ from app.services.pam_emission_primitives import (
     normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
 )
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
+from app.services.pam_movement_events import detect_nature_transition
 from app.services.zbe_fields import build_xon_unit, derive_zbe_nature
 
 logger = logging.getLogger(__name__)
@@ -415,44 +416,6 @@ def generate_pam_hl7(
         # Utiliser le mapping métier <-> HL7 pour déterminer le code HL7 à partir du type métier
         from app.movement_type_mapping import to_standard_movement_code
         
-        # Helper function to detect A06/A07 based on movement history
-        def detect_a06_a07_from_history(entity, session, operation):
-            """
-            Detect A06 or A07 based on venue movement history.
-            - A06: Outpatient → Inpatient (S → H)
-            - A07: Inpatient → Outpatient (H → S)
-            Returns: ("A06"|"A07|None, previous_nature)
-            """
-            # Only consider detection for new insert movements
-            if operation != "insert":
-                return None, None
-            if not getattr(entity, "venue_id", None):
-                return None, None
-            current_nature = getattr(entity, "nature", None)
-            if not current_nature or current_nature not in ["H", "S"]:
-                return None, None
-
-            previous_movements = session.exec(
-                select(Mouvement)
-                .where(Mouvement.venue_id == entity.venue_id)
-                .where(Mouvement.when < entity.when)
-                .order_by(Mouvement.when.desc())
-            ).all()
-            if not previous_movements:
-                return None, None
-            last_nature = None
-            for prev in previous_movements:
-                if getattr(prev, "nature", None) in ["H", "S"]:
-                    last_nature = getattr(prev, "nature")
-                    break
-            if not last_nature:
-                return None, None
-            if last_nature == "S" and current_nature == "H":
-                return "A06", last_nature
-            if last_nature == "H" and current_nature == "S":
-                return "A07", last_nature
-            return None, None
-
         # Priority 1: Use explicit trigger_event if provided
         trigger_event = getattr(entity, "trigger_event", None)
         if trigger_event:
@@ -460,7 +423,7 @@ def generate_pam_hl7(
             msg_type = f"ADT^{trigger_event}"
         else:
             # Priority 1.5: Auto-detect A06/A07 based on movement history
-            a0607_code, _prev = detect_a06_a07_from_history(entity, session, operation)
+            a0607_code, _prev = detect_nature_transition(session, entity, operation)
             if a0607_code:
                 event_code = a0607_code
                 msg_type = f"ADT^{a0607_code}"

@@ -7,7 +7,7 @@ automatique et validation de sécurité.
 
 import re
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)

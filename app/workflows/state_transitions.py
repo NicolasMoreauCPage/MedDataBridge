@@ -15,7 +15,7 @@ Les clés sont les codes d'événements ADT (A01, A02, …, Z99). Une valeur
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, Optional, Set
+from typing import Dict, Optional, Set
 
 # Evenements possibles au démarrage (aucun historique)
 INITIAL_EVENTS: Set[str] = {

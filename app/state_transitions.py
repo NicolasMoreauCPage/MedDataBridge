@@ -15,7 +15,7 @@ Les clés sont les codes d'événements ADT (A01, A02, …, Z99). Une valeur
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, Optional, Set
+from typing import Dict, Optional, Set
 
 # Les transactions d'identité ne font pas évoluer l'état d'une venue. Elles
 # peuvent précéder, suivre ou s'intercaler entre deux mouvements ADT sans que

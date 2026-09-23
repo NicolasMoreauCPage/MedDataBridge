@@ -5,7 +5,6 @@ Supports:
 - MFN (Master File Notification) for structure data
 - ADT (Admission/Discharge/Transfer) for PAM (Patient Administration Management)
 """
-import re
 from typing import Optional, Literal
 
 

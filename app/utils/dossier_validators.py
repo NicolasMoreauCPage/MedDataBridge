@@ -1,6 +1,6 @@
-from typing import List, Dict, Set, Tuple
+from typing import List, Tuple
 from sqlmodel import Session, select
-from app.models import DossierType, Dossier, Mouvement, Venue
+from app.models import DossierType, Dossier, Venue
 
 # Définition des mouvements autorisés par type de dossier et leurs transitions possibles
 ALLOWED_MOVEMENTS_BY_TYPE = {

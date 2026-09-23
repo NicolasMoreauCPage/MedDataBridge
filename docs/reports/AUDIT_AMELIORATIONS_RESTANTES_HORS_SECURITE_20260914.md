@@ -421,10 +421,14 @@ l'audit :
   une délégation d'événements sans gestionnaire `onclick` embarqué. Le bouton
   Historique, auparavant relié à une fonction absente, amène désormais le
   clavier et la vue sur la liste des cotations.
-  L'inventaire courant ne conserve plus que sept templates avec JavaScript
-  exécutable embarqué. Le dernier reliquat applicatif dominant est le workflow
-  de mouvements (358 lignes) ; les six autres concernent le shell, un composant
-  partagé ou des pages de documentation/démonstration.
+  Le workflow de mouvements délègue à son tour ses 358 lignes de sélection,
+  validation et recherche de localisation à `static/js/movement-workflow.js`.
+  Le nettoyage différé de la bannière de succès rejoint le même asset et le
+  catalogue métier reste transmis sous forme de données JSON non exécutables.
+  L'inventaire courant ne conserve plus que six templates avec JavaScript
+  exécutable embarqué ; ils concernent désormais le shell, un composant partagé
+  ou des pages de documentation/démonstration, et non un parcours métier
+  prioritaire.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
   supprimés. La commande `npm run inventory-assets` contrôle désormais les

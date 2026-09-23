@@ -374,7 +374,7 @@ test("rapid cotation workflow delegates searches and mutations to the shared HTT
 test("autocomplete searches cancel obsolete requests and expose retry feedback", () => {
   const cotations = readFileSync(new URL("../../app/static/js/cotation-entry-workspace.js", import.meta.url), "utf8");
   const planLits = readFileSync(new URL("../../app/static/js/plan-lits-workspace.js", import.meta.url), "utf8");
-  const mouvement = readFileSync(new URL("../../app/templates/mouvement_workflow.html", import.meta.url), "utf8");
+  const mouvement = readFileSync(new URL("../../app/static/js/movement-workflow.js", import.meta.url), "utf8");
   assert.match(cotations, /const cotationSearchControllers = new Map\(\)/);
   assert.match(cotations, /new AbortController\(\)/);
   assert.match(cotations, /showCotationSearchLoading/);
@@ -504,7 +504,11 @@ test("scenario template workspace uses the shared HTTP client", () => {
 });
 
 test("movement workflow location autocomplete uses the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/mouvement_workflow.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/mouvement_workflow.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/movement-workflow.js", import.meta.url), "utf8");
+  assert.match(template, /data-movement-workspace/);
+  assert.match(template, /js\/movement-workflow\.js/);
+  assert.doesNotMatch(template, /<script>/);
   assert.match(source, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(source, /await fetch\(`\/api\/mouvements\/location-search/);
 });

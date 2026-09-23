@@ -11,7 +11,6 @@ LEGACY_OR_COMPONENT_TEMPLATES = {
     Path("components.html"),
     Path("home.html"),
     Path("macros/ui.html"),
-    Path("components/cotations_inline.html"),  # composant historique non inclus.
 }
 NATIVE_DIALOG_PATTERN = re.compile(r"(?<![.\w])(?:alert|confirm)\s*\(")
 

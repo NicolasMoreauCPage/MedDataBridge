@@ -267,6 +267,16 @@ test("conformity message copy is delegated and announces its result", () => {
   assert.match(source, /button\.disabled = false/);
 });
 
+test("message detail delegates payload copy with JSON bootstrap data", () => {
+  const template = readFileSync(new URL("../../app/templates/message_detail.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/message-detail.js", import.meta.url), "utf8");
+  assert.match(template, /id="hl7PayloadData" type="application\/json"/);
+  assert.match(template, /js\/message-detail\.js/);
+  assert.doesNotMatch(template, /\bonclick=/);
+  assert.match(source, /JSON\.parse\(data\.textContent\)/);
+  assert.match(source, /navigator\.clipboard\.writeText/);
+});
+
 test("scenario import and conformity toggle use the shared HTTP client", () => {
   for (const relativePath of [
     "../../app/templates/scenario_import.html",

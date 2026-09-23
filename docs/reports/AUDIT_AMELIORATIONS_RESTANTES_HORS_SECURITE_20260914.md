@@ -263,6 +263,9 @@ l'audit :
   La copie du message brut de conformité est isolée dans
   `static/js/conformity-message-detail.js`, avec annonce de résultat et
   prévention du double clic pendant l'accès au presse-papier.
+  Le détail de message standard suit ce même modèle dans
+  `static/js/message-detail.js`, avec bootstrap JSON du payload plutôt qu'une
+  fonction métier inline.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

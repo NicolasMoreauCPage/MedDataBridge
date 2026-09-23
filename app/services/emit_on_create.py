@@ -2,6 +2,7 @@ import logging
 import asyncio
 import json
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional, Sequence, Tuple
 
@@ -13,16 +14,13 @@ from app.models_endpoints import SystemEndpoint, MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
 from app.services.fhir_emission import build_fhir_targets, generate_fhir, queue_fhir_retry
-from app.services.outbox_service import enqueue_message
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
 # Import them dynamically at call-site so monkeypatching the module attributes works.
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
 from app.services.pam_emission import (
-    dump_outbound_pam_payload,
-    send_outbound_pam,
-    upsert_outbound_pam_log,
+    emit_outbound_pam_attempt,
     validate_outbound_pam,
 )
 
@@ -1338,8 +1336,6 @@ def emit_to_senders_async(
 
     for endpoint in endpoints:
         correlation_id = base_correlation_id
-        import time
-        from datetime import datetime
         # create a snapshot once per endpoint loop if needed
         use_snapshot = True
         try:
@@ -1394,56 +1390,16 @@ def emit_to_senders_async(
                 except Exception:
                     control_id = None
                 correlation_id = control_id or correlation_id
-                # Le chemin de création ne fait qu'une tentative : les reprises
-                # réseau relèvent de l'outbox persistante et de son backoff.
-                max_retry = 1
-                retry = 0
-                while retry < max_retry:
-                    status = "generated"
-                    ack_payload = ""
-                    validation = validate_outbound_pam(hl7_message)
-                    pam_status = validation.status
-                    pam_issues = validation.issues
-                    try:
-                        if pam_status == "fail":
-                            status = "validation_failed"
-                            first_issue = validation.first_error or "Message PAM sortant non conforme"
-                            ack_payload = f"[Emission bloquée : {first_issue}]"
-                        elif endpoint.host and endpoint.port:
-                            status, ack_payload = send_outbound_pam(
-                                endpoint.host,
-                                endpoint.port,
-                                hl7_message,
-                                message_type=hl7_fields.get("msg_type") or "ADT^unknown",
-                            )
-                    except Exception as exc:
-                        status = "error"
-                        ack_payload = str(exc)
-                    payload_str = hl7_message if hl7_message else "[Emission error: HL7 message missing]"
-                    message_log = upsert_outbound_pam_log(
-                        session, endpoint_id=endpoint.id, correlation_id=correlation_id,
-                        payload=payload_str, acknowledgment=ack_payload, status=status,
-                        validation_status=pam_status, validation_issues=pam_issues,
-                    )
-                    dump_outbound_pam_payload(payload_str, getattr(entity, "id", "unknown"))
-                    if status == "error":
-                        enqueue_message(
-                            session,
-                            endpoint_id=endpoint.id,
-                            protocol="MLLP",
-                            payload=payload_str,
-                            message_type="HL7",
-                            correlation_id=correlation_id,
-                            source_message_log_id=message_log.id,
-                        )
-                        session.commit()
-                    if status in {"sent", "validation_failed"}:
-                        break
-                    retry += 1
-                    if retry < max_retry:
-                        import os as _os
-                        _sleep = float(_os.getenv("MLLP_RETRY_SLEEP", "5"))
-                        time.sleep(_sleep)
+                # Une seule tentative ici : les reprises réseau relèvent de
+                # l'outbox persistante et de son backoff.
+                emit_outbound_pam_attempt(
+                    session,
+                    endpoint=endpoint,
+                    payload=hl7_message,
+                    correlation_id=correlation_id,
+                    entity_id=getattr(entity, "id", "unknown"),
+                    message_type=hl7_fields.get("msg_type") or "ADT^unknown",
+                )
         # HL7 MFN (structure) - MLLP uniquement
         # Types d'entités compatibles : structure
         if endpoint.kind == "MLLP" and entity_type == "structure":
@@ -1940,7 +1896,6 @@ def emit_to_senders_async(
         try:
             import os
             import random
-            import time
             base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
             hl7_out = os.path.join(base, 'pam')
             fhir_out = os.path.join(base, 'fhir')

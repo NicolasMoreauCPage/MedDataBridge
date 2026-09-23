@@ -1,8 +1,13 @@
 from types import SimpleNamespace
 
+from sqlmodel import select
+
 from app.models_endpoints import MessageLog, SystemEndpoint
+from app.models_outbox import OutboundMessage
 from app.services.pam_emission import (
+    PamValidationOutcome,
     dump_outbound_pam_payload,
+    emit_outbound_pam_attempt,
     send_outbound_pam,
     upsert_outbound_pam_log,
     validate_outbound_pam,
@@ -74,3 +79,33 @@ def test_outbound_pam_validation_degrades_to_warning_when_validator_fails():
 
     assert outcome.status == "warn"
     assert "VALIDATOR_ERROR" in outcome.issues
+
+
+def test_outbound_pam_attempt_queues_a_transport_failure(session, monkeypatch):
+    endpoint = SystemEndpoint(
+        name="PAM indisponible", kind="MLLP", role="sender", host="mllp.invalid", port=2575
+    )
+    session.add(endpoint)
+    session.commit()
+
+    async def rejected_sender(*_args):
+        return "MSH|^~\\&|DST|DST|SRC|SRC|20260923||ACK|A2|P|2.5\rMSA|AE|CTRL"
+
+    monkeypatch.setattr("app.services.mllp.send_mllp", rejected_sender)
+    monkeypatch.setattr(
+        "app.services.pam_emission.validate_outbound_pam",
+        lambda *_args, **_kwargs: PamValidationOutcome(status="ok", issues="[]"),
+    )
+    message_log, status = emit_outbound_pam_attempt(
+        session,
+        endpoint=endpoint,
+        payload="MSH|^~\\&|SRC|SRC|DST|DST|20260923||ADT^A01|CTRL|P|2.5",
+        correlation_id="CTRL",
+        entity_id=42,
+    )
+
+    queued = session.exec(
+        select(OutboundMessage).where(OutboundMessage.source_message_log_id == message_log.id)
+    ).one()
+    assert status == "error"
+    assert queued.protocol == "MLLP"

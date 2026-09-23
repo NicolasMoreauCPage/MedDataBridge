@@ -18,6 +18,7 @@ from typing import Callable
 from sqlmodel import Session, select
 
 from app.models_endpoints import MessageLog
+from app.services.outbox_service import enqueue_message
 
 logger = logging.getLogger(__name__)
 
@@ -186,3 +187,54 @@ def upsert_outbound_pam_log(
         session.add(log)
     session.commit()
     return log
+
+
+def emit_outbound_pam_attempt(
+    session: Session,
+    *,
+    endpoint: object,
+    payload: str | None,
+    correlation_id: str | None,
+    entity_id: object,
+    message_type: str = "ADT^unknown",
+) -> tuple[MessageLog, str]:
+    """Exécute une tentative PAM et délègue les reprises réseau à l'outbox."""
+    payload = payload or "[Emission error: HL7 message missing]"
+    validation = validate_outbound_pam(payload)
+    status = "generated"
+    acknowledgment = ""
+    if validation.status == "fail":
+        status = "validation_failed"
+        first_error = validation.first_error or "Message PAM sortant non conforme"
+        acknowledgment = f"[Emission bloquée : {first_error}]"
+    else:
+        status, acknowledgment = send_outbound_pam(
+            getattr(endpoint, "host"),
+            getattr(endpoint, "port"),
+            payload,
+            message_type=message_type,
+        )
+
+    message_log = upsert_outbound_pam_log(
+        session,
+        endpoint_id=getattr(endpoint, "id"),
+        correlation_id=correlation_id,
+        payload=payload,
+        acknowledgment=acknowledgment,
+        status=status,
+        validation_status=validation.status,
+        validation_issues=validation.issues,
+    )
+    dump_outbound_pam_payload(payload, entity_id)
+    if status == "error":
+        enqueue_message(
+            session,
+            endpoint_id=getattr(endpoint, "id"),
+            protocol="MLLP",
+            payload=payload,
+            message_type="HL7",
+            correlation_id=correlation_id,
+            source_message_log_id=message_log.id,
+        )
+        session.commit()
+    return message_log, status

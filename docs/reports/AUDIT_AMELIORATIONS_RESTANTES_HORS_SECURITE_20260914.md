@@ -120,6 +120,9 @@ l'audit :
   optionnels d'exploitation suivent la même règle : une archive de scénario IHE
   illisible et une socket MLLP momentanément indisponible sont signalées, sans
   empêcher l'exploration du catalogue ni le statut des autres serveurs. Les
+  anciennes API AJAX du formulaire de mouvement n'interceptent plus toute
+  exception : seules les références parentes absentes produisent une réponse
+  404 métier, les autres erreurs suivant le gestionnaire commun. Les
   filtres de dates des venues sont également validés : une saisie invalide
   retourne une erreur 422 plutôt que d'élargir silencieusement la liste. Un
   `UPDATE`/`CANCEL` PAM sans ZBE-1 ne peut enfin plus devenir une création en
@@ -198,8 +201,9 @@ l'audit :
   d'édition utilise enfin le vrai lit au lieu de l'ID de la chambre. Sa
   préparation a également rejoint `movement_form_context.py` : le graphe
   venue/dossier/patient est préchargé et les UF/UH sont obtenues par requêtes
-  groupées plutôt que par boucles imbriquées. Le routeur mouvements ne conserve
-  que la présentation et passe de 2 215 à 838 lignes.
+  groupées plutôt que par boucles imbriquées. Les listes dépendantes historiques
+  sont enfin isolées dans `movement_options.py`. Le routeur mouvements ne
+  conserve que la présentation et passe de 2 215 à 769 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.
@@ -308,7 +312,10 @@ l'audit :
   sans rupture de leur corps tableau. Ces mêmes routes utilisent maintenant
   sept schémas de sortie dédiés, alignés par test sur les colonnes historiques,
   et n'exposent donc plus directement leurs modèles ORM. L'extension de cette
-  séparation aux autres API historiques reste progressive.
+  séparation aux autres API historiques reste progressive. Les quatre routes
+  AJAX historiques de mouvement conservent désormais explicitement leur
+  enveloppe `{success, options}` via un service testé ; le filtrage des motifs
+  reconnaît aussi correctement un code complet `ADT^Axx`.
 - **BE-09 :** la publication manuelle d'une version de scénario exige désormais
   une intention métier, au moins une précondition, une assertion exécutable et
   un résultat attendu explicite. Les manques sont visibles dès le contrôle

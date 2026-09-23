@@ -61,7 +61,7 @@ sécurité.
 | Templates avec script embarqué | 65 | code peu réutilisable et difficile à tester |
 | Gestionnaires HTML inline | environ 170 | comportement fortement couplé au markup |
 | Appels `fetch` | 1, dans `static/js/http.js` | transport réseau centralisé |
-| Anomalies Ruff sur `app/` | 227 | dette de qualité non bloquante en CI |
+| Anomalies Ruff sur `app/` | 203 | dette de qualité non bloquante en CI |
 | `except Exception` | environ 547 | erreurs trop largement interceptées |
 | Exceptions suivies de `pass` | environ 218 | diagnostics ou échecs potentiellement masqués |
 | Appels `print` dans `app/` | environ 82 | journalisation non homogène |
@@ -118,9 +118,9 @@ l'audit :
   migrations reste à faire.
 - **BE-07 :** les familles Ruff bloquantes `F821`, `F823`, `F601` et `F811`
   sont à zéro dans `app/` et sont imposées par la CI. Le nettoyage progressif
-  des 227 alertes restantes (principalement imports et imports tardifs)
+  des 203 alertes restantes (principalement imports et imports tardifs)
   variables inutilisées) demeure un chantier distinct ; aucun correctif global
-  automatique n'a été appliqué. La CI impose aussi une baseline globale à 227
+  automatique n'a été appliqué. La CI impose aussi une baseline globale à 203
   anomalies : toute nouvelle alerte échoue désormais avant fusion. Les deux
   derniers lots ont supprimé 27 variables locales inutilisées et les 26 noms
   locaux ambigus, sans supprimer les validations hiérarchiques qui les
@@ -130,6 +130,9 @@ l'audit :
   justifiées par leur cascade ORM et couvertes par un test SQLite dédié.
   Un lot supplémentaire a retiré douze imports sans effet de bord des modèles
   et services isolés, avec les régressions PAM, PIX/PDQ, MFN et scénarios.
+  Les réexports inutilisés de 24 routeurs ont également été supprimés du paquet
+  `app.routers`, dont les consommateurs importent déjà les sous-modules
+  explicitement.
 - **BE-08 :** les gestionnaires d'erreurs communs sont maintenant enregistrés
   dans l'application. Les erreurs HTTP, de validation et métier retournent la
   même enveloppe (`code`, `message`, `details`, `correlation_id`) et propagent

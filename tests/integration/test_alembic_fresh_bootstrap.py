@@ -42,6 +42,15 @@ def test_alembic_upgrade_head_bootstraps_a_fresh_database(tmp_path: Path):
     assert scenario_count == 0
 
 
+def test_alembic_bootstrap_uses_the_versioned_ddl_baseline():
+    environment = (Path(__file__).resolve().parents[2] / "alembic/env.py").read_text()
+    baseline = Path(__file__).resolve().parents[2] / "alembic/baselines/head_schema.py"
+
+    assert "create_head_schema(connection)" in environment
+    assert "target_metadata.create_all" not in environment
+    assert baseline.is_file()
+
+
 def test_alembic_keeps_incremental_upgrade_for_an_existing_database(tmp_path: Path):
     database_path = tmp_path / "legacy-medbridge.db"
     connection = sqlite3.connect(database_path)

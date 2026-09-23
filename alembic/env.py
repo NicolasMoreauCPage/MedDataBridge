@@ -8,7 +8,10 @@ from sqlmodel import SQLModel
 # Import models to register tables
 import sys
 import os
+from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "baselines"))
+from head_schema import create_head_schema  # noqa: E402
 # ``app.db`` est le registre exhaustif réellement utilisé par l'application
 # (modèles HPRIM, contacts, cotations, campagnes, etc.). L'importer ici évite
 # qu'une installation neuve Alembic crée un sous-ensemble de tables.
@@ -52,10 +55,10 @@ def _bootstrap_empty_database(connection) -> bool:
     if requested_revision not in {"head", head}:
         return False
 
-    target_metadata.create_all(connection)
-    # Le bootstrap installe exclusivement le schéma. Les jeux de données de
-    # référence sont lancés séparément, après ``alembic upgrade head``, afin
-    # qu'une migration ne crée jamais de données métier implicites.
+    create_head_schema(connection)
+    # Le bootstrap installe exclusivement le schéma DDL versionné. Les jeux de
+    # données de référence sont lancés séparément, après ``alembic upgrade
+    # head``, afin qu'une migration ne crée jamais de données métier implicites.
     connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
     connection.execute(
         text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),

@@ -26,6 +26,7 @@ from app.services.pam_emission_primitives import (
     normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
 )
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
+from app.services.zbe_fields import build_xon_unit, derive_zbe_nature
 
 logger = logging.getLogger(__name__)
 
@@ -398,32 +399,14 @@ def generate_pam_hl7(
         historic = "N"
         # ZBE-7: UF médicale = UF de responsabilité (XON format: label^code^code_type^^^id^^^id_type^assigning_authority^component10=code)
         uf_responsabilite = getattr(entity, "uf_responsabilite", None) or getattr(dossier, "uf_responsabilite", None) or ""
-        # XON format: name (1) ^ code (2) ^ type (3) ^ ... ^ code (10)
-        # We need at least component 10 filled with the code
-        if uf_responsabilite:
-            zbe_7_comps = [""] * 10
-            zbe_7_comps[0] = uf_responsabilite  # Component 1: label/code
-            zbe_7_comps[9] = uf_responsabilite  # Component 10: code
-            zbe_7 = "^".join(zbe_7_comps)
-        else:
-            zbe_7 = ""
+        zbe_7 = build_xon_unit(uf_responsabilite)
         # ZBE-8: UF de soins (XON format - same as ZBE-7)
         uf_soins_code = getattr(entity, "uf_soins_code", None) or getattr(dossier, "uf_soins_code", None) or ""
         uf_soins_label = getattr(entity, "uf_soins_label", None) or getattr(dossier, "uf_soins_label", None) or ""
-        if uf_soins_code:
-            zbe_8_comps = [""] * 10
-            zbe_8_comps[0] = uf_soins_label  # Component 1: label
-            zbe_8_comps[9] = uf_soins_code  # Component 10: code
-            zbe_8 = "^".join(zbe_8_comps)
-        else:
-            zbe_8 = ""
+        zbe_8 = build_xon_unit(uf_soins_code, uf_soins_label)
         # ZBE-9: nature du mouvement (S,H,M,L,D,SM)
-        from app.services.nature_mapping import derive_nature
         nature = getattr(entity, "nature", None)
-        zbe_9 = derive_nature(event_type, nature)
-        valid_natures = {"S", "H", "M", "L", "D", "SM", "SH", "MH", "LD", "HMS", "C"}
-        if not zbe_9 or zbe_9 not in valid_natures:
-            zbe_9 = "H"  # Default to hospitalisation
+        zbe_9 = derive_zbe_nature(event_type, nature)
         # ZBE for A05 (venue creation): no ZBE-6 for INSERT
         zbe = f"ZBE|{zbe_id}|{admit_time}||{action}|{historic}||{zbe_7}|{zbe_8}|{zbe_9}"
 
@@ -802,34 +785,16 @@ def generate_pam_hl7(
         
         # ZBE-7: UF médicale = UF de responsabilité (XON format: label^code^code_type^^^id^^^id_type^assigning_authority^component10=code)
         uf_responsabilite = getattr(entity, "uf_responsabilite", None) or getattr(venue, "uf_responsabilite", None) or getattr(dossier, "uf_responsabilite", None) or ""
-        # XON format: name (1) ^ code (2) ^ type (3) ^ ... ^ code (10)
-        # We need at least component 10 filled with the code
-        if uf_responsabilite:
-            zbe_7_comps = [""] * 10
-            zbe_7_comps[0] = uf_responsabilite  # Component 1: label/code
-            zbe_7_comps[9] = uf_responsabilite  # Component 10: code
-            zbe_7 = "^".join(zbe_7_comps)
-        else:
-            zbe_7 = ""
+        zbe_7 = build_xon_unit(uf_responsabilite)
         
         # ZBE-8: UF de soins (XON format - same as ZBE-7)
         uf_soins_code = getattr(entity, "uf_soins_code", None) or getattr(venue, "uf_soins_code", None) or getattr(dossier, "uf_soins_code", None) or ""
         uf_soins_label = getattr(entity, "uf_soins_label", None) or getattr(venue, "uf_soins_label", None) or getattr(dossier, "uf_soins_label", None) or ""
-        if uf_soins_code:
-            zbe_8_comps = [""] * 10
-            zbe_8_comps[0] = uf_soins_label  # Component 1: label
-            zbe_8_comps[9] = uf_soins_code  # Component 10: code
-            zbe_8 = "^".join(zbe_8_comps)
-        else:
-            zbe_8 = ""
+        zbe_8 = build_xon_unit(uf_soins_code, uf_soins_label)
         
         # ZBE-9: nature du mouvement (S,H,M,L,D,SM)
-        from app.services.nature_mapping import derive_nature
         nature = getattr(entity, "nature", None)
-        zbe_9 = derive_nature(event_code, nature)
-        valid_natures = {"S", "H", "M", "L", "D", "SM", "SH", "MH", "LD", "HMS", "C"}
-        if not zbe_9 or zbe_9 not in valid_natures:
-            zbe_9 = "H"  # Default to hospitalisation
+        zbe_9 = derive_zbe_nature(event_code, nature)
         
         # Build ZBE segment respecting official field order. ZBE-3 carries the movement code used
         # by validators, while ZBE-4 still exposes the action indicator expected by downstream feeds.

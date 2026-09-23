@@ -359,3 +359,17 @@ test("bulk scenario execution uses a dedicated workspace for its selection contr
   assert.match(source, /addEventListener\("click", toggleAllScenarios\)/);
   assert.match(source, /addEventListener\("change", updateSelectedCount\)/);
 });
+
+test("dossier cotation tabs are delegated and keyboard accessible", () => {
+  const template = readFileSync(new URL("../../app/templates/dossier_cotations_detail.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/dossier-cotations-tabs.js", import.meta.url), "utf8");
+  assert.match(template, /js\/dossier-cotations-tabs\.js/);
+  assert.doesNotMatch(template, /<script>([\s\S]*?)<\/script>/);
+  assert.doesNotMatch(template, /\bonclick=/);
+  assert.match(template, /role="tablist"/);
+  assert.match(template, /role="tabpanel"/);
+  assert.match(source, /event\.key === "ArrowRight"/);
+  assert.match(source, /event\.key === "ArrowLeft"/);
+  assert.match(source, /event\.key === "Home"/);
+  assert.match(source, /event\.key === "End"/);
+});

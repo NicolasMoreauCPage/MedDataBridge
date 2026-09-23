@@ -252,6 +252,9 @@ l'audit :
   Le dashboard des métriques délègue maintenant son rafraîchissement, ses
   compteurs et son tableau à `static/js/metrics-dashboard-workspace.js` ; le
   client HTTP partagé est chargé avant les workspaces de contenu.
+  Le détail de cotations délègue ses onglets à
+  `static/js/dossier-cotations-tabs.js` et fournit désormais les rôles ARIA,
+  états et raccourcis fléchés, Accueil et Fin attendus pour cette navigation.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

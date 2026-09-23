@@ -66,24 +66,24 @@
     <!-- Onglets -->
     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
         <div class="border-b border-slate-200 dark:border-slate-700">
-            <nav class="flex space-x-8 px-6" aria-label="Tabs">
-                <button onclick="switchTab('ccam')" id="tab-ccam" class="tab-button border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 py-4 px-1 font-medium text-sm">
+            <nav class="flex space-x-8 px-6" aria-label="Types de cotations" role="tablist">
+                <button type="button" id="tab-ccam" class="tab-button border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 py-4 px-1 font-medium text-sm" role="tab" aria-selected="true" aria-controls="content-ccam" data-cotation-tab="ccam">
                     Actes CCAM ({{ ccam_acts|length }})
                 </button>
-                <button onclick="switchTab('ngap')" id="tab-ngap" class="tab-button border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:border-slate-300 py-4 px-1 font-medium text-sm">
+                <button type="button" id="tab-ngap" class="tab-button border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:border-slate-300 py-4 px-1 font-medium text-sm" role="tab" aria-selected="false" aria-controls="content-ngap" tabindex="-1" data-cotation-tab="ngap">
                     Actes NGAP ({{ ngap_acts|length }})
                 </button>
-                <button onclick="switchTab('ucd')" id="tab-ucd" class="tab-button border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:border-slate-300 py-4 px-1 font-medium text-sm">
+                <button type="button" id="tab-ucd" class="tab-button border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:border-slate-300 py-4 px-1 font-medium text-sm" role="tab" aria-selected="false" aria-controls="content-ucd" tabindex="-1" data-cotation-tab="ucd">
                     Médicaments UCD ({{ ucd_acts|length }})
                 </button>
-                <button onclick="switchTab('lpp')" id="tab-lpp" class="tab-button border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:border-slate-300 py-4 px-1 font-medium text-sm">
+                <button type="button" id="tab-lpp" class="tab-button border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:border-slate-300 py-4 px-1 font-medium text-sm" role="tab" aria-selected="false" aria-controls="content-lpp" tabindex="-1" data-cotation-tab="lpp">
                     Dispositifs LPP ({{ lpp_acts|length }})
                 </button>
             </nav>
         </div>
 
         <!-- Contenu CCAM -->
-        <div id="content-ccam" class="tab-content p-6">
+        <div id="content-ccam" class="tab-content p-6" role="tabpanel" aria-labelledby="tab-ccam">
             {% if ccam_acts %}
             <div class="space-y-4">
                 {% for acte in ccam_acts %}
@@ -151,7 +151,7 @@
         </div>
 
         <!-- Contenu NGAP -->
-        <div id="content-ngap" class="tab-content hidden p-6">
+        <div id="content-ngap" class="tab-content hidden p-6" role="tabpanel" aria-labelledby="tab-ngap">
             {% if ngap_acts %}
             <div class="space-y-4">
                 {% for acte in ngap_acts %}
@@ -226,7 +226,7 @@
         </div>
 
         <!-- Contenu UCD -->
-        <div id="content-ucd" class="tab-content hidden p-6">
+        <div id="content-ucd" class="tab-content hidden p-6" role="tabpanel" aria-labelledby="tab-ucd">
             {% if ucd_acts %}
             <div class="space-y-4">
                 {% for acte in ucd_acts %}
@@ -312,7 +312,7 @@
         </div>
 
         <!-- Contenu LPP -->
-        <div id="content-lpp" class="tab-content hidden p-6">
+        <div id="content-lpp" class="tab-content hidden p-6" role="tabpanel" aria-labelledby="tab-lpp">
             {% if lpp_acts %}
             <div class="space-y-4">
                 {% for acte in lpp_acts %}
@@ -401,34 +401,5 @@
     </div>
 </div>
 
-<script>
-function switchTab(tabName) {
-    // Cacher tous les contenus
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.add('hidden');
-    });
-    
-    // Réinitialiser tous les boutons
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('border-emerald-500', 'border-blue-500', 'border-amber-500', 'border-purple-500', 'text-emerald-600', 'text-blue-600', 'text-amber-600', 'text-purple-600');
-        button.classList.add('border-transparent', 'text-slate-500');
-    });
-    
-    // Afficher le contenu sélectionné
-    document.getElementById('content-' + tabName).classList.remove('hidden');
-    
-    // Activer le bouton sélectionné avec la bonne couleur
-    const button = document.getElementById('tab-' + tabName);
-    button.classList.remove('border-transparent', 'text-slate-500');
-    
-    const colors = {
-        'ccam': ['border-emerald-500', 'text-emerald-600'],
-        'ngap': ['border-blue-500', 'text-blue-600'],
-        'ucd': ['border-amber-500', 'text-amber-600'],
-        'lpp': ['border-purple-500', 'text-purple-600']
-    };
-    
-    button.classList.add(...colors[tabName]);
-}
-</script>
+<script defer src="{{ url_for('static', path='js/dossier-cotations-tabs.js') }}"></script>
 {% endblock %}

@@ -134,8 +134,8 @@ l'audit :
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,
   professionnel et actes CCAM/NGAP/UCD/LPP). L'émetteur conserve
-  l'orchestration, l'outbox et les points de monkeypatch de transport ; la
-  branche PAM est désormais amorcée : sa persistance de payload MLLP pour
+  l'orchestration et les points de monkeypatch de transport ; la branche PAM
+  délègue sa persistance de payload MLLP pour
   diagnostic et la mise à jour du journal sortant MLLP sont isolées dans
   `pam_emission.py`, en conservant la déduplication par corrélation et la
   reprise d'un échec en attente. Les snapshots détachés, primitives PAM et la
@@ -157,7 +157,10 @@ l'audit :
   cette logique et l'ancien exécuteur asynchrone local a disparu. La branche
   HPRIM se limite désormais au routage : `hprim_emission.py` construit le XML,
   crée le journal et remet l'envoi à l'outbox, ce qui rend ces étapes testables
-  sans l'orchestrateur multi-protocole.
+  sans l'orchestrateur multi-protocole. Les transports historiques `FILE` et
+  `SFTP`, leur écriture atomique, leur déconnexion et leurs journaux de succès
+  ou d'échec sont enfin isolés dans `file_endpoint_emission.py`. Le service
+  `emit_on_create.py` est ainsi passé de 2 340 à 853 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

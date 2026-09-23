@@ -1,14 +1,13 @@
 import logging
 import asyncio
-import json
 from typing import Literal, Optional
 
 from sqlmodel import Session, select
 
 from app.models import Dossier
-from app.models_endpoints import MessageLog
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.fhir_emission import emit_fhir_payload, generate_fhir
+from app.services.file_endpoint_emission import emit_file_endpoint
 from app.services.hl7_fields import build_adt_header, build_patient_name, build_xad, to_hl7_administrative_sex
 # REMARQUE: do NOT import network senders at module import time. Tests use monkeypatch
 # to replace the functions on their modules (app.services.mllp, app.services.fhir_transport).
@@ -807,170 +806,16 @@ def emit_to_senders_async(
                 logger.exception("[HPRIM] Error generating message for %s %s", entity_type, entity.id)
                 continue
         
-        # SFTP outbox: write HL7/FHIR payloads to a remote SFTP if configured
-        if endpoint.kind == "SFTP":
-            from datetime import datetime
-            import os
-            import random
-            try:
-                from app.adapters.sftp_writer import SFTPWriter
-                # Build HL7 for PAM events (patient/venue/mouvement)
-                hl7_message = None
-                if entity_type in ["patient", "venue", "mouvement"]:
-                    hl7_message = generate_pam_hl7(
-                        entity,
-                        entity_type,
-                        session,
-                        operation=operation,
-                        msh_sending_app=getattr(endpoint, 'sending_app', None),
-                        msh_sending_facility=getattr(endpoint, 'sending_facility', None),
-                        msh_receiving_app=getattr(endpoint, 'receiving_app', None),
-                        msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
-                    )
-                # Fallback to FHIR payload when HL7 not applicable
-                if not hl7_message:
-                    fhir_payload = generate_fhir(entity, entity_type, session)
-                    payload_str = json.dumps(fhir_payload, default=str)
-                    ext = "json"
-                else:
-                    payload_str = hl7_message
-                    ext = "hl7"
-
-                # Unique filename: entityType_id_timestamp-rand.ext
-                suffix = f"{int(datetime.utcnow().timestamp())}-{random.randint(1000,9999)}"
-                filename = f"{entity_type}_{getattr(entity,'id', 'unknown')}_{suffix}.{ext}"
-                remote_path = endpoint.ftp_remote_outbox_path or "."
-                writer = SFTPWriter(
-                    host=endpoint.ftp_host,
-                    port=endpoint.ftp_port or 22,
-                    username=endpoint.ftp_username,
-                    password=endpoint.ftp_password,
-                    remote_path=remote_path
-                )
-                writer.connect()
-                writer.write_file(filename, payload_str)
-                writer.disconnect()
-                # Record MessageLog
-                endpoint_id = endpoint.id
-                log = MessageLog(
-                    direction="out",
-                    kind="SFTP",
-                    endpoint_id=endpoint_id,
-                    payload=(payload_str[:100000] if payload_str else ""),
-                    ack_payload=f"SENT_SFTP:{filename}",
-                    status="sent",
-                    correlation_id=getattr(entity, 'correlation_id', None),
-                )
-                session.add(log)
-                session.commit()
-            except Exception as exc:
-                endpoint_id_safe = locals().get('endpoint_id', getattr(endpoint, 'id', 'unknown'))
-                logger.error(f"[emit_on_create] Failed to write SFTP outbox for endpoint={endpoint_id_safe}: {exc}")
-                session.rollback()
-                try:
-                    log = MessageLog(
-                        direction="out",
-                        kind="SFTP",
-                        endpoint_id=endpoint_id_safe if isinstance(endpoint_id_safe, int) else None,
-                        payload=(payload_str[:100000] if 'payload_str' in locals() and payload_str else ""),
-                        ack_payload=str(exc),
-                        status="error",
-                        correlation_id=getattr(entity, 'correlation_id', None),
-                    )
-                    session.add(log)
-                    session.commit()
-                except Exception:
-                    logger.exception("Failed to persist SFTP MessageLog after write failure")
-
-        # FILE outbox: write HL7/FHIR payloads to a filesystem outbox if configured
-        if endpoint.kind == "FILE":
-            # Write HL7 / FHIR payloads to filesystem outbox. If the endpoint has an
-            # explicit outbox_path configured, use it; otherwise fall back to
-            # MEDBRIDGE_OUT_DIR env or /tmp/medbridge_generated to make test runs
-            # reliably produce inspectable files.
-            from datetime import datetime
-            import os
-            import random
-            try:
-                # Build HL7 for PAM events (patient/venue/mouvement)
-                hl7_message = None
-                if entity_type in ["patient", "venue", "mouvement"]:
-                    hl7_message = generate_pam_hl7(
-                        entity,
-                        entity_type,
-                        session,
-                        operation=operation,
-                        msh_sending_app=getattr(endpoint, 'sending_app', None),
-                        msh_sending_facility=getattr(endpoint, 'sending_facility', None),
-                        msh_receiving_app=getattr(endpoint, 'receiving_app', None),
-                        msh_receiving_facility=getattr(endpoint, 'receiving_facility', None),
-                    )
-                # Fallback to FHIR payload when HL7 not applicable
-                if not hl7_message:
-                    fhir_payload = generate_fhir(entity, entity_type, session)
-                    payload_str = json.dumps(fhir_payload, default=str)
-                    ext = "json"
-                else:
-                    payload_str = hl7_message
-                    ext = "hl7"
-
-                # Determine base outbox: endpoint.outbox_path > MEDBRIDGE_OUT_DIR env > /tmp/medbridge_generated
-                base_outbox = (getattr(endpoint, 'outbox_path', None)) or os.environ.get('MEDBRIDGE_OUT_DIR') or "/tmp/medbridge_generated"
-                # Choose a sensible subdirectory per payload type
-                if ext == "hl7":
-                    sub = "pam"
-                elif ext == "json":
-                    sub = "fhir"
-                else:
-                    sub = entity_type
-
-                outbox = os.path.join(base_outbox, sub)
-                os.makedirs(outbox, exist_ok=True)
-
-                # Unique filename: entityType_id_timestamp-rand.ext
-                suffix = f"{int(datetime.utcnow().timestamp())}-{random.randint(1000,9999)}"
-                filename = f"{entity_type}_{getattr(entity,'id', 'unknown')}_{suffix}.{ext}"
-                filepath = os.path.join(outbox, filename)
-
-                # Atomic write: write to tmp then replace
-                tmp_path = filepath + ".tmp"
-                with open(tmp_path, "w", encoding="utf-8") as f:
-                    f.write(payload_str)
-                os.replace(tmp_path, filepath)
-
-                # Record MessageLog (truncate payload to reasonable size)
-                # Capture endpoint.id AVANT commit pour éviter accès après détachement
-                endpoint_id = endpoint.id
-                log = MessageLog(
-                    direction="out",
-                    kind="FILE",
-                    endpoint_id=endpoint_id,
-                    payload=(payload_str[:100000] if payload_str else ""),
-                    ack_payload=f"WROTE:{filepath}",
-                    status="sent",
-                    correlation_id=getattr(entity, 'correlation_id', None),
-                )
-                session.add(log)
-                session.commit()
-            except Exception as exc:
-                # Utiliser endpoint_id capturé au lieu de endpoint.id (objet peut être détaché)
-                endpoint_id_safe = locals().get('endpoint_id', getattr(endpoint, 'id', 'unknown'))
-                logger.error(f"[emit_on_create] Failed to write FILE outbox for endpoint={endpoint_id_safe}: {exc}")
-                session.rollback()  # Rollback explicite pour réinitialiser la session
-                try:
-                    log = MessageLog(
-                        direction="out",
-                        kind="FILE",
-                        endpoint_id=endpoint_id_safe if isinstance(endpoint_id_safe, int) else None,
-                        payload=(payload_str[:100000] if 'payload_str' in locals() and payload_str else ""),
-                        ack_payload=str(exc),
-                        status="error",
-                        correlation_id=getattr(entity, 'correlation_id', None),
-                    )
-                    session.add(log)
-                    session.commit()
-                except Exception:
-                    logger.exception("Failed to persist FILE MessageLog after write failure")
+        if endpoint.kind in {"FILE", "SFTP"}:
+            emit_file_endpoint(
+                session,
+                endpoint=endpoint,
+                entity=entity,
+                entity_type=entity_type,
+                operation=operation,
+                generate_pam=generate_pam_hl7,
+                generate_fhir=generate_fhir,
+            )
 
     if not endpoints:
         persist_generated_payloads(session, entity, entity_type, generate_pam_hl7, generate_fhir)

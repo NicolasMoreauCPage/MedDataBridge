@@ -16,6 +16,7 @@ from app.services.bed_assignment import (
     assign_patient_to_bed as assign_patient_to_bed_use_case,
 )
 from app.services.bed_plan import build_bed_plan
+from app.services.movement_listing import MovementListContextError, load_movement_list
 from app.dependencies.ght import require_ght_context
 from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
@@ -171,114 +172,33 @@ def list_mouvements(
     location_filter: Optional[str] = Query(None, alias="location", description="Filtrer par localisation (contient)"),
     session=Depends(get_session)
 ):
-    venue = None
-    dossier = None
-    
-    # Si venue_id est fourni, on filtre par venue
-    if venue_id:
-        venue = session.get(Venue, venue_id)
-        if not venue:
-            return get_templates_with_filters(request).TemplateResponse(
-                request,
-                "error.html",
-                {
-                    "title": "Venue introuvable",
-                    "message": "La venue spécifiée n'existe pas. Veuillez sélectionner une venue valide.",
-                    "back_url": "/dossiers"
-                },
-                status_code=404
-            )
-        
-        # Charger le contexte complet pour le fil d'Ariane
-        session.refresh(venue, ['dossier'])
-        if venue.dossier:
-            session.refresh(venue.dossier, ['patient'])
-            dossier = venue.dossier
-        
-        # Construction de la requête filtrée par venue
-        stmt = select(Mouvement).where(Mouvement.venue_id == venue_id)
-        if not include_cancelled:
-            stmt = stmt.where((Mouvement.status.is_(None)) | (Mouvement.status != "cancelled"))
-        # Tri
-        if order == "asc":
-            stmt = stmt.order_by(Mouvement.when.asc(), Mouvement.id.asc())
-        else:
-            stmt = stmt.order_by(Mouvement.when.desc(), Mouvement.id.desc())
-    
-    # Si dossier_id est fourni (et pas de venue_id), on filtre par dossier
-    elif dossier_id:
-        # Ensure Dossier refers to the imported model, not a local variable
-        dossier = session.get(Dossier, dossier_id)
-        if not dossier:
-            return get_templates_with_filters(request).TemplateResponse(
-                request,
-                "error.html",
-                {
-                    "title": "Dossier introuvable",
-                    "message": "Le dossier spécifié n'existe pas. Veuillez sélectionner un dossier valide.",
-                    "back_url": "/dossiers"
-                },
-                status_code=404
-            )
-        
-        # Charger le patient pour le fil d'Ariane
-        session.refresh(dossier, ['patient'])
-        
-        # Construction de la requête filtrée par dossier (via les venues)
-        stmt = select(Mouvement).join(Venue).where(Venue.dossier_id == dossier_id)
-        if not include_cancelled:
-            stmt = stmt.where((Mouvement.status.is_(None)) | (Mouvement.status != "cancelled"))
-        # Tri
-        if order == "asc":
-            stmt = stmt.order_by(Mouvement.when.asc(), Mouvement.id.asc())
-        else:
-            stmt = stmt.order_by(Mouvement.when.desc(), Mouvement.id.desc())
-    
-    # Sinon, filtrer par contexte EJ si présent
-    else:
-        ej_context = getattr(request.state, "ej_context", None)
-        if ej_context and getattr(ej_context, "id", None):
-            # Récupérer tous les dossiers de l'EJ
-            dossier_ids = [d.id for d in session.exec(select(Dossier).where(Dossier.entite_juridique_id == ej_context.id))]
-            if dossier_ids:
-                venue_ids = [v.id for v in session.exec(select(Venue).where(Venue.dossier_id.in_(dossier_ids)))]
-                if venue_ids:
-                    stmt = select(Mouvement).where(Mouvement.venue_id.in_(venue_ids))
-                    # Optionally filter out cancelled
-                    if not include_cancelled:
-                        stmt = stmt.where((Mouvement.status.is_(None)) | (Mouvement.status != "cancelled"))
-                    # Tri
-                    if order == "asc":
-                        stmt = stmt.order_by(Mouvement.when.asc(), Mouvement.id.asc())
-                    else:
-                        stmt = stmt.order_by(Mouvement.when.desc(), Mouvement.id.desc())
-                    mouvements = session.exec(stmt).all()
-                else:
-                    mouvements = []
-            else:
-                mouvements = []
-        else:
-            return get_templates_with_filters(request).TemplateResponse(
-                request,
-                "error.html",
-                {
-                    "title": "Paramètre manquant",
-                    "message": "Vous devez spécifier soit un dossier_id soit un venue_id pour voir les mouvements.",
-                    "back_url": "/dossiers"
-                },
-                status_code=400
-            )
-    # Filtres avancés globaux (type, statut, localisation)
-    if movement_type:
-        stmt = stmt.where(Mouvement.type == movement_type)
-    if status:
-        stmt = stmt.where(Mouvement.status == status)
-    if location_filter:
-        stmt = stmt.where(Mouvement.location.ilike(f"%{location_filter}%"))
-
-    # Exécuter la requête si pas déjà fait
-    if 'mouvements' not in locals():
-        mouvements = session.exec(stmt).all()
+    ej_context = getattr(request.state, "ej_context", None)
+    try:
+        result = load_movement_list(
+            session,
+            venue_id=venue_id,
+            dossier_id=dossier_id,
+            ej_id=getattr(ej_context, "id", None) if ej_context else None,
+            include_cancelled=include_cancelled,
+            order=order,
+            movement_type=movement_type,
+            status=status,
+            location_filter=location_filter,
+        )
+    except MovementListContextError as exc:
+        return get_templates_with_filters(request).TemplateResponse(
+            request,
+            "error.html",
+            {
+                "title": exc.title,
+                "message": exc.message,
+                "back_url": exc.back_url,
+            },
+            status_code=exc.status_code,
+        )
+    mouvements = result.movements
+    venue = result.venue
+    dossier = result.dossier
 
     # Préparer les lignes avec les actions détaillées
     def _type_cell(m: Mouvement) -> str:

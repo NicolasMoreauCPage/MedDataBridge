@@ -187,7 +187,10 @@ l'audit :
   poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
-  supprimés.
+  supprimés. La commande `npm run inventory-assets` contrôle désormais les
+  références aux scripts statiques dans les templates. Elle a permis de retirer
+  deux doublons historiques du workflow mouvements ; l'inventaire actuel ne
+  signale plus aucun script JavaScript orphelin.
 - **FE-03 :** `static/js/http.js` centralise timeout, annulation, parsing et
   erreurs HTTP. Les parcours cotation, listes, scénarios, messages et tableau
   de bord l'utilisent désormais; la recherche de structure passe également par

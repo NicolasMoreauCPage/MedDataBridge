@@ -12,15 +12,6 @@ test("structure search delegates its FHIR request to the shared HTTP client", ()
   assert.doesNotMatch(template, /await fetch\(`\/fhir\/Location/);
 });
 
-test("movement dynamic updates use the shared HTTP client", () => {
-  const source = readFileSync(
-    new URL("../../app/static/js/mouvement_dynamic_updates.js", import.meta.url),
-    "utf8",
-  );
-  assert.match(source, /window\.medbridgeHttp\.get\(endpoint\)/);
-  assert.doesNotMatch(source, /await fetch\(endpoint\)/);
-});
-
 test("interactive structure editing uses the shared HTTP client", () => {
   const source = readFileSync(
     new URL("../../app/static/js/structure-interactive.js", import.meta.url),
@@ -208,6 +199,13 @@ test("frontend lint rejects direct await fetch outside the shared client", () =>
   const source = readFileSync(new URL("../../scripts/lint_frontend.mjs", import.meta.url), "utf8");
   assert.match(source, /await\\s\+\(\?:window\\\.\)\?fetch/);
   assert.match(source, /app\/static\/js\/http\.js/);
+});
+
+test("frontend asset inventory is available for dead-code review", () => {
+  const source = readFileSync(new URL("../../scripts/inventory_frontend_assets.mjs", import.meta.url), "utf8");
+  assert.match(source, /Assets JavaScript/);
+  assert.match(source, /Assets non référencés par un template/);
+  assert.match(source, /const assetPatterns = \[/);
 });
 
 test("legacy structure view delegates all API calls to the shared HTTP client", () => {

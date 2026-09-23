@@ -85,6 +85,7 @@
     "build-css": "tailwindcss -i ./app/static/css/main.css -o ./app/static/css/output.css --watch",
     "build-css-prod": "tailwindcss -i ./app/static/css/main.css -o ./app/static/css/output.css --minify",
     "lint": "node scripts/lint_frontend.mjs",
+    "inventory-assets": "node scripts/inventory_frontend_assets.mjs",
     "test": "node --test tests/frontend/*.test.mjs",
     "check-frontend": "npm run lint && npm test && npm run build-css-prod"
   },

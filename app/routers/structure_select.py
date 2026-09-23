@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlmodel import select, Session
 from app.db import get_session
 from app.models_structure import (

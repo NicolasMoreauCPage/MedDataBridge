@@ -407,7 +407,11 @@ test("legacy cotation list uses real bulk mutations and a dedicated workspace as
 });
 
 test("generic form submissions delegate to the shared HTTP client", () => {
+  const template = readFileSync(new URL("../../app/templates/form.html", import.meta.url), "utf8");
   const source = readFileSync(new URL("../../app/static/js/forms.js", import.meta.url), "utf8");
+  assert.match(template, /data-generic-form/);
+  assert.match(template, /data-select-single-option/);
+  assert.doesNotMatch(template, /<script>/);
   assert.match(source, /window\.medbridgeHttp\.request\(this\.form\.action/);
   assert.doesNotMatch(source, /await fetch\(this\.form\.action/);
   assert.match(source, /class DependentFieldsManager/);
@@ -417,6 +421,8 @@ test("generic form submissions delegate to the shared HTTP client", () => {
   assert.match(source, /data-form-error-summary/);
   assert.match(source, /Quitter sans enregistrer les modifications/);
   assert.match(source, /updateErrorSummary/);
+  assert.match(source, /function initializeGenericForm\(form\)/);
+  assert.match(source, /const protocolFields =/);
 });
 
 test("priority forms preserve unsaved input and keep their primary action reachable", () => {

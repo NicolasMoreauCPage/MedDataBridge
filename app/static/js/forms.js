@@ -839,6 +839,47 @@ const StateTransitionManager = {
     }
 };
 
+function initializeGenericForm(form) {
+    if (!form.matches('[data-generic-form]') || form.dataset.genericFormReady === 'true') return;
+    form.dataset.genericFormReady = 'true';
+
+    form.querySelectorAll('select[data-select-single-option]').forEach((select) => {
+        if (!select.value && select.options.length === 2) select.selectedIndex = 1;
+    });
+
+    const protocol = form.querySelector('[name="kind"]');
+    const protocolFields = {
+        MLLP: [['host', true], ['port', true]],
+        FILE: [['inbox_path', true], ['outbox_path', true], ['archive_path', false], ['error_path', false], ['file_extensions', false]],
+        FHIR: [['base_url', true], ['auth_kind', false], ['auth_token', false]],
+    };
+    const allProtocolFieldNames = new Set(Object.values(protocolFields).flat().map(([name]) => name));
+    const updateProtocolFields = () => {
+        if (!protocol) return;
+        const visibleFields = new Map(protocolFields[protocol.value] || []);
+        allProtocolFieldNames.forEach((name) => {
+            const field = form.querySelector(`[name="${name}"]`);
+            if (!field) return;
+            field.closest('.space-y-2')?.toggleAttribute('hidden', !visibleFields.has(name));
+            field.required = visibleFields.get(name) === true;
+        });
+    };
+    protocol?.addEventListener('change', updateProtocolFields);
+    updateProtocolFields();
+
+    form.addEventListener('click', (event) => {
+        if (event.target.closest('button[type="submit"], input[type="submit"]')) {
+            form.dataset.submitAttempted = 'true';
+        }
+    });
+    form.addEventListener('keydown', (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
+        event.preventDefault();
+        const submit = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (submit && !submit.disabled) form.requestSubmit(submit);
+    });
+}
+
 // Initialisation automatique
 function initializeForms() {
     document.querySelectorAll('form').forEach(form => {
@@ -847,10 +888,12 @@ function initializeForms() {
             return; // Don't initialize FormManager for these forms
         }
         
+        initializeGenericForm(form);
+
         // Créer une instance de FormManager pour chaque formulaire
-    const manager = new FormManager(form);
-    form.manager = manager; // Stocker la référence pour un accès facile
-    try { form.setAttribute('data-forms-manager', '1'); } catch(e) {}
+        const manager = new FormManager(form);
+        form.manager = manager; // Stocker la référence pour un accès facile
+        try { form.setAttribute('data-forms-manager', '1'); } catch(e) {}
 
         // Setup transition validation si nécessaire
         if (form.classList.contains('has-state-transitions')) {

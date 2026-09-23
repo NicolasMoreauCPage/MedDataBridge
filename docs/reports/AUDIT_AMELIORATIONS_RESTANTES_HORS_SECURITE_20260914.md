@@ -427,9 +427,14 @@ l'audit :
   catalogue métier reste transmis sous forme de données JSON non exécutables.
   Le sélecteur cartographique partagé charge lui aussi sa hiérarchie depuis
   `static/js/location-cartography.js`, sans logique réseau dans le composant
-  Jinja. L'inventaire courant ne conserve plus que cinq templates avec
-  JavaScript exécutable embarqué ; ils concernent désormais le shell ou des
-  pages de documentation/démonstration, et non un parcours métier prioritaire.
+  Jinja. Le formulaire générique ne contient plus non plus ses scripts inline :
+  la sélection d'une option unique, l'affichage des champs propres au protocole
+  et le raccourci d'enregistrement sont initialisés par `static/js/forms.js`.
+  Cette reprise supprime également un fragment JavaScript tronqué qui était
+  rendu comme du texte après le formulaire. L'inventaire courant ne conserve
+  plus que quatre templates avec JavaScript exécutable embarqué ; ils concernent
+  désormais le shell ou des pages de documentation/démonstration, et non un
+  parcours métier prioritaire.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
   supprimés. La commande `npm run inventory-assets` contrôle désormais les

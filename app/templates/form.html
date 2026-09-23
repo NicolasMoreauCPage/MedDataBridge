@@ -78,7 +78,7 @@
     {% endif %}
 
     <p id="generic-form-help" class="sr-only">Les champs marqués d'une étoile sont obligatoires.</p>
-    <form role="form" method="post" action="{{ action_url or '' }}" class="space-y-6" aria-describedby="generic-form-help">
+    <form role="form" method="post" action="{{ action_url or '' }}" data-generic-form class="space-y-6" aria-describedby="generic-form-help">
       {% set section_open = false %}
       {% for field in fields %}
         {% if field.type == 'section' %}
@@ -126,7 +126,7 @@
               {% endif %}
             </label>
             {% if field.type == 'select' %}
-              <select name="{{ field.name }}" id="{{ field.name }}" class="form-control" {% if field.required %}required{% endif %} {% if field.readonly %}disabled{% endif %}{% if field.parent_field %} data-parent-field="{{ field.parent_field }}"{% endif %}>
+              <select name="{{ field.name }}" id="{{ field.name }}" class="form-control" {% if field.required %}required{% endif %} {% if field.readonly %}disabled{% endif %}{% if field.parent_field %} data-parent-field="{{ field.parent_field }}"{% endif %}{% if field.options|length == 1 and not field.value %} data-select-single-option{% endif %}>
                 <option value="">-- Sélectionner --</option>
                 {% for option in field.options %}
                   <option value="{{ option.value }}"
@@ -163,9 +163,6 @@
                     </div>
                   </div>
                 </div>
-              {% endif %}
-              {% if field.options|length == 1 and not field.value %}
-                <script>document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('{{ field.name }}');if(s){s.selectedIndex=1;}});</script>
               {% endif %}
             {% elif field.type == "text" or field.type == "number" or field.type == "datetime-local" %}
               <input type="{{ field.type }}" name="{{ field.name }}" id="{{ field.name }}" value="{{ field.value|default('') }}" {% if field.required %}required{% endif %} class="form-control" {% if field.readonly %}readonly{% endif %}>
@@ -236,135 +233,5 @@
         </span>
       </div>
     </form>
-            }
-          }
-          return false;
-        };
-        if (!tryAttach()) {
-          let attempts = 0;
-          const interval = setInterval(() => {
-            attempts += 1;
-            if (tryAttach() || attempts > 10) {
-              clearInterval(interval);
-            }
-          }, 50);
-        }
-        // === Protocol-specific field logic ===
-        function updateProtocolFields() {
-          const kind = form.querySelector('[name="kind"]');
-          if (!kind) return;
-          const value = kind.value;
-          // MLLP: show/require host, port
-          const host = form.querySelector('[name="host"]');
-          const port = form.querySelector('[name="port"]');
-          // FILE: show/require inbox_path, outbox_path, archive_path, error_path, file_extensions
-          const inbox = form.querySelector('[name="inbox_path"]');
-          const outbox = form.querySelector('[name="outbox_path"]');
-          const archive = form.querySelector('[name="archive_path"]');
-          const errorp = form.querySelector('[name="error_path"]');
-          const extensions = form.querySelector('[name="file_extensions"]');
-          // FHIR: show/require base_url, auth_kind, auth_token
-          const baseurl = form.querySelector('[name="base_url"]');
-          const authkind = form.querySelector('[name="auth_kind"]');
-          const authtoken = form.querySelector('[name="auth_token"]');
-
-          // Helper to show/hide and require fields
-          function setField(field, show, required) {
-            if (!field) return;
-            const wrapper = field.closest('.space-y-2');
-            if (wrapper) wrapper.style.display = show ? '' : 'none';
-            field.required = !!required;
-          }
-
-          // Reset all
-          [host, port, inbox, outbox, archive, errorp, extensions, baseurl, authkind, authtoken].forEach(f => setField(f, false, false));
-
-          if (value === 'MLLP') {
-            setField(host, true, true);
-            setField(port, true, true);
-          } else if (value === 'FILE') {
-            setField(inbox, true, true);
-            setField(outbox, true, true);
-            setField(archive, true, false);
-            setField(errorp, true, false);
-            setField(extensions, true, false);
-          } else if (value === 'FHIR') {
-            setField(baseurl, true, true);
-            setField(authkind, true, false);
-            setField(authtoken, true, false);
-          }
-        }
-        // Initial call
-        updateProtocolFields();
-        // Listen for changes
-        const kindSelect = form.querySelector('[name="kind"]');
-        if (kindSelect) {
-          kindSelect.addEventListener('change', updateProtocolFields);
-        }
-      } catch (e) {
-        console.error('Inline form init error', e);
-      }
-    })();
-  </script>
-
-  <!-- Submit-attempt guard: ensure empty required fields show errors immediately on click -->
-  <script>
-    (function(){
-      try {
-        const form = document.querySelector('form[role="form"]');
-        if (!form) return;
-
-        const submitBtn = document.getElementById('submit-btn');
-        const submitIcon = document.getElementById('submit-icon');
-        const submitText = document.getElementById('submit-text');
-
-        form.addEventListener('submit', function(e) {
-          if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.classList.add('cursor-not-allowed');
-            if (submitIcon) {
-              submitIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" class="animate-spin"/>';
-            }
-            if (submitText) {
-              submitText.textContent = 'Enregistrement...';
-            }
-          }
-        });
-
-        form.addEventListener('click', function(e){
-          const t = e.target;
-          if (!t || t.type !== 'submit') return;
-          try { form.setAttribute('data-submit-attempted','1'); } catch(_) {}
-        });
-      } catch (e) {
-        /* ignore */
-      }
-    })();
-  </script>
-
-  <!-- Raccourci clavier: Ctrl+S / Cmd+S pour soumettre le formulaire -->
-  <script>
-    (function() {
-      try {
-        var form = document.querySelector('form[role="form"]');
-        if (!form) return;
-        document.addEventListener('keydown', function(e) {
-          if (!(e.ctrlKey || e.metaKey)) return;
-          if (!e.key || e.key.toLowerCase() !== 's') return;
-          // Éviter de déclencher dans les modals natives de saisie
-          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
-            // On laisse le champ conserver le focus mais on intercepte le raccourci navigateur
-          }
-          e.preventDefault();
-          var submitBtn = document.getElementById('submit-btn') || form.querySelector('button[type="submit"]');
-          if (submitBtn && !submitBtn.disabled) {
-            submitBtn.click();
-          }
-        });
-      } catch (e) {
-        console.warn('Erreur init raccourci Ctrl+S sur formulaire:', e);
-      }
-    })();
-  </script>
 
 {% endblock %}

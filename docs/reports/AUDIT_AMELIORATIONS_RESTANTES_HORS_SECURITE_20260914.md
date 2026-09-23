@@ -218,7 +218,9 @@ l'audit :
   ses modèles et sa génération à `static/js/structure-wizard-workspace.js`.
   Le tableau principal de structure délègue également son arbre, ses vues,
   recherches et détails à `static/js/structure-dashboard-workspace.js` ; son
-  asset d'actions chargé ensuite est différé afin de préserver cet ordre.
+  asset d'actions chargé ensuite est différé afin de préserver cet ordre. Le
+  shell applicatif délègue enfin navigation, raccourcis, thèmes, toasts et
+  loaders à `static/js/base-behaviors.js`, chargé avant les workspaces de page.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

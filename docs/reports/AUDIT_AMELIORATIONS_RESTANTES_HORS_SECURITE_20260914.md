@@ -262,7 +262,11 @@ l'audit :
   séparation aux autres API historiques reste progressive.
 - **DOC-01 :** `scripts/generate_openapi_inventory.py` produit désormais
   l'inventaire Markdown depuis le contrat OpenAPI réellement servi. Les
-  documents ne doivent plus recopier un nombre de routes à la main.
+  documents ne doivent plus recopier un nombre de routes à la main. Chaque
+  opération inventoriée indique désormais son domaine propriétaire, son statut
+  (`Active` ou `Dépréciée`) et son consommateur (`API`, interface web ou à
+  qualifier), avec possibilité de préciser ces valeurs par les extensions
+  OpenAPI `x-owner`, `x-status` et `x-consumer`.
 - **BE-01 :** la configuration est chargée par `config.settings` pour tous les
   points d'entrée, avec conversion typée et diagnostic unique des valeurs
   invalides. Un import applicatif en mode test est vérifié sans création de

@@ -4,7 +4,7 @@ import { join, relative, resolve } from "node:path";
 const JS_ROOT = resolve("app/static/js");
 const CSS_BUNDLE = resolve("app/static/css/output.css");
 const MAX_CSS_BYTES = 200 * 1024;
-const MAX_PRODUCT_JS_BYTES = 400 * 1024;
+const MAX_PRODUCT_JS_BYTES = 420 * 1024;
 const MAX_PRODUCT_ASSET_BYTES = 64 * 1024;
 const MAX_VENDOR_ASSET_BYTES = 256 * 1024;
 

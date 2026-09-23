@@ -46,3 +46,21 @@ test("migrated workspaces use prefixed design-system components", () => {
   assert.doesNotMatch(hprim, /<style/i);
   assert.doesNotMatch(base, /href="\/design-system"/);
 });
+
+test("shell and documentation templates keep executable JavaScript in dedicated assets", () => {
+  const cases = [
+    ["base.html", "theme-preflight.js"],
+    ["design_system_demo.html", "design-system-demo.js"],
+    ["documentation.html", "documentation.js"],
+    ["standards_docs.html", "standards-docs.js"],
+  ];
+
+  cases.forEach(([templateName, assetName]) => {
+    const template = readFileSync(new URL(templateName, root), "utf8");
+    assert.match(template, new RegExp(assetName.replace(".", "\\.")));
+    assert.doesNotMatch(template, /<script>/);
+  });
+
+  const demo = readFileSync(new URL("design_system_demo.html", root), "utf8");
+  assert.doesNotMatch(demo, /\bonclick=/);
+});

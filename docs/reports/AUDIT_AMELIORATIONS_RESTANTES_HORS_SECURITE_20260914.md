@@ -431,10 +431,13 @@ l'audit :
   la sélection d'une option unique, l'affichage des champs propres au protocole
   et le raccourci d'enregistrement sont initialisés par `static/js/forms.js`.
   Cette reprise supprime également un fragment JavaScript tronqué qui était
-  rendu comme du texte après le formulaire. L'inventaire courant ne conserve
-  plus que quatre templates avec JavaScript exécutable embarqué ; ils concernent
-  désormais le shell ou des pages de documentation/démonstration, et non un
-  parcours métier prioritaire.
+  rendu comme du texte après le formulaire. Les derniers scripts du shell, de
+  la documentation, du catalogue des standards et de la démonstration du design
+  system sont maintenant externalisés. Le préchargement du thème reste
+  volontairement synchrone dans le `<head>` afin d'éviter un flash de thème,
+  mais son code réside dans `static/js/theme-preflight.js`. L'inventaire ne
+  conserve ainsi plus aucun template avec JavaScript exécutable embarqué ; les
+  balises restantes sans `src` ne transportent que des données JSON.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
   supprimés. La commande `npm run inventory-assets` contrôle désormais les
@@ -503,7 +506,7 @@ l'audit :
 - **FE-06 :** `npm run lint`, `npm test` et `npm run check-frontend` sont
   disponibles et exécutés dans un job CI frontend. Ils vérifient la syntaxe,
   le client HTTP, la génération CSS et les budgets de taille. Les assets
-  applicatifs sont limités à 400 Ko au total et 64 Ko par fichier, le CSS
+  applicatifs sont limités à 420 Ko au total et 64 Ko par fichier, le CSS
   généré à 200 Ko, tandis que les bibliothèques minifiées disposent d'un budget
   séparé. Le job navigateur échoue aussi si un parcours prioritaire produit une
   erreur console ou `pageerror`; les modules HTTP, builder, recherches et

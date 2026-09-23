@@ -14,3 +14,9 @@ test("scenario builder warns before abandoning unsaved input and preserves nativ
   assert.match(source, /Quitter sans enregistrer les modifications/);
   assert.match(source, /beforeunload/);
 });
+
+test("scenario builder redirects direct navigation to the first missing prerequisite", () => {
+  assert.match(source, /const goTo = \(target\) =>/);
+  assert.match(source, /for \(let step = 2; step < target; step \+= 1\)/);
+  assert.match(source, /show\(step\);/);
+});

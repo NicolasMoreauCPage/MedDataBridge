@@ -122,8 +122,27 @@
       if (current === 3 || current === 4) updateModeContent(form);
       if (current === 5) renderSummary(form);
     };
+    const goTo = (target) => {
+      if (target <= current) {
+        show(target);
+        return;
+      }
+      for (let step = 2; step < target; step += 1) {
+        if (!validateStep(form, step)) {
+          show(step);
+          const missingField = step === 2
+            ? form.querySelector("[data-builder-name]")
+            : selectedMode(form) === "duplicate"
+              ? form.querySelector("[data-source-scenario]")
+              : form.querySelector("[data-template-choice]");
+          missingField?.focus();
+          return;
+        }
+      }
+      show(target);
+    };
     form.querySelectorAll("[data-creation-mode]").forEach((input) => input.addEventListener("change", () => updateModeContent(form)));
-    root.querySelectorAll("[data-builder-go]").forEach((button) => button.addEventListener("click", () => { const target = Number(button.dataset.builderGo); if (target <= current || validateStep(form, current)) show(target); }));
+    root.querySelectorAll("[data-builder-go]").forEach((button) => button.addEventListener("click", () => goTo(Number(button.dataset.builderGo))));
     previous.addEventListener("click", () => show(current - 1));
     next.addEventListener("click", () => { if (validateStep(form, current)) show(current + 1); });
     form.addEventListener("submit", (event) => { if (![2, 3].every((step) => validateStep(form, step))) { event.preventDefault(); return; } unsavedChanges.markClean(); submit.disabled = true; submit.textContent = "Création du brouillon…"; });

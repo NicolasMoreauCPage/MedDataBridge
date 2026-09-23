@@ -177,7 +177,7 @@ def edit_unite_hebergement_form(
         }
     )
 
-@router.post("/uh", response_model=UniteHebergement)
+@router.post("/uh", response_model=UniteHebergementRead)
 async def create_unite_hebergement(
     request: Request,
     session: Session = Depends(get_session)
@@ -201,7 +201,7 @@ async def create_unite_hebergement(
     session.refresh(uh)
     return RedirectResponse(url="/structure/uh", status_code=303)
 
-@router.post("/uh/{uh_id}", response_model=UniteHebergement)
+@router.post("/uh/{uh_id}", response_model=UniteHebergementRead)
 async def update_unite_hebergement(
     request: Request,
     uh_id: int,

@@ -177,7 +177,7 @@ def get_service_api(
         "updated_at": service.updated_at,
     }
 
-@router.post("/services", response_model=Service)
+@router.post("/services", response_model=ServiceRead)
 def create_service(
     service: Service,
     session: Session = Depends(get_session)
@@ -415,7 +415,7 @@ def get_unite_fonctionnelle_api(
         "updated_at": uf.updated_at,
     }
 
-@router.post("/ufs", response_model=UniteFonctionnelle)
+@router.post("/ufs", response_model=UniteFonctionnelleRead)
 def create_unite_fonctionnelle(
     uf: UniteFonctionnelle,
     session: Session = Depends(get_session)

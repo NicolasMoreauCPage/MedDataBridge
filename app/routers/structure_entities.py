@@ -75,7 +75,7 @@ def list_entites_geographiques_api(
         limit=limit,
     )
 
-@router.post("/eg", response_model=EntiteGeographique)
+@router.post("/eg", response_model=EntiteGeographiqueRead)
 def create_entite_geographique(
     eg: EntiteGeographique,
     session: Session = Depends(get_session)
@@ -303,7 +303,7 @@ def get_pole_api(
         "updated_at": pole.updated_at,
     }
 
-@router.post("/poles", response_model=Pole)
+@router.post("/poles", response_model=PoleRead)
 def create_pole(
     pole: Pole,
     session: Session = Depends(get_session)

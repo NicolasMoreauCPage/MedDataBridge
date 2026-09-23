@@ -293,7 +293,7 @@ def get_chambre_api(
         "updated_at": chambre.updated_at,
     }
 
-@router.post("/chambres", response_model=Chambre)
+@router.post("/chambres", response_model=ChambreRead)
 async def create_chambre(
     request: Request,
     session: Session = Depends(get_session)
@@ -464,7 +464,7 @@ def get_lit_api(
         "updated_at": lit.updated_at,
     }
 
-@router.post("/lits", response_model=Lit)
+@router.post("/lits", response_model=LitRead)
 def create_lit(
     lit: Lit,
     session: Session = Depends(get_session)

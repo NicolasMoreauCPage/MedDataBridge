@@ -412,7 +412,9 @@ def _parse_pd1(message: str) -> dict:
         if len(parts) > 6 and parts[6]:
             out["language"] = parts[6]
     except Exception:
-        pass
+        # PD1 est optionnel : conserver le traitement principal mais rendre
+        # visible un parseur défaillant.
+        logger.debug("Optional PD1 segment parsing failed", exc_info=True)
     return out
 
 
@@ -424,15 +426,15 @@ def _parse_hl7_datetime(s: Optional[str]) -> Optional[datetime]:
     for fmt in ("%Y%m%d%H%M%S", "%Y%m%d%H%M", "%Y%m%d"):
         try:
             return datetime.strptime(s[: len(fmt.replace("%", ""))], fmt)
-        except Exception:
+        except ValueError:
             try:
                 return datetime.strptime(s, fmt)
-            except Exception:
+            except ValueError:
                 continue
     # Solution de repli: ignore timezone/extra and try first 14 chars
     try:
         return datetime.strptime(s[:14], "%Y%m%d%H%M%S")
-    except Exception:
+    except ValueError:
         return None
 
 
@@ -471,7 +473,9 @@ def _parse_pv1(message: str) -> dict:
         if len(parts) > 19 and parts[19]:
             out["visit_number"] = parts[19]
     except Exception:
-        pass
+        # PV1 est absent de certains événements centrés patient ; le parseur
+        # est facultatif mais ne doit pas échouer silencieusement.
+        logger.debug("Optional PV1 segment parsing failed", exc_info=True)
     return out
 
 
@@ -509,7 +513,7 @@ def _parse_zbe(message: str) -> dict:
         if len(parts) > 9 and parts[9]:
             out["movement_indicator"] = parts[9].strip().upper()
     except Exception:
-        pass
+        logger.debug("Optional ZBE segment parsing failed", exc_info=True)
     return out
 
 
@@ -536,7 +540,7 @@ def _parse_mrg(message: str) -> dict:
         if len(parts) > 7 and parts[7]:
             out["prior_patient_name"] = parts[7]
     except Exception:
-        pass
+        logger.debug("Optional MRG segment parsing failed", exc_info=True)
     return out
 
 
@@ -1022,12 +1026,17 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
                         log.ack_payload = ack
                         return ack
             except Exception:
-                # Never block processing due to validator errors; log as warn-level issue
-                try:
-                    log.pam_validation_status = "warn"
-                    log.pam_validation_issues = json.dumps([{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}], ensure_ascii=False)
-                except Exception:
-                    pass
+                # Le validateur est annexe au transport en mode avertissement :
+                # l'ACK reste possible, mais l'échec conserve sa corrélation.
+                logger.exception(
+                    "Inbound PAM validation failed",
+                    extra={"correlation_id": ctrl_id, "endpoint_id": getattr(endpoint, "id", None)},
+                )
+                log.pam_validation_status = "warn"
+                log.pam_validation_issues = json.dumps(
+                    [{"code": "VALIDATOR_ERROR", "message": "Erreur interne du validateur", "severity": "warn"}],
+                    ensure_ascii=False,
+                )
 
             if trigger == "Z99":
                 # Validate that original message was accepted

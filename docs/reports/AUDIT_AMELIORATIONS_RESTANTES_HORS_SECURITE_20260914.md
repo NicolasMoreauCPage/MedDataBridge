@@ -102,7 +102,10 @@ l'audit :
   lorsque celle-ci est planifiée pour une nouvelle tentative. Les vues de
   journaux ne masquent plus non plus une saisie de filtre invalide : leurs dates
   ISO et identifiants d'endpoint sont validés et retournent une erreur 422
-  explicite avant toute recherche.
+  explicite avant toute recherche. Côté réception PAM, les parseurs de segments
+  optionnels gardent leur tolérance mais expliquent leurs échecs au niveau debug;
+  une indisponibilité du validateur est désormais loguée avec la corrélation et
+  persistée comme avertissement avant la poursuite contrôlée du traitement.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

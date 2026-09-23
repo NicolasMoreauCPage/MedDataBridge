@@ -570,7 +570,7 @@ def test_on_message_inbound_async_validator_reject_mode_returns_ae(session, monk
     assert latest.status == "rejected"
 
 
-def test_on_message_inbound_async_validator_exception_sets_warn_and_continues(session, monkeypatch):
+def test_on_message_inbound_async_validator_exception_sets_warn_and_continues(session, monkeypatch, caplog):
     class Endpoint:
         id = 3
         entite_juridique = None
@@ -595,6 +595,7 @@ def test_on_message_inbound_async_validator_exception_sets_warn_and_continues(se
     latest = session.exec(select(MessageLog).order_by(MessageLog.id.desc())).first()
     assert latest is not None
     assert latest.pam_validation_status == "warn"
+    assert "Inbound PAM validation failed" in caplog.text
 
 
 def test_on_message_inbound_async_update_without_existing_on_admission_falls_back_to_insert(session, monkeypatch):

@@ -132,12 +132,21 @@ test("analytics and metrics dashboards delegate their reads to the shared HTTP c
     "utf8",
   );
   const metrics = readFileSync(new URL("../../app/templates/metrics_dashboard.html", import.meta.url), "utf8");
+  const metricsWorkspace = readFileSync(
+    new URL("../../app/static/js/metrics-dashboard-workspace.js", import.meta.url),
+    "utf8",
+  );
+  const base = readFileSync(new URL("../../app/templates/base.html", import.meta.url), "utf8");
   assert.match(analytics, /data-analytics-dashboard/);
   assert.match(analytics, /js\/analytics-dashboard-workspace\.js/);
   assert.match(analyticsWorkspace, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(analyticsWorkspace, /\bfetch\(/);
-  assert.match(metrics, /window\.medbridgeHttp\.get\('\/api\/metrics\/dashboard'\)/);
-  assert.doesNotMatch(metrics, /\bfetch\(/);
+  assert.match(metrics, /js\/metrics-dashboard-workspace\.js/);
+  assert.doesNotMatch(metrics, /<script>([\s\S]*?)<\/script>/);
+  assert.doesNotMatch(metrics, /\bonclick=/);
+  assert.match(metricsWorkspace, /window\.medbridgeHttp\.get\("\/api\/metrics\/dashboard"\)/);
+  assert.doesNotMatch(metricsWorkspace, /\bfetch\(/);
+  assert.ok(base.indexOf("js/http.js") < base.indexOf("{% block content %}"));
 });
 
 test("admission, patient sample and validation-rule interactions use the shared HTTP client", () => {

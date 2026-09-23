@@ -249,6 +249,9 @@ l'audit :
   sans gestionnaire HTML inline.
   L'exécution groupée de scénarios isole enfin ses compteurs, sa sélection et
   son contrôle tout/aucun dans `static/js/scenarios-bulk-execute-workspace.js`.
+  Le dashboard des métriques délègue maintenant son rafraîchissement, ses
+  compteurs et son tableau à `static/js/metrics-dashboard-workspace.js` ; le
+  client HTTP partagé est chargé avant les workspaces de contenu.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

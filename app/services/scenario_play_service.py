@@ -26,7 +26,6 @@ from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.models_structure import IdentifierNamespace
 from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message
 from app.services.scenario_identity_generator import PatientIdentity, apply_patient_identity_to_hl7, generate_patient_identity
-from app.services.scenario_transform import transform_hl7_for_context
 from app.services.identifier_generator import generate_identifier_set
 from app.services.scenario_qualification_service import refresh_play_target_states, target_key
 from app.services.scenario_version_service import current_scenario_version
@@ -529,10 +528,11 @@ def _compile_hl7(
         _normalize_hl7_line_endings(payload),
         _token_values(play_key, identity, ids, step.order_index, context.get("practitioner"), context.get("location")),
     )
-    try:
-        payload = transform_hl7_for_context(session, payload, ght_context_id=scenario.ght_context_id, remap_pid3=False)
-    except Exception:
-        pass
+    # La transformation de contexte requiert un endpoint cible. À ce stade le
+    # payload est compilé une seule fois et partagé entre ses livraisons : il ne
+    # faut donc pas tenter un appel incomplet (il était systématiquement masqué
+    # par un ``except: pass``) ni injecter la configuration d'une cible au hasard.
+    # Les champs communs au jeu sont normalisés plus bas, de manière déterministe.
     payload = apply_patient_identity_to_hl7(payload, identity)
     namespaces = context["namespaces"]
     ipp = _namespace(session, scenario.ght_context_id, "IPP") if namespaces["ipp"] else None

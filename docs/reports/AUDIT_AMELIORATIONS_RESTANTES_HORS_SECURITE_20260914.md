@@ -105,7 +105,10 @@ l'audit :
   explicite avant toute recherche. Côté réception PAM, les parseurs de segments
   optionnels gardent leur tolérance mais expliquent leurs échecs au niveau debug;
   une indisponibilité du validateur est désormais loguée avec la corrélation et
-  persistée comme avertissement avant la poursuite contrôlée du traitement.
+  persistée comme avertissement avant la poursuite contrôlée du traitement. La
+  compilation HL7 des jeux de scénarios ne tente plus non plus une transformation
+  requérant un endpoint encore inconnu : cet appel incomplet était masqué par
+  une capture large et ne pouvait produire aucun effet fiable.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

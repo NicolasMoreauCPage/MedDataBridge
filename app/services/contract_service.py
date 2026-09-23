@@ -8,7 +8,6 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from app.models import Contract, Dossier
-from app.models_practitioners import MedecinResponsable
 
 
 class ContractService:

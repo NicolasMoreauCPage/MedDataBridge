@@ -7,10 +7,8 @@ import re
 from datetime import datetime, date
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 
 from app.models import CCAMAct, Dossier
-from app.models_practitioners import MedecinResponsable
 
 
 class CCAMService:

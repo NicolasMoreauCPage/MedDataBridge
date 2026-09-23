@@ -10,7 +10,6 @@ import json
 import logging
 import os
 from typing import Optional, Any, Dict, List
-from datetime import timedelta
 try:
     import redis
     from redis.exceptions import RedisError

@@ -87,7 +87,7 @@ def parse_msh_fields(message: str) -> dict:
     processing_id, version.
     """
     lines = message.split("\r")
-    msh = next((l for l in lines if l.startswith("MSH")), "MSH|^~\\&|||||||||||||")
+    msh = next((line for line in lines if line.startswith("MSH")), "MSH|^~\\&|||||||||||||")
     parts = msh.split("|")
     enc = parts[1] if len(parts) > 1 and parts[1] else "^~\\&"
     msg_type = parts[8] if len(parts) > 8 else ""

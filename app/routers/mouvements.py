@@ -2076,8 +2076,8 @@ def get_lits_for_chambre(chambre_id: int, session=Depends(get_session)):
         ).all()
         
         options = [
-            {"value": str(l.id), "label": l.name} 
-            for l in lits
+            {"value": str(lit.id), "label": lit.name}
+            for lit in lits
         ]
         return JSONResponse({"success": True, "options": options})
     except Exception as e:

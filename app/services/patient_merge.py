@@ -67,7 +67,7 @@ def _parse_mrg_segment(message: str) -> Optional[Dict]:
     
     try:
         lines = re.split(r"\r|\n", message)
-        mrg = next((l for l in lines if l.startswith("MRG")), None)
+        mrg = next((line for line in lines if line.startswith("MRG")), None)
         if not mrg:
             return None
             

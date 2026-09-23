@@ -272,7 +272,7 @@ def process_mfn_message(message: str, session: Session, multi_pass: bool = True)
             "relations": current_relations
         })
     logger.info(f"Parsed {len(locations)} locations from MFN message")
-    services = [l for l in locations if l['type'] == 'D']
+    services = [location for location in locations if location['type'] == 'D']
     logger.info(f"  Services: {len(services)}")
     if services:
         logger.info(f"  First Service: type={services[0]['type']}, id={services[0]['identifier'][:60]}, n_relations={len(services[0]['relations'])}")

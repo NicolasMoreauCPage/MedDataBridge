@@ -264,11 +264,11 @@ def process_pam_message(session: Session, message: str) -> Dict[str, Any]:
         if not message or not message.startswith("MSH"):
             raise ValueError("Message HL7 invalide: MSH absent")
 
-        lines = [l for l in re.split(r"\r|\n", message) if l.strip()]
-        msh = next((l for l in lines if l.startswith("MSH")), None)
-        pid = next((l for l in lines if l.startswith("PID")), None)
-        pv1 = next((l for l in lines if l.startswith("PV1")), None)
-        evn = next((l for l in lines if l.startswith("EVN")), None)
+        lines = [line for line in re.split(r"\r|\n", message) if line.strip()]
+        msh = next((line for line in lines if line.startswith("MSH")), None)
+        pid = next((line for line in lines if line.startswith("PID")), None)
+        pv1 = next((line for line in lines if line.startswith("PV1")), None)
+        evn = next((line for line in lines if line.startswith("EVN")), None)
 
         trigger = None
         patient_identifier = None
@@ -353,7 +353,7 @@ def _extract_pv1_segment(message: str) -> Optional[str]:
     """
     try:
         lines = re.split(r"\r|\n", message)
-        pv1 = next((l for l in lines if l.startswith("PV1")), None)
+        pv1 = next((line for line in lines if line.startswith("PV1")), None)
         return pv1 if pv1 else None
     except Exception as e:
         logger.error(f"Erreur extraction segment PV1: {e}")
@@ -398,7 +398,7 @@ def _parse_zbe_segment(message: str) -> Optional[Dict]:
 
     try:
         lines = re.split(r"\r|\n", message)
-        zbe = next((l for l in lines if l.startswith("ZBE")), None)
+        zbe = next((line for line in lines if line.startswith("ZBE")), None)
         if not zbe:
             return None
 

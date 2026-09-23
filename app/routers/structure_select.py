@@ -34,4 +34,4 @@ def list_chambres(uh_id: int, session: Session = Depends(get_session)):
 def list_lits(chambre_id: int, session: Session = Depends(get_session)):
     stmt = select(Lit).where(Lit.chambre_id == chambre_id)
     lits = session.exec(stmt).all()
-    return [{"id": l.id, "name": l.name, "identifier": l.identifier, "status": l.operational_status} for l in lits]
+    return [{"id": lit.id, "name": lit.name, "identifier": lit.identifier, "status": lit.operational_status} for lit in lits]

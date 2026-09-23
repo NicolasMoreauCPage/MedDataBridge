@@ -576,9 +576,9 @@ async def send_scenario(
 
     # Mise à jour du run
     run.finished_at = datetime.utcnow()
-    run.success_steps = sum(1 for l in run.step_logs if l.status == "sent")
-    run.error_steps = sum(1 for l in run.step_logs if l.status == "error")
-    run.skipped_steps = sum(1 for l in run.step_logs if l.status == "skipped")
+    run.success_steps = sum(1 for log in run.step_logs if log.status == "sent")
+    run.error_steps = sum(1 for log in run.step_logs if log.status == "error")
+    run.skipped_steps = sum(1 for log in run.step_logs if log.status == "skipped")
     if dry_run:
         run.status = "dry_run"
     elif run.error_steps == 0 and run.success_steps == run.total_steps:

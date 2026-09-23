@@ -1435,7 +1435,7 @@ def emit_to_senders_async(
                                 ack_payload = _raw
                             from app.services.mllp import parse_msh_fields
                             ack_lines = ack_payload.split("\r") if ack_payload else []
-                            msa_line = next((l for l in ack_lines if l.startswith("MSA|")), None)
+                            msa_line = next((line for line in ack_lines if line.startswith("MSA|")), None)
                             ack_code = None
                             if msa_line:
                                 msa_parts = msa_line.split("|")

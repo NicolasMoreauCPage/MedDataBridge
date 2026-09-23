@@ -134,7 +134,7 @@ def _parse_pid(message: str) -> dict:
     }
     try:
         lines = re.split(r"\r|\n", message)
-        pid = next((l for l in lines if l.startswith("PID")), None)
+        pid = next((line for line in lines if line.startswith("PID")), None)
         if not pid:
             return out
             
@@ -296,7 +296,7 @@ def _parse_nk1_segments(message: str) -> dict:
     Sinon patient contact.
     """
     lines = re.split(r"\r|\n", message)
-    nk1_lines = [l for l in lines if l.startswith("NK1|")]
+    nk1_lines = [line for line in lines if line.startswith("NK1|")]
     patient_contacts = []
     venue_contacts = []
 
@@ -410,7 +410,7 @@ def _parse_pd1(message: str) -> dict:
     out = {"primary_care_provider": None, "religion": None, "language": None}
     try:
         lines = re.split(r"\r|\n", message)
-        pd1 = next((l for l in lines if l.startswith("PD1")), None)
+        pd1 = next((line for line in lines if line.startswith("PD1")), None)
         if not pd1:
             return out
         parts = pd1.split("|")
@@ -461,7 +461,7 @@ def _parse_pv1(message: str) -> dict:
     }
     try:
         lines = re.split(r"\r|\n", message)
-        pv1 = next((l for l in lines if l.startswith("PV1")), None)
+        pv1 = next((line for line in lines if line.startswith("PV1")), None)
         if not pv1:
             return out
         parts = pv1.split("|")
@@ -502,7 +502,7 @@ def _parse_zbe(message: str) -> dict:
     }
     try:
         lines = re.split(r"\r|\n", message)
-        zbe = next((l for l in lines if l.startswith("ZBE")), None)
+        zbe = next((line for line in lines if line.startswith("ZBE")), None)
         if not zbe:
             return out
         parts = zbe.split("|")
@@ -537,7 +537,7 @@ def _parse_mrg(message: str) -> dict:
     }
     try:
         lines = re.split(r"\r|\n", message)
-        mrg = next((l for l in lines if l.startswith("MRG")), None)
+        mrg = next((line for line in lines if line.startswith("MRG")), None)
         if not mrg:
             return out
         parts = mrg.split("|")
@@ -555,7 +555,7 @@ def _parse_mrg(message: str) -> dict:
 def _has_segment(message: str, segment_name: str) -> bool:
     """Vérifie si un segment est présent dans le message."""
     lines = re.split(r"\r|\n", message)
-    return any(l.startswith(segment_name) for l in lines)
+    return any(line.startswith(segment_name) for line in lines)
 
 
 def _validate_z99_original_message(message: str, session: Session) -> Optional[str]:
@@ -717,7 +717,7 @@ def _handle_z99_updates(message: str, session: Session) -> None:
 
     try:
         lines = re.split(r"\r|\n", message)
-        for seg in (l for l in lines if l.startswith("Z99")):
+        for seg in (line for line in lines if line.startswith("Z99")):
             parts = seg.split("|")
             if len(parts) < 4:
                 continue

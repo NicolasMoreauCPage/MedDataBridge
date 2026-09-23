@@ -1450,7 +1450,7 @@ def seed_demo_population(
 
     # Collecte lits disponibles pour assigner locations
     all_lits = session.exec(select(Lit)).all()
-    lit_cycle = list(l.identifier for l in all_lits if l.identifier)
+    lit_cycle = list(lit.identifier for lit in all_lits if lit.identifier)
     if not lit_cycle:
         lit_cycle = ["UNKNOWN-LIT"]
 

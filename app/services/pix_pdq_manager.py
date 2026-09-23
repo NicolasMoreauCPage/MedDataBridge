@@ -251,7 +251,7 @@ class PIXPDQManager:
         out = {}
         try:
             lines = msg.split("\r")
-            qpd = next((l for l in lines if l.startswith("QPD")), None)
+            qpd = next((line for line in lines if line.startswith("QPD")), None)
             if not qpd:
                 return out
                 

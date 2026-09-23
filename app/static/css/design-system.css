@@ -664,3 +664,42 @@
     gap: 0.75rem;
   }
 }
+
+/* Saisie rapide de cotations : styles d'espace de travail scopés. */
+.rapid-shell {
+  font-family: "Space Grotesk", sans-serif;
+  background: radial-gradient(circle at 10% 0%, #d1fae5 0%, #f8fafc 40%, #ecfeff 100%);
+}
+
+.rapid-shell .rapid-topbar {
+  background: linear-gradient(130deg, #0f172a 0%, #155e75 55%, #0f766e 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.22);
+}
+
+.rapid-shell .rapid-chip {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+}
+
+.rapid-shell .metric-pane {
+  background: #fff;
+  border: 1px solid #d8dee8;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.rapid-shell .workspace-pane {
+  background: #fff;
+  border: 1px solid #d8dee8;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+}
+
+.rapid-shell .acte-type-btn {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.rapid-shell .acte-type-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+}

@@ -263,6 +263,9 @@ l'audit :
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet
   espace de travail ne peuvent pas modifier involontairement une autre vue.
+  La saisie rapide de cotations suit désormais la même règle : ses styles sont
+  centralisés et scopés sous `.rapid-shell`, et ses animations locales non
+  utilisées ont été supprimées.
 
 ## Backlog priorisé
 

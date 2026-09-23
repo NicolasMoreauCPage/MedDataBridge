@@ -183,6 +183,7 @@ test("rapid cotation workflow delegates searches and mutations to the shared HTT
   const history = readFileSync(new URL("../../app/static/js/cotations-history-workspace.js", import.meta.url), "utf8");
   assert.match(template, /js\/cotations-history-workspace\.js/);
   assert.match(template, /data-cotations-history-workspace/);
+  assert.doesNotMatch(template, /<style>/);
   assert.match(template, /window\.medbridgeHttp\.get\(/);
   assert.match(template, /window\.medbridgeHttp\.post\(/);
   assert.match(history, /window\.medbridgeHttp\.post\("\/cotations\/api\/bulk"/);

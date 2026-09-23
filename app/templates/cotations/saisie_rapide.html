@@ -3,46 +3,6 @@
 {% block title %}Saisie Rapide Cotations - {{ dossier.nda }}{% endblock %}
 
 {% block content %}
-<style>
-    .rapid-shell {
-        font-family: 'Space Grotesk', sans-serif;
-        background: radial-gradient(circle at 10% 0%, #d1fae5 0%, #f8fafc 40%, #ecfeff 100%);
-    }
-
-    .rapid-topbar {
-        background: linear-gradient(130deg, #0f172a 0%, #155e75 55%, #0f766e 100%);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.22);
-    }
-
-    .rapid-chip {
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        background: rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(6px);
-    }
-
-    .metric-pane {
-        background: #fff;
-        border: 1px solid #d8dee8;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-    }
-
-    .workspace-pane {
-        background: #fff;
-        border: 1px solid #d8dee8;
-        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
-    }
-
-    .acte-type-btn {
-        transition: transform 0.18s ease, box-shadow 0.18s ease;
-    }
-
-    .acte-type-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
-    }
-</style>
-
 <div class="rapid-shell min-h-screen">
     <!-- Header fixe -->
         <div class="rapid-topbar sticky top-0 z-50 text-white">
@@ -1425,17 +1385,4 @@ document.getElementById('lpp-form')?.addEventListener('submit', async function(e
 </script>
 
 <script defer src="{{ url_for('static', path='/js/cotations-history-workspace.js') }}"></script>
-
-<style>
-@keyframes slide-in {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-@keyframes fade-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-.animate-slide-in { animation: slide-in 0.3s ease-out; }
-.animate-fade-out { animation: fade-out 0.3s ease-out; }
-</style>
 {% endblock %}

@@ -304,14 +304,15 @@ test("message detail delegates payload copy with JSON bootstrap data", () => {
 });
 
 test("scenario import and conformity toggle use the shared HTTP client", () => {
-  for (const relativePath of [
-    "../../app/templates/scenario_import.html",
-    "../../app/templates/conformity_home.html",
-  ]) {
-    const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
-    assert.match(source, /window\.medbridgeHttp\.request\(/);
-    assert.doesNotMatch(source, /\bfetch\(/);
-  }
+  const scenarioImport = readFileSync(new URL("../../app/templates/scenario_import.html", import.meta.url), "utf8");
+  const conformity = readFileSync(new URL("../../app/templates/conformity_home.html", import.meta.url), "utf8");
+  const workspace = readFileSync(new URL("../../app/static/js/conformity-home-workspace.js", import.meta.url), "utf8");
+  assert.match(scenarioImport, /window\.medbridgeHttp\.request\(/);
+  assert.doesNotMatch(scenarioImport, /\bfetch\(/);
+  assert.match(conformity, /js\/conformity-home-workspace\.js/);
+  assert.doesNotMatch(conformity, /window\.medbridgeHttp\./);
+  assert.match(workspace, /window\.medbridgeHttp\.request\(/);
+  assert.doesNotMatch(workspace, /\bfetch\(/);
 });
 
 test("rapid cotation workflow delegates searches and mutations to the shared HTTP client", () => {

@@ -168,7 +168,7 @@ async def _send_hl7_step(
                 select(IdentifierNamespace).where(
                     IdentifierNamespace.ght_context_id == ght_context_id,
                     IdentifierNamespace.type == "IPP",
-                    IdentifierNamespace.is_active == True
+                    IdentifierNamespace.is_active.is_(True)
                 )
             ).first()
             
@@ -176,7 +176,7 @@ async def _send_hl7_step(
                 select(IdentifierNamespace).where(
                     IdentifierNamespace.ght_context_id == ght_context_id,
                     IdentifierNamespace.type == "NDA",
-                    IdentifierNamespace.is_active == True
+                    IdentifierNamespace.is_active.is_(True)
                 )
             ).first()
             
@@ -184,7 +184,7 @@ async def _send_hl7_step(
                 select(IdentifierNamespace).where(
                     IdentifierNamespace.ght_context_id == ght_context_id,
                     IdentifierNamespace.type == "VN",
-                    IdentifierNamespace.is_active == True
+                    IdentifierNamespace.is_active.is_(True)
                 )
             ).first()
             

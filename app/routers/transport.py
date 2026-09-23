@@ -32,7 +32,7 @@ router = APIRouter(
 def list_eps(session: Session = Depends(get_session)):
     """List active endpoints with their configs."""
     endpoints = (
-        session.exec(select(SystemEndpoint).where(SystemEndpoint.is_enabled==True))
+        session.exec(select(SystemEndpoint).where(SystemEndpoint.is_enabled.is_(True)))
         .all()
     )
     return [{

@@ -189,7 +189,7 @@ def build_pid3_identifiers(
                     select(IdentifierNamespace)
                     .where(IdentifierNamespace.entite_juridique_id == ej_id)
                     .where(IdentifierNamespace.type == "IPP")
-                    .where(IdentifierNamespace.is_active == True)
+                    .where(IdentifierNamespace.is_active.is_(True))
                 )
             auth = None
             if ipp_ns:
@@ -371,7 +371,7 @@ def _resolve_namespace_authority(
                 select(IdentifierNamespace)
                 .where(IdentifierNamespace.entite_juridique_id == entite_juridique_id)
                 .where(IdentifierNamespace.type == ns_type)
-                .where(IdentifierNamespace.is_active == True)
+                .where(IdentifierNamespace.is_active.is_(True))
             ).first()
             if ns:
                 return (_auth(ns.system, ns.oid), ns.type or ns_type)
@@ -1296,7 +1296,7 @@ def emit_to_senders_async(
             endpoints = session.exec(
                 select(SystemEndpoint)
                 .where(SystemEndpoint.role.in_(["sender", "both"]))
-                .where(SystemEndpoint.is_enabled == True)
+                .where(SystemEndpoint.is_enabled.is_(True))
             ).all()
             break  # Success, exit retry loop
         except Exception as e:

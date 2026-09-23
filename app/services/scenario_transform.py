@@ -82,7 +82,7 @@ def _select_namespace_system(session: Session, ght_context_id: Optional[int], ej
     ns = session.exec(
         select(IdentifierNamespace)
         .where(or_(*context_conditions))
-        .where(IdentifierNamespace.is_active == True)
+        .where(IdentifierNamespace.is_active.is_(True))
         .order_by(IdentifierNamespace.entite_juridique_id.isnot(None).desc())  # EJ namespaces first
         .order_by(IdentifierNamespace.type == "IPP").order_by(IdentifierNamespace.id)
     ).all()

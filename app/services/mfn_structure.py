@@ -1002,7 +1002,7 @@ def generate_mfn_message(session: Session, eg_identifier: Optional[str] = None, 
             if ej_id:
                 from app.models_structure import IdentifierNamespace
                 ns = session.exec(
-                    select(IdentifierNamespace).where(IdentifierNamespace.entite_juridique_id == ej_id).where(IdentifierNamespace.is_active == True)
+                    select(IdentifierNamespace).where(IdentifierNamespace.entite_juridique_id == ej_id).where(IdentifierNamespace.is_active.is_(True))
                 ).first()
                 if ns:
                     # Prefer OID when available

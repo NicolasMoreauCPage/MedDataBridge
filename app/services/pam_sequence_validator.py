@@ -410,7 +410,7 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                     # Narrow candidate search: non-historic, not discharge events, same room/bed
                     q = select(Mouvement).where(Mouvement.to_location.contains(f"^{room}^{bed}"))
                     try:
-                        q = q.where(Mouvement.is_historic == False)
+                        q = q.where(Mouvement.is_historic.is_(False))
                     except Exception:
                         pass
                     candidates = session.exec(q).all()

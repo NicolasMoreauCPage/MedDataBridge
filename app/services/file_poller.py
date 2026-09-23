@@ -76,7 +76,7 @@ class FilePollerService:
         # Find all FILE and SFTP endpoints that are enabled
         stmt = select(SystemEndpoint).where(
             (SystemEndpoint.kind == "FILE") | (SystemEndpoint.kind == "SFTP"),
-            SystemEndpoint.is_enabled == True
+            SystemEndpoint.is_enabled.is_(True)
         )
         endpoints = self.session.exec(stmt).all()
 
@@ -351,7 +351,7 @@ class FilePollerService:
             if endpoint.ght_context_id:
                 ght_context = session.get(GHTContext, endpoint.ght_context_id)
             if not ght_context:
-                stmt = select(GHTContext).where(GHTContext.is_active == True).limit(1)
+                stmt = select(GHTContext).where(GHTContext.is_active.is_(True)).limit(1)
                 ght_context = session.exec(stmt).first()
             if not ght_context:
                 raise ValueError("No GHT context available for import")

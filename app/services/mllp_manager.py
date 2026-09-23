@@ -111,7 +111,7 @@ class MLLPManager:
         await self.stop_all()
         eps = session.exec(
             select(SystemEndpoint).where(
-                SystemEndpoint.is_enabled == True,
+                SystemEndpoint.is_enabled.is_(True),
                 SystemEndpoint.kind == "MLLP"
             )
         ).all()

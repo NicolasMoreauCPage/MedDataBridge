@@ -101,7 +101,7 @@ class BackgroundScheduler:
             # the expensive scan. SFTP uses the same poller as local FILE.
             stmt = select(SystemEndpoint).where(
                 SystemEndpoint.kind.in_(POLLABLE_FILE_ENDPOINT_KINDS),
-                SystemEndpoint.is_enabled == True
+                SystemEndpoint.is_enabled.is_(True)
             ).limit(1)
             any_ep = session.exec(stmt).first()
             if not any_ep:

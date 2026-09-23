@@ -220,15 +220,15 @@ def new_endpoint(request: Request, session=Depends(get_session)):
     ej_ctx = getattr(request.state, 'ej_context', None)
 
     # Récupérer les GHT et EJ disponibles
-    ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
+    ghts = session.exec(select(GHTContext).where(GHTContext.is_active.is_(True))).all()
     # If a GHT context is active, limit EJs to that GHT to avoid showing EJs from other GHTs
     if ght_ctx:
         ejs = session.exec(select(EntiteJuridique).where(
-            EntiteJuridique.is_active == True,
+            EntiteJuridique.is_active.is_(True),
             EntiteJuridique.ght_context_id == ght_ctx.id
         )).all()
     else:
-        ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
+        ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active.is_(True))).all()
 
     # Create a temporary empty endpoint object to populate the template
     e = SystemEndpoint()
@@ -406,8 +406,8 @@ def detail_endpoint(endpoint_id: int, request: Request, session=Depends(get_sess
         raise HTTPException(status_code=404, detail="Endpoint not found")
     
     # Récupérer les GHT et EJ pour les dropdowns
-    ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
-    ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
+    ghts = session.exec(select(GHTContext).where(GHTContext.is_active.is_(True))).all()
+    ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active.is_(True))).all()
     
     # Récupérer tous les endpoints pour l'association anti-rebond
     all_endpoints = session.exec(select(SystemEndpoint)).all()
@@ -487,8 +487,8 @@ def update_endpoint(
     
     if not ght_id and not ej_id:
         # Re-render with error instead of raising to keep user in the form
-        ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
-        ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
+        ghts = session.exec(select(GHTContext).where(GHTContext.is_active.is_(True))).all()
+        ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active.is_(True))).all()
         all_endpoints = session.exec(select(SystemEndpoint)).all()
         # Pour les endpoints FILE/SFTP, "running" = is_enabled
         is_running = e.is_enabled if uses_background_poller(e.kind) else endpoint_id in set(registry.running_ids())
@@ -511,8 +511,8 @@ def update_endpoint(
         ej_obj = session.get(EntiteJuridique, ej_id)
         if ej_obj and ej_obj.ght_context_id != ght_id:
             # Re-render form with error message
-            ghts = session.exec(select(GHTContext).where(GHTContext.is_active == True)).all()
-            ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active == True)).all()
+            ghts = session.exec(select(GHTContext).where(GHTContext.is_active.is_(True))).all()
+            ejs = session.exec(select(EntiteJuridique).where(EntiteJuridique.is_active.is_(True))).all()
             all_endpoints = session.exec(select(SystemEndpoint)).all()
             # Pour les endpoints FILE/SFTP, "running" = is_enabled
             is_running = e.is_enabled if uses_background_poller(e.kind) else endpoint_id in set(registry.running_ids())
@@ -814,7 +814,7 @@ def endpoint_scenarios(
     # Récupérer tous les scénarios actifs avec leurs steps
     scenarios = session.exec(
         select(InteropScenario)
-        .where(InteropScenario.is_active == True)
+        .where(InteropScenario.is_active.is_(True))
         .order_by(InteropScenario.category, InteropScenario.name)
     ).all()
     

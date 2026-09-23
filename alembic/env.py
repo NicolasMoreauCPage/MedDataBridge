@@ -25,8 +25,15 @@ configured_url = config.get_main_option("sqlalchemy.url")
 ini_url = config.file_config.get(config.config_ini_section, "sqlalchemy.url")
 if os.getenv("DATABASE_URL") and configured_url == ini_url:
     config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+if (
+    config.config_file_name is not None
+    and config.attributes.get("configure_logger", True)
+    and "PYTEST_CURRENT_TEST" not in os.environ
+):
+    # ``fileConfig`` remplace les handlers du logger racine. Lorsqu'Alembic est
+    # invoqué comme une bibliothèque (notamment par pytest), ce comportement
+    # ferait disparaître les handlers de l'hôte pour tout le reste du processus.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = SQLModel.metadata
 

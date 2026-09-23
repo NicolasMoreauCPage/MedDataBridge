@@ -41,17 +41,19 @@ def test_messages_workspaces_load_their_scoped_script_without_inline_handlers(cl
         assert "loadCotationsForDossiers" not in response.text
 
 
-def test_conformity_home_script_block_renders(client, session):
+def test_conformity_home_workspace_renders(client, session):
     resp = client.get("/conformity")
     assert resp.status_code == 200
-    assert "toggle.className" in resp.text
+    assert "js/conformity-home-workspace.js" in resp.text
+    assert "toggle.className" not in resp.text
 
 
-def test_contacts_list_modal_and_script_render(client, session):
+def test_contacts_list_modal_and_workspace_render(client, session):
     resp = client.get("/contacts")
     assert resp.status_code == 200
     assert "deleteModal" in resp.text
-    assert "Gestion des suppressions asynchrones" in resp.text
+    assert "js/contacts-list-workspace.js" in resp.text
+    assert "Gestion des suppressions asynchrones" not in resp.text
 
 
 def test_qualification_dashboard_renders_with_the_test_bench_entrypoint(client):

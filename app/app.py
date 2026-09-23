@@ -69,12 +69,6 @@ from app.routers import cotation_modern
 
 from app.logging_config import setup_logging
 
-
-# The central settings module loads ``.env`` before the routers are imported.
-# Configure logging only after all module-level imports to keep import order
-# deterministic for CLI, Uvicorn and test entry points.
-setup_logging()
-
 # Instance unique du manager et publication via app.state
 # - `session_factory` fournit des sessions DB courtes et sûres côté workers.
 # - `on_message_inbound` est appelé pour chaque message entrant HL7.
@@ -92,6 +86,10 @@ def make_lifespan(runtime_settings: Settings):
         PYTEST_RUNNING = "PYTEST_CURRENT_TEST" in os.environ
         testing = runtime_settings.testing or PYTEST_RUNNING
         if not testing:
+            # Configure application handlers when the server actually starts.
+            # Importing ``app.app`` must not replace handlers installed by a
+            # caller such as Uvicorn, pytest or an embedding application.
+            setup_logging()
             migrate_database(runtime_settings.database_url)
         # Provide the running asyncio loop to runners so synchronous handlers
         # can schedule coroutines safely using run_coroutine_threadsafe.

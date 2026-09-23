@@ -5,6 +5,11 @@ from app.models import Patient, Dossier
 from app.models_identifiers import Identifier, IdentifierType
 from app.services.patient_merge import merge_patients, change_patient_identifier
 from app.services.emit_on_create import generate_pam_hl7
+from app.services.pam_message_generation import generate_pam_hl7 as generate_pam_message
+
+
+def test_historical_emitter_reexports_the_dedicated_pam_generator():
+    assert generate_pam_hl7 is generate_pam_message
 
 
 def test_merge_patients_reassigns_dossiers_and_archives_source(session):

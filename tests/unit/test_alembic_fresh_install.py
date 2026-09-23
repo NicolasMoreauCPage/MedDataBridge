@@ -1,9 +1,11 @@
+import logging
+
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 
 
-def test_alembic_head_bootstraps_complete_scenario_schema(tmp_path):
+def test_alembic_head_bootstraps_complete_scenario_schema(tmp_path, caplog):
     database = tmp_path / "fresh.db"
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", f"sqlite:///{database}")
@@ -27,3 +29,7 @@ def test_alembic_head_bootstraps_complete_scenario_schema(tmp_path):
     assert "route_mode" in {
         column["name"] for column in upgraded.get_columns("interopscenariostep")
     }
+
+    with caplog.at_level(logging.INFO):
+        logging.getLogger(__name__).info("host logging remains configured")
+    assert "host logging remains configured" in caplog.text

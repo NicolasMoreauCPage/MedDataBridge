@@ -146,11 +146,12 @@ l'audit :
   cette tranche de découpage. La validation sortante, le transport MLLP
   (résolution d'une coroutine, interprétation de l'ACK et métrique), la
   traçabilité des payloads et l'envoi durable à l'outbox y sont maintenant
-  testables isolément. L'émetteur historique ne garde pour PAM que la
-  génération et le choix du destinataire ; l'extraction de la génération reste
-  à poursuivre. La sélection des endpoints éligibles (global, EJ ou GHT) et
-  son court retry de contention SQLite sont maintenant isolés dans
-  `emission_endpoints.py`, sans transport ni attente de livraison dans
+  testables isolément. La génération complète des messages PAM vit désormais
+  dans `pam_message_generation.py` et reste réexportée par compatibilité. Le
+  service `emit_on_create.py` ne conserve plus que le choix du destinataire et
+  l'orchestration des protocoles. La sélection des endpoints éligibles
+  (global, EJ ou GHT) et son court retry de contention SQLite sont maintenant
+  isolés dans `emission_endpoints.py`, sans transport ni attente de livraison dans
   l'orchestrateur. La livraison FHIR (cibles, transport unique, journal de
   corrélation et remise à l'outbox) est également réunie dans
   `fhir_emission.py`; les branches identité et structure ne dupliquent plus
@@ -160,7 +161,8 @@ l'audit :
   sans l'orchestrateur multi-protocole. Les transports historiques `FILE` et
   `SFTP`, leur écriture atomique, leur déconnexion et leurs journaux de succès
   ou d'échec sont enfin isolés dans `file_endpoint_emission.py`. Le service
-  `emit_on_create.py` est ainsi passé de 2 340 à 853 lignes.
+  `emit_on_create.py` est ainsi passé de 2 340 à 232 lignes. Les campagnes
+  unitaires et d'intégration isolées passent après cette dernière extraction.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.
@@ -312,9 +314,14 @@ l'audit :
   base locale sont explicitement classés `external`, et le workflow dossiers
   utilise l'API SQLModel actuelle. Une nouvelle exécution complète des deux
   campagnes, après les lots de qualité livrés le 23 septembre 2026, confirme
-  cette isolation sans échec : `tests/unit` compte 684 réussites, 14 ignorés,
+  cette isolation sans échec : `tests/unit` compte 685 réussites, 14 ignorés,
   5 désélectionnés et 10 `xfail` attendus ; `tests/integration` compte 108
   réussites, 3 ignorés, 9 désélectionnés, 8 `xfail` et 2 `xpass`.
+  La configuration Alembic ne remplace plus les handlers de journalisation du
+  processus hôte lorsqu'une migration est lancée depuis pytest. La campagne
+  unitaire complète repasse ainsi dans son ordre réel, et les assertions UI
+  historiques ciblent désormais les modules JavaScript externalisés plutôt
+  que leur ancien contenu inline.
 - **FE-01 :** la logique de recherche de cotation moderne est extraite dans
   `static/js/cotation-selector.js`; le template ne conserve que son markup et
   l'inclusion du module. Une première tranche de `structure_new.html` (filtre,

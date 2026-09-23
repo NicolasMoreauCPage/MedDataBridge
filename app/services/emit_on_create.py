@@ -1,12 +1,10 @@
 import logging
 import asyncio
 import json
-import time
 from pathlib import Path
-from typing import Literal, Optional, Sequence, Tuple
+from typing import Literal, Optional, Tuple
 
 from sqlmodel import Session, select
-from sqlalchemy.exc import InterfaceError, OperationalError
 
 from app.models import Patient, Dossier, Venue, Mouvement
 from app.models_endpoints import MessageLog
@@ -23,69 +21,16 @@ from app.services.pam_emission import (
     validate_outbound_pam,
 )
 from app.services.emission_endpoints import list_eligible_sender_endpoints
+from app.services.emission_snapshot import snapshot_entity as _snapshot_entity
 from app.services.hprim_emission import emit_hprim_act
+from app.services.pam_emission_primitives import (
+    clean_hl7_value as _c,
+    new_message_control_id as _new_message_control_id,
+    normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
+    safe_query as _safe_query,
+)
 
 logger = logging.getLogger(__name__)
-
-
-# Helper pour retry des requêtes SQLite en cas d'erreur de concurrence
-def _safe_query(session: Session, statement, max_retries=3):
-    """Execute query with retry logic for SQLite concurrency errors."""
-    for attempt in range(max_retries):
-        try:
-            return session.exec(statement).first()
-        except (InterfaceError, OperationalError) as e:
-            if "out of sequence" in str(e) or "database is locked" in str(e):
-                if attempt < max_retries - 1:
-                    time.sleep(0.05 * (attempt + 1))  # Backoff exponentiel
-                    session.rollback()  # Réinitialiser la session
-                    continue
-            logger.warning(f"SQLite concurrency error (attempt {attempt + 1}/{max_retries}): {e}")
-            if attempt == max_retries - 1:
-                return None
-    return None
-
-
-# Global sanitization helper: coerce None / 'None' / whitespace-only to ''
-def _c(val):
-    logger.debug(f"_c called with val={val}")
-    if val is None:
-        return ""
-    if isinstance(val, str):
-        v = val.strip()
-        if v.lower() == "none" or v == "":
-            return ""
-        return v
-    return str(val)
-
-
-def _normalize_mrg_prior_identifiers(identifiers: Optional[Sequence[object]]) -> list[str]:
-    """Normalise les répétitions CX destinées à MRG-1.
-
-    La frontière d'émission refuse ainsi une liste vide (ou seulement composée
-    de séparateurs ``~``) avant de construire un A40/A47 impossible à appliquer.
-    """
-    normalized = [
-        repetition.strip()
-        for value in identifiers or []
-        for repetition in str(value or "").split("~")
-        if repetition.strip()
-    ]
-    if any("|" in value or "\r" in value or "\n" in value for value in normalized):
-        raise ValueError("MRG-1 doit contenir des identifiants CX sans séparateur de segment ou de champ")
-    return normalized
-
-
-def _new_message_control_id(seed: object) -> str:
-    """Construit un MSH-10 unique sans altérer les identifiants métier.
-
-    Un même patient ou mouvement peut être émis plusieurs fois. Réutiliser son
-    ID interne comme MSH-10 déclenche l'idempotence du récepteur et provoque la
-    perte silencieuse des mises à jour ultérieures.
-    """
-    from uuid import uuid4
-
-    return f"{seed}-{uuid4().hex[:12]}"
 
 
 def build_pid3_identifiers(
@@ -249,72 +194,6 @@ def build_pid3_identifiers(
             logger.exception("Failed to build fallback PID-3 identifier")
 
     return "~".join(identifiers) if identifiers else ""
-
-
-def _snapshot_entity(entity, entity_type: str, session: Session) -> dict:
-    """Create a plain dict snapshot for the given entity to avoid lazy loads.
-    Only include commonly used scalar fields and relation ids used by generators.
-    This keeps emission code free of session-bound lazy-loading and safe to run
-    after the SQL row is deleted (when appropriate).
-    """
-    s = {}
-    try:
-        if entity_type == 'patient':
-            s.update({
-                'id': getattr(entity, 'id', None),
-                'patient_seq': getattr(entity, 'patient_seq', None),
-                'family': getattr(entity, 'family', None),
-                'given': getattr(entity, 'given', None),
-                'gender': getattr(entity, 'gender', None),
-                'birth_date': getattr(entity, 'birth_date', None),
-                'external_id': getattr(entity, 'external_id', None),
-                'nir': getattr(entity, 'nir', None),
-                'entite_juridique_id': getattr(entity, 'entite_juridique_id', None),
-            })
-            # identifiers: materialize into list of dicts
-            idents = []
-            try:
-                id_objs = getattr(entity, 'identifiers', None)
-                if not id_objs:
-                    id_objs = session.exec(select(Identifier).where(Identifier.patient_id == getattr(entity, 'id', None))).all()
-                for ii in id_objs or []:
-                    idents.append({'value': ii.value, 'system': ii.system, 'oid': getattr(ii, 'oid', None), 'status': ii.status, 'type': getattr(ii, 'type', None)})
-            except Exception:
-                idents = []
-            s['identifiers'] = idents
-        elif entity_type == 'dossier':
-            s.update({
-                'id': getattr(entity, 'id', None),
-                'dossier_seq': getattr(entity, 'dossier_seq', None),
-                'patient_id': getattr(entity, 'patient_id', None),
-                'entite_juridique_id': getattr(entity, 'entite_juridique_id', None),
-                'dossier_type': getattr(entity, 'dossier_type', None),
-                'uf_responsabilite': getattr(entity, 'uf_responsabilite', None),
-            })
-        elif entity_type == 'venue':
-            s.update({
-                'id': getattr(entity, 'id', None),
-                'venue_seq': getattr(entity, 'venue_seq', None),
-                'dossier_id': getattr(entity, 'dossier_id', None),
-                'start_time': getattr(entity, 'start_time', None),
-                'uf_responsabilite': getattr(entity, 'uf_responsabilite', None),
-            })
-        elif entity_type == 'mouvement':
-            s.update({
-                'id': getattr(entity, 'id', None),
-                'mouvement_seq': getattr(entity, 'mouvement_seq', None),
-                'venue_id': getattr(entity, 'venue_id', None),
-                'when': getattr(entity, 'when', None),
-                'type': getattr(entity, 'type', None),
-                'trigger_event': getattr(entity, 'trigger_event', None),
-                'uf_responsabilite': getattr(entity, 'uf_responsabilite', None),
-                'location': getattr(entity, 'location', None),
-            })
-        else:
-            s.update({k: getattr(entity, k, None) for k in dir(entity) if not k.startswith('_')})
-    except Exception:
-        logger.exception("Failed to snapshot entity %s", entity)
-    return s
 
 
 def _resolve_namespace_authority(

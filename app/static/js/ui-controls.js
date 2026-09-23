@@ -67,6 +67,15 @@
   document.addEventListener("click", (event) => {
     const trigger = event.target.closest("[data-dismiss-alert]");
     if (trigger) trigger.closest("[role='alert']")?.remove();
+
+    const closeModalTrigger = event.target.closest("[data-modal-close]");
+    if (closeModalTrigger) closeModalTrigger.closest(".modal")?.classList.remove("modal-open");
+
+    const modalBackdrop = event.target.closest("[data-modal-dismiss-backdrop]");
+    if (modalBackdrop && event.target === modalBackdrop) modalBackdrop.classList.remove("modal-open");
+
+    if (event.target.closest("[data-history-back]")) window.history.back();
+    if (event.target.closest("[data-disabled-link]")) event.preventDefault();
   });
 
   window.PameliaUi = window.PameliaUi || {};

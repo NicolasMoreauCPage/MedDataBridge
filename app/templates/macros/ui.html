@@ -757,7 +757,7 @@
   'xl': 'max-w-4xl',
   'full': 'max-w-full'
 } -%}
-<div id="{{ id }}" class="modal" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title" {% if close_on_backdrop %}onclick="if(event.target === this) this.classList.remove('modal-open')"{% endif %}>
+<div id="{{ id }}" class="modal" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title" {% if close_on_backdrop %}data-modal-dismiss-backdrop{% endif %}>
   <div class="modal-box {{ size_classes[size] }}">
     {% if title %}
     <h3 id="{{ id }}-title" class="font-bold text-lg">{{ title }}</h3>
@@ -775,7 +775,7 @@
 {% endmacro %}
 
 {% macro confirm_modal(id, title, message, confirm_label='Confirmer', cancel_label='Annuler', confirm_variant='primary', icon_name='exclamation') %}
-<div id="{{ id }}" class="modal" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}-message" onclick="if(event.target === this) this.classList.remove('modal-open')">
+<div id="{{ id }}" class="modal" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}-message" data-modal-dismiss-backdrop>
   <div class="modal-box max-w-md">
     <div class="flex items-start gap-3 mb-4">
       <div class="alert alert-warning p-3 flex-shrink-0">
@@ -787,10 +787,10 @@
       </div>
     </div>
     <div class="modal-action">
-      <button class="btn" onclick="document.getElementById('{{ id }}').classList.remove('modal-open')">
+      <button type="button" class="btn" data-modal-close>
         {{ cancel_label }}
       </button>
-      <button class="btn btn-{{ confirm_variant }}" onclick="document.getElementById('{{ id }}').classList.remove('modal-open')">
+      <button type="button" class="btn btn-{{ confirm_variant }}" data-modal-close>
         {{ confirm_label }}
       </button>
     </div>
@@ -826,7 +826,7 @@
     {{ icon(type_icons[type], 'w-5 h-5 flex-shrink-0') }}
     <span class="flex-1">{{ message }}</span>
     {% if dismissible %}
-    <button class="btn btn-sm btn-circle btn-ghost" onclick="dismissToast('{{ id }}')" aria-label="Fermer la notification">
+    <button type="button" class="btn btn-sm btn-circle btn-ghost" data-toast-dismiss="{{ id }}" aria-label="Fermer la notification">
       {{ icon('x', 'w-4 h-4') }}
     </button>
     {% endif %}

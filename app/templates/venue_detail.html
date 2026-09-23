@@ -179,7 +179,7 @@
       </a>
       <a href="/mouvements/new?venue_id={{ venue.id }}" 
         {% if venue_status and venue_status.closed %}
-          class="group inline-flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-600 text-slate-400 dark:text-slate-500 px-5 py-4 rounded-xl font-black cursor-not-allowed border border-slate-300 dark:border-slate-600 shadow-sm" title="Venue fermée — aucun nouveau mouvement possible" onclick="return false;"
+          class="group inline-flex items-center justify-center gap-2 bg-slate-200 dark:bg-slate-600 text-slate-400 dark:text-slate-500 px-5 py-4 rounded-xl font-black cursor-not-allowed border border-slate-300 dark:border-slate-600 shadow-sm" title="Venue fermée — aucun nouveau mouvement possible" data-disabled-link aria-disabled="true" tabindex="-1"
         {% else %}
           class="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-5 py-4 rounded-xl font-black hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border border-purple-500/50"
         {% endif %}

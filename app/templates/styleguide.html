@@ -289,10 +289,10 @@
       <div class="space-y-4">
         <p class="text-slate-600 dark:text-slate-300">Les modals utilisent DaisyUI avec des animations fluides et sont accessibles (ARIA).</p>
         <div class="flex flex-wrap gap-4">
-          <button class="btn btn-primary" onclick="document.getElementById('styleguide-modal').classList.add('modal-open')">
+          <button type="button" class="btn btn-primary" data-styleguide-modal="styleguide-modal">
             Ouvrir modal simple
           </button>
-          <button class="btn btn-warning" onclick="document.getElementById('styleguide-confirm-modal').classList.add('modal-open')">
+          <button type="button" class="btn btn-warning" data-styleguide-modal="styleguide-confirm-modal">
             Ouvrir modal de confirmation
           </button>
         </div>
@@ -304,7 +304,7 @@
       'styleguide-modal',
       'Modal d\'exemple',
       'Ceci est un exemple de modal utilisant DaisyUI avec des animations.',
-      '<button class="btn" onclick="document.getElementById(\'styleguide-modal\').classList.remove(\'modal-open\')">Fermer</button><button class="btn btn-primary" onclick="document.getElementById(\'styleguide-modal\').classList.remove(\'modal-open\')">Confirmer</button>'
+      '<button type="button" class="btn" data-modal-close>Fermer</button><button type="button" class="btn btn-primary" data-modal-close>Confirmer</button>'
     ) }}
 
     <!-- Modal de confirmation -->
@@ -328,16 +328,16 @@
         <div>
           <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Types de toasts</h3>
           <div class="flex flex-wrap gap-4">
-            <button class="btn btn-success btn-sm" onclick="toastSystem.show('Opération réussie !', 'success')">
+            <button type="button" class="btn btn-success btn-sm" data-styleguide-toast="success" data-message="Opération réussie !">
               Toast succès
             </button>
-            <button class="btn btn-error btn-sm" onclick="toastSystem.show('Une erreur est survenue.', 'error')">
+            <button type="button" class="btn btn-error btn-sm" data-styleguide-toast="error" data-message="Une erreur est survenue.">
               Toast erreur
             </button>
-            <button class="btn btn-warning btn-sm" onclick="toastSystem.show('Attention : vérifiez vos données.', 'warning')">
+            <button type="button" class="btn btn-warning btn-sm" data-styleguide-toast="warning" data-message="Attention : vérifiez vos données.">
               Toast avertissement
             </button>
-            <button class="btn btn-info btn-sm" onclick="toastSystem.show('Information importante.', 'info')">
+            <button type="button" class="btn btn-info btn-sm" data-styleguide-toast="info" data-message="Information importante.">
               Toast info
             </button>
           </div>
@@ -346,10 +346,10 @@
         <div>
           <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Durée personnalisée</h3>
           <div class="flex flex-wrap gap-4">
-            <button class="btn btn-outline btn-sm" onclick="toastSystem.show('Toast permanent (clic pour fermer)', 'info', 0)">
+            <button type="button" class="btn btn-outline btn-sm" data-styleguide-toast="info" data-message="Toast permanent (clic pour fermer)" data-duration="0">
               Toast permanent
             </button>
-            <button class="btn btn-outline btn-sm" onclick="toastSystem.show('Toast 10 secondes', 'success', 10000)">
+            <button type="button" class="btn btn-outline btn-sm" data-styleguide-toast="success" data-message="Toast 10 secondes" data-duration="10000">
               Toast 10s
             </button>
           </div>
@@ -418,7 +418,7 @@
           <div class="flex flex-wrap gap-4">
             {{ loading_button('Bouton normal', 'Chargement...', 'md', 'primary') }}
             {{ loading_button('Bouton secondaire', 'Traitement...', 'md', 'secondary') }}
-            <button class="btn btn-success btn-md" onclick="loadingSystem.showOverlay('Sauvegarde en cours...'); setTimeout(() => loadingSystem.hideOverlay(), 3000)">
+            <button type="button" class="btn btn-success btn-md" data-styleguide-loading="Sauvegarde en cours...">
               Overlay de chargement
             </button>
           </div>
@@ -521,4 +521,8 @@
     </div>
   </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script defer src="{{ url_for('static', path='js/styleguide.js') }}"></script>
 {% endblock %}

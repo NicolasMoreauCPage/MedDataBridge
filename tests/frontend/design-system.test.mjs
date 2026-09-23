@@ -64,3 +64,25 @@ test("shell and documentation templates keep executable JavaScript in dedicated 
   const demo = readFileSync(new URL("design_system_demo.html", root), "utf8");
   assert.doesNotMatch(demo, /\bonclick=/);
 });
+
+test("templates use delegated actions instead of inline event handlers", () => {
+  const templateDirectory = root.pathname;
+  const inlineHandlers = collectTemplates(templateDirectory).filter((relative) =>
+    /\bon(?:click|change|submit|input)\s*=/i.test(readFileSync(join(templateDirectory, relative), "utf8")),
+  );
+  assert.deepEqual(inlineHandlers, []);
+});
+
+test("templates contain no executable inline script blocks", () => {
+  const templateDirectory = root.pathname;
+  const executableInlineScripts = collectTemplates(templateDirectory).filter((relative) => {
+    const template = readFileSync(join(templateDirectory, relative), "utf8");
+    return [...template.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)].some((match) => {
+      const attributes = match[1];
+      return !/\bsrc\s*=/.test(attributes)
+        && !/\btype\s*=\s*["']application\/json["']/.test(attributes)
+        && match[2].trim().length > 0;
+    });
+  });
+  assert.deepEqual(executableInlineScripts, []);
+});

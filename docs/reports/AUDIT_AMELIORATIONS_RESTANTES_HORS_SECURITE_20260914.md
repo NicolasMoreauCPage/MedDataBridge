@@ -437,7 +437,11 @@ l'audit :
   volontairement synchrone dans le `<head>` afin d'éviter un flash de thème,
   mais son code réside dans `static/js/theme-preflight.js`. L'inventaire ne
   conserve ainsi plus aucun template avec JavaScript exécutable embarqué ; les
-  balises restantes sans `src` ne transportent que des données JSON.
+  balises restantes sans `src` ne transportent que des données JSON. Les
+  derniers gestionnaires HTML inline du styleguide, des modales partagées, des
+  alertes et des liens désactivés ont également été remplacés par des actions
+  `data-*` déléguées ; un test parcourt désormais tous les templates et bloque
+  leur réintroduction.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été
   supprimés. La commande `npm run inventory-assets` contrôle désormais les

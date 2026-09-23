@@ -410,6 +410,10 @@ l'audit :
   Le tableau de qualification isole également dans
   `static/js/qualification-dashboard-workspace.js` le choix à blanc/réel et la
   confirmation préalable à toute émission partenaire.
+  Les sept listes de structure (EG, pôles, services, UF, UH, chambres et lits)
+  partagent enfin `static/js/structure-list-filters.js` : les paramètres sont
+  décrits dans le HTML, les filtres clavier et listes sont délégués, et les
+  gestionnaires inline dupliqués ont disparu.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

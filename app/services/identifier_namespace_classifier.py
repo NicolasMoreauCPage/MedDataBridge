@@ -9,7 +9,7 @@ correspond à celui de l'Entité Juridique (EJ) ou non.
 from typing import Any, Dict, List, Optional, Tuple
 from sqlmodel import select, Session
 
-from app.models_structure import IdentifierNamespace
+from app.models_structure import IdentifierNamespace, Lit
 from app.models_identifiers import IdentifierType
 
 

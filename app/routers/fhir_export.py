@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/fhir", tags=["FHIR Export"])
 
 
 @router.get("/export/structure/{ej_id}", response_model=dict)
-async def export_structure(
+def export_structure(
     ej_id: int,
     session: Session = Depends(get_session)
 ):
@@ -52,7 +52,7 @@ async def export_structure(
 
 
 @router.get("/export/patients/{ej_id}", response_model=dict)
-async def export_patients(
+def export_patients(
     ej_id: int,
     limit: int = Query(100, ge=1, le=500, description="Nombre maximum de patients à exporter"),
     offset: int = Query(0, ge=0, description="Nombre de patients à sauter"),
@@ -97,7 +97,7 @@ async def export_patients(
 
 
 @router.get("/export/venues/{ej_id}", response_model=dict)
-async def export_venues(
+def export_venues(
     ej_id: int,
     limit: int = Query(100, ge=1, le=500, description="Nombre maximum de venues à exporter"),
     offset: int = Query(0, ge=0, description="Nombre de venues à sauter"),
@@ -138,7 +138,7 @@ async def export_venues(
 
 
 @router.get("/export/all/{ej_id}", response_model=dict)
-async def export_all(
+def export_all(
     ej_id: int,
     session: Session = Depends(get_session)
 ):
@@ -188,7 +188,7 @@ async def export_all(
 
 
 @router.get("/export/statistics/{ej_id}", response_model=dict)
-async def export_statistics(
+def export_statistics(
     ej_id: int,
     session: Session = Depends(get_session)
 ):

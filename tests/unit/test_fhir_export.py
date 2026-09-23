@@ -6,15 +6,25 @@ Tests unitaires pour l'export FHIR.
 from sqlmodel import select
 from sqlalchemy import event
 from datetime import datetime
+import inspect
 
 from app.models import Patient, Dossier, Venue
 from app.models_structure import EntiteGeographique, EntiteJuridique, GHTContext, Pole, Service, UniteFonctionnelle
 from app.converters.fhir_converter import FHIRBundle
+from app.routers import fhir_export
 from app.services.fhir_export_service import FHIRExportService
 
 
 class TestFHIRExport:
     """Tests pour l'export FHIR"""
+
+    def test_sqlmodel_export_routes_are_sync(self):
+        """FastAPI exécute ces exports SQL synchrones dans son pool de threads."""
+        assert not inspect.iscoroutinefunction(fhir_export.export_structure)
+        assert not inspect.iscoroutinefunction(fhir_export.export_patients)
+        assert not inspect.iscoroutinefunction(fhir_export.export_venues)
+        assert not inspect.iscoroutinefunction(fhir_export.export_all)
+        assert not inspect.iscoroutinefunction(fhir_export.export_statistics)
 
     def test_export_structure_success(self, client, session):
         """Test export structure FHIR - succès"""

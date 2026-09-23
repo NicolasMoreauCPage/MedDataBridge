@@ -38,7 +38,7 @@ from app.middleware.version import VersionMiddleware
 from app.middleware.error_handler import ErrorHandlingMiddleware, RequestLoggingMiddleware
 from app.metrics import MetricsMiddleware
 
-from app.db import init_db, engine
+from app.db import migrate_database, engine
 from app import models_scenarios  # ensure scenario models are registered
 from app.admin import register_admin_views  # SQLAdmin views
 from app.db_session_factory import session_factory
@@ -102,7 +102,7 @@ def make_lifespan(runtime_settings: Settings):
         PYTEST_RUNNING = "PYTEST_CURRENT_TEST" in os.environ
         testing = runtime_settings.testing or PYTEST_RUNNING
         if not testing:
-            init_db()
+            migrate_database(runtime_settings.database_url)
         # Provide the running asyncio loop to runners so synchronous handlers
         # can schedule coroutines safely using run_coroutine_threadsafe.
             try:

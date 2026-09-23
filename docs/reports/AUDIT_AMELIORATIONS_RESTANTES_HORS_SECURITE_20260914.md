@@ -122,8 +122,12 @@ l'audit :
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés
-  dans le workflow. La séparation complète de `create_all`, des seeds et des
-  migrations reste à faire.
+  dans le workflow. Le cycle de vie applicatif hors tests appelle maintenant
+  `alembic upgrade head` via `migrate_database()` : il ne crée donc plus son
+  schéma à partir des modèles au démarrage. `create_all()` est explicitement
+  conservé pour les fixtures SQLite jetables; les seeds de démonstration et le
+  bootstrap historique d'une base Alembic totalement vide restent les deux
+  derniers éléments à séparer complètement du schéma versionné.
 - **BE-07 :** les familles Ruff bloquantes `F821`, `F823`, `F601` et `F811`
   sont à zéro dans `app/` et sont imposées par la CI. Le nettoyage progressif
   des 121 alertes restantes (principalement imports et imports tardifs)

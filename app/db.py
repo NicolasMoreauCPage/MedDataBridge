@@ -16,6 +16,7 @@ Notes
 from sqlmodel import SQLModel, create_engine, Session, select, text
 from sqlalchemy.engine.url import make_url
 from sqlalchemy import inspect
+from pathlib import Path
 from typing import Optional
 
 # Import ALL models to ensure tables are registered
@@ -130,8 +131,31 @@ def _ensure_scenario_authoring_columns() -> None:
             ))
 
 
+def migrate_database(database_url: str | None = None) -> None:
+    """Met une base applicative à jour exclusivement via Alembic.
+
+    Cette fonction est destinée au cycle de vie hors tests. Elle utilise l'URL
+    effectivement configurée par l'application plutôt que celle codée dans
+    ``alembic.ini`` : SQLite local, PostgreSQL Compose et déploiements suivent
+    ainsi exactement la même chaîne de migration.
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", database_url or str(engine.url))
+    command.upgrade(config, "head")
+
+
 def init_db() -> None:
-    """Crée les tables si elles n'existent pas (idempotent)."""
+    """Initialise un schéma de test isolé avec SQLModel.
+
+    La production ne doit pas appeler cette fonction : le démarrage
+    applicatif utilise :func:`migrate_database`, et les déploiements exécutent
+    la même commande ``alembic upgrade head`` avant Uvicorn. Cette compatibilité
+    est conservée pour les fixtures SQLModel en mémoire et les scripts de test
+    qui construisent volontairement un schéma jetable.
+    """
     SQLModel.metadata.create_all(engine)
     _ensure_scenario_authoring_columns()
     # Optimisations SQLite avancées pour la performance et la robustesse

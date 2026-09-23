@@ -21,6 +21,7 @@ from sqlmodel import Session, SQLModel
 from app.db import (
     engine,
     init_db,
+    migrate_database,
     get_session,
     session_factory,
     _get_seq,
@@ -79,6 +80,18 @@ class TestDatabaseModule(unittest.TestCase):
 
         # Vérifier que le moteur utilise la mémoire
         self.assertEqual(str(app.db.engine.url), "sqlite:///:memory:")
+
+    @patch("alembic.command.upgrade")
+    def test_migrate_database_uses_the_application_database_url(self, mock_upgrade):
+        """Le démarrage hors tests doit déléguer son schéma à Alembic."""
+        migrate_database("sqlite:////tmp/medbridge-migration-test.db")
+
+        config, revision = mock_upgrade.call_args.args
+        self.assertEqual(revision, "head")
+        self.assertEqual(
+            config.get_main_option("sqlalchemy.url"),
+            "sqlite:////tmp/medbridge-migration-test.db",
+        )
 
     @patch('app.db.SQLModel.metadata.create_all')
     @patch('sqlite3.connect')

@@ -4,12 +4,11 @@ from fastapi import Request as FastAPIRequest
 from sqlmodel import select, or_
 from datetime import datetime
 from typing import Optional
-import logging
 from urllib.parse import quote_plus
-from app.db import get_session, get_next_sequence, peek_next_sequence
+from app.db import get_session, get_next_sequence
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier, Patient
-from app.models_structure import UniteFonctionnelle, UniteHebergement, Chambre, Lit
+from app.models_structure import UniteFonctionnelle
 from app.services.emit_on_create import emit_to_senders
 from app.services.bed_assignment import (
     BedAssignmentError,
@@ -17,6 +16,10 @@ from app.services.bed_assignment import (
 )
 from app.services.bed_plan import build_bed_plan
 from app.services.movement_listing import MovementListContextError, load_movement_list
+from app.services.movement_form_context import (
+    MovementFormContextError,
+    build_new_movement_form,
+)
 from app.dependencies.ght import require_ght_context
 from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
@@ -419,511 +422,32 @@ def new_mouvement(
     dossier_id: int | None = Query(None, description="ID du dossier pour filtrer les venues disponibles"),
     session=Depends(get_session)
 ):
-    from app.form_config import MovementType, MouvementStatus
-    from app.models import Dossier
-    
-    # Déterminer le dossier de filtrage
-    filter_dossier_id = dossier_id
-    if filter_dossier_id is None and hasattr(request.state, 'dossier_context') and request.state.dossier_context:
-        filter_dossier_id = request.state.dossier_context.id
-    
-    # Récupérer les venues disponibles (filtrées par dossier si fourni)
-    if filter_dossier_id:
-        stmt = select(Venue).where(Venue.dossier_id == filter_dossier_id).order_by(Venue.venue_seq.asc())
-    else:
-        # Filtrer les venues qui ont un dossier avec une EJ valide
-        stmt = select(Venue).join(Dossier).where(Dossier.entite_juridique_id.is_not(None)).order_by(Venue.venue_seq.asc())
-    
-    venues = session.exec(stmt).all()
-    
-    # Si une venue spécifique est demandée mais n'est pas dans la liste (à cause de la limit), l'ajouter
-    if venue_id and not any(v.id == venue_id for v in venues):
-        requested_venue = session.get(Venue, venue_id)
-        if requested_venue:
-            # Vérifier qu'elle satisfait les critères (dossier avec EJ si pas de filter_dossier_id)
-            if filter_dossier_id:
-                if requested_venue.dossier_id == filter_dossier_id:
-                    venues.append(requested_venue)
-            else:
-                if requested_venue.dossier and requested_venue.dossier.entite_juridique_id:
-                    venues.append(requested_venue)
-    
-    if not venues:
+    venue_context = getattr(request.state, "venue_context", None)
+    dossier_context = getattr(request.state, "dossier_context", None)
+    try:
+        form = build_new_movement_form(
+            session,
+            venue_id=venue_id,
+            dossier_id=dossier_id,
+            venue_context_id=getattr(venue_context, "id", None),
+            dossier_context_id=getattr(dossier_context, "id", None),
+        )
+    except MovementFormContextError as exc:
         return get_templates_with_filters(request).TemplateResponse(
             request,
             "error.html",
             {
-                "title": "Aucune venue disponible",
-                "message": "Impossible de créer un mouvement : aucune venue n'est disponible. Créez d'abord une venue.",
-                "back_url": "/venues/new" if filter_dossier_id else "/dossiers"
+                "title": exc.title,
+                "message": exc.message,
+                "back_url": exc.back_url,
             },
-            status_code=404
+            status_code=exc.status_code,
         )
-    
-
-    # --- Automatisation des pré-remplissages et restrictions ---
-    # Pré-remplir venue
-    prefill_venue_id = venue_id
-    if prefill_venue_id is None and hasattr(request.state, 'venue_context') and request.state.venue_context:
-        prefill_venue_id = request.state.venue_context.id
-    if prefill_venue_id is None:
-        prefill_venue_id = venues[0].id
-
-    next_seq = peek_next_sequence(session, "mouvement")
-
-    # Récupérer la venue sélectionnée
-    selected_venue = session.get(Venue, prefill_venue_id)
-    logging.info(f"prefill_venue_id: {prefill_venue_id}")
-    logging.info(f"selected_venue: {selected_venue}")
-    if selected_venue:
-        logging.info(f"selected_venue.uf_responsabilite: {selected_venue.uf_responsabilite}")
-    selected_dossier = selected_venue.dossier if selected_venue else None
-    selected_uf_id = None
-    selected_uh_id = None
-    selected_uf_soins_id = None
-    selected_chambre_id = None
-    selected_lit_id = None
-    prefill_from_location = None
-    prefill_to_location = None
-    prefill_reason = None
-
-    # Pré-remplir les champs depuis le dernier mouvement si il existe
-    last_movement = None
-    if prefill_venue_id:
-        movements = session.exec(
-            select(Mouvement)
-            .where(Mouvement.venue_id == prefill_venue_id)
-            .order_by(Mouvement.when.desc())
-        ).all()
-        if movements:
-            last_movement = movements[0]  # Le plus récent (desc)
-            logging.info(f"Found last movement {last_movement.id} for venue {prefill_venue_id}")
-
-            # Pré-remplir UF médicale depuis le dernier mouvement
-            if last_movement.uf_responsabilite:
-                uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == last_movement.uf_responsabilite)).first()
-                if uf_obj:
-                    selected_uf_id = uf_obj.id
-                    logging.info(f"Pre-filled UF from last movement: {uf_obj.name} (ID: {uf_obj.id})")
-
-            # Pré-remplir UF soins depuis le dernier mouvement
-            if last_movement.uf_soins_code:
-                uf_soins_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == last_movement.uf_soins_code)).first()
-                if uf_soins_obj:
-                    selected_uf_soins_id = uf_soins_obj.identifier
-                    logging.info(f"Pre-filled UF soins from last movement: {uf_soins_obj.name} (ID: {uf_soins_obj.identifier})")
-
-            # Pré-remplir UH depuis le dernier mouvement
-            if last_movement.location:
-                # Essayer de parser l'UF depuis la location (format: UF-UFIDENT-CHAMBRE-LIT)
-                location_parts = last_movement.location.split('-')
-                if len(location_parts) >= 1:
-                    uf_part = location_parts[0]
-                    if uf_part.startswith('UF'):
-                        uh_part = location_parts[1] if len(location_parts) > 1 else None
-                        if uh_part:
-                            uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.identifier == uh_part)).first()
-                            if uh_obj:
-                                selected_uh_id = uh_obj.id
-                                logging.info(f"Pre-filled UH from last movement: {uh_obj.name} (ID: {uh_obj.id})")
-
-            # Pré-remplir chambre depuis le dernier mouvement
-            if last_movement.location:
-                location_parts = last_movement.location.split('-')
-                if len(location_parts) >= 3:
-                    chambre_part = location_parts[2]
-                    chambre_obj = session.exec(select(Chambre).where(Chambre.identifier == chambre_part)).first()
-                    if chambre_obj:
-                        selected_chambre_id = chambre_obj.id
-                        logging.info(f"Pre-filled chambre from last movement: {chambre_obj.name} (ID: {chambre_obj.id})")
-
-            # Pré-remplir lit depuis le dernier mouvement
-            if last_movement.location:
-                location_parts = last_movement.location.split('-')
-                if len(location_parts) >= 4:
-                    # Pour le lit, on utilise l'ID de la chambre comme approximation
-                    if selected_chambre_id:
-                        selected_lit_id = selected_chambre_id
-                        logging.info(f"Pre-filled lit from last movement: chambre {selected_chambre_id}")
-
-            # Pré-remplir autres champs depuis le dernier mouvement
-            prefill_from_location = last_movement.from_location
-            prefill_to_location = last_movement.to_location
-            prefill_reason = last_movement.reason
-        else:
-            logging.info(f"No previous movements found for venue {prefill_venue_id}, using venue defaults")
-            # Pas de mouvement précédent, utiliser les valeurs par défaut de la venue
-            # Pré-remplir UF depuis la venue ou le dossier (logique existante)
-            if selected_venue and selected_venue.uf_responsabilite:
-                logging.info(f"Selected venue {selected_venue.id} has uf_responsabilite: {selected_venue.uf_responsabilite}")
-                # Si venue a une UF, chercher son id
-                uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
-                if uf_obj:
-                    selected_uf_id = uf_obj.id
-                    logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for venue")
-                else:
-                    logging.warning(f"UF not found for identifier {selected_venue.uf_responsabilite}")
-            elif selected_dossier and selected_dossier.uf_responsabilite and selected_dossier.uf_responsabilite.strip():
-                logging.info(f"Selected dossier {selected_dossier.id} has uf_responsabilite: {selected_dossier.uf_responsabilite}")
-                uf_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_dossier.uf_responsabilite)).first()
-                if uf_obj:
-                    selected_uf_id = uf_obj.id
-                    logging.info(f"Found UF {uf_obj.name} (ID: {uf_obj.id}) for dossier")
-                else:
-                    logging.warning(f"UF not found for identifier {selected_dossier.uf_responsabilite}")
-
-            # Pré-remplir UH si UF connue
-            if selected_uf_id:
-                logging.info(f"Looking for UH for UF {selected_uf_id}")
-                uh_obj = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).first()
-                if uh_obj:
-                    selected_uh_id = uh_obj.id
-                    logging.info(f"Found UH {uh_obj.name} (ID: {uh_obj.id}) for UF")
-                else:
-                    logging.warning(f"No UH found for UF {selected_uf_id}")
-    else:
-        # Pas de venue pré-remplie
-        pass
-
-    # Déterminer le dernier événement et la date par défaut
-    allowed_events_codes = None
-    default_when_str = None
-    try:
-        if prefill_venue_id:
-            last = session.exec(
-                select(Mouvement)
-                .where(Mouvement.venue_id == prefill_venue_id)
-                .order_by(Mouvement.when)
-            ).all()
-            if last:
-                last_event = last[-1].type.split('^')[-1] if last[-1].type else None
-                allowed_events_codes = ALLOWED_TRANSITIONS.get(last_event, set())
-                from datetime import timedelta
-                default_when_str = (last[-1].when + timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M")
-            else:
-                allowed_events_codes = {e for e in INITIAL_EVENTS if e != "A38"}
-                default_when_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
-        else:
-            default_when_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
-    except Exception:
-        allowed_events_codes = None
-        default_when_str = datetime.now().strftime("%Y-%m-%dT%H:%M")
-
-    # Préparer la liste déroulante des venues
-    venue_options = []
-    for v in venues:
-        session.refresh(v, ['dossier'])
-        label = f"Venue #{v.venue_seq}"
-        if v.dossier:
-            session.refresh(v.dossier, ['patient'])
-            if v.dossier.patient:
-                label += f" - {v.dossier.patient.family} {v.dossier.patient.given}"
-            label += f" (Dossier #{v.dossier.dossier_seq})"
-        venue_options.append({"value": str(v.id), "label": label})
-
-    # Récupérer l'UF de responsabilité médicale et les UF d'hébergement liées à la venue
-        uf_options = []
-        try:
-            uf_ids = set()
-
-            # Récupérer l'EJ de la venue sélectionnée pour filtrer les UF
-            ej_id = None
-            if selected_venue and selected_venue.dossier:
-                ej_id = selected_venue.dossier.entite_juridique_id
-
-            # UF de responsabilité médicale
-            if selected_venue and selected_venue.uf_responsabilite and selected_venue.uf_responsabilite.strip():
-                uf_med = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == selected_venue.uf_responsabilite)).first()
-                if uf_med:
-                    uf_ids.add(uf_med.id)
-
-            # UF d'hébergement via UH de la venue
-            if selected_venue:
-                uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id.is_not(None))).all()
-                for uh in uhs:
-                    if hasattr(uh, 'venue_id') and uh.venue_id == selected_venue.id:
-                        uf_heberg = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id == uh.unite_fonctionnelle_id)).first()
-                        if uf_heberg:
-                            uf_ids.add(uf_heberg.id)
-
-            # Toujours ajouter les UF de l'EJ de la venue (même si on a trouvé des UF spécifiques)
-            if ej_id:
-                # Récupérer toutes les UF de l'EJ via la hiérarchie EG -> Pole -> Service -> UF
-                from app.models_structure import EntiteGeographique
-                from app.models_structure import Pole, Service
-
-                # EJ -> Entites Geographiques
-                entites_geo = session.exec(select(EntiteGeographique).where(EntiteGeographique.entite_juridique_id == ej_id)).all()
-
-                for eg in entites_geo:
-                    # EG -> Poles
-                    poles = session.exec(select(Pole).where(Pole.entite_geo_id == eg.id)).all()
-
-                    for pole in poles:
-                        # Pole -> Services
-                        services = session.exec(select(Service).where(Service.pole_id == pole.id)).all()
-
-                        for service in services:
-                            # Service -> UF
-                            service_ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.service_id == service.id)).all()
-                            uf_ids.update(uf.id for uf in service_ufs)
-
-            # Solution de repli: si toujours aucune UF, utiliser toutes les UF (pour compatibilité)
-            if not uf_ids:
-                all_ufs = session.exec(select(UniteFonctionnelle).order_by(UniteFonctionnelle.name)).all()
-                uf_ids.update(uf.id for uf in all_ufs)
-            
-            # Récupérer les objets UF et créer les options
-            ufs = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id.in_(uf_ids))).all()
-
-            for uf in ufs:
-                label = uf.short_name if getattr(uf, 'short_name', None) and uf.short_name and uf.short_name.strip() else uf.name
-                uf_options.append({"value": uf.identifier, "label": label})
-        except Exception:
-            uf_options = []
-
-    # Récupérer les UH pour l'UF pré-remplie
-    uh_options = []
-    if selected_uf_id:
-        logging.info(f"Getting UH options for UF {selected_uf_id}")
-        uhs = session.exec(select(UniteHebergement).where(UniteHebergement.unite_fonctionnelle_id == selected_uf_id)).all()
-        logging.info(f"Found {len(uhs)} UH for UF {selected_uf_id}")
-        for uh in uhs:
-            label = f"{uh.identifier} — {uh.name}"
-            uh_options.append({"value": str(uh.id), "label": label})
-    else:
-        logging.info("No selected_uf_id, using fallback UH options")
-        # Solution de repli: utiliser toutes les UH disponibles
-        uhs = session.exec(select(UniteHebergement).order_by(UniteHebergement.name)).all()
-        logging.info(f"Found {len(uhs)} UH in fallback")
-        for uh in uhs:
-            label = f"{uh.identifier} — {uh.name}"
-            uh_options.append({"value": str(uh.id), "label": label})
-    
-
-    # Récupérer les chambres pour l'UH pré-remplie
-    chambre_options = []
-    if selected_uh_id:
-        logging.info(f"Getting chambre options for UH {selected_uh_id}")
-        chambres = session.exec(select(Chambre).where(Chambre.unite_hebergement_id == selected_uh_id)).all()
-        logging.info(f"Found {len(chambres)} chambres for UH {selected_uh_id}")
-        for chambre in chambres:
-            label = f"{chambre.identifier} — {chambre.name}"
-            chambre_options.append({"value": str(chambre.id), "label": label})
-    else:
-        logging.info("No selected_uh_id, chambre_options will be empty")
-
-    # Récupérer les lits pour la chambre pré-remplie
-    lit_options = []
-    if selected_chambre_id:
-        logging.info(f"Getting lit options for chambre {selected_chambre_id}")
-        lits = session.exec(select(Lit).where(Lit.chambre_id == selected_chambre_id)).all()
-        logging.info(f"Found {len(lits)} lits for chambre {selected_chambre_id}")
-        for lit in lits:
-            label = f"{lit.identifier} — {lit.name}"
-            lit_options.append({"value": str(lit.id), "label": label})
-    else:
-        logging.info("No selected_chambre_id, lit_options will be empty")
-
-    # Filtrer les types de mouvement selon le type de venue
-    from app.movement_type_mapping import from_standard_movement_code, to_standard_movement_code
-    all_type_options = MovementType.choices()
-    # Mapping dossier_type -> types autorisés (codes HL7)
-    type_map = {
-        "hospitalise": ["ADT^A01", "ADT^A02", "ADT^A03", "ADT^A06", "ADT^A11", "ADT^A12", "ADT^A13", "ADT^A21"],
-        "externe": ["ADT^A04", "ADT^A07"],
-        "urgence": ["ADT^A04", "ADT^A05", "ADT^A07", "ADT^A21"],
-    }
-    allowed_types = None
-    if selected_dossier:
-        dt = selected_dossier.dossier_type.value if hasattr(selected_dossier.dossier_type, 'value') else str(selected_dossier.dossier_type)
-        hl7_codes = type_map.get(dt, None)
-        if hl7_codes:
-            # Convertir les codes HL7 en types métier
-            allowed_types = [from_standard_movement_code(code, "hl7") for code in hl7_codes if from_standard_movement_code(code, "hl7")]
-    def _opt_allowed(opt):
-        try:
-            metier_code = str(opt.get("value"))
-            # Convertir le type métier en code HL7 pour vérifier allowed_events_codes
-            hl7_code = to_standard_movement_code(metier_code, "hl7")
-            if hl7_code:
-                event = hl7_code.split("^")[-1]
-                if allowed_events_codes and event not in allowed_events_codes:
-                    return False
-            if allowed_types and metier_code not in allowed_types:
-                return False
-            return True
-        except Exception:
-            return True
-    filtered = [opt for opt in all_type_options if _opt_allowed(opt)]
-
-    # Ajouter un indicateur requires_location aux options
-    event_mapping = {
-        "A01": ("admission", True),
-        "A02": ("transfer", True),
-        "A03": ("discharge", False),
-        "A04": ("consultation_out", False),
-        "A05": ("preadmission", False),
-        "A06": ("class_change", True),
-        "A07": ("from_consult", True),
-        "A11": ("cancel_admission", False),
-        "A12": ("cancel_transfer", False),
-        "A13": ("cancel_discharge", False),
-        "A21": ("temporary_leave", False),
-        "A22": ("return", True),
-        "A38": ("cancel_preadmission", False),
-    }
-    type_options = []
-    for opt in filtered:
-        if isinstance(opt, dict):
-            code = str(opt.get("value", ""))
-            evt = code.split("^")[-1] if "^" in code else code
-            requires = bool(event_mapping.get(evt, (None, False))[1])
-            enriched = {**opt, "requires_location": requires}
-            type_options.append(enriched)
-        else:
-            type_options.append(opt)
-
-    # Motif/raison en dropdownlist vocabulaire
-    from app.services.vocabulary_lookup import get_vocabulary_options
-    reason_options = get_vocabulary_options("movement-reason")
-
-    fields = [
-        {
-            "label": "Venue (Séjour) *",
-            "name": "venue_id",
-            "type": "select",
-            "options": venue_options,
-            "value": str(prefill_venue_id),
-            "required": True,
-            "help": "Sélectionnez la venue concernée par ce mouvement"
-        },
-        {
-            "label": "Type de mouvement *",
-            "name": "type",
-            "type": "select",
-            "options": type_options,
-            "required": True,
-            "help": "Options filtrées selon l'état actuel de la venue et le type de séjour"
-        },
-        {
-            "label": "Date et heure *",
-            "name": "when",
-            "type": "datetime-local",
-            "value": default_when_str,
-            "required": True,
-            "help": "Date et heure du mouvement"
-        },
-        {
-            "label": "Unité médicale (UF)",
-            "name": "uf_id",
-            "type": "select",
-            "options": uf_options,
-            "value": selected_venue.uf_responsabilite if (selected_venue and selected_venue.uf_responsabilite and not last_movement) else (selected_uf_id if selected_uf_id else None),
-            "help": "Sélectionnez l'UF médicale concernée (pré-remplie depuis le dernier mouvement ou la venue)",
-            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
-        },
-        {
-            "label": "Unité de Soins (UF Soins)",
-            "name": "uf_soins_id",
-            "type": "select",
-            "options": uf_options,  # Même options que l'UF principale
-            "value": selected_uf_soins_id,
-            "help": "Sélectionnez l'unité de soins (pré-remplie depuis le dernier mouvement)",
-            "empty_message": "Aucune UF disponible. Vérifiez que l'EJ sélectionnée contient des structures organisationnelles."
-        },
-        {
-            "label": "Unité d'Hébergement (UH)",
-            "name": "uh_id",
-            "type": "select",
-            "options": uh_options,
-            "value": str(selected_uh_id) if selected_uh_id else None,
-            "help": "Sélectionnez l'unité d'hébergement liée à l'UF (pré-remplie depuis le dernier mouvement)",
-            "parent_field": "uf_soins_id",
-            "depends_on": "une UF de Soins",
-            "empty_message": "Sélectionnez d'abord une UF de Soins pour afficher les UH disponibles, ou créez des UH pour l'EJ actuelle."
-        },
-        {
-            "label": "Chambre (optionnel)",
-            "name": "chambre_id",
-            "type": "select",
-            "options": chambre_options,
-            "value": str(selected_chambre_id) if selected_chambre_id else None,
-            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée",
-            "parent_field": "uh_id",
-            "depends_on": "une UH (Unité d'Hébergement)",
-            "empty_message": "Sélectionnez d'abord une UH pour afficher les chambres disponibles."
-        },
-        {
-            "label": "Lit (optionnel)",
-            "name": "lit_id",
-            "type": "select",
-            "options": lit_options,
-            "value": str(selected_lit_id) if selected_lit_id else None,
-            "help": "Optionnel - Requis uniquement pour hospitalisation confirmée avec chambre assignée",
-            "parent_field": "chambre_id",
-            "depends_on": "une Chambre",
-            "empty_message": "Sélectionnez d'abord une chambre pour afficher les lits disponibles."
-        },
-        {
-            "label": "Depuis (départ)",
-            "name": "from_location",
-            "type": "text",
-            "value": prefill_from_location,
-            "help": "Pour les transferts : lieu de départ (pré-rempli depuis le dernier mouvement)"
-        },
-        {
-            "label": "Vers (arrivée)",
-            "name": "to_location",
-            "type": "text",
-            "value": prefill_to_location,
-            "help": "Pour les transferts : lieu d'arrivée (pré-rempli depuis le dernier mouvement)"
-        },
-        {
-            "label": "Raison / Motif",
-            "name": "reason",
-            "type": "select" if reason_options else "text",
-            "options": reason_options,
-            "value": prefill_reason,
-            "help": "Motif du mouvement (pré-rempli depuis le dernier mouvement)"
-        },
-        {
-            "label": "Numéro de séquence",
-            "name": "mouvement_seq",
-            "type": "number",
-            "value": next_seq,
-            "readonly": True,
-            "help": "Généré automatiquement - ne modifier que si nécessaire"
-        },
-        {
-            "label": "Statut du mouvement",
-            "name": "status",
-            "type": "select",
-            "options": MouvementStatus.choices(),
-            "value": "pending",
-            "readonly": True,
-            "hidden": True,
-            "help": "Indicateur interne, non modifiable."
-        },
-    ]
-
-    back_url = f"/mouvements?dossier_id={filter_dossier_id}" if filter_dossier_id else "/venues"
-    title = "Nouveau mouvement"
-    if filter_dossier_id:
-        dossier = session.get(Dossier, filter_dossier_id)
-        if dossier:
-            title += f" pour le dossier #{dossier.dossier_seq}"
-
     return get_templates_with_filters(request).TemplateResponse(
         request,
         "form.html",
-        {
-            "title": title,
-            "fields": fields,
-            "back_url": back_url
-        }
+        {"title": form.title, "fields": form.fields, "back_url": form.back_url},
     )
-
 
 @router.post("/new")
 def create_mouvement(

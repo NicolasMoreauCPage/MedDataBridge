@@ -180,8 +180,15 @@ l'audit :
   transfert A02 sont testables sans FastAPI. La lecture et la projection du
   plan complet vivent maintenant dans `bed_plan.py`. La liste filtrée et son
   contexte patient/dossier sont isolés dans `movement_listing.py`, avec des
-  erreurs de contexte explicites. Le routeur mouvements ne conserve que la
-  présentation et passe de 2 215 à 1 857 lignes.
+  erreurs de contexte explicites. La préparation du formulaire de création est
+  à son tour réunie dans `movement_form_context.py` : venues et patients sont
+  préchargés, les UF d'une EJ sont obtenues par une jointure unique et le
+  dernier mouvement n'est plus lu deux fois. Les valeurs réellement soumises
+  sont maintenant cohérentes avec le contrat POST (`ADT^Axx` pour le type, ID
+  numérique pour l'UF médicale et identifiant pour l'UF de soins), tandis que
+  chambre et lit sont correctement préremplis au lieu d'assimiler le lit à la
+  chambre. Le routeur mouvements ne conserve que la présentation et passe de
+  2 215 à 1 382 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.
@@ -228,7 +235,9 @@ l'audit :
   courant est borné à cinq `SELECT`, indépendamment du nombre de lits.
   La liste globale des mouvements d'une EJ utilise également une seule jointure
   mouvement → venue → dossier au lieu de matérialiser successivement les deux
-  listes d'identifiants intermédiaires.
+  listes d'identifiants intermédiaires. Le formulaire de mouvement supprime
+  aussi ses rafraîchissements patient/dossier par venue et les boucles
+  EG → pôle → service → UF qui provoquaient un N+1.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés

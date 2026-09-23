@@ -354,7 +354,9 @@ l'audit :
   clavier des écrans prioritaires restent à planifier. Le wizard structure
   annonce à présent son étape active via une région live et marque celle-ci
   avec `aria-current`, afin de rendre sa progression intelligible au lecteur
-  d'écran.
+  d'écran. La modale de suppression des contacts possède maintenant un rôle
+  de dialogue, une étiquette, une fermeture Échap et une restitution du focus
+  à son déclencheur.
 - **FE-07 :** les styles de la liste de cotations ont été transférés du
   template au design system sous des classes préfixées `cotations-list-*`.
   L'écran ne déclare donc plus de styles globaux locaux, et les styles de cet

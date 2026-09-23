@@ -21,6 +21,7 @@ from app.services.outbox_service import enqueue_message
 from app.services.pam_validation import validate_pam
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
+from app.services.pam_emission import dump_outbound_pam_payload
 
 
 # Helper pour retry des requêtes SQLite en cas d'erreur de concurrence
@@ -1485,23 +1486,7 @@ def emit_to_senders_async(
                         existing_log.pam_validation_issues = pam_issues
                         existing_log.created_at = datetime.utcnow()
                         session.commit()
-                        # Also dump HL7 payload to filesystem for inspection when requested
-                        try:
-                            import os
-                            import random
-                            import time
-                            base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
-                            out_dir = os.path.join(base, 'pam')
-                            os.makedirs(out_dir, exist_ok=True)
-                            if payload_str and not payload_str.startswith('[Emission error'):
-                                suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
-                                fname = os.path.join(out_dir, f"mllp_{getattr(entity,'id','unknown')}_{suffix}.hl7")
-                                tmpf = fname + '.tmp'
-                                with open(tmpf, 'w', encoding='utf-8') as fh:
-                                    fh.write(payload_str)
-                                os.replace(tmpf, fname)
-                        except Exception:
-                            logger.exception('Failed to dump outbound MLLP HL7 to /tmp')
+                        dump_outbound_pam_payload(payload_str, getattr(entity, "id", "unknown"))
                         message_log = existing_log
                     else:
                         # Ensure payload is never None (DB NOT NULL constraint)
@@ -1521,23 +1506,7 @@ def emit_to_senders_async(
                         )
                         session.add(log)
                         session.commit()
-                        # Dump HL7 payload for inspection
-                        try:
-                            import os
-                            import random
-                            import time
-                            base = os.environ.get('MEDBRIDGE_OUT_DIR') or '/tmp/medbridge_generated'
-                            out_dir = os.path.join(base, 'pam')
-                            os.makedirs(out_dir, exist_ok=True)
-                            if safe_payload and not safe_payload.startswith('[Emission error'):
-                                suffix = f"{int(time.time())}-{random.randint(1000,9999)}"
-                                fname = os.path.join(out_dir, f"mllp_{getattr(entity,'id','unknown')}_{suffix}.hl7")
-                                tmpf = fname + '.tmp'
-                                with open(tmpf, 'w', encoding='utf-8') as fh:
-                                    fh.write(safe_payload)
-                                os.replace(tmpf, fname)
-                        except Exception:
-                            logger.exception('Failed to dump outbound MLLP HL7 to /tmp')
+                        dump_outbound_pam_payload(safe_payload, getattr(entity, "id", "unknown"))
                         message_log = log
                     if status == "error":
                         enqueue_message(

@@ -93,7 +93,9 @@ l'audit :
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,
   professionnel et actes CCAM/NGAP/UCD/LPP). L'émetteur conserve
   l'orchestration, l'outbox et les points de monkeypatch de transport ; la
-  branche PAM reste à extraire.
+  branche PAM est désormais amorcée : sa persistance de payload MLLP pour
+  diagnostic est isolée dans `pam_emission.py`; génération, transport et
+  orchestration restent à poursuivre.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

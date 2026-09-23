@@ -188,7 +188,10 @@ l'audit :
   nom manquant, au lieu de ne le signaler qu'à la génération. La liste
   historique de cotations délègue désormais ses filtres, sa sélection et ses
   actions à `static/js/cotations-list-workspace.js`; son script métier embarqué
-  et ses gestionnaires inline ont été retirés. L'extraction des autres grands
+  et ses gestionnaires inline ont été retirés. Dans la saisie rapide, la tranche
+  historique (filtres, sélection, traitement en lot et édition) vit également
+  dans `static/js/cotations-history-workspace.js`, avec une délégation
+  d'événements au lieu de gestionnaires inline. L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

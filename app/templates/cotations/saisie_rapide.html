@@ -550,10 +550,10 @@
                     </div>
 
                     <!-- Historique intégré : filtres + liste -->
-                    <div id="cotations-history" class="space-y-3">
+                    <div id="cotations-history" data-cotations-history-workspace class="space-y-3">
                         <div class="flex items-center justify-between mb-1">
                             <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Actes du dossier</h4>
-                            <button type="button" onclick="toggleFilters()" class="px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:border-slate-400 dark:hover:border-slate-500">
+                            <button type="button" data-cotations-history-action="toggle-filters" aria-controls="filters-panel" aria-expanded="false" class="px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:border-slate-400 dark:hover:border-slate-500">
                                 Filtres
                             </button>
                         </div>
@@ -562,7 +562,7 @@
                             <div class="grid grid-cols-2 gap-2 mb-2">
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Type</label>
-                                    <select id="filter-type" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
+                                    <select id="filter-type" data-cotations-history-filter class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                         <option value="">Tous</option>
                                         <option value="ccam">CCAM</option>
                                         <option value="ngap">NGAP</option>
@@ -572,7 +572,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Statut</label>
-                                    <select id="filter-statut" onchange="applyFilters()" class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
+                                    <select id="filter-statut" data-cotations-history-filter class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                         <option value="">Tous</option>
                                         <option value="valide">Validé</option>
                                         <option value="provisoire">Provisoire</option>
@@ -583,17 +583,17 @@
                             <div class="grid grid-cols-2 gap-2 mb-2">
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Date début</label>
-                                    <input type="date" id="filter-date-debut" onchange="applyFilters()"
+                                    <input type="date" id="filter-date-debut" data-cotations-history-filter
                                            class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1">Date fin</label>
-                                    <input type="date" id="filter-date-fin" onchange="applyFilters()"
+                                    <input type="date" id="filter-date-fin" data-cotations-history-filter
                                            class="w-full px-2 py-1.5 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-xs focus:border-blue-500">
                                 </div>
                             </div>
                             <div class="flex justify-end space-x-1">
-                                <button type="button" onclick="resetFilters()" class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">
+                                <button type="button" data-cotations-history-action="reset-filters" class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100">
                                     Réinitialiser
                                 </button>
                             </div>
@@ -605,7 +605,7 @@
                                     <thead class="bg-slate-700 text-white">
                                         <tr>
                                             <th class="px-2 py-2 text-left">
-                                                <input type="checkbox" id="select-all" onchange="selectAll()"
+                                                <input type="checkbox" id="select-all" data-cotations-history-select-all aria-label="Sélectionner tous les actes visibles"
                                                        class="rounded border-slate-400 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500 dark:focus:ring-emerald-400">
                                             </th>
                                             <th class="px-2 py-2 text-left">Type</th>
@@ -648,10 +648,10 @@
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('ccam', {{ acte.id }})" class="text-blue-600 dark:text-blue-400 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" data-cotations-history-action="edit" data-acte-type="ccam" data-acte-id="{{ acte.id }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('ccam', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" data-cotations-history-action="delete-one" data-acte-type="ccam" data-acte-id="{{ acte.id }}" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -688,10 +688,10 @@
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('ngap', {{ acte.id }})" class="text-blue-600 dark:text-blue-400 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" data-cotations-history-action="edit" data-acte-type="ngap" data-acte-id="{{ acte.id }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('ngap', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" data-cotations-history-action="delete-one" data-acte-type="ngap" data-acte-id="{{ acte.id }}" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -732,10 +732,10 @@
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('ucd', {{ acte.id }})" class="text-amber-600 dark:text-amber-400 hover:text-amber-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" data-cotations-history-action="edit" data-acte-type="ucd" data-acte-id="{{ acte.id }}" class="text-amber-600 dark:text-amber-400 hover:text-amber-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('ucd', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" data-cotations-history-action="delete-one" data-acte-type="ucd" data-acte-id="{{ acte.id }}" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -776,10 +776,10 @@
                                             </td>
                                             <td class="px-2 py-1.5">
                                                 <div class="flex justify-center space-x-1">
-                                                    <button type="button" onclick="editActe('lpp', {{ acte.id }})" class="text-purple-600 dark:text-purple-400 hover:text-purple-800" title="Modifier" aria-label="Modifier l'acte">
+                                                    <button type="button" data-cotations-history-action="edit" data-acte-type="lpp" data-acte-id="{{ acte.id }}" class="text-purple-600 dark:text-purple-400 hover:text-purple-800" title="Modifier" aria-label="Modifier l'acte">
                                                         ✏️
                                                     </button>
-                                                    <button type="button" onclick="deleteActe('lpp', {{ acte.id }})" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
+                                                    <button type="button" data-cotations-history-action="delete-one" data-acte-type="lpp" data-acte-id="{{ acte.id }}" class="text-red-600 dark:text-red-400 hover:text-red-800" title="Supprimer" aria-label="Supprimer l'acte">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -809,10 +809,10 @@
                                     <span id="selected-count">0</span> acte(s) sélectionné(s)
                                 </span>
                                 <div class="flex space-x-1">
-                                    <button type="button" onclick="validateSelected()" class="px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium" title="Valider la sélection" aria-label="Valider la sélection">✓</button>
-                                    <button type="button" onclick="factureSelected()" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium" title="Marquer la sélection comme facturée" aria-label="Marquer la sélection comme facturée">📄</button>
-                                    <button type="button" onclick="deleteSelected()" class="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium" title="Supprimer la sélection" aria-label="Supprimer la sélection">🗑️</button>
-                                    <button type="button" onclick="deselectAll()" class="px-2 py-1 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 font-medium" title="Désélectionner">Annuler</button>
+                                    <button type="button" data-cotations-history-action="validate-selected" class="px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium" title="Valider la sélection" aria-label="Valider la sélection">✓</button>
+                                    <button type="button" data-cotations-history-action="invoice-selected" class="px-2 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium" title="Marquer la sélection comme facturée" aria-label="Marquer la sélection comme facturée">📄</button>
+                                    <button type="button" data-cotations-history-action="delete-selected" class="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium" title="Supprimer la sélection" aria-label="Supprimer la sélection">🗑️</button>
+                                    <button type="button" data-cotations-history-action="deselect-all" class="px-2 py-1 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 font-medium" title="Désélectionner">Annuler</button>
                                 </div>
                             </div>
                         </div>
@@ -830,7 +830,7 @@
                 <p class="text-xs uppercase tracking-[.16em] text-slate-500">Modification</p>
                 <h2 id="edit-cotation-title" class="text-xl font-bold text-slate-900 dark:text-slate-100">Acte</h2>
             </div>
-            <button type="button" onclick="closeEditActe()" class="rounded-lg px-3 py-1 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Fermer">×</button>
+            <button type="button" data-cotations-history-action="close-edit" class="rounded-lg px-3 py-1 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700" aria-label="Fermer">×</button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label class="text-sm font-semibold text-slate-700 dark:text-slate-200">Date et heure
@@ -847,7 +847,7 @@
             <textarea id="edit-cotation-comment" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-900"></textarea>
         </label>
         <div class="flex justify-end gap-3 pt-2">
-            <button type="button" onclick="closeEditActe()" class="rounded-lg px-4 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">Annuler</button>
+            <button type="button" data-cotations-history-action="close-edit" class="rounded-lg px-4 py-2 text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700">Annuler</button>
             <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">Enregistrer</button>
         </div>
     </form>
@@ -889,7 +889,6 @@
 <script>
 let selectedModificateurs = [];
 let currentActeType = null;
-let selectedActes = new Set();
 let saveAndContinue = false;
 
 // Initialisation
@@ -1423,186 +1422,9 @@ document.getElementById('lpp-form')?.addEventListener('submit', async function(e
     }
 });
 
-// Fonctions liste / filtres / actions groupées (extraites de la vue liste)
-function toggleFilters() {
-    document.getElementById('filters-panel').classList.toggle('hidden');
-}
-
-function applyFilters() {
-    const type = document.getElementById('filter-type').value;
-    const statut = document.getElementById('filter-statut').value;
-    const dateDebut = document.getElementById('filter-date-debut').value;
-    const dateFin = document.getElementById('filter-date-fin').value;
-
-    document.querySelectorAll('.acte-row').forEach(row => {
-        let show = true;
-
-        if (type && row.dataset.type !== type) show = false;
-
-        if (statut === 'valide' && row.dataset.valide !== 'True') show = false;
-        if (statut === 'provisoire' && row.dataset.valide === 'True') show = false;
-        if (statut === 'facture' && row.dataset.facture !== 'True') show = false;
-
-        const rowDate = row.dataset.date ? new Date(row.dataset.date) : null;
-        if (rowDate) {
-            if (dateDebut && rowDate < new Date(dateDebut)) show = false;
-            if (dateFin && rowDate > new Date(dateFin)) show = false;
-        }
-
-        row.style.display = show ? '' : 'none';
-    });
-}
-
-function resetFilters() {
-    document.getElementById('filter-type').value = '';
-    document.getElementById('filter-statut').value = '';
-    document.getElementById('filter-date-debut').value = '';
-    document.getElementById('filter-date-fin').value = '';
-    applyFilters();
-}
-
-function selectAll() {
-    const checked = document.getElementById('select-all').checked;
-    document.querySelectorAll('.acte-checkbox').forEach(cb => {
-        if (cb.closest('.acte-row').style.display !== 'none') {
-            cb.checked = checked;
-            if (checked) {
-                selectedActes.add(cb.value);
-            } else {
-                selectedActes.delete(cb.value);
-            }
-        }
-    });
-    updateBulkActions();
-}
-
-document.querySelectorAll('.acte-checkbox').forEach(cb => {
-    cb.addEventListener('change', function() {
-        if (this.checked) {
-            selectedActes.add(this.value);
-        } else {
-            selectedActes.delete(this.value);
-        }
-        updateBulkActions();
-    });
-});
-
-function updateBulkActions() {
-    const count = selectedActes.size;
-    const countSpan = document.getElementById('selected-count');
-    const bulkDiv = document.getElementById('bulk-actions');
-    if (!countSpan || !bulkDiv) return;
-    countSpan.textContent = count;
-    bulkDiv.classList.toggle('hidden', count === 0);
-}
-
-function deselectAll() {
-    selectedActes.clear();
-    document.querySelectorAll('.acte-checkbox').forEach(cb => cb.checked = false);
-    const selectAllCb = document.getElementById('select-all');
-    if (selectAllCb) selectAllCb.checked = false;
-    updateBulkActions();
-}
-
-async function validateSelected() {
-    await runBulkAction('validate', 'Valider');
-}
-
-async function factureSelected() {
-    await runBulkAction('invoice', 'Marquer comme facturé');
-}
-
-async function deleteSelected() {
-    await runBulkAction('delete', 'Supprimer définitivement');
-}
-
-function selectedActePayload() {
-    return [...selectedActes].map(value => {
-        const [type, id] = value.split(':', 2);
-        return { type, id: Number(id) };
-    }).filter(item => item.type && Number.isInteger(item.id) && item.id > 0);
-}
-
-async function runBulkAction(action, label, actes = selectedActePayload()) {
-    if (actes.length === 0) return;
-    if (!window.PameliaUi?.confirm) {
-        showNotification('Le dialogue de confirmation n\'est pas disponible.', 'error');
-        return;
-    }
-    const confirmed = await window.PameliaUi.confirm({
-        title: action === 'delete' ? 'Supprimer des actes' : 'Confirmer l’action',
-        message: `${label} ${actes.length} acte(s) ?`,
-        acceptLabel: label,
-        variant: action === 'delete' ? 'danger' : 'primary',
-    });
-    if (!confirmed) return;
-
-    try {
-        const { data: result } = await window.medbridgeHttp.post('/cotations/api/bulk', { action, actes });
-        if (!result.success) {
-            throw new Error(result.detail || 'Action impossible');
-        }
-        showNotification(result.message || `${actes.length} acte(s) mis à jour`, 'success');
-        window.setTimeout(() => window.location.reload(), 350);
-    } catch (error) {
-        showNotification(`Erreur : ${error.message}`, 'error');
-    }
-}
-
-let editingActe = null;
-
-async function editActe(type, id) {
-    try {
-        const { data: acte } = await window.medbridgeHttp.get(
-            `/cotations/api/${encodeURIComponent(type)}/${id}`,
-        );
-        editingActe = acte;
-        document.getElementById('edit-cotation-title').textContent = `Acte ${acte.type.toUpperCase()} #${acte.id}`;
-        document.getElementById('edit-cotation-date').value = acte.execute_date ? acte.execute_date.slice(0, 16) : '';
-        document.getElementById('edit-cotation-quantity').value = acte.quantity ?? 1;
-        document.getElementById('edit-cotation-amount').value = acte.amount ?? '';
-        document.getElementById('edit-cotation-comment').value = acte.commentaire ?? '';
-        document.getElementById('edit-cotation-quantity-label').textContent = acte.type === 'ngap' ? 'Dénombrement' : 'Quantité';
-        document.getElementById('edit-cotation-amount-label').textContent = ['ucd', 'lpp'].includes(acte.type) ? 'Montant unitaire TTC' : 'Montant total';
-        document.getElementById('edit-cotation-dialog').showModal();
-    } catch (error) {
-        showNotification(`Erreur : ${error.message}`, 'error');
-    }
-}
-
-function closeEditActe() {
-    editingActe = null;
-    document.getElementById('edit-cotation-dialog').close();
-}
-
-function deleteActe(type, id) {
-    runBulkAction('delete', 'Supprimer définitivement', [{ type, id }]);
-}
-
-document.getElementById('edit-cotation-form')?.addEventListener('submit', async function(event) {
-    event.preventDefault();
-    if (!editingActe) return;
-    const payload = {
-        execute_date: document.getElementById('edit-cotation-date').value,
-        quantity: Number(document.getElementById('edit-cotation-quantity').value),
-        amount: document.getElementById('edit-cotation-amount').value || null,
-        commentaire: document.getElementById('edit-cotation-comment').value || null,
-    };
-    try {
-        const { data: result } = await window.medbridgeHttp.request(`/cotations/api/${editingActe.type}/${editingActe.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (!result.success) throw new Error(result.detail || 'Modification impossible');
-        closeEditActe();
-        showNotification('Acte modifié avec succès.', 'success');
-        window.setTimeout(() => window.location.reload(), 350);
-    } catch (error) {
-        showNotification(`Erreur : ${error.message}`, 'error');
-    }
-});
 </script>
+
+<script defer src="{{ url_for('static', path='/js/cotations-history-workspace.js') }}"></script>
 
 <style>
 @keyframes slide-in {

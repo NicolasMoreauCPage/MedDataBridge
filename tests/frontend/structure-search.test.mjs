@@ -179,11 +179,17 @@ test("scenario import and conformity toggle use the shared HTTP client", () => {
 });
 
 test("rapid cotation workflow delegates searches and mutations to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/cotations/saisie_rapide.html", import.meta.url), "utf8");
-  assert.match(source, /window\.medbridgeHttp\.get\(/);
-  assert.match(source, /window\.medbridgeHttp\.post\(/);
-  assert.match(source, /window\.medbridgeHttp\.request\(/);
-  assert.doesNotMatch(source, /\bfetch\(/);
+  const template = readFileSync(new URL("../../app/templates/cotations/saisie_rapide.html", import.meta.url), "utf8");
+  const history = readFileSync(new URL("../../app/static/js/cotations-history-workspace.js", import.meta.url), "utf8");
+  assert.match(template, /js\/cotations-history-workspace\.js/);
+  assert.match(template, /data-cotations-history-workspace/);
+  assert.match(template, /window\.medbridgeHttp\.get\(/);
+  assert.match(template, /window\.medbridgeHttp\.post\(/);
+  assert.match(history, /window\.medbridgeHttp\.post\("\/cotations\/api\/bulk"/);
+  assert.match(history, /window\.medbridgeHttp\.request\(/);
+  assert.match(history, /window\.PameliaUi\.confirm/);
+  assert.doesNotMatch(template, /\bfetch\(/);
+  assert.doesNotMatch(history, /\bfetch\(/);
 });
 
 test("legacy cotation list uses real bulk mutations and a dedicated workspace asset", () => {

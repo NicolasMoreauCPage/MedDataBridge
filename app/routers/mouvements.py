@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 from urllib.parse import quote_plus
 from app.db import get_session
-from app.models import Mouvement, Venue, Dossier, Patient
+from app.models import Venue, Dossier, Patient
 from app.models_structure import UniteFonctionnelle
 from app.services.emit_on_create import emit_to_senders
 from app.services.bed_assignment import (
@@ -14,7 +14,13 @@ from app.services.bed_assignment import (
     assign_patient_to_bed as assign_patient_to_bed_use_case,
 )
 from app.services.bed_plan import build_bed_plan
-from app.services.movement_listing import MovementListContextError, load_movement_list
+from app.services.movement_listing import (
+    MovementListContextError,
+    build_movement_list_view,
+    load_movement_list,
+    movement_status_badge,
+    movement_type_badge,
+)
 from app.services.movement_form_context import (
     MovementFormContextError,
     build_edit_movement_form,
@@ -128,57 +134,6 @@ def assign_patient_to_bed(
         status_code=303,
     )
 
-
-def get_status_badge(status):
-    colors = {
-        'active': 'bg-green-100 text-green-800',
-        'completed': 'bg-blue-100 text-blue-800',
-        'cancelled': 'bg-red-100 text-red-800',
-        'pending': 'bg-yellow-100 text-yellow-800'
-    }
-    # Guard against None status
-    if status is None:
-        status = 'inconnu'
-    class_name = colors.get(status, 'bg-slate-100 text-slate-800')
-    return f'<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {class_name}">{status.title()}</span>'
-
-def get_type_badge(movement_type: str | None) -> str:
-    if not movement_type:
-        return '—'
-    colors = {
-        'admission': 'bg-blue-100 text-blue-800',
-        'registration': 'bg-indigo-100 text-indigo-800',
-        'preadmission': 'bg-sky-100 text-sky-800',
-        'class-change': 'bg-violet-100 text-violet-800',
-        'transfer': 'bg-amber-100 text-amber-800',
-        'transfer-cancel': 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-        'discharge': 'bg-red-100 text-red-800',
-        'discharge-cancel': 'bg-orange-100 text-orange-800',
-        'leave-out': 'bg-yellow-100 text-yellow-800',
-        'leave-return': 'bg-green-100 text-green-800',
-        'doctor-change': 'bg-teal-100 text-teal-800',
-        'doctor-change-cancel': 'bg-teal-50 text-teal-700 ring-1 ring-teal-200',
-        'update': 'bg-slate-100 text-slate-800',
-    }
-    label_map = {
-        'admission': 'Admission',
-        'registration': 'Consultation',
-        'preadmission': 'Pré-admission',
-        'class-change': 'Mutation',
-        'transfer': 'Transfert',
-        'transfer-cancel': 'Annul. transfert',
-        'discharge': 'Sortie',
-        'discharge-cancel': 'Annul. sortie',
-        'leave-out': 'Permission',
-        'leave-return': 'Retour perm.',
-        'doctor-change': 'Change. médecin',
-        'doctor-change-cancel': 'Annul. médecin',
-        'update': 'MàJ identité',
-    }
-    class_name = colors.get(movement_type, 'bg-slate-100 text-slate-800')
-    label = label_map.get(movement_type, movement_type.title())
-    return f'<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {class_name}">{label}</span>'
-
 @router.get("", response_class=HTMLResponse)
 def list_mouvements(
     request: Request,
@@ -215,193 +170,22 @@ def list_mouvements(
             },
             status_code=exc.status_code,
         )
-    mouvements = result.movements
-    venue = result.venue
-    dossier = result.dossier
+    view = build_movement_list_view(
+        result,
+        venue_id=venue_id,
+        dossier_id=dossier_id,
+        include_cancelled=include_cancelled,
+        order=order,
+        movement_type=movement_type,
+        status=status,
+        location_filter=location_filter,
+    )
+    return get_templates_with_filters(request).TemplateResponse(
+        request,
+        "list.html",
+        view,
+    )
 
-    # Préparer les lignes avec les actions détaillées
-    def _type_cell(m: Mouvement) -> str:
-        badge = get_type_badge(getattr(m, 'movement_type', None))
-        seq_note = ""
-        if getattr(m, 'cancelled_movement_seq', None):
-            seq_note = f"<span class='ml-2 text-xs text-slate-500'>(annule #{m.cancelled_movement_seq})</span>"
-        return badge + seq_note
-
-    rows = [
-        {
-            "cells": [
-                m.mouvement_seq,
-                m.id,
-                m.venue_id,
-                _type_cell(m),
-                get_status_badge(getattr(m, 'status', 'pending')),
-                m.when.strftime("%d/%m/%Y %H:%M") if m.when else None,
-                m.location,
-                m.performer,
-            ],
-            "detail_url": f"/mouvements/{m.id}",
-            "edit_url": f"/mouvements/{m.id}/edit",
-            "delete_url": f"/mouvements/{m.id}/delete",
-        }
-        for m in mouvements
-    ]
-
-    # Construire le fil d'Ariane
-    breadcrumbs = [{"label": "Mouvements", "url": "#"}]
-    
-    if venue_id and venue:
-        # Cas 1 : Filtrage par venue spécifique
-        breadcrumbs.insert(0, {"label": f"Venue #{venue.venue_seq}", "url": f"/venues/{venue_id}"})
-        if venue.dossier:
-            breadcrumbs.insert(0, {"label": f"Dossier #{venue.dossier.dossier_seq}", "url": f"/dossiers/{venue.dossier.id}"})
-            if venue.dossier.patient:
-                breadcrumbs.insert(0, {
-                    "label": f"Patient: {venue.dossier.patient.family} {venue.dossier.patient.given}",
-                    "url": f"/patients/{venue.dossier.patient.id}"
-                })
-    elif dossier_id and dossier:
-        # Cas 2 : Filtrage par dossier (tous les mouvements du dossier)
-        breadcrumbs.insert(0, {"label": f"Dossier #{dossier.dossier_seq}", "url": f"/dossiers/{dossier.id}"})
-        if dossier.patient:
-            breadcrumbs.insert(0, {
-                "label": f"Patient: {dossier.patient.family} {dossier.patient.given}",
-                "url": f"/patients/{dossier.patient.id}"
-            })
-
-    # Définir les filtres de recherche
-    filters = [
-        {
-            "label": "Type",
-            "name": "type",
-            "type": "select",
-            "placeholder": "Tous les types",
-            "value": movement_type or "",
-            "options": [
-                {"value": "ADT^A01", "label": "Admission"},
-                {"value": "ADT^A02", "label": "Transfert"},
-                {"value": "ADT^A03", "label": "Sortie"},
-                {"value": "ADT^A04", "label": "Urgences / consultation externe"}
-            ]
-        },
-        {
-            "label": "Statut",
-            "name": "status",
-            "type": "select",
-            "placeholder": "Tous les statuts",
-            "value": status or "",
-            "options": [
-                {"value": "pending", "label": "En attente"},
-                {"value": "active", "label": "En cours"},
-                {"value": "completed", "label": "Terminé"},
-                {"value": "cancelled", "label": "Annulé"}
-            ]
-        },
-        {
-            "label": "Localisation",
-            "name": "location",
-            "type": "text",
-            "placeholder": "Filtrer par localisation",
-            "value": location_filter or "",
-        }
-    ]
-
-    # Définir les actions disponibles
-    # Ajouter une action pour inclure/masquer les annulés
-    toggle_cancel_url = None
-    context_query = f"venue_id={venue_id}" if venue_id else (f"dossier_id={dossier_id}" if dossier_id else "")
-    if context_query:
-        if include_cancelled:
-            toggle_cancel_url = f"/mouvements?{context_query}&include_cancelled=0&order={order}"
-        else:
-            toggle_cancel_url = f"/mouvements?{context_query}&include_cancelled=1&order={order}"
-
-    actions = [
-        # Vues explicites
-        ({
-            "type": "link",
-            "label": "Vue état actuel",
-            "url": f"/mouvements/etat?{context_query}" if context_query else "/mouvements/etat"
-        } if context_query else None),
-        ({
-            "type": "link",
-            "label": "Vue historique",
-            "url": f"/mouvements/historique?{context_query}" if context_query else "/mouvements/historique"
-        } if context_query else None),
-        {
-            "type": "link",
-            "label": "Export FHIR",
-            "url": "/mouvements/export/fhir"
-        },
-        {
-            "type": "link",
-            "label": "Export HL7",
-            "url": "/mouvements/export/hl7"
-        }
-    ]
-
-    # Nettoyer actions None
-    actions = [a for a in actions if a]
-
-    if toggle_cancel_url:
-        actions.insert(0, {
-            "type": "link",
-            "label": ("Masquer les annulés" if include_cancelled else "Afficher les annulés"),
-            "url": toggle_cancel_url
-        })
-
-    # Toggle tri
-    if context_query:
-        if order == "asc":
-            toggle_order_url = f"/mouvements?{context_query}&include_cancelled={'1' if include_cancelled else '0'}&order=desc"
-            actions.insert(0, {"type": "link", "label": "Trier: plus récent → plus ancien", "url": toggle_order_url})
-        else:
-            toggle_order_url = f"/mouvements?{context_query}&include_cancelled={'1' if include_cancelled else '0'}&order=asc"
-            actions.insert(0, {"type": "link", "label": "Trier: plus ancien → plus récent", "url": toggle_order_url})
-
-    # Construire le contexte complet
-    if venue_id and venue:
-        base = f"de la venue #{venue.venue_seq}"
-    elif dossier_id and dossier:
-        base = f"du dossier #{dossier.dossier_seq}"
-    else:
-        base = ""
-
-    if include_cancelled:
-        title = f"Historique des mouvements {base}".strip()
-    else:
-        title = f"Mouvements (état actuel) {base}".strip()
-    
-    # Tabs ergonomiques pour basculer entre vues
-    tabs = None
-    if context_query:
-        tabs = [
-            {
-                "label": "État actuel",
-                "url": f"/mouvements/etat?{context_query}",
-                "active": not include_cancelled,
-            },
-            {
-                "label": "Historique",
-                "url": f"/mouvements/historique?{context_query}",
-                "active": include_cancelled,
-            },
-        ]
-
-    ctx = {
-        "request": request,
-        "title": title,
-        "breadcrumbs": breadcrumbs,
-        "tabs": tabs,
-        "headers": ["Seq", "ID", "Venue", "Type", "Status", "Date/Heure", "Localisation", "Intervenant"],
-        "rows": rows,
-    "context": {"venue_id": venue_id, "include_cancelled": include_cancelled, "order": order},
-    "new_url": f"/mouvements/new?venue_id={venue_id}" if venue_id else (f"/mouvements/new?dossier_id={dossier_id}" if dossier_id else "/mouvements/new"),
-        "filters": filters,
-        "actions": actions,
-        "show_actions": True
-    }
-
-    return get_templates_with_filters(request).TemplateResponse(request, "list.html", ctx)
 
 
 @router.get("/historique")
@@ -529,8 +313,8 @@ def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_se
         "mouvement_detail.html",
         {
             "mouvement": movement,
-            "type_badge": get_type_badge(movement.movement_type),
-            "status_badge": get_status_badge(movement.status or "pending"),
+            "type_badge": movement_type_badge(movement.movement_type),
+            "status_badge": movement_status_badge(movement.status or "pending"),
             "type_label": details.type_label,
             "uf_responsable_label": details.uf_responsable_label,
             "uf_soins_label": details.uf_soins_label,

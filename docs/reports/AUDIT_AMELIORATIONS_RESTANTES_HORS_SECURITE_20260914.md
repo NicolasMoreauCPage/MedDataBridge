@@ -204,8 +204,11 @@ l'audit :
   groupées plutôt que par boucles imbriquées. Les listes dépendantes historiques
   sont enfin isolées dans `movement_options.py`. La suppression est portée par
   `movement_deletion.py`, avec notification sortante injectée et contexte
-  patient préchargé ; elle est testable sans FastAPI. Le routeur mouvements ne
-  conserve que la présentation et passe de 2 215 à 776 lignes.
+  patient préchargé ; elle est testable sans FastAPI. La projection complète de
+  la liste (lignes, badges, filtres, actions, onglets et fil d'Ariane) appartient
+  maintenant à `movement_listing.py` et possède ses propres tests unitaires. Le
+  routeur mouvements ne conserve que l'appel des cas d'usage et le rendu, et
+  passe de 2 215 à 560 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

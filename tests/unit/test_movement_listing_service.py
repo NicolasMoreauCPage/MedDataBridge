@@ -3,7 +3,11 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from app.models import Dossier, Mouvement, Patient, Venue
-from app.services.movement_listing import MovementListContextError, load_movement_list
+from app.services.movement_listing import (
+    MovementListContextError,
+    build_movement_list_view,
+    load_movement_list,
+)
 
 
 def _movement_context(session):
@@ -138,3 +142,41 @@ def test_movement_list_route_renders_the_loaded_context(client, session):
     assert "Venue #901" in response.text
     assert "Cardiologie" in response.text
     assert "ADT^A11" not in response.text
+
+
+def test_movement_list_view_builds_navigation_filters_and_rows(session):
+    patient, dossier, venue = _movement_context(session)
+    result = load_movement_list(
+        session,
+        venue_id=venue.id,
+        dossier_id=None,
+        ej_id=None,
+        include_cancelled=False,
+        order="asc",
+        movement_type=None,
+        status=None,
+        location_filter="cardio",
+    )
+
+    view = build_movement_list_view(
+        result,
+        venue_id=venue.id,
+        dossier_id=None,
+        include_cancelled=False,
+        order="asc",
+        movement_type=None,
+        status=None,
+        location_filter="cardio",
+    )
+
+    assert view["title"] == "Mouvements (état actuel) de la venue #901"
+    assert view["breadcrumbs"][0] == {
+        "label": f"Patient: {patient.family} {patient.given}",
+        "url": f"/patients/{patient.id}",
+    }
+    assert len(view["rows"]) == 1
+    assert view["rows"][0]["cells"][0] == 902
+    assert view["rows"][0]["detail_url"] == f"/mouvements/{result.movements[0].id}"
+    assert view["filters"][2]["value"] == "cardio"
+    assert view["tabs"][0]["active"] is True
+    assert view["actions"][0]["url"].endswith("include_cancelled=0&order=desc")

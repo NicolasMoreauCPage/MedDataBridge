@@ -1,4 +1,5 @@
 import inspect
+from typing import get_args
 
 from fastapi import Response
 from sqlalchemy.pool import StaticPool
@@ -6,6 +7,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.routers import structure
 from app.models_structure import EntiteGeographique
+from app.schemas.structure import EntiteGeographiqueRead
 
 
 LIST_ENDPOINTS = (
@@ -71,3 +73,15 @@ def test_paginated_query_keeps_list_contract_and_exposes_total():
 
     assert [item.name for item in result] == ["B"]
     assert response.headers["X-Total-Count"] == "3"
+
+
+def test_structure_list_contract_is_not_the_orm_model():
+    route = next(
+        route
+        for route in structure.router.routes
+        if route.path == "/structure/api/eg" and "GET" in route.methods
+    )
+
+    assert get_args(route.response_model) == (EntiteGeographiqueRead,)
+    assert get_args(route.response_model) != (EntiteGeographique,)
+    assert "poles" not in EntiteGeographiqueRead.model_fields

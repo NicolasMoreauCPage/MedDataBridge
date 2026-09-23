@@ -17,6 +17,15 @@ from app.services.structure_schedule import (
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
+from app.schemas.structure import (
+    ChambreRead,
+    EntiteGeographiqueRead,
+    LitRead,
+    PoleRead,
+    ServiceRead,
+    UniteFonctionnelleRead,
+    UniteHebergementRead,
+)
 from app.models_structure import (
     EntiteGeographique, Pole, Service, UniteFonctionnelle,
     UniteHebergement, Chambre, Lit,
@@ -850,7 +859,7 @@ async def list_entites_geographiques(
         },
     )
 
-@router.get("/api/eg", response_model=List[EntiteGeographique])
+@router.get("/api/eg", response_model=List[EntiteGeographiqueRead])
 async def list_entites_geographiques_api(
     response: Response,
     session: Session = Depends(get_session),
@@ -997,7 +1006,7 @@ async def list_poles(
         },
     )
 
-@router.get("/api/poles", response_model=List[Pole])
+@router.get("/api/poles", response_model=List[PoleRead])
 async def list_poles_api(
     response: Response,
     session: Session = Depends(get_session),
@@ -1215,7 +1224,7 @@ async def list_services(
         },
     )
 
-@router.get("/api/services", response_model=List[Service])
+@router.get("/api/services", response_model=List[ServiceRead])
 async def list_services_api(
     response: Response,
     session: Session = Depends(get_session),
@@ -1460,7 +1469,7 @@ async def list_unites_fonctionnelles(
         },
     )
 
-@router.get("/api/ufs", response_model=List[UniteFonctionnelle])
+@router.get("/api/ufs", response_model=List[UniteFonctionnelleRead])
 async def list_unites_fonctionnelles_api(
     response: Response,
     session: Session = Depends(get_session),
@@ -1684,7 +1693,7 @@ async def list_unites_hebergement(
         }
     )
 
-@router.get("/api/uh", response_model=List[UniteHebergement])
+@router.get("/api/uh", response_model=List[UniteHebergementRead])
 async def list_unites_hebergement_api(
     response: Response,
     session: Session = Depends(get_session),
@@ -2051,7 +2060,7 @@ async def delete_chambre(
     session.commit()
     return RedirectResponse(url=f"/structure/uh/{uh_id}", status_code=303)
 
-@api_router.get("/chambres", response_model=List[Chambre])
+@api_router.get("/chambres", response_model=List[ChambreRead])
 async def list_chambres_api(
     response: Response,
     session: Session = Depends(get_session),
@@ -2226,7 +2235,7 @@ async def list_lits(
         },
     )
 
-@router.get("/api/lits", response_model=List[Lit])
+@router.get("/api/lits", response_model=List[LitRead])
 async def list_lits_api(
     response: Response,
     session: Session = Depends(get_session),

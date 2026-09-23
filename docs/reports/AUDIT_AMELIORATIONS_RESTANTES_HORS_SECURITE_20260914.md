@@ -256,8 +256,10 @@ l'audit :
   durant la transition. Les exceptions non gérées suivent le même contrat. Les
   sept listes JSON historiques de structure ont désormais une pagination
   bornée homogène et exposent leur cardinalité totale dans `X-Total-Count`,
-  sans rupture de leur corps tableau. Les schémas de sortie dédiés restent à
-  étendre route par route.
+  sans rupture de leur corps tableau. Ces mêmes routes utilisent maintenant
+  sept schémas de sortie dédiés, alignés par test sur les colonnes historiques,
+  et n'exposent donc plus directement leurs modèles ORM. L'extension de cette
+  séparation aux autres API historiques reste progressive.
 - **DOC-01 :** `scripts/generate_openapi_inventory.py` produit désormais
   l'inventaire Markdown depuis le contrat OpenAPI réellement servi. Les
   documents ne doivent plus recopier un nombre de routes à la main.

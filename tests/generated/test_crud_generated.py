@@ -1,7 +1,13 @@
 from fastapi.testclient import TestClient
 from sqlmodel import select
 from app.models import Patient, Dossier, Venue, Mouvement
-from app.models_structure import EntiteJuridique, EntiteGeographique, GHTContext
+from app.models_structure import (
+    EntiteGeographique,
+    EntiteJuridique,
+    GHTContext,
+    UniteFonctionnelle,
+    UniteHebergement,
+)
 from app.db import get_next_sequence
 from datetime import datetime
 
@@ -128,13 +134,25 @@ def test_mouvement_crud(client: TestClient, session):
     client.post('/venues/new', data=payload2, follow_redirects=True)
     session.expire_all()
     v = session.exec(select(Venue).where(Venue.dossier_id == d.id)).first()
-    # create mouvement (A01 admission)
-    # A01 (admission) requires a location (uh_id or chambre_id). Provide a dummy uh_id
-    mouvement_payload = {'venue_id': str(v.id), 'type': 'ADT^A01', 'when': now, 'uh_id': '1'}
+    # create mouvement (A01 admission) with an existing location
+    uf = session.exec(select(UniteFonctionnelle)).first()
+    uh = UniteHebergement(
+        identifier="UH-MOUV-CRUD",
+        name="UH mouvement CRUD",
+        unite_fonctionnelle_id=uf.id,
+    )
+    session.add(uh); session.commit(); session.refresh(uh)
+    mouvement_payload = {
+        'venue_id': str(v.id),
+        'type': 'ADT^A01',
+        'when': now,
+        'uh_id': str(uh.id),
+    }
     r = client.post('/mouvements/new', data=mouvement_payload, follow_redirects=False)
     assert r.status_code in (302, 303)
     m = session.exec(select(Mouvement).where(Mouvement.venue_id == v.id)).first()
     assert m is not None
+    assert m.location == "UH-MOUV-CRUD"
     # edit mouvement (via edit form) - simply get edit page and post similar data
     r2 = client.get(f'/mouvements/{m.id}/edit')
     assert r2.status_code == 200

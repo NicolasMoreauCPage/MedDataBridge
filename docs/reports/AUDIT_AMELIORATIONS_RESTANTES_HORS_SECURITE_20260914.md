@@ -187,8 +187,11 @@ l'audit :
   sont maintenant cohérentes avec le contrat POST (`ADT^Axx` pour le type, ID
   numérique pour l'UF médicale et identifiant pour l'UF de soins), tandis que
   chambre et lit sont correctement préremplis au lieu d'assimiler le lit à la
-  chambre. Le routeur mouvements ne conserve que la présentation et passe de
-  2 215 à 1 382 lignes.
+  chambre. La soumission est elle aussi isolée dans `movement_creation.py` :
+  chronologie, transitions et cohérence UH/chambre/lit sont validées avant la
+  transaction, la localisation complète est conservée et la venue courante est
+  actualisée. Le routeur mouvements ne conserve que la présentation et passe
+  de 2 215 à 1 291 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

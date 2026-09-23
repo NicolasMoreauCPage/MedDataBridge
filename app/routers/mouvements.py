@@ -5,7 +5,7 @@ from sqlmodel import select, or_
 from datetime import datetime
 from typing import Optional
 from urllib.parse import quote_plus
-from app.db import get_session, get_next_sequence
+from app.db import get_session
 from app.services.vocabulary_lookup import get_vocabulary_options
 from app.models import Mouvement, Venue, Dossier, Patient
 from app.models_structure import UniteFonctionnelle
@@ -20,8 +20,11 @@ from app.services.movement_form_context import (
     MovementFormContextError,
     build_new_movement_form,
 )
+from app.services.movement_creation import (
+    MovementCreationError,
+    create_patient_movement,
+)
 from app.dependencies.ght import require_ght_context
-from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -467,125 +470,32 @@ def create_mouvement(
     movement_reason: str = Form(None),
     session=Depends(get_session),
 ):
-    # Parse date/time
-    when_dt = datetime.fromisoformat(when)
-    
-    # Validation: prevent retroactive movements (before venue start_time or last movement)
-    venue = session.get(Venue, venue_id)
-    if venue:
-        # Check against venue start_time
-        if venue.start_time and when_dt < venue.start_time:
-            raise HTTPException(
-                status_code=400,
-                detail=f"La date du mouvement ({when_dt.strftime('%d/%m/%Y %H:%M')}) ne peut pas être antérieure au début de la venue ({venue.start_time.strftime('%d/%m/%Y %H:%M')})"
-            )
-        
-        # Check against last movement's when
-        last_movements = session.exec(
-            select(Mouvement)
-            .where(Mouvement.venue_id == venue_id)
-            .order_by(Mouvement.when.desc())
-        ).all()
-        if last_movements and last_movements[0].when:
-            if when_dt < last_movements[0].when:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"La date du mouvement ({when_dt.strftime('%d/%m/%Y %H:%M')}) ne peut pas être antérieure au dernier mouvement ({last_movements[0].when.strftime('%d/%m/%Y %H:%M')})"
-                )
-    
-    # Determine event code (A01, A02, ...)
-    trigger_event = None
-    if type:
-        parts = type.split("^", 1)
-        if len(parts) == 2:
-            trigger_event = parts[1]
+    try:
+        movement = create_patient_movement(
+            session,
+            venue_id=venue_id,
+            type_code=type,
+            when=datetime.fromisoformat(when),
+            uf_id=uf_id,
+            uf_soins_identifier=uf_soins_id,
+            uh_id=uh_id,
+            chambre_id=chambre_id,
+            lit_id=lit_id,
+            from_location=from_location,
+            to_location=to_location,
+            reason=reason,
+            movement_reason=movement_reason,
+        )
+    except (MovementCreationError, ValueError) as exc:
+        status_code = getattr(exc, "status_code", 400)
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
 
-    # Server-side validation: ensure transition is allowed from current state
-    if venue_id and trigger_event:
-        last = session.exec(
-            select(Mouvement)
-            .where(Mouvement.venue_id == venue_id)
-            .order_by(Mouvement.when)
-        ).all()
-        last_event = last[-1].type.split('^')[-1] if last else None
-        allowed = (ALLOWED_TRANSITIONS.get(last_event, set()) if last_event else {e for e in INITIAL_EVENTS if e != "A38"})
-        if trigger_event not in allowed:
-            raise HTTPException(status_code=400, detail=f"L'événement {trigger_event} n'est pas autorisé dans l'état actuel")
-
-    # Map movement_type for downstream systems (align with workflow router)
-    event_mapping = {
-        "A01": ("admission", True),
-        "A02": ("transfer", True),
-        "A03": ("discharge", False),
-        "A04": ("consultation_out", False),
-        "A05": ("preadmission", False),
-        "A06": ("class_change", True),
-        "A07": ("from_consult", True),
-        "A11": ("cancel_admission", False),
-        "A12": ("cancel_transfer", False),
-        "A13": ("cancel_discharge", False),
-        "A21": ("temporary_leave", False),
-        "A22": ("return", True),
-        "A38": ("cancel_preadmission", False),
-    }
-
-    # Enforce location requirement according to mapping (kept consistent with workflow router)
-    requires_location = bool(event_mapping.get(trigger_event, (None, False))[1])
-    if requires_location and not (uh_id or chambre_id):
-        raise HTTPException(status_code=400, detail="La localisation est obligatoire pour ce type de mouvement")
-    
-    # A02 (Transfert/Mutation) : la destination complète (UH, Chambre, Lit) est OBLIGATOIRE
-    if trigger_event == "A02":
-        if not uh_id:
-            raise HTTPException(status_code=400, detail="Pour un transfert (A02), l'Unité d'Hébergement de destination est obligatoire")
-        if not chambre_id:
-            raise HTTPException(status_code=400, detail="Pour un transfert (A02), la Chambre de destination est obligatoire")
-        if not lit_id:
-            raise HTTPException(status_code=400, detail="Pour un transfert (A02), le Lit de destination est obligatoire")
-
-    # Sequence generation (always generate new, ignore form value)
-    seq = get_next_sequence(session, "mouvement")
-    mapped_movement_type = None
-    if trigger_event in event_mapping:
-        mapped_movement_type = event_mapping[trigger_event][0]
-    
-    # Récupérer les informations de l'UF de soins si fournie
-    uf_soins_code = None
-    uf_soins_label = None
-    if uf_soins_id:
-        from app.models_structure import UniteFonctionnelle
-        uf_soins_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.identifier == uf_soins_id)).first()
-        if uf_soins_obj:
-            uf_soins_code = uf_soins_obj.identifier
-            uf_soins_label = uf_soins_obj.short_name if getattr(uf_soins_obj, 'short_name', None) and uf_soins_obj.short_name and uf_soins_obj.short_name.strip() else uf_soins_obj.name
-    
-    # Récupérer les informations de l'UF responsable si fournie
-    uf_responsabilite = None
-    if uf_id:
-        from app.models_structure import UniteFonctionnelle
-        uf_resp_obj = session.exec(select(UniteFonctionnelle).where(UniteFonctionnelle.id == uf_id)).first()
-        if uf_resp_obj:
-            uf_responsabilite = uf_resp_obj.identifier
-    
-    m = Mouvement(
-        venue_id=venue_id,
-        type=type,
-        when=when_dt,
-        from_location=from_location,
-        to_location=to_location,
-        reason=reason,
-        mouvement_seq=seq,
-        movement_type=mapped_movement_type,
-        movement_reason=movement_reason,
-        trigger_event=trigger_event,
-        uf_responsabilite=uf_responsabilite,
-        uf_soins_code=uf_soins_code,
-        uf_soins_label=uf_soins_label,
+    emit_to_senders(movement, "mouvement", session)
+    return RedirectResponse(
+        url=f"/mouvements?venue_id={venue_id}",
+        status_code=303,
     )
-    session.add(m)
-    session.commit()
-    emit_to_senders(m, "mouvement", session)
-    return RedirectResponse(url=f"/mouvements?venue_id={venue_id}", status_code=303)
+
 
 @router.get("/{mouvement_id}", response_class=HTMLResponse)
 def mouvement_detail(mouvement_id: int, request: Request, session=Depends(get_session)):

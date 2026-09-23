@@ -65,6 +65,15 @@ test("structure wizard delegates template APIs to the shared HTTP client", () =>
   assert.doesNotMatch(source, /\bfetch\(/);
 });
 
+test("structure wizard keeps only the latest template request and blocks navigation while loading", () => {
+  const source = readFileSync(new URL("../../app/templates/structure_wizard.html", import.meta.url), "utf8");
+  assert.match(source, /let templateRequestToken = 0/);
+  assert.match(source, /const requestToken = \+\+templateRequestToken/);
+  assert.match(source, /if \(requestToken !== templateRequestToken\) return/);
+  assert.match(source, /nextBtn\.disabled = currentStep === 1 && isTemplateLoading/);
+  assert.match(source, /Chargement du modèle…/);
+});
+
 test("analytics and metrics dashboards delegate their reads to the shared HTTP client", () => {
   const analytics = readFileSync(new URL("../../app/templates/analytics_dashboard.html", import.meta.url), "utf8");
   const metrics = readFileSync(new URL("../../app/templates/metrics_dashboard.html", import.meta.url), "utf8");

@@ -176,7 +176,9 @@ l'audit :
   ses actions d'édition à `static/js/structure-legacy-workspace.js` : le
   template ne conserve plus de script métier ni de gestionnaire inline. Le
   module expose des états de chargement et d'erreur, et un test vérifie ce
-  découplage. L'extraction des grands écrans cotation classique reste à
+  découplage. L'assistant de structure ignore désormais les réponses tardives
+  lors d'un changement rapide de modèle et verrouille sa navigation pendant
+  le chargement du modèle sélectionné. L'extraction des grands écrans cotation classique reste à
   poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une
   sauvegarde, ainsi que deux sauvegardes Python exécutables obsolètes ont été

@@ -227,6 +227,7 @@
     let selectedTemplate = null;
     let templatePayload = null; // Stocke le payload JSON du template sélectionné
     let isTemplateLoading = false;
+    let templateRequestToken = 0;
     let currentStep = 1;
 
     function notify(message, type = 'info') {
@@ -315,7 +316,12 @@
         contentEl.classList.toggle('hidden', step !== currentStep);
       });
       prevBtn.disabled = currentStep === 1;
-      nextBtn.textContent = currentStep === 5 ? 'Terminer' : 'Suivant →';
+      nextBtn.disabled = currentStep === 1 && isTemplateLoading;
+      nextBtn.textContent = currentStep === 5
+        ? 'Terminer'
+        : isTemplateLoading
+          ? 'Chargement du modèle…'
+          : 'Suivant →';
     }
 
     prevBtn.addEventListener('click', () => {
@@ -400,7 +406,7 @@
           templateCards.appendChild(btn);
         }
 
-        templateCards.addEventListener('click', (event) => {
+        templateCards.addEventListener('click', async (event) => {
           const card = event.target.closest('[data-template]');
           if (!card) return;
           templateCards.querySelectorAll('[data-template]').forEach(el => {
@@ -412,9 +418,15 @@
             key: card.dataset.template,
           };
           // Charger le payload du template sélectionné
+          const requestToken = ++templateRequestToken;
           isTemplateLoading = true;
           templatePayload = null;
-          loadTemplatePayload(selectedTemplate.id);
+          updateStepDisplay();
+          card.setAttribute('aria-busy', 'true');
+          await loadTemplatePayload(selectedTemplate.id, requestToken);
+          if (requestToken === templateRequestToken) {
+            card.removeAttribute('aria-busy');
+          }
           console.log('Template sélectionné :', selectedTemplate);
         });
       } catch (err) {
@@ -423,20 +435,26 @@
       }
     }
 
-    async function loadTemplatePayload(templateId) {
+    async function loadTemplatePayload(templateId, requestToken) {
       try {
         const { data } = await window.medbridgeHttp.get(
           `/api/structure/templates/${templateId}`,
         );
+        if (requestToken !== templateRequestToken) return;
         templatePayload = data.payload ? JSON.parse(data.payload) : null;
         console.log('Payload du template chargé:', templatePayload);
+        notify('Modèle chargé. Vous pouvez poursuivre la configuration.', 'success');
       } catch (err) {
+        if (requestToken !== templateRequestToken) return;
         console.error('Erreur chargement payload template', err);
         templatePayload = null;
         selectedTemplate = null;
         notify('Impossible de charger ce modèle de structure.', 'error');
       } finally {
-        isTemplateLoading = false;
+        if (requestToken === templateRequestToken) {
+          isTemplateLoading = false;
+          updateStepDisplay();
+        }
       }
     }
 

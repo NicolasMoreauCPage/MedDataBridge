@@ -56,7 +56,7 @@
   </div>
 
   <p id="patient-form-help" class="sr-only">Les champs marqués d'une étoile sont obligatoires.</p>
-  <form method="post" action="{{ action_url }}" class="space-y-6" data-patient-form="true" aria-describedby="patient-form-help">
+  <form method="post" action="{{ action_url }}" class="patient-form space-y-6" data-patient-form="true" aria-describedby="patient-form-help">
     <div class="form-grid grid gap-4 md:gap-6">
     
     <!-- Section Identité -->
@@ -402,74 +402,5 @@
   </div>
 </div>
 
-<style>
-  details summary::-webkit-details-marker {
-    display: none;
-  }
-  details summary::before {
-    content: '▶';
-    display: inline-block;
-    margin-right: 0.5rem;
-    transition: transform 0.2s;
-  }
-  details[open] summary::before {
-    transform: rotate(90deg);
-  }
-  
-  /* Amélioration de la visibilité des champs input */
-  .input-field {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 2px solid #cbd5e1; /* slate-300 - bordure plus épaisse */
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    transition: all 0.2s;
-    background-color: #ffffff;
-  }
-  
-  .input-field:hover {
-    border-color: #94a3b8; /* slate-400 */
-    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.1);
-  }
-  
-  .input-field:focus {
-    outline: none;
-    border-color: #2563eb; /* blue-600 */
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    background-color: #eff6ff; /* blue-50 */
-  }
-  
-  .input-field::placeholder {
-    color: #94a3b8; /* slate-400 */
-    font-style: italic;
-  }
-  
-  /* Select avec même style */
-  select.input-field {
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
-  }
-  
-  /* Input date avec style cohérent */
-  input[type="date"].input-field {
-    font-family: inherit;
-  }
-  
-  /* Amélioration des bordures rouges pour erreurs */
-  .input-field.border-red-500 {
-    border-color: #ef4444 !important;
-    background-color: #fef2f2;
-  }
-  
-  .input-field.border-red-500:focus {
-    border-color: #dc2626 !important;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-  }
-</style>
 <script defer src="{{ url_for('static', path='js/patient-form-workspace.js') }}"></script>
 {% endblock %}

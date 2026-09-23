@@ -164,6 +164,8 @@ test("admission, patient sample and validation-rule interactions use the shared 
   assert.match(admission, /window\.medbridgeHttp\.get\(/);
   assert.doesNotMatch(admission, /\bfetch\(/);
   assert.match(patient, /js\/patient-form-workspace\.js/);
+  assert.match(patient, /class="patient-form space-y-6"/);
+  assert.doesNotMatch(patient, /<style>[\s\S]*?\.input-field[\s\S]*?<\/style>/);
   assert.doesNotMatch(patient, /window\.medbridgeHttp\.get\(/);
   assert.match(patientWorkspace, /window\.medbridgeHttp\.get\("\/patients\/sample-identity"\)/);
   assert.doesNotMatch(patientWorkspace, /\bfetch\(/);

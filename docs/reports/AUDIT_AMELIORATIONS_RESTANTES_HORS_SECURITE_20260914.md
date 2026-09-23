@@ -361,7 +361,9 @@ l'audit :
   espace de travail ne peuvent pas modifier involontairement une autre vue.
   La saisie rapide de cotations suit désormais la même règle : ses styles sont
   centralisés et scopés sous `.rapid-shell`, et ses animations locales non
-  utilisées ont été supprimées.
+  utilisées ont été supprimées. Les styles des champs et accordéons du
+  formulaire patient sont maintenant regroupés dans `forms.css` et strictement
+  scopés sous `.patient-form`; le template ne contient plus de bloc de style.
 
 ## Backlog priorisé
 

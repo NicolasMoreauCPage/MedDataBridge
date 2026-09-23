@@ -112,6 +112,73 @@ html.dark dialog.app-dialog {
   white-space: normal !important;
 }
 
+/* Formulaire patient : styles isolés de ses accordéons et champs historiques. */
+.patient-form details summary::-webkit-details-marker {
+  display: none;
+}
+
+.patient-form details summary::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.patient-form details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.patient-form .input-field {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  background-color: #ffffff;
+}
+
+.patient-form .input-field:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.1);
+}
+
+.patient-form .input-field:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background-color: #eff6ff;
+}
+
+.patient-form .input-field::placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.patient-form select.input-field {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.patient-form input[type="date"].input-field {
+  font-family: inherit;
+}
+
+.patient-form .input-field.border-red-500 {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2;
+}
+
+.patient-form .input-field.border-red-500:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
 .form-container {
   max-width: 42rem;
   margin: 0 auto;

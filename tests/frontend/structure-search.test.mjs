@@ -80,6 +80,8 @@ test("structure wizard prevents an empty structure from reaching generation", ()
   assert.match(source, /Ajoutez et nommez au moins un pôle avant de poursuivre/);
   assert.match(source, /Nommez le service \$\{serviceIndex \+ 1\}/);
   assert.match(source, /Nommez l’UF \$\{ufIndex \+ 1\}/);
+  assert.match(source, /function focusValidationError\(validationError\)/);
+  assert.match(source, /data-structure-field="uf:\$\{poleIndex\}/);
 });
 
 test("analytics and metrics dashboards delegate their reads to the shared HTTP client", () => {

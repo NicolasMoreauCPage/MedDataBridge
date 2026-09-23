@@ -326,26 +326,30 @@
 
     function getStructureValidationError({ includeUfs = true } = {}) {
       if (!Array.isArray(templatePayload?.poles) || templatePayload.poles.length === 0) {
-        return { step: 2, message: 'Ajoutez et nommez au moins un pôle avant de poursuivre.' };
+        return { step: 2, selector: '#addPoleBtn', message: 'Ajoutez et nommez au moins un pôle avant de poursuivre.' };
       }
       for (const [poleIndex, pole] of templatePayload.poles.entries()) {
         if (typeof pole?.name !== 'string' || !pole.name.trim()) {
-          return { step: 2, message: `Nommez le pôle ${poleIndex + 1} avant de poursuivre.` };
+          return { step: 2, selector: `[data-structure-field="pole:${poleIndex}"]`, message: `Nommez le pôle ${poleIndex + 1} avant de poursuivre.` };
         }
         if (!Array.isArray(pole.services)) continue;
         for (const [serviceIndex, service] of pole.services.entries()) {
           if (typeof service?.name !== 'string' || !service.name.trim()) {
-            return { step: 2, message: `Nommez le service ${serviceIndex + 1} du pôle ${poleIndex + 1}.` };
+            return { step: 2, selector: `[data-structure-field="service:${poleIndex}:${serviceIndex}"]`, message: `Nommez le service ${serviceIndex + 1} du pôle ${poleIndex + 1}.` };
           }
           if (!includeUfs || !Array.isArray(service.ufs)) continue;
           for (const [ufIndex, uf] of service.ufs.entries()) {
             if (typeof uf?.name !== 'string' || !uf.name.trim()) {
-              return { step: 3, message: `Nommez l’UF ${ufIndex + 1} du service ${serviceIndex + 1}.` };
+              return { step: 3, selector: `[data-structure-field="uf:${poleIndex}:${serviceIndex}:${ufIndex}"]`, message: `Nommez l’UF ${ufIndex + 1} du service ${serviceIndex + 1}.` };
             }
           }
         }
       }
       return null;
+    }
+
+    function focusValidationError(validationError) {
+      document.querySelector(validationError.selector)?.focus();
     }
 
     prevBtn.addEventListener('click', () => {
@@ -393,7 +397,7 @@
             : null;
         if (validationError) {
           notify(validationError.message, 'warning');
-          document.getElementById('addPoleBtn')?.focus();
+          focusValidationError(validationError);
           return;
         }
         currentStep += 1;
@@ -527,6 +531,7 @@
                   <div class="flex items-center gap-2">
                     <input type="text" 
                            value="${pole.name}"
+                           data-structure-field="pole:${poleIndex}"
                            class="text-sm font-semibold text-slate-900 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-0.5 transition-all"
                            onchange="updatePoleName(${poleIndex}, this.value)" />
                   </div>
@@ -550,6 +555,7 @@
                   <span>•</span>
                   <input type="text" 
                          value="${svc.name}"
+                         data-structure-field="service:${poleIndex}:${svcIndex}"
                          class="flex-1 border-0 bg-transparent hover:bg-white hover:border hover:border-slate-300 focus:bg-white focus:border focus:border-blue-500 rounded px-2 py-0.5 text-xs transition-all"
                          onchange="updateServiceName(${poleIndex}, ${svcIndex}, this.value)" />
                   <span class="text-slate-400">(${svc.ufs?.length || 0} UF)</span>
@@ -696,6 +702,7 @@
                 <div class="flex items-center gap-2 text-xs">
                   <span class="text-slate-600">•</span>
                   <input type="text" value="${uf.name || ''}" placeholder="Nom UF" 
+                         data-structure-field="uf:${poleIndex}:${serviceIndex}:${ufIndex}"
                          class="flex-1 border border-slate-300 rounded px-2 py-1 text-xs"
                          onchange="updateUfName(${poleIndex}, ${serviceIndex}, ${ufIndex}, this.value)" />
                   <input type="text" value="${uf.code_um || ''}" placeholder="Code UM" 
@@ -920,10 +927,10 @@
         updateStepDisplay();
         if (currentStep === 2) {
           loadStep2Content();
-          document.getElementById('addPoleBtn')?.focus();
+          focusValidationError(validationError);
         } else {
           loadStep3Content();
-          document.getElementById('ufsContainer')?.focus();
+          focusValidationError(validationError);
         }
         return;
       }

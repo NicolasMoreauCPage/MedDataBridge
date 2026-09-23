@@ -19,6 +19,7 @@ router = APIRouter()
 @router.get("/examples/hl7v2", response_class=HTMLResponse)
 async def examples_hl7v2(request: Request):
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "examples_hl7v2.html",
         {"request": request, "title": "Exemples HL7 v2"}
     )
@@ -27,6 +28,7 @@ async def examples_hl7v2(request: Request):
 @router.get("/examples/mfn", response_class=HTMLResponse)
 async def examples_mfn(request: Request):
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "examples_mfn.html",
         {"request": request, "title": "Exemples MFN"}
     )
@@ -35,6 +37,7 @@ async def examples_mfn(request: Request):
 @router.get("/examples/fhir-bundles", response_class=HTMLResponse)
 async def examples_fhir_bundles(request: Request):
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "examples_fhir_bundles.html",
         {"request": request, "title": "Bundles FHIR d'exemple"}
     )
@@ -43,6 +46,7 @@ async def examples_fhir_bundles(request: Request):
 @router.get("/tools/mllp", response_class=HTMLResponse)
 async def tools_mllp(request: Request):
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "tools_mllp.html",
         {"request": request, "title": "Guide MLLP"}
     )
@@ -51,6 +55,7 @@ async def tools_mllp(request: Request):
 @router.get("/tools/endpoints-test", response_class=HTMLResponse)
 async def endpoints_test_page(request: Request):
     return get_templates_with_filters(request).TemplateResponse(
+        request,
         "endpoints_test.html",
         {"request": request, "title": "Endpoints de test"}
     )

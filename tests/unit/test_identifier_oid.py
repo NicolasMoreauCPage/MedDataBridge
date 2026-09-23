@@ -3,6 +3,9 @@
 import os
 import sys
 import asyncio
+import pytest
+
+pytestmark = pytest.mark.external
 
 os.environ['PAM_AUTO_CREATE_UF'] = '1'
 os.environ['LOG_LEVEL'] = 'DEBUG'

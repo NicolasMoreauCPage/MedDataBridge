@@ -3,6 +3,9 @@
 import os
 import sys
 import logging
+import pytest
+
+pytestmark = pytest.mark.external
 
 # Configurer les logs AVANT l'import
 logging.basicConfig(

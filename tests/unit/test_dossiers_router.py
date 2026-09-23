@@ -9,11 +9,10 @@ Ces tests couvrent :
 - Gestion des erreurs
 """
 
-import pytest
+import asyncio
 import unittest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
-from fastapi import Request
+from unittest.mock import Mock, patch
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 
 # Import direct pour éviter les conflits
@@ -540,8 +539,7 @@ class TestDossiersRouter(unittest.TestCase):
         assert isinstance(response, JSONResponse)
         assert response.status_code == 404
 
-    @pytest.mark.asyncio
-    async def test_api_create_dossier_success(self):
+    def test_api_create_dossier_success(self):
         """Test API création dossier - succès."""
         mock_session = Mock()
 
@@ -552,31 +550,37 @@ class TestDossiersRouter(unittest.TestCase):
         with patch('app.routers.dossiers.dossiers_service') as mock_service:
             mock_service.create_dossier_with_pre_admit_venue.return_value = Mock(id=123, dossier_seq=456)
 
-            response = await api_create_dossier(
+            response = asyncio.run(api_create_dossier(
                 patient_id=100,
                 dossier_type="hospitalise",
                 admit_time="2023-12-01T10:00:00",
                 uf_responsabilite="CARDIO",
+                admission_source=None,
+                attending_provider=None,
+                current_state="Pas de venue courante",
                 session=mock_session
-            )
+            ))
 
             assert isinstance(response, dict)
             assert response["id"] == 123
             assert response["dossier_seq"] == 456
             mock_service.create_dossier_with_pre_admit_venue.assert_called_once()
 
-    @pytest.mark.asyncio
-    async def test_api_create_dossier_patient_not_found(self):
+    def test_api_create_dossier_patient_not_found(self):
         """Test API création dossier - patient non trouvé."""
         mock_session = Mock()
         mock_session.get.return_value = None
 
-        response = await api_create_dossier(
+        response = asyncio.run(api_create_dossier(
             patient_id=999,
             dossier_type="hospitalise",
             admit_time="2023-12-01T10:00:00",
+            uf_responsabilite=None,
+            admission_source=None,
+            attending_provider=None,
+            current_state="Pas de venue courante",
             session=mock_session
-        )
+        ))
 
         assert isinstance(response, JSONResponse)
         assert response.status_code == 404

@@ -158,7 +158,12 @@ l'audit :
   validateur PAM accepte le profil ZBE national, les tests suivent les
   contrats d'erreur rétrocompatibles, les doubles DB ciblent le bon module et
   le catalogue sépare correctement les préambules HL7 des XML HPRIM. La suite
-  historique complète doit encore être stabilisée par familles de tests.
+  historique complète doit encore être stabilisée par familles de tests. Au
+  23 septembre 2026, la campagne `tests/unit` en environnement isolé passe
+  entièrement avec des marqueurs Pytest stricts : les scripts nécessitant une
+  archive PAM ou une base locale sont classés `external`, et les deux tests
+  asynchrones du routeur dossiers sont désormais effectivement exécutés. La
+  campagne d'intégration large reste à stabiliser séparément.
 - **FE-01 :** la logique de recherche de cotation moderne est extraite dans
   `static/js/cotation-selector.js`; le template ne conserve que son markup et
   l'inclusion du module. Une première tranche de `structure_new.html` (filtre,

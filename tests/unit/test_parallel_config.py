@@ -6,7 +6,8 @@ Optimisation des performances de test pour CI/CD
 
 import pytest
 import multiprocessing
-from typing import List, Dict, Any
+import os
+from typing import Dict, Any
 
 
 def pytest_configure(config):
@@ -117,7 +118,7 @@ def mutation_config():
 
 
 # Métriques de performance pour CI/CD
-class TestMetricsCollector:
+class MetricsCollector:
     """Collecte de métriques de test pour CI/CD"""
 
     def __init__(self):
@@ -151,7 +152,7 @@ class TestMetricsCollector:
 @pytest.fixture(scope="session")
 def test_metrics():
     """Fixture pour collecter les métriques de test"""
-    return TestMetrics()
+    return MetricsCollector()
 
 
 # Configuration pour les tests de charge

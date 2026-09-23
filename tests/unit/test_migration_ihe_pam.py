@@ -6,7 +6,9 @@ import sys
 from pathlib import Path
 import json
 import os
-from datetime import datetime
+import pytest
+
+pytestmark = pytest.mark.external
 
 # Ajouter le répertoire parent au path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -49,7 +51,7 @@ def test_migration_logic():
         inserted_scenarios += 1
         inserted_steps += len(scenario_data['steps'])
 
-    print(f"\\n✅ Test réussi:")
+    print("\\n✅ Test réussi:")
     print(f"  📊 Scénarios à insérer: {inserted_scenarios}")
     print(f"  📋 Étapes à insérer: {inserted_steps}")
 

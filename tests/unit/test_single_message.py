@@ -4,6 +4,9 @@ import os
 import sys
 import asyncio
 import traceback
+import pytest
+
+pytestmark = pytest.mark.external
 
 os.environ['PAM_AUTO_CREATE_UF'] = '1'
 

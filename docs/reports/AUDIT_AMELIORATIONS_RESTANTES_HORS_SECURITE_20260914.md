@@ -284,7 +284,9 @@ l'audit :
   contacts utilise désormais `static/js/contacts-list-workspace.js` pour sa
   confirmation et sa suppression asynchrone. Le tableau de bord GHT délègue
   enfin le rafraîchissement de sa supervision à
-  `static/js/ght-dashboard-workspace.js`.
+  `static/js/ght-dashboard-workspace.js`. La bascule du mode strict PAM de la
+  page de conformité est maintenant portée par
+  `static/js/conformity-home-workspace.js`.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

@@ -15,7 +15,6 @@ Hypothèses (POC):
 from __future__ import annotations
 
 
-from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 from sqlmodel import Session, select

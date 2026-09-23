@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Tuple
 
 from sqlmodel import Session, select
 
-from app.models import Patient, Dossier, Venue, Mouvement
+from app.models import Patient, Dossier
 from app.models_identifiers import Identifier
 from app.services.identifier_manager import (
     create_identifier_from_hl7,

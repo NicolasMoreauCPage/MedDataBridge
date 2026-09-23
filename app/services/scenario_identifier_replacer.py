@@ -10,12 +10,10 @@ Objectifs:
 
 from __future__ import annotations
 
-import re
 from typing import Optional, Dict, Tuple
 from sqlmodel import Session
 
 from app.models_structure import IdentifierNamespace
-from app.models_identifiers import IdentifierType
 from app.services.identifier_generator import generate_identifier, generate_identifier_set
 
 

@@ -5,17 +5,15 @@ Implémente :
 - PDQ : Recherche démographique de patients
 - PIXm/PDQm : Équivalents FHIR des profils ci-dessus
 """
-from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 import logging
 from sqlmodel import Session, select
 
 from app.models import Patient
-from app.models_identifiers import Identifier, IdentifierType
+from app.models_identifiers import Identifier
 from app.services.identifier_manager import (
     create_identifier_from_hl7,
     create_fhir_identifier,
-    get_main_identifier
 )
 
 logger = logging.getLogger(__name__)

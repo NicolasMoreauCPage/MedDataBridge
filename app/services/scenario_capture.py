@@ -13,7 +13,7 @@ Architecture :
 2. Indépendance totale : pas de FK vers Dossier/Venue/Mouvement
 3. Matérialisation : utilise scenario_template_materializer.py (comme templates IHE)
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional, Tuple
 from sqlmodel import Session, select
 

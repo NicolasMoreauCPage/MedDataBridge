@@ -1,12 +1,12 @@
-from typing import Optional, List, TYPE_CHECKING, ForwardRef
+from typing import Optional, List, TYPE_CHECKING
 from datetime import date, datetime
 from pydantic import ConfigDict, model_validator
 from sqlalchemy import Column
 from sqlalchemy.types import TypeDecorator, Date as SA_Date
 from enum import Enum
-from sqlmodel import SQLModel, Field, Relationship, Session
+from sqlmodel import SQLModel, Field, Relationship
 
-from app.models_identifiers import Identifier, IdentifierType
+from app.models_identifiers import Identifier
 import app.models_contacts
 import app.models_structure
 

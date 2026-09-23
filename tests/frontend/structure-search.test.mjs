@@ -517,6 +517,21 @@ test("bulk scenario execution uses a dedicated workspace for its selection contr
   assert.match(source, /addEventListener\("change", updateSelectedCount\)/);
 });
 
+test("qualification dashboard delegates partner-send confirmation", () => {
+  const template = readFileSync(
+    new URL("../../app/templates/qualification_dashboard.html", import.meta.url),
+    "utf8",
+  );
+  const source = readFileSync(
+    new URL("../../app/static/js/qualification-dashboard-workspace.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(template, /js\/qualification-dashboard-workspace\.js/);
+  assert.doesNotMatch(template, /<script>([\s\S]*?)<\/script>/);
+  assert.match(source, /window\.PameliaUi\?\.confirm/);
+  assert.match(source, /runForm\.requestSubmit/);
+});
+
 test("dossier cotation tabs are delegated and keyboard accessible", () => {
   const template = readFileSync(new URL("../../app/templates/dossier_cotations_detail.html", import.meta.url), "utf8");
   const source = readFileSync(new URL("../../app/static/js/dossier-cotations-tabs.js", import.meta.url), "utf8");

@@ -407,6 +407,9 @@ l'audit :
   Le détail dossier charge désormais son compteur de cotations depuis
   `static/js/dossier-detail-workspace.js`, avec l'identifiant transmis par un
   attribut `data-*` et des gardes explicites sur les éléments facultatifs.
+  Le tableau de qualification isole également dans
+  `static/js/qualification-dashboard-workspace.js` le choix à blanc/réel et la
+  confirmation préalable à toute émission partenaire.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

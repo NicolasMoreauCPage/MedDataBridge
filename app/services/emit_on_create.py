@@ -1,5 +1,4 @@
 import logging
-logger = logging.getLogger(__name__)
 import asyncio
 import json
 import time
@@ -21,7 +20,13 @@ from app.services.outbox_service import enqueue_message
 from app.services.pam_validation import validate_pam
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
-from app.services.pam_emission import dump_outbound_pam_payload, upsert_outbound_pam_log
+from app.services.pam_emission import (
+    dump_outbound_pam_payload,
+    send_outbound_pam,
+    upsert_outbound_pam_log,
+)
+
+logger = logging.getLogger(__name__)
 
 
 # Helper pour retry des requêtes SQLite en cas d'erreur de concurrence
@@ -1382,8 +1387,8 @@ def emit_to_senders_async(
                 if hl7_message is None or (isinstance(hl7_message, str) and hl7_message.strip() == ""):
                     hl7_message = "[Emission error: HL7 message not generated]"
                 try:
-                    # import parse_msh_fields and send_mllp at call time so tests can monkeypatch
-                    from app.services.mllp import parse_msh_fields, send_mllp as _send_mllp
+                    # Import tardif : le parseur reste remplaçable par les tests.
+                    from app.services.mllp import parse_msh_fields
                     hl7_fields = parse_msh_fields(hl7_message)
                     control_id = hl7_fields.get("control_id")
                 except Exception:
@@ -1409,56 +1414,12 @@ def emit_to_senders_async(
                             first_issue = next((issue.message for issue in val.issues if issue.severity == "error"), "Message PAM sortant non conforme")
                             ack_payload = f"[Emission bloquée : {first_issue}]"
                         elif endpoint.host and endpoint.port:
-                            # call the dynamically imported sender (may be monkeypatched)
-                            import time as _time
-                            import asyncio as _asyncio
-                            import inspect as _inspect
-                            _start = _time.time()
-                            _raw = _send_mllp(endpoint.host, endpoint.port, hl7_message)
-                            # _send_mllp is async; handle both coroutine and pre-resolved string
-                            if _inspect.iscoroutine(_raw):
-                                try:
-                                    running = _asyncio.get_running_loop()
-                                except RuntimeError:
-                                    running = None
-                                if running:
-                                    # Already inside an event loop — run in a separate thread
-                                    import concurrent.futures as _cf
-                                    import asyncio as _asyncio2
-                                    with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
-                                        _fut = _pool.submit(_asyncio2.run, _raw)
-                                        ack_payload = _fut.result(timeout=12)
-                                else:
-                                    ack_payload = _asyncio.run(_raw)
-                            else:
-                                ack_payload = _raw
-                            from app.services.mllp import parse_msh_fields
-                            ack_lines = ack_payload.split("\r") if ack_payload else []
-                            msa_line = next((line for line in ack_lines if line.startswith("MSA|")), None)
-                            ack_code = None
-                            if msa_line:
-                                msa_parts = msa_line.split("|")
-                                if len(msa_parts) > 1:
-                                    ack_code = msa_parts[1]
-                                if ack_code in ("AE", "AR"):
-                                    status = "error"
-                                else:
-                                    status = "sent"
-                            else:
-                                ack_payload = "[No host/port configured]"
-                                status = "error"
-                            # Metrics for PAM outbound
-                            try:
-                                from app.metrics import record_pam_ack
-                                msg_type = hl7_fields.get("msg_type") or "ADT^unknown"
-                                record_pam_ack(
-                                    direction="outbound",
-                                    ack_code=ack_code or "",
-                                    message_type=msg_type,
-                                    duration_seconds=_time.time() - _start,
-                                )
-                            except Exception:
-                                pass
+                            status, ack_payload = send_outbound_pam(
+                                endpoint.host,
+                                endpoint.port,
+                                hl7_message,
+                                message_type=hl7_fields.get("msg_type") or "ADT^unknown",
+                            )
                     except Exception as exc:
                         status = "error"
                         ack_payload = str(exc)

@@ -1,5 +1,9 @@
 from app.models_endpoints import MessageLog, SystemEndpoint
-from app.services.pam_emission import dump_outbound_pam_payload, upsert_outbound_pam_log
+from app.services.pam_emission import (
+    dump_outbound_pam_payload,
+    send_outbound_pam,
+    upsert_outbound_pam_log,
+)
 
 
 def test_outbound_pam_payload_dump_is_atomic_and_skips_generated_errors(tmp_path, monkeypatch):
@@ -25,3 +29,20 @@ def test_outbound_pam_log_is_upserted_by_correlation(session):
 
     assert first.id == second.id
     assert session.get(MessageLog, first.id).payload == "second"
+
+
+def test_outbound_pam_transport_interprets_positive_and_negative_acknowledgments():
+    positive = "MSH|^~\\&|DST|DST|SRC|SRC|20260923||ACK|A1|P|2.5\rMSA|AA|CTRL"
+    negative = "MSH|^~\\&|DST|DST|SRC|SRC|20260923||ACK|A2|P|2.5\rMSA|AE|CTRL"
+
+    assert send_outbound_pam("localhost", 2575, "payload", sender=lambda *_: positive) == ("sent", positive)
+    assert send_outbound_pam("localhost", 2575, "payload", sender=lambda *_: negative) == ("error", negative)
+
+
+def test_outbound_pam_transport_marks_ack_without_msa_as_an_error():
+    status, acknowledgment = send_outbound_pam(
+        "localhost", 2575, "payload", sender=lambda *_: "MSH|^~\\&|ACK"
+    )
+
+    assert status == "error"
+    assert acknowledgment == "[ACK MLLP sans segment MSA]"

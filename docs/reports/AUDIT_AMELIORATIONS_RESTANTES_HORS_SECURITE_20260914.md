@@ -282,7 +282,9 @@ l'audit :
   aussi sa sauvegarde, son rechargement et la protection des modifications non
   enregistrées à `static/js/validation-rules-workspace.js`. La liste des
   contacts utilise désormais `static/js/contacts-list-workspace.js` pour sa
-  confirmation et sa suppression asynchrone.
+  confirmation et sa suppression asynchrone. Le tableau de bord GHT délègue
+  enfin le rafraîchissement de sa supervision à
+  `static/js/ght-dashboard-workspace.js`.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

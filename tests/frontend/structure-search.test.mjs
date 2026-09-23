@@ -203,9 +203,11 @@ test("alert configuration delegates reads and mutations to the shared HTTP clien
 });
 
 test("GHT dashboard delegates supervision reads to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/ght_dashboard.html", import.meta.url), "utf8");
-  assert.match(source, /window\.medbridgeHttp\.get\('\/api\/endpoints'\)/);
-  assert.match(source, /window\.medbridgeHttp\.get\(/);
+  const template = readFileSync(new URL("../../app/templates/ght_dashboard.html", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../app/static/js/ght-dashboard-workspace.js", import.meta.url), "utf8");
+  assert.match(template, /js\/ght-dashboard-workspace\.js/);
+  assert.doesNotMatch(template, /window\.medbridgeHttp\./);
+  assert.match(source, /window\.medbridgeHttp\.get\("\/api\/endpoints"\)/);
   assert.doesNotMatch(source, /\bfetch\(/);
 });
 

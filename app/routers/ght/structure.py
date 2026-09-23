@@ -1,19 +1,17 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Request, Form
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.db import get_session
 from app.utils.flash import flash
 from app.models_structure import (
-    Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit,
-    LocationStatus, LocationMode, LocationServiceType
+    Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, LocationStatus, LocationMode, LocationServiceType
 )
 from .helpers import (
     get_context_or_404, get_ej_or_404, get_entite_geo_or_404,
     get_pole_or_404, get_service_or_404, get_uf_or_404, get_uh_or_404,
     get_chambre_or_404, get_lit_or_404,
-    templates, maybe, resolve_physical_type,
+    maybe, resolve_physical_type,
     pole_form_fields, service_form_fields, uf_form_fields, uh_form_fields,
     chambre_form_fields, lit_form_fields,
     with_form_values, render_form

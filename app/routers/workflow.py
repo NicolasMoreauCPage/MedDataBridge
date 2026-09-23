@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi import Request as FastAPIRequest
@@ -10,7 +10,7 @@ from app.models import Dossier, Venue, Mouvement, DossierType
 from app.utils.dossier_helpers import sync_dossier_class
 from app.models_structure import (
     Lit, Chambre, UniteHebergement, UniteFonctionnelle, 
-    Service, LocationStatus
+    Service
 )
 
 from app.services.emit_on_create import emit_to_senders as emit_on_create

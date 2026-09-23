@@ -7,7 +7,6 @@ Ce module fournit les fonctions de transformation entre:
 """
 
 from typing import Optional
-from app.models import DossierType
 
 
 def dossier_type_to_patient_class(dossier_type: Optional[str]) -> str:

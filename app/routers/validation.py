@@ -9,7 +9,6 @@ from app.services.pam_validation import validate_pam
 from app.services.hl7_display import build_hl7_view
 from app.services.hprim.hprim_service import HprimService
 from app.services.scenario_validation import validate_scenario
-import json
 
 
 def get_templates_with_filters(request: FastAPIRequest):

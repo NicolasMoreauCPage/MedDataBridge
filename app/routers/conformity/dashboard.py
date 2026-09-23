@@ -168,7 +168,6 @@ async def ej_messages(ej_id: int, request: Request, session: Session = Depends(g
     messages = session.exec(stmt).all()
     
     # Enrichir avec statut validation
-    import json
     message_list = []
     for msg in messages:
         is_valid = True

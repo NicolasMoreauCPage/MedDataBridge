@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
@@ -10,11 +9,6 @@ from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.pam import generate_pam_messages_for_dossier
 from app.models import Dossier
 
-import asyncio
-import contextlib
-from datetime import datetime
-from typing import Tuple, List, Optional
-from pathlib import Path
 
 
 

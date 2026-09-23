@@ -7,8 +7,8 @@ Ce module fournit des fonctions pour calculer:
 """
 from __future__ import annotations
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional
-from sqlmodel import Session, select, func, and_
+from typing import Dict, List, Optional
+from sqlmodel import Session, select, and_
 from collections import Counter
 
 from app.models_endpoints import MessageLog

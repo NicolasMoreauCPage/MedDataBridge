@@ -1430,7 +1430,7 @@ def seed_demo_population(
     """
     from app.models import Patient, Dossier, Venue, Mouvement, DossierType
     from app.db import get_next_sequence
-    from app.models_vocabulary import VocabularySystem, VocabularyValue
+    from app.models_vocabulary import VocabularySystem
     from sqlalchemy import func
     from sqlmodel import select
 

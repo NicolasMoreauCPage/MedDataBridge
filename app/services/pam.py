@@ -1316,7 +1316,6 @@ async def handle_admission_message(
             try:
                 # use global select
                 from app.models_structure import UniteFonctionnelle
-                from app.models_structure import EntiteJuridique
                 
                 # Chercher l'UF dans la structure
                 uf_found = session.exec(
@@ -1330,7 +1329,7 @@ async def handle_admission_message(
                     if os.getenv("PAM_AUTO_CREATE_UF", "0") in ("1", "true", "True"):
                         try:
                             from app.models_structure import (
-                                UniteFonctionnelle, Service, Pole, LocationPhysicalType
+                                UniteFonctionnelle, LocationPhysicalType
                             )
                             from app.models_structure import EntiteGeographique
                             # use global select

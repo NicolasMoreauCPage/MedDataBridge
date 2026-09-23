@@ -236,7 +236,6 @@ async def _emit_organization_upsert(entity, session: Session, ght_context_id=Non
 
 async def _emit_organization_delete(entity_id: int, finess_ej: str, session: Session) -> None:
     """Émet FHIR Organization DELETE vers les endpoints sender."""
-    from app.models_structure import EntiteJuridique
     bundle = {
         "resourceType": "Bundle",
         "type": "transaction",
@@ -663,8 +662,6 @@ async def emit_structure_snapshot_ej(ej_id: int, session: Session) -> None:
 
 async def emit_structure_delete(entity_id: int, session: Session, entity_type: str = None, finess_ej: str = None) -> None:
     """Émet FHIR (DELETE) + HL7 MFN snapshot après suppression d'une entité de structure."""
-    from app.models_structure import EntiteJuridique
-    
     # Si c'est une EntiteJuridique, émettre Organization DELETE
     if entity_type == "EntiteJuridique":
         await _emit_organization_delete(entity_id, finess_ej, session)

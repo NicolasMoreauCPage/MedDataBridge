@@ -8,7 +8,7 @@ os.environ["TESTING"] = "1"
 from sqlmodel import SQLModel, create_engine, select, Session
 
 from app.models_structure import GHTContext, EntiteJuridique
-from app.models_transport import SystemEndpoint
+from app.models_shared import SystemEndpoint
 from app.models import Patient, Venue, Mouvement
 from app.services.structure_seed import (
     ensure_extended_demo_ght,
@@ -18,6 +18,7 @@ from app.services.structure_seed import (
 
 engine = create_engine("sqlite:///:memory:")
 import app.models_vocabulary  # ensure vocabulary models are registered before create_all
+import app.models_endpoints  # ensure transport configuration tables are registered
 SQLModel.metadata.create_all(engine)
 
 def session_factory_local():

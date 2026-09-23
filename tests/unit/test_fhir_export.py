@@ -3,12 +3,12 @@
 Tests unitaires pour l'export FHIR.
 """
 
-import pytest
 from sqlmodel import select
 from datetime import datetime
 
 from app.models import Patient, Dossier
 from app.models_structure import EntiteJuridique, GHTContext
+from app.services.fhir_export_service import FHIRExportService
 
 
 class TestFHIRExport:
@@ -96,6 +96,35 @@ class TestFHIRExport:
         data = response.json()
         assert "detail" in data
         assert "Entité juridique non trouvée" in data["detail"]
+
+    def test_export_patients_applies_a_bounded_page_and_exposes_total(self, session):
+        ght = GHTContext(name="Pagination GHT", code="PAGINATION")
+        ej = EntiteJuridique(name="Pagination EJ", code="PAGINATION-EJ", ght_context=ght)
+        session.add_all([ght, ej])
+        session.flush()
+        for index in range(3):
+            patient = Patient(family=f"Pagination {index}", given="Patient")
+            session.add(patient)
+            session.flush()
+            session.add(
+                Dossier(
+                    dossier_seq=78_000 + index,
+                    patient_id=patient.id,
+                    admit_time=datetime.utcnow(),
+                )
+            )
+        session.commit()
+
+        bundle = FHIRExportService(session, "http://localhost/fhir", enable_cache=False).export_patients(
+            ej,
+            limit=1,
+            offset=1,
+        )
+
+        assert bundle.total >= 3
+        assert len(bundle.entry) == 1
+        assert bundle.meta["offset"] == 1
+        assert bundle.meta["limit"] == 1
 
     def test_export_dossier_success(self, client, session):
         """Test export complet FHIR - succès"""

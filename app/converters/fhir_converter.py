@@ -99,6 +99,7 @@ class FHIRBundle(BaseModel):
     resourceType: str = "Bundle"
     type: str = "transaction"
     entry: List[FHIRBundleEntry]
+    total: Optional[int] = None
     meta: Optional[Dict[str, Any]] = None
 
 class HL7ToFHIRConverter:

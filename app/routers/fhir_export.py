@@ -55,8 +55,8 @@ async def export_structure(
 @router.get("/export/patients/{ej_id}", response_model=dict)
 async def export_patients(
     ej_id: int,
-    limit: Optional[int] = Query(None, description="Nombre maximum de patients à exporter"),
-    offset: Optional[int] = Query(0, description="Nombre de patients à sauter"),
+    limit: int = Query(100, ge=1, le=500, description="Nombre maximum de patients à exporter"),
+    offset: int = Query(0, ge=0, description="Nombre de patients à sauter"),
     session: Session = Depends(get_session)
 ):
     """
@@ -92,7 +92,7 @@ async def export_patients(
     # Exporter les patients
     import time as _time
     _start = _time.time()
-    bundle = service.export_patients(ej)
+    bundle = service.export_patients(ej, limit=limit, offset=offset)
     record_fhir_event_safely("outbound", "patient", "export", True, 200, _time.time() - _start)
     return bundle.model_dump()
 

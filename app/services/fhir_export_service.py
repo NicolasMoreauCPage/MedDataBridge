@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict
 from collections import defaultdict
 from sqlmodel import Session, select
+from sqlalchemy import func
 import os
 
 from app.models_structure import (
@@ -317,13 +318,21 @@ class FHIRExportService:
         
         return bundle
     
-    def export_patients(self, ej: EntiteJuridique) -> FHIRBundle:
-        """Exporte les patients d'un établissement en FHIR."""
+    def export_patients(
+        self,
+        ej: EntiteJuridique,
+        *,
+        limit: int | None = 100,
+        offset: int = 0,
+    ) -> FHIRBundle:
+        """Exporte une page bornée de patients d'un établissement en FHIR."""
         import time
         start_time = time.time()
+        page_limit = min(max(int(limit or 100), 1), 500)
+        page_offset = max(int(offset), 0)
         
         # Vérifier le cache
-        cache_key = f"fhir:export:patients:ej:{ej.id}"
+        cache_key = f"fhir:export:patients:ej:{ej.id}:offset:{page_offset}:limit:{page_limit}"
         if self.cache and self.enable_cache:
             cached = self.cache.get(cache_key)
             if cached:
@@ -351,11 +360,16 @@ class FHIRExportService:
             .distinct()  # Ensure no duplicate patients
         )
         
-        patients = self.session.exec(patients_qs).all()
+        total = int(
+            self.session.exec(select(func.count()).select_from(patients_qs.subquery())).one()
+        )
+        patients = self.session.exec(
+            patients_qs.order_by(Patient.id).offset(page_offset).limit(page_limit)
+        ).all()
 
         # Fallback for datasets where pre-admit venues are missing/partial:
         # use dossier UF linkage to recover EJ-associated patients.
-        if not patients:
+        if total == 0:
             fallback_qs = (
                 select(Patient)
                 .join(Dossier, Dossier.patient_id == Patient.id)
@@ -366,19 +380,30 @@ class FHIRExportService:
                 .where(EntiteGeographique.entite_juridique_id == ej.id)
                 .distinct()
             )
-            patients = self.session.exec(fallback_qs).all()
+            total = int(
+                self.session.exec(select(func.count()).select_from(fallback_qs.subquery())).one()
+            )
+            patients = self.session.exec(
+                fallback_qs.order_by(Patient.id).offset(page_offset).limit(page_limit)
+            ).all()
 
         # Final fallback for interoperability: export patients having dossiers
         # even if structural linkage (UF/EJ) is not fully populated in test/legacy data.
-        if not patients:
+        if total == 0:
             self.logger.warning(
                 "Patient export fallback activated: no EJ-linked patients found",
                 ej_id=ej.id,
             )
-            patients = self.session.exec(
+            fallback_qs = (
                 select(Patient)
                 .join(Dossier, Dossier.patient_id == Patient.id)
                 .distinct()
+            )
+            total = int(
+                self.session.exec(select(func.count()).select_from(fallback_qs.subquery())).one()
+            )
+            patients = self.session.exec(
+                fallback_qs.order_by(Patient.id).offset(page_offset).limit(page_limit)
             ).all()
 
         for patient in patients:
@@ -450,8 +475,11 @@ class FHIRExportService:
         bundle = FHIRBundle(
             type='collection',
             entry=entries,
+            total=total,
             meta={
-                "lastUpdated": datetime.now().isoformat()
+                "lastUpdated": datetime.now().isoformat(),
+                "offset": page_offset,
+                "limit": page_limit,
             }
         )
         

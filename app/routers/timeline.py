@@ -152,7 +152,7 @@ def _build_patient_events(patient: Patient, graph: TimelineGraph) -> List[Dict[s
                 "icon": "logout",
                 "color": "red",
                 "title": f"Sortie - Dossier #{dossier.dossier_seq}",
-                "description": f"Fin d'hospitalisation",
+                "description": "Fin d'hospitalisation",
                 "datetime": dossier.discharge_time,
                 "entity_id": dossier.id,
                 "entity_type": "dossier"
@@ -189,7 +189,7 @@ def _build_dossier_events(dossier: Dossier, graph: TimelineGraph) -> List[Dict[s
             "type": "admission",
             "icon": "login",
             "color": "green",
-            "title": f"Admission",
+            "title": "Admission",
             "description": f"UF: {uf_resp}",
             "datetime": dossier.admit_time,
             "entity_id": dossier.id,
@@ -235,8 +235,8 @@ def _build_dossier_events(dossier: Dossier, graph: TimelineGraph) -> List[Dict[s
             "type": "discharge",
             "icon": "logout",
             "color": "red",
-            "title": f"Sortie",
-            "description": f"Fin d'hospitalisation",
+            "title": "Sortie",
+            "description": "Fin d'hospitalisation",
             "datetime": dossier.discharge_time,
             "entity_id": dossier.id,
             "entity_type": "dossier"

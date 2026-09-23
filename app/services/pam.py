@@ -639,7 +639,7 @@ async def _handle_cancel_discharge(
         zbe_data = _parse_zbe_segment(message) if message else None
         
         if not zbe_data or not zbe_data.get("movement_id"):
-            logger.warning(f"[pam][cancel-discharge] No ZBE segment, fallback to last discharge")
+            logger.warning("[pam][cancel-discharge] No ZBE segment, fallback to last discharge")
             # Solution de repli: chercher la dernière sortie
             identifiers = pid_data.get("identifiers", [])
             if not identifiers:
@@ -787,7 +787,7 @@ async def _handle_cancel_transfer(
         zbe_data = _parse_zbe_segment(message) if message else None
         
         if not zbe_data or not zbe_data.get("movement_id"):
-            logger.warning(f"[pam][cancel-transfer] No ZBE segment, fallback to last transfer")
+            logger.warning("[pam][cancel-transfer] No ZBE segment, fallback to last transfer")
             # Solution de repli: chercher le dernier transfert
             identifiers = pid_data.get("identifiers", [])
             if not identifiers:
@@ -1534,7 +1534,7 @@ async def handle_admission_message(
                         session.add(ident)
 
         # REMARQUE: Message emission is now automatic via entity_events.py listeners
-        logger.debug(f"[pam][admission] handler returning: success=True, err=None")
+        logger.debug("[pam][admission] handler returning: success=True, err=None")
         return True, None
     except Exception as e:
         logger.error(f"[pam][admission] Exception during admission handler: {e}", exc_info=True)

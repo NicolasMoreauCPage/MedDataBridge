@@ -289,7 +289,7 @@ async def clone_entite_juridique(
             config_data['uf_mutation_cible_id'] = None
             new_config = ScenarioEJConfig(**config_data)
             session.add(new_config)
-            logger.info(f"Cloné ScenarioEJConfig (UF à reconfigurer)")
+            logger.info("Cloné ScenarioEJConfig (UF à reconfigurer)")
         
         # 4. Cloner la structure complète avec mapping des IDs
         # Maps old_id -> new_id pour chaque niveau

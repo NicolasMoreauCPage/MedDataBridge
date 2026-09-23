@@ -294,7 +294,7 @@ async def create_ej_namespace(
     # Validation basique
     if not form.get("name") or not form.get("system"):
         flash(request, "Le nom et le système (URI) sont requis", level="error")
-        logger.warning(f"Validation échouée pour EJ namespace: name ou system manquant")
+        logger.warning("Validation échouée pour EJ namespace: name ou system manquant")
         return RedirectResponse(f"/admin/ght/{ght_id}/ej/{ej_id}/namespaces/new", status_code=303)
     
     # Check system+type uniqueness dans le contexte GHT (plusieurs types peuvent partager le même URI)

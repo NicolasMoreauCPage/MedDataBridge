@@ -486,7 +486,7 @@ def _build_fhir_bundle(semantic: str, ids: dict, ej: Optional[EntiteJuridique]) 
                     "status": status,
                     "class": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "IMP"},
                     "subject": {"reference": f"Patient/{ipp}"},
-                    "participant": [{"individual": {"reference": f"Practitioner/PRACT-DR001"}}],
+                    "participant": [{"individual": {"reference": "Practitioner/PRACT-DR001"}}],
                     "serviceProvider": {"reference": f"Organization/{org_id}"},
                     "location": [{"location": {"reference": "Location/LOC-WARD"}}],
                     "extension": [

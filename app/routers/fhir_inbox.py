@@ -10,10 +10,14 @@ async def receive_fhir(request: Request, session=Depends(get_session)):
     # Reçoit un Bundle/Resource FHIR en JSON
     body = await request.body()
     log = MessageLog(direction="in", kind="FHIR", payload=body.decode("utf-8"), status="received")
-    session.add(log); session.commit()
+    session.add(log)
+    session.commit()
     outcome = {
         "resourceType": "OperationOutcome",
         "issue": [{"severity":"information","code":"informational","diagnostics":"Received"}]
     }
-    log.ack_payload = str(outcome); log.status = "ack_ok"; session.add(log); session.commit()
+    log.ack_payload = str(outcome)
+    log.status = "ack_ok"
+    session.add(log)
+    session.commit()
     return JSONResponse(outcome, status_code=201)

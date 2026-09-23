@@ -319,7 +319,8 @@ def update_venue(
     v.uf_responsabilite = uf_responsabilite
     v.start_time = datetime.fromisoformat(start_time)
     v.venue_seq = venue_seq
-    session.add(v); session.commit()
+    session.add(v)
+    session.commit()
     
     # Refresh with relationships for emit_to_senders
     session.refresh(v, ["dossier"])
@@ -345,5 +346,6 @@ def delete_venue(venue_id: int, request: Request, session=Depends(get_session)):
     from app.services.emit_on_create import emit_to_senders
     # Emit before deleting to avoid DetachedInstanceError in emit pipeline
     emit_to_senders(v, "venue", session, operation="delete")
-    session.delete(v); session.commit()
+    session.delete(v)
+    session.commit()
     return RedirectResponse(url=f"/venues?dossier_id={dossier_id}", status_code=303)

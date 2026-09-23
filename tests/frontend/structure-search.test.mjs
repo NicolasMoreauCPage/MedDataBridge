@@ -28,8 +28,13 @@ test("interactive structure editing uses the shared HTTP client", () => {
 });
 
 test("structure dashboard delegates every API call to the shared HTTP client", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
+  const template = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../../app/static/js/structure-dashboard-workspace.js", import.meta.url),
+    "utf8",
+  );
   const actions = readFileSync(new URL("../../app/static/js/structure-new-actions.js", import.meta.url), "utf8");
+  assert.match(template, /js\/structure-dashboard-workspace\.js/);
   assert.match(source, /window\.medbridgeHttp\.get\(apiUrl\)/);
   assert.match(source, /window\.medbridgeHttp\.get\(\s*`\/api\/structure\/details/);
   assert.match(actions, /window\.medbridgeHttp\.post\(\s*'\/api\/structure\/bulk-action'/);
@@ -37,18 +42,20 @@ test("structure dashboard delegates every API call to the shared HTTP client", (
   assert.doesNotMatch(actions, /\bfetch\(/);
 });
 
-test("structure dashboard inline behavior remains valid JavaScript", () => {
-  const source = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
-  const match = source.match(/<script>\s*([\s\S]*?)<\/script>/);
+test("structure dashboard workspace remains valid JavaScript", () => {
+  const source = readFileSync(
+    new URL("../../app/static/js/structure-dashboard-workspace.js", import.meta.url),
+    "utf8",
+  );
 
-  assert.ok(match, "Le script de comportement structure doit être présent");
-  assert.doesNotThrow(() => new Function(match[1]));
+  assert.doesNotThrow(() => new Function(source));
 });
 
 test("structure dashboard delegates its bulk actions to an external page asset", () => {
   const template = readFileSync(new URL("../../app/templates/structure_new.html", import.meta.url), "utf8");
   const actions = readFileSync(new URL("../../app/static/js/structure-new-actions.js", import.meta.url), "utf8");
   assert.match(template, /js\/structure-new-actions\.js/);
+  assert.match(template, /defer src="\{\{ url_for\('static', path='js\/structure-new-actions\.js'\) \}\}"/);
   assert.match(actions, /window\.medbridgeHttp\.post\(/);
   assert.doesNotMatch(actions, /\bfetch\(/);
 });

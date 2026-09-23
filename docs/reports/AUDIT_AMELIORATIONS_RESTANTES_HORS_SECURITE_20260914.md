@@ -216,6 +216,9 @@ l'audit :
   le bouton d'actualisation est désormais réellement raccordé à son identifiant.
   L'assistant de structure délègue maintenant toutes ses étapes, sa validation,
   ses modèles et sa génération à `static/js/structure-wizard-workspace.js`.
+  Le tableau principal de structure délègue également son arbre, ses vues,
+  recherches et détails à `static/js/structure-dashboard-workspace.js` ; son
+  asset d'actions chargé ensuite est différé afin de préserver cet ordre.
   L'extraction des autres grands
   écrans cotation classique reste à poursuivre.
 - **FE-02 :** l'asset non référencé `cotationForm.js`, qui simulait une

@@ -209,7 +209,7 @@ l'audit :
   PostgreSQL; il ne dépend plus de `SQLModel.metadata.create_all()`.
 - **BE-07 :** les familles Ruff bloquantes `F821`, `F823`, `F601` et `F811`
   sont à zéro dans `app/` et sont imposées par la CI. Le nettoyage progressif
-  des 121 alertes restantes (principalement imports et imports tardifs)
+  des 84 alertes restantes (principalement imports tardifs)
   variables inutilisées) demeure un chantier distinct ; aucun correctif global
   automatique n'a été appliqué. La CI impose aussi une baseline globale à 121
   anomalies : toute nouvelle alerte échoue désormais avant fusion. Les deux
@@ -219,6 +219,9 @@ l'audit :
   été retirés des schémas et services isolés, puis des adaptateurs FHIR/HPRIM
   et de polling. Les constructions de mappings restants sont maintenant
   justifiées par leur cascade ORM et couvertes par un test SQLite dédié.
+  Les imports nécessaires au registre ORM de `app.db` sont maintenant annotés
+  explicitement, ce qui évite de confondre leur effet de bord voulu avec une
+  dette d'import inutilisé.
   Un lot supplémentaire a retiré douze imports sans effet de bord des modèles
   et services isolés, avec les régressions PAM, PIX/PDQ, MFN et scénarios.
   Les réexports inutilisés de 24 routeurs ont également été supprimés du paquet

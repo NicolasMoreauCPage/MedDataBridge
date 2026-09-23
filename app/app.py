@@ -39,7 +39,7 @@ from app.middleware.error_handler import ErrorHandlingMiddleware, RequestLogging
 from app.metrics import MetricsMiddleware
 
 from app.db import migrate_database, engine
-from app import models_scenarios  # ensure scenario models are registered
+from app import models_scenarios  # noqa: F401 - ORM registry
 from app.admin import register_admin_views  # SQLAdmin views
 from app.db_session_factory import session_factory
 from app.services.transport_inbound import on_message_inbound

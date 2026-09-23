@@ -8,7 +8,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 from app.models_identifiers import Identifier
 import app.models_contacts
-import app.models_structure
+import app.models_structure  # noqa: F401 - registre des relations ORM
 
 if TYPE_CHECKING:
     from app.models_contacts import PatientContact, VenueContact

@@ -202,7 +202,9 @@ l'audit :
   base locale sont explicitement classés `external`, et le workflow dossiers
   utilise l'API SQLModel actuelle. Une nouvelle exécution complète des deux
   campagnes, après les lots de qualité livrés le 23 septembre 2026, confirme
-  cette isolation sans échec.
+  cette isolation sans échec : `tests/unit` compte 684 réussites, 14 ignorés,
+  5 désélectionnés et 10 `xfail` attendus ; `tests/integration` compte 108
+  réussites, 3 ignorés, 9 désélectionnés, 8 `xfail` et 2 `xpass`.
 - **FE-01 :** la logique de recherche de cotation moderne est extraite dans
   `static/js/cotation-selector.js`; le template ne conserve que son markup et
   l'inclusion du module. Une première tranche de `structure_new.html` (filtre,
@@ -872,7 +874,14 @@ TESTING=1 PYTHONPATH=. .venv/bin/pytest -c pytest.ini -q \
   --ignore=tests/e2e --ignore=tests/performance
 ```
 
-La suite large a été arrêtée après 7 min 14 s : **129 réussis, 4 échecs, 6
+> Mise à jour du 23 septembre 2026 : cette campagne historique est remplacée
+> par deux campagnes isolées vertes. `tests/unit` compte 684 réussites, 14
+> ignorés, 5 désélectionnés et 10 `xfail`; `tests/integration` compte 108
+> réussites, 3 ignorés, 9 désélectionnés, 8 `xfail` et 2 `xpass`. Trois
+> avertissements de dépréciation `BaseModel.dict()` subsistent dans l'import
+> legacy, sans échec associé.
+
+La campagne historique avait été arrêtée après 7 min 14 s : **129 réussis, 4 échecs, 6
 ignorés et 11 xfail**, à environ 13 % de la collecte. Les échecs observés
 concernent deux migrations Alembic, la capture des logs/métriques et un test qui
 contacte un serveur HTTP réel puis atteint le timeout de 300 secondes. Ce

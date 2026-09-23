@@ -28,6 +28,7 @@ from app.services.pam_emission_primitives import (
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
 from app.services.pam_movement_events import message_structure_for_event, select_movement_event
 from app.services.pam_movement_context import load_movement_context
+from app.services.pam_movement_segments import build_movement_pv1
 from app.services.zbe_fields import build_xon_unit, derive_zbe_nature
 
 logger = logging.getLogger(__name__)
@@ -543,65 +544,10 @@ def generate_pam_hl7(
             )
             pid = f"PID|1||UNKNOWN^^^{authority}^PI||UNKNOWN^UNKNOWN||||||||||||||||||||"
         
-        # Build PV1 segment avec mapping vocabulaire
-        from app.services.vocabulary_translate import map_code
-        
-        # Déterminer encounter_class depuis le dossier pour mapper vers patient_class
-        if dossier:
-            dossier_type_val = getattr(dossier, "dossier_type", None)
-            if hasattr(dossier_type_val, "value"):
-                dossier_type_val = dossier_type_val.value
-            encounter_class = str(dossier_type_val) if dossier_type_val else "IMP"
-            
-            # Utiliser le mapping vocabulaire
-            patient_class = map_code(
-                session,
-                source_system_name="encounter-class",
-                source_code=encounter_class,
-                target_system_name="patient-class"
-            )
-            
-            # Solution de repli si pas de mapping
-            if not patient_class:
-                patient_class_map = {"hospitalise": "I", "externe": "O", "urgence": "E", "IMP": "I", "AMB": "O", "EMER": "E"}
-                patient_class = patient_class_map.get(encounter_class, "I")
-        else:
-            patient_class = "I"  # Inpatient by default
-        
-        location = entity.location or entity.to_location or ""
-        if venue:
-            uf_resp = venue.uf_responsabilite or ""
-        elif dossier:
-            uf_resp = dossier.uf_responsabilite or ""
-        else:
-            uf_resp = ""
-        
-        # PV1-19 (Visit Number) - use venue_seq (numéro de venue)
-        visit_number_pv1 = str(venue.venue_seq) if venue else str(entity.mouvement_seq)
-        
-        # PV1-19 (Visit Number) - use venue_seq (numéro de venue) as full CX
-        # PV1-19 (Visit Number) - use venue_seq (numéro de venue) as full CX
-        authority_vn, vn_type = _resolve_namespace_authority(
-            session, getattr(dossier, 'entite_juridique_id', None) if dossier else getattr(venue, 'entite_juridique_id', None),
-            "VN",
-            forced_system=forced_identifier_system, forced_oid=forced_identifier_oid
+        pv1 = build_movement_pv1(
+            session, entity, venue, dossier, timestamp, _resolve_namespace_authority,
+            forced_identifier_system, forced_identifier_oid,
         )
-        pv1_19 = f"{visit_number_pv1}^^^{authority_vn}^{vn_type}"
-        # Indexed construction prevents an off-by-one field shift. PV1-19 is
-        # the venue identifier, PV1-44 the admission timestamp and PV1-52 the
-        # responsible UF; those positions are read by the inbound PAM parser.
-        pv1_fields = [""] * 53
-        pv1_fields[0] = "PV1"
-        pv1_fields[1] = "1"
-        pv1_fields[2] = patient_class
-        pv1_fields[3] = location
-        pv1_fields[19] = pv1_19
-        if dossier and getattr(dossier, "admit_time", None):
-            pv1_fields[44] = dossier.admit_time.strftime("%Y%m%d%H%M%S")
-        else:
-            pv1_fields[44] = timestamp
-        pv1_fields[52] = uf_resp
-        pv1 = "|".join(pv1_fields)
 
         # ZBE segment generation for mouvement (same format as venue)
         # ZBE-1 is repeatable (EI~EI~...) for cooperative Movement Management : several

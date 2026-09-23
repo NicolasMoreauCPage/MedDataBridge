@@ -1189,31 +1189,32 @@ async def handle_admission_message(
             )
             session.add(dossier)
             session.flush()
-        print(f"[pam] Created dossier id={dossier.id} dossier_seq={dossier.dossier_seq} patient_id={dossier.patient_id}")
+        logger.info(
+            "PAM dossier prepared id=%s dossier_seq=%s patient_id=%s",
+            dossier.id,
+            dossier.dossier_seq,
+            dossier.patient_id,
+        )
 
         # If PID-18 (account number) was provided, persist it as a Dossier identifier
-        try:
-            acc_raw = pid_data.get("account_number")
-            if acc_raw:
-                # use global Identifier from module-level import
-                try:
-                    ident = create_identifier_from_hl7(acc_raw, "dossier", dossier.id)
-                    # Ensure PID-18 is recorded as AN (Account Number) when no explicit type present
-                    try:
-                        # use module-level IdentifierType: treat HL7 PI as IPP and AN as NDA
-                        if ident.type == IdentifierType.IPP:
-                            ident.type = IdentifierType.NDA
-                    except Exception:
-                        pass
-                    exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
-                    if not exists:
-                        session.add(ident)
-                        session.flush()
-                except Exception:
-                    # tolerate bad format
-                    pass
-        except Exception:
-            pass
+        acc_raw = pid_data.get("account_number")
+        if acc_raw:
+            try:
+                ident = create_identifier_from_hl7(acc_raw, "dossier", dossier.id)
+            except (TypeError, ValueError):
+                # Un PID-18 mal formé n'empêche pas l'admission, mais il doit
+                # être visible pour corriger l'émetteur.
+                logger.warning("Invalid PID-18 dossier identifier value=%r", acc_raw, exc_info=True)
+            else:
+                # PID-18 est un compte administratif (AN/NDA), jamais un IPP.
+                if ident.type == IdentifierType.IPP:
+                    ident.type = IdentifierType.NDA
+                exists = session.exec(
+                    select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)
+                ).first()
+                if not exists:
+                    session.add(ident)
+                    session.flush()
 
         v_seq = get_next_sequence(session, "venue")
         
@@ -1248,7 +1249,12 @@ async def handle_admission_message(
             if location_value:
                 existing_venue.assigned_location = location_value
             venue = existing_venue
-            print(f"[pam] Updated venue id={venue.id} venue_seq={venue.venue_seq} for {trigger} confirmation")
+            logger.info(
+                "PAM venue updated id=%s venue_seq=%s trigger=%s",
+                venue.id,
+                venue.venue_seq,
+                trigger,
+            )
         else:
             venue = Venue(
                 venue_seq=v_seq,
@@ -1260,31 +1266,30 @@ async def handle_admission_message(
             )
             session.add(venue)
             session.flush()
-            print(f"[pam] Created venue id={venue.id} venue_seq={venue.venue_seq} dossier_id={venue.dossier_id}")
+            logger.info(
+                "PAM venue prepared id=%s venue_seq=%s dossier_id=%s",
+                venue.id,
+                venue.venue_seq,
+                venue.dossier_id,
+            )
 
         # If PV1-19 (visit number) was provided, persist it as a Venue identifier
-        try:
-            visit_raw = pv1_data.get("visit_number")
-            if visit_raw:
-                # use global Identifier from module-level import
-                try:
-                    ident = create_identifier_from_hl7(visit_raw, "venue", venue.id)
-                    # Ensure PV1-19 is recorded as VN (Visit Number) when no explicit type present
-                    try:
-                        # use module-level IdentifierType: treat HL7 PI as IPP
-                        if ident.type == IdentifierType.IPP:
-                            ident.type = IdentifierType.VN
-                    except Exception:
-                        pass
-                    exists = session.exec(select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)).first()
-                    if not exists:
-                        session.add(ident)
-                        session.flush()
-                except Exception:
-                    # tolerate bad format
-                    pass
-        except Exception:
-            pass
+        visit_raw = pv1_data.get("visit_number")
+        if visit_raw:
+            try:
+                ident = create_identifier_from_hl7(visit_raw, "venue", venue.id)
+            except (TypeError, ValueError):
+                logger.warning("Invalid PV1-19 venue identifier value=%r", visit_raw, exc_info=True)
+            else:
+                # PV1-19 est un numéro de venue (VN), jamais un IPP.
+                if ident.type == IdentifierType.IPP:
+                    ident.type = IdentifierType.VN
+                exists = session.exec(
+                    select(Identifier).where(Identifier.system == ident.system, Identifier.value == ident.value)
+                ).first()
+                if not exists:
+                    session.add(ident)
+                    session.flush()
 
         # Déterminer la date du mouvement : priorité ZBE-2, puis PV1, puis now
         movement_datetime = datetime.now(timezone.utc)

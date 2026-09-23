@@ -124,7 +124,12 @@ l'audit :
   retourne une erreur 422 plutôt que d'élargir silencieusement la liste. Un
   `UPDATE`/`CANCEL` PAM sans ZBE-1 ne peut enfin plus devenir une création en
   cas d'indisponibilité de la vérification d'historique : l'incident est corrélé
-  et le chemin strict retourne un rejet explicite.
+  et le chemin strict retourne un rejet explicite. Les identifiants
+  administratifs PID-18 et PV1-19 du traitement PAM historique sont désormais
+  persistés sans capture silencieuse : les erreurs de base remontent à la
+  transaction, tandis qu'un format HL7 invalide est explicitement averti sans
+  bloquer l'admission. Les sorties `print` de ce parcours ont été remplacées par
+  le logger applicatif.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,

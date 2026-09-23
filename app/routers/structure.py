@@ -20,6 +20,11 @@ from app.services.structure_template_application import (
     StructureTemplateValidationError,
     apply_structure_template as apply_structure_template_use_case,
 )
+from app.services.structure_details import (
+    StructureEntityNotFoundError,
+    UnknownStructureTypeError,
+    get_structure_details as get_structure_details_use_case,
+)
 from app.services.mfn_importer import import_mfn
 from app.dependencies.ght import require_ght_context
 from app.services.vocabulary_lookup import get_vocabulary_options
@@ -276,115 +281,21 @@ async def apply_structure_template(
     )
 
 @api_router.get("/details/{type}/{id}")
-async def get_structure_details(
+def get_structure_details(
     type: str,
     id: int,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
-    # Sélectionner l'entité appropriée selon le type
-    model_map = {
-        'eg': EntiteGeographique,
-        'pole': Pole,
-        'service': Service,
-        'uf': UniteFonctionnelle,
-        'uh': UniteHebergement,
-        'chambre': Chambre,
-        'lit': Lit
-    }
-    
-    model = model_map.get(type)
-    if not model:
-        raise HTTPException(status_code=400, detail="Type invalide")
-        
-    entity = session.get(model, id)
-    if not entity:
-        raise HTTPException(status_code=404, detail="Entité non trouvée")
-        
-    # Construire un dictionnaire avec les détails de base
-    status = getattr(entity, "status", None)
-    # Si une méthode get_effective_status existe, l'utiliser pour refléter l'état hérité
-    if hasattr(entity, "get_effective_status"):
-        try:
-            status = entity.get_effective_status()
-        except Exception:
-            status = getattr(entity, "status", None)
-
-    details = {
-        "id": entity.id,
-        "name": entity.name,
-        "type": type,
-        "identifier": getattr(entity, "identifier", None),
-        "description": getattr(entity, "description", None),
-        "status": status or "active",
-    }
-
-    # Champs d'adresse communs si présents
-    for field in [
-        "address_line1",
-        "address_line2",
-        "address_line3",
-        "address_city",
-        "address_postalcode",
-        "address_country",
-    ]:
-        if hasattr(entity, field):
-            details[field] = getattr(entity, field)
-
-    # Ajouter les champs spécifiques selon le type
-    if type == "eg":
-        details["finess"] = getattr(entity, "finess", None)
-        details["category_code"] = getattr(entity, "category_code", None)
-        details["category_name"] = getattr(entity, "category_name", None)
-    elif type == "pole":
-        details["typology"] = getattr(entity, "typology", None)
-        details["operational_status"] = getattr(entity, "operational_status", None)
-    elif type == "service":
-        details["service_type"] = getattr(entity, "service_type", None)
-        details["typology"] = getattr(entity, "typology", None)
-        details["operational_status"] = getattr(entity, "operational_status", None)
-        details["etage"] = getattr(entity, "etage", None)
-        details["aile"] = getattr(entity, "aile", None)
-        details["type_chambre"] = getattr(entity, "type_chambre", None)
-        details["gender_usage"] = getattr(entity, "gender_usage", None)
-    elif type == "uf":
-        details["uf_type"] = getattr(entity, "uf_type", None)
-        details["um_code"] = getattr(entity, "um_code", None)
-        details["typology"] = getattr(entity, "typology", None)
-        details["operational_status"] = getattr(entity, "operational_status", None)
-        details["etage"] = getattr(entity, "etage", None)
-        details["aile"] = getattr(entity, "aile", None)
-        details["type_chambre"] = getattr(entity, "type_chambre", None)
-        details["gender_usage"] = getattr(entity, "gender_usage", None)
-    elif type == "uh":
-        details["typology"] = getattr(entity, "typology", None)
-        details["uf_type"] = getattr(entity, "uf_type", None)
-        details["operational_status"] = getattr(entity, "operational_status", None)
-        details["etage"] = getattr(entity, "etage", None)
-        details["aile"] = getattr(entity, "aile", None)
-        details["type_chambre"] = getattr(entity, "type_chambre", None)
-        details["gender_usage"] = getattr(entity, "gender_usage", None)
-    elif type == "chambre":
-        details["typology"] = getattr(entity, "typology", None)
-        details["uf_type"] = getattr(entity, "uf_type", None)
-        details["operational_status"] = getattr(entity, "operational_status", None)
-        details["is_generic"] = getattr(entity, "is_generic", None)
-        details["max_occupancy"] = getattr(entity, "max_occupancy", None)
-        details["etage"] = getattr(entity, "etage", None)
-        details["aile"] = getattr(entity, "aile", None)
-        details["type_chambre"] = getattr(entity, "type_chambre", None)
-        details["gender_usage"] = getattr(entity, "gender_usage", None)
-    elif type == "lit":
-        details["typology"] = getattr(entity, "typology", None)
-        details["uf_type"] = getattr(entity, "uf_type", None)
-        details["operational_status"] = getattr(entity, "operational_status", None)
-        details["is_generic"] = getattr(entity, "is_generic", None)
-        details["max_occupancy"] = getattr(entity, "max_occupancy", None)
-        details["etage"] = getattr(entity, "etage", None)
-        details["aile"] = getattr(entity, "aile", None)
-        details["type_chambre"] = getattr(entity, "type_chambre", None)
-        details["gender_usage"] = getattr(entity, "gender_usage", None)
-
-    return details
+    try:
+        return get_structure_details_use_case(
+            session,
+            entity_type=type,
+            entity_id=id,
+        )
+    except UnknownStructureTypeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except StructureEntityNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 class BulkItem(BaseModel):

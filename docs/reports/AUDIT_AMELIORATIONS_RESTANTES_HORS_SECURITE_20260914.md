@@ -170,8 +170,11 @@ l'audit :
   sur le filtrage strict sans résultat. L'application des modèles du wizard est
   également transactionnelle dans `structure_template_application.py` : toute
   la hiérarchie est validée avant la première écriture, et les vrais champs de
-  rattachement EG et code UM sont maintenant alimentés. Le routeur passe ainsi
-  de 2 640 à 2 372 lignes.
+  rattachement EG et code UM sont maintenant alimentés. La projection des
+  fiches par type est réunie dans `structure_details.py`, avec des erreurs
+  métier distinctes pour type inconnu et entité absente ; sa route synchrone ne
+  bloque plus la boucle asynchrone avec la session SQLModel. Le routeur passe
+  ainsi de 2 640 à 2 283 lignes.
 - **BE-05 :** la timeline patient/dossier ne fait plus une requête par dossier
   puis par venue. Les venues et mouvements sont chargés en masse ; un test
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.

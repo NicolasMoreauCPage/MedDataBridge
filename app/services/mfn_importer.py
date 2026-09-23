@@ -145,7 +145,9 @@ def _get_or_create_default_pole(session: Session, eg: EntiteGeographique) -> Pol
         physical_type=LocationPhysicalType.AREA,
         entite_geo_id=eg.id,
     )
-    session.add(pole); session.commit(); session.refresh(pole)
+    session.add(pole)
+    session.commit()
+    session.refresh(pole)
     return pole
 
 
@@ -203,7 +205,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     city=ent.get("VL") or None,
                     ght_context_id=ght.id,
                 )
-                session.add(ej); session.commit(); session.refresh(ej)
+                session.add(ej)
+                session.commit()
+                session.refresh(ej)
             index[(t, code)] = ej
         elif t in {"ETBL_GRPQ"}:
             # Entité géographique
@@ -239,7 +243,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     address_postalcode=ent.get("CD_PSTL") or None,
                     address_city=ent.get("VL") or None,
                 )
-                session.add(eg); session.commit(); session.refresh(eg)
+                session.add(eg)
+                session.commit()
+                session.refresh(eg)
                 created["eg"] += 1
             index[(t, code)] = eg
         # Services et autres seront faits en 2e passe (besoin de parent)
@@ -263,7 +269,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                         logger.info(f"[MFN-IMPORTER] Parent EJ trouvé en BDD pour EG: code={code}, parent_code={p_code}")
                 if isinstance(parent_ej, EntiteJuridique):
                     eg.entite_juridique_id = parent_ej.id
-                    session.add(eg); session.commit(); session.refresh(eg)
+                    session.add(eg)
+                    session.commit()
+                    session.refresh(eg)
                     break
         elif t in {"D", "SERV"}:
             # Créer Service sous EG parent (via LRL LCLSTN)
@@ -308,7 +316,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     service_type=service_type,
                     pole_id=pole.id,
                 )
-            session.add(srv); session.commit(); session.refresh(srv)
+            session.add(srv)
+            session.commit()
+            session.refresh(srv)
             index[(t, code)] = srv
         elif t in {"N", "UF"}:
             # Créer UniteFonctionnelle sous Service parent
@@ -345,7 +355,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                     physical_type=LocationPhysicalType.WI,  # Aile
                     service_id=parent_srv.id,
                 )
-            session.add(uf); session.commit(); session.refresh(uf)
+            session.add(uf)
+            session.commit()
+            session.refresh(uf)
             index[(t, code)] = uf
         # Si absent de l'index, chercher dans la base
         if t in {"N", "UF"} and not parent_srv:
@@ -390,7 +402,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                         physical_type=LocationPhysicalType.FL,  # Étage
                         unite_fonctionnelle_id=parent_obj.id,
                     )
-                    session.add(uh); session.commit(); session.refresh(uh)
+                    session.add(uh)
+                    session.commit()
+                    session.refresh(uh)
                     created["uh"] += 1
                     created_ids["uh"].append(uh_identifier)
                 parent_uh = uh
@@ -423,7 +437,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 )
                 created["chambre"] += 1
                 created_ids["chambre"].append(identifier)
-            session.add(chambre); session.commit(); session.refresh(chambre)
+            session.add(chambre)
+            session.commit()
+            session.refresh(chambre)
             index[(t, code)] = chambre
         elif t in {"B", "LIT"}:
             # Créer Lit sous Chambre parent
@@ -467,7 +483,9 @@ def import_mfn(text: str, session: Session, ght: GHTContext) -> Dict[str, int]:
                 )
                 created["lit"] += 1
                 created_ids["lit"].append(identifier)
-            session.add(lit); session.commit(); session.refresh(lit)
+            session.add(lit)
+            session.commit()
+            session.refresh(lit)
             index[(t, code)] = lit
 
     logger.info(f"[MFN-IMPORTER] Résumé: Créés: {created}, Mis à jour: {updated}, Ignorés: {ignored}")

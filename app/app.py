@@ -69,7 +69,7 @@ from app.routers import (
     home, patients, dossiers, venues, mouvements, structure_hl7,
     endpoints, transport, transport_views, fhir_inbox, messages, interop,
     generate, structure, workflow, fhir_structure, vocabularies,
-    health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation, validation_rules,
+    health, scenarios, guide, docs, ihe, structure_select, validation, validation_rules,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
     interface_testing, test_scenario_generator, ui_test_scenarios, tasks,
     hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie,

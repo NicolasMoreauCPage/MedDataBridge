@@ -2,7 +2,7 @@
 Initialisation des vocabulaires additionnels (workflow et structure)
 """
 from sqlmodel import Session
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping, VocabularySystemType
+from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
 
 def init_workflow_vocabularies(session: Session):
     """Initialise les vocabulaires liés au workflow"""

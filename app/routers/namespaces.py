@@ -38,7 +38,7 @@ def get_ej_or_404(
     return entite
 
 @router.get("/{ght_id}/namespaces/new")
-async def new_namespace(
+def new_namespace(
     request: Request,
     ght_id: int,
     session: Session = Depends(get_session)
@@ -116,7 +116,7 @@ async def create_namespace(
     )
 
 @router.get("/{ght_id}/namespaces/{namespace_id}")
-async def view_namespace(
+def view_namespace(
     request: Request,
     ght_id: int,  
     namespace_id: int,
@@ -148,7 +148,7 @@ async def view_namespace(
     )
 
 @router.get("/{ght_id}/namespaces/{namespace_id}/edit")
-async def edit_namespace(
+def edit_namespace(
     request: Request,
     ght_id: int,
     namespace_id: int, 
@@ -248,7 +248,7 @@ async def update_namespace(
 # ============================================================================
 
 @router.get("/{ght_id}/ej/{ej_id}/namespaces/new")
-async def new_ej_namespace(
+def new_ej_namespace(
     request: Request,
     ght_id: int,
     ej_id: int,
@@ -339,7 +339,7 @@ async def create_ej_namespace(
 
 
 @router.get("/{ght_id}/ej/{ej_id}/namespaces/{namespace_id}/edit")
-async def edit_ej_namespace(
+def edit_ej_namespace(
     request: Request,
     ght_id: int,
     ej_id: int,

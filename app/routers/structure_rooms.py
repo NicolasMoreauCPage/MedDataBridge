@@ -30,7 +30,7 @@ from app.routers.structure_router_base import (
 logger = logging.getLogger(__name__)
 
 @router.get("/chambres", response_class=HTMLResponse)
-async def list_chambres(
+def list_chambres(
     request: Request,
     session: Session = Depends(get_session),
     uh_id: Optional[int] = Query(None),
@@ -67,7 +67,7 @@ async def list_chambres(
     )
 
 @router.get("/chambres/new", response_class=HTMLResponse)
-async def new_chambre_form(
+def new_chambre_form(
     request: Request,
     uh_id: int,
     session: Session = Depends(get_session)
@@ -93,7 +93,7 @@ async def new_chambre_form(
     )
 
 @router.get("/chambres/{chambre_id}", response_class=HTMLResponse)
-async def view_chambre(
+def view_chambre(
     request: Request,
     chambre_id: int,
     session: Session = Depends(get_session)
@@ -109,7 +109,7 @@ async def view_chambre(
     )
 
 @router.get("/chambres/{chambre_id}/edit", response_class=HTMLResponse)
-async def edit_chambre_form(
+def edit_chambre_form(
     request: Request,
     chambre_id: int,
     session: Session = Depends(get_session)
@@ -156,7 +156,7 @@ async def update_chambre(
     return RedirectResponse(url=f"/structure/uh/{chambre.unite_hebergement_id}", status_code=303)
 
 @router.post("/chambres/{chambre_id}/delete")
-async def delete_chambre(
+def delete_chambre(
     chambre_id: int,
     session: Session = Depends(get_session)
 ):
@@ -192,7 +192,7 @@ async def delete_chambre(
     return RedirectResponse(url=f"/structure/uh/{uh_id}", status_code=303)
 
 @api_router.get("/chambres", response_model=List[ChambreRead])
-async def list_chambres_api(
+def list_chambres_api(
     response: Response,
     session: Session = Depends(get_session),
     uh_id: Optional[int] = None,
@@ -325,7 +325,7 @@ async def create_chambre(
 
 # --- Lits ---
 @router.get("/lits", response_class=HTMLResponse)
-async def list_lits(
+def list_lits(
     request: Request,
     session: Session = Depends(get_session),
     chambre_id: Optional[int] = Query(None),
@@ -367,7 +367,7 @@ async def list_lits(
     )
 
 @router.get("/api/lits", response_model=List[LitRead])
-async def list_lits_api(
+def list_lits_api(
     response: Response,
     session: Session = Depends(get_session),
     chambre_id: Optional[int] = None,
@@ -465,7 +465,7 @@ def get_lit_api(
     }
 
 @router.post("/lits", response_model=Lit)
-async def create_lit(
+def create_lit(
     lit: Lit,
     session: Session = Depends(get_session)
 ):
@@ -476,7 +476,7 @@ async def create_lit(
     return lit
 
 @router.get("/lits/{lit_id}", response_class=HTMLResponse)
-async def view_lit(
+def view_lit(
     request: Request,
     lit_id: int,
     session: Session = Depends(get_session)
@@ -491,7 +491,7 @@ async def view_lit(
     )
 
 @router.get("/lits/{lit_id}/edit", response_class=HTMLResponse)
-async def edit_lit_form(
+def edit_lit_form(
     request: Request,
     lit_id: int,
     session: Session = Depends(get_session)
@@ -513,7 +513,7 @@ async def edit_lit_form(
     )
 
 @router.post("/lits/{lit_id}")
-async def update_lit(
+def update_lit(
     lit_id: int,
     name: str = Form(...),
     identifier: Optional[str] = Form(None),

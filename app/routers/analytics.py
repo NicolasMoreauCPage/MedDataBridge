@@ -73,7 +73,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @ui_router.get("/analytics", response_class=HTMLResponse)
-async def analytics_dashboard(
+def analytics_dashboard(
     request: Request,
     eg_id: Optional[int] = Query(None, description="ID de l'Entité Géographique"),
     session: Session = Depends(get_session)

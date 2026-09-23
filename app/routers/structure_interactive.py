@@ -52,7 +52,7 @@ def _ensure_e2e_demo_structure(session: Session, egs: list[EntiteGeographique]) 
 # ========================================
 
 @ui_router.get("/interactive", response_class=HTMLResponse)
-async def structure_interactive_page(
+def structure_interactive_page(
     request: Request,
     session: Session = Depends(get_session)
 ):
@@ -135,7 +135,7 @@ MODEL_MAP = {
 
 
 @router.patch("/{entity_type}/{entity_id}")
-async def update_field(
+def update_field(
     entity_type: str,
     entity_id: int,
     update_data: Dict[str, Any] = Body(...),
@@ -220,7 +220,7 @@ async def update_field(
 
 
 @router.post("/move")
-async def move_entity(
+def move_entity(
     item_type: str = Body(...),
     item_id: int = Body(...),
     target_type: str = Body(...),
@@ -324,7 +324,7 @@ async def move_entity(
 
 
 @router.post("/duplicate")
-async def duplicate_entity(
+def duplicate_entity(
     entity_type: str = Body(...),
     entity_id: int = Body(...),
     new_code: str = Body(...),
@@ -383,7 +383,7 @@ async def duplicate_entity(
 
 
 @router.post("/bulk-update")
-async def bulk_update(
+def bulk_update(
     entity_type: str = Body(...),
     entity_ids: list[int] = Body(...),
     updates: Dict[str, Any] = Body(...),

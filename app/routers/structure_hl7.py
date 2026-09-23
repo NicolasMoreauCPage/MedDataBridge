@@ -11,7 +11,7 @@ router = APIRouter(
 )
 
 @router.post("/mfn/import", response_model=dict)
-async def import_hl7_structure(
+def import_hl7_structure(
     message: str = Body(..., media_type="text/plain"),
     session: Session = Depends(get_session)
 ):
@@ -29,7 +29,7 @@ async def import_hl7_structure(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/export/hl7", response_class=PlainTextResponse)
-async def export_hl7_structure(
+def export_hl7_structure(
     session: Session = Depends(get_session)
 ):
     """

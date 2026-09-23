@@ -842,7 +842,7 @@ def validate_dossier_form(request: Request, session: Session = Depends(get_sessi
 
 
 @router.post("/validate-dossier", response_class=HTMLResponse)
-async def validate_dossier(
+def validate_dossier(
     request: Request,
     dossier_number: str = Form(...),
     endpoint_id: Optional[int] = Form(None),

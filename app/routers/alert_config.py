@@ -22,7 +22,7 @@ templates = Jinja2Templates(directory="app/templates")
 # ========== CRUD API Endpoints ==========
 
 @router.get("/rules", response_model=List[dict])
-async def get_alert_rules(
+def get_alert_rules(
     eg_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     session: Session = Depends(get_session)
@@ -56,7 +56,7 @@ async def get_alert_rules(
 
 
 @router.post("/rules", status_code=201)
-async def create_alert_rule(
+def create_alert_rule(
     alert_type: AlertType,
     threshold_value: float,
     severity: AlertSeverity,
@@ -87,7 +87,7 @@ async def create_alert_rule(
 
 
 @router.put("/rules/{rule_id}")
-async def update_alert_rule(
+def update_alert_rule(
     rule_id: int,
     threshold_value: Optional[float] = None,
     severity: Optional[AlertSeverity] = None,
@@ -119,7 +119,7 @@ async def update_alert_rule(
 
 
 @router.delete("/rules/{rule_id}")
-async def delete_alert_rule(
+def delete_alert_rule(
     rule_id: int,
     session: Session = Depends(get_session)
 ):
@@ -135,7 +135,7 @@ async def delete_alert_rule(
 
 
 @router.post("/rules/init-defaults")
-async def init_default_rules(
+def init_default_rules(
     eg_id: int,
     session: Session = Depends(get_session)
 ):

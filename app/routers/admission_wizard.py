@@ -254,7 +254,7 @@ def wizard_admission_post(
 
 
 @router.get("/api/services/{service_id}/ufs")
-async def get_service_ufs(
+def get_service_ufs(
     service_id: int,
     session: Session = Depends(get_session)
 ):
@@ -266,7 +266,7 @@ async def get_service_ufs(
 
 
 @router.get("/api/ufs/{uf_id}/lits")
-async def get_uf_lits(
+def get_uf_lits(
     uf_id: int,
     status: str = "free",
     session: Session = Depends(get_session)

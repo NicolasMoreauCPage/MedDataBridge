@@ -14,7 +14,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/{dossier_id}/cotations", response_class=HTMLResponse, name="cotations_liste")
-async def get_dossier_cotations(
+def get_dossier_cotations(
     request: Request,
     dossier_id: int,
     session: Session = Depends(get_session)

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/debug", tags=["debug"])
 
 
 @router.get("/entity-events/status")
-async def entity_events_status(session: Session = Depends(get_session)):
+def entity_events_status(session: Session = Depends(get_session)):
     """Check if entity event listeners are registered and working."""
     from sqlalchemy import event as sa_event
     from app.models import Patient, Dossier, Venue, Mouvement

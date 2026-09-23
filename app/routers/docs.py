@@ -125,7 +125,7 @@ async def docs_markdown(request: Request, filename: str):
     )
 
 @router.get("/standards", response_class=HTMLResponse)
-async def standards_docs(
+def standards_docs(
     request: Request,
     session: Session = Depends(get_session)
 ):
@@ -139,9 +139,9 @@ async def standards_docs(
 
 
 @router.get("/standards-docs", response_class=HTMLResponse)
-async def standards_docs_legacy(
+def standards_docs_legacy(
     request: Request,
     session: Session = Depends(get_session)
 ):
     """Alias conservé pour compatibilité avec l'ancien chemin."""
-    return await standards_docs(request, session)
+    return standards_docs(request, session)

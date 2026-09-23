@@ -22,7 +22,7 @@ from app.routers.structure_router_base import (
 logger = logging.getLogger(__name__)
 
 @router.get("/availability", response_class=HTMLResponse)
-async def structure_availability_search(
+def structure_availability_search(
     request: Request,
     session: Session = Depends(get_session),
     service_type: Optional[LocationServiceType] = Query(None),
@@ -134,7 +134,7 @@ def _fetch_available_lits(
 
 
 @router.get("/search/lits-disponibles")
-async def search_lits_disponibles(
+def search_lits_disponibles(
     session: Session = Depends(get_session),
     service_type: Optional[LocationServiceType] = None,
     uf_id: Optional[int] = None,

@@ -56,7 +56,7 @@ def _get_query_params(request: Request) -> Dict[str, Any]:
 
 
 @router.get("/Location", response_model=Dict)
-async def search_locations(
+def search_locations(
     response: Response,
     session: Session = Depends(get_session),
     search_params: Dict[str, Any] = Depends(_get_query_params),
@@ -227,7 +227,7 @@ async def search_locations(
         }
 
 @router.get("/Location/{location_id}", response_model=Dict)
-async def read_location(
+def read_location(
     location_id: str,
     session: Session = Depends(get_session),
     response: Response = None
@@ -449,7 +449,7 @@ def process_search_params(params: Dict[str, Any], session: Session) -> Any:
     return query
 
 @router.post("/Location", response_model=Dict, status_code=201)
-async def create_location(
+def create_location(
     location: Dict[Any, Any] = Body(...),
     session: Session = Depends(get_session),
     response: Response = None
@@ -514,7 +514,7 @@ async def create_location(
         }
 
 @router.put("/Location/{location_id}", response_model=Dict)
-async def update_location(
+def update_location(
     location_id: str,
     location: Dict[Any, Any] = Body(...),
     session: Session = Depends(get_session),
@@ -580,7 +580,7 @@ async def update_location(
         }
 
 @router.delete("/Location/{location_id}", response_model=Dict)
-async def delete_location(
+def delete_location(
     location_id: str,
     session: Session = Depends(get_session),
     response: Response = None

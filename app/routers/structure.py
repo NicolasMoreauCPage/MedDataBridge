@@ -114,7 +114,7 @@ search_lits_disponibles = _availability_routes.search_lits_disponibles
 structure_availability_search = _availability_routes.structure_availability_search
 
 @api_router.get("/tree")
-async def get_structure_tree(
+def get_structure_tree(
     request: Request,
     session: Session = Depends(get_session),
     ej: Optional[int] = Query(None, description="ID de l'établissement juridique à filtrer"),
@@ -249,7 +249,7 @@ class ApplyTemplateResponse(BaseModel):
 
 
 @api_router.post("/apply-template", response_model=ApplyTemplateResponse)
-async def apply_structure_template(
+def apply_structure_template(
     request: ApplyTemplateRequest,
     session: Session = Depends(get_session)
 ):
@@ -311,7 +311,7 @@ class BulkActionRequest(BaseModel):
 
 
 @api_router.post("/bulk-action")
-async def bulk_action(
+def bulk_action(
     payload: BulkActionRequest,
     session: Session = Depends(get_session),
 ):
@@ -374,7 +374,7 @@ async def bulk_action(
 
 
 @router.get("", response_class=HTMLResponse)
-async def structure_dashboard(
+def structure_dashboard(
     request: Request,
     session: Session = Depends(get_session),
     ej: Optional[int] = Query(None, description="ID de l'établissement juridique à filtrer")
@@ -417,7 +417,7 @@ async def structure_dashboard(
 
 
 @router.get("/wizard", response_class=HTMLResponse)
-async def structure_wizard_page(
+def structure_wizard_page(
     request: Request,
     session: Session = Depends(get_session),
 ):
@@ -474,7 +474,7 @@ async def import_structure_hl7(
 # --- Entité Géographique ---
 
 @router.get("/{type}/{id}/map", response_class=HTMLResponse)
-async def view_structure_map(
+def view_structure_map(
     type: str,
     id: int,
     request: Request,

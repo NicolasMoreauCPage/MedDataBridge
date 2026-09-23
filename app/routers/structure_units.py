@@ -28,7 +28,7 @@ from app.routers.structure_router_base import (
 logger = logging.getLogger(__name__)
 
 @router.get("/uh", response_class=HTMLResponse)
-async def list_unites_hebergement(
+def list_unites_hebergement(
     request: Request,
     session: Session = Depends(get_session),
     uf_id: Optional[int] = None,
@@ -70,7 +70,7 @@ async def list_unites_hebergement(
     )
 
 @router.get("/api/uh", response_model=List[UniteHebergementRead])
-async def list_unites_hebergement_api(
+def list_unites_hebergement_api(
     response: Response,
     session: Session = Depends(get_session),
     uf_id: Optional[int] = None,
@@ -93,7 +93,7 @@ async def list_unites_hebergement_api(
     return uhs
 
 @router.get("/uh/new", response_class=HTMLResponse)
-async def new_unite_hebergement_form(
+def new_unite_hebergement_form(
     request: Request,
     session: Session = Depends(get_session)
 ):
@@ -112,7 +112,7 @@ async def new_unite_hebergement_form(
     )
 
 @router.get("/uh/{uh_id}", response_class=HTMLResponse)
-async def view_unite_hebergement(
+def view_unite_hebergement(
     request: Request,
     uh_id: int,
     session: Session = Depends(get_session)
@@ -148,7 +148,7 @@ async def view_unite_hebergement(
     )
 
 @router.get("/uh/{uh_id}/edit", response_class=HTMLResponse)
-async def edit_unite_hebergement_form(
+def edit_unite_hebergement_form(
     request: Request,
     uh_id: int,
     session: Session = Depends(get_session)
@@ -229,7 +229,7 @@ async def update_unite_hebergement(
 
 # --- Suppression UH ---
 @router.post("/uh/{uh_id}/delete")
-async def delete_unite_hebergement(
+def delete_unite_hebergement(
     uh_id: int,
     session: Session = Depends(get_session)
 ):

@@ -30,7 +30,7 @@ router = APIRouter(
 )
 
 @router.post("/api/patients", response_class=JSONResponse, summary="API for creating a patient")
-async def api_create_patient(
+def api_create_patient(
     family: str = Body(...),
     given: str = Body(None),
     birth_date: str = Body(None),
@@ -321,7 +321,7 @@ def new_patient_form(request: Request):
     })
 
 @router.post("/new")
-async def create_patient_from_form(
+def create_patient_from_form(
     request: Request,
     session: Session = Depends(get_session),
     # Form fields

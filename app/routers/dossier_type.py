@@ -17,7 +17,7 @@ def get_templates_with_filters(request: FastAPIRequest):
 router = APIRouter(prefix="/dossier-type", tags=["dossier"])
 
 @router.get("/{dossier_id}/change", response_class=HTMLResponse)
-async def show_change_type_form(
+def show_change_type_form(
     request: Request,
     dossier_id: int,
     session: Session = Depends(get_session)
@@ -39,7 +39,7 @@ async def show_change_type_form(
     )
 
 @router.post("/{dossier_id}/change")
-async def change_dossier_type(
+def change_dossier_type(
     dossier_id: int,
     new_type: DossierType,
     force: bool = False,

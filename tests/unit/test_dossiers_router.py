@@ -9,7 +9,6 @@ Ces tests couvrent :
 - Gestion des erreurs
 """
 
-import asyncio
 import unittest
 from datetime import datetime
 from unittest.mock import Mock, patch
@@ -550,7 +549,7 @@ class TestDossiersRouter(unittest.TestCase):
         with patch('app.routers.dossiers.dossiers_service') as mock_service:
             mock_service.create_dossier_with_pre_admit_venue.return_value = Mock(id=123, dossier_seq=456)
 
-            response = asyncio.run(api_create_dossier(
+            response = api_create_dossier(
                 patient_id=100,
                 dossier_type="hospitalise",
                 admit_time="2023-12-01T10:00:00",
@@ -559,7 +558,7 @@ class TestDossiersRouter(unittest.TestCase):
                 attending_provider=None,
                 current_state="Pas de venue courante",
                 session=mock_session
-            ))
+            )
 
             assert isinstance(response, dict)
             assert response["id"] == 123
@@ -571,7 +570,7 @@ class TestDossiersRouter(unittest.TestCase):
         mock_session = Mock()
         mock_session.get.return_value = None
 
-        response = asyncio.run(api_create_dossier(
+        response = api_create_dossier(
             patient_id=999,
             dossier_type="hospitalise",
             admit_time="2023-12-01T10:00:00",
@@ -580,7 +579,7 @@ class TestDossiersRouter(unittest.TestCase):
             attending_provider=None,
             current_state="Pas de venue courante",
             session=mock_session
-        ))
+        )
 
         assert isinstance(response, JSONResponse)
         assert response.status_code == 404

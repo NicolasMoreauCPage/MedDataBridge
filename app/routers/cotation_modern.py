@@ -13,13 +13,13 @@ router = APIRouter(tags=["Cotation Modern"])
 templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/", response_class=HTMLResponse)
-async def cotation_modern_home(
+def cotation_modern_home(
     request: Request,
     dossier_id: int | None = Query(None),
     session: Session = Depends(get_session)
 ):
     """Page d'accueil du module de cotation moderne.
-    
+
     Si dossier_id est fourni, redirige vers l'interface de cotation.
     Sinon, affiche la page de sélection de dossier.
     """
@@ -29,12 +29,12 @@ async def cotation_modern_home(
         if dossier:
             # Rediriger vers l'interface de cotation
             return RedirectResponse(url=f"/cotation-modern/dossiers/{dossier_id}/cotation", status_code=303)
-    
+
     # Pas de dossier_id ou dossier non trouvé : afficher le sélecteur
     return templates.TemplateResponse(request, "cotation_selector.html")
 
 @router.get("/dossiers/{dossier_id}/cotation", response_class=HTMLResponse)
-async def cotation_modern_interface(
+def cotation_modern_interface(
     dossier_id: int,
     request: Request,
     session: Session = Depends(get_session)

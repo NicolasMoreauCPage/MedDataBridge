@@ -23,7 +23,7 @@ router = APIRouter(
 # View routes for transport config management
 
 @router.get("/endpoints/{endpoint_id}/transport")
-async def view_transport_configs(request: Request, endpoint_id: int, session: Session = Depends(get_session)):
+def view_transport_configs(request: Request, endpoint_id: int, session: Session = Depends(get_session)):
     """View transport configurations for an endpoint."""
     endpoint = session.get(SystemEndpoint, endpoint_id)
     if not endpoint:
@@ -40,7 +40,7 @@ async def view_transport_configs(request: Request, endpoint_id: int, session: Se
     )
 
 @router.get("/endpoints/{endpoint_id}/mllp/new")
-async def new_mllp_config_form(request: Request, endpoint_id: int, session: Session = Depends(get_session)):
+def new_mllp_config_form(request: Request, endpoint_id: int, session: Session = Depends(get_session)):
     """Display form to create a new MLLP config."""
     endpoint = session.get(SystemEndpoint, endpoint_id)
     if not endpoint:
@@ -56,7 +56,7 @@ async def new_mllp_config_form(request: Request, endpoint_id: int, session: Sess
     )
 
 @router.post("/endpoints/{endpoint_id}/mllp/new")
-async def create_mllp_config(
+def create_mllp_config(
     endpoint_id: int,
     name: str = Form(...),
     port: int = Form(...),
@@ -102,7 +102,7 @@ async def create_mllp_config(
     )
 
 @router.get("/endpoints/{endpoint_id}/mllp/{config_id}/edit")
-async def edit_mllp_config_form(
+def edit_mllp_config_form(
     request: Request,
     endpoint_id: int,
     config_id: int,
@@ -127,7 +127,7 @@ async def edit_mllp_config_form(
     )
 
 @router.post("/endpoints/{endpoint_id}/mllp/{config_id}/edit")
-async def update_mllp_config(
+def update_mllp_config(
     endpoint_id: int,
     config_id: int,
     name: str = Form(...),
@@ -173,7 +173,7 @@ async def update_mllp_config(
     )
 
 @router.get("/endpoints/{endpoint_id}/fhir/new")
-async def new_fhir_config_form(request: Request, endpoint_id: int, session: Session = Depends(get_session)):
+def new_fhir_config_form(request: Request, endpoint_id: int, session: Session = Depends(get_session)):
     """Display form to create a new FHIR config."""
     endpoint = session.get(SystemEndpoint, endpoint_id)
     if not endpoint:
@@ -189,7 +189,7 @@ async def new_fhir_config_form(request: Request, endpoint_id: int, session: Sess
     )
 
 @router.post("/endpoints/{endpoint_id}/fhir/new")
-async def create_fhir_config(
+def create_fhir_config(
     endpoint_id: int,
     name: str = Form(...),
     base_url: str = Form(...),
@@ -228,7 +228,7 @@ async def create_fhir_config(
     )
 
 @router.get("/endpoints/{endpoint_id}/fhir/{config_id}/edit")
-async def edit_fhir_config_form(
+def edit_fhir_config_form(
     request: Request,
     endpoint_id: int,
     config_id: int,
@@ -253,7 +253,7 @@ async def edit_fhir_config_form(
     )
 
 @router.post("/endpoints/{endpoint_id}/fhir/{config_id}/edit")
-async def update_fhir_config(
+def update_fhir_config(
     endpoint_id: int,
     config_id: int,
     name: str = Form(...),

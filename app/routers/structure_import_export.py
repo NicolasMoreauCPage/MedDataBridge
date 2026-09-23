@@ -33,7 +33,7 @@ def _require_openpyxl() -> None:
 
 
 @router.get("/export/excel")
-async def export_structure_excel(
+def export_structure_excel(
     eg_id: Optional[int] = None,
     session: Session = Depends(get_session)
 ):

@@ -187,7 +187,7 @@ def _store_roundtrip_message(
 
 
 @router.post("/generate")
-async def generate_hprim_xml(payload: dict, db: Session = Depends(get_session)):
+def generate_hprim_xml(payload: dict, db: Session = Depends(get_session)):
     """Génère un XML HPRIM persistant à partir d'un payload structuré ou brut."""
     if payload.get("xml_content"):
         xml_content = str(payload["xml_content"])
@@ -260,7 +260,7 @@ async def generate_hprim_xml(payload: dict, db: Session = Depends(get_session)):
 
 
 @router.get("/download/{filename}")
-async def download_hprim_xml(filename: str, db: Session = Depends(get_session)):
+def download_hprim_xml(filename: str, db: Session = Depends(get_session)):
     """Télécharge un XML HPRIM persistant."""
     message_id = filename[:-4] if filename.endswith(".xml") else filename
     statement = select(StoredHprimMessage).where(

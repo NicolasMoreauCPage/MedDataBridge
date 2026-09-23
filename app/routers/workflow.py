@@ -99,7 +99,7 @@ def _collect_workflow_context(venue_id: int, session: Session) -> Dict[str, obje
 
 
 @router.get("/{venue_id}")
-async def get_workflow(
+def get_workflow(
     venue_id: int,
     session: Session = Depends(get_session)
 ):
@@ -108,7 +108,7 @@ async def get_workflow(
 
 
 @router.get("/venue/{venue_id}/view", response_class=HTMLResponse)
-async def workflow_view(
+def workflow_view(
     venue_id: int,
     request: Request,
     session: Session = Depends(get_session),

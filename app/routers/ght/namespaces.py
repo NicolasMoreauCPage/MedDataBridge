@@ -81,7 +81,7 @@ def generate_namespace_name(type: str, oid: Optional[str], existing_name: Option
     return type
 
 @router.get("/new")
-async def new_namespace_form(
+def new_namespace_form(
     request: Request,
     context_id: int,
     session: Session = Depends(get_session),
@@ -97,7 +97,7 @@ async def new_namespace_form(
     )
 
 @router.post("/new")
-async def create_namespace(
+def create_namespace(
     request: Request,
     context_id: int,
     name: str = Form(default=""),
@@ -164,7 +164,7 @@ async def create_namespace(
         return RedirectResponse(url=f"/admin/ght/{context_id}/namespaces/new", status_code=303)
 
 @router.get("/{namespace_id}")
-async def namespace_detail(
+def namespace_detail(
     request: Request,
     context_id: int, 
     namespace_id: int,
@@ -186,7 +186,7 @@ async def namespace_detail(
     )
 
 @router.post("/{namespace_id}/edit")
-async def edit_namespace(
+def edit_namespace(
     request: Request,
     context_id: int,
     namespace_id: int, 

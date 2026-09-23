@@ -782,7 +782,7 @@ def create_campaign(
 
 
 @router.post("/campaigns/{campaign_id}/run")
-async def run_durable_campaign(campaign_id: int, request: Request, dry_run: bool = Form(False), session: Session = Depends(get_session)):
+def run_durable_campaign(campaign_id: int, request: Request, dry_run: bool = Form(False), session: Session = Depends(get_session)):
     campaign = session.get(QualificationCampaign, campaign_id)
     if not campaign or not campaign.is_active:
         raise HTTPException(status_code=404, detail="Campagne introuvable ou désactivée")

@@ -18,7 +18,7 @@ router = APIRouter(tags=["ght"])
 
 
 @router.get("/")
-async def list_ght_contexts(
+def list_ght_contexts(
     request: Request,
     session: Session = Depends(get_session),
 ):
@@ -43,7 +43,7 @@ async def new_ght_context_form(request: Request):
 
 
 @router.post("/{context_id}/set-ej")
-async def set_ej_for_ght(
+def set_ej_for_ght(
     request: Request,
     context_id: int,
     ej_id: int = Form(...),
@@ -94,7 +94,7 @@ async def set_ej_for_ght(
 
 
 @router.post("/new")
-async def create_ght_context(
+def create_ght_context(
     request: Request,
     name: str = Form(...),
     code: str = Form(...),
@@ -181,7 +181,7 @@ async def create_ght_context(
 
 
 @router.get("/{context_id}/edit")
-async def edit_ght_context_form(
+def edit_ght_context_form(
     request: Request,
     context_id: int,
     session: Session = Depends(get_session)
@@ -201,7 +201,7 @@ async def edit_ght_context_form(
 
 
 @router.post("/{context_id}/edit")
-async def update_ght_context(
+def update_ght_context(
     request: Request,
     context_id: int,
     name: str = Form(...),
@@ -261,7 +261,7 @@ async def update_ght_context(
 
 
 @router.get("/{context_id}")
-async def view_ght_context(
+def view_ght_context(
     request: Request,
     context_id: int,
     session: Session = Depends(get_session)
@@ -411,7 +411,7 @@ async def _test_set_session(
 
 
 @router.get("/_test/session/debug")
-async def _test_get_session_debug(request: Request, session: Session = Depends(get_session)):
+def _test_get_session_debug(request: Request, session: Session = Depends(get_session)):
     """Test-only helper: return a snapshot of the current session for debugging.
 
     Only available when TESTING is enabled.
@@ -437,7 +437,7 @@ async def _test_get_session_debug(request: Request, session: Session = Depends(g
 
 
 @router.get("/_test/session/set")
-async def _test_set_session_get(request: Request, token: str | None = None, ght_id: int | None = None, ej_id: int | None = None, ght_code: str | None = None, session: Session = Depends(get_session)):
+def _test_set_session_get(request: Request, token: str | None = None, ght_id: int | None = None, ej_id: int | None = None, ght_code: str | None = None, session: Session = Depends(get_session)):
     """Test-only GET helper: set session via a navigable URL.
 
     Allows tests to navigate the browser to a URL like

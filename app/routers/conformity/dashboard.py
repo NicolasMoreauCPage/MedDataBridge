@@ -99,7 +99,7 @@ def conformity_home(request: Request, session: Session = Depends(get_session)):
 
 
 @router.post("/ej/{ej_id:int}/strict-pam-fr", response_class=RedirectResponse)
-async def toggle_strict_pam_fr(
+def toggle_strict_pam_fr(
     ej_id: int, 
     strict_pam_fr: bool = Form(...),
     request: Request = None,
@@ -127,7 +127,7 @@ async def toggle_strict_pam_fr(
 
 
 @router.get("/ej/{ej_id:int}", response_class=HTMLResponse)
-async def ej_dashboard(ej_id: int, request: Request, session: Session = Depends(get_session)):
+def ej_dashboard(ej_id: int, request: Request, session: Session = Depends(get_session)):
     """Dashboard détaillé pour une EJ spécifique."""
     templates = get_templates(request)
     
@@ -146,7 +146,7 @@ async def ej_dashboard(ej_id: int, request: Request, session: Session = Depends(
 
 
 @router.get("/ej/{ej_id:int}/messages", response_class=HTMLResponse)
-async def ej_messages(ej_id: int, request: Request, session: Session = Depends(get_session)):
+def ej_messages(ej_id: int, request: Request, session: Session = Depends(get_session)):
     """Liste des messages pour une EJ avec détail validation."""
     templates = get_templates(request)
     

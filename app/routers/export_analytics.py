@@ -105,7 +105,7 @@ def get_capacity_data(session: Session, eg_id: int):
 
 
 @router.get("/excel")
-async def export_excel(
+def export_excel(
     eg_id: int = Query(1, description="ID de l'Entité Géographique"),
     period: str = Query("30d", description="Période (7d, 30d, 1y)"),
     session: Session = Depends(get_session)
@@ -238,7 +238,7 @@ async def export_excel(
 
 
 @router.get("/pdf")
-async def export_pdf(
+def export_pdf(
     eg_id: int = Query(1, description="ID de l'Entité Géographique"),
     period: str = Query("30d", description="Période (7d, 30d, 1y)"),
     session: Session = Depends(get_session)
@@ -354,7 +354,7 @@ async def export_pdf(
 
 
 @router.get("/csv")
-async def export_csv(
+def export_csv(
     eg_id: int = Query(1, description="ID de l'Entité Géographique"),
     period: str = Query("30d", description="Période (7d, 30d, 1y)"),
     export_type: Literal["kpis", "capacity"] = Query("capacity", description="Type de données à exporter"),

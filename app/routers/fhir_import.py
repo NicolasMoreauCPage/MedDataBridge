@@ -67,7 +67,7 @@ class ImportResult(BaseModel):
 
 
 @router.post("/import/bundle", response_model=ImportResult)
-async def import_bundle(
+def import_bundle(
     http_request: Request,
     request: FHIRBundleRequest,
     session: Session = Depends(get_session)
@@ -146,7 +146,7 @@ async def import_bundle(
 
 
 @router.post("/import/patient", response_model=ImportResult)
-async def import_patient(
+def import_patient(
     http_request: Request,
     patient: Dict[str, Any] = Body(...),
     ej_id: int = Body(...),
@@ -205,7 +205,7 @@ async def import_patient(
 
 
 @router.post("/import/location", response_model=ImportResult)
-async def import_location(
+def import_location(
     http_request: Request,
     location: Dict[str, Any] = Body(...),
     ej_id: int = Body(...),
@@ -264,7 +264,7 @@ async def import_location(
 
 
 @router.post("/import/organization", response_model=ImportResult)
-async def import_organization(
+def import_organization(
     http_request: Request,
     organization: Dict[str, Any] = Body(...),
     ej_id: int = Body(...),
@@ -322,7 +322,7 @@ async def import_organization(
 
 
 @router.post("/import/encounter", response_model=ImportResult)
-async def import_encounter(
+def import_encounter(
     http_request: Request,
     encounter: Dict[str, Any] = Body(...),
     ej_id: int = Body(...),

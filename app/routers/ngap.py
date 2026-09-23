@@ -42,7 +42,7 @@ templates.env.filters["fr_datetime"] = _fr_datetime
 
 
 @router.get("/")
-async def ngap_dashboard(request: Request, db: Session = Depends(get_session)):
+def ngap_dashboard(request: Request, db: Session = Depends(get_session)):
     """Dashboard NGAP avec statistiques réelles."""
     total_acts = db.exec(select(func.count()).select_from(NGAPAct)).one()
 
@@ -72,7 +72,7 @@ async def ngap_dashboard(request: Request, db: Session = Depends(get_session)):
 
 
 @router.get("/dossier/{dossier_id}")
-async def ngap_by_dossier(
+def ngap_by_dossier(
     request: Request,
     dossier_id: int,
     db: Session = Depends(get_session)
@@ -94,7 +94,7 @@ async def ngap_by_dossier(
 
 
 @router.get("/create/{dossier_id}")
-async def create_ngap_form(
+def create_ngap_form(
     request: Request,
     dossier_id: int,
     db: Session = Depends(get_session)
@@ -112,7 +112,7 @@ async def create_ngap_form(
 
 
 @router.post("/create/{dossier_id}")
-async def create_ngap_act(
+def create_ngap_act(
     request: Request,
     dossier_id: int,
     lettre_cle: str = Form(...),

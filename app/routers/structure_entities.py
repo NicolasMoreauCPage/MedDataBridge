@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/eg", response_class=HTMLResponse)
-async def list_entites_geographiques(
+def list_entites_geographiques(
     request: Request,
     session: Session = Depends(get_session),
     q: Optional[str] = Query(None, alias="q"),
@@ -60,7 +60,7 @@ async def list_entites_geographiques(
     )
 
 @router.get("/api/eg", response_model=List[EntiteGeographiqueRead])
-async def list_entites_geographiques_api(
+def list_entites_geographiques_api(
     response: Response,
     session: Session = Depends(get_session),
     skip: int = Query(0, ge=0, description="Nombre d'éléments à ignorer"),
@@ -76,7 +76,7 @@ async def list_entites_geographiques_api(
     )
 
 @router.post("/eg", response_model=EntiteGeographique)
-async def create_entite_geographique(
+def create_entite_geographique(
     eg: EntiteGeographique,
     session: Session = Depends(get_session)
 ):
@@ -87,7 +87,7 @@ async def create_entite_geographique(
     return eg
 
 @router.get("/eg/{eg_id}", response_class=HTMLResponse)
-async def view_entite_geographique(
+def view_entite_geographique(
     request: Request,
     eg_id: int,
     session: Session = Depends(get_session)
@@ -112,7 +112,7 @@ async def view_entite_geographique(
     )
 
 @router.get("/eg/{eg_id}/edit", response_class=HTMLResponse)
-async def edit_entite_geographique_form(
+def edit_entite_geographique_form(
     request: Request,
     eg_id: int,
     session: Session = Depends(get_session)
@@ -131,7 +131,7 @@ async def edit_entite_geographique_form(
     )
 
 @router.post("/eg/{eg_id}")
-async def update_entite_geographique(
+def update_entite_geographique(
     eg_id: int,
     name: str = Form(...),
     identifier: Optional[str] = Form(None),
@@ -156,7 +156,7 @@ async def update_entite_geographique(
     return RedirectResponse(url=f"/structure/eg/{eg_id}", status_code=303)
 
 @router.post("/eg/{eg_id}/delete")
-async def delete_entite_geographique(
+def delete_entite_geographique(
     eg_id: int,
     session: Session = Depends(get_session)
 ):
@@ -170,7 +170,7 @@ async def delete_entite_geographique(
 
 # --- Pôles ---
 @router.get("/poles", response_class=HTMLResponse)
-async def list_poles(
+def list_poles(
     request: Request,
     session: Session = Depends(get_session),
     eg_id: Optional[int] = Query(None),
@@ -207,7 +207,7 @@ async def list_poles(
     )
 
 @router.get("/api/poles", response_model=List[PoleRead])
-async def list_poles_api(
+def list_poles_api(
     response: Response,
     session: Session = Depends(get_session),
     eg_id: Optional[int] = None,
@@ -304,7 +304,7 @@ def get_pole_api(
     }
 
 @router.post("/poles", response_model=Pole)
-async def create_pole(
+def create_pole(
     pole: Pole,
     session: Session = Depends(get_session)
 ):
@@ -315,7 +315,7 @@ async def create_pole(
     return pole
 
 @router.get("/poles/{pole_id}", response_class=HTMLResponse)
-async def view_pole(
+def view_pole(
     request: Request,
     pole_id: int,
     session: Session = Depends(get_session)
@@ -331,7 +331,7 @@ async def view_pole(
     )
 
 @router.get("/poles/{pole_id}/edit", response_class=HTMLResponse)
-async def edit_pole_form(
+def edit_pole_form(
     request: Request,
     pole_id: int,
     session: Session = Depends(get_session)
@@ -347,7 +347,7 @@ async def edit_pole_form(
     )
 
 @router.post("/poles/{pole_id}")
-async def update_pole(
+def update_pole(
     pole_id: int,
     name: str = Form(...),
     identifier: Optional[str] = Form(None),
@@ -370,7 +370,7 @@ async def update_pole(
     return RedirectResponse(url=f"/structure/poles/{pole_id}", status_code=303)
 
 @router.post("/poles/{pole_id}/delete")
-async def delete_pole(
+def delete_pole(
     pole_id: int,
     session: Session = Depends(get_session)
 ):

@@ -83,7 +83,7 @@ def _cotation_edit_payload(acte_type: str, acte: Any) -> dict[str, Any]:
 
 
 @router.get("/dossier/{dossier_id}/saisie", response_class=HTMLResponse, name="cotations_saisie_rapide")
-async def get_saisie_rapide(
+def get_saisie_rapide(
     request: Request,
     dossier_id: int,
     session: Session = Depends(get_session)
@@ -153,7 +153,7 @@ async def get_saisie_rapide(
 
 
 @router.get("/api/search/ccam", name="search_ccam_codes")
-async def search_ccam_codes(
+def search_ccam_codes(
     query: str,
     limit: int = 10,
     session: Session = Depends(get_session)
@@ -270,7 +270,7 @@ async def search_ccam_codes(
 
 
 @router.get("/api/search/ngap", name="search_ngap_codes")
-async def search_ngap_codes(
+def search_ngap_codes(
     query: str,
     limit: int = 10,
     session: Session = Depends(get_session)
@@ -306,7 +306,7 @@ async def search_ngap_codes(
 
 
 @router.get("/api/search/ucd", name="search_ucd_codes")
-async def search_ucd_codes(
+def search_ucd_codes(
     query: str,
     limit: int = 10,
     session: Session = Depends(get_session)
@@ -339,7 +339,7 @@ async def search_ucd_codes(
 
 
 @router.get("/api/search/lpp", name="search_lpp_codes")
-async def search_lpp_codes(
+def search_lpp_codes(
     query: str,
     limit: int = 10,
     session: Session = Depends(get_session)
@@ -372,7 +372,7 @@ async def search_lpp_codes(
 
 
 @router.get("/api/templates", name="get_acte_templates")
-async def get_acte_templates(
+def get_acte_templates(
     type_acte: Optional[str] = None,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
@@ -487,7 +487,7 @@ async def get_acte_templates(
 
 
 @router.post("/api/ccam", name="create_ccam_acte")
-async def create_ccam_acte(
+def create_ccam_acte(
     acte_data: dict,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
@@ -721,7 +721,7 @@ async def api_calculate_ngap(
 
 
 @router.post("/api/ngap", name="create_ngap_acte")
-async def create_ngap_acte(
+def create_ngap_acte(
     acte_data: dict,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
@@ -768,7 +768,7 @@ async def create_ngap_acte(
 
 
 @router.post("/api/ucd", name="create_ucd_acte")
-async def create_ucd_acte(
+def create_ucd_acte(
     acte_data: dict,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
@@ -825,7 +825,7 @@ async def create_ucd_acte(
 
 
 @router.post("/api/lpp", name="create_lpp_acte")
-async def create_lpp_acte(
+def create_lpp_acte(
     acte_data: dict,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
@@ -881,7 +881,7 @@ async def create_lpp_acte(
 
 
 @router.post("/api/bulk", name="bulk_update_cotations")
-async def bulk_update_cotations(
+def bulk_update_cotations(
     payload: dict[str, Any],
     session: Session = Depends(get_session),
 ) -> JSONResponse:
@@ -951,7 +951,7 @@ async def bulk_update_cotations(
 
 
 @router.get("/api/{acte_type}/{acte_id}", name="get_cotation_for_edit")
-async def get_cotation_for_edit(
+def get_cotation_for_edit(
     acte_type: str,
     acte_id: int,
     session: Session = Depends(get_session),
@@ -963,7 +963,7 @@ async def get_cotation_for_edit(
 
 
 @router.patch("/api/{acte_type}/{acte_id}", name="update_cotation")
-async def update_cotation(
+def update_cotation(
     acte_type: str,
     acte_id: int,
     payload: dict[str, Any],

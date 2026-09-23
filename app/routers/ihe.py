@@ -174,7 +174,7 @@ async def pdq_query(request: Request, session: Session = Depends(get_session)):
 
 # Routes FHIR PIXm/PDQm
 @router.post("/pixm/$ihe-pix")
-async def pixm_query(sourceIdentifier: str, session: Session = Depends(get_session)):
+def pixm_query(sourceIdentifier: str, session: Session = Depends(get_session)):
     """
     Point d'entrée pour les requêtes PIXm.
     Implémente l'opération $ihe-pix du profil IHE PIXm.
@@ -202,7 +202,7 @@ async def pixm_query(sourceIdentifier: str, session: Session = Depends(get_sessi
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/pdqm/Patient")
-async def pdqm_search(
+def pdqm_search(
     family: str = None,
     given: str = None,
     identifier: str = None,

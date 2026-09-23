@@ -541,7 +541,7 @@ def api_get_dossier(
 
 
 @api_router.post("/dossiers", response_class=JSONResponse, summary="API for creating a dossier")
-async def api_create_dossier(
+def api_create_dossier(
     patient_id: int = Body(...),
     dossier_type: str = Body("hospitalise"),
     admit_time: str = Body(...),

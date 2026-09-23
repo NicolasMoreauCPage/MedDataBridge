@@ -651,7 +651,7 @@ def show_clone_structure_form(endpoint_id: int, request: Request, session: Sessi
     )
 
 @router.post("/{source_id}/clone-structure/{target_id}")
-async def clone_structure(
+def clone_structure(
     source_id: int,
     target_id: int,
     session: Session = Depends(get_session)

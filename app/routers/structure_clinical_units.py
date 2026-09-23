@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/services", response_class=HTMLResponse)
-async def list_services(
+def list_services(
     request: Request,
     session: Session = Depends(get_session),
     pole_id: Optional[int] = Query(None),
@@ -74,7 +74,7 @@ async def list_services(
     )
 
 @router.get("/api/services", response_model=List[ServiceRead])
-async def list_services_api(
+def list_services_api(
     response: Response,
     session: Session = Depends(get_session),
     pole_id: Optional[int] = None,
@@ -178,7 +178,7 @@ def get_service_api(
     }
 
 @router.post("/services", response_model=Service)
-async def create_service(
+def create_service(
     service: Service,
     session: Session = Depends(get_session)
 ):
@@ -191,7 +191,7 @@ async def create_service(
     return service
 
 @router.get("/services/{service_id}", response_class=HTMLResponse)
-async def view_service(
+def view_service(
     request: Request,
     service_id: int,
     session: Session = Depends(get_session)
@@ -207,7 +207,7 @@ async def view_service(
     )
 
 @router.get("/services/{service_id}/edit", response_class=HTMLResponse)
-async def edit_service_form(
+def edit_service_form(
     request: Request,
     service_id: int,
     session: Session = Depends(get_session)
@@ -228,7 +228,7 @@ async def edit_service_form(
     )
 
 @router.post("/services/{service_id}")
-async def update_service(
+def update_service(
     service_id: int,
     name: str = Form(...),
     identifier: Optional[str] = Form(None),
@@ -254,7 +254,7 @@ async def update_service(
     return RedirectResponse(url=f"/structure/services/{service_id}", status_code=303)
 
 @router.post("/services/{service_id}/delete")
-async def delete_service(
+def delete_service(
     service_id: int,
     session: Session = Depends(get_session)
 ):
@@ -267,7 +267,7 @@ async def delete_service(
 
 # --- Unités Fonctionnelles ---
 @router.get("/ufs", response_class=HTMLResponse)
-async def list_unites_fonctionnelles(
+def list_unites_fonctionnelles(
     request: Request,
     session: Session = Depends(get_session),
     service_id: Optional[int] = Query(None),
@@ -319,7 +319,7 @@ async def list_unites_fonctionnelles(
     )
 
 @router.get("/api/ufs", response_model=List[UniteFonctionnelleRead])
-async def list_unites_fonctionnelles_api(
+def list_unites_fonctionnelles_api(
     response: Response,
     session: Session = Depends(get_session),
     service_id: Optional[int] = None,
@@ -416,7 +416,7 @@ def get_unite_fonctionnelle_api(
     }
 
 @router.post("/ufs", response_model=UniteFonctionnelle)
-async def create_unite_fonctionnelle(
+def create_unite_fonctionnelle(
     uf: UniteFonctionnelle,
     session: Session = Depends(get_session)
 ):
@@ -427,7 +427,7 @@ async def create_unite_fonctionnelle(
     return uf
 
 @router.get("/ufs/{uf_id}", response_class=HTMLResponse)
-async def view_unite_fonctionnelle(
+def view_unite_fonctionnelle(
     request: Request,
     uf_id: int,
     session: Session = Depends(get_session)
@@ -443,7 +443,7 @@ async def view_unite_fonctionnelle(
     )
 
 @router.get("/ufs/{uf_id}/edit", response_class=HTMLResponse)
-async def edit_unite_fonctionnelle_form(
+def edit_unite_fonctionnelle_form(
     request: Request,
     uf_id: int,
     session: Session = Depends(get_session)
@@ -459,7 +459,7 @@ async def edit_unite_fonctionnelle_form(
     )
 
 @router.post("/ufs/{uf_id}")
-async def update_unite_fonctionnelle(
+def update_unite_fonctionnelle(
     uf_id: int,
     name: str = Form(...),
     identifier: Optional[str] = Form(None),
@@ -488,7 +488,7 @@ async def update_unite_fonctionnelle(
     return RedirectResponse(url=f"/structure/ufs/{uf_id}", status_code=303)
 
 @router.post("/ufs/{uf_id}/delete")
-async def delete_unite_fonctionnelle(
+def delete_unite_fonctionnelle(
     uf_id: int,
     session: Session = Depends(get_session)
 ):

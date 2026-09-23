@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @router.get("/structure/search", response_class=HTMLResponse)
-async def structure_search_interface(
+def structure_search_interface(
     request: Request, 
     session: Session = Depends(get_session)
 ):

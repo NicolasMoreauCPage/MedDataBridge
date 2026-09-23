@@ -38,7 +38,7 @@ router = APIRouter(prefix="/config/scenario-ej", tags=["scenario-ej-config"])
 
 
 @router.get("", response_class=HTMLResponse, name="scenario_ej_config_list")
-async def list_ej_configs(
+def list_ej_configs(
     request: Request,
     session: Session = Depends(get_session)
 ):
@@ -74,7 +74,7 @@ async def list_ej_configs(
 
 
 @router.get("/{ej_id}", response_class=HTMLResponse, name="scenario_ej_config_edit")
-async def edit_ej_config(
+def edit_ej_config(
     request: Request,
     ej_id: int,
     session: Session = Depends(get_session)
@@ -209,7 +209,7 @@ async def save_ej_config(
 
 
 @router.delete("/{ej_id}", name="scenario_ej_config_delete")
-async def delete_ej_config(
+def delete_ej_config(
     ej_id: int,
     session: Session = Depends(get_session)
 ):
@@ -229,7 +229,7 @@ async def delete_ej_config(
 
 # API pour récupérer la structure de l'EJ (pour AJAX)
 @router.get("/api/structure/{ej_id}", name="scenario_ej_config_structure_api")
-async def get_ej_structure_api(
+def get_ej_structure_api(
     ej_id: int,
     session: Session = Depends(get_session)
 ):

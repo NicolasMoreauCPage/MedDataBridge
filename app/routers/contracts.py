@@ -19,7 +19,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/")
-async def contracts_dashboard(request: Request, db: Session = Depends(get_session)):
+def contracts_dashboard(request: Request, db: Session = Depends(get_session)):
     """Dashboard des contrats"""
     return templates.TemplateResponse("contracts/dashboard.html", {
         "request": request,
@@ -28,7 +28,7 @@ async def contracts_dashboard(request: Request, db: Session = Depends(get_sessio
 
 
 @router.get("/dossier/{dossier_id}")
-async def contracts_by_dossier(
+def contracts_by_dossier(
     request: Request,
     dossier_id: int,
     db: Session = Depends(get_session)
@@ -51,7 +51,7 @@ async def contracts_by_dossier(
 
 
 @router.get("/create/{dossier_id}")
-async def create_contract_form(
+def create_contract_form(
     request: Request,
     dossier_id: int,
     db: Session = Depends(get_session)
@@ -73,7 +73,7 @@ async def create_contract_form(
 
 
 @router.post("/create/{dossier_id}")
-async def create_contract(
+def create_contract(
     request: Request,
     dossier_id: int,
     contract_type: str = Form(...),
@@ -148,7 +148,7 @@ async def create_contract(
 
 
 @router.post("/{contract_id}/status")
-async def update_contract_status_route(
+def update_contract_status_route(
     request: Request,
     contract_id: int,
     status: str = Form(...),

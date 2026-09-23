@@ -395,7 +395,7 @@ def _import_one_lpp(session: Session, dossier: Dossier, acte: Any) -> Optional[L
 
 
 @router.get("/", response_class=HTMLResponse)
-async def hprim_messages_dashboard(
+def hprim_messages_dashboard(
     request: Request,
     session: Session = Depends(get_session),
     status: Optional[str] = Query(None, description="Filtrer par statut"),
@@ -443,7 +443,7 @@ async def hprim_messages_dashboard(
 
 
 @router.get("/message/{message_id}", response_class=HTMLResponse)
-async def view_hprim_message(
+def view_hprim_message(
     message_id: str,
     request: Request,
     session: Session = Depends(get_session),
@@ -507,7 +507,7 @@ async def view_hprim_message(
 
 
 @router.get("/dossiers-avec-cotations", response_class=HTMLResponse)
-async def dossiers_avec_cotations(request: Request, session: Session = Depends(get_session)):
+def dossiers_avec_cotations(request: Request, session: Session = Depends(get_session)):
     messages = session.exec(
         select(HprimMessage)
         .where(HprimMessage.status.in_(VISIBLE_STATUSES))
@@ -562,7 +562,7 @@ async def dossiers_avec_cotations(request: Request, session: Session = Depends(g
 
 
 @router.post("/message/{message_id}/import-ccam")
-async def import_ccam_acts(message_id: str, session: Session = Depends(get_session)):
+def import_ccam_acts(message_id: str, session: Session = Depends(get_session)):
     try:
         message = session.get(HprimMessage, message_id)
         if not message:
@@ -590,7 +590,7 @@ async def import_ccam_acts(message_id: str, session: Session = Depends(get_sessi
 
 
 @router.post("/message/{message_id}/import-ngap")
-async def import_ngap_acts(message_id: str, session: Session = Depends(get_session)):
+def import_ngap_acts(message_id: str, session: Session = Depends(get_session)):
     try:
         message = session.get(HprimMessage, message_id)
         if not message:
@@ -618,7 +618,7 @@ async def import_ngap_acts(message_id: str, session: Session = Depends(get_sessi
 
 
 @router.post("/message/{message_id}/import-ucd")
-async def import_ucd_acts(message_id: str, session: Session = Depends(get_session)):
+def import_ucd_acts(message_id: str, session: Session = Depends(get_session)):
     try:
         message = session.get(HprimMessage, message_id)
         if not message:
@@ -646,7 +646,7 @@ async def import_ucd_acts(message_id: str, session: Session = Depends(get_sessio
 
 
 @router.post("/message/{message_id}/import-lpp")
-async def import_lpp_acts(message_id: str, session: Session = Depends(get_session)):
+def import_lpp_acts(message_id: str, session: Session = Depends(get_session)):
     try:
         message = session.get(HprimMessage, message_id)
         if not message:

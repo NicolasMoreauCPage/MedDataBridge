@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/{context_id}/ej/new")
-async def new_entite_juridique_form(
+def new_entite_juridique_form(
     request: Request,
     context_id: int,
     session: Session = Depends(get_session),
@@ -73,7 +73,7 @@ async def create_entite_juridique(
     return RedirectResponse(f"/admin/ght/{context.id}", status_code=303)
 
 @router.get("/{context_id}/ej/{ej_id}")
-async def view_entite_juridique(
+def view_entite_juridique(
     request: Request,
     context_id: int,
     ej_id: int,
@@ -108,7 +108,7 @@ async def view_entite_juridique(
     )
 
 @router.get("/{context_id}/ej/{ej_id}/edit")
-async def edit_entite_juridique_form(
+def edit_entite_juridique_form(
     request: Request,
     context_id: int,
     ej_id: int,
@@ -205,7 +205,7 @@ def _clone_namespace(session: Session, ns: IdentifierNamespace, new_parent_id: i
 
 
 @router.post("/{context_id}/ej/{ej_id}/clone")
-async def clone_entite_juridique(
+def clone_entite_juridique(
     request: Request,
     context_id: int,
     ej_id: int,

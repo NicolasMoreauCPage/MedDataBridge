@@ -13,7 +13,7 @@ from app.services.structure_tree import build_structure_tree_for_template
 router = APIRouter()
 
 @router.get("/{context_id}/ej/{ej_id}/eg/new")
-async def new_entite_geographique_form(
+def new_entite_geographique_form(
     request: Request,
     context_id: int,
     ej_id: int,
@@ -76,7 +76,7 @@ async def create_entite_geographique(
     return RedirectResponse(f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}", status_code=303)
 
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}")
-async def view_entite_geographique(
+def view_entite_geographique(
     request: Request,
     context_id: int,
     ej_id: int,

@@ -21,7 +21,7 @@ router = APIRouter()
 
 # --- POLES ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/new")
-async def new_pole_form(request: Request, context_id: int, ej_id: int, eg_id: int, session: Session = Depends(get_session)):
+def new_pole_form(request: Request, context_id: int, ej_id: int, eg_id: int, session: Session = Depends(get_session)):
     context, entite, geo = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id)
     fields = pole_form_fields()
     action_url = request.url.path
@@ -48,7 +48,7 @@ async def create_pole(request: Request, context_id: int, ej_id: int, eg_id: int,
 
 # --- SERVICES ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/new")
-async def new_service_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, session: Session = Depends(get_session)):
+def new_service_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, session: Session = Depends(get_session)):
     context, entite, geo, pole = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id)
     fields = service_form_fields()
     action_url = request.url.path
@@ -77,7 +77,7 @@ async def create_service(request: Request, context_id: int, ej_id: int, eg_id: i
 
 # --- SERVICES EDIT ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/edit")
-async def edit_service_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
+def edit_service_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
@@ -111,7 +111,7 @@ async def update_service(request: Request, context_id: int, ej_id: int, eg_id: i
 
 # --- UFs ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/new")
-async def new_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
+def new_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, session: Session = Depends(get_session)):
     context, entite, geo, _pole, service = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id)
     fields = uf_form_fields()
     action_url = request.url.path
@@ -137,7 +137,7 @@ async def create_uf(request: Request, context_id: int, ej_id: int, eg_id: int, p
     return RedirectResponse(f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}", status_code=303)
 
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/edit")
-async def edit_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
+def edit_uf_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
@@ -171,7 +171,7 @@ async def update_uf(request: Request, context_id: int, ej_id: int, eg_id: int, p
 
 # --- UHs ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/new")
-async def new_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
+def new_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, session: Session = Depends(get_session)):
     context, entite, geo, _pole, _service, uf = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id)
     fields = uh_form_fields()
     action_url = request.url.path
@@ -197,7 +197,7 @@ async def create_uh(request: Request, context_id: int, ej_id: int, eg_id: int, p
     return RedirectResponse(f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}", status_code=303)
 
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/edit")
-async def edit_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
+def edit_uh_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
@@ -233,7 +233,7 @@ async def update_uh(request: Request, context_id: int, ej_id: int, eg_id: int, p
 
 # --- CHAMBRES ---
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/new")
-async def new_chambre_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
+def new_chambre_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, session: Session = Depends(get_session)):
     context, entite, geo, _pole, _service, _uf, uh = get_context_or_404(session, context_id), get_ej_or_404(session, context_id, ej_id), get_entite_geo_or_404(session, ej_id, eg_id), get_pole_or_404(session, eg_id, pole_id), get_service_or_404(session, pole_id, service_id), get_uf_or_404(session, service_id, uf_id), get_uh_or_404(session, uf_id, uh_id)
     fields = chambre_form_fields()
     action_url = request.url.path
@@ -259,7 +259,7 @@ async def create_chambre(request: Request, context_id: int, ej_id: int, eg_id: i
     return RedirectResponse(f"/admin/ght/{context.id}/ej/{entite.id}/eg/{geo.id}", status_code=303)
 
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/{chambre_id}/edit")
-async def edit_chambre_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, session: Session = Depends(get_session)):
+def edit_chambre_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, session: Session = Depends(get_session)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)
@@ -303,7 +303,7 @@ async def test_route():
     return {"message": "test route works"}
 
 @router.get("/{context_id}/ej/{ej_id}/eg/{eg_id}/poles/{pole_id}/services/{service_id}/ufs/{uf_id}/uh/{uh_id}/chambres/{chambre_id}/lits/{lit_id}/edit")
-async def edit_lit_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, lit_id: int, session: Session = Depends(get_session)):
+def edit_lit_form(request: Request, context_id: int, ej_id: int, eg_id: int, pole_id: int, service_id: int, uf_id: int, uh_id: int, chambre_id: int, lit_id: int, session: Session = Depends(get_session)):
     context = get_context_or_404(session, context_id)
     entite = get_ej_or_404(session, context, ej_id)
     geo = get_entite_geo_or_404(session, entite, eg_id)

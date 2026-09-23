@@ -1,11 +1,16 @@
 # Statut et classement de la documentation
 
-Mis à jour le 12 septembre 2026.
+Mis à jour le 24 septembre 2026. Propriétaire : équipe Qualité documentaire.
 
 Le dépôt contient de nombreux Markdown produits au fil des audits, sprints et
 qualifications. Ils ne sont pas supprimés : ils constituent une trace utile.
 Ce fichier évite qu'un instantané ancien soit confondu avec une spécification
 ou une preuve courante.
+
+Le registre des documents actifs, de leurs propriétaires et de leur date de
+dernière vérification est la table « Références à utiliser » de
+[`docs/README.md`](README.md). Un document absent de ce registre n'est pas une
+référence active, même s'il reste conservé pour la traçabilité.
 
 ## Hiérarchie de référence
 
@@ -37,6 +42,8 @@ ou une preuve courante.
   rapports et des scripts externes.
 - Les rapports historiques conservent leurs constats initiaux. Leur en-tête ou
   leur index indique désormais s'ils sont remplacés, validés ou encore ouverts.
+- Les plans multi-protocoles clos restent à leur emplacement pour préserver les
+  liens entrants, mais leur statut historique est explicite dans l'index actif.
 - Les nombres globaux de tests sont évités dans les documents maintenus. Une
   commande reproductible et la CI sont plus fiables qu'un chiffre figé.
 - Un lien vers une page HTML inexistante, un ancien nom de produit ou un ancien

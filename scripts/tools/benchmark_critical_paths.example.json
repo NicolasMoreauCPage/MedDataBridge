@@ -1,0 +1,38 @@
+{
+  "base_url": "http://localhost:8000",
+  "iterations": 30,
+  "timeout_seconds": 60,
+  "environment": {
+    "database": "PostgreSQL",
+    "dataset": "qualification-reference-v1",
+    "notes": "Renseigner CPU, mémoire, version PostgreSQL et paramètres du pool"
+  },
+  "paths": [
+    {
+      "name": "Export FHIR structure",
+      "method": "GET",
+      "path": "/api/fhir/export/structure/1",
+      "expected_statuses": [200],
+      "p50_ms": 1000,
+      "p95_ms": 2500
+    },
+    {
+      "name": "Export FHIR patients",
+      "method": "GET",
+      "path": "/api/fhir/export/patients/1",
+      "params": {"limit": 500, "offset": 0},
+      "expected_statuses": [200],
+      "p50_ms": 750,
+      "p95_ms": 2000
+    },
+    {
+      "name": "Export FHIR venues",
+      "method": "GET",
+      "path": "/api/fhir/export/venues/1",
+      "params": {"limit": 500, "offset": 0},
+      "expected_statuses": [200],
+      "p50_ms": 1000,
+      "p95_ms": 2500
+    }
+  ]
+}

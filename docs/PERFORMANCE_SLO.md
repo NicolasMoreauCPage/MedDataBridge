@@ -53,6 +53,32 @@ python scripts/tools/benchmark_fhir_exports.py \
 Le script appelle les routes réellement publiées, calcule p50 et p95 par
 interpolation linéaire, et écrit les résultats dans `benchmark_results/`.
 
+Pour une campagne multi-parcours (recherche, timeline, imports, scénarios,
+outbox et exports), copier puis compléter le manifeste versionné :
+
+```bash
+cp scripts/tools/benchmark_critical_paths.example.json \
+  benchmark_critical_paths.local.json
+python scripts/tools/benchmark_critical_paths.py \
+  benchmark_critical_paths.local.json \
+  --base-url http://localhost:8000 \
+  --output benchmark_results/critical-paths-postgresql.json
+```
+
+Chaque entrée du manifeste décrit la méthode, le chemin, les paramètres, le
+corps JSON éventuel, les statuts attendus et ses seuils p50/p95. Le programme
+exclut une requête de chauffe, mesure latence, débit et taille de réponse,
+produit un rapport JSON exploitable par la CI, puis retourne un code non nul si
+un seuil ou un statut échoue. Les identifiants dépendants du jeu de données et
+les en-têtes d'authentification éventuels doivent rester dans la copie locale,
+pas dans l'exemple versionné.
+
+La mémoire serveur, le nombre de requêtes SQL et la concurrence des transports
+se mesurent côté déploiement (métriques du processus, PostgreSQL et workers) et
+se joignent au même rapport de qualification. Le manifeste conserve les
+métadonnées du matériel, de PostgreSQL, du pool et du jeu de données pour rendre
+les campagnes comparables.
+
 Les budgets SQL unitaires complètent cette campagne : ils détectent les N+1
 sans dépendre de la vitesse de la machine. Ils ne remplacent pas une campagne
 HTTP PostgreSQL, qui doit être exécutée en qualification avant mise en service.

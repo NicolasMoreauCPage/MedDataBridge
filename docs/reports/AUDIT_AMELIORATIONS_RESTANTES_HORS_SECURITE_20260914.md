@@ -4,6 +4,11 @@ Date : 14 septembre 2026
 Périmètre : application MedData Bridge, hors sécurité  
 Nature : audit du code, de la configuration, de la documentation et des tests présents dans le dépôt
 
+> **Mise à jour du 24 septembre 2026.** Les développements planifiés dans ce
+> document sont livrés. Restent deux activités qui ne peuvent pas être produites
+> par le dépôt seul : exécuter la campagne OPS-01 sur l'environnement PostgreSQL
+> cible et enrichir BE-09 à réception des contrats d'assertions partenaires.
+
 ## Verdict
 
 Le socle métier principal est déjà avancé : IHE PAM, HPRIM XML, MFN, FHIR/FR
@@ -55,16 +60,16 @@ sécurité.
 | Indicateur | Valeur constatée | Lecture |
 |---|---:|---|
 | Code Python applicatif | 312 fichiers, environ 86 600 lignes | surface importante pour un monolithe |
-| Plus gros routeur | `app/routers/structure.py`, 2 494 lignes | responsabilités trop concentrées |
-| Plus gros service | `app/services/emit_on_create.py`, 2 340 lignes | émission, retry et persistance trop couplés |
+| Plus gros routeur | `app/routers/scenarios.py`, 1 902 lignes (24 septembre 2026) | dette de modularisation résiduelle hors façades BE-03 |
+| Plus gros service | `app/services/hprim/hprim_xml.py`, 1 488 lignes (24 septembre 2026) | dette de modularisation résiduelle hors façades BE-03 |
 | Templates | 162 fichiers, environ 37 100 lignes | frontend étendu et hétérogène |
 | Templates avec script embarqué | 65 | code peu réutilisable et difficile à tester |
 | Gestionnaires HTML inline | environ 170 | comportement fortement couplé au markup |
 | Appels `fetch` | 1, dans `static/js/http.js` | transport réseau centralisé |
 | Anomalies Ruff sur `app/` | 0 (23 septembre 2026) | qualité statique bloquante en CI |
-| `except Exception` | environ 547 | erreurs trop largement interceptées |
-| Exceptions suivies de `pass` | environ 218 | diagnostics ou échecs potentiellement masqués |
-| Appels `print` dans `app/` | environ 82 | journalisation non homogène |
+| `except Exception` | 487 (24 septembre 2026) | captures tolérées à réduire lors des évolutions de domaine |
+| Exceptions larges suivies uniquement de `pass` | 0 (24 septembre 2026) | aucune erreur silencieusement avalée |
+| Appels `print` exécutables dans `app/` | 2, réservés au CLI `check_ej_vbf.py` | journalisation applicative homogénéisée |
 | Routes enregistrées | 590, dont 588 opérations OpenAPI | surface à rationaliser et documenter |
 | Suite large interrompue à environ 13 % | 129 réussis, 4 échecs, 6 ignorés, 11 xfail en 7 min 14 s | collecte et isolation à reprendre |
 
@@ -132,7 +137,13 @@ l'audit :
   persistés sans capture silencieuse : les erreurs de base remontent à la
   transaction, tandis qu'un format HL7 invalide est explicitement averti sans
   bloquer l'admission. Les sorties `print` de ce parcours ont été remplacées par
-  le logger applicatif.
+  le logger applicatif. La passe transversale finale a supprimé tous les blocs
+  larges dont le seul traitement était `pass` : les chemins facultatifs sont
+  maintenant justifiés et tracés au niveau debug avec leur pile. Les sorties
+  applicatives utilisent le logger ; seuls deux `print` restent dans un outil
+  CLI destiné à l'opérateur. **BE-04 est terminé le 24 septembre 2026** ; les
+  captures larges restantes ont un traitement explicite et seront resserrées
+  au fil des évolutions de leur domaine.
 - **BE-03 :** `emit_on_create.py` délègue désormais la génération FHIR à
   `fhir_emission.py` (Bundle, cibles et reprise durable) et la construction
   XML des actes de cotation à `hprim_emission.py` (abonnement, patient,
@@ -229,8 +240,7 @@ l'audit :
   vérifie le contenu produit et un budget de quatre requêtes SQL au maximum.
   L'export FHIR de structure précharge maintenant tous les niveaux (EG, pôle,
   service, UF, UAC, UH, chambre et lit), ainsi que les activités d'UF. Un test
-  d'arborescence large borne le nombre de `SELECT` à dix. La pagination et les
-  objectifs p95 restent à traiter. L'API d'arbre structure reçoit maintenant
+  d'arborescence large borne le nombre de `SELECT` à dix. L'API d'arbre structure reçoit maintenant
   explicitement la requête FastAPI pour lire le contexte EJ, sans inspection
   coûteuse et implicite de la pile d'appel. Les listes structure (EG, pôle,
   service, UF, UH, chambre et lit) appliquent désormais le même contrat
@@ -248,11 +258,17 @@ l'audit :
   un test borne cette page à sept `SELECT`. Les objectifs p50/p95 sont
   désormais publiés avec leur protocole de qualification PostgreSQL dans
   `docs/PERFORMANCE_SLO.md`; l'outil d'export FHIR mesure p50 et p95 sur les
-  routes effectives et une taille de page déclarée. Les cinq routes d'export
+  routes effectives et une taille de page déclarée. Un second outil piloté par
+  manifeste mesure maintenant n'importe quel parcours HTTP critique, son débit,
+  sa taille de réponse et ses p50/p95, produit une preuve JSON et échoue si les
+  SLO ne sont pas respectés. Les cinq routes d'export
   FHIR utilisant SQLModel synchrone sont maintenant elles-mêmes synchrones :
-  FastAPI les exécute donc hors de la boucle asynchrone. Les autres routes
-  historiques `async` à session synchrone restent à inventorier et convertir
-  progressivement par domaine. Les huit routes de cartographie de lieux ont
+  FastAPI les exécute donc hors de la boucle asynchrone. Toutes les routes
+  historiques à session SQLModel synchrone qui n'attendent aucune opération
+  asynchrone ont ensuite été converties en routes `def`, y compris les API
+  cliniques, HPRIM, UCD et LPP ; un test AST empêche leur réintroduction. Les
+  routes qui attendent réellement un transport ou une orchestration conservent
+  leur contrat asynchrone. Les huit routes de cartographie de lieux ont
   été traitées de la même façon, sans changer leur contrat JSON; les deux
   lectures de détail de qualification d'interfaces sont également synchrones.
   La liste des templates de structure est maintenant triée, bornée à 500 et
@@ -272,7 +288,9 @@ l'audit :
   mouvement → venue → dossier au lieu de matérialiser successivement les deux
   listes d'identifiants intermédiaires. Le formulaire de mouvement supprime
   aussi ses rafraîchissements patient/dossier par venue et les boucles
-  EG → pôle → service → UF qui provoquaient un N+1.
+  EG → pôle → service → UF qui provoquaient un N+1. **Le travail de code BE-05
+  est terminé le 24 septembre 2026** ; la campagne PostgreSQL sur le matériel
+  cible reste une opération de qualification de déploiement.
 - **BE-06 :** la migration `c7e1f2a4b603` tolère désormais l'absence des tables
   de cotations optionnelles sur les anciennes installations. Le test de base
   fraîche suit dynamiquement la tête Alembic et ces deux tests sont exécutés
@@ -332,10 +350,13 @@ l'audit :
   sans rupture de leur corps tableau. Ces mêmes routes utilisent maintenant
   sept schémas de sortie dédiés, alignés par test sur les colonnes historiques,
   et n'exposent donc plus directement leurs modèles ORM. L'extension de cette
-  séparation aux autres API historiques reste progressive. Les quatre routes
+  séparation couvre maintenant aussi les créations et modifications de
+  structure ainsi que les contrats patients, dossiers, venues, mouvements et
+  ZFD : leurs schémas d'entrée/sortie sont indépendants des tables ORM. Les quatre routes
   AJAX historiques de mouvement conservent désormais explicitement leur
   enveloppe `{success, options}` via un service testé ; le filtrage des motifs
-  reconnaît aussi correctement un code complet `ADT^Axx`.
+  reconnaît aussi correctement un code complet `ADT^Axx`. **BE-08 est terminé
+  le 24 septembre 2026.**
 - **BE-09 :** la publication manuelle d'une version de scénario exige désormais
   une intention métier, au moins une précondition, une assertion exécutable et
   un résultat attendu explicite. Les manques sont visibles dès le contrôle
@@ -350,7 +371,17 @@ l'audit :
   opération inventoriée indique désormais son domaine propriétaire, son statut
   (`Active` ou `Dépréciée`) et son consommateur (`API`, interface web ou à
   qualifier), avec possibilité de préciser ces valeurs par les extensions
-  OpenAPI `x-owner`, `x-status` et `x-consumer`.
+  OpenAPI `x-owner`, `x-status` et `x-consumer`. L'index actif indique désormais
+  pour chaque référence son statut, son propriétaire et sa dernière date de
+  vérification ; les plans clos sont explicitement historiques sans casser leurs
+  liens entrants. **DOC-01 est terminé le 24 septembre 2026.**
+- **OPS-01 :** les SLO, volumes, règles de chauffe et protocole PostgreSQL sont
+  publiés dans `docs/PERFORMANCE_SLO.md`. Le manifeste générique
+  `scripts/tools/benchmark_critical_paths.example.json` et son exécuteur
+  produisent une preuve JSON reproductible pour les parcours configurés et un
+  code d'échec en cas de dépassement. **L'outillage OPS-01 est terminé le 24
+  septembre 2026** ; les mesures réelles restent à exécuter pour chaque
+  environnement candidat au déploiement.
 - **BE-01 :** la configuration est chargée par `config.settings` pour tous les
   points d'entrée, avec conversion typée et diagnostic unique des valeurs
   invalides. Un import applicatif en mode test est vérifié sans création de
@@ -795,6 +826,9 @@ injecter les transports. Commencer par `emit_on_create`, `structure` et
 
 #### BE-04 — Fiabiliser la gestion des erreurs et des traitements différés
 
+**Statut : terminé le 24 septembre 2026.** Les captures larges restantes ont
+un traitement explicite ; leur resserrement est une règle de maintenance.
+
 **Constat.** Le code contient environ 547 captures larges de `Exception`, 218
 blocs qui ignorent une exception et 82 `print`. Dans
 [`app/services/emit_on_create.py`](../../app/services/emit_on_create.py), des
@@ -819,6 +853,9 @@ styles concurrents.
 **Effort estimé : M à L.**
 
 #### BE-05 — Corriger les accès aux données coûteux
+
+**Statut code : terminé le 24 septembre 2026.** La preuve PostgreSQL réelle est
+à produire dans chaque environnement de qualification avec l'outil OPS-01.
 
 **Constat.** Plusieurs parcours effectuent des requêtes imbriquées. L'export de
 structure FHIR parcourt EJ → EG → pôle → service → UF → UAC/UH → chambre → lit
@@ -893,6 +930,9 @@ un typage progressif sur les schémas, services et adaptateurs de protocole.
 
 #### BE-08 — Stabiliser les contrats API
 
+**Statut : terminé le 24 septembre 2026.** Les API métier exposées utilisent
+des schémas dédiés et l'inventaire OpenAPI reste la source du catalogue.
+
 **Constat.** L'application enregistre 590 routes et expose 489 chemins OpenAPI.
 Les styles de réponse, la pagination et la gestion des erreurs varient selon
 les anciens et nouveaux modules. Certaines routes renvoient directement les
@@ -913,6 +953,10 @@ contrat. Générer des tests de contrat depuis OpenAPI pour les API partenaires.
 **Effort estimé : L.**
 
 #### BE-09 — Enrichir les assertions fonctionnelles du catalogue
+
+**Statut socle : terminé. Statut contenu partenaire : continu et externe.** La
+publication bloque tout scénario sans contrat qualifiable ; les assertions
+propres à une cible ne peuvent être inventées sans son contrat métier.
 
 **Constat.** Le moteur de scénarios est opérationnel, mais le plan
 [`PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md`](PLAN_QUALIFICATION_SCENARIOS_PAM_HPRIM_20260912.md)
@@ -1098,6 +1142,9 @@ suffisant pour le besoin actuel.
 
 #### OPS-01 — Définir des objectifs de performance et de capacité
 
+**Statut outillage : terminé le 24 septembre 2026.** L'exécution sur PostgreSQL
+et les transports du site cible relève de la qualification de déploiement.
+
 Les tests actuels donnent quelques seuils locaux, mais pas une mesure de charge
 HTTP réaliste avec base PostgreSQL et transports concurrents. Définir des SLO
 par parcours, un jeu de données de référence et une campagne reproductible :
@@ -1108,6 +1155,9 @@ requêtes SQL.
 **Effort estimé : M.**
 
 #### DOC-01 — Réduire les contradictions documentaires
+
+**Statut : terminé le 24 septembre 2026.** L'index actif porte statut,
+propriétaire et date de vérification ; les autres plans sont des instantanés.
 
 Le dépôt conserve de nombreux plans et TODO datés dont certains annoncent
 encore comme manquantes des fonctions depuis livrées. Garder

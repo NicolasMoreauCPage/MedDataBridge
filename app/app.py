@@ -23,12 +23,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, APIRouter
+from fastapi import FastAPI, Request
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from sqladmin import Admin, ModelView
-from sqlmodel import select
+from sqladmin import Admin
 
 # Import de la configuration centralisée
 from config.settings import Settings, settings
@@ -39,7 +38,7 @@ from app.middleware.version import VersionMiddleware
 from app.middleware.error_handler import ErrorHandlingMiddleware, RequestLoggingMiddleware
 from app.metrics import MetricsMiddleware
 
-from app.db import init_db, engine, get_session
+from app.db import init_db, engine
 from app import models_scenarios  # ensure scenario models are registered
 from app.admin import register_admin_views  # SQLAdmin views
 from app.db_session_factory import session_factory
@@ -72,14 +71,12 @@ from app.routers import (
     generate, structure, workflow, fhir_structure, vocabularies,
     health, scenarios, guide, docs, ihe, dossier_type, structure_select, validation, validation_rules,
     documentation, conformity, fhir_export, fhir_import, metrics, auth, doc_wrapper,
-    interface_testing, test_scenario_generator, ui_test_scenarios, ccam, ucd, lpp, tasks,
+    interface_testing, test_scenario_generator, ui_test_scenarios, tasks,
     hprim_interventions, hprim_acquittements, hprim_management, ngap, cotations, cotations_saisie,
     admission_wizard, location_cartography, contacts
 )
 from app.routers import menu
 
-from app.routers.ght.ej import router as ej_router
-from app.routers.ght.structure import router as structure_router
 from app.routers import roundtrip_hprim
 from app.routers import cotation_modern
 
@@ -155,8 +152,6 @@ def make_lifespan(runtime_settings: Settings):
                 await stop_scheduler()
                 await mllp_manager.stop_all()
     return lifespan
-
-from app.version import get_version
 
 def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     """Crée une application indépendante à partir de réglages validés."""

@@ -11,7 +11,7 @@ import logging
 from app.db import get_session
 
 from app.models_endpoints import SystemEndpoint
-from app.models_context import (
+from app.models.context import (
     EndpointContext,
     PatientContextMapping,
     DossierContextMapping,

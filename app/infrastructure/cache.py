@@ -196,7 +196,7 @@ def cached_db_query(ttl: int = None, key_prefix: str = "db"):
     def decorator(func):
         async def wrapper(*args, **kwargs):
             import time
-            from app.metrics import record_db_metrics
+            from app.infrastructure.metrics import record_db_metrics
 
             # Créer une clé de cache
             key = f"{key_prefix}:{func.__name__}:{hash(str(args) + str(kwargs))}"
@@ -232,7 +232,7 @@ def cached_db_query(ttl: int = None, key_prefix: str = "db"):
         # Pour les fonctions synchrones aussi
         def sync_wrapper(*args, **kwargs):
             import time
-            from app.metrics import record_db_metrics
+            from app.infrastructure.metrics import record_db_metrics
 
             key = f"{key_prefix}:{func.__name__}:{hash(str(args) + str(kwargs))}"
 

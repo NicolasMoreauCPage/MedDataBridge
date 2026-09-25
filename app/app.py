@@ -33,7 +33,7 @@ from app.middleware.flash import FlashMessageMiddleware
 from app.middleware.ght_context import GHTContextMiddleware
 from app.middleware.version import VersionMiddleware
 from app.middleware.error_handler import ErrorHandlingMiddleware, RequestLoggingMiddleware
-from app.metrics import MetricsMiddleware
+from app.infrastructure.metrics import MetricsMiddleware
 
 from app.db import (
     create_database_engine,

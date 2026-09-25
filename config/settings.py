@@ -77,6 +77,7 @@ class Settings:
     max_concurrent_tasks: int = 3
     task_timeout: int = 3600
     task_worker_count: int = 3
+    security_enabled: bool = False
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] | None = None) -> "Settings":
@@ -99,6 +100,7 @@ class Settings:
             max_concurrent_tasks=_positive_int(env, "MAX_CONCURRENT_TASKS", cls.max_concurrent_tasks),
             task_timeout=_positive_int(env, "TASK_TIMEOUT", cls.task_timeout),
             task_worker_count=_positive_int(env, "TASK_WORKER_COUNT", cls.task_worker_count),
+            security_enabled=_bool(env, "SECURITY_ENABLED", cls.security_enabled),
         )
 
     def validate_config(self) -> list[str]:
@@ -108,6 +110,8 @@ class Settings:
             warnings.append("DEBUG est activé hors mode test.")
         if self.database_url.startswith("sqlite:///") and not self.testing:
             warnings.append("La base SQLite est adaptée au développement, pas à une charge multi-processus.")
+        if not self.security_enabled:
+            warnings.append("SECURITY_ENABLED est désactivé : l'accès applicatif est ouvert sur le réseau local.")
         return warnings
 
     def to_dict(self, *, mask_secrets: bool = True) -> dict[str, object]:

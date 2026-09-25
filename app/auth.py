@@ -64,7 +64,18 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Security scheme
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
+
+
+def _local_operator() -> "UserInDB":
+    """Identité technique utilisée uniquement lorsque la sécurité est désactivée."""
+    return UserInDB(
+        id=0,
+        username="local-operator",
+        email="local@medbridge.invalid",
+        hashed_password="",
+        roles=["admin", "user"],
+    )
 
 
 class TokenData(BaseModel):
@@ -266,7 +277,7 @@ def decode_token(
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> UserInDB:
     """
     Dépendance FastAPI pour obtenir l'utilisateur courant.
@@ -276,6 +287,16 @@ async def get_current_user(
         async def protected_route(user: UserInDB = Depends(get_current_user)):
             return {"message": f"Hello {user.username}"}
     """
+    if not settings.security_enabled:
+        return _local_operator()
+
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentification requise",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     token = credentials.credentials
     token_data = decode_token(token)
     

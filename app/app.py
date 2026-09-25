@@ -777,14 +777,15 @@ def _register_application_routes(
     app.include_router(import_examples.router)
     logger.info(" - Import examples router mounted at /import")
     
-    # 7. Authentication
-    app.include_router(auth.router)
-    logger.info(" - Authentication router mounted")
-    
-    # 7.1. Protected admin endpoints
-    from app.routers import admin_protected
-    app.include_router(admin_protected.router)
-    logger.info(" - Protected admin router mounted at /api/admin")
+    if app_settings.security_enabled:
+        app.include_router(auth.router)
+        logger.info(" - Authentication router mounted")
+
+        from app.routers import admin_protected
+        app.include_router(admin_protected.router)
+        logger.info(" - Protected admin router mounted at /api/admin")
+    else:
+        logger.info(" - Authentication disabled (local network mode)")
     
     # 8. FHIR API endpoints
     app.include_router(fhir_export.router)
@@ -832,7 +833,7 @@ def _register_application_routes(
     
     logger.info("All routes registered.")
 
-    if not app_settings.testing:
+    if not app_settings.testing and app_settings.security_enabled:
         _mount_sqladmin(app, runtime_engine, app_settings)
         logger.info("SQLAdmin interface initialized at /sqladmin")
     

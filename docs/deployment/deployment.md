@@ -30,6 +30,11 @@ valeurs propres à l'environnement pour `SECRET_KEY`, `JWT_SECRET_KEY` et
 fournies par `docker/docker-compose.yml` : PostgreSQL et Redis utilisent le
 réseau interne Docker.
 
+Par défaut, `SECURITY_ENABLED=false` est adapté à une utilisation strictement
+LAN : aucun login ni route d'administration JWT ne sont exposés. Avant toute
+exposition hors LAN, définir `SECURITY_ENABLED=true` et des valeurs fortes,
+distinctes, pour les clés `SECRET_KEY` et `JWT_SECRET_KEY`.
+
 Valider la configuration avant de créer des ressources :
 
 ```bash

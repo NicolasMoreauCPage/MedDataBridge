@@ -16,7 +16,7 @@ from app.services.scenario_template_materializer import (
     materialize_template,
     MaterializationOptions,
 )
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 
 
 def get_templates_with_filters(request: FastAPIRequest):

@@ -16,7 +16,7 @@ from typing import Callable, Literal, Sequence
 
 from sqlmodel import Session, select
 
-from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
+from app.models.endpoints import FHIRConfig, MessageLog, SystemEndpoint
 from app.metrics import record_outbound_delivery_safely
 from app.services.fhir_resources import generate_fhir_bundle_for_entity
 from app.services.outbox_service import enqueue_message

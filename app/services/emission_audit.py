@@ -8,7 +8,7 @@ from typing import Callable
 
 from sqlmodel import Session
 
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.services.pam_emission import validate_outbound_pam
 
 logger = logging.getLogger(__name__)

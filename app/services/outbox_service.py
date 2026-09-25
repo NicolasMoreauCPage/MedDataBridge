@@ -18,7 +18,7 @@ from typing import Optional
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
+from app.models.endpoints import FHIRConfig, MessageLog, SystemEndpoint
 from app.metrics import record_outbound_delivery_safely
 from app.models.outbox import OutboundMessage
 from app.services.fhir_transport import post_fhir_bundle

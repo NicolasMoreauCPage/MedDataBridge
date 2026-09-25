@@ -4,7 +4,7 @@ from fastapi import Request as FastAPIRequest
 from sqlmodel import select
 from app.db import get_session
 from app.models import Patient, Dossier, Venue
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.models_structure import GHTContext, EntiteJuridique
 
 

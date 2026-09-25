@@ -9,7 +9,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 from sqlmodel import Session, select
 
-from app.models_endpoints import FHIRConfig, MessageLog, SystemEndpoint
+from app.models.endpoints import FHIRConfig, MessageLog, SystemEndpoint
 from app.models_scenarios import InteropScenario, InteropScenarioStep, ScenarioBinding
 from app.models.scenario_runs import (
     ScenarioExecutionRun,

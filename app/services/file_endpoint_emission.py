@@ -17,7 +17,7 @@ from typing import Callable
 
 from sqlmodel import Session
 
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.utils.atomic_write import write_atomic_text_file
 
 logger = logging.getLogger(__name__)

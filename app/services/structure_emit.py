@@ -6,7 +6,7 @@ from datetime import datetime
 
 from sqlmodel import Session, select
 
-from app.models_endpoints import MessageLog, SystemEndpoint
+from app.models.endpoints import MessageLog, SystemEndpoint
 from app.services.fhir_organization import organization_to_bundle
 from app.services.fhir_transport import post_fhir_bundle
 from app.services.mfn_organization import (

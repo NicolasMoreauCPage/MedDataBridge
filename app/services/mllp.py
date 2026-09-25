@@ -19,7 +19,7 @@ import inspect
 from typing import Callable, Awaitable, List
 from datetime import datetime
 from sqlmodel import Session
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 from app.services.pam_profile_fr import expected_structure
 
 logger = logging.getLogger("mllp")

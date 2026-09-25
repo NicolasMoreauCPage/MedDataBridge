@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from app.db import get_session
 from app.dependencies.request_data import read_body
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 
 router = APIRouter(prefix="/inbox/fhir", tags=["inbox-fhir"])
 

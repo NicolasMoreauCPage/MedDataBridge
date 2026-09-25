@@ -23,7 +23,8 @@ from typing import Optional
 
 # Import ALL models to ensure tables are registered
 from app.models import Sequence, Patient, Dossier, Venue, Mouvement  # noqa: F401 - ORM registry
-from app.models_endpoints import SystemEndpoint, MessageLog  # noqa: F401 - ORM registry
+from app.models.shared import SystemEndpoint, MessageLog  # noqa: F401 - ORM registry
+from app.models import endpoints as models_endpoints  # noqa: F401 - ORM registry
 from app.models.vocabulary import VocabularyMapping, VocabularySystem, VocabularyValue  # noqa: F401 - ORM registry
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique, EntiteGeographique  # noqa: F401 - ORM registry
 from app.models.hprim_models import HprimMessage, HprimCCAMAct, HprimNGAPAct, HprimExchangeAct  # noqa: F401 - ORM registry

@@ -12,7 +12,7 @@ from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 from app.models import Dossier
 from app.models_scenarios import (
     InteropScenario,

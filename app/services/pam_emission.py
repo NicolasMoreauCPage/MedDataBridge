@@ -17,7 +17,7 @@ from typing import Callable
 
 from sqlmodel import Session, select
 
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.metrics import record_outbound_delivery_safely
 from app.services.outbox_service import enqueue_message
 

@@ -12,7 +12,7 @@ from app.models_structure import EntiteJuridique, EntiteGeographique, Identifier
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_scenario_config import ScenarioEJConfig
 from app.models.shared import SystemEndpoint
-from app.models_endpoints import MLLPConfig, FHIRConfig
+from app.models.endpoints import MLLPConfig, FHIRConfig
 from .helpers import get_context_or_404, get_ej_or_404, templates
 
 logger = logging.getLogger(__name__)

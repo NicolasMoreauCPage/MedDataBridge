@@ -17,7 +17,7 @@ import asyncio
 from typing import Dict, List, Tuple
 from contextlib import suppress
 from sqlmodel import select
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 from app.services.mllp import start_mllp_server, stop_mllp_server
 from config.settings import settings
 

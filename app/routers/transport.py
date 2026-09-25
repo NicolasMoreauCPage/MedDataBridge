@@ -4,7 +4,7 @@ from starlette.concurrency import run_in_threadpool
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_endpoints import SystemEndpoint, MLLPConfig, FHIRConfig, MessageLog
+from app.models.endpoints import SystemEndpoint, MLLPConfig, FHIRConfig, MessageLog
 from app.services.mllp import send_mllp
 from app.services.fhir_transport import post_fhir_bundle as send_fhir
 from app.services.pam import generate_pam_messages_for_dossier

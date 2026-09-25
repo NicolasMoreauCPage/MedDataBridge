@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 from sqlmodel import Session, select
 
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 from app.models.practitioners import MedecinResponsable
 from app.models_scenario_config import ScenarioEJConfig, get_location_for_event, get_medecin_for_event
 from app.models.scenario_target_profiles import ScenarioTargetLocation, ScenarioTargetProfile

@@ -8,7 +8,7 @@ from app.db import get_session
 from app.dependencies.request_data import read_body
 from app.services.pix_pdq_manager import PIXPDQManager
 from app.services.mllp import build_ack
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from datetime import datetime
 
 router = APIRouter(prefix="/ihe", tags=["ihe"])

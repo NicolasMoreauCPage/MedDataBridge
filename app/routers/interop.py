@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from app.db import get_session
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 
 router = APIRouter(prefix="/interop", tags=["interop"])
 logger = logging.getLogger(__name__)

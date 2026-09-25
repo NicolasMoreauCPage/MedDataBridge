@@ -24,7 +24,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.db import session_factory
 from app.models_structure import GHTContext, EntiteJuridique, EntiteGeographique
 from app.models import Patient, Dossier
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from sqlalchemy import select, func
 import os
 

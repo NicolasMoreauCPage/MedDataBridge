@@ -13,7 +13,7 @@ from typing import Iterable
 from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlmodel import Session, select
 
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 
 logger = logging.getLogger(__name__)
 

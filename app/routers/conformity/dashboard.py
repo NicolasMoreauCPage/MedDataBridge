@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 from app.db import get_session
 from app.models_structure import EntiteJuridique
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.models.shared import SystemEndpoint
 from app.services.conformity.metrics import get_ej_summary
 from app.dependencies.ght import require_ght_context
@@ -56,7 +56,7 @@ def conformity_home(request: Request, session: Session = Depends(get_session)):
     for ej in ej_list:
         # Compter messages 7 derniers jours via jointure avec SystemEndpoint
         cutoff = datetime.utcnow() - timedelta(days=7)
-        from app.models_endpoints import SystemEndpoint
+        from app.models.endpoints import SystemEndpoint
         count_stmt = select(MessageLog).join(
             SystemEndpoint, MessageLog.endpoint_id == SystemEndpoint.id
         ).where(

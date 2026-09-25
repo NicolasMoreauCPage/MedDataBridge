@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 from sqlmodel import Session, select, and_
 from collections import Counter
 
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.models_structure import EntiteJuridique
 from app.models.shared import SystemEndpoint
 

@@ -9,7 +9,7 @@ __all__ = ["EndpointKind", "EndpointRole", "MessageLog", "SystemEndpoint"]
 # Forward-declare types for static analysis without creating import cycles
 if TYPE_CHECKING:  # pragma: no cover - import only for type checkers
     from app.models_structure import GHTContext, EntiteJuridique
-    from app.models_endpoints import MLLPConfig, FHIRConfig, FTPConfig
+    from app.models.endpoints import MLLPConfig, FHIRConfig, FTPConfig
 
 class MessageLog(SQLModel, table=True):
     __table_args__ = {'extend_existing': True}  # Allow redefinition

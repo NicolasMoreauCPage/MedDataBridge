@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 from sqlalchemy import func
 
 from app.db import get_session
-from app.models_endpoints import MessageLog, SystemEndpoint
+from app.models.endpoints import MessageLog, SystemEndpoint
 from app.models import Dossier
 from app.models_structure import EntiteJuridique
 from app.converters.fhir_import_converter import FHIRBundleImporter, FHIRImportError

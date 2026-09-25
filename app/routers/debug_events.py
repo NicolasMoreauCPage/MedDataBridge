@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 from app.db import get_session
 from app.models import Patient
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.models.shared import SystemEndpoint
 
 router = APIRouter(prefix="/debug", tags=["debug"])

@@ -21,7 +21,7 @@ import logging
 
 from sqlmodel import Session, select
 
-from app.models_endpoints import MessageLog
+from app.models.endpoints import MessageLog
 from app.services.mllp import parse_msh_fields, build_ack
 from app.services.pam_validation import validate_pam
 import json

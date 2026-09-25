@@ -6,7 +6,7 @@ from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_endpoints import SystemEndpoint, MLLPConfig, FHIRConfig
+from app.models.endpoints import SystemEndpoint, MLLPConfig, FHIRConfig
 
 
 

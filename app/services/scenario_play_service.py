@@ -17,7 +17,7 @@ from uuid import uuid4
 
 from sqlmodel import Session, select
 
-from app.models_endpoints import SystemEndpoint
+from app.models.endpoints import SystemEndpoint
 from app.models.outbox import OutboundMessage
 from app.models.practitioners import MedecinResponsable
 from app.models.scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep, ScenarioPlayTarget

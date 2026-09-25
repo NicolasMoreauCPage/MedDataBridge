@@ -8,8 +8,8 @@ from sqlmodel import SQLModel, Field, Relationship
 
 from app.models.identifiers import Identifier
 import app.models.contacts
-import app.models_structure  # noqa: F401 - registre des relations ORM
-from app.models_structure import Chambre, Lit
+import app.models.structure  # noqa: F401 - registre des relations ORM
+from app.models.structure import Chambre, Lit
 
 if TYPE_CHECKING:
     from app.models.contacts import PatientContact, VenueContact

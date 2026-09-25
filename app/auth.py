@@ -220,8 +220,9 @@ def is_token_blacklisted(jti: str) -> bool:
         return cache.exists(f"token:blacklist:{jti}")
     except Exception as e:
         logger.warning(f"Erreur vérification blacklist: {e}")
-        # En cas d'erreur Redis, on autorise (fail-open pour disponibilité)
-        return False
+        # Le mode LAN n'utilise pas de tokens. En mode sécurisé, refuser un
+        # token dont la révocation ne peut pas être vérifiée (fail-closed).
+        return settings.security_enabled
 
 
 def blacklist_token(jti: str, ttl_seconds: int) -> bool:

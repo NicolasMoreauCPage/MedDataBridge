@@ -10,6 +10,12 @@ let saveAndContinue = false;
 const cotationSearchControllers = new Map();
 const cotationSuggestions = new Map();
 
+function escapeHtml(value) {
+    const node = document.createElement('span');
+    node.textContent = String(value ?? '');
+    return node.innerHTML;
+}
+
 function abortCotationSearch(type) {
     cotationSearchControllers.get(type)?.abort();
     cotationSearchControllers.delete(type);
@@ -193,8 +199,8 @@ async function searchCCAM(query) {
                         class="w-full px-4 py-3 text-left hover:bg-emerald-50 transition-colors border-b border-slate-100 last:border-0">
                     <div class="flex justify-between items-start">
                         <div>
-                            <div class="font-mono font-bold text-emerald-700">${s.code}</div>
-                            <div class="text-sm text-slate-600">${s.libelle}</div>
+                            <div class="font-mono font-bold text-emerald-700">${escapeHtml(s.code)}</div>
+                            <div class="text-sm text-slate-600">${escapeHtml(s.libelle)}</div>
                         </div>
                         <div class="text-right ml-4">
                             <div class="text-sm font-bold text-emerald-900">${s.tarif_base.toFixed(2)} €</div>
@@ -230,8 +236,8 @@ async function searchNGAP(query) {
                         class="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors border-b border-slate-100 last:border-0">
                     <div class="flex justify-between items-start">
                         <div>
-                            <div class="font-mono font-bold text-blue-700">${s.lettre_cle}</div>
-                            <div class="text-sm text-slate-600">${s.libelle}</div>
+                            <div class="font-mono font-bold text-blue-700">${escapeHtml(s.lettre_cle)}</div>
+                            <div class="text-sm text-slate-600">${escapeHtml(s.libelle)}</div>
                         </div>
                         <div class="text-right ml-4">
                             <div class="text-sm font-bold text-blue-900">${s.tarif_base.toFixed(2)} €</div>
@@ -296,7 +302,7 @@ async function searchUCD(query) {
                         class="w-full px-4 py-3 text-left hover:bg-amber-50 transition-colors border-b border-slate-100 last:border-0">
                     <div class="flex justify-between items-start">
                         <div>
-                            <div class="font-mono font-bold text-amber-700">${s.code_ucd}</div>
+                            <div class="font-mono font-bold text-amber-700">${escapeHtml(s.code_ucd)}</div>
                             <div class="text-sm text-slate-600">${s.denomination}</div>
                             <div class="text-xs text-slate-500">${s.dosage || ''} ${s.forme || ''}</div>
                         </div>
@@ -350,7 +356,7 @@ async function searchLPP(query) {
                         class="w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-slate-100 last:border-0">
                     <div class="flex justify-between items-start">
                         <div>
-                            <div class="font-mono font-bold text-purple-700">${s.code_lpp}</div>
+                            <div class="font-mono font-bold text-purple-700">${escapeHtml(s.code_lpp)}</div>
                             <div class="text-sm text-slate-600">${s.denomination}</div>
                         </div>
                         <div class="text-right ml-4">

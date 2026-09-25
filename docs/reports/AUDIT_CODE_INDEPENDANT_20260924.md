@@ -454,6 +454,9 @@ modifiés dans ce lot.
 - Le validateur PAM délègue maintenant les règles PV1 détaillées et la
   construction du résultat/audit à des helpers dédiés. `validate_pam` repasse
   sous le plafond de 500 lignes et sort lui aussi des exceptions.
+- L'admission PAM sépare l'identité du cas d'usage de création de séjour,
+  venue et mouvement. `handle_admission_message` conserve sa signature et son
+  contrat asynchrone, mais n'est plus une exception de taille.
 - `scripts/check_quality_budgets.py`, exécuté en CI, interdit toute nouvelle
   fonction de plus de 500 lignes et tout routeur de plus de 2 000 lignes. Le
   routeur historique `scenarios.py` reste temporairement plafonné à 2 500 lignes

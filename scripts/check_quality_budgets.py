@@ -19,7 +19,6 @@ APP = ROOT / "app"
 # Les unités existantes sont suivies individuellement jusqu'à leur extraction.
 FUNCTION_EXCEPTIONS = {
     ("app/app.py", "create_app"),
-    ("app/services/pam_admission.py", "handle_admission_message"),
     ("app/services/transport_inbound.py", "on_message_inbound_async"),
 }
 

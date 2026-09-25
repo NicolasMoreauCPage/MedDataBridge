@@ -173,7 +173,7 @@
                 {% if row.detail_url and loop.first %}
                   <a href="{{ row.detail_url }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium">{{ cell }}</a>
                 {% else %}
-                  {{ cell|safe }}
+                  {{ cell }}
                 {% endif %}
               </td>
             {% endfor %}

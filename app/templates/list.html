@@ -234,7 +234,7 @@
                     cell
                   ) }}
                 {% elif loop.index == 4 or loop.index == 5 %} {# Colonne type:4, status:5 (0-based) #}
-                  {{ cell|safe if cell is not none else '' }}
+                  {{ cell if cell is not none else '' }}
                 {% else %}
                   {{ cell if cell is not none else '' }}
                 {% endif %}

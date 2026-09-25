@@ -16,7 +16,7 @@ from typing import Any
 from sqlalchemy.engine import Connection
 from sqlmodel import Session, select
 
-from app.models_qualification import ScenarioTheme, ScenarioThemeAssignment
+from app.models.qualification import ScenarioTheme, ScenarioThemeAssignment
 from app.models_scenario_review import ScenarioCatalogReview
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.utils.booleans import as_bool

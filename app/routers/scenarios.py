@@ -38,7 +38,7 @@ from app.models_scenario_runs import (
     ScenarioExecutionRun,
     ScenarioExecutionStepLog,
 )
-from app.models_qualification import (
+from app.models.qualification import (
     QualificationCampaign,
     QualificationCampaignItem,
     QualificationCampaignRun,

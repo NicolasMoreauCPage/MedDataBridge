@@ -7,7 +7,7 @@ from datetime import datetime
 
 from sqlmodel import Session, select
 
-from app.models_qualification import QualificationCampaign, QualificationCampaignItem, QualificationCampaignRun
+from app.models.qualification import QualificationCampaign, QualificationCampaignItem, QualificationCampaignRun
 from app.models_endpoints import SystemEndpoint
 from app.models_scenarios import InteropScenario
 from app.models_scenario_runs import ScenarioPlay

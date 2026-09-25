@@ -20,7 +20,7 @@ from typing import Any, Optional
 from sqlmodel import Session, select
 
 from app.models_endpoints import SystemEndpoint
-from app.models_qualification import (
+from app.models.qualification import (
     QualificationCampaign,
     QualificationCampaignItem,
     QualificationCampaignRun,

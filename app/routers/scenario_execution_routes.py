@@ -33,7 +33,7 @@ from app.models_scenario_runs import (
     ScenarioDelivery,
 )
 from app.models.outbox import OutboundMessage
-from app.models_qualification import (
+from app.models.qualification import (
     ScenarioTheme,
     ScenarioThemeAssignment,
 )

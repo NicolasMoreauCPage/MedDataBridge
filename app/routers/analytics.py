@@ -19,7 +19,7 @@ from app.models_structure import (
     Chambre,
     UniteHebergement,
 )
-from app.models_analytics import (
+from app.models.analytics import (
     KpiResponse,
     CapacityByServiceResponse,
     CapacityByUmResponse,

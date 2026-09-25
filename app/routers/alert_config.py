@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.db import get_session
-from app.models_analytics import AlertRule, AlertType, AlertSeverity
+from app.models.analytics import AlertRule, AlertType, AlertSeverity
 
 # Router API
 router = APIRouter(prefix="/api/alert-config", tags=["Alert Configuration"])

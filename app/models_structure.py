@@ -5,12 +5,11 @@ from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 
-from app.models.shared import SystemEndpoint
-
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from app.models import Venue
+    from app.models.shared import SystemEndpoint
     from app.models.practitioners import MedecinResponsable
 else:
     # Ensure the MedecinResponsable model is imported and registered in SQLModel

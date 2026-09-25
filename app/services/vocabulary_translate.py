@@ -13,7 +13,7 @@ the desired code, then return the source value code.
 from __future__ import annotations
 from typing import Optional
 from sqlmodel import Session, select
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
+from app.models.vocabulary import VocabularyMapping, VocabularySystem, VocabularyValue
 from app.services.vocabulary_fallback import get_default_value
 
 

@@ -2,7 +2,7 @@
 Service de chargement des vocabulaires standard (HL7v2 / FHIR)
 """
 from typing import List
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
+from app.models.vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
 
 
 def create_ihe_pam_vocabularies() -> List[VocabularySystem]:
@@ -133,4 +133,3 @@ def create_fhir_encounter_vocabularies() -> List[VocabularySystem]:
     systems.append(encounter_class)
     
     return systems
-

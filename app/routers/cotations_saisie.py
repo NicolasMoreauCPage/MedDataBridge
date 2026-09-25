@@ -12,7 +12,7 @@ from datetime import datetime
 
 from app.db import get_session
 from app.models import Dossier, Patient, CCAMAct, NGAPAct, UCDAct, LPPAct
-from app.models_vocabulary import VocabularySystem, VocabularyValue
+from app.models.vocabulary import VocabularySystem, VocabularyValue
 from app.utils.booleans import as_bool
 
 logger = logging.getLogger(__name__)

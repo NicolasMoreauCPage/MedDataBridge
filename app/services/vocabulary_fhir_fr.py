@@ -3,7 +3,7 @@ Service de chargement des vocabulaires FHIR Français
 Basé sur https://interop-sante.github.io/hl7.fhir.fr.structure/
 """
 from typing import List
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
+from app.models.vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
 
 def create_fr_practitioner_specialty() -> List[VocabularySystem]:
     """Crée les vocabulaires pour les spécialités FHIR FR"""

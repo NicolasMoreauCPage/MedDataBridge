@@ -5,7 +5,7 @@ from typing import List, Optional, Set
 
 from sqlmodel import select
 
-from app.models_vocabulary import VocabularySystem
+from app.models.vocabulary import VocabularySystem
 from app.services.pam_validation_models import ValidationIssue
 from app.services.pam_validation_rules import (
     PID13_ALLOW_EQUIP,
@@ -473,4 +473,3 @@ def _validate_z_segments(msg: str, trigger: str, issues: List[ValidationIssue], 
                     "ZAD-1 (Address Type) is recommended when ZAD segment present",
                     severity="info"
                 ))
-

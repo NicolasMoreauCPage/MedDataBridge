@@ -4,7 +4,7 @@ Initialisation des vocabulaires standards et leurs correspondances
 import logging
 
 from typing import List
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
+from app.models.vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
 from app.services.vocabulary_loader import create_ihe_pam_vocabularies, create_fhir_encounter_vocabularies
 from app.services.vocabulary_ihe_fr import create_patient_type_vocabularies, create_patient_location_vocabularies, create_movement_vocabularies
 from app.services.vocabulary_mfn import create_mfn_segment_fields

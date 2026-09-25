@@ -2,7 +2,7 @@
 Service de chargement des vocabulaires IHE PAM France CP
 """
 from typing import List
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
+from app.models.vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
 
 def create_patient_type_vocabularies() -> List[VocabularySystem]:
     """Crée les vocabulaires pour le type de patient"""

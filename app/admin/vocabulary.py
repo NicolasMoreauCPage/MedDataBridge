@@ -1,6 +1,6 @@
 """Vues admin pour les vocabulaires"""
 from sqladmin import ModelView
-from app.models_vocabulary import VocabularySystem, VocabularyValue
+from app.models.vocabulary import VocabularySystem, VocabularyValue
 from markupsafe import Markup
 
 

@@ -2,7 +2,7 @@
 Service de chargement des segments HL7 pour les messages MFN
 """
 from typing import List
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularySystemType
+from app.models.vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
 
 def create_mfn_segment_fields() -> List[VocabularySystem]:
     """Crée les vocabulaires pour les segments MFN"""

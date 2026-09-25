@@ -3,7 +3,7 @@ Service de mapping entre vocabulaires IHE PAM et FHIR FR
 """
 from typing import List
 from sqlmodel import Session, select
-from app.models_vocabulary import VocabularySystem, VocabularyValue, VocabularyMapping
+from app.models.vocabulary import VocabularyMapping, VocabularySystem, VocabularyValue
 
 def create_location_type_mappings(session: Session) -> List[VocabularyMapping]:
     """Crée les mappings entre types de lieux IHE PAM et FHIR FR"""

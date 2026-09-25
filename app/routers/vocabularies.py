@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 from typing import Dict, Optional
 
 from app.db import get_session
-from app.models_vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
+from app.models.vocabulary import VocabularySystem, VocabularySystemType, VocabularyValue
 
 
 def _ensure_vocabularies(session: Session) -> None:

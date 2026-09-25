@@ -2,7 +2,7 @@
 
 from typing import List
 
-from app.models_vocabulary import VocabularyMapping, VocabularySystem, VocabularySystemType, VocabularyValue
+from app.models.vocabulary import VocabularyMapping, VocabularySystem, VocabularySystemType, VocabularyValue
 from app.services.vocabulary_fhir_fr import (
     create_fr_encounter_discharge_circumstances,
     create_fr_encounter_hospitalization,

@@ -15,7 +15,7 @@ from typing import List, Dict
 from sqlmodel import select
 
 from app.db import session_factory
-from app.models_vocabulary import VocabularySystem, VocabularyValue
+from app.models.vocabulary import VocabularySystem, VocabularyValue
 from app.models_structure import (
     LocationStatus,
     LocationMode,

@@ -11,7 +11,7 @@ import logging
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
 from app.models_shared import MessageLog
-from app.runners import registry
+from app.runtime.runners import registry
 from app.cache import get_redis_stats
 
 logger = logging.getLogger(__name__)

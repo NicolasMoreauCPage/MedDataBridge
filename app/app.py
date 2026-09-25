@@ -53,7 +53,7 @@ from app.services.entity_events import register_entity_events
 from app.services.entity_events_structure import register_structure_entity_events
 from app.services.scheduler import BackgroundScheduler
 from app.services.cache_service import create_cache_service
-from app import runners as runners_module
+from app.runtime import runners as runners_module
 
 
 # Import the GHT router after loading local configuration. Some of its imports

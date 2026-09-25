@@ -20,7 +20,7 @@ from app.models_context import (
 )
 from app.models_structure import GHTContext, EntiteJuridique
 from app.models_scenarios import InteropScenario, InteropScenarioStep
-from app.runners import registry
+from app.runtime.runners import registry
 from app.utils.booleans import as_bool
 from sqlmodel.sql.expression import select as sqlmodel_select
 from sqlalchemy.orm import selectinload

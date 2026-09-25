@@ -77,6 +77,7 @@ from app.routers import roundtrip_hprim
 from app.routers import cotation_modern
 
 from app.infrastructure.logging import setup_logging
+from app.middleware.authentication import AuthenticationMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -325,6 +326,7 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     # Middlewares dans l'ordre d'exécution (dernier ajouté = premier exécuté)
     # 1. Error handling (en dernier pour capturer toutes les erreurs)
     app.add_middleware(ErrorHandlingMiddleware)
+    app.add_middleware(AuthenticationMiddleware)
 
     # 2. Request logging
     app.add_middleware(RequestLoggingMiddleware)

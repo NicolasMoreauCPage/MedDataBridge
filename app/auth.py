@@ -9,6 +9,7 @@ Fournit:
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict
+import json
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
@@ -19,6 +20,7 @@ import uuid
 import logging
 import sys
 from config.settings import settings
+from app.models.users import LocalUser
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +131,27 @@ fake_users_db: Dict[str, UserInDB] = {
 }
 
 
+def _database_user(username: str) -> Optional[UserInDB]:
+    from app.db import session_factory
+    from sqlmodel import select
+    with session_factory() as session:
+        row = session.exec(select(LocalUser).where(LocalUser.username == username)).first()
+    if row is None:
+        return None
+    return UserInDB(id=row.id or 0, username=row.username, email=row.email, hashed_password=row.password_hash, roles=json.loads(row.roles_json), is_active=row.is_active)
+
+
+def ensure_bootstrap_admin(session_factory, runtime_settings) -> None:
+    if not runtime_settings.security_enabled:
+        return
+    from sqlmodel import select
+    with session_factory() as session:
+        existing = session.exec(select(LocalUser).where(LocalUser.username == runtime_settings.bootstrap_admin_username)).first()
+        if existing is None:
+            session.add(LocalUser(username=runtime_settings.bootstrap_admin_username, email="", password_hash=get_password_hash(runtime_settings.bootstrap_admin_password), roles_json='["admin", "user"]'))
+            session.commit()
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Vérifie un mot de passe."""
     return pwd_context.verify(plain_password, hashed_password)
@@ -141,7 +164,7 @@ def get_password_hash(password: str) -> str:
 
 def authenticate_user(username: str, password: str) -> Optional[UserInDB]:
     """Authentifie un utilisateur."""
-    user = fake_users_db.get(username)
+    user = _database_user(username) if settings.security_enabled else fake_users_db.get(username)
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
@@ -176,8 +199,10 @@ def create_refresh_token(data: dict, include_roles: bool = True) -> str:
     if include_roles and "roles" not in to_encode:
         # Si les rôles ne sont pas présents mais l'utilisateur existe dans la DB factice, les récupérer
         username = to_encode.get("sub")
-        if username and username in fake_users_db:
-            to_encode["roles"] = fake_users_db[username].roles
+        if username:
+            user = _database_user(username) if settings.security_enabled else fake_users_db.get(username)
+            if user:
+                to_encode["roles"] = user.roles
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     
     # Ajouter jti unique pour rotation et révocation
@@ -300,7 +325,7 @@ async def get_current_user(
     token = credentials.credentials
     token_data = decode_token(token)
     
-    user = fake_users_db.get(token_data.username)
+    user = _database_user(token_data.username) if settings.security_enabled else fake_users_db.get(token_data.username)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

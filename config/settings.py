@@ -89,6 +89,8 @@ class Settings:
     task_timeout: int = 3600
     task_worker_count: int = 3
     security_enabled: bool = False
+    bootstrap_admin_username: str = ""
+    bootstrap_admin_password: str = ""
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] | None = None) -> "Settings":
@@ -105,6 +107,11 @@ class Settings:
             jwt_secret_key = _secret(env, "JWT_SECRET_KEY")
             if secret_key == jwt_secret_key:
                 raise ConfigurationError("SECRET_KEY et JWT_SECRET_KEY doivent être distincts quand SECURITY_ENABLED=true.")
+            bootstrap_password = _value(env, "BOOTSTRAP_ADMIN_PASSWORD", "")
+            if len(bootstrap_password) < 16:
+                raise ConfigurationError("BOOTSTRAP_ADMIN_PASSWORD doit contenir au moins 16 caractères quand SECURITY_ENABLED=true.")
+        else:
+            bootstrap_password = _value(env, "BOOTSTRAP_ADMIN_PASSWORD", "")
         return cls(
             debug=_bool(env, "DEBUG"),
             testing=_bool(env, "TESTING"),
@@ -121,6 +128,8 @@ class Settings:
             task_timeout=_positive_int(env, "TASK_TIMEOUT", cls.task_timeout),
             task_worker_count=_positive_int(env, "TASK_WORKER_COUNT", cls.task_worker_count),
             security_enabled=security_enabled,
+            bootstrap_admin_username=_value(env, "BOOTSTRAP_ADMIN_USERNAME", "admin" if security_enabled else ""),
+            bootstrap_admin_password=bootstrap_password,
         )
 
     def validate_config(self) -> list[str]:

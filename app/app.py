@@ -199,6 +199,11 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         if runtime_settings is None
         else make_session_dependency(runtime_engine)
     )
+    if app_settings.security_enabled:
+        from app.auth import ensure_bootstrap_admin
+        from sqlmodel import SQLModel
+        SQLModel.metadata.create_all(runtime_engine)
+        ensure_bootstrap_admin(runtime_session_factory, app_settings)
     mllp_manager = MLLPManager(
         session_factory=runtime_session_factory,
         on_message=on_message_inbound,

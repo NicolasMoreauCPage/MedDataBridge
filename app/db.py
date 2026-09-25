@@ -25,6 +25,7 @@ from typing import Optional
 from app.models import Sequence, Patient, Dossier, Venue, Mouvement  # noqa: F401 - ORM registry
 from app.models.shared import SystemEndpoint, MessageLog  # noqa: F401 - ORM registry
 from app.models import endpoints as models_endpoints  # noqa: F401 - ORM registry
+from app.models.users import LocalUser  # noqa: F401 - ORM registry
 from app.models.vocabulary import VocabularyMapping, VocabularySystem, VocabularyValue  # noqa: F401 - ORM registry
 from app.models.structure import GHTContext, IdentifierNamespace, EntiteJuridique, EntiteGeographique  # noqa: F401 - ORM registry
 from app.models.hprim_models import HprimMessage, HprimCCAMAct, HprimNGAPAct, HprimExchangeAct  # noqa: F401 - ORM registry

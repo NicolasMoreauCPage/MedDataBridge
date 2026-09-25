@@ -42,7 +42,7 @@ try:  # Import optionnel de l'init des templates (peut échouer si fichiers abse
     from app.services.scenario_template_init import init_scenario_templates  # noqa: E402
 except Exception:  # pragma: no cover
     init_scenario_templates = None  # type: ignore
-from app import models_workflows  # noqa: F401 - ORM registry
+from app.models import workflows as models_workflows  # noqa: F401 - ORM registry
 
 
 # Use in-memory SQLite for tests, file-based otherwise

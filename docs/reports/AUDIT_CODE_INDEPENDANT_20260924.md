@@ -463,6 +463,10 @@ modifiés dans ce lot.
 - Le pipeline entrant délègue l'idempotence, la politique stricte, les segments
   requis et le flux MFN^M05 à des helpers. `on_message_inbound_async` atteint
   le plafond de 500 lignes et toutes les exceptions de fonction ont disparu.
+- Le routeur `scenarios.py` est séparé du sous-domaine d'exécution dans
+  `scenario_execution_routes.py`. Les URLs et l'OpenAPI sont inchangés ; les
+  deux routeurs sont sous le plafond de 2 000 lignes et la dernière dérogation
+  de routeur a été supprimée.
 - `scripts/check_quality_budgets.py`, exécuté en CI, interdit toute nouvelle
   fonction de plus de 500 lignes et tout routeur de plus de 2 000 lignes. Le
   routeur historique `scenarios.py` reste temporairement plafonné à 2 500 lignes

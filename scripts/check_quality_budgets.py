@@ -19,10 +19,7 @@ APP = ROOT / "app"
 # Les unités existantes sont suivies individuellement jusqu'à leur extraction.
 FUNCTION_EXCEPTIONS: set[tuple[str, str]] = set()
 
-# ``scenarios.py`` reste le point d'entrée historique de plusieurs parcours.
-# Son découpage est suivi séparément ; cette dérogation évite qu'un formatage
-# mécanique fasse échouer le contrôle pendant l'extraction progressive.
-ROUTER_LINE_EXCEPTIONS = {"app/routers/scenarios.py": 2_500}
+ROUTER_LINE_EXCEPTIONS: dict[str, int] = {}
 
 
 def _functions(path: Path) -> list[tuple[str, int]]:

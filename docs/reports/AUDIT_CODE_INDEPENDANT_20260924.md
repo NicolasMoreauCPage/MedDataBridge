@@ -425,11 +425,13 @@ Une fois ces fondations posées, le découpage des cinq plus gros workflows mét
 
 ## 10. Suivi de mise en œuvre — 25 septembre 2026
 
-Le demandeur a explicitement exclu les corrections de sécurité de cette mise
-en œuvre. Les sujets authentification, secrets et assainissement HTML ne sont
-donc pas modifiés. La correction technique de reproductibilité Compose
-(`AUD-05`) a été réalisée séparément, sans changer la politique de sécurité de
-l'application.
+Le mode LAN reste volontairement ouvert par défaut (`SECURITY_ENABLED=false`).
+Lorsque `SECURITY_ENABLED=true`, les routes JWT et la frontière globale
+d'authentification sont activées, les secrets sont contrôlés, un administrateur
+local est bootstrapé en BDD et la révocation JWT échoue fermée. Les sinks HTML
+signalés dans la cartographie et la saisie de cotations sont assainis. Les
+macros et workspaces historiques restants utilisant `|safe` ou `innerHTML`
+doivent encore être traités individuellement.
 
 ### Lots 1 à 3 réalisés
 

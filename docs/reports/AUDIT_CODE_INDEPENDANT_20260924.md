@@ -447,6 +447,13 @@ modifiés dans ce lot.
 
 ### Réduction progressive de la dette (AUD-06 et AUD-07)
 
+- La branche patient de `generate_pam_hl7` a été extraite dans
+  `app/services/pam_patient_message.py`. Le point d'entrée conserve le contrat
+  public mais passe de 615 à 419 lignes et n'est plus une exception au budget
+  de qualité.
+- Le validateur PAM délègue maintenant les règles PV1 détaillées et la
+  construction du résultat/audit à des helpers dédiés. `validate_pam` repasse
+  sous le plafond de 500 lignes et sort lui aussi des exceptions.
 - `scripts/check_quality_budgets.py`, exécuté en CI, interdit toute nouvelle
   fonction de plus de 500 lignes et tout routeur de plus de 2 000 lignes. Le
   routeur historique `scenarios.py` reste temporairement plafonné à 2 500 lignes

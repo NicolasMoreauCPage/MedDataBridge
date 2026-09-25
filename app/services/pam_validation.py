@@ -527,7 +527,30 @@ def validate_pam(
         elif zbe_9 == "C" and (trigger != "Z99" or zbe_6 not in ZBE9_C_ORIGINAL_EVENTS):
             issues.append(ValidationIssue("ZBE9_C_INVALID", "ZBE-9=C est réservé à Z99 corrigeant A01, A04 ou A05", severity="error"))
     
-    # Validation des champs PV1 (types de données complexes) si présent
+    _validate_pv1_details(msg, trigger, strict_inbound, issues)
+
+    # Validate extended Z-segments (beyond ZBE)
+    _validate_z_segments(msg, trigger, issues, strict_inbound)
+
+    return _build_validation_result(
+        issues,
+        trigger=trigger,
+        direction=direction,
+        profile=profile,
+        strict_semantic=strict_semantic,
+        include_audit=include_audit,
+        validation_start=validation_start,
+        message_type=msg_type,
+    )
+
+
+def _validate_pv1_details(
+    msg: str,
+    trigger: str,
+    strict_inbound: bool,
+    issues: List[ValidationIssue],
+) -> None:
+    """Valide les types composés et règles contextuelles du segment PV1."""
     pv1 = _get_first_segment(msg, "PV1")
     if pv1:
         pv1_parts = pv1.split("|")
@@ -611,48 +634,50 @@ def validate_pam(
             if loc_status and loc_status not in {"O", "U", "R", "P"}:
                 issues.append(ValidationIssue("PV1_3_5_INVALID", f"PV1-3.5 (LocationStatus) has unexpected value '{loc_status}'", severity="info"))
 
-    # Validate extended Z-segments (beyond ZBE)
-    _validate_z_segments(msg, trigger, issues, strict_inbound)
 
-    # Determine overall level
-    has_error = any(i.severity == "error" for i in issues)
-    has_warn = any(i.severity == "warn" for i in issues)
-    level = "fail" if has_error else ("warn" if has_warn else "ok")
-    is_valid = not has_error
+def _build_validation_result(
+    issues: List[ValidationIssue],
+    *,
+    trigger: str,
+    direction: str,
+    profile: str,
+    strict_semantic: bool,
+    include_audit: bool,
+    validation_start: str | None,
+    message_type: str,
+) -> ValidationResult:
+    """Traduit les diagnostics et construit le résultat public du validateur."""
+    from datetime import datetime
 
-    # Translate issues to French for output
+    has_error = any(issue.severity == "error" for issue in issues)
+    has_warn = any(issue.severity == "warn" for issue in issues)
     try:
         from app.services.pam_i18n import translate_issues_to_fr
+
         issues = translate_issues_to_fr(issues)
     except Exception as exc:
         logger.debug("Optional operation skipped", exc_info=exc)
-    # Build audit trail if requested
     audit_entry = None
     if include_audit:
-        error_count = sum(1 for i in issues if i.severity == "error")
-        warn_count = sum(1 for i in issues if i.severity == "warn")
         audit_entry = ValidationAuditEntry(
             timestamp=validation_start or datetime.utcnow().isoformat(),
             trigger=trigger,
             direction=direction,
-            is_valid=is_valid,
+            is_valid=not has_error,
             issues_count=len(issues),
-            errors_count=error_count,
-            warnings_count=warn_count,
+            errors_count=sum(issue.severity == "error" for issue in issues),
+            warnings_count=sum(issue.severity == "warn" for issue in issues),
             profile=profile,
-            strict_semantic=strict_semantic
+            strict_semantic=strict_semantic,
         )
-
     return ValidationResult(
-        is_valid=is_valid,
-        level=level,
+        is_valid=not has_error,
+        level="fail" if has_error else ("warn" if has_warn else "ok"),
         event=trigger,
-        message_type=msg_type,
+        message_type=message_type,
         issues=issues,
-        audit=audit_entry
+        audit=audit_entry,
     )
-
-
 
 __all__ = [
     "SEGMENT_RULES",

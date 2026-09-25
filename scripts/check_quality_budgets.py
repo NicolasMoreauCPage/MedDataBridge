@@ -20,8 +20,6 @@ APP = ROOT / "app"
 FUNCTION_EXCEPTIONS = {
     ("app/app.py", "create_app"),
     ("app/services/pam_admission.py", "handle_admission_message"),
-    ("app/services/pam_message_generation.py", "generate_pam_hl7"),
-    ("app/services/pam_validation.py", "validate_pam"),
     ("app/services/transport_inbound.py", "on_message_inbound_async"),
 }
 

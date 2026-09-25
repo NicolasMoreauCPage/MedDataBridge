@@ -5,21 +5,19 @@ from typing import Literal, Optional
 
 from sqlmodel import Session, select
 
-from app.models import Dossier
 from app.models_identifiers import Identifier, IdentifierType
-from app.services.hl7_fields import build_adt_header, build_patient_name, build_xad, to_hl7_administrative_sex
+from app.services.hl7_fields import build_adt_header, build_patient_name, to_hl7_administrative_sex
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
-from app.services.pam_identifiers import build_pid3_identifiers
 from app.services.pam_emission_primitives import (
     clean_hl7_value as _c,
     new_message_control_id as _new_message_control_id,
-    normalize_mrg_prior_identifiers as _normalize_mrg_prior_identifiers,
 )
 from app.services.pam_namespace import resolve_namespace_authority as _resolve_namespace_authority
 from app.services.pam_movement_events import message_structure_for_event, select_movement_event
 from app.services.pam_movement_context import load_movement_context
 from app.services.pam_movement_segments import build_movement_pv1
 from app.services.zbe_fields import build_xon_unit, derive_zbe_nature, movement_action_and_code
+from app.services.pam_patient_message import generate_patient_message
 
 logger = logging.getLogger(__name__)
 
@@ -55,217 +53,21 @@ def generate_pam_hl7(
         # reuse outer _c sanitizer
         return _c(v)
 
-    # Patient HL7 PAM branch
     if entity_type == "patient":
-        # Determine event type
-        if operation == "merge":
-            event_type = "A40"
-        elif operation == "change_id":
-            event_type = "A47"
-        else:
-            event_type = "A31" if operation == "update" else "A28"
-
-        normalized_mrg_prior_identifiers = _normalize_mrg_prior_identifiers(mrg_prior_identifiers)
-        if event_type in {"A40", "A47"} and not normalized_mrg_prior_identifiers:
-            raise ValueError(
-                f"ADT^{event_type} requiert au moins un identifiant antérieur dans MRG-1"
-            )
-        if event_type == "A40" and mrg_prior_name and any(
-            character in str(mrg_prior_name) for character in "|\r\n"
-        ):
-            raise ValueError("MRG-7 ne doit pas contenir de séparateur de segment ou de champ")
-
-        # Build timestamp and control id
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        control_id = _new_message_control_id(_get("patient_seq", _get("id", "UNKNOWN")))
-
-        # MSH header
-        if event_type == "A40":
-            msg_structure = "ADT_A39"
-        elif event_type == "A47":
-            msg_structure = "ADT_A30"
-        else:
-            msg_structure = "ADT_A05"
-        sending_app = msh_sending_app or "POC"
-        sending_fac = msh_sending_facility or "HOSP"
-        receiving_app = msh_receiving_app or "EXT"
-        receiving_fac = msh_receiving_facility or "HOSP"
-        msh, evn = build_adt_header(
-            timestamp, event_type, msg_structure, control_id,
-            sending_app, sending_fac, receiving_app, receiving_fac,
-        )
-
-        # PID-3 identifiers
-        pid3 = build_pid3_identifiers(entity, session, forced_system=forced_identifier_system, forced_oid=forced_identifier_oid)
-
-
-        family = _c_local(_get("family", ""))
-        given = _c_local(_get("given", ""))
-        middle = _c_local(_get("middle", None))
-        suffix = _c_local(_get("suffix", None)) or None
-        prefix = _c_local(_get("prefix", None)) or None
-        birth_family = _c_local(_get("birth_family", None)) or None
-        name = build_patient_name(
-            family, given, middle, suffix, prefix, birth_family
-        )
-
-        # Birth date
-        birth_date_raw = _c_local(_get("birth_date", ""))
-        birth_date = birth_date_raw.replace("-", "").replace("/", "")[:8] if birth_date_raw else ""
-
-        # Gender mapping — PID-8 (Sexe) : l'extension nationale IHE FR restreint les valeurs
-        # permises à F/M/U (table HL7 0001), pas de code "O" ; "other" est donc mappé sur "U".
-        raw_gender = _c_local(_get("gender", ""))
-        gender = to_hl7_administrative_sex(raw_gender)
-
-        addresses = []
-        street = _c_local(_get("address", None))
-        city = _c_local(_get("city", None))
-        state = _c_local(_get("state", None))
-        postal = _c_local(_get("postal_code", None))
-        country = _c_local(_get("country", None))
-        # Only add home address repetition if at least one meaningful field exists
-        if any([street, city, state, postal, country]):
-            addresses.append(build_xad(street, "", city, state, postal, country, "H"))
-
-        birth_street = _c_local(_get("birth_address", None))
-        birth_city = _c_local(_get("birth_city", None))
-        birth_state = _c_local(_get("birth_state", None))
-        birth_postal = _c_local(_get("birth_postal_code", None))
-        birth_country = _c_local(_get("birth_country", None))
-        if any([birth_street, birth_city, birth_state, birth_postal, birth_country]):
-            addresses.append(build_xad(birth_street, "", birth_city, birth_state, birth_postal, birth_country, "BIR"))
-
-        patient_address = "~".join(addresses)
-
-        # Phones
-        phones = []
-        phone = _c_local(_get("phone", ""))
-        if phone:
-            phones.append(format_xtn(number=phone, use="PRN", equipment="PH"))
-        mobile = _c_local(_get("mobile", ""))
-        if mobile:
-            phones.append(format_xtn(number=mobile, use="ORN", equipment="CP"))
-        work_phone = _c_local(_get("work_phone", ""))
-        if work_phone:
-            phones.append(format_xtn(number=work_phone, use="WPN", equipment="PH"))
-        email = _c_local(_get("email", ""))
-        if email:
-            phones.append(format_xtn(use="NET", equipment="Internet", email=email))
-        phone_field = "~".join(phones)
-
-        birth_place = _c_local(_get("birth_city", ""))
-        marital_status = _c_local(_get("marital_status", ""))
-        nationality = _c_local(_get("nationality", ""))
-        identity_code = _c_local(_get("identity_reliability_code", ""))
-        # Attempt to include account_number (PID-18) if there's a dossier for this patient
-        account_number = ""
-        try:
-            pid_patient_id = _get('id', None)
-            if pid_patient_id is not None:
-                # pick latest dossier for this patient if any
-                from sqlmodel import select as _select
-                dossier_obj = session.exec(_select(Dossier).where(Dossier.patient_id == pid_patient_id).order_by(Dossier.id.desc())).first()
-                if dossier_obj and getattr(dossier_obj, 'dossier_seq', None):
-                    # resolve namespace authority for NDA (dossier numbers)
-                    auth, type_code = _resolve_namespace_authority(
-                        session,
-                        _get('entite_juridique_id'),
-                        'NDA',
-                        forced_identifier_system,
-                        forced_identifier_oid,
-                    )
-                    type_code = type_code or 'AN'
-                    if auth:
-                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{auth}^{type_code}"
-                    else:
-                        account_number = f"{_c_local(str(dossier_obj.dossier_seq))}^^^{_c_local('HOSP')}^{type_code}"
-        except Exception:
-            logger.exception("Failed to resolve dossier/account_number for PID-18")
-
-        if not account_number:
-            # Fallback: reuse patient sequence/id so PID-18 is never empty (IHE requires it)
-            fallback_value = _c_local(str(_get('patient_seq') or _get('id') or 'PENDING'))
-            fallback_auth, fallback_type = _resolve_namespace_authority(
-                session,
-                _get('entite_juridique_id'),
-                'NDA',
-                forced_identifier_system,
-                forced_identifier_oid,
-            )
-            fallback_type = fallback_type or 'AN'
-            fallback_auth = fallback_auth or _c_local('HOSP')
-            account_number = f"{fallback_value}^^^{fallback_auth}^{fallback_type}"
-
-        # Build PID using indexed fields to ensure PID-18 (account number) and PID-23 (birth place)
-        # are placed at their correct positions.
-        # We allocate up to PID-32 for safety (index matches HL7 field number).
-        pid_fields = [""] * 33
-        pid_fields[0] = "PID"
-        pid_fields[1] = "1"  # Set ID - PID-1
-        pid_fields[2] = ""   # PID-2 (Patient ID)
-        pid_fields[3] = _c_local(pid3)  # PID-3 Patient Identifier List
-        pid_fields[4] = ""   # PID-4 Alternate ID
-        pid_fields[5] = _c_local(name)  # PID-5 Patient Name
-        pid_fields[6] = ""   # PID-6 Mother's Maiden Name
-        pid_fields[7] = birth_date  # PID-7 Date/Time of Birth
-        pid_fields[8] = gender  # PID-8 Administrative Sex
-        pid_fields[9] = ""   # PID-9 Patient Alias
-        pid_fields[10] = ""  # PID-10 Race
-        pid_fields[11] = _c_local(patient_address)  # PID-11 Patient Address
-        pid_fields[12] = ""  # PID-12 County Code
-        pid_fields[13] = phone_field  # PID-13 Phone Number - Home
-        pid_fields[14] = ""  # PID-14 Phone Number - Business
-        pid_fields[15] = ""  # PID-15 Primary Language
-        pid_fields[16] = _c_local(marital_status)  # PID-16 Marital Status
-        pid_fields[17] = ""  # PID-17 Religion
-        pid_fields[18] = _c_local(account_number)  # PID-18 Patient Account Number
-        # PID-19.. PID-22 left empty for now
-        pid_fields[19] = ""  # PID-19 SSN Number - Patient
-        pid_fields[20] = ""  # PID-20 Driver's License Number
-        pid_fields[21] = ""  # PID-21 Mother's Identifier
-        pid_fields[22] = ""  # PID-22 Ethnic Group
-        pid_fields[23] = _c_local(birth_place)  # PID-23 Birth Place
-        pid_fields[24] = ""  # PID-24 Mother's Maiden Name (repeating semantics)
-        # PID-25..PID-31 reserved
-        pid_fields[32] = _c_local(identity_code)  # PID-32 Identity Reliability Code
-
-        pid = "|".join(pid_fields)
-
-        # Minimal PV1 so validators always find visit data even when no dossier/venue exists yet
-        visit_number_value = _c_local(str(_get('patient_seq') or _get('id') or '0'))
-        vn_auth, vn_type = _resolve_namespace_authority(
+        return generate_patient_message(
+            entity,
             session,
-            _get('entite_juridique_id'),
-            'VN',
-            forced_identifier_system,
-            forced_identifier_oid,
+            forced_identifier_system=forced_identifier_system,
+            forced_identifier_oid=forced_identifier_oid,
+            operation=operation,
+            msh_sending_app=msh_sending_app,
+            msh_sending_facility=msh_sending_facility,
+            msh_receiving_app=msh_receiving_app,
+            msh_receiving_facility=msh_receiving_facility,
+            mrg_prior_identifiers=mrg_prior_identifiers,
+            mrg_prior_name=mrg_prior_name,
         )
-        vn_auth = vn_auth or _c_local('HOSP')
-        vn_type = vn_type or 'VN'
-        pv1_fields = [""] * 40
-        pv1_fields[0] = "PV1"
-        pv1_fields[1] = "1"
-        pv1_fields[2] = "O"  # Default patient class (Outpatient) for standalone patient events
-        pv1_fields[3] = ""   # Location unknown at this stage
-        pv1_fields[19] = f"{visit_number_value}^^^{vn_auth}^{vn_type}"
-        pv1 = "|".join(pv1_fields)
 
-        if event_type in ("A40", "A47"):
-            # A40 (fusion) / A47 (modification d'identifiant) : MRG-1 porte le/les identifiant(s)
-            # obsolète(s) (répétable via ~), PID-3 porte déjà le/les identifiant(s) retenu(s).
-            # Conforme à l'exemple de la spec IHE PAM France (§4.4.2) : MSH, EVN, PID, MRG (pas de PV1).
-            mrg_fields = [""] * 8
-            mrg_fields[0] = "MRG"
-            mrg_fields[1] = "~".join(_c_local(p) for p in normalized_mrg_prior_identifiers)
-            if mrg_prior_name:
-                mrg_fields[7] = _c_local(mrg_prior_name)
-            mrg = "|".join(mrg_fields)
-            return normalize_generated_message("\r".join([msh, evn, pid, mrg]))
-
-        return normalize_generated_message("\r".join([msh, evn, pid, pv1]))
-        
     if entity_type == "dossier":
         # ⚠️ IMPORTANT : La création d'un dossier ne génère PAS de message IHE PAM
         # car il n'y a pas d'événement patient associé. C'est la création de la VENUE

@@ -10,7 +10,7 @@ import logging
 
 from app.db import get_session
 from app.models_endpoints import SystemEndpoint
-from app.models_shared import MessageLog
+from app.models.shared import MessageLog
 from app.runtime.runners import registry
 from app.cache import get_redis_stats
 

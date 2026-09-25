@@ -21,7 +21,7 @@ from sqlmodel import Session, select
 from sqlalchemy import or_
 
 from app.models_structure import IdentifierNamespace
-from app.models_shared import SystemEndpoint
+from app.models.shared import SystemEndpoint
 
 
 def _remap_msh(msh_line: str, endpoint: SystemEndpoint) -> str:

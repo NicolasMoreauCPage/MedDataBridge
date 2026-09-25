@@ -11,7 +11,7 @@ from app.utils.flash import flash
 from app.models_structure import EntiteJuridique, EntiteGeographique, IdentifierNamespace
 from app.models_structure import Pole, Service, UniteFonctionnelle, UniteHebergement, Chambre, Lit
 from app.models_scenario_config import ScenarioEJConfig
-from app.models_shared import SystemEndpoint
+from app.models.shared import SystemEndpoint
 from app.models_endpoints import MLLPConfig, FHIRConfig
 from .helpers import get_context_or_404, get_ej_or_404, templates
 

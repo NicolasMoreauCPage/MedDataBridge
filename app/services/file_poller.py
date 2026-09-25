@@ -13,7 +13,7 @@ from typing import Dict, Any
 from pathlib import Path
 from sqlmodel import Session, select
 
-from app.models_shared import SystemEndpoint, MessageLog
+from app.models.shared import SystemEndpoint, MessageLog
 from app.models_structure import GHTContext
 from app.adapters.filesystem_transport import FileSystemReader
 from app.adapters.sftp_transport import SFTPReader

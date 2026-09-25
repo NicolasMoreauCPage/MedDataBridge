@@ -1,7 +1,7 @@
 """Vues admin pour la connectivité système"""
 from sqladmin import ModelView
 from app.models_endpoints import SystemEndpoint
-from app.models_shared import MessageLog
+from app.models.shared import MessageLog
 
 
 class SystemEndpointAdmin(ModelView, model=SystemEndpoint):

@@ -14,7 +14,7 @@ from collections import Counter
 
 from app.models_endpoints import MessageLog
 from app.models_structure import EntiteJuridique
-from app.models_shared import SystemEndpoint
+from app.models.shared import SystemEndpoint
 
 logger = logging.getLogger(__name__)
 

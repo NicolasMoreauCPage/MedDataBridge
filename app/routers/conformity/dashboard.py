@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from app.db import get_session
 from app.models_structure import EntiteJuridique
 from app.models_endpoints import MessageLog
-from app.models_shared import SystemEndpoint
+from app.models.shared import SystemEndpoint
 from app.services.conformity.metrics import get_ej_summary
 from app.dependencies.ght import require_ght_context
 

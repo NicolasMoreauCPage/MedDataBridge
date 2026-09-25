@@ -5,7 +5,7 @@ from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 
-from app.models_shared import SystemEndpoint
+from app.models.shared import SystemEndpoint
 
 logger = logging.getLogger(__name__)
 

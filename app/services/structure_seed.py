@@ -168,7 +168,7 @@ def ensure_endpoints_for_context(
 
     Idempotent : recherche par name unique.
     """
-    from app.models_shared import SystemEndpoint, EndpointKind, EndpointRole  # local import
+    from app.models.shared import SystemEndpoint, EndpointKind, EndpointRole  # local import
     stats = Counter()
 
     port_cursor = base_port

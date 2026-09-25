@@ -13,7 +13,7 @@ from app.services.file_poller import scan_file_endpoints
 from app.services.outbox_service import process_due_messages
 from app.services.scenario_campaign_service import process_queued_campaigns
 from sqlmodel import select
-from app.models_shared import SystemEndpoint
+from app.models.shared import SystemEndpoint
 from config.settings import settings
 
 logger = logging.getLogger(__name__)

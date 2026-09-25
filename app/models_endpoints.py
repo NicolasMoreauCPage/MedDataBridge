@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 # ``MessageLog`` est réexporté pour les imports historiques (dont ``app.db``).
 # Il ne doit pas être retiré par le lint malgré l'absence de référence locale.
-from app.models_shared import SystemEndpoint, MessageLog  # noqa: F401
+from app.models.shared import SystemEndpoint, MessageLog  # noqa: F401
 
 class MLLPConfig(SQLModel, table=True):
     """Configuration MLLP spécifique à un endpoint"""

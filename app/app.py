@@ -352,6 +352,28 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
     # admin-related pages (like /admin/ght). The Admin instance is
     # created later just before returning the app.
 
+    _register_application_routes(
+        app,
+        app_settings=app_settings,
+        runtime_engine=runtime_engine,
+        runtime_session_factory=runtime_session_factory,
+        mllp_manager=mllp_manager,
+        scheduler=scheduler,
+    )
+
+    return app
+
+
+def _register_application_routes(
+    app: FastAPI,
+    *,
+    app_settings: Settings,
+    runtime_engine,
+    runtime_session_factory,
+    mllp_manager: MLLPManager,
+    scheduler: BackgroundScheduler,
+) -> None:
+    """Monte les routes et capacités optionnelles sur une instance déjà configurée."""
     # Core application routes in dependency order
     # Routes are registered in logical dependency order
     # Some routers have their own prefix defined in their router creation
@@ -814,7 +836,6 @@ def create_app(runtime_settings: Settings | None = None) -> FastAPI:
         _mount_sqladmin(app, runtime_engine, app_settings)
         logger.info("SQLAdmin interface initialized at /sqladmin")
     
-    return app
 
 app = create_app()
 

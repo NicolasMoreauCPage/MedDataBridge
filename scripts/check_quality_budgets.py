@@ -17,10 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
 
 # Les unités existantes sont suivies individuellement jusqu'à leur extraction.
-FUNCTION_EXCEPTIONS = {
-    ("app/app.py", "create_app"),
-    ("app/services/transport_inbound.py", "on_message_inbound_async"),
-}
+FUNCTION_EXCEPTIONS: set[tuple[str, str]] = set()
 
 # ``scenarios.py`` reste le point d'entrée historique de plusieurs parcours.
 # Son découpage est suivi séparément ; cette dérogation évite qu'un formatage

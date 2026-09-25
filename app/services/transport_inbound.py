@@ -13,7 +13,8 @@ Transactions & sessions
 """
 
 # app/services/transport_inbound.py
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import os
 import re
 from typing import Dict, List, Optional, Tuple
 import logging
@@ -795,6 +796,96 @@ def _validate_message_structure(msg: str) -> Tuple[bool, Optional[str], Optional
     except Exception as e:
         return False, f"Message validation error: {str(e)}", None
 
+
+def _previous_ack_for_duplicate(session: Session, control_id: str) -> str | None:
+    """Retourne l'ACK récent d'un message déjà traité, sans bloquer sur échec."""
+    try:
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
+        message_log = session.exec(
+            select(MessageLog)
+            .where(MessageLog.correlation_id == control_id)
+            .where(MessageLog.created_at > cutoff_time)
+            .where(MessageLog.status.in_(["processed", "error", "rejected"]))
+            .order_by(MessageLog.created_at.desc())
+        ).first()
+        if message_log and message_log.ack_payload:
+            logger.info("Message duplicate detected (MSH-10=%s), returning previous ACK", control_id)
+            return message_log.ack_payload
+    except Exception as exc:
+        logger.warning("Error checking message idempotence: %s", exc)
+    return None
+
+
+def _is_strict_pam_endpoint(endpoint) -> bool:
+    """Résout la politique PAM FR par EJ, avec repli explicite environnement."""
+    fallback = os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}
+    try:
+        if endpoint and getattr(endpoint, "entite_juridique", None):
+            return as_bool(getattr(endpoint.entite_juridique, "strict_pam_fr", False))
+    except Exception:
+        return fallback
+    return fallback
+
+
+def _required_segment_error(msg: str, trigger: str, strict_ej: bool) -> str | None:
+    """Vérifie les segments IHE PAM indispensables avant la transaction."""
+    movement_triggers = {
+        "A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A11",
+        "A12", "A13", "A21", "A22", "A23", "A38", "A45", "A52", "A53",
+        "A54", "A55",
+    }
+    if strict_ej:
+        movement_triggers.discard("A08")
+    if trigger in movement_triggers and not has_segment(msg, "ZBE"):
+        return (
+            f"Segment ZBE obligatoire manquant pour le message ADT^{trigger}. "
+            "Le profil IHE PAM France requiert le segment ZBE pour tous les messages de mouvement patient."
+        )
+    if trigger in {"A40", "A47", "A44"} and not has_segment(msg, "MRG"):
+        return (
+            f"Segment MRG obligatoire manquant pour le message ADT^{trigger}. "
+            "Le segment MRG contient les informations d'identification du patient source pour la fusion."
+        )
+    return None
+
+
+def _process_mfn_m05(msg: str, session: Session, endpoint, control_id: str, msg_family: str, trigger: str) -> str | None:
+    """Importe MFN^M05 et persiste son ACK avant de quitter le pipeline PAM."""
+    if msg_family != "MFN" or trigger != "M05":
+        return None
+    try:
+        from app.services.mfn_structure import process_mfn_message
+
+        results = process_mfn_message(msg.replace("\r", "\n"), session)
+        success_count = sum(result.get("status") == "success" for result in results)
+        status, text = "processed", f"MFN M05 processed ({success_count} imported)"
+        ack = build_ack(msg, ack_code="AA", text=text)
+    except Exception as exc:
+        status, text = "error", f"MFN M05 error: {str(exc)[:80]}"
+        ack = build_ack(msg, ack_code="AE", text=text)
+    session.add(
+        MessageLog(
+            direction="in",
+            kind="MLLP",
+            endpoint_id=endpoint.id if endpoint else None,
+            correlation_id=control_id,
+            payload=msg,
+            status=status,
+            message_type=f"MFN^{trigger}",
+            ack_payload=ack,
+            created_at=datetime.now(timezone.utc),
+        )
+    )
+    session.commit()
+    return ack
+
+
+def _strict_trigger_rejection(msg: str, trigger: str, strict_ej: bool) -> str | None:
+    """Retourne l'ACK de rejet des triggers désactivés par le profil strict."""
+    if strict_ej and trigger == "A08":
+        return build_ack(msg, ack_code="AE", text="Événement A08 désactivé (mode strict PAM FR per-EJ)")
+    return None
+
 async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Optional[MessageLog] = None) -> str:
     """
     Point d'entrée principal pour les messages HL7v2 IHE PAM entrants.
@@ -841,25 +932,9 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
     msg_family = msh.get("type", "")
     trigger = msh.get("trigger", "")
 
-    # 1.5. Idempotence check: avoid processing the same message twice
-    # Check if a MessageLog with the same control_id was already processed in the last hour
-    try:
-        from datetime import timedelta
-        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
-        existing_log = session.exec(
-            select(MessageLog)
-            .where(MessageLog.correlation_id == ctrl_id)
-            .where(MessageLog.created_at > cutoff_time)
-            .where(MessageLog.status.in_(["processed", "error", "rejected"]))
-            .order_by(MessageLog.created_at.desc())
-        ).first()
-        
-        if existing_log and existing_log.ack_payload:
-            logger.info(f"Message duplicate detected (MSH-10={ctrl_id}), returning previous ACK")
-            return existing_log.ack_payload
-    except Exception as e:
-        logger.warning(f"Error checking message idempotence: {e}")
-        # Continue processing if check fails; don't block on idempotence check errors
+    previous_ack = _previous_ack_for_duplicate(session, ctrl_id)
+    if previous_ack:
+        return previous_ack
 
     # Une lecture ORM (y compris le chargement de l'endpoint par une route)
     # ouvre implicitement une transaction SQLite. Le traitement entrant est un
@@ -869,23 +944,10 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
     if session.in_transaction():
         session.commit()
 
-    # Détermination per-endpoint du mode strict (priorité EJ > env)
-    import os as _os
-    strict_ej = False
-    try:
-        if endpoint and getattr(endpoint, "entite_juridique", None):
-            strict_ej = as_bool(getattr(endpoint.entite_juridique, "strict_pam_fr", False))
-        else:
-            strict_ej = _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}
-    except Exception:
-        strict_ej = _os.getenv("STRICT_PAM_FR", "0") in {"1", "true", "True"}
+    strict_ej = _is_strict_pam_endpoint(endpoint)
 
-    if strict_ej and trigger == "A08":
-        return build_ack(
-            msg,
-            ack_code="AE",
-            text="Événement A08 désactivé (mode strict PAM FR per-EJ)"
-        )
+    if strict_ack := _strict_trigger_rejection(msg, trigger, strict_ej):
+        return strict_ack
 
     # 2. Validation du type de message (ADT/IHE PAM, MFN structure, SIU rendez-vous)
     if msg_family not in ("ADT", "MFN", "SIU"):
@@ -895,70 +957,13 @@ async def on_message_inbound_async(msg: str, session, endpoint, existing_log: Op
             text=f"Unsupported message type: {msg_family} (ADT, MFN M05 and SIU supported)"
         )
 
-    # MFN M05 handling: import structure locations (Service/UF/etc.) before returning ACK
-    if msg_family == "MFN" and trigger == "M05":
-        try:
-            from app.services.mfn_structure import process_mfn_message
-            results = process_mfn_message(msg.replace("\r", "\n"), session)
-            success_count = sum(1 for r in results if r.get("status") == "success")
-            ack = build_ack(msg, ack_code="AA", text=f"MFN M05 processed ({success_count} imported)")
-            # Log entry
-            log = MessageLog(
-                direction="in",
-                kind="MLLP",
-                endpoint_id=endpoint.id if endpoint else None,
-                correlation_id=ctrl_id,
-                payload=msg,
-                status="processed",
-                message_type=f"MFN^{trigger}",
-                ack_payload=ack,
-                created_at=datetime.now(timezone.utc),
-            )
-            session.add(log)
-            session.commit()
-            return ack
-        except Exception as exc:
-            ack = build_ack(msg, ack_code="AE", text=f"MFN M05 error: {str(exc)[:80]}")
-            log = MessageLog(
-                direction="in",
-                kind="MLLP",
-                endpoint_id=endpoint.id if endpoint else None,
-                correlation_id=ctrl_id,
-                payload=msg,
-                status="error",
-                message_type=f"MFN^{trigger}",
-                ack_payload=ack,
-                created_at=datetime.now(timezone.utc),
-            )
-            session.add(log)
-            session.commit()
-            return ack
+    mfn_ack = _process_mfn_m05(msg, session, endpoint, ctrl_id, msg_family, trigger)
+    if mfn_ack:
+        return mfn_ack
     
-    # 2.1. Validation des segments obligatoires selon le profil IHE PAM FR.
-    # A44 réattribue un dossier (PID-18/MRG-1) et n'est pas conditionné à ZBE.
-    movement_triggers = {"A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08",
-                         "A11", "A12", "A13", "A21", "A22", "A23", "A38",
-                         "A45", "A52", "A53", "A54", "A55"}
-    if strict_ej:
-        movement_triggers.discard("A08")
-    
-    if trigger in movement_triggers:
-        if not has_segment(msg, "ZBE"):
-            return build_ack(
-                msg,
-                ack_code="AE",
-                text=f"Segment ZBE obligatoire manquant pour le message ADT^{trigger}. Le profil IHE PAM France requiert le segment ZBE pour tous les messages de mouvement patient."
-            )
-    
-    # A40/A47 et A44 portent MRG-1 ; A44 l'utilise pour identifier le patient
-    # auquel le dossier était précédemment rattaché.
-    if trigger in {"A40", "A47", "A44"}:
-        if not has_segment(msg, "MRG"):
-            return build_ack(
-                msg,
-                ack_code="AE",
-                text=f"Segment MRG obligatoire manquant pour le message ADT^{trigger}. Le segment MRG contient les informations d'identification du patient source pour la fusion."
-            )
+    required_segment_error = _required_segment_error(msg, trigger, strict_ej)
+    if required_segment_error:
+        return build_ack(msg, ack_code="AE", text=required_segment_error)
         
     # 3. Initialisation du traitement transactionnel
     try:

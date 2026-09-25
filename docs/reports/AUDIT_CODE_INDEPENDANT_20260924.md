@@ -457,6 +457,12 @@ modifiés dans ce lot.
 - L'admission PAM sépare l'identité du cas d'usage de création de séjour,
   venue et mouvement. `handle_admission_message` conserve sa signature et son
   contrat asynchrone, mais n'est plus une exception de taille.
+- `create_app` se limite désormais à la composition de l'instance ; le montage
+  des capacités et des routeurs est porté par `_register_application_routes`.
+  La fabrique n'est plus une exception au budget de complexité.
+- Le pipeline entrant délègue l'idempotence, la politique stricte, les segments
+  requis et le flux MFN^M05 à des helpers. `on_message_inbound_async` atteint
+  le plafond de 500 lignes et toutes les exceptions de fonction ont disparu.
 - `scripts/check_quality_budgets.py`, exécuté en CI, interdit toute nouvelle
   fonction de plus de 500 lignes et tout routeur de plus de 2 000 lignes. Le
   routeur historique `scenarios.py` reste temporairement plafonné à 2 500 lignes

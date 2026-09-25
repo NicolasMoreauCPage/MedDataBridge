@@ -54,12 +54,12 @@
 {%- set disabled_classes = 'opacity-50 cursor-not-allowed pointer-events-none' if disabled else '' -%}
 {%- set classes = [base_classes, variant_classes[variant], size_classes[size], disabled_classes]|join(' ') -%}
 {% if href %}
-<a href="{{ href }}" class="{{ classes }}" {% if aria_label %}aria-label="{{ aria_label }}"{% endif %} {{ attrs|safe }}>
+<a href="{{ href }}" class="{{ classes }}" {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}>
   {% if icon %}{{ icon|safe }}{% endif %}
   {{ label }}
 </a>
 {% else %}
-<button type="{{ type }}" class="{{ classes }}" {% if disabled %}disabled{% endif %} {% if aria_label %}aria-label="{{ aria_label }}"{% endif %} {{ attrs|safe }}>
+<button type="{{ type }}" class="{{ classes }}" {% if disabled %}disabled{% endif %} {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}>
   {% if icon %}{{ icon|safe }}{% endif %}
   {{ label }}
 </button>
@@ -177,7 +177,6 @@
     {% if required %}required{% endif %}
     {% if disabled %}disabled{% endif %}
     class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors {{ 'border-red-300 focus:border-red-500 focus:ring-red-200' if error else '' }} {{ 'bg-slate-50 cursor-not-allowed' if disabled else '' }}"
-    {{ attrs|safe }}
   />
   {% if error %}
   <p class="text-sm text-red-600 flex items-center gap-1">
@@ -206,7 +205,6 @@
     {% if required %}required{% endif %}
     {% if disabled %}disabled{% endif %}
     class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors {{ 'border-red-300 focus:border-red-500 focus:ring-red-200' if error else '' }} {{ 'bg-slate-50 cursor-not-allowed' if disabled else '' }}"
-    {{ attrs|safe }}
   >{{ value }}</textarea>
   {% if error %}
   <p class="text-sm text-red-600 flex items-center gap-1">
@@ -233,7 +231,6 @@
     {% if required %}required{% endif %}
     {% if disabled %}disabled{% endif %}
     class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors {{ 'border-red-300 focus:border-red-500 focus:ring-red-200' if error else '' }} {{ 'bg-slate-50 cursor-not-allowed' if disabled else '' }}"
-    {{ attrs|safe }}
   >
     {% for option in options %}
     <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %}>{{ option.label }}</option>

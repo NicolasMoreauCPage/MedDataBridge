@@ -12,7 +12,8 @@ from fastapi.testclient import TestClient
 from fastapi import HTTPException
 from jose import jwt as jose_jwt
 
-from app.app import app
+from app.app import create_app
+from config.settings import Settings
 from app.auth import (
     authenticate_user, create_access_token, create_refresh_token,
     decode_token, get_current_user, require_role, RoleChecker,
@@ -27,8 +28,16 @@ class TestAuthentication:
 
     @pytest.fixture
     def client(self):
-        """Client de test FastAPI"""
-        return TestClient(app)
+        """Client d'une application dont la sécurité est explicitement activée."""
+        application = create_app(Settings(
+            testing=True,
+            security_enabled=True,
+            secret_key="a" * 32,
+            jwt_secret_key="b" * 32,
+            bootstrap_admin_username="admin",
+            bootstrap_admin_password="administrateur-test-fort",
+        ))
+        return TestClient(application)
 
     def test_successful_login_admin(self, client):
         """Test connexion réussie avec compte admin"""
@@ -93,7 +102,7 @@ class TestAuthentication:
     def test_access_protected_endpoint_without_token(self, client):
         """Test accès endpoint protégé sans token"""
         response = client.get("/auth/me")
-        assert response.status_code == 403  # Changed from 401 to match actual behavior
+        assert response.status_code == 401
         # Note: WWW-Authenticate header may not be present for 403 responses
 
     def test_access_protected_endpoint_with_valid_token(self, client):
@@ -382,7 +391,7 @@ class TestAuthentication:
     def test_missing_authorization_header(self, client, endpoint):
         """Test requêtes sans en-tête Authorization"""
         response = client.get(endpoint)
-        assert response.status_code == 403  # Changed from 401 to match actual behavior
+        assert response.status_code == 401
 
         # Test avec en-tête vide
         response = client.get(endpoint, headers={"Authorization": ""})

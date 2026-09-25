@@ -55,12 +55,12 @@
 {%- set classes = [base_classes, variant_classes[variant], size_classes[size], disabled_classes]|join(' ') -%}
 {% if href %}
 <a href="{{ href }}" class="{{ classes }}" {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}>
-  {% if icon %}{{ icon|safe }}{% endif %}
+  {% if icon %}{{ icon }}{% endif %}
   {{ label }}
 </a>
 {% else %}
 <button type="{{ type }}" class="{{ classes }}" {% if disabled %}disabled{% endif %} {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}>
-  {% if icon %}{{ icon|safe }}{% endif %}
+  {% if icon %}{{ icon }}{% endif %}
   {{ label }}
 </button>
 {% endif %}
@@ -83,7 +83,7 @@
   </div>
   {% if footer %}
   <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 text-sm text-slate-600">
-    {{ footer|safe }}
+    {{ footer }}
   </div>
   {% endif %}
 </div>
@@ -108,7 +108,7 @@
     </div>
     {% if icon %}
     <div class="flex-shrink-0 p-3 rounded-xl bg-{{ color }}-100">
-      {{ icon|safe }}
+      {{ icon }}
     </div>
     {% endif %}
   </div>
@@ -134,7 +134,7 @@
   'lg': 'px-3 py-1.5 text-sm'
 } -%}
 <span class="inline-flex items-center gap-1 rounded-full font-semibold {{ variant_classes[variant] }} {{ size_classes[size] }}">
-  {% if icon %}{{ icon|safe }}{% endif %}
+  {% if icon %}{{ icon }}{% endif %}
   {{ label }}
 </span>
 {% endmacro %}
@@ -389,7 +389,7 @@
     <div class="w-24 h-24 sm:w-32 sm:h-32 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center">
       {% if icon %}
       <div class="text-slate-400">
-        {{ icon|safe }}
+        {{ icon }}
       </div>
       {% else %}
       <svg class="w-12 h-12 sm:w-16 sm:h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

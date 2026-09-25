@@ -4,13 +4,13 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
-PUBLIC_PREFIXES = ("/auth", "/health", "/ready", "/api/docs", "/api/redoc", "/api/openapi.json", "/static")
+PUBLIC_PATHS = {"/auth/login", "/auth/login/json", "/auth/refresh", "/health", "/ready", "/api/docs", "/api/redoc", "/api/openapi.json"}
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         settings = request.app.state.settings
-        if not settings.security_enabled or request.url.path.startswith(PUBLIC_PREFIXES):
+        if not settings.security_enabled or request.url.path in PUBLIC_PATHS or request.url.path.startswith("/static"):
             return await call_next(request)
         authorization = request.headers.get("authorization", "")
         if not authorization.lower().startswith("bearer "):

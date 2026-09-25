@@ -2,7 +2,7 @@
 import logging
 
 from app.models import Mouvement
-from app.movement_type_mapping import from_standard_movement_code
+from app.services.movement_type_mapping import from_standard_movement_code
 from typing import Optional
 from sqlmodel import select
 

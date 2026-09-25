@@ -3,7 +3,7 @@
 from sqlmodel import Session, select
 
 from app.models import Mouvement
-from app.movement_type_mapping import to_standard_movement_code
+from app.services.movement_type_mapping import to_standard_movement_code
 
 
 def detect_nature_transition(session: Session, mouvement, operation: str) -> tuple[str | None, str | None]:

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from sqlmodel import Session, select
 
-from app.models_scenario_review import ScenarioCatalogReview
+from app.models.scenario_review import ScenarioCatalogReview
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 
 

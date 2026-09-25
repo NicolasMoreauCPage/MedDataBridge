@@ -35,7 +35,7 @@ from app import models_scenarios  # noqa: F401 - ORM registry
 from app.models import scenario_runs as models_scenario_runs  # noqa: F401 - ORM registry
 from app.models import scenario_target_profiles as models_scenario_target_profiles  # noqa: F401 - ORM registry
 from app.models import qualification as models_qualification  # noqa: F401 - ORM registry
-from app import models_scenario_review  # noqa: F401 - ORM registry
+from app.models import scenario_review as models_scenario_review  # noqa: F401 - ORM registry
 from app.models import appointments as models_appointments  # noqa: F401 - ORM registry
 from app.models import analytics as models_analytics  # noqa: F401 - ORM registry
 try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)

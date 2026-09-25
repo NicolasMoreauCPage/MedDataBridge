@@ -21,7 +21,7 @@ from app.models.endpoints import SystemEndpoint
 from app.models.outbox import OutboundMessage
 from app.models.practitioners import MedecinResponsable
 from app.models.scenario_runs import ScenarioDelivery, ScenarioPlay, ScenarioPlayStep, ScenarioPlayTarget
-from app.models_scenario_review import ScenarioCatalogReview
+from app.models.scenario_review import ScenarioCatalogReview
 from app.models_scenarios import InteropScenario, InteropScenarioStep
 from app.models_structure import IdentifierNamespace
 from app.services.scenario_identifier_replacer import replace_identifiers_in_hl7_message

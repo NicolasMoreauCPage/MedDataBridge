@@ -45,7 +45,7 @@ from app.models.qualification import (
     ScenarioTheme,
     ScenarioThemeAssignment,
 )
-from app.models_scenario_review import ScenarioCatalogReview
+from app.models.scenario_review import ScenarioCatalogReview
 from app.services.scenario_play_service import (
     ScenarioPlayError,
     execute_scenario_play,

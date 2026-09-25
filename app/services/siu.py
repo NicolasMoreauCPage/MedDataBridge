@@ -15,7 +15,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models import Patient
-from app.models_appointments import Appointment
+from app.models.appointments import Appointment
 from app.services.mllp import parse_msh_fields
 from app.services.pam_validation import ValidationIssue, ValidationResult
 

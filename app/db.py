@@ -35,7 +35,7 @@ from app import models_scenario_runs  # noqa: F401 - ORM registry
 from app import models_scenario_target_profiles  # noqa: F401 - ORM registry
 from app import models_qualification  # noqa: F401 - ORM registry
 from app import models_scenario_review  # noqa: F401 - ORM registry
-from app import models_appointments  # noqa: F401 - ORM registry
+from app.models import appointments as models_appointments  # noqa: F401 - ORM registry
 try:  # Import optionnel de l'init des templates (peut échouer si fichiers absents)
     from app.services.scenario_template_init import init_scenario_templates  # noqa: E402
 except Exception:  # pragma: no cover

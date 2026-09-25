@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "MedData_Bridge"
 version = "2.0.1"
 authors = [
-  { name="Nicolas", email="author@example.com" },
+  { name="Nicolas Moreau", email="nicolas.moreau@cpage.fr" },
 ]
 description = "Plateforme de qualification et de test d'interopérabilité HL7, IHE PAM, HPRIM et FHIR"
 readme = "README.md"

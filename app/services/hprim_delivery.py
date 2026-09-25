@@ -8,7 +8,7 @@ from typing import Optional
 from sqlmodel import Session, select
 
 from app.models_endpoints import MessageLog, SystemEndpoint
-from app.models_outbox import OutboundMessage
+from app.models.outbox import OutboundMessage
 from app.services.outbox_service import enqueue_message
 
 

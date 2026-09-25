@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_outbox import OutboundMessage
+from app.models.outbox import OutboundMessage
 from app.services.outbox_service import (
     enqueue_failed_message_logs,
     outbox_stats,

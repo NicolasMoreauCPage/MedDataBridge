@@ -22,7 +22,7 @@ from app.models_structure import EntiteJuridique
 from app.services.identifier_generator import generate_identifier
 from app.models.identifiers import IdentifierType
 from app.models_structure import IdentifierNamespace
-from app.models_scenario_config import (
+from app.models.scenario_config import (
     ScenarioEJConfig, 
     get_location_for_event, 
     get_medecin_for_event,

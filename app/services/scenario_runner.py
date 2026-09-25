@@ -227,7 +227,7 @@ async def _send_hl7_step(
                     generate_patient_seq,
                     generate_dossier_seq,
                 )
-                from app.models_scenario_config import (
+                from app.models.scenario_config import (
                     ScenarioEJConfig,
                     get_medecin_for_event,
                     build_xcn_field,

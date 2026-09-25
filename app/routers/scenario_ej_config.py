@@ -20,7 +20,7 @@ from fastapi import Request as FastAPIRequest
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models_scenario_config import ScenarioEJConfig
+from app.models.scenario_config import ScenarioEJConfig
 from app.models_structure import (
     EntiteJuridique,
     EntiteGeographique,

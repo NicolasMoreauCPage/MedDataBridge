@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 
 from app.models.endpoints import SystemEndpoint
 from app.models.practitioners import MedecinResponsable
-from app.models_scenario_config import ScenarioEJConfig, get_location_for_event, get_medecin_for_event
+from app.models.scenario_config import ScenarioEJConfig, get_location_for_event, get_medecin_for_event
 from app.models.scenario_target_profiles import ScenarioTargetLocation, ScenarioTargetProfile
 from app.models.scenarios import InteropScenario, InteropScenarioStep
 from app.models_structure import EntiteGeographique, Pole, Service, UniteFonctionnelle

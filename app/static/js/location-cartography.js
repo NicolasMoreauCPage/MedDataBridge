@@ -13,7 +13,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   const stateMessage = document.getElementById('state-message');
 
   function showLitsMessage(message, isError = false) {
-    litGrid.innerHTML = `<div class="col-span-full text-sm py-8 text-center ${isError ? 'text-red-600' : 'text-slate-500'}">${message}</div>`;
+    litGrid.replaceChildren();
+    const notice = document.createElement('div');
+    notice.className = `col-span-full text-sm py-8 text-center ${isError ? 'text-red-600' : 'text-slate-500'}`;
+    notice.textContent = message;
+    litGrid.appendChild(notice);
   }
 
   // Load services on page load
@@ -86,10 +90,13 @@ document.addEventListener('DOMContentLoaded', async function() {
           btn.type = 'button';
           btn.className = 'lit-button p-3 border-2 border-green-300 bg-green-50 rounded-lg hover:bg-green-100 hover:border-green-600 transition-all cursor-pointer text-center text-sm';
           btn.dataset.litId = lit.id;
-          btn.innerHTML = `
-            <div class="font-bold text-green-700">${lit.name}</div>
-            <div class="text-xs text-green-600">Ch. ${lit.chambre.name}</div>
-          `;
+          const name = document.createElement('div');
+          name.className = 'font-bold text-green-700';
+          name.textContent = lit.name;
+          const room = document.createElement('div');
+          room.className = 'text-xs text-green-600';
+          room.textContent = `Ch. ${lit.chambre.name}`;
+          btn.append(name, room);
           btn.addEventListener('click', function(e) {
             e.preventDefault();
             selectLit(this, lit, ufId);
@@ -117,8 +124,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     litInput.value = lit.id;
     
     // Update breadcrumb
-    const hierarchy = `${lit.chambre.name} / ${lit.name}`;
-    breadcrumb.innerHTML = `<span class="inline-flex items-center gap-2 px-3 py-1 bg-white rounded border border-blue-200">${hierarchy}</span>`;
+    const hierarchy = document.createElement('span');
+    hierarchy.className = 'inline-flex items-center gap-2 px-3 py-1 bg-white rounded border border-blue-200';
+    hierarchy.textContent = `${lit.chambre.name} / ${lit.name}`;
+    breadcrumb.replaceChildren(hierarchy);
     
     // Validate state (placeholder for real state validation logic)
     validateLitState(lit, ufId);

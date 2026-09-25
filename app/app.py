@@ -76,7 +76,7 @@ from app.routers import menu
 from app.routers import roundtrip_hprim
 from app.routers import cotation_modern
 
-from app.logging_config import setup_logging
+from app.infrastructure.logging import setup_logging
 
 logger = logging.getLogger(__name__)
 

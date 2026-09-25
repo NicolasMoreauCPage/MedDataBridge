@@ -1,5 +1,10 @@
 # Livrables de déploiement
 
+La procédure de démarrage maintenue est le
+[guide Compose](../docs/deployment/deployment.md). Ce répertoire ne contient
+que les éléments nécessaires à la création de livrables ou les traces de
+procédures historiques.
+
 Le code applicatif canonique est exclusivement dans `app/`. Les anciennes
 copies placées sous `deployment/general/app` et `deployment/postgresql/app`
 ont été supprimées afin d'éviter les divergences.

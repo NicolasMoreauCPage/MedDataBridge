@@ -1,4 +1,9 @@
 # IntegraSanté - Guide de Déploiement Production
+
+> **Archive documentaire.** Cette procédure Fedora/Python 3.8 et ses archives
+> de dépendances ne sont plus livrées ni testées. Utiliser le
+> [guide Compose](../../docs/deployment/deployment.md) pour le dépôt courant.
+
 ## Serveur Fedora 7.9 sans connexion Internet
 
 ---

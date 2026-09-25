@@ -1,5 +1,10 @@
 # 📦 IntegraSanté - Package de Déploiement RHEL 7.9
 
+> **Archive documentaire.** Ce package décrit une livraison RHEL/Python 3.13
+> antérieure et ne reflète pas le contenu du checkout actuel. Ne pas suivre ses
+> commandes sans requalification ; la référence courante est le
+> [guide Compose](../../docs/deployment/deployment.md).
+
 ## 👋 Vue d'ensemble
 
 Ce package contient tout le nécessaire pour déployer IntegraSanté sur **RHEL 7.9** avec **Python 3.13**, en mode **offline** (sans accès Internet).

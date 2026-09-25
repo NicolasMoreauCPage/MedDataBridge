@@ -1,5 +1,9 @@
 # Architecture MedData Bridge
 
+> Dernière revue : 25 septembre 2026. Cette page donne les repères
+> d'architecture ; les modules, l'inventaire OpenAPI et les tests exécutables
+> prévalent lorsqu'un nom de fichier ou une version a évolué.
+
 ## Vue d'ensemble
 
 MedData Bridge est une plateforme d'interopérabilité médicale supportant FHIR R4 et HL7 v2.5 (profil IHE PAM France).

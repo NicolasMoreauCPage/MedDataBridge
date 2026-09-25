@@ -1,5 +1,9 @@
 # MedDataBridge - Instructions de Déploiement Production
 
+> **Document historique.** Cette procédure contient des diagnostics et des
+> commandes issus d'installations antérieures. Ne pas l'utiliser pour un
+> nouveau déploiement : suivre le [guide Compose courant](deployment.md).
+
 ## Initialisation d'une base vide
 
 Pour une installation neuve, la commande suivante crée le schéma applicatif

@@ -1,155 +1,84 @@
 # MedData Bridge
 
-MedData Bridge est une plateforme légère d'interopérabilité destinée à la qualification et au test d'interfaces HL7 / FHIR (IHE PAM, HPRIM, etc.).
+MedData Bridge est une plateforme de qualification d'interfaces de santé. Elle
+permet de manipuler des données de démonstration, de valider et rejouer des
+échanges IHE PAM, HPRIM, MFN et FHIR, ainsi que de construire des scénarios
+d'interopérabilité reproductibles.
 
-L'objectif principal est de fournir un environnement reproductible pour :
-- importer et valider des messages HPRIM/HL7 ;
-- visualiser et manipuler des dossiers patients de démonstration ;
-- tester des parcours de cotation (CCAM/NGAP/UCD/LPP) et exporter des résultats.
+Ce dépôt contient une application FastAPI avec interface Jinja2, une base
+SQLite pour le développement local et une pile PostgreSQL/Redis pour Compose.
+Ce n'est pas un POC : les contrats d'interopérabilité, les migrations, les
+scénarios, les roundtrips et la chaîne CI font partie du produit.
 
-Ce dépôt contient une application FastAPI + Jinja2 complète. SQLite est utilisé
-pour le développement et les tests locaux ; le déploiement Compose utilise
-PostgreSQL.
+## Références
 
-## 📚 Documentation
+- [Index de la documentation maintenue](docs/README.md)
+- [Guide de déploiement Compose](docs/deployment/deployment.md)
+- [Commandes de test et périmètre de qualification](docs/TESTS_STATUS.md)
+- [Guide utilisateur](docs/user_guide.md)
+- [Rapports et preuves de qualification](docs/reports/README_FOR_REPORTS.md)
 
-**Documentation complète disponible dans [`docs/`](docs/)** :
-- [docs/README.md](docs/README.md) - index de la documentation maintenue
-- [docs/IHE_PAM.md](docs/IHE_PAM.md) - utilisation du validateur IHE PAM France
-- [docs/user_guide.md](docs/user_guide.md) - guide utilisateur et procédures d'exploitation
-- [docs/reports/ROUNDTRIP_CPAGE_PAM_20260911.md](docs/reports/ROUNDTRIP_CPAGE_PAM_20260911.md) - preuve roundtrip CPage
-- [docs/reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md](docs/reports/VERIFICATION_FHIR_FRANCE_FR_CORE_2_2_0_20260912.md) - périmètre FHIR France / FR Core
-- [docs/OUTBOX.md](docs/OUTBOX.md) - reprise persistante des émissions
+Les plans, audits et comptes rendus datés restent accessibles dans `docs/` pour
+la traçabilité. Ils ne remplacent pas le code, les tests automatisés ou les
+guides ci-dessus.
 
-## Contenu clé
-- `app/` : code de l'application (routers, templates, modèles SQLModel, services).
-- `docs/` : documentation détaillée (IHE PAM, HPRIM, API, guides d'intégration).
-- `data/medbridge.db` : base SQLite locale par défaut, générée après `init_db`.
-- `tests/` : tests unitaires, d'intégration, de roundtrip et d'IHM. Les commandes de qualification sont décrites dans [docs/TESTS_STATUS.md](docs/TESTS_STATUS.md).
+## Démarrage local
 
-Architecture (schéma rapide)
-
-```
-  +-------------------+        +------------------+
-  |  Browser / Tests  | <----> |  FastAPI (UI/API)|
-  |  (Cypress, curl)  |        |  app/routers/*    |
-  +-------------------+        +------------------+
-                          |    ^
-              search / import   |    | DB queries / FTS
-                          v    |
-                     +------------------+
-                     |  SQLite (data/medbridge.db) |
-                     |  (tables: patient, dossier, ...)
-                     +------------------+
-
- - Import endpoints: `/hprim/import`, `/api/fhir/import/bundle`
- - Selector / search: `/cotation-modern/select` and `/cotation-modern/search`
- - OpenAPI docs: `/api/docs`
-```
-
-PUBLIC_SEARCH switch
-
-Pour les environnements de qualification on expose la recherche de dossiers sans authentification. Vous pouvez contrôler ce comportement via la variable d'environnement `PUBLIC_SEARCH` :
-
-- `PUBLIC_SEARCH=true` (par défaut) : `/cotation-modern/search` est publique.
-- `PUBLIC_SEARCH=false` : l'endpoint requiert un token (si l'auth est activée).
-
-La bascule est utile si vous voulez reproduire un environnement plus strict en CI/production.
-
-## Démarrage rapide (développement)
-
-### 1. Installation
-Créez et activez un environnement virtuel Python 3.10+ :
+Prérequis : Python 3.10 ou supérieur (3.11 est utilisé en CI) et Node.js 20
+pour les contrôles frontend.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install -r requirements.txt
-```
-
-### 2. Initialisation de la base de données (FULL)
-Un seul script pour tout créer :
-
-```bash
-python3 init_db.py
-```
-
-Cela crée automatiquement :
-- ✅ Structure complète (4 EJ + hiérarchie)
-- ✅ Vocabulaires (35 systèmes, 207 valeurs)
-- ✅ 40 patients avec scénarios complexes
-- ✅ ~400 scénarios HL7/HPRIM/IHE PAM
-- ✅ Cotations médicales réalistes
-- ✅ Endpoints MLLP + FHIR configurés
-
-**Options disponibles** :
-```bash
-python3 init_db.py              # FULL (recommandé)
-python3 init_db.py --minimal    # Rapide : 1 seul patient
-python3 init_db.py --reset      # Recréer la DB depuis zéro
-```
-
-### 3. Lancer le serveur
-```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+cp .env.example .env
 uvicorn app.app:app --reload --port 8000
 ```
 
-### 4. Accès
-
-- **UI principale** : http://localhost:8000/
-- **Admin** : http://localhost:8000/admin/ght/1/ej/1
-- **Import HPRIM** : http://localhost:8000/hprim/import
-- **Cotation moderne** : http://localhost:8000/cotation-modern/select
-- **API docs** : http://localhost:8000/api/docs
-
-## 🚀 Initialisation des scénarios HL7/HPRIM (NOUVEAU)
-
-Depuis 2026, l'import des scénarios d'intégration HL7/HPRIM/IHE PAM ne dépend plus des fichiers HL7/HPRIM d'origine.
-
-- **Source unique** : Tous les scénarios sont exportés dans un fichier JSON unique (`data/scenarios_seed_data.json`).
-- **Script de seed** : Utilisez le script Python `seed_scenarios_from_json.py` pour insérer tous les scénarios et étapes dans la base de données.
-- **Plus de dépendance aux fichiers HL7/HPRIM** : Le seed est 100% Python/DB, reproductible et versionné.
-
-### Exemple d'utilisation
+L'application applique les migrations Alembic à son démarrage. Pour ajouter le
+jeu de démonstration complet, après avoir arrêté le serveur :
 
 ```bash
-python3 seed_scenarios_from_json.py
+python init_db.py
 ```
 
-Ce script importe tous les scénarios (IHE PAM, HPRIM, etc.) dans la base, en évitant les doublons.
+L'initialisation complète ajoute des données de démonstration, des vocabulaires
+et des scénarios ; elle ne doit pas être utilisée sur une base de recette à
+préserver. L'option `--minimal` fournit un jeu plus réduit.
 
-> **Note :** L'ancien import basé sur les fichiers HL7/HPRIM est désactivé dans `init_db.py`.
+Une fois le serveur lancé :
 
-## Endpoints utiles pour les tests d'interop
-- Recherche de dossiers (publique, conçue pour qualification) :
-  - `GET /cotation-modern/search?q=<query>&page=<n>&per_page=<m>`
-  - Exemple : `GET /cotation-modern/search?q=Martin&page=1&per_page=10`
-  - Réponse : JSON `{ "results": [...], "meta": { "total": N, "page": P, "per_page": M } }`
+- interface : <http://localhost:8000/> ;
+- OpenAPI : <http://localhost:8000/api/docs> ;
+- disponibilité : <http://localhost:8000/health> ;
+- disponibilité enrichie : <http://localhost:8000/ready>.
 
-- Cotation pour un dossier :
-  - UI : `GET /cotation-modern/dossiers/{dossier_id}/cotation`
-
-- Interface d'administration SQL :
-  - SQLAdmin : `GET /sqladmin` — interface d'administration de la base de données
-
-- API & documentation interactive : `GET /api/docs` (FastAPI OpenAPI) — utile pour voir les routes techniques.
-
-## Notes sur sécurité et usage
-- Ce dépôt contient des fonctionnalités destinées aux tests d'interopérabilité. Par défaut la recherche de dossiers a été rendue publique pour faciliter les scénarios de qualification et les tests automatisés. En production, il est recommandé d'activer un contrôle d'accès.
-- Les indexes SQLite et la table FTS sont créés en mode "best-effort" par `init_db()` si la compilation de SQLite le permet.
-
-## Contribuer / tests
-- Les tests unitaires et d'intégration se trouvent sous `tests/`. Lancez :
+## Validation locale
 
 ```bash
-TESTING=1 PYTHONPATH=. .venv/bin/python3 -m pytest -q
+TESTING=1 PYTHONPATH=. python -m pytest -q tests/unit tests/integration
+npm ci
 npm run check-frontend
 ```
 
-La commande pytest rapide exclut les suites UI, E2E et performance. Elles se
-lancent explicitement, par exemple avec `pytest -m ui tests/ui`.
+Les tests navigateur, de charge et les campagnes de conformité interopérable
+sont documentés dans [docs/TESTS_STATUS.md](docs/TESTS_STATUS.md). La
+configuration exécutée sur chaque push et pull request est
+[`interop-conformance.yml`](.github/workflows/interop-conformance.yml).
 
-Pour toute question ou besoin d'adaptation (ex: activation/désactivation d'auth pour certains environnements), dites-moi quelle politique vous souhaitez et je l'implémenterai.
+## Compose
 
----
-Fichier de documentation plus complet : [docs/PROGRAM_DOCUMENTATION.md](docs/PROGRAM_DOCUMENTATION.md#L1)
+Le déploiement Compose est reproductible depuis un checkout propre. Créer et
+renseigner `.env`, puis suivre le
+[guide de déploiement](docs/deployment/deployment.md). La CI construit la pile,
+applique les migrations sur PostgreSQL vierge et contrôle `/health`.
+
+## Structure du dépôt
+
+- `app/` : application, domaines métier, routeurs et assets UI ;
+- `alembic/` : migrations et baseline de schéma ;
+- `tests/` : tests unitaires, intégration, E2E et performance ;
+- `docker/` : image, Compose et configurations de services ;
+- `scripts/` : contrôles de qualité, qualification et utilitaires ;
+- `docs/` : documentation maintenue et historique de décision.

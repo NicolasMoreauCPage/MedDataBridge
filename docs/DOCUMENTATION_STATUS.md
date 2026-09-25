@@ -1,6 +1,6 @@
 # Statut et classement de la documentation
 
-Mis à jour le 24 septembre 2026. Propriétaire : équipe Qualité documentaire.
+Mis à jour le 25 septembre 2026. Propriétaire : équipe Qualité documentaire.
 
 Le dépôt contient de nombreux Markdown produits au fil des audits, sprints et
 qualifications. Ils ne sont pas supprimés : ils constituent une trace utile.
@@ -25,7 +25,7 @@ référence active, même s'il reste conservé pour la traçabilité.
 |---|---|---|
 | `README.md` | Présentation et démarrage du dépôt | Maintenu |
 | `docs/README.md` | Index de la documentation maintenue | Maintenu |
-| `docs/user_guide.md` | Guide utilisateur et procédures d'exploitation | Maintenu |
+| `docs/user_guide.md` | Guide utilisateur et procédures d'exploitation locale | Maintenu |
 | `docs/IHE_PAM*.md`, `docs/MFN_*.md`, `docs/HPRIM_*.md` | Guides techniques de protocole | À lire avec les rapports de conformité récents |
 | `docs/API_*.md`, `docs/FHIR_API.md` | Contrats et API applicatives | Certaines API IHM historiques ; contrat FR Core partenaire distinct |
 | `docs/OUTBOX.md`, `docs/TESTS_STATUS.md` | Exploitation et preuves exécutables | Maintenu |
@@ -33,7 +33,8 @@ référence active, même s'il reste conservé pour la traçabilité.
 | `docs/Technical/full/` | Description détaillée de l'architecture | Référence d'orientation ; le code prévaut |
 | `docs/architecture/`, `docs/ux/`, `docs/Patient/` | Notes de conception et décisions locales | Historique ou à revalider avant évolution |
 | `docs/archive/` | Documents explicitement remplacés | Archive |
-| `deployment/`, `docs/deployment/` | Guides de déploiement dépendants de la plate-forme | À revalider au déploiement |
+| `docs/deployment/deployment.md` | Procédure Compose depuis le checkout courant | Maintenu |
+| `docs/deployment/DEPLOIEMENT_PRODUCTION_README.md`, `docs/deployment/INSTALL_RHEL79.md`, `deployment/general/`, `deployment/postgresql/` | Anciennes procédures serveur, offline ou de bundles | Historiques ; ne pas exécuter sans revalidation |
 | `scripts/`, `tests/` | Aide aux scripts et tests | À maintenir avec le code concerné |
 
 ## Conventions appliquées
@@ -42,6 +43,9 @@ référence active, même s'il reste conservé pour la traçabilité.
   rapports et des scripts externes.
 - Les rapports historiques conservent leurs constats initiaux. Leur en-tête ou
   leur index indique désormais s'ils sont remplacés, validés ou encore ouverts.
+- Le déploiement de référence utilise `docker compose` v2. Les commandes
+  `docker-compose`, les branches de déploiement historiques et le wrapper
+  `scripts/deployment/deploy.sh` ne sont pas des procédures actives.
 - Les plans multi-protocoles clos restent à leur emplacement pour préserver les
   liens entrants, mais leur statut historique est explicite dans l'index actif.
 - Les nombres globaux de tests sont évités dans les documents maintenus. Une

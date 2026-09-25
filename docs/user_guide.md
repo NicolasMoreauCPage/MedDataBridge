@@ -1,6 +1,6 @@
 # Guide utilisateur complet — MedData Bridge
 
-Dernière mise à jour : 12 septembre 2026.
+Dernière mise à jour : 25 septembre 2026.
 
 MedData Bridge est un environnement local de qualification et d'exploitation
 des échanges IHE PAM France, HL7 MFN, HPRIM XML et FHIR R4 / FR Core. Il permet
@@ -27,17 +27,21 @@ Depuis la racine du dépôt :
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-python init_db.py
+python -m pip install -r requirements.txt
+cp .env.example .env
 uvicorn app.app:app --reload --port 8000
 ```
 
-En installation ou mise à niveau, appliquer également les migrations et le
-catalogue de scénarios livré :
+Les migrations Alembic sont appliquées au démarrage. Pour initialiser une base
+de démonstration complète (données, vocabulaires et scénarios), arrêter le
+serveur puis exécuter :
 
 ```bash
-alembic upgrade head
+python init_db.py
 ```
+
+Cette initialisation ne convient pas à une base de recette à conserver. Utiliser
+`python init_db.py --minimal` pour un jeu de démonstration réduit.
 
 Ouvrir ensuite <http://localhost:8000>.
 

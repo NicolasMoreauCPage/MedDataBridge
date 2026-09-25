@@ -1,5 +1,10 @@
 # Installation MedDataBridge sur RHEL 7.9 (Offline)
 
+> **Document historique.** Il décrit un bundle Python 3.8 et des dépendances
+> qui ne sont plus produits par ce dépôt. Utiliser le
+> [guide Compose courant](deployment.md) ou requalifier entièrement une cible
+> hors ligne avant usage.
+
 ## Prérequis
 - RHEL 7.9
 - Python 3.8+ installé (confirmé: Python 3.8.18)

@@ -1,238 +1,118 @@
-# 🚀 Guide de Déploiement MedBridge
+# Déploiement Compose — guide courant
 
-## Vue d'ensemble
+Dernière vérification : 25 septembre 2026.
 
-Ce guide explique comment déployer l'application MedBridge en production à partir de la branche `production-deployment`.
+Ce guide décrit le déploiement maintenu depuis la racine du checkout courant.
+Il remplace les procédures qui mentionnent la branche
+`production-deployment`, `docker-compose` v1 ou
+`scripts/deployment/deploy.sh`.
 
-## 📋 Prérequis
+## Prérequis
 
-- Docker & Docker Compose
-- Python 3.11+
-- Git
-- Au moins 4GB RAM, 2GB disque
+- Docker Engine et le plugin `docker compose` v2 ;
+- un port local disponible pour l'application (8000 par défaut) ;
+- un fichier `.env` contenant les clés de runtime.
 
-## 🏗️ Structure du projet
+Python n'est pas nécessaire pour utiliser Compose : l'image installe les
+dépendances runtime verrouillées par `requirements-runtime.lock`.
 
-```
-MedBridge/
-├── docker/                 # Configuration Docker
-│   ├── Dockerfile         # Image application
-│   ├── docker-compose.yml # Services (app, postgres, redis, nginx)
-│   └── nginx.conf         # Configuration reverse proxy
-├── config/                # Configuration centralisée
-│   └── settings.py        # Paramètres d'application
-├── scripts/               # Scripts de déploiement
-│   └── deploy.sh          # Script principal de déploiement
-├── .env.example           # Variables d'environnement
-└── PRODUCTION_READINESS.md # Checklist production
-```
-
-## 🚀 Déploiement Rapide
-
-### 1. Configuration initiale
+## Première installation
 
 ```bash
-# Cloner le projet
-git clone <repository-url>
-cd MedBridge
-
-# Basculer sur la branche production
-git checkout production-deployment
-
-# Copier la configuration d'environnement
+git clone <url-du-dépôt>
+cd MedData_Bridge
 cp .env.example .env
-
-# Éditer .env avec vos valeurs de production
-nano .env
 ```
 
-### 2. Variables d'environnement essentielles
+Éditer ensuite `.env`. Pour une exécution hors test, renseigner au minimum des
+valeurs propres à l'environnement pour `SECRET_KEY`, `JWT_SECRET_KEY` et
+`SESSION_SECRET_KEY`. Les variables de connexion de la pile Compose sont
+fournies par `docker/docker-compose.yml` : PostgreSQL et Redis utilisent le
+réseau interne Docker.
+
+Valider la configuration avant de créer des ressources :
 
 ```bash
-# .env
-ENVIRONMENT=production
-SECRET_KEY=votre-cle-secrete-très-longue
-JWT_SECRET_KEY=votre-cle-jwt-très-longue
-DATABASE_URL=postgresql://user:password@postgres:5432/medbridge
-REDIS_URL=redis://redis:6379
+docker compose -f docker/docker-compose.yml config --quiet
 ```
 
-### 3. Déploiement complet
+Cette commande fonctionne également sans `.env` dans un checkout propre ; le
+conteneur applicatif, lui, nécessite les clés de runtime pour démarrer hors
+mode développement.
+
+## Démarrer et vérifier
 
 ```bash
-# Déploiement complet (tests + build + déploiement)
-./scripts/deploy.sh production deploy
+docker compose -f docker/docker-compose.yml up -d --build --wait --wait-timeout 180
+curl --fail http://127.0.0.1:8000/health
+docker compose -f docker/docker-compose.yml ps
 ```
 
-## 🎯 Commandes de déploiement
+Le conteneur applique `alembic upgrade head` avant Uvicorn. Une base PostgreSQL
+vide est donc initialisée puis marquée à la révision Alembic courante ; une base
+existante reçoit seulement les migrations manquantes.
 
-### Tests uniquement
-```bash
-./scripts/deploy.sh development test
-```
-
-### Build uniquement
-```bash
-./scripts/deploy.sh staging build
-```
-
-### Déploiement complet
-```bash
-./scripts/deploy.sh production deploy
-```
-
-### Migrations de base de données
-```bash
-./scripts/deploy.sh production migrate
-```
-
-## 🔧 Configuration avancée
-
-### Base de données PostgreSQL
-
-Le `docker-compose.yml` inclut PostgreSQL. Pour une base externe :
+Pour choisir un autre port hôte :
 
 ```bash
-# .env
-DATABASE_URL=postgresql://user:password@your-host:5432/medbridge
+MEDBRIDGE_PORT=8002 docker compose -f docker/docker-compose.yml up -d --build --wait
+curl --fail http://127.0.0.1:8002/health
 ```
 
-### Cache Redis
-
-Activé automatiquement. Pour un Redis externe :
+## Exploitation courante
 
 ```bash
-# .env
-REDIS_URL=redis://your-redis-host:6379
+# Logs et état
+docker compose -f docker/docker-compose.yml logs --follow medbridge
+docker compose -f docker/docker-compose.yml ps
+
+# Vérifier la révision du schéma
+docker compose -f docker/docker-compose.yml exec medbridge python -m alembic current
+
+# Arrêt sans supprimer les données
+docker compose -f docker/docker-compose.yml down
+
+# Arrêt et suppression irréversible des données de la pile
+docker compose -f docker/docker-compose.yml down --volumes --remove-orphans
 ```
 
-### SSL/HTTPS
+Les données applicatives, PostgreSQL, Redis et les fichiers de log sont portés
+par des volumes Docker nommés. La dernière commande les supprime : ne l'utiliser
+que pour une installation de démonstration ou après une sauvegarde validée.
 
-1. Générer des certificats :
-```bash
-mkdir -p docker/ssl
-openssl req -x509 -newkey rsa:4096 -keyout docker/ssl/key.pem -out docker/ssl/cert.pem -days 365 -nodes
-```
+## Profils optionnels
 
-2. Activer HTTPS dans `docker/nginx.conf`
-
-3. Démarrer avec nginx :
-```bash
-docker-compose --profile nginx up -d
-```
-
-## 📊 Monitoring
-
-### Métriques de base
-
-L'application expose des métriques sur `/metrics` quand `ENABLE_METRICS=true`.
-
-### Logs
+Nginx et Prometheus ne sont pas démarrés par défaut :
 
 ```bash
-# Logs application
-docker-compose logs medbridge
-
-# Logs base de données
-docker-compose logs postgres
-
-# Tous les logs
-docker-compose logs
+docker compose -f docker/docker-compose.yml --profile nginx up -d
+docker compose -f docker/docker-compose.yml --profile monitoring up -d
 ```
 
-## 🔄 Mise à jour
+Le profil Nginx monte `docker/nginx.conf`. Les certificats éventuels doivent
+être placés dans `docker/ssl/`, puis la configuration HTTPS doit être activée
+dans ce fichier.
+
+## Mettre à niveau
 
 ```bash
-# Récupérer les dernières modifications
-git pull origin production-deployment
-
-# Redéployer
-./scripts/deploy.sh production deploy
+git pull
+docker compose -f docker/docker-compose.yml up -d --build --wait --wait-timeout 180
+curl --fail http://127.0.0.1:8000/health
 ```
 
-## 🐛 Dépannage
+Consulter les logs si le healthcheck échoue. Ne pas lancer une migration
+manuelle en parallèle du démarrage : l'entrypoint Compose l'exécute déjà.
 
-### L'application ne démarre pas
+## Livraison hors ligne
+
+Le bundle est toujours construit depuis les sources canoniques du checkout :
 
 ```bash
-# Vérifier les logs
-docker-compose logs medbridge
-
-# Vérifier la santé
-curl http://localhost:8000/health
+python3 scripts/build_deployment_bundle.py --output dist/meddata-bridge.zip
+python3 scripts/build_deployment_bundle.py --output dist/meddata-bridge-offline.zip --with-wheels
 ```
 
-### Problèmes de base de données
-
-```bash
-# Vérifier PostgreSQL
-docker-compose exec postgres pg_isready -U medbridge
-
-# Réinitialiser la base
-docker-compose down -v
-docker-compose up -d postgres
-```
-
-### Problèmes de cache Redis
-
-```bash
-# Vérifier Redis
-docker-compose exec redis redis-cli ping
-
-# Redémarrer Redis
-docker-compose restart redis
-```
-
-## 🔒 Sécurité
-
-### Checklist de sécurité
-
-- [ ] Changer toutes les clés secrètes par défaut
-- [ ] Configurer HTTPS en production
-- [ ] Restreindre l'accès réseau aux bases de données
-- [ ] Activer les logs d'audit
-- [ ] Configurer les backups automatiques
-- [ ] Mettre à jour régulièrement les images Docker
-
-### Variables sensibles
-
-Ne jamais commiter :
-- Clés secrètes
-- Mots de passe base de données
-- Certificats SSL
-- Tokens d'API
-
-Utiliser des secrets Docker ou un gestionnaire de secrets.
-
-## 📈 Performance
-
-### Optimisations incluses
-
-- Multi-stage Docker build
-- Uvicorn avec 4 workers
-- Connection pooling PostgreSQL
-- Cache Redis
-- Compression Gzip
-- Health checks
-
-### Monitoring des performances
-
-```bash
-# Métriques de performance
-curl http://localhost:8000/metrics
-
-# Utilisation des ressources
-docker stats
-```
-
-## 🆘 Support
-
-En cas de problème :
-1. Vérifier les logs détaillés
-2. Consulter `PRODUCTION_READINESS.md`
-3. Tester en environnement de développement
-4. Ouvrir une issue avec les logs pertinents
-
----
-
-*Dernière mise à jour : 20 décembre 2025*
+Le bundle ne contient pas une seconde copie versionnée de `app/`. Les anciens
+guides RHEL et les scripts de déploiement sont conservés pour la traçabilité,
+mais ne constituent pas la procédure Compose maintenue.

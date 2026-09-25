@@ -1,5 +1,9 @@
 # Déploiement vers qualifinterop.cpage.cloud
 
+> **Document historique lié à une infrastructure précise.** Les hôtes, scripts
+> et archives cités ci-dessous ne constituent pas une procédure de déploiement
+> courante. Pour un checkout actuel, suivre le [guide Compose](deployment.md).
+
 Ce document décrit comment déployer l'application depuis votre poste de travail `cici` vers le serveur `cpage@qualifinterop.cpage.cloud`.
 
 Pré-requis

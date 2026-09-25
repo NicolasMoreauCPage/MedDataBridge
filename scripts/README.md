@@ -32,8 +32,11 @@ scripts/
 
 ### 🚀 deployment/
 
-- `deploy.sh` : Script de déploiement principal
-- `remote_deploy.sh` : Déploiement sur serveur distant
+- `deploy.sh` : wrapper historique, non utilisé par la procédure courante
+- `remote_deploy.sh` : script historique de déploiement distant
+
+La procédure maintenue est le guide Compose :
+[docs/deployment/deployment.md](../docs/deployment/deployment.md).
 
 ### 📤 export/
 
@@ -109,8 +112,8 @@ python3 scripts/export/export_ihe_pam_scenarios.py
 # Exemple de validation
 python3 scripts/validation/validate_pam.py
 
-# Exemple de déploiement
-./scripts/deployment/deploy.sh
+# Déploiement Compose maintenu
+docker compose -f docker/docker-compose.yml up -d --build --wait
 ```
 
 ## 📝 Notes

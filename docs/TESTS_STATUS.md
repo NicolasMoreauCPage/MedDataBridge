@@ -1,6 +1,6 @@
 # État des tests
 
-Dernière revue documentaire : 14 septembre 2026.
+Dernière revue documentaire : 25 septembre 2026.
 
 Ce document ne fige volontairement ni un nombre global de tests ni une promesse
 de suite intégralement verte : ces chiffres deviennent vite périmés. La CI et
@@ -79,10 +79,10 @@ TESTING=1 PYTHONPATH=. .venv/bin/pytest -q \
 python3 scripts/true_roundtrip_cpage.py run
 ```
 
-Les tests d'IHM sont distincts des preuves de conformité protocolaire. Les
-suites Phase 5 sont vertes lors de la dernière campagne ciblée ; le scénario
-Phase 6 de filtrage de dossiers requiert encore une stabilisation E2E. Cette
-limite n'affecte ni la validation PAM ni les roundtrips interopérables.
+Les tests d'IHM restent distincts des preuves de conformité protocolaire. La
+CI exécute les contrôles frontend et les tests d'accessibilité dédiés ; consulter
+son résultat pour l'état de la révision en cours plutôt qu'un bilan de phase
+figé dans ce document.
 
 ## Règles de maintenance
 

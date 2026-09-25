@@ -85,7 +85,7 @@ from app.services.scenario_authoring import (
 )
 from app.services.scenario_template_init import init_scenario_templates
 from app.metrics import record_scenario_authoring_event
-from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS
+from app.workflows.transitions import SUPPORTED_WORKFLOW_EVENTS
 
 # Glose en langage clair pour les triggers ADT couramment rencontrés dans les
 # scénarios mais absents de SUPPORTED_WORKFLOW_EVENTS (pas des transitions de

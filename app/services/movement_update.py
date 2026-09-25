@@ -13,7 +13,7 @@ from app.services.movement_creation import (
     parse_movement_event,
 )
 from app.services.movement_form_context import EVENT_METADATA
-from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
+from app.workflows.transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
 
 def update_patient_movement(

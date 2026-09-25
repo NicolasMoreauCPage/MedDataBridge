@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections import deque
 
 from app.models.scenarios import InteropScenarioStep
-from app.state_transitions import ALLOWED_TRANSITIONS, IDENTITY_ONLY_TRIGGERS, INITIAL_EVENTS
+from app.workflows.transitions import ALLOWED_TRANSITIONS, IDENTITY_ONLY_TRIGGERS, INITIAL_EVENTS
 
 
 def _normalize(payload: str) -> list[str]:

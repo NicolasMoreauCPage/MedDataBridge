@@ -22,7 +22,7 @@ from app.models_structure import (
 )
 from app.services.movement_type_mapping import to_standard_movement_code
 from app.services.vocabulary_lookup import get_vocabulary_options
-from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
+from app.workflows.transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
 
 class MovementFormContextError(LookupError):

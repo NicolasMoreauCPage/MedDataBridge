@@ -10,7 +10,7 @@ import logging
 
 import httpx
 from typing import Optional, Tuple
-from app.state_transitions import is_valid_transition
+from app.workflows.transitions import is_valid_transition
 
 
 logger = logging.getLogger(__name__)

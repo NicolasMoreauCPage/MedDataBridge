@@ -12,7 +12,7 @@ from typing import Optional, Sequence
 
 from app.models.scenarios import InteropScenarioStep
 from app.services.mllp import parse_msh_fields
-from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition
+from app.workflows.transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition
 
 
 def _patient_identifier(payload: str) -> Optional[str]:

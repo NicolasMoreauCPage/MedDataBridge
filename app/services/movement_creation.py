@@ -8,7 +8,7 @@ from app.db import get_next_sequence
 from app.models import Mouvement, Venue
 from app.models_structure import Chambre, Lit, UniteFonctionnelle, UniteHebergement
 from app.services.movement_form_context import EVENT_METADATA
-from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
+from app.workflows.transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
 
 
 class MovementCreationError(ValueError):

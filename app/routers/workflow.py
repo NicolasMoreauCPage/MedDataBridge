@@ -14,7 +14,7 @@ from app.models_structure import (
 )
 
 from app.services.emit_on_create import emit_to_senders as emit_on_create
-from app.state_transitions import SUPPORTED_WORKFLOW_EVENTS, WORKFLOW_GRAPH
+from app.workflows.transitions import SUPPORTED_WORKFLOW_EVENTS, WORKFLOW_GRAPH
 
 
 def get_templates_with_filters(request: FastAPIRequest):
@@ -114,7 +114,7 @@ def workflow_view(
     session: Session = Depends(get_session),
     prefill_lit: Optional[int] = None,  # Préselection lit depuis plan de lits
 ):
-    from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
+    from app.workflows.transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
     from datetime import timedelta
     
     data = _collect_workflow_context(venue_id, session)
@@ -235,7 +235,7 @@ def create_mouvement(
         raise HTTPException(status_code=400, detail="Location is required for this movement")
 
     # Vérifier que l'événement est autorisé depuis l'état actuel
-    from app.state_transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
+    from app.workflows.transitions import ALLOWED_TRANSITIONS, INITIAL_EVENTS
     last = session.exec(
         select(Mouvement)
         .where(Mouvement.venue_id == venue_id)

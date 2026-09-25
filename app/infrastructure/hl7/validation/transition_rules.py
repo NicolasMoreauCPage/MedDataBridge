@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Optional
 
-from app.state_transitions import IDENTITY_ONLY_TRIGGERS, assert_transition
+from app.workflows.transitions import IDENTITY_ONLY_TRIGGERS, assert_transition
 
 logger = logging.getLogger(__name__)
 

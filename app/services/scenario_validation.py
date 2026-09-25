@@ -24,7 +24,7 @@ from datetime import datetime
 from app.services.pam_validation import validate_pam, ValidationResult, ValidationIssue
 from app.services.mllp import parse_msh_fields
 from app.services.siu import validate_siu
-from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition, INITIAL_EVENTS
+from app.workflows.transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition, INITIAL_EVENTS
 
 
 @dataclass

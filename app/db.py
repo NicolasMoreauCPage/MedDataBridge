@@ -29,7 +29,7 @@ from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridiqu
 from app.models.hprim_models import HprimMessage, HprimCCAMAct, HprimNGAPAct, HprimExchangeAct  # noqa: F401 - ORM registry
 from app.models.outbox import OutboundMessage  # noqa: F401 - ORM registry
 from app.models_identifiers import Identifier  # noqa: F401 - ORM registry
-from app.models_practitioners import MedecinResponsable  # noqa: F401 - ORM registry / FK resolution
+from app.models.practitioners import MedecinResponsable  # noqa: F401 - ORM registry / FK resolution
 from app import models_scenarios  # noqa: F401 - ORM registry
 from app import models_scenario_runs  # noqa: F401 - ORM registry
 from app.models import scenario_target_profiles as models_scenario_target_profiles  # noqa: F401 - ORM registry

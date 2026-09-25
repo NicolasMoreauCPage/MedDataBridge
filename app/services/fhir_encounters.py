@@ -107,7 +107,7 @@ def generate_encounter_resource_for_venue(venue: Venue, session: Optional[Sessio
     # Ajouter le médecin responsable depuis le dossier
     if dossier.medecin_responsable_id:
         if session:
-            from app.models_practitioners import MedecinResponsable
+            from app.models.practitioners import MedecinResponsable
             medecin = session.get(MedecinResponsable, dossier.medecin_responsable_id)
             if medecin:
                 encounter_res["participant"] = [{
@@ -224,7 +224,7 @@ def generate_encounter_resource_for_mouvement(mouvement: Mouvement, session: Opt
     # Ajouter le médecin responsable depuis le mouvement ou le dossier
     medecin_id = mouvement.medecin_responsable_id or dossier.medecin_responsable_id
     if medecin_id and session:
-        from app.models_practitioners import MedecinResponsable
+        from app.models.practitioners import MedecinResponsable
         medecin = session.get(MedecinResponsable, medecin_id)
         if medecin:
             encounter_res["participant"] = [{

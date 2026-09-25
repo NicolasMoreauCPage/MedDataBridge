@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.dependencies.request_data import read_form_data
 from app.models_endpoints import SystemEndpoint
-from app.models_practitioners import MedecinResponsable
+from app.models.practitioners import MedecinResponsable
 from app.models.scenario_target_profiles import ScenarioTargetLocation, ScenarioTargetProfile
 from app.models_structure import EntiteJuridique, UniteFonctionnelle
 from app.services.scenario_qualification_service import target_key

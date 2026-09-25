@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from app.models import Venue
-    from app.models_practitioners import MedecinResponsable
+    from app.models.practitioners import MedecinResponsable
 else:
     # Ensure the MedecinResponsable model is imported and registered in SQLModel
     # metadata at import time so foreign-key relationships to
     # `medecinresponsable` are available when create_all() is called from
     # scripts or tests that import structure models directly.
     try:
-        import app.models_practitioners  # noqa: F401
+        import app.models.practitioners  # noqa: F401
     except Exception as exc:
         # If import fails (e.g. during partial test runs), proceed silently;
         # tests that require the practitioners model will still fail later

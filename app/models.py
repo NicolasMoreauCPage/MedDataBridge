@@ -13,7 +13,7 @@ from app.models_structure import Chambre, Lit
 
 if TYPE_CHECKING:
     from app.models_contacts import PatientContact, VenueContact
-    from app.models_practitioners import MedecinResponsable
+    from app.models.practitioners import MedecinResponsable
 
 
 class IdentityReliabilityCode(str, Enum):

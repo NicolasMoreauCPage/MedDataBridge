@@ -11,7 +11,7 @@ from datetime import date
 
 from app.db import get_session
 from app.models import Dossier
-from app.models_practitioners import MedecinResponsable
+from app.models.practitioners import MedecinResponsable
 from app.services.contract_service import ContractService
 
 router = APIRouter(prefix="/contracts", tags=["Contrats Web"])

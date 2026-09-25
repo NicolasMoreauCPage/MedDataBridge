@@ -3,7 +3,7 @@ Service pour extraction et gestion des médecins responsables depuis HL7
 """
 from typing import Optional, Tuple
 from sqlmodel import Session, select
-from app.models_practitioners import MedecinResponsable
+from app.models.practitioners import MedecinResponsable
 from datetime import datetime
 import logging
 

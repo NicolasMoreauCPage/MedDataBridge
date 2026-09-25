@@ -30,7 +30,7 @@ from app.hprim_models import (
     HprimUCD,
 )
 from app.models import CCAMAct, Dossier, LPPAct, NGAPAct, Patient, UCDAct
-from app.models_practitioners import MedecinResponsable
+from app.models.practitioners import MedecinResponsable
 from app.metrics import record_outbound_delivery_safely
 from app.services.hprim.hprim_xml import HprimXmlService
 from app.utils.booleans import as_bool

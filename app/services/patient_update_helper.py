@@ -155,7 +155,7 @@ def create_patient_from_pid_data(
     """
     from app.db import get_next_sequence
     from app.services.identifier_namespace_classifier import classify_incoming_identifiers
-    from app.models_identifiers import IdentifierType
+    from app.models.identifiers import IdentifierType
     
     # Si identifier est fourni explicitement, l'utiliser
     if identifier is not None:
@@ -216,7 +216,7 @@ def create_patient_from_pid_data(
     )
     
     # Créer les identifiants externes dans la table Identifier
-    from app.models_identifiers import Identifier
+    from app.models.identifiers import Identifier
     for ext_id in classification.get('external_identifiers', []):
         identifier_obj = Identifier(
             value=ext_id['value'],

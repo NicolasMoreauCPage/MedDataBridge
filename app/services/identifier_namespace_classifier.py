@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlmodel import select, Session
 
 from app.models_structure import IdentifierNamespace, Lit
-from app.models_identifiers import IdentifierType
+from app.models.identifiers import IdentifierType
 
 
 # Types d'entités autorisés pour la classification EJ

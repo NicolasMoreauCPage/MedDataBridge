@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 from sqlmodel import Session, select
 
-from app.models_identifiers import Identifier, IdentifierType
+from app.models.identifiers import Identifier, IdentifierType
 from app.services.hl7_fields import build_adt_header, build_patient_name, to_hl7_administrative_sex
 from app.services.pam_profile_fr import format_xtn, normalize_generated_message
 from app.services.pam_emission_primitives import (

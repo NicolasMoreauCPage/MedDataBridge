@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 from app.models import Dossier, Patient, Venue, Mouvement
 from app.db import get_next_sequence
 from app.services.identifier_manager import create_identifiers_from_hl7_with_namespace_check, parse_hl7_cx_identifier, create_identifier_from_hl7
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.utils.booleans import as_bool
 from app.services.pam_correlations import (
     _identifier_tuple_for_classifier,

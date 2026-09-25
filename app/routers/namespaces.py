@@ -7,7 +7,7 @@ from starlette.responses import RedirectResponse
 from app.db import get_session
 from app.dependencies.request_data import read_form_data
 from app.models_structure import GHTContext, IdentifierNamespace, EntiteJuridique
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.utils.flash import flash
 
 logger = logging.getLogger(__name__)

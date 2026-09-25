@@ -418,7 +418,7 @@ def seed_demo_population(
 
         # Générer un IPP comme identifiant externe
         from app.models_structure import IdentifierNamespace
-        from app.models_identifiers import Identifier, IdentifierType
+        from app.models.identifiers import Identifier, IdentifierType
         # Sélectionner le namespace IPP principal pour cette EJ
         ipp_namespace = session.exec(select(IdentifierNamespace).where(IdentifierNamespace.type == "IPP").where(IdentifierNamespace.entite_juridique_id == ej_id)).first()
         ipp_value = None

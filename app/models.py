@@ -6,7 +6,7 @@ from sqlalchemy.types import TypeDecorator, Date as SA_Date
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
 
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 import app.models.contacts
 import app.models_structure  # noqa: F401 - registre des relations ORM
 from app.models_structure import Chambre, Lit

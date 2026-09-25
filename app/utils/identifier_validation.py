@@ -3,7 +3,7 @@ Utilitaires de validation et gestion des identifiants patients.
 """
 from typing import Optional
 from sqlmodel import Session, select
-from app.models_identifiers import Identifier, IdentifierType
+from app.models.identifiers import Identifier, IdentifierType
 
 
 class DuplicateIdentifierError(ValueError):

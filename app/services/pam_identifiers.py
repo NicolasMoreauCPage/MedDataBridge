@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.models_structure import IdentifierNamespace
 from app.services.identifier_manager import map_identifier_type_to_hl7_code
 from app.services.pam_emission_primitives import clean_hl7_value, safe_query

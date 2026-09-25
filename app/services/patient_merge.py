@@ -32,7 +32,7 @@ from typing import Dict, List, Optional, Tuple
 from sqlmodel import Session, select
 
 from app.models import Patient, Dossier
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.services.identifier_manager import (
     create_identifier_from_hl7,
     map_identifier_type_to_hl7_code,
@@ -536,7 +536,7 @@ def change_patient_identifier(
             session.add(old_identifier_row)
 
         # Créer le nouvel identifiant actif et en faire l'identifiant principal du patient
-        from app.models_identifiers import IdentifierType
+        from app.models.identifiers import IdentifierType
         try:
             id_type = IdentifierType(new_type)
         except ValueError:

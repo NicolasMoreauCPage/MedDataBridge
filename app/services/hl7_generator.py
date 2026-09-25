@@ -29,7 +29,7 @@ from app.models.contacts import PatientContact, VenueContact  # NK1 generation f
 from app.services.nature_mapping import derive_nature
 from app.services.vocabulary_translate import reverse_map_code
 from app.models.shared import SystemEndpoint
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.models_structure import IdentifierNamespace
 from sqlmodel import Session, select
 from app.services.pam_profile_fr import normalize_generated_message

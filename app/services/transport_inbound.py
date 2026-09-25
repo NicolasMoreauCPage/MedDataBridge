@@ -26,7 +26,7 @@ from app.services.mllp import parse_msh_fields, build_ack
 from app.services.pam_validation import validate_pam
 import json
 from app.models import Patient, Dossier, Venue, Mouvement
-from app.models_identifiers import Identifier, IdentifierType
+from app.models.identifiers import Identifier, IdentifierType
 from app.db import get_next_sequence
 from app.services.message_router import IHEMessageRouter
 

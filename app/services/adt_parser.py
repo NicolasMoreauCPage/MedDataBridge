@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple, Any
 from sqlmodel import Session, select
 from app.models import Patient, Dossier, Venue, Mouvement, DossierType
-from app.models_identifiers import Identifier, IdentifierType
+from app.models.identifiers import Identifier, IdentifierType
 from app.models_structure import IdentifierNamespace
 from app.db import get_next_sequence
 

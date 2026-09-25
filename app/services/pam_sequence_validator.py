@@ -23,7 +23,7 @@ from app.services.pam_validation import ValidationIssue, ValidationResult
 from app.services.mllp import parse_msh_fields
 from app.state_transitions import IDENTITY_ONLY_TRIGGERS, is_valid_transition
 from app.services.identifier_manager import parse_hl7_cx_identifier
-from app.models_identifiers import IdentifierType
+from app.models.identifiers import IdentifierType
 from app.services.pam_i18n import translate_issues_to_fr
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ def find_mouvement_by_zbe_id(session, zbe_1: str):
 
     # Second attempt: lookup via Identifier table (Identifier.type == MVT)
     try:
-        from app.models_identifiers import Identifier
+        from app.models.identifiers import Identifier
         # Match on value and optionally system/oid; prefer Identifier.type == MVT
         q = select(Identifier).where(Identifier.value == value)
         if system:
@@ -249,7 +249,7 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                                 if not nxt:
                                     break
                                 # attempt to read a stored ZBE-6-like identifier on the resolved movement
-                                from app.models_identifiers import Identifier
+                                from app.models.identifiers import Identifier
                                 idents = session.exec(select(Identifier).where(Identifier.mouvement_id == nxt.id)).all()
                                 cur_zbe = None
                                 for it in idents:
@@ -280,7 +280,7 @@ def validate_pam_sequence(msg: str, session) -> ValidationResult:
                         logger.debug("Optional operation skipped", exc_info=exc)
                     # Child-dependency check: if other movements reference this movement, cancelling it may be problematic
                     try:
-                        from app.models_identifiers import Identifier
+                        from app.models.identifiers import Identifier
                         from app.models import Mouvement as Mov
                         if mov:
                             # identifiers referencing this mouvement_seq as value

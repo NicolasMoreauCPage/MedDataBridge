@@ -16,7 +16,7 @@ from app.models_structure import (
 )
 from app.converters.fhir_converter import FRCORE_PROFILES
 from app.models import Patient, Dossier, Mouvement, Venue
-from app.models_identifiers import Identifier, IdentifierType
+from app.models.identifiers import Identifier, IdentifierType
 from app.models.practitioners import MedecinResponsable
 from app.services.medecin_extractor import get_or_create_medecin
 

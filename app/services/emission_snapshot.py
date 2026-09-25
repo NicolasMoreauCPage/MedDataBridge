@@ -9,7 +9,7 @@ import logging
 
 from sqlmodel import Session, select
 
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 
 logger = logging.getLogger(__name__)
 

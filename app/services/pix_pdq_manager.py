@@ -10,7 +10,7 @@ import logging
 from sqlmodel import Session, select
 
 from app.models import Patient
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.services.identifier_manager import (
     create_identifier_from_hl7,
     create_fhir_identifier,

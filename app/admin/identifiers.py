@@ -1,6 +1,6 @@
 """Vues admin pour les identifiers et namespaces"""
 from sqladmin import ModelView
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.models_structure import IdentifierNamespace
 
 

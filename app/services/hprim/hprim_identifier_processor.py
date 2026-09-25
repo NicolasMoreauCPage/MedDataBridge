@@ -12,7 +12,7 @@ from typing import Dict, Optional, Tuple
 from sqlmodel import Session
 
 from app.services.identifier_namespace_classifier import classify_hprim_identifiers
-from app.models_identifiers import IdentifierType
+from app.models.identifiers import IdentifierType
 from app.hprim_models import HprimEnteteMessage
 
 

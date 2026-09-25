@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.dependencies.request_data import read_form_data
 from app.models import Dossier, Patient
-from app.models_identifiers import Identifier
+from app.models.identifiers import Identifier
 from app.services import patients_service
 from app.services.patients_service import PatientCreateSchema, PatientUpdateSchema
 from app.services.scenario_identity_generator import (

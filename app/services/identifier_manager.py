@@ -3,7 +3,7 @@ Services de gestion des identifiants et mappings FHIR/HL7
 """
 from typing import List, Dict, Optional, Tuple
 
-from app.models_identifiers import Identifier, IdentifierType
+from app.models.identifiers import Identifier, IdentifierType
 from app.services.identifier_namespace_classifier import classify_incoming_identifiers
 
 

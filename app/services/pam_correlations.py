@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 from sqlmodel import Session, select
 
 from app.models import Mouvement
-from app.models_identifiers import Identifier, IdentifierType
+from app.models.identifiers import Identifier, IdentifierType
 from app.services.identifier_manager import parse_hl7_cx_identifier
 
 def _identifier_tuple_for_classifier(cx_value: str) -> Tuple[str, str, Optional[str], str]:
